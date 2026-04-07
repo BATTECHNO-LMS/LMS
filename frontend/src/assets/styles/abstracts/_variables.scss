@@ -1,0 +1,103 @@
+// BATTECHNO-LMS — design tokens (source of truth from product brief)
+
+$color-primary: #6a73fa;
+$color-secondary: #673bb7;
+$color-primary-hover: #3945f8;
+$color-primary-light: #9ba1fc;
+
+$color-bg: #f5f5f5;
+$color-card: #ffffff;
+$color-text: #312a2a;
+$color-heading: #3d4465;
+$color-text-muted: #737b8b;
+$color-border: #e6e6e6;
+/** خلفية عناوين الجداول/رؤوس البطاقات — متناغمة مع اللون الأساسي */
+$color-surface-header: #f3f4fd;
+$color-surface-light: #f5f5f5;
+/** حدود البطاقات/الجداول بلمسة خفيفة من الأساسي */
+$color-border-tinted: #e8e9fc;
+
+$color-success: #7ed321;
+$color-info: #50e3c2;
+$color-warning: #ffaa16;
+$color-danger: #ff1616;
+$color-dark: #454545;
+
+$font-family-base: 'Roboto', 'Noto Sans Arabic', system-ui, sans-serif;
+
+$radius-sm: 0.25rem;
+$radius-md: 0.375rem;
+$radius-lg: 0.5rem;
+$radius-pill: 50rem;
+
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+
+/** ظل بطاقة ثلاثي الأبعاد — طبقات عمق + لمسة أساسية */
+$shadow-card-3d:
+  0 1px 0 rgba(255, 255, 255, 0.7) inset,
+  0 2px 4px rgba(0, 0, 0, 0.04),
+  0 6px 16px rgba(106, 115, 250, 0.1),
+  0 14px 36px -10px rgba(0, 0, 0, 0.1);
+
+$shadow-card-3d-hover:
+  0 1px 0 rgba(255, 255, 255, 0.85) inset,
+  0 4px 8px rgba(0, 0, 0, 0.06),
+  0 12px 28px rgba(106, 115, 250, 0.14),
+  0 24px 48px -12px rgba(0, 0, 0, 0.12);
+
+$sidebar-width: 16.5rem;
+$sidebar-collapsed-width: 4.5rem;
+$header-height: 4.5rem;
+
+$z-header: 120;
+$z-sidebar: 110;
+$z-dropdown: 200;
+
+:root {
+  color-scheme: light;
+  --color-primary: #{$color-primary};
+  --color-secondary: #{$color-secondary};
+  --color-primary-hover: #{$color-primary-hover};
+  --color-primary-light: #{$color-primary-light};
+  --color-bg: #{$color-bg};
+  --color-card: #{$color-card};
+  --color-text: #{$color-text};
+  --color-heading: #{$color-heading};
+  --color-text-muted: #{$color-text-muted};
+  --color-border: #{$color-border};
+  --color-surface-header: #{$color-surface-header};
+  --color-surface-light: #{$color-surface-light};
+  --color-border-tinted: #{$color-border-tinted};
+  --color-success: #{$color-success};
+  --color-info: #{$color-info};
+  --color-warning: #{$color-warning};
+  --color-danger: #{$color-danger};
+  --color-dark: #{$color-dark};
+  --shadow-sm: #{$shadow-sm};
+  --shadow-md: #{$shadow-md};
+  --shadow-card-3d: #{$shadow-card-3d};
+  --shadow-card-3d-hover: #{$shadow-card-3d-hover};
+  --gradient-card-face: linear-gradient(165deg, #ffffff 0%, #fafbff 45%, #f4f5fc 100%);
+  --radius-md: #{$radius-md};
+  --sidebar-width: #{$sidebar-width};
+  --header-height: #{$header-height};
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --color-bg: #141414;
+  --color-card: #1c1c1c;
+  --color-text: #ececec;
+  --color-heading: #e2e4f0;
+  --color-text-muted: #a8b0c2;
+  --color-border: #2a2a2a;
+  --color-surface-header: #252530;
+  --color-surface-light: #222;
+  --color-border-tinted: #32324a;
+  --shadow-card-3d: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 28px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+  --shadow-card-3d-hover: 0 4px 8px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(106, 115, 250, 0.15) inset;
+  --gradient-card-face: linear-gradient(165deg, #1f1f24 0%, #1c1c1c 100%);
+}

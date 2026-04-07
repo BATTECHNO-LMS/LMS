@@ -1,0 +1,40 @@
+@use '../abstracts/variables' as *;
+
+.search-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input__icon {
+  position: absolute;
+  inset-inline-start: 0.75rem;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.search-input__control {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem 0.45rem 2.5rem;
+  border-radius: $radius-md;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  color: var(--color-text);
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.2);
+  }
+}
+
+[dir='rtl'] .search-input__control {
+  padding-inline-start: 0.75rem;
+  padding-inline-end: 2.5rem;
+}
+
+[dir='rtl'] .search-input__icon {
+  inset-inline-start: auto;
+  inset-inline-end: 0.75rem;
+}

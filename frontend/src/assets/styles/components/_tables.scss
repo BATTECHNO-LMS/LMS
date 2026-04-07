@@ -1,0 +1,71 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+.data-table-wrap {
+  @include card-surface;
+  overflow: hidden;
+}
+
+.data-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-text);
+
+  th,
+  td {
+    padding: 0.75rem 1rem;
+    text-align: start;
+    border-bottom: 1px solid var(--color-border-tinted);
+    vertical-align: middle;
+  }
+
+  thead th {
+    @include surface-header-strip;
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--color-border-tinted);
+  }
+
+  tbody tr {
+    @include transition(background-color, 0.12s);
+    background: var(--color-card);
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+}
+
+.data-table__empty {
+  text-align: center;
+  color: var(--color-text-muted);
+  padding: 2rem 1rem !important;
+}
+
+.data-table__empty-cell {
+  padding: 0 !important;
+  vertical-align: middle;
+  border-bottom: none !important;
+}
+
+.data-table__footer {
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border-tinted);
+  background: var(--color-surface-header);
+}
+
+.data-table__pagination {
+  text-align: center;
+}

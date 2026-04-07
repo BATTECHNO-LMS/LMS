@@ -1,0 +1,45 @@
+@use '../abstracts/variables' as *;
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.5rem;
+  border-radius: $radius-md;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status-badge--neutral {
+  background: var(--color-surface-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.status-badge--muted {
+  background: rgba($color-text-muted, 0.12);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+.status-badge--success {
+  background: rgba($color-success, 0.12);
+  color: #3f6a0f;
+}
+
+.status-badge--info {
+  background: rgba($color-info, 0.12);
+  color: #1f8a75;
+}
+
+.status-badge--warning {
+  background: rgba($color-warning, 0.15);
+  color: #8a5a00;
+}
+
+.status-badge--danger {
+  background: rgba($color-danger, 0.12);
+  color: #c70f0f;
+}

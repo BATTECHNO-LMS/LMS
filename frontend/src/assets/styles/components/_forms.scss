@@ -1,0 +1,118 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.form-field__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-heading);
+}
+
+.form-field__control {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: $radius-md;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  color: var(--color-text);
+  @include transition(border-color box-shadow, 0.15s);
+
+  &::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  &:hover:not(:disabled) {
+    border-color: rgba($color-primary, 0.28);
+  }
+
+  &:focus {
+    border-color: $color-primary;
+    @include focus-ring-primary;
+  }
+}
+
+select.form-field__control {
+  cursor: pointer;
+}
+
+textarea.form-field__control--textarea {
+  min-height: 6rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.form-field--switch {
+  margin-bottom: 1rem;
+}
+
+.form-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.form-switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.form-switch__slider {
+  position: relative;
+  width: 2.75rem;
+  height: 1.5rem;
+  border-radius: $radius-pill;
+  background: var(--color-border);
+  flex-shrink: 0;
+  @include transition(background-color, 0.15s);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    background: var(--color-card);
+    box-shadow: $shadow-sm;
+    @include transition(transform, 0.15s);
+  }
+}
+
+.form-switch__input:checked + .form-switch__slider {
+  background: $color-primary;
+}
+
+.form-switch__input:focus-visible + .form-switch__slider {
+  @include focus-ring-primary;
+}
+
+.form-switch__input:checked + .form-switch__slider::after {
+  transform: translateX(-1.2rem);
+}
+
+[dir='rtl'] .form-switch__input:checked + .form-switch__slider::after {
+  transform: translateX(1.2rem);
+}
+
+.form-switch__label {
+  font-size: 0.9375rem;
+  color: var(--color-text);
+}
+
+.form-field__error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: $color-danger;
+}

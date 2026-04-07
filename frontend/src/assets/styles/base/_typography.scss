@@ -1,0 +1,33 @@
+@use '../abstracts/variables' as *;
+
+body {
+  font-family: $font-family-base;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: $font-family-base;
+  color: var(--color-heading);
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: $color-primary;
+  text-decoration: none;
+
+  &:hover {
+    color: $color-primary-hover;
+  }
+}

@@ -1,0 +1,37 @@
+@use '../abstracts/variables' as *;
+
+.page {
+  min-height: 100%;
+}
+
+.page--dashboard {
+  max-width: 75rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-section {
+  margin-top: 0.5rem;
+}
+
+.dashboard-section__title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  margin: 0 0 0.85rem;
+  color: var(--color-heading);
+}
+
+.dashboard-placeholder {
+  @extend .dashboard-section;
+  padding: 1.25rem;
+  border-radius: $radius-md;
+  border: 1px dashed rgba($color-primary, 0.22);
+  background: var(--color-card);
+  color: var(--color-text-muted);
+  font-size: 0.9375rem;
+}

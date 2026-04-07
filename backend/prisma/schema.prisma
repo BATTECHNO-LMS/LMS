@@ -1,0 +1,18 @@
+// BATTECHNO-LMS — PostgreSQL schema (expand models as domains are implemented).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Example anchor model — replace/extend with full user model when implementing auth.
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

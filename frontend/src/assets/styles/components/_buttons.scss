@@ -1,0 +1,134 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.1rem;
+  min-height: 2.5rem;
+  border-radius: $radius-md;
+  border: 1px solid transparent;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  @include transition(background-color border-color color, 0.15s);
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.btn--primary {
+  background: $color-primary;
+  color: #fff;
+  border-color: $color-primary;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-hover;
+    border-color: $color-primary-hover;
+    color: #fff;
+
+    svg {
+      color: #fff;
+      stroke: #fff;
+    }
+  }
+}
+
+.btn--secondary {
+  background: $color-secondary;
+  color: #fff;
+  border-color: $color-secondary;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.95);
+  }
+}
+
+.btn--outline {
+  background: transparent;
+  color: $color-primary;
+  border-color: $color-primary;
+
+  &:hover:not(:disabled) {
+    background: $color-primary;
+    border-color: $color-primary;
+    color: #fff;
+
+    svg {
+      color: #fff;
+      stroke: #fff;
+    }
+  }
+}
+
+.btn--danger {
+  background: $color-danger;
+  color: #fff;
+  border-color: $color-danger;
+
+  &:hover:not(:disabled) {
+    filter: brightness(0.94);
+    color: #fff;
+
+    svg {
+      color: #fff;
+      stroke: #fff;
+    }
+  }
+}
+
+.btn--light {
+  background: var(--color-surface-light);
+  color: var(--color-text);
+  border-color: var(--color-border);
+
+  &:hover:not(:disabled) {
+    border-color: $color-primary-light;
+  }
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text);
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    background: $color-primary;
+    color: #fff;
+
+    svg {
+      color: #fff;
+      stroke: #fff;
+    }
+  }
+}
+
+.btn--icon {
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0.35rem;
+
+  &:hover:not(:disabled),
+  &:focus-visible {
+    background: $color-primary !important;
+    color: #fff !important;
+    border-color: $color-primary !important;
+
+    svg {
+      color: #fff !important;
+      stroke: #fff !important;
+    }
+  }
+}

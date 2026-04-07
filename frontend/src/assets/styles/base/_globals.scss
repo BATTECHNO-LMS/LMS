@@ -1,0 +1,33 @@
+@use '../abstracts/variables' as *;
+
+[dir='rtl'] {
+  direction: rtl;
+  text-align: start;
+}
+
+.text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+.mt-3 {
+  margin-top: 1rem !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}

@@ -1,0 +1,85 @@
+@use '../abstracts/variables' as *;
+
+.page--instructor {
+  max-width: 80rem;
+}
+
+.page--instructor .admin-page-header {
+  margin-bottom: 1.25rem;
+}
+
+.attendance-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  color: var(--color-text);
+
+  th,
+  td {
+    padding: 0.65rem 0.75rem;
+    text-align: start;
+    border-bottom: 1px solid var(--color-border-tinted);
+    vertical-align: middle;
+  }
+
+  thead th {
+    background: var(--color-surface-header);
+    font-weight: 600;
+    color: var(--color-heading);
+    white-space: nowrap;
+    border-bottom: 1px solid var(--color-border-tinted);
+  }
+
+  tbody tr {
+    background: var(--color-card);
+
+    &:hover {
+      background: rgba($color-primary, 0.05);
+    }
+  }
+}
+
+.attendance-table__name {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.attendance-table__presence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+}
+
+.attendance-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: var(--color-text);
+
+  input {
+    accent-color: $color-primary;
+  }
+}
+
+.attendance-table__select {
+  min-width: 8.5rem;
+}
+
+.attendance-table__na {
+  color: var(--color-text-muted);
+}
+
+.attendance-table__hint {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}

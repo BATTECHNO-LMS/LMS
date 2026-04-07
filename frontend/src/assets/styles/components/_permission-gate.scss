@@ -1,0 +1,38 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+.page--unauthorized {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  padding: 2rem 1rem;
+}
+
+.unauthorized-card {
+  max-width: 26rem;
+  text-align: center;
+  padding: 2rem 1.5rem;
+  @include card-surface;
+  @include card-surface-lift(-3px);
+}
+
+.unauthorized-card__icon {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  margin-bottom: 1rem;
+}
+
+.unauthorized-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.unauthorized-card__desc {
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+}
