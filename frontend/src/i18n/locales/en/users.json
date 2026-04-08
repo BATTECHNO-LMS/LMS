@@ -1,0 +1,53 @@
+{
+  "title": "User management",
+  "description": "Manage user accounts and permissions within the system.",
+  "addUser": "Add user",
+  "searchPlaceholder": "Search by name or email",
+  "filters": {
+    "role": "Role",
+    "allRoles": "All roles",
+    "instructor": "Instructor",
+    "student": "Student",
+    "admin": "Admin",
+    "qaOfficer": "QA Officer"
+  },
+  "stats": {
+    "total": "Total users",
+    "active": "Active users",
+    "inactive": "Suspended users",
+    "newUsers": "New users"
+  },
+  "listTitle": "User list",
+  "table": {
+    "name": "Name",
+    "email": "Email",
+    "role": "Role",
+    "lastLogin": "Last login"
+  },
+  "empty": {
+    "noData": "No data",
+    "noResults": "No results",
+    "tryFilters": "Try adjusting filters or search.",
+    "noRecords": "No records found."
+  },
+  "create": {
+    "title": "Create user",
+    "description": "Enter the new user details, then save.",
+    "section": "Basic details"
+  },
+  "edit": {
+    "title": "Edit user",
+    "description": "Update the selected user.",
+    "section": "Details"
+  },
+  "view": {
+    "title": "User details",
+    "description": "View user details and status.",
+    "notFound": "User not found."
+  },
+  "crud": {
+    "create": "Create",
+    "edit": "Edit",
+    "details": "Details"
+  }
+}

@@ -1,4 +1,6 @@
 import { Eye, PenLine, MessageSquare, Inbox, CheckCircle2, Hourglass } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
@@ -8,72 +10,107 @@ import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { PermissionGate } from '../../components/permissions/PermissionGate.jsx';
+import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { INSTRUCTOR_SUBMISSION_ROWS } from '../../mocks/instructorAssessmentWorkspace.js';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 
 export function InstructorSubmissionsPage() {
-  const rows = INSTRUCTOR_SUBMISSION_ROWS;
+  const { t } = useTranslation('submissions');
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const scoped = useMemo(() => filterRows(INSTRUCTOR_SUBMISSION_ROWS), [filterRows, scopeId]);
+  const rows = scoped.map((r) => ({
+    ...r,
+    studentName: isArabic ? r.studentNameAr ?? r.studentName : r.studentNameEn ?? r.studentName,
+    assessmentName: isArabic ? r.assessmentNameAr ?? r.assessmentName : r.assessmentNameEn ?? r.assessmentName,
+  }));
   const P = UI_PERMISSION;
 
   return (
-    <div className="page page--dashboard page--instructor">
-      <AdminPageHeader
-        title="التسليمات"
-        description="مراجعة تسليمات المتعلمين، التصحيح، ونشر الملاحظات."
-      />
-      <AdminFilterBar>
-        <SearchInput placeholder="بحث بالمتعلم أو التقييم" aria-label="بحث" />
-      </AdminFilterBar>
-      <AdminStatsGrid>
-        <StatCard label="بانتظار المراجعة" value="—" icon={Inbox} />
-        <StatCard label="تم التصحيح" value="—" icon={CheckCircle2} />
-        <StatCard label="متأخرة" value="—" icon={Hourglass} />
-      </AdminStatsGrid>
-      <SectionCard title="قائمة التسليمات">
-        <DataTable
-          columns={[
-            { key: 'studentName', label: 'اسم الطالب' },
-            { key: 'assessmentName', label: 'التقييم' },
-            { key: 'submittedAt', label: 'وقت التسليم' },
-            {
-              key: 'status',
-              label: 'الحالة',
-              render: () => <StatusBadge variant="info">مسلّم</StatusBadge>,
-            },
-            {
-              key: 'gradeStatus',
-              label: 'حالة الدرجة',
-              render: (r) => (
-                <StatusBadge variant={r.gradeStatus === 'graded' ? 'success' : 'warning'}>
-                  {r.gradeStatus === 'graded' ? 'مصحّح' : 'بانتظار'}
-                </StatusBadge>
-              ),
-            },
-            {
-              key: 'actions',
-              label: 'الإجراءات',
-              render: () => (
-                <div className="table-row-actions">
-                  <button type="button" className="btn btn--icon btn--ghost" title="عرض التسليم" aria-label="عرض التسليم">
-                    <Eye size={18} />
-                  </button>
-                  <PermissionGate permission={P.canGradeAssessments}>
-                    <button type="button" className="btn btn--icon btn--ghost" title="تصحيح" aria-label="تصحيح">
-                      <PenLine size={18} />
-                    </button>
-                  </PermissionGate>
-                  <PermissionGate permission={P.canPublishFeedback}>
-                    <button type="button" className="btn btn--icon btn--ghost" title="ملاحظات" aria-label="ملاحظات">
-                      <MessageSquare size={18} />
-                    </button>
-                  </PermissionGate>
-                </div>
-              ),
-            },
-          ]}
-          rows={rows}
-        />
-      </SectionCard>
-    </div>
+    <PagePermissionGate permission={P.canViewSubmissionsTeaching}>
+      <div className="page page--dashboard page--instructor">
+        <AdminPageHeader title={<>{t('instructor.title')}</>} description={<>{t('instructor.description')}</>} />
+        <AdminFilterBar>
+          <SearchInput placeholder={t('instructor.searchPlaceholder')} aria-label={t('instructor.searchAria')} />
+        </AdminFilterBar>
+        <AdminStatsGrid>
+          <StatCard label={t('instructor.stats.awaitingReview')} value="—" icon={Inbox} />
+          <StatCard label={t('instructor.stats.graded')} value="—" icon={CheckCircle2} />
+          <StatCard label={t('instructor.stats.late')} value="—" icon={Hourglass} />
+        </AdminStatsGrid>
+        <SectionCard title={<>{t('instructor.sectionTitle')}</>}>
+          <DataTable
+            emptyTitle={t('instructor.empty.title')}
+            emptyDescription={t('instructor.empty.description')}
+            columns={[
+              { key: 'studentName', label: t('instructor.table.studentName') },
+              { key: 'assessmentName', label: t('instructor.table.assessmentName') },
+              { key: 'submittedAt', label: t('instructor.table.submittedAt') },
+              {
+                key: 'status',
+                label: t('instructor.table.status'),
+                render: () => (
+                  <StatusBadge variant="info">{t('instructor.submissionStatus.submitted')}</StatusBadge>
+                ),
+              },
+              {
+                key: 'gradeStatus',
+                label: t('instructor.table.gradeStatus'),
+                render: (r) => (
+                  <StatusBadge variant={r.gradeStatus === 'graded' ? 'success' : 'warning'}>
+                    {r.gradeStatus === 'graded'
+                      ? t('instructor.gradeStatus.graded')
+                      : t('instructor.gradeStatus.pending')}
+                  </StatusBadge>
+                ),
+              },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: () => (
+                  <div className="table-row-actions">
+                    <PermissionGate permission={P.canViewSubmissionsTeaching}>
+                      <button
+                        type="button"
+                        className="btn btn--icon btn--ghost"
+                        title={t('instructor.actions.viewSubmission')}
+                        aria-label={t('instructor.actions.viewSubmission')}
+                      >
+                        <Eye size={18} />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission={P.canGradeAssessments}>
+                      <button
+                        type="button"
+                        className="btn btn--icon btn--ghost"
+                        title={t('instructor.actions.grade')}
+                        aria-label={t('instructor.actions.grade')}
+                      >
+                        <PenLine size={18} />
+                      </button>
+                    </PermissionGate>
+                    <PermissionGate permission={P.canPublishFeedback}>
+                      <button
+                        type="button"
+                        className="btn btn--icon btn--ghost"
+                        title={t('instructor.actions.feedback')}
+                        aria-label={t('instructor.actions.feedback')}
+                      >
+                        <MessageSquare size={18} />
+                      </button>
+                    </PermissionGate>
+                  </div>
+                ),
+              },
+            ]}
+            rows={rows}
+          />
+        </SectionCard>
+      </div>
+    </PagePermissionGate>
   );
 }

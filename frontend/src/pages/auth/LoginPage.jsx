@@ -4,18 +4,20 @@ import { FormInput } from '../../components/forms/FormInput.jsx';
 import { FormSelect } from '../../components/forms/FormSelect.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { useAuth } from '../../features/auth/index.js';
-import { MOCK_PRESET_ORDER } from '../../constants/roles.js';
+import { useLocale } from '../../features/locale/index.js';
+import { AUTH_MOCK_SCENARIO_ORDER } from '../../constants/authMockScenarios.js';
 import { getDashboardPathForRole } from '../../utils/helpers.js';
 
-export function LoginPage() {
+export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRoleLabelEn = '' }) {
   const { login, isAuthenticated, user } = useAuth();
+  const { locale } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [presetKey, setPresetKey] = useState(MOCK_PRESET_ORDER[0].key);
+  const [scenarioKey, setScenarioKey] = useState(AUTH_MOCK_SCENARIO_ORDER[0].key);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -23,7 +25,10 @@ export function LoginPage() {
     return <Navigate to={getDashboardPathForRole(user.role)} replace />;
   }
 
-  const selectedPreset = MOCK_PRESET_ORDER.find((p) => p.key === presetKey) ?? MOCK_PRESET_ORDER[0];
+  const selectedScenario = forcedRole
+    ? AUTH_MOCK_SCENARIO_ORDER.find((s) => s.role === forcedRole) ?? AUTH_MOCK_SCENARIO_ORDER[0]
+    : AUTH_MOCK_SCENARIO_ORDER.find((s) => s.key === scenarioKey) ?? AUTH_MOCK_SCENARIO_ORDER[0];
+  const selectedRole = forcedRole ?? selectedScenario.role;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -33,11 +38,12 @@ export function LoginPage() {
       const { redirectTo } = await login({
         email,
         password,
-        role: selectedPreset.role,
+        role: selectedRole,
+        scenarioKey: forcedRole ? selectedScenario.key : scenarioKey,
       });
       navigate(from && from !== '/login' ? from : redirectTo, { replace: true });
     } catch {
-      setError('تعذّر تسجيل الدخول. حاول مرة أخرى.');
+      setError(locale === 'ar' ? 'تعذّر تسجيل الدخول. حاول مرة أخرى.' : 'Login failed. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -47,30 +53,46 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1 className="auth-card__title">BATTECHNO-LMS</h1>
-        <p className="auth-card__subtitle">تسجيل الدخول</p>
+        <p className="auth-card__subtitle">{locale === 'ar' ? 'تسجيل الدخول' : 'Sign in'}</p>
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           <div className="auth-form__mock">
-            <p className="auth-form__mock-label">وضع تجريبي — اختيار الدور</p>
-            <FormSelect
-              id="mock-role"
-              label="محاكاة الدخول كـ"
-              value={presetKey}
-              onChange={(e) => setPresetKey(e.target.value)}
-            >
-              {MOCK_PRESET_ORDER.map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.labelAr}
-                </option>
-              ))}
-            </FormSelect>
+            {forcedRole ? (
+              <>
+                <p className="auth-form__mock-label">{locale === 'ar' ? 'بوابة الدخول' : 'Portal login'}</p>
+                <FormInput
+                  id="portal-role"
+                  label={locale === 'ar' ? 'الدور' : 'Role'}
+                  value={locale === 'ar' ? forcedRoleLabelAr : forcedRoleLabelEn}
+                  readOnly
+                />
+              </>
+            ) : (
+              <>
+                <p className="auth-form__mock-label">
+                  {locale === 'ar' ? 'وضع تجريبي — اختيار السيناريو (جامعة / نطاق)' : 'Demo mode — scenario (university / scope)'}
+                </p>
+                <FormSelect
+                  id="mock-scenario"
+                  label={locale === 'ar' ? 'محاكاة الدخول كـ' : 'Simulate login as'}
+                  value={scenarioKey}
+                  onChange={(e) => setScenarioKey(e.target.value)}
+                >
+                  {AUTH_MOCK_SCENARIO_ORDER.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {locale === 'ar' ? s.labelAr : s.labelEn}
+                    </option>
+                  ))}
+                </FormSelect>
+              </>
+            )}
           </div>
 
           <FormInput
             id="email"
             type="email"
             name="email"
-            label="البريد الإلكتروني"
+            label={locale === 'ar' ? 'البريد الإلكتروني' : 'Email'}
             autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -80,7 +102,7 @@ export function LoginPage() {
             id="password"
             type="password"
             name="password"
-            label="كلمة المرور"
+            label={locale === 'ar' ? 'كلمة المرور' : 'Password'}
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -90,7 +112,7 @@ export function LoginPage() {
           {error ? <p className="auth-form__error">{error}</p> : null}
 
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? 'جاري الدخول…' : 'دخول'}
+            {submitting ? (locale === 'ar' ? 'جاري الدخول…' : 'Signing in...') : locale === 'ar' ? 'دخول' : 'Sign in'}
           </Button>
         </form>
       </div>

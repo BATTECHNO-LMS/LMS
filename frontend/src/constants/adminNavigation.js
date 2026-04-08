@@ -25,6 +25,7 @@ import {
   ScrollText,
   Settings,
   HeartPulse,
+  LineChart,
 } from 'lucide-react';
 import { ROLES } from './roles.js';
 
@@ -36,80 +37,92 @@ const Q = ROLES.QA_OFFICER;
 /** All admin-shell roles */
 export const ADMIN_SHELL_ROLES = [S, P, A, Q];
 
-function entry(to, label, icon, roles) {
-  return { to, label, icon, roles };
+function entry(to, labelKey, icon, roles) {
+  return { to, labelKey, icon, roles };
 }
 
 /**
- * Grouped navigation — items filtered by role in `getAdminNavGroupsForRole`.
+ * Grouped navigation — labels resolved via `t` from namespace `navigation`.
  */
 export const ADMIN_NAV_GROUPS = [
   {
     id: 'general',
-    title: 'الإدارة العامة',
+    titleKey: 'admin.groups.general',
     items: [
-      entry('/admin/dashboard', 'الرئيسية', LayoutDashboard, [S, P, A, Q]),
-      entry('/admin/users', 'المستخدمون', Users, [S]),
-      entry('/admin/roles-permissions', 'الأدوار والصلاحيات', Shield, [S]),
-      entry('/admin/settings', 'الإعدادات', Settings, [S]),
+      entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, P, A, Q]),
+      entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
+      entry('/admin/users', 'admin.items.users', Users, [S]),
+      entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
+      entry('/admin/settings', 'admin.items.settings', Settings, [S]),
     ],
   },
   {
     id: 'orgs',
-    title: 'المؤسسات والبرامج',
+    titleKey: 'admin.groups.orgs',
     items: [
-      entry('/admin/universities', 'الجامعات', Building2, [S, P]),
-      entry('/admin/tracks', 'المسارات', Route, [S, P, A]),
-      entry('/admin/micro-credentials', 'الشهادات المصغرة', GraduationCap, [S, A]),
-      entry('/admin/learning-outcomes', 'مخرجات التعلم', ListTree, [S, A]),
-      entry('/admin/cohorts', 'الدفعات', Layers, [S, P, A]),
-      entry('/admin/content', 'المحتوى', BookOpen, [S, P, A]),
+      entry('/admin/universities', 'admin.items.universities', Building2, [S, P]),
+      entry('/admin/tracks', 'admin.items.tracks', Route, [S, P, A]),
+      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S, A]),
+      entry('/admin/learning-outcomes', 'admin.items.learningOutcomes', ListTree, [S, A]),
+      entry('/admin/cohorts', 'admin.items.cohorts', Layers, [S, P, A]),
+      entry('/admin/content', 'admin.items.content', BookOpen, [S, P, A]),
     ],
   },
   {
     id: 'delivery',
-    title: 'التنفيذ والتعليم',
+    titleKey: 'admin.groups.delivery',
     items: [
-      entry('/admin/sessions', 'الجلسات', CalendarDays, [S, P, A, Q]),
-      entry('/admin/attendance', 'الحضور', ClipboardCheck, [S, P, A, Q]),
-      entry('/admin/assessments', 'التقييمات', FileCheck, [S, A, Q]),
-      entry('/admin/rubrics', 'معايير التقييم', ListChecks, [S, A]),
-      entry('/admin/submissions', 'التسليمات', Upload, [S, P, A]),
-      entry('/admin/grades', 'الدرجات', BarChart3, [S, P, A]),
-      entry('/admin/evidence', 'الأدلة', FolderOpen, [S, A, Q]),
+      entry('/admin/sessions', 'admin.items.sessions', CalendarDays, [S, P, A, Q]),
+      entry('/admin/attendance', 'admin.items.attendance', ClipboardCheck, [S, P, A, Q]),
+      entry('/admin/assessments', 'admin.items.assessments', FileCheck, [S, A, Q]),
+      entry('/admin/rubrics', 'admin.items.rubrics', ListChecks, [S, A]),
+      entry('/admin/submissions', 'admin.items.submissions', Upload, [S, P, A]),
+      entry('/admin/grades', 'admin.items.grades', BarChart3, [S, P, A]),
+      entry('/admin/evidence', 'admin.items.evidence', FolderOpen, [S, A, Q]),
     ],
   },
   {
     id: 'quality',
-    title: 'الجودة والمتابعة',
+    titleKey: 'admin.groups.quality',
     items: [
-      entry('/admin/qa', 'الجودة', HeartPulse, [S, Q]),
-      entry('/admin/qa-reviews', 'مراجعات الجودة', ShieldCheck, [S, Q]),
-      entry('/admin/corrective-actions', 'الإجراءات التصحيحية', ClipboardList, [S, Q]),
-      entry('/admin/at-risk-students', 'الطلبة المتعثرون', AlertTriangle, [S, Q]),
-      entry('/admin/risk-cases', 'حالات المخاطر', AlertTriangle, [S, Q]),
-      entry('/admin/integrity-cases', 'النزاهة الأكاديمية', BadgeAlert, [S, Q]),
+      entry('/admin/qa', 'admin.items.qa', HeartPulse, [S, Q]),
+      entry('/admin/qa-reviews', 'admin.items.qaReviews', ShieldCheck, [S, Q]),
+      entry('/admin/corrective-actions', 'admin.items.correctiveActions', ClipboardList, [S, Q]),
+      entry('/admin/at-risk-students', 'admin.items.atRiskStudents', AlertTriangle, [S, Q]),
+      entry('/admin/risk-cases', 'admin.items.riskCases', AlertTriangle, [S, Q]),
+      entry('/admin/integrity-cases', 'admin.items.integrity', BadgeAlert, [S, Q]),
     ],
   },
   {
     id: 'accreditation',
-    title: 'الاعتماد والتقارير',
+    titleKey: 'admin.groups.accreditation',
     items: [
-      entry('/admin/recognition-requests', 'طلبات الاعتراف الأكاديمي', FileBadge, [S, P, A]),
-      entry('/admin/certificates', 'الشهادات الرقمية', Award, [S, P]),
-      entry('/admin/reports', 'التقارير', FileSpreadsheet, [S, P, A, Q]),
-      entry('/admin/audit-logs', 'سجل التدقيق', ScrollText, [S]),
+      entry('/admin/recognition-requests', 'admin.items.recognition', FileBadge, [S, P, A]),
+      entry('/admin/certificates', 'admin.items.certificates', Award, [S, P]),
+      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [S, P, A, Q]),
+      entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S]),
     ],
   },
 ];
 
-export function getAdminNavGroupsForRole(role) {
+export function getAdminNavGroupsForRole(role, t) {
   return ADMIN_NAV_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.roles.includes(role)),
+    id: group.id,
+    title: t(group.titleKey),
+    items: group.items
+      .filter((item) => item.roles.includes(role))
+      .map((item) => ({
+        ...item,
+        label: t(item.labelKey),
+      })),
   })).filter((g) => g.items.length > 0);
 }
 
-export function flattenAdminNavItems(role) {
-  return getAdminNavGroupsForRole(role).flatMap((g) => g.items);
+export function flattenAdminNavItems(role, t) {
+  return getAdminNavGroupsForRole(role, t).flatMap((g) => g.items);
+}
+
+/** Route paths only — for access checks without translation. */
+export function flattenAdminNavPaths(role) {
+  return ADMIN_NAV_GROUPS.flatMap((g) => g.items.filter((i) => i.roles.includes(role)).map((i) => i.to));
 }

@@ -1,0 +1,75 @@
+{
+  "states": {
+    "open": "مفتوح",
+    "submitted": "تم التسليم",
+    "late": "متأخر",
+    "graded": "تم التقييم",
+    "draft": "مسودة"
+  },
+  "student": {
+    "title": "التسليمات",
+    "description": "سجل تسليماتك وحالات التصحيح والدرجات عند توفرها.",
+    "sectionTitle": "تسليماتي",
+    "stats": {
+      "accepted": "مقبولة",
+      "needsRedo": "تحتاج إعادة",
+      "history": "السجل",
+      "total": "إجمالي"
+    },
+    "searchPlaceholder": "بحث بالتقييم",
+    "searchAria": "بحث",
+    "table": {
+      "assessmentName": "اسم التقييم",
+      "type": "النوع",
+      "submittedAt": "تاريخ التسليم",
+      "state": "الحالة",
+      "score": "الدرجة",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "view": "عرض",
+      "upload": "رفع",
+      "edit": "تعديل"
+    },
+    "empty": {
+      "title": "لم تقم برفع أي تسليمات بعد",
+      "description": "اختر تقييماً من صفحة التقييمات لرفع التسليم عند فتحه."
+    }
+  },
+  "instructor": {
+    "title": "التسليمات",
+    "description": "مراجعة تسليمات المتعلمين، التصحيح، ونشر الملاحظات.",
+    "sectionTitle": "قائمة التسليمات",
+    "stats": {
+      "awaitingReview": "بانتظار المراجعة",
+      "graded": "تم التصحيح",
+      "late": "متأخرة"
+    },
+    "searchPlaceholder": "بحث بالمتعلم أو التقييم",
+    "searchAria": "بحث",
+    "table": {
+      "studentName": "اسم الطالب",
+      "assessmentName": "التقييم",
+      "submittedAt": "وقت التسليم",
+      "status": "الحالة",
+      "gradeStatus": "حالة الدرجة",
+      "actions": "الإجراءات"
+    },
+    "submissionStatus": {
+      "submitted": "مسلّم"
+    },
+    "gradeStatus": {
+      "graded": "مصحّح",
+      "pending": "بانتظار"
+    },
+    "actions": {
+      "viewSubmission": "عرض التسليم",
+      "grade": "تصحيح",
+      "feedback": "ملاحظات"
+    },
+    "empty": {
+      "title": "لا توجد تسليمات",
+      "description": "ستظهر تسليمات المتعلمين هنا عند توفر البيانات."
+    }
+  }
+}

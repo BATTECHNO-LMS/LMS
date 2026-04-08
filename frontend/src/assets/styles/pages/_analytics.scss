@@ -1,0 +1,21 @@
+@use '../abstracts/variables' as *;
+
+.page--analytics {
+  --analytics-primary: #6a73fa;
+  --analytics-secondary: #673bb7;
+  --analytics-text: #312a2a;
+  --analytics-muted: #737b8b;
+  --analytics-border: #e6e6e6;
+
+  background: var(--color-bg);
+}
+
+.page--analytics .btn--primary:hover {
+  color: #fff !important;
+}
+
+.page--analytics .btn--outline:hover {
+  color: #fff !important;
+  background: rgba(106, 115, 250, 0.95) !important;
+  border-color: #6a73fa !important;
+}

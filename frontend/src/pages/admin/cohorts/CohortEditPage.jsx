@@ -7,8 +7,12 @@ import { FormInput, FormSelect, FormDate } from '../../../components/forms/index
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { cohortSchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function CohortEditPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const { id } = useParams();
   const navigate = useNavigate();
   const micros = useMemo(() => adminCrudStore.microCredentials.getAll(), []);
@@ -66,45 +70,90 @@ export function CohortEditPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="تعديل دفعة" description="تحديث بيانات الدفعة." />
+      <AdminPageHeader
+        title={tr(isArabic, 'تعديل دفعة', 'Edit batch')}
+        description={tr(isArabic, 'تحديث بيانات الدفعة.', 'Update batch details.')}
+      />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title="البيانات"
+          title={tr(isArabic, 'البيانات', 'Details')}
           actions={
             <>
               <Link className="btn btn--outline" to={`/admin/cohorts/${id}`}>
-                <X size={18} aria-hidden /> إلغاء
+                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
               <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> تحديث
+                <Save size={18} aria-hidden /> {tr(isArabic, 'تحديث', 'Update')}
               </button>
             </>
           }
         >
           <div className="crud-form-grid">
-            <FormInput id="name" label="اسم الدفعة" value={form.name} onChange={(e) => setField('name', e.target.value)} error={errors.name} />
-            <FormSelect id="credentialId" label="الشهادة" value={form.credentialId} onChange={onCredentialChange} error={errors.credentialId}>
+            <FormInput
+              id="name"
+              label={tr(isArabic, 'اسم الدفعة', 'Batch name')}
+              value={form.name}
+              onChange={(e) => setField('name', e.target.value)}
+              error={errors.name}
+            />
+            <FormSelect
+              id="credentialId"
+              label={tr(isArabic, 'الشهادة', 'Certificate')}
+              value={form.credentialId}
+              onChange={onCredentialChange}
+              error={errors.credentialId}
+            >
               {micros.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
                 </option>
               ))}
             </FormSelect>
-            <FormSelect id="universityId" label="الجامعة" value={form.universityId} onChange={onUniversityChange} error={errors.universityId}>
+            <FormSelect
+              id="universityId"
+              label={tr(isArabic, 'الجامعة', 'University')}
+              value={form.universityId}
+              onChange={onUniversityChange}
+              error={errors.universityId}
+            >
               {unis.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
                 </option>
               ))}
             </FormSelect>
-            <FormInput id="instructor" label="المدرّب" value={form.instructor} onChange={(e) => setField('instructor', e.target.value)} error={errors.instructor} />
-            <FormDate id="startDate" label="تاريخ البداية" value={form.startDate} onChange={(e) => setField('startDate', e.target.value)} error={errors.startDate} />
-            <FormDate id="endDate" label="تاريخ النهاية" value={form.endDate} onChange={(e) => setField('endDate', e.target.value)} error={errors.endDate} />
-            <FormSelect id="status" label="الحالة" value={form.status} onChange={(e) => setField('status', e.target.value)} error={errors.status}>
-              <option value="planned">مخطط</option>
-              <option value="running">قيد التنفيذ</option>
-              <option value="completed">مكتمل</option>
-              <option value="cancelled">ملغى</option>
+            <FormInput
+              id="instructor"
+              label={tr(isArabic, 'المدرّب', 'Trainer')}
+              value={form.instructor}
+              onChange={(e) => setField('instructor', e.target.value)}
+              error={errors.instructor}
+            />
+            <FormDate
+              id="startDate"
+              label={tr(isArabic, 'تاريخ البداية', 'Start date')}
+              value={form.startDate}
+              onChange={(e) => setField('startDate', e.target.value)}
+              error={errors.startDate}
+            />
+            <FormDate
+              id="endDate"
+              label={tr(isArabic, 'تاريخ النهاية', 'End date')}
+              value={form.endDate}
+              onChange={(e) => setField('endDate', e.target.value)}
+              error={errors.endDate}
+            />
+            <FormSelect
+              id="status"
+              label={tr(isArabic, 'الحالة', 'Status')}
+              value={form.status}
+              onChange={(e) => setField('status', e.target.value)}
+              error={errors.status}
+            >
+              <option value="planned">{tr(isArabic, 'مخطط', 'Planned')}</option>
+              <option value="running">{tr(isArabic, 'قيد التنفيذ', 'In progress')}</option>
+              <option value="completed">{tr(isArabic, 'مكتمل', 'Completed')}</option>
+              <option value="cancelled">{tr(isArabic, 'ملغى', 'Cancelled')}</option>
             </FormSelect>
           </div>
         </SectionCard>

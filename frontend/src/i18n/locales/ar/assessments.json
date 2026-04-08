@@ -1,0 +1,159 @@
+{
+  "title": "إدارة التقييمات",
+  "description": "تعريف التقييمات وربطها بالدفعات والمواعيد.",
+  "add": "إضافة تقييم",
+  "searchPlaceholder": "بحث بالاسم أو الدفعة",
+  "stats": {
+    "total": "إجمالي التقييمات",
+    "published": "منشورة",
+    "pending": "قيد المراجعة",
+    "drafts": "مسودات"
+  },
+  "listTitle": "قائمة التقييمات",
+  "table": {
+    "name": "اسم التقييم",
+    "type": "النوع",
+    "weight": "الوزن %",
+    "cohort": "الدفعة",
+    "dueDate": "تاريخ الاستحقاق"
+  },
+  "types": {
+    "quiz": "اختبار",
+    "assignment": "واجب",
+    "project": "مشروع",
+    "exam": "امتحان"
+  },
+  "typeLabels": {
+    "quiz": "اختبار",
+    "assignment": "واجب",
+    "lab": "معمل",
+    "practical_exam": "امتحان عملي",
+    "milestone": "مرحلة",
+    "capstone_project": "مشروع تخرج",
+    "presentation": "عرض تقديمي"
+  },
+  "create": {
+    "title": "إنشاء تقييم",
+    "description": "ربط التقييم بالدفعة وتحديد الوزن والموعد."
+  },
+  "edit": {
+    "title": "تعديل تقييم",
+    "description": "تحديث بيانات التقييم."
+  },
+  "view": {
+    "title": "تفاصيل التقييم",
+    "description": "عرض بيانات التقييم والدفعة.",
+    "notFound": "لم يتم العثور على التقييم."
+  },
+  "student": {
+    "title": "التقييمات",
+    "description": "عرض التقييمات المسجّل بها، المواعيد، وحالة التسليم والتقييم.",
+    "sectionTitle": "التقييمات",
+    "stats": {
+      "open": "مفتوحة",
+      "submitted": "مسلّمة",
+      "upcoming": "مواعيد قريبة",
+      "total": "إجمالي"
+    },
+    "searchPlaceholder": "بحث بالتقييم أو المساق",
+    "searchAria": "بحث",
+    "table": {
+      "name": "عنوان التقييم",
+      "type": "النوع",
+      "due": "تاريخ الاستحقاق",
+      "submissionState": "حالة التسليم",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "viewDetails": "عرض التفاصيل",
+      "upload": "رفع التسليم",
+      "editSubmission": "تعديل التسليم",
+      "viewFeedback": "عرض التغذية الراجعة"
+    },
+    "empty": {
+      "title": "لا توجد تقييمات متاحة حاليًا",
+      "description": "ستظهر التقييمات المرتبطة بشهاداتك عند تفعيل المساق."
+    }
+  },
+  "instructor": {
+    "title": "التقييمات",
+    "description": "إدارة تقييمات الدفعات المسندة إليك: الإنشاء، التصحيح، الـ Rubric، ونشر الملاحظات.",
+    "addAssessment": "إضافة تقييم",
+    "listTitle": "قائمة التقييمات",
+    "stats": {
+      "active": "تقييمات نشطة",
+      "awaitingGrading": "بانتظار التصحيح",
+      "upcoming": "مواعيد قريبة",
+      "averageGrades": "متوسط الدرجات"
+    },
+    "searchPlaceholder": "بحث باسم التقييم أو الدفعة",
+    "searchAria": "بحث",
+    "table": {
+      "name": "اسم التقييم",
+      "type": "النوع",
+      "weight": "الوزن %",
+      "learningOutcome": "مخرج التعلم",
+      "openDate": "تاريخ الفتح",
+      "closeDate": "تاريخ الإغلاق",
+      "submissionsCount": "عدد التسليمات",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "rowStatus": {
+      "published": "منشور",
+      "draft": "مسودة",
+      "active": "نشط",
+      "pending": "قيد المراجعة",
+      "closed": "مغلق",
+      "planned": "مخطط",
+      "running": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "actions": {
+      "viewSubmissions": "عرض التسليمات",
+      "edit": "تعديل",
+      "manageRubric": "إدارة معايير التقييم",
+      "startGrading": "بدء التصحيح",
+      "publishFeedback": "نشر الملاحظات"
+    },
+    "empty": {
+      "title": "لم يتم إنشاء تقييمات لهذه الدفعة بعد",
+      "description": "ابدأ بإضافة تقييم جديد لربطه بالدفعة ومخرجات التعلم."
+    }
+  },
+  "instructorCreate": {
+    "title": "إضافة تقييم",
+    "description": "إنشاء تقييم جديد للدفعة مع تحديد النوع والمواعيد ومخرجات التعلم.",
+    "sections": {
+      "basic": "البيانات الأساسية",
+      "submissionType": "نوع التسليم المطلوب",
+      "quiz": "إعدادات الاختبار (تجريبي)",
+      "presentation": "مرفقات العرض التقديمي"
+    },
+    "fields": {
+      "title": "عنوان التقييم",
+      "type": "النوع",
+      "weight": "الوزن %",
+      "cohort": "الدفعة",
+      "learningOutcome": "مخرج التعلم",
+      "openDate": "تاريخ الفتح",
+      "closeDate": "تاريخ الإغلاق",
+      "instructions": "التعليمات",
+      "rubric": "معايير التقييم (Rubric)",
+      "submission": "التسليم"
+    },
+    "hints": {
+      "submissionSettings": "يُستكمل لاحقاً مع إعدادات الرفع والتحقق من الملفات.",
+      "quizPlaceholder": "ستُضاف هنا مدة الاختبار وعدد المحاولات وبنك الأسئلة عند ربط الخادم.",
+      "presentationPlaceholder": "منطقة رفع ملفات العرض والروابط — جاهزة للتكامل لاحقاً."
+    },
+    "cohorts": {
+      "spring2026": "دفعة ربيع 2026"
+    },
+    "submissionTypes": {
+      "file_upload": "رفع ملف",
+      "repo_link": "رابط مستودع",
+      "text_response": "إجابة نصية"
+    }
+  }
+}

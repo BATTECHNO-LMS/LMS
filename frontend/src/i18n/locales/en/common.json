@@ -1,0 +1,128 @@
+{
+  "appName": "BATTECHNO LMS",
+  "brand": "BATTECHNO-LMS",
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "add": "Add",
+    "edit": "Edit",
+    "view": "View",
+    "details": "Details",
+    "search": "Search",
+    "export": "Export",
+    "back": "Back",
+    "backToList": "Back to list",
+    "update": "Update",
+    "confirm": "Confirm",
+    "close": "Close",
+    "submit": "Submit"
+  },
+  "status": {
+    "label": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "draft": "Draft",
+    "pending": "Pending review",
+    "published": "Published",
+    "closed": "Closed",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "archived": "Archived",
+    "suspended": "Suspended",
+    "planned": "Planned",
+    "running": "In progress",
+    "open": "Open",
+    "all": "All",
+    "allStatuses": "All statuses"
+  },
+  "theme": {
+    "light": "Light mode",
+    "dark": "Dark mode",
+    "switchToLight": "Switch to light mode",
+    "switchToDark": "Switch to dark mode"
+  },
+  "language": {
+    "arabic": "Arabic",
+    "english": "English",
+    "switchToEn": "Switch language to English",
+    "switchToAr": "Switch language to Arabic",
+    "choose": "Choose language"
+  },
+  "pagination": {
+    "stub": "Pagination — will be enabled later"
+  },
+  "loading": "Loading",
+  "user": {
+    "fallbackName": "User",
+    "logout": "Log out"
+  },
+  "notifications": "Notifications",
+  "rights": "All rights reserved",
+  "table": {
+    "actions": "Actions"
+  },
+  "errors": {
+    "notFound": "Not found",
+    "generic": "Something went wrong"
+  },
+  "sidebar": {
+    "adminMenuAria": "Admin menu"
+  },
+  "logo": {
+    "alt": "Batman Technology"
+  },
+  "unauthorized": {
+    "title": "You are not authorized to access this page",
+    "description": "You do not have enough permissions to view this content. If you should have access, contact an administrator.",
+    "backToDashboard": "Back to dashboard"
+  },
+  "evidencePage": {
+    "title": "Evidence",
+    "description": "Evidence archive scoped by university (UI simulation).",
+    "upload": "Upload evidence",
+    "searchPlaceholder": "Search by title",
+    "allTypes": "All types",
+    "doc": "Document",
+    "media": "Media",
+    "statArchived": "Evidence in scope",
+    "statRecent": "Recent attachments",
+    "statAssessed": "Assessed",
+    "statPending": "Pending review",
+    "listTitle": "Evidence list",
+    "colTitle": "Title",
+    "colTenant": "University",
+    "colType": "Type"
+  },
+  "reportsPage": {
+    "title": "Reports",
+    "description": "Operational reports for the selected university scope (UI simulation).",
+    "quickExport": "Quick export",
+    "schedule": "Schedule report",
+    "statReady": "Reports in scope",
+    "statExports": "Today exports",
+    "statTrend": "Trend indicators",
+    "statDist": "Distributions",
+    "sectionTitle": "Suggested reports",
+    "colName": "Report",
+    "colTenant": "University",
+    "colAudience": "Audience",
+    "colFrequency": "Frequency",
+    "colLast": "Last run",
+    "colActions": "Actions"
+  },
+  "tenant": {
+    "scope": "University scope",
+    "current": "Current university",
+    "allUniversities": "All universities",
+    "select": "Select university",
+    "emptyForScope": "No data for the selected university",
+    "emptyGeneric": "No records in the demo scope.",
+    "noCohortsForTenant": "No cohorts for this university",
+    "noAssessmentsForTenant": "No assessments for the selected university",
+    "noRecognitionForTenant": "No recognition requests for this university",
+    "sidebarHint": "Data scope"
+  }
+}

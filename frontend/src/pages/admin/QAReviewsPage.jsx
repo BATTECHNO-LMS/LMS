@@ -11,39 +11,52 @@ import {
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function QAReviewsPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader title="مراجعات الجودة" description="جدولة ومتابعة جولات المراجعة الداخلية." />
+      <AdminPageHeader
+        title={tr(isArabic, 'مراجعات الجودة', 'QA reviews')}
+        description={tr(isArabic, 'جدولة ومتابعة جولات المراجعة الداخلية.', 'Schedule and track internal review rounds.')}
+      />
       <AdminActionBar>
         <Button type="button" variant="primary">
-          مراجعة جديدة
+          {tr(isArabic, 'مراجعة جديدة', 'New review')}
         </Button>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput placeholder="بحث بالدفعة أو الوحدة" aria-label="بحث" />
-        <SelectField id="qa-status" label="الحالة" defaultValue="">
-          <option value="">كل الحالات</option>
-          <option value="open">مفتوحة</option>
-          <option value="closed">مغلقة</option>
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث بالدفعة أو الوحدة', 'Search by cohort or unit')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField id="qa-status" label={tr(isArabic, 'الحالة', 'Status')} defaultValue="">
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="open">{tr(isArabic, 'مفتوحة', 'Open')}</option>
+          <option value="closed">{tr(isArabic, 'مغلقة', 'Closed')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="مراجعات مجدولة" value="—" icon={Calendar} />
-        <StatCard label="مراجعون" value="—" icon={User} />
-        <StatCard label="ملاحظات حرجة" value="—" icon={Flag} />
-        <StatCard label="مكتملة" value="—" icon={ShieldCheck} />
+        <StatCard label={tr(isArabic, 'مراجعات مجدولة', 'Scheduled reviews')} value="—" icon={Calendar} />
+        <StatCard label={tr(isArabic, 'مراجعون', 'Reviewers')} value="—" icon={User} />
+        <StatCard label={tr(isArabic, 'ملاحظات حرجة', 'Critical notes')} value="—" icon={Flag} />
+        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value="—" icon={ShieldCheck} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة المراجعات">
+      <SectionCard title={tr(isArabic, 'قائمة المراجعات', 'Reviews list')}>
         <DataTable
+          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
+          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
           columns={[
-            { key: 'title', label: 'المراجعة' },
-            { key: 'scope', label: 'النطاق' },
-            { key: 'lead', label: 'قائد المراجعة' },
-            { key: 'status', label: 'الحالة' },
-            { key: 'due', label: 'الاستحقاق' },
-            { key: 'actions', label: 'الإجراءات' },
+            { key: 'title', label: tr(isArabic, 'المراجعة', 'Review') },
+            { key: 'scope', label: tr(isArabic, 'النطاق', 'Scope') },
+            { key: 'lead', label: tr(isArabic, 'قائد المراجعة', 'Review lead') },
+            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
+            { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
+            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
           rows={[]}
         />

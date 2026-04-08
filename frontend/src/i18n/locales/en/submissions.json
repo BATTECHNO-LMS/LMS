@@ -1,0 +1,75 @@
+{
+  "states": {
+    "open": "Open",
+    "submitted": "Submitted",
+    "late": "Late",
+    "graded": "Graded",
+    "draft": "Draft"
+  },
+  "student": {
+    "title": "Submissions",
+    "description": "Your submissions and grading status when available.",
+    "sectionTitle": "My submissions",
+    "stats": {
+      "accepted": "Accepted",
+      "needsRedo": "Needs redo",
+      "history": "History",
+      "total": "Total"
+    },
+    "searchPlaceholder": "Search by assessment",
+    "searchAria": "Search",
+    "table": {
+      "assessmentName": "Assessment",
+      "type": "Type",
+      "submittedAt": "Submission date",
+      "state": "Status",
+      "score": "Score",
+      "actions": "Actions"
+    },
+    "actions": {
+      "view": "View",
+      "upload": "Upload",
+      "edit": "Edit"
+    },
+    "empty": {
+      "title": "No submissions yet",
+      "description": "Pick an assessment from the assessments page to submit when it is open."
+    }
+  },
+  "instructor": {
+    "title": "Submissions",
+    "description": "Review learner submissions, grade them, and publish feedback.",
+    "sectionTitle": "Submissions list",
+    "stats": {
+      "awaitingReview": "Awaiting review",
+      "graded": "Graded",
+      "late": "Late"
+    },
+    "searchPlaceholder": "Search by learner or assessment",
+    "searchAria": "Search",
+    "table": {
+      "studentName": "Student name",
+      "assessmentName": "Assessment",
+      "submittedAt": "Submission time",
+      "status": "Status",
+      "gradeStatus": "Grade status",
+      "actions": "Actions"
+    },
+    "submissionStatus": {
+      "submitted": "Submitted"
+    },
+    "gradeStatus": {
+      "graded": "Graded",
+      "pending": "Pending"
+    },
+    "actions": {
+      "viewSubmission": "View submission",
+      "grade": "Grade",
+      "feedback": "Feedback"
+    },
+    "empty": {
+      "title": "No submissions",
+      "description": "Learner submissions will appear here when data is available."
+    }
+  }
+}

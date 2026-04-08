@@ -1,0 +1,6 @@
+{
+  "title": "Academic recognition requests",
+  "create": { "title": "Create recognition request" },
+  "edit": { "title": "Edit recognition request" },
+  "view": { "title": "Recognition request details" }
+}

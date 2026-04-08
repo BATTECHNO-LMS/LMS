@@ -1,0 +1,12 @@
+{
+  "noData": "No data",
+  "noDataMessage": "No data available",
+  "noRecords": "No records found.",
+  "noResults": "No results",
+  "tryFilters": "Try adjusting filters or search.",
+  "modulePlaceholder": {
+    "subtitle": "This page scaffold is ready and will be connected to the backend later.",
+    "emptyTitle": "No content yet",
+    "emptyDescription": "Module data will appear here after backend integration."
+  }
+}

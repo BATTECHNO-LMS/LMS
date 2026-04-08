@@ -1,0 +1,30 @@
+{
+  "instructor": {
+    "title": "Grades",
+    "description": "Grading sheet and grades ready to publish for your assigned cohorts.",
+    "sectionTitle": "Grades table",
+    "stats": {
+      "awaitingPublish": "Awaiting publish",
+      "cohortAverage": "Cohort average",
+      "students": "Students",
+      "topScore": "Top score"
+    },
+    "searchPlaceholder": "Search by student or assessment",
+    "searchAria": "Search",
+    "table": {
+      "student": "Student",
+      "assessment": "Assessment",
+      "score": "Score",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "publish": "Publish"
+    },
+    "empty": {
+      "title": "No grades to display",
+      "description": "Grades will appear after grading and server integration."
+    }
+  }
+}

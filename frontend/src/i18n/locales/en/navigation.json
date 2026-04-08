@@ -1,0 +1,71 @@
+{
+  "mainMenu": "Main menu",
+  "admin": {
+    "groups": {
+      "general": "General management",
+      "orgs": "Organizations and programs",
+      "delivery": "Delivery and teaching",
+      "quality": "Quality and monitoring",
+      "accreditation": "Accreditation and reports"
+    },
+    "items": {
+      "dashboard": "Home",
+      "analytics": "Analytics & statistics",
+      "users": "Users",
+      "roles": "Roles and permissions",
+      "settings": "Settings",
+      "universities": "Universities",
+      "tracks": "Tracks",
+      "microCredentials": "Micro-credentials",
+      "learningOutcomes": "Learning outcomes",
+      "cohorts": "Cohorts",
+      "content": "Content",
+      "sessions": "Sessions",
+      "attendance": "Attendance",
+      "assessments": "Assessments",
+      "rubrics": "Rubrics",
+      "submissions": "Submissions",
+      "grades": "Grades",
+      "evidence": "Evidence",
+      "qa": "Quality",
+      "qaReviews": "Quality reviews",
+      "correctiveActions": "Corrective actions",
+      "atRiskStudents": "At-risk students",
+      "riskCases": "Risk cases",
+      "integrity": "Academic integrity",
+      "recognition": "Recognition requests",
+      "certificates": "Digital certificates",
+      "reports": "Reports",
+      "auditLogs": "Audit log"
+    }
+  },
+  "instructor": {
+    "home": "Home",
+    "cohorts": "My cohorts",
+    "sessions": "Sessions",
+    "attendance": "Attendance",
+    "assessments": "Assessments",
+    "submissions": "Submissions",
+    "grades": "Grades",
+    "evidence": "Evidence",
+    "riskStudents": "At-risk students"
+  },
+  "student": {
+    "home": "Home",
+    "programs": "My enrolled credentials",
+    "content": "Content",
+    "sessions": "Sessions",
+    "attendance": "Attendance",
+    "assessments": "Assessments",
+    "submissions": "Submissions",
+    "grades": "Grades",
+    "certificate": "Digital certificate"
+  },
+  "reviewer": {
+    "home": "Home",
+    "recognition": "Recognition requests",
+    "universityReports": "University reports",
+    "evidence": "Evidence and attachments",
+    "certificates": "Linked certificates"
+  }
+}

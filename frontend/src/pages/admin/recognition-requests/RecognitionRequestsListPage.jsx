@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Award, Plus } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
@@ -15,17 +15,27 @@ import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModa
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../../../utils/i18n.js';
 
 export function RecognitionRequestsListPage() {
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.recognition.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    setRows(adminCrudStore.recognition.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.recognition.getAll()), [filterRows, scopeId, tick, location.key]);
 
   const filtered = rows.filter((r) => {
     const matchQ =
@@ -47,50 +57,77 @@ export function RecognitionRequestsListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="طلبات الاعتراف الأكاديمي" description="متابعة طلبات الاعتراف والاعتماد بين الجامعات." />
+      <AdminPageHeader
+        title={tr(isArabic, 'طلبات الاعتراف الأكاديمي', 'Academic recognition requests')}
+        description={tr(
+          isArabic,
+          'متابعة طلبات الاعتراف والاعتماد بين الجامعات.',
+          'Track recognition and accreditation requests across universities.'
+        )}
+      />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/recognition-requests/create">
-          <Plus size={18} aria-hidden /> إضافة طلب
+          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة طلب', 'Add request')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالعنوان أو الجامعة أو الدفعة" />
-        <SelectField id="rec-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="draft">مسودة</option>
-          <option value="pending">قيد المراجعة</option>
-          <option value="approved">معتمد</option>
-          <option value="rejected">مرفوض</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr(isArabic, 'بحث بالعنوان أو الجامعة أو الدفعة', 'Search by title, university, or cohort')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField
+          id="rec-status"
+          label={tr(isArabic, 'الحالة', 'Status')}
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
+          <option value="pending">{tr(isArabic, 'قيد المراجعة', 'Pending review')}</option>
+          <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
+          <option value="rejected">{tr(isArabic, 'مرفوض', 'Rejected')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي الطلبات" value={String(stats.total)} icon={Award} />
-        <StatCard label="قيد المراجعة" value={String(stats.pending)} icon={Award} />
-        <StatCard label="معتمدة" value={String(stats.approved)} icon={Award} />
-        <StatCard label="مرفوضة" value={String(stats.rejected)} icon={Award} />
+        <StatCard label={tr(isArabic, 'إجمالي الطلبات', 'Total requests')} value={String(stats.total)} icon={Award} />
+        <StatCard label={tr(isArabic, 'قيد المراجعة', 'Pending review')} value={String(stats.pending)} icon={Award} />
+        <StatCard label={tr(isArabic, 'معتمدة', 'Approved')} value={String(stats.approved)} icon={Award} />
+        <StatCard label={tr(isArabic, 'مرفوضة', 'Rejected')} value={String(stats.rejected)} icon={Award} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الطلبات">
+      <SectionCard title={tr(isArabic, 'قائمة الطلبات', 'Requests list')}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
+          emptyTitle={
+            rows.length === 0
+              ? tCommon('tenant.noRecognitionForTenant')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'لا توجد نتائج', 'No results')
+                : tr(isArabic, 'لا توجد بيانات', 'No data')
+          }
           emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
+                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
           }
           columns={[
-            { key: 'title', label: 'العنوان' },
-            { key: 'universityName', label: 'الجامعة' },
-            { key: 'credentialName', label: 'الشهادة' },
-            { key: 'cohortName', label: 'الدفعة' },
-            { key: 'createdAt', label: 'تاريخ الإنشاء' },
+            { key: 'title', label: tr(isArabic, 'العنوان', 'Title') },
+            { key: 'universityName', label: tr(isArabic, 'الجامعة', 'University') },
+            { key: 'credentialName', label: tr(isArabic, 'الشهادة', 'Certificate') },
+            { key: 'cohortName', label: tr(isArabic, 'الدفعة', 'Cohort') },
+            { key: 'createdAt', label: tr(isArabic, 'تاريخ الإنشاء', 'Created at') },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tr(isArabic, 'الحالة', 'Status'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tr(isArabic, 'الإجراءات', 'Actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/recognition-requests/${r.id}`}
@@ -101,7 +138,11 @@ export function RecognitionRequestsListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -110,7 +151,7 @@ export function RecognitionRequestsListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.recognition.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.recognition.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

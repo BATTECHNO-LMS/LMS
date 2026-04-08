@@ -1,0 +1,118 @@
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+.analytics-filter-bar {
+  background: var(--color-card);
+  border: 1px solid #e6e6e6;
+  border-radius: $radius-lg;
+  padding: 1rem 1.1rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-filter-bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: flex-end;
+
+  &--actions {
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--color-border);
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.analytics-filter-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+
+.analytics-filter-bar__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #737b8b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analytics-filter-bar__select {
+  min-height: 2.4rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-card);
+  color: #312a2a;
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(106, 115, 250, 0.45);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.analytics-filter-bar__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.analytics-filter-bar__chip {
+  min-height: 2.15rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-pill;
+  background: var(--color-surface-light);
+  color: #312a2a;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  @include transition(border-color background-color, 0.15s);
+
+  &:hover {
+    border-color: rgba(106, 115, 250, 0.45);
+  }
+
+  &.is-active {
+    border-color: #6a73fa;
+    background: color-mix(in srgb, #6a73fa 12%, #fff);
+    color: #312a2a;
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.analytics-filter-bar__exports {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.analytics-filter-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+}
+
+@include respond(640px) {
+  .analytics-filter-bar__row--actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .analytics-filter-bar__exports {
+    justify-content: flex-start;
+  }
+}

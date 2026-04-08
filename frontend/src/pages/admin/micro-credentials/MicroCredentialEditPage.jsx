@@ -7,8 +7,11 @@ import { FormInput, FormSelect, FormNumber } from '../../../components/forms/ind
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { microCredentialSchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function MicroCredentialEditPage() {
+  const { isArabic } = useLocale();
   const { id } = useParams();
   const navigate = useNavigate();
   const tracks = useMemo(() => adminCrudStore.tracks.getAll(), []);
@@ -50,37 +53,77 @@ export function MicroCredentialEditPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="تعديل شهادة مصغرة" description="تحديث بيانات الشهادة." />
+      <AdminPageHeader
+        title={tr(isArabic, 'تعديل شهادة مصغرة', 'Edit micro-credential')}
+        description={tr(isArabic, 'تحديث بيانات الشهادة.', 'Update credential details.')}
+      />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title="البيانات"
+          title={tr(isArabic, 'البيانات', 'Details')}
           actions={
             <>
               <Link className="btn btn--outline" to={`/admin/micro-credentials/${id}`}>
-                <X size={18} aria-hidden /> إلغاء
+                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
               <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> تحديث
+                <Save size={18} aria-hidden /> {tr(isArabic, 'تحديث', 'Update')}
               </button>
             </>
           }
         >
           <div className="crud-form-grid">
-            <FormInput id="name" label="الاسم" value={form.name} onChange={(e) => setField('name', e.target.value)} error={errors.name} />
-            <FormInput id="code" label="الرمز" value={form.code} onChange={(e) => setField('code', e.target.value)} error={errors.code} />
-            <FormInput id="level" label="المستوى" value={form.level} onChange={(e) => setField('level', e.target.value)} error={errors.level} />
-            <FormNumber id="hours" label="الساعات" value={form.hours} onChange={(e) => setField('hours', e.target.value)} error={errors.hours} min={1} />
-            <FormSelect id="trackId" label="المسار" value={form.trackId} onChange={(e) => setField('trackId', e.target.value)} error={errors.trackId}>
+            <FormInput
+              id="name"
+              label={tr(isArabic, 'الاسم', 'Name')}
+              value={form.name}
+              onChange={(e) => setField('name', e.target.value)}
+              error={errors.name}
+            />
+            <FormInput
+              id="code"
+              label={tr(isArabic, 'الرمز', 'Code')}
+              value={form.code}
+              onChange={(e) => setField('code', e.target.value)}
+              error={errors.code}
+            />
+            <FormInput
+              id="level"
+              label={tr(isArabic, 'المستوى', 'Level')}
+              value={form.level}
+              onChange={(e) => setField('level', e.target.value)}
+              error={errors.level}
+            />
+            <FormNumber
+              id="hours"
+              label={tr(isArabic, 'الساعات', 'Hours')}
+              value={form.hours}
+              onChange={(e) => setField('hours', e.target.value)}
+              error={errors.hours}
+              min={1}
+            />
+            <FormSelect
+              id="trackId"
+              label={tr(isArabic, 'المسار', 'Track')}
+              value={form.trackId}
+              onChange={(e) => setField('trackId', e.target.value)}
+              error={errors.trackId}
+            >
               {tracks.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
               ))}
             </FormSelect>
-            <FormSelect id="status" label="الحالة" value={form.status} onChange={(e) => setField('status', e.target.value)} error={errors.status}>
-              <option value="draft">مسودة</option>
-              <option value="approved">معتمد</option>
-              <option value="archived">مؤرشف</option>
+            <FormSelect
+              id="status"
+              label={tr(isArabic, 'الحالة', 'Status')}
+              value={form.status}
+              onChange={(e) => setField('status', e.target.value)}
+              error={errors.status}
+            >
+              <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
+              <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
+              <option value="archived">{tr(isArabic, 'مؤرشف', 'Archived')}</option>
             </FormSelect>
           </div>
         </SectionCard>

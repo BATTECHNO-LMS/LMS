@@ -11,42 +11,56 @@ import {
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function CorrectiveActionsPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+
   return (
     <div className="page page--dashboard page--admin">
       <AdminPageHeader
-        title="الإجراءات التصحيحية"
-        description="متابعة خطط المعالجة والإغلاق بعد مراجعات الجودة."
+        title={tr(isArabic, 'الإجراءات التصحيحية', 'Corrective actions')}
+        description={tr(
+          isArabic,
+          'متابعة خطط المعالجة والإغلاق بعد مراجعات الجودة.',
+          'Track remediation plans and closure after quality reviews.'
+        )}
       />
       <AdminActionBar>
         <Button type="button" variant="primary">
-          إجراء جديد
+          {tr(isArabic, 'إجراء جديد', 'New action')}
         </Button>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput placeholder="بحث بالوحدة" aria-label="بحث" />
-        <SelectField id="ca-status" label="الحالة" defaultValue="">
-          <option value="">كل الحالات</option>
-          <option value="open">مفتوح</option>
-          <option value="done">مكتمل</option>
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث بالوحدة', 'Search by unit')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField id="ca-status" label={tr(isArabic, 'الحالة', 'Status')} defaultValue="">
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="open">{tr(isArabic, 'مفتوح', 'Open')}</option>
+          <option value="done">{tr(isArabic, 'مكتمل', 'Done')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجراءات مفتوحة" value="—" icon={AlertTriangle} />
-        <StatCard label="متأخرة" value="—" icon={Timer} />
-        <StatCard label="مغلقة" value="—" icon={CheckCircle2} />
-        <StatCard label="خطط نشطة" value="—" icon={ClipboardList} />
+        <StatCard label={tr(isArabic, 'إجراءات مفتوحة', 'Open actions')} value="—" icon={AlertTriangle} />
+        <StatCard label={tr(isArabic, 'متأخرة', 'Overdue')} value="—" icon={Timer} />
+        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value="—" icon={CheckCircle2} />
+        <StatCard label={tr(isArabic, 'خطط نشطة', 'Active plans')} value="—" icon={ClipboardList} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الإجراءات التصحيحية">
+      <SectionCard title={tr(isArabic, 'قائمة الإجراءات التصحيحية', 'Corrective actions list')}>
         <DataTable
+          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
+          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
           columns={[
-            { key: 'id', label: 'المرجع' },
-            { key: 'issue', label: 'الملاحظة' },
-            { key: 'owner', label: 'المسؤول' },
-            { key: 'due', label: 'الاستحقاق' },
-            { key: 'status', label: 'الحالة' },
-            { key: 'actions', label: 'الإجراءات' },
+            { key: 'id', label: tr(isArabic, 'المرجع', 'Reference') },
+            { key: 'issue', label: tr(isArabic, 'الملاحظة', 'Finding') },
+            { key: 'owner', label: tr(isArabic, 'المسؤول', 'Owner') },
+            { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
+            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
+            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
           rows={[]}
         />

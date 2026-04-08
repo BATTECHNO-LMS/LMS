@@ -24,21 +24,25 @@ export const MOCK_LOGIN_PRESETS = {
   admin: {
     key: 'admin',
     labelAr: 'مسؤول',
+    labelEn: 'Admin',
     role: ROLES.SUPER_ADMIN,
   },
   instructor: {
     key: 'instructor',
     labelAr: 'مدرّس',
+    labelEn: 'Instructor',
     role: ROLES.INSTRUCTOR,
   },
   student: {
     key: 'student',
     labelAr: 'طالب',
+    labelEn: 'Student',
     role: ROLES.STUDENT,
   },
   reviewer: {
     key: 'reviewer',
     labelAr: 'مراجع جامعي',
+    labelEn: 'University reviewer',
     role: ROLES.UNIVERSITY_REVIEWER,
   },
 };

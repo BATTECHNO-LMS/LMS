@@ -8,7 +8,7 @@
   width: var(--sidebar-width);
   min-height: 100vh;
   z-index: $z-sidebar;
-  background: linear-gradient(180deg, $color-secondary 0%, #4a2a96 100%);
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -42,6 +42,16 @@
   height: 2rem;
   border-radius: $radius-md;
   background: rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+}
+
+.app-sidebar__logo-image {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: $radius-sm;
+  object-fit: cover;
+  background: #fff;
+  padding: 0.08rem;
   flex-shrink: 0;
 }
 

@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Building2, Plus, School, ShieldAlert } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
 import { AdminFilterBar } from '../../../components/admin/AdminFilterBar.jsx';
@@ -15,17 +16,25 @@ import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModa
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
 
 export function UniversitiesListPage() {
+  const { t } = useTranslation('universities');
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.universities.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    setRows(adminCrudStore.universities.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.universities.getAll()), [filterRows, scopeId, tick, location.key]);
 
   const filtered = rows.filter((r) => {
     const matchQ =
@@ -44,50 +53,58 @@ export function UniversitiesListPage() {
     programs: rows.reduce((a, r) => a + (r.programs || 0), 0),
   };
 
+  const emptyTitle =
+    rows.length === 0 ? tCommon('tenant.emptyForScope') : filtered.length === 0 ? t('empty.noResults') : t('empty.noData');
+  const emptyDescription =
+    rows.length === 0 ? t('empty.tryFilters') : filtered.length === 0 ? t('empty.tryFilters') : t('empty.noRecords');
+
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إدارة الجامعات" description="إدارة مؤسسات التعليم العالي والشراكات." />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/universities/create">
-          <Plus size={18} aria-hidden /> إضافة جامعة
+          <Plus size={18} aria-hidden /> {t('add')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو البريد أو جهة الاتصال" />
-        <SelectField id="uni-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="inactive">غير نشط</option>
-          <option value="suspended">موقوف</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
+        />
+        <SelectField id="uni-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="active">{tCommon('status.active')}</option>
+          <option value="inactive">{tCommon('status.inactive')}</option>
+          <option value="suspended">{tCommon('status.suspended')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي الجامعات" value={String(stats.total)} icon={Building2} />
-        <StatCard label="الجامعات النشطة" value={String(stats.active)} icon={School} />
-        <StatCard label="الجامعات الموقوفة" value={String(stats.suspended)} icon={ShieldAlert} />
-        <StatCard label="إجمالي البرامج" value={String(stats.programs)} icon={Building2} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={Building2} />
+        <StatCard label={t('stats.active')} value={String(stats.active)} icon={School} />
+        <StatCard label={t('stats.suspended')} value={String(stats.suspended)} icon={ShieldAlert} />
+        <StatCard label={t('stats.programs')} value={String(stats.programs)} icon={Building2} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الجامعات">
+      <SectionCard title={<>{t('listTitle')}</>}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
-          emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
-          }
+          emptyTitle={emptyTitle}
+          emptyDescription={emptyDescription}
           columns={[
-            { key: 'name', label: 'اسم الجامعة' },
-            { key: 'contact', label: 'جهة الاتصال' },
-            { key: 'email', label: 'البريد الإلكتروني' },
+            { key: 'name', label: t('table.name') },
+            { key: 'contact', label: t('table.contact') },
+            { key: 'email', label: t('table.email') },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tCommon('status.label'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
-            { key: 'programs', label: 'عدد البرامج' },
+            { key: 'programs', label: t('table.programs') },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tCommon('table.actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/universities/${r.id}`}
@@ -98,7 +115,11 @@ export function UniversitiesListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tCommon('pagination.stub')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -107,7 +128,7 @@ export function UniversitiesListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.universities.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.universities.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

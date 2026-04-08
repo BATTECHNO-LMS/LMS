@@ -1,0 +1,259 @@
+{
+  "unauthorized": {
+    "title": "غير مصرح لك بالوصول إلى لوحة الإحصائيات المتقدمة",
+    "description": "هذه المنطقة مخصصة لمسؤول النظام الأعلى فقط. يمكنك العودة إلى لوحتك أو التواصل مع الإدارة."
+  },
+  "page": {
+    "title": "لوحة الإحصائيات والتحليلات",
+    "description": "عرض شامل لمؤشرات الأداء والتحليلات التشغيلية والأكاديمية على مستوى النظام"
+  },
+  "kpi": {
+    "universities": "عدد الجامعات",
+    "microCredentials": "عدد الشهادات المصغرة",
+    "activeCohorts": "عدد الدفعات النشطة",
+    "enrolledStudents": "عدد الطلبة المسجلين",
+    "attendanceRate": "نسبة الحضور العامة",
+    "delayedAssessments": "عدد التقييمات المتأخرة",
+    "missingEvidence": "عدد الأدلة الناقصة",
+    "recognitionReady": "عدد طلبات الاعتراف الجاهزة",
+    "openQa": "عدد حالات الجودة المفتوحة",
+    "openIntegrity": "عدد حالات النزاهة المفتوحة",
+    "certificatesIssued": "عدد الشهادات الصادرة",
+    "activeUsers": "عدد المستخدمين النشطين",
+    "helperDemo": "بيانات تجريبية — ستُزامن مع الخادم لاحقاً"
+  },
+  "filters": {
+    "university": "الجامعة",
+    "track": "المسار",
+    "microCredential": "الشهادة المصغرة",
+    "cohort": "الدفعة",
+    "timeRange": "الفترة الزمنية",
+    "all": "الكل",
+    "presets": {
+      "last7": "آخر 7 أيام",
+      "last30": "آخر 30 يوم",
+      "thisTerm": "هذا الفصل",
+      "thisYear": "هذه السنة",
+      "all": "الكل"
+    }
+  },
+  "export": {
+    "pdf": "تصدير PDF",
+    "excel": "تصدير Excel",
+    "refresh": "تحديث"
+  },
+  "charts": {
+    "universitiesOverview": {
+      "title": "نظرة عامة على الجامعات",
+      "description": "الدفعات والطلبة وطلبات الاعتراف لكل جامعة"
+    },
+    "series": {
+      "cohorts": "الدفعات",
+      "students": "الطلبة",
+      "recognition": "طلبات الاعتراف"
+    },
+    "enrollment": {
+      "title": "نمو التسجيل",
+      "description": "تسجيل الطلبة عبر الزمن"
+    },
+    "cohortStatus": {
+      "title": "توزيع حالات الدفعات",
+      "description": "من المخطط إلى الملغاة"
+    },
+    "cohortStatuses": {
+      "planned": "مخطط",
+      "openEnrollment": "مفتوح للتسجيل",
+      "active": "نشط",
+      "completed": "مكتمل",
+      "closed": "مغلق",
+      "cancelled": "ملغى"
+    },
+    "assessmentHealth": {
+      "title": "صحة التقييمات",
+      "description": "الحجم ومسار التصحيح"
+    },
+    "assessmentSeries": {
+      "total": "إجمالي التقييمات",
+      "pendingGrading": "بانتظار التصحيح",
+      "overdue": "متأخرة",
+      "graded": "مُصححة"
+    },
+    "attendance": {
+      "title": "تحليلات الحضور",
+      "description": "اتجاه متوسط نسبة الحضور"
+    },
+    "evidence": {
+      "title": "تحليلات الأدلة",
+      "description": "مكتمل مقابل ناقص وحسب النوع"
+    },
+    "evidenceSeries": {
+      "complete": "مكتمل",
+      "missing": "ناقص",
+      "doc": "وثائق",
+      "media": "وسائط"
+    },
+    "qaIntegrity": {
+      "title": "نظرة الجودة والنزاهة",
+      "description": "المراجعات والحالات المفتوحة"
+    },
+    "qaSeries": {
+      "openQa": "مراجعات جودة مفتوحة",
+      "correctiveProgress": "إجراءات تصحيحية قيد التنفيذ",
+      "riskCases": "حالات مخاطر",
+      "integrityCases": "حالات نزاهة"
+    },
+    "recognitionFunnel": {
+      "title": "قمع طلبات الاعتراف",
+      "description": "الأعداد حسب مرحلة سير العمل"
+    },
+    "recognitionStatuses": {
+      "draft": "مسودة",
+      "inPreparation": "قيد الإعداد",
+      "readyForSubmission": "جاهز للتقديم",
+      "submitted": "مقدَّم",
+      "underReview": "قيد المراجعة",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "needsRevision": "يحتاج مراجعة"
+    },
+    "certificatesTime": {
+      "title": "الشهادات الصادرة عبر الزمن",
+      "description": "اتجاه الإصدار الشهري"
+    },
+    "certificatesUni": {
+      "title": "الشهادات حسب الجامعة",
+      "description": "عدد الإصدارات لكل شريك"
+    },
+    "certificatesCred": {
+      "title": "الشهادات حسب الشهادة المصغرة",
+      "description": "أعلى الشهادات حسب الحجم"
+    }
+  },
+  "sections": {
+    "kpis": "مؤشرات تنفيذية",
+    "charts": "مخططات تحليلية",
+    "insights": "أهم الملاحظات",
+    "alerts": "تنبيهات النظام",
+    "modules": "تحليلات الوحدات"
+  },
+  "insights": {
+    "topUniversity": "الجامعة الأعلى نشاطًا: {{name}}",
+    "topTrack": "أكثر مسار نموًا: {{name}}",
+    "lowAttendance": "الدفعات ذات الحضور المنخفض: {{name}}",
+    "criticalLateAssessments": "التقييمات المتأخرة الحرجة: {{count}}",
+    "recognitionReady": "طلبات الاعتراف الجاهزة للتقديم: {{count}}"
+  },
+  "alerts": {
+    "missingEvidence": "أدلة ناقصة أو غير مكتملة: {{count}}",
+    "integrityOpen": "حالات نزاهة مفتوحة: {{count}}",
+    "qaOpen": "مراجعات جودة غير مغلقة: {{count}}",
+    "assessmentsLate": "تقييمات متأخرة: {{count}}"
+  },
+  "empty": {
+    "title": "لا توجد بيانات تحليلية",
+    "description": "ستظهر البيانات عند ربط الخدمة."
+  },
+  "modules": {
+    "users": "المستخدمون",
+    "universities": "الجامعات",
+    "tracks": "المسارات",
+    "microCredentials": "الشهادات المصغرة",
+    "cohorts": "الدفعات",
+    "sessions": "الجلسات",
+    "attendance": "الحضور",
+    "assessments": "التقييمات",
+    "rubrics": "المعايير",
+    "submissions": "التسليمات",
+    "grades": "الدرجات",
+    "evidence": "الأدلة",
+    "qa": "الجودة",
+    "riskCases": "حالات المخاطر",
+    "integrityCases": "النزاهة",
+    "recognition": "طلبات الاعتراف",
+    "certificates": "الشهادات",
+    "reportsAudit": "التقارير والتدقيق"
+  },
+  "moduleLabels": {
+    "totalUsers": "إجمالي المستخدمين",
+    "activeUsers": "المستخدمون النشطون",
+    "usersByRole": "المستخدمون حسب الدور",
+    "recentAdds": "مضافون مؤخراً",
+    "totalUniversities": "إجمالي الجامعات",
+    "activePartnerships": "شراكات نشطة",
+    "topActivity": "أعلى نشاط",
+    "totalTracks": "إجمالي المسارات",
+    "mostActive": "أكثر مسار نشاطاً",
+    "totalMc": "إجمالي الشهادات المصغرة",
+    "activeVsArchived": "نشط / مؤرشف",
+    "mostDelivered": "الأكثر تسليماً",
+    "totalCohorts": "إجمالي الدفعات",
+    "activeCohorts": "دفعات نشطة",
+    "completedCohorts": "دفعات مكتملة",
+    "cohortsByUniversity": "الدفعات حسب الجامعة",
+    "totalSessions": "إجمالي الجلسات",
+    "documented": "موثقة",
+    "undocumented": "غير موثقة",
+    "overallRate": "النسبة الإجمالية",
+    "lowCohorts": "دفعات بحضور منخفض",
+    "hotspot": "نقطة ساخنة",
+    "totalAssessments": "إجمالي التقييمات",
+    "pendingGrading": "بانتظار التصحيح",
+    "overdue": "متأخرة",
+    "topTypes": "أكثر الأنواع",
+    "totalRubrics": "إجمالي المعايير",
+    "usageRate": "معدل الاستخدام",
+    "totalSubmissions": "إجمالي التسليمات",
+    "onTime": "في الوقت",
+    "late": "متأخرة",
+    "completionRate": "إكمال التصحيح",
+    "avgScore": "متوسط الدرجات",
+    "passFail": "نجاح / رسوب",
+    "totalFiles": "إجمالي الملفات",
+    "missing": "ناقص",
+    "completion": "معدل الإكمال",
+    "totalReviews": "إجمالي مراجعات الجودة",
+    "openCases": "حالات مفتوحة",
+    "unresolvedCorrective": "إجراءات تصحيحية غير محسومة",
+    "atRiskStudents": "طلبة متعثرون",
+    "trend": "الاتجاه",
+    "totalCases": "إجمالي الحالات",
+    "underInvestigation": "قيد التحقيق",
+    "resolved": "محسومة",
+    "totalRequests": "إجمالي الطلبات",
+    "readyForSubmission": "جاهزة للتقديم",
+    "approvedRate": "معدل الاعتماد",
+    "totalIssued": "إجمالي الصادر",
+    "issuedThisMonth": "صادر هذا الشهر",
+    "byUniversity": "حسب الجامعة",
+    "byCredential": "حسب الشهادة",
+    "reportsGenerated": "تشغيل التقارير (عرض تجريبي)",
+    "sensitiveActivities": "أنشطة حساسة (عرض تجريبي)"
+  },
+  "roles": {
+    "instructor": "مدربون",
+    "student": "طلبة",
+    "reviewer": "مراجعون",
+    "admin": "إداريون"
+  },
+  "trends": {
+    "stable": "مستقر",
+    "up": "تصاعدي",
+    "down": "تنازلي"
+  },
+  "weeks": {
+    "W1": "الأسبوع 1",
+    "W2": "الأسبوع 2",
+    "W3": "الأسبوع 3",
+    "W4": "الأسبوع 4"
+  },
+  "months": {
+    "2025-09": "أيلول 2025",
+    "2025-10": "تشرين الأول 2025",
+    "2025-11": "تشرين الثاني 2025",
+    "2025-12": "كانون الأول 2025",
+    "2026-01": "كانون الثاني 2026",
+    "2026-02": "شباط 2026",
+    "2026-03": "آذار 2026",
+    "2026-04": "نيسان 2026"
+  }
+}

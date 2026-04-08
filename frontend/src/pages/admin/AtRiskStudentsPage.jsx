@@ -11,42 +11,56 @@ import {
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function AtRiskStudentsPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+
   return (
     <div className="page page--dashboard page--admin">
       <AdminPageHeader
-        title="الطلبة المتعثرون"
-        description="متابعة المتعلّمين ذوي المؤشرات الأكاديمية المنخفضة."
+        title={tr(isArabic, 'الطلبة المتعثرون', 'At-risk students')}
+        description={tr(
+          isArabic,
+          'متابعة المتعلّمين ذوي المؤشرات الأكاديمية المنخفضة.',
+          'Follow learners with low academic indicators.'
+        )}
       />
       <AdminActionBar>
         <Button type="button" variant="primary">
-          تصدير قائمة
+          {tr(isArabic, 'تصدير قائمة', 'Export list')}
         </Button>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput placeholder="بحث بالمتعلّم" aria-label="بحث" />
-        <SelectField id="risk-tier" label="المستوى" defaultValue="">
-          <option value="">كل المستويات</option>
-          <option value="high">مرتفع</option>
-          <option value="medium">متوسط</option>
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث بالمتعلّم', 'Search learner')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField id="risk-tier" label={tr(isArabic, 'المستوى', 'Tier')} defaultValue="">
+          <option value="">{tr(isArabic, 'كل المستويات', 'All levels')}</option>
+          <option value="high">{tr(isArabic, 'مرتفع', 'High')}</option>
+          <option value="medium">{tr(isArabic, 'متوسط', 'Medium')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="حالات نشطة" value="—" icon={AlertTriangle} />
-        <StatCard label="معدّل التحسّن" value="—" icon={TrendingDown} />
-        <StatCard label="متابعة وقائية" value="—" icon={Users} />
-        <StatCard label="مغلقة" value="—" icon={UserX} />
+        <StatCard label={tr(isArabic, 'حالات نشطة', 'Active cases')} value="—" icon={AlertTriangle} />
+        <StatCard label={tr(isArabic, 'معدّل التحسّن', 'Improvement rate')} value="—" icon={TrendingDown} />
+        <StatCard label={tr(isArabic, 'متابعة وقائية', 'Preventive follow-up')} value="—" icon={Users} />
+        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value="—" icon={UserX} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الطلبة">
+      <SectionCard title={tr(isArabic, 'قائمة الطلبة', 'Students list')}>
         <DataTable
+          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
+          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
           columns={[
-            { key: 'learner', label: 'المتعلّم' },
-            { key: 'cohort', label: 'الدفعة' },
-            { key: 'indicator', label: 'المؤشر' },
-            { key: 'tier', label: 'المستوى' },
-            { key: 'owner', label: 'المسؤول' },
-            { key: 'actions', label: 'الإجراءات' },
+            { key: 'learner', label: tr(isArabic, 'المتعلّم', 'Learner') },
+            { key: 'cohort', label: tr(isArabic, 'الدفعة', 'Cohort') },
+            { key: 'indicator', label: tr(isArabic, 'المؤشر', 'Indicator') },
+            { key: 'tier', label: tr(isArabic, 'المستوى', 'Tier') },
+            { key: 'owner', label: tr(isArabic, 'المسؤول', 'Owner') },
+            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
           rows={[]}
         />

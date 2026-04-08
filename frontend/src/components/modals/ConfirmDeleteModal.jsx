@@ -1,5 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { translateText } from '../../utils/i18n.js';
 
 export function ConfirmDeleteModal({
   open,
@@ -10,6 +12,7 @@ export function ConfirmDeleteModal({
   onConfirm,
   onClose,
 }) {
+  const { locale } = useLocale();
   if (!open) return null;
 
   return (
@@ -25,15 +28,15 @@ export function ConfirmDeleteModal({
           <AlertTriangle size={22} aria-hidden />
         </div>
         <h2 id="confirm-delete-title" className="modal__title">
-          {title}
+          {translateText(title, locale)}
         </h2>
-        <p className="modal__message">{message}</p>
+        <p className="modal__message">{translateText(message, locale)}</p>
         <div className="modal__actions">
           <Button type="button" variant="outline" onClick={onClose}>
-            {cancelLabel}
+            {translateText(cancelLabel, locale)}
           </Button>
           <Button type="button" variant="danger" onClick={onConfirm}>
-            {confirmLabel}
+            {translateText(confirmLabel, locale)}
           </Button>
         </div>
       </div>

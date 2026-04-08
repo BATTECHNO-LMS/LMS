@@ -5,17 +5,24 @@ import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function UniversityViewPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const { id } = useParams();
   const row = adminCrudStore.universities.getById(id);
 
   if (!row) {
     return (
       <div className="page page--admin crud-page">
-        <AdminPageHeader title="غير موجود" description="لم يتم العثور على الجامعة." />
+        <AdminPageHeader
+          title={tr(isArabic, 'غير موجود', 'Not found')}
+          description={tr(isArabic, 'لم يتم العثور على الجامعة.', 'University not found.')}
+        />
         <Link className="btn btn--primary" to="/admin/universities">
-          العودة للقائمة
+          {tr(isArabic, 'العودة للقائمة', 'Back to list')}
         </Link>
       </div>
     );
@@ -23,42 +30,45 @@ export function UniversityViewPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="تفاصيل الجامعة" description="عرض بيانات الجامعة." />
+      <AdminPageHeader
+        title={tr(isArabic, 'تفاصيل الجامعة', 'University details')}
+        description={tr(isArabic, 'عرض بيانات الجامعة.', 'View university details.')}
+      />
       <SectionCard
-        title="البيانات"
+        title={tr(isArabic, 'البيانات', 'Details')}
         actions={
           <Link className="btn btn--primary" to={`/admin/universities/${id}/edit`}>
-            <Pencil size={18} aria-hidden /> تعديل
+            <Pencil size={18} aria-hidden /> {tr(isArabic, 'تعديل', 'Edit')}
           </Link>
         }
       >
         <dl className="crud-dl">
           <div>
-            <dt>اسم الجامعة</dt>
+            <dt>{tr(isArabic, 'اسم الجامعة', 'University name')}</dt>
             <dd>{row.name}</dd>
           </div>
           <div>
-            <dt>جهة الاتصال</dt>
+            <dt>{tr(isArabic, 'جهة الاتصال', 'Contact')}</dt>
             <dd>{row.contact}</dd>
           </div>
           <div>
-            <dt>البريد الإلكتروني</dt>
+            <dt>{tr(isArabic, 'البريد الإلكتروني', 'Email')}</dt>
             <dd>{row.email}</dd>
           </div>
           <div>
-            <dt>الحالة</dt>
+            <dt>{tr(isArabic, 'الحالة', 'Status')}</dt>
             <dd>
-              <StatusBadge variant={genericStatusVariant(row.status)}>{statusLabelAr(row.status)}</StatusBadge>
+              <StatusBadge variant={genericStatusVariant(row.status)}>{statusLabelAr(row.status, locale)}</StatusBadge>
             </dd>
           </div>
           <div>
-            <dt>عدد البرامج</dt>
+            <dt>{tr(isArabic, 'عدد البرامج', 'Program count')}</dt>
             <dd>{row.programs ?? 0}</dd>
           </div>
         </dl>
         <div className="crud-view-actions">
           <Link className="btn btn--outline" to="/admin/universities">
-            رجوع للقائمة
+            {tr(isArabic, 'رجوع للقائمة', 'Back to list')}
           </Link>
         </div>
       </SectionCard>

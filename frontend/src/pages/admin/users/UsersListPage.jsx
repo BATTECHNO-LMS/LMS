@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
 import { AdminFilterBar } from '../../../components/admin/AdminFilterBar.jsx';
@@ -16,19 +17,27 @@ import { TableIconActions } from '../../../components/crud/TableIconActions.jsx'
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { roleLabelAr } from '../../../utils/labelsAr.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
 import { Users, UserCheck, UserX, UserPlus } from 'lucide-react';
 
 export function UsersListPage() {
+  const { t } = useTranslation('users');
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.users.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [role, setRole] = useState('');
   const [status, setStatus] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    setRows(adminCrudStore.users.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.users.getAll()), [filterRows, scopeId, tick, location.key]);
 
   const filtered = rows.filter((r) => {
     const matchQ =
@@ -47,60 +56,77 @@ export function UsersListPage() {
     new: rows.filter((r) => r.lastLogin === '—').length,
   };
 
+  const emptyTitle =
+    rows.length === 0
+      ? tCommon('tenant.emptyForScope')
+      : filtered.length === 0
+        ? t('empty.noResults')
+        : t('empty.noData');
+
+  const emptyDescription =
+    rows.length === 0
+      ? t('empty.tryFilters')
+      : filtered.length === 0
+        ? t('empty.tryFilters')
+        : t('empty.noRecords');
+
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إدارة المستخدمين" description="إدارة حسابات المستخدمين وصلاحياتهم ضمن النظام." />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/users/create">
-          <Plus size={18} aria-hidden /> إضافة مستخدم
+          <Plus size={18} aria-hidden /> {t('addUser')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو البريد" />
-        <SelectField id="role-filter" label="الدور" value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="">كل الأدوار</option>
-          <option value="instructor">مدرّس</option>
-          <option value="student">طالب</option>
-          <option value="admin">إداري</option>
-          <option value="qa_officer">مسؤول جودة</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
+        />
+        <SelectField id="role-filter" label={t('filters.role')} value={role} onChange={(e) => setRole(e.target.value)}>
+          <option value="">{t('filters.allRoles')}</option>
+          <option value="instructor">{t('filters.instructor')}</option>
+          <option value="student">{t('filters.student')}</option>
+          <option value="admin">{t('filters.admin')}</option>
+          <option value="qa_officer">{t('filters.qaOfficer')}</option>
         </SelectField>
-        <SelectField id="status-filter" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="inactive">غير نشط</option>
+        <SelectField id="status-filter" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="active">{tCommon('status.active')}</option>
+          <option value="inactive">{tCommon('status.inactive')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي المستخدمين" value={String(stats.total)} icon={Users} />
-        <StatCard label="المستخدمون النشطون" value={String(stats.active)} icon={UserCheck} />
-        <StatCard label="المستخدمون الموقوفون" value={String(stats.inactive)} icon={UserX} />
-        <StatCard label="مستخدمون جدد" value={String(stats.new)} icon={UserPlus} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={Users} />
+        <StatCard label={t('stats.active')} value={String(stats.active)} icon={UserCheck} />
+        <StatCard label={t('stats.inactive')} value={String(stats.inactive)} icon={UserX} />
+        <StatCard label={t('stats.newUsers')} value={String(stats.new)} icon={UserPlus} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة المستخدمين">
+      <SectionCard title={<>{t('listTitle')}</>}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
-          emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
-          }
+          emptyTitle={emptyTitle}
+          emptyDescription={emptyDescription}
           columns={[
-            { key: 'name', label: 'الاسم' },
-            { key: 'email', label: 'البريد الإلكتروني' },
+            { key: 'name', label: t('table.name') },
+            { key: 'email', label: t('table.email') },
             {
               key: 'role',
-              label: 'الدور',
-              render: (r) => roleLabelAr(r.role),
+              label: t('table.role'),
+              render: (r) => roleLabelAr(r.role, locale),
             },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tCommon('status.label'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
-            { key: 'lastLogin', label: 'آخر دخول' },
+            { key: 'lastLogin', label: t('table.lastLogin') },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tCommon('table.actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/users/${r.id}`}
@@ -111,7 +137,11 @@ export function UsersListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tCommon('pagination.stub')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -120,7 +150,7 @@ export function UsersListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.users.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.users.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

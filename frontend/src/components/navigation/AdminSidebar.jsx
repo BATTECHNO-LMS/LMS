@@ -1,16 +1,19 @@
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers.js';
+import brandLogo from '../../assets/images/batman-logo.png';
 import { SidebarSectionTitle } from './SidebarSectionTitle.jsx';
 
 export function AdminSidebar({ brand = 'BATTECHNO-LMS', groups = [], collapsed = false, className }) {
+  const { t } = useTranslation('common');
   return (
     <aside
       className={cn('app-sidebar app-sidebar--admin', collapsed && 'app-sidebar--collapsed', className)}
       data-collapsed={collapsed ? 'true' : 'false'}
-      aria-label="قائمة الإدارة"
+      aria-label={t('sidebar.adminMenuAria')}
     >
       <div className="app-sidebar__brand">
-        <span className="app-sidebar__logo" aria-hidden />
+        <img src={brandLogo} alt={t('logo.alt')} className="app-sidebar__logo-image" />
         <span className="app-sidebar__brand-text">{brand}</span>
       </div>
       <nav className="app-sidebar__nav app-sidebar__nav--grouped">

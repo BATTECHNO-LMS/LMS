@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers.js';
 import { Button } from '../common/Button.jsx';
 
 export function UserDropdown({ userName, userEmail, onLogout }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -16,7 +18,7 @@ export function UserDropdown({ userName, userEmail, onLogout }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const label = userName || userEmail || 'مستخدم';
+  const label = userName || userEmail || t('user.fallbackName');
 
   return (
     <div className="user-dropdown" ref={rootRef}>
@@ -48,7 +50,7 @@ export function UserDropdown({ userName, userEmail, onLogout }) {
               onLogout?.();
             }}
           >
-            تسجيل الخروج
+            {t('user.logout')}
           </Button>
         </div>
       ) : null}

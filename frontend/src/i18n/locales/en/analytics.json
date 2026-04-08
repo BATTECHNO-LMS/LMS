@@ -1,0 +1,259 @@
+{
+  "unauthorized": {
+    "title": "You are not authorized to access the advanced analytics dashboard",
+    "description": "This area is restricted to super administrators. Return to your dashboard or contact the system owner."
+  },
+  "page": {
+    "title": "Statistics & analytics dashboard",
+    "description": "A comprehensive view of operational and academic performance indicators at the system level."
+  },
+  "kpi": {
+    "universities": "Universities",
+    "microCredentials": "Micro-credentials",
+    "activeCohorts": "Active cohorts",
+    "enrolledStudents": "Enrolled students",
+    "attendanceRate": "Overall attendance rate",
+    "delayedAssessments": "Delayed assessments",
+    "missingEvidence": "Missing evidence items",
+    "recognitionReady": "Recognition requests ready",
+    "openQa": "Open QA issues",
+    "openIntegrity": "Open integrity cases",
+    "certificatesIssued": "Certificates issued",
+    "activeUsers": "Active users",
+    "helperDemo": "Demo data — will sync with API"
+  },
+  "filters": {
+    "university": "University",
+    "track": "Track",
+    "microCredential": "Micro-credential",
+    "cohort": "Cohort",
+    "timeRange": "Time range",
+    "all": "All",
+    "presets": {
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "thisTerm": "This term",
+      "thisYear": "This year",
+      "all": "All"
+    }
+  },
+  "export": {
+    "pdf": "Export PDF",
+    "excel": "Export Excel",
+    "refresh": "Refresh"
+  },
+  "charts": {
+    "universitiesOverview": {
+      "title": "Universities overview",
+      "description": "Cohorts, students, and recognition requests by university"
+    },
+    "series": {
+      "cohorts": "Cohorts",
+      "students": "Students",
+      "recognition": "Recognition requests"
+    },
+    "enrollment": {
+      "title": "Enrollment growth",
+      "description": "Student enrollments over time"
+    },
+    "cohortStatus": {
+      "title": "Cohort status distribution",
+      "description": "Planned through cancelled"
+    },
+    "cohortStatuses": {
+      "planned": "Planned",
+      "openEnrollment": "Open for enrollment",
+      "active": "Active",
+      "completed": "Completed",
+      "closed": "Closed",
+      "cancelled": "Cancelled"
+    },
+    "assessmentHealth": {
+      "title": "Assessment health",
+      "description": "Volume and grading pipeline"
+    },
+    "assessmentSeries": {
+      "total": "Total assessments",
+      "pendingGrading": "Pending grading",
+      "overdue": "Overdue",
+      "graded": "Graded"
+    },
+    "attendance": {
+      "title": "Attendance analytics",
+      "description": "Average attendance rate trend"
+    },
+    "evidence": {
+      "title": "Evidence analytics",
+      "description": "Complete vs missing and by type"
+    },
+    "evidenceSeries": {
+      "complete": "Complete",
+      "missing": "Missing",
+      "doc": "Documents",
+      "media": "Media"
+    },
+    "qaIntegrity": {
+      "title": "QA & integrity overview",
+      "description": "Open reviews and cases"
+    },
+    "qaSeries": {
+      "openQa": "Open QA reviews",
+      "correctiveProgress": "Corrective actions in progress",
+      "riskCases": "Risk cases",
+      "integrityCases": "Integrity cases"
+    },
+    "recognitionFunnel": {
+      "title": "Recognition request funnel",
+      "description": "Counts by workflow stage"
+    },
+    "recognitionStatuses": {
+      "draft": "Draft",
+      "inPreparation": "In preparation",
+      "readyForSubmission": "Ready for submission",
+      "submitted": "Submitted",
+      "underReview": "Under review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "needsRevision": "Needs revision"
+    },
+    "certificatesTime": {
+      "title": "Certificates issued over time",
+      "description": "Monthly issuance trend"
+    },
+    "certificatesUni": {
+      "title": "Certificates by university",
+      "description": "Issued count per partner"
+    },
+    "certificatesCred": {
+      "title": "Certificates by micro-credential",
+      "description": "Top credentials by volume"
+    }
+  },
+  "sections": {
+    "kpis": "Executive KPIs",
+    "charts": "Analytical charts",
+    "insights": "Key observations",
+    "alerts": "System alerts",
+    "modules": "Module analytics"
+  },
+  "insights": {
+    "topUniversity": "Highest-activity university: {{name}}",
+    "topTrack": "Fastest-growing track: {{name}}",
+    "lowAttendance": "Cohort with low attendance: {{name}}",
+    "criticalLateAssessments": "Critical late assessments: {{count}}",
+    "recognitionReady": "Recognition requests ready for submission: {{count}}"
+  },
+  "alerts": {
+    "missingEvidence": "{{count}} evidence items are missing or incomplete",
+    "integrityOpen": "{{count}} integrity cases are open",
+    "qaOpen": "{{count}} QA reviews are not closed",
+    "assessmentsLate": "{{count}} assessments are overdue"
+  },
+  "empty": {
+    "title": "No analytics data",
+    "description": "Data will appear when the service is connected."
+  },
+  "modules": {
+    "users": "Users",
+    "universities": "Universities",
+    "tracks": "Tracks",
+    "microCredentials": "Micro-credentials",
+    "cohorts": "Cohorts",
+    "sessions": "Sessions",
+    "attendance": "Attendance",
+    "assessments": "Assessments",
+    "rubrics": "Rubrics",
+    "submissions": "Submissions",
+    "grades": "Grades",
+    "evidence": "Evidence",
+    "qa": "QA",
+    "riskCases": "Risk cases",
+    "integrityCases": "Integrity",
+    "recognition": "Recognition requests",
+    "certificates": "Certificates",
+    "reportsAudit": "Reports & audit"
+  },
+  "moduleLabels": {
+    "totalUsers": "Total users",
+    "activeUsers": "Active users",
+    "usersByRole": "Users by role",
+    "recentAdds": "Recently added",
+    "totalUniversities": "Total universities",
+    "activePartnerships": "Active partnerships",
+    "topActivity": "Highest activity",
+    "totalTracks": "Total tracks",
+    "mostActive": "Most active track",
+    "totalMc": "Total micro-credentials",
+    "activeVsArchived": "Active / archived",
+    "mostDelivered": "Most delivered",
+    "totalCohorts": "Total cohorts",
+    "activeCohorts": "Active cohorts",
+    "completedCohorts": "Completed cohorts",
+    "cohortsByUniversity": "Cohorts by university",
+    "totalSessions": "Total sessions",
+    "documented": "Documented",
+    "undocumented": "Undocumented",
+    "overallRate": "Overall rate",
+    "lowCohorts": "Low-attendance cohorts",
+    "hotspot": "Hotspot",
+    "totalAssessments": "Total assessments",
+    "pendingGrading": "Pending grading",
+    "overdue": "Overdue",
+    "topTypes": "Common types",
+    "totalRubrics": "Total rubrics",
+    "usageRate": "Usage rate",
+    "totalSubmissions": "Total submissions",
+    "onTime": "On time",
+    "late": "Late",
+    "completionRate": "Grading completion",
+    "avgScore": "Average score",
+    "passFail": "Pass / fail",
+    "totalFiles": "Total files",
+    "missing": "Missing",
+    "completion": "Completion rate",
+    "totalReviews": "Total QA reviews",
+    "openCases": "Open cases",
+    "unresolvedCorrective": "Unresolved corrective actions",
+    "atRiskStudents": "At-risk students",
+    "trend": "Trend",
+    "totalCases": "Total cases",
+    "underInvestigation": "Under investigation",
+    "resolved": "Resolved",
+    "totalRequests": "Total requests",
+    "readyForSubmission": "Ready for submission",
+    "approvedRate": "Approval rate",
+    "totalIssued": "Total issued",
+    "issuedThisMonth": "Issued this month",
+    "byUniversity": "By university",
+    "byCredential": "By credential",
+    "reportsGenerated": "Report runs (placeholder)",
+    "sensitiveActivities": "Sensitive activities (placeholder)"
+  },
+  "roles": {
+    "instructor": "Instructors",
+    "student": "Students",
+    "reviewer": "Reviewers",
+    "admin": "Administrators"
+  },
+  "trends": {
+    "stable": "Stable",
+    "up": "Rising",
+    "down": "Falling"
+  },
+  "weeks": {
+    "W1": "Week 1",
+    "W2": "Week 2",
+    "W3": "Week 3",
+    "W4": "Week 4"
+  },
+  "months": {
+    "2025-09": "Sep 2025",
+    "2025-10": "Oct 2025",
+    "2025-11": "Nov 2025",
+    "2025-12": "Dec 2025",
+    "2026-01": "Jan 2026",
+    "2026-02": "Feb 2026",
+    "2026-03": "Mar 2026",
+    "2026-04": "Apr 2026"
+  }
+}

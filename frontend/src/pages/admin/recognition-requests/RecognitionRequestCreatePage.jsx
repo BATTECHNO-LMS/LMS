@@ -7,8 +7,11 @@ import { FormInput, FormSelect } from '../../../components/forms/index.js';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { recognitionSchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function RecognitionRequestCreatePage() {
+  const { isArabic } = useLocale();
   const navigate = useNavigate();
   const unis = useMemo(() => adminCrudStore.universities.getAll(), []);
   const first = unis[0];
@@ -45,24 +48,39 @@ export function RecognitionRequestCreatePage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إنشاء طلب اعتراف" description="تسجيل طلب اعتراف أكاديمي جديد." />
+      <AdminPageHeader
+        title={tr(isArabic, 'إنشاء طلب اعتراف', 'Create recognition request')}
+        description={tr(isArabic, 'تسجيل طلب اعتراف أكاديمي جديد.', 'Register a new academic recognition request.')}
+      />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title="البيانات"
+          title={tr(isArabic, 'البيانات', 'Details')}
           actions={
             <>
               <Link className="btn btn--outline" to="/admin/recognition-requests">
-                <X size={18} aria-hidden /> إلغاء
+                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
               <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> حفظ
+                <Save size={18} aria-hidden /> {tr(isArabic, 'حفظ', 'Save')}
               </button>
             </>
           }
         >
           <div className="crud-form-grid">
-            <FormInput id="title" label="عنوان الطلب" value={form.title} onChange={(e) => setField('title', e.target.value)} error={errors.title} />
-            <FormSelect id="universityId" label="الجامعة" value={form.universityId} onChange={onUniversityChange} error={errors.universityId}>
+            <FormInput
+              id="title"
+              label={tr(isArabic, 'عنوان الطلب', 'Request title')}
+              value={form.title}
+              onChange={(e) => setField('title', e.target.value)}
+              error={errors.title}
+            />
+            <FormSelect
+              id="universityId"
+              label={tr(isArabic, 'الجامعة', 'University')}
+              value={form.universityId}
+              onChange={onUniversityChange}
+              error={errors.universityId}
+            >
               {unis.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.name}
@@ -71,17 +89,29 @@ export function RecognitionRequestCreatePage() {
             </FormSelect>
             <FormInput
               id="credentialName"
-              label="اسم الشهادة"
+              label={tr(isArabic, 'اسم الشهادة', 'Certificate name')}
               value={form.credentialName}
               onChange={(e) => setField('credentialName', e.target.value)}
               error={errors.credentialName}
             />
-            <FormInput id="cohortName" label="اسم الدفعة" value={form.cohortName} onChange={(e) => setField('cohortName', e.target.value)} error={errors.cohortName} />
-            <FormSelect id="status" label="الحالة" value={form.status} onChange={(e) => setField('status', e.target.value)} error={errors.status}>
-              <option value="draft">مسودة</option>
-              <option value="pending">قيد المراجعة</option>
-              <option value="approved">معتمد</option>
-              <option value="rejected">مرفوض</option>
+            <FormInput
+              id="cohortName"
+              label={tr(isArabic, 'اسم الدفعة', 'Cohort name')}
+              value={form.cohortName}
+              onChange={(e) => setField('cohortName', e.target.value)}
+              error={errors.cohortName}
+            />
+            <FormSelect
+              id="status"
+              label={tr(isArabic, 'الحالة', 'Status')}
+              value={form.status}
+              onChange={(e) => setField('status', e.target.value)}
+              error={errors.status}
+            >
+              <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
+              <option value="pending">{tr(isArabic, 'قيد المراجعة', 'Pending review')}</option>
+              <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
+              <option value="rejected">{tr(isArabic, 'مرفوض', 'Rejected')}</option>
             </FormSelect>
           </div>
         </SectionCard>

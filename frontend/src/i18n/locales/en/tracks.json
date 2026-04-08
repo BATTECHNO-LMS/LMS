@@ -1,0 +1,6 @@
+{
+  "title": "Track management",
+  "create": { "title": "Create track" },
+  "edit": { "title": "Edit track" },
+  "view": { "title": "Track details" }
+}

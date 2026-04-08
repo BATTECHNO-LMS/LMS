@@ -1,0 +1,71 @@
+{
+  "mainMenu": "القائمة الرئيسية",
+  "admin": {
+    "groups": {
+      "general": "الإدارة العامة",
+      "orgs": "المؤسسات والبرامج",
+      "delivery": "التنفيذ والتعليم",
+      "quality": "الجودة والمتابعة",
+      "accreditation": "الاعتماد والتقارير"
+    },
+    "items": {
+      "dashboard": "الرئيسية",
+      "analytics": "الإحصائيات والتحليلات",
+      "users": "المستخدمون",
+      "roles": "الأدوار والصلاحيات",
+      "settings": "الإعدادات",
+      "universities": "الجامعات",
+      "tracks": "المسارات",
+      "microCredentials": "الشهادات المصغرة",
+      "learningOutcomes": "مخرجات التعلم",
+      "cohorts": "الدفعات",
+      "content": "المحتوى",
+      "sessions": "الجلسات",
+      "attendance": "الحضور",
+      "assessments": "التقييمات",
+      "rubrics": "معايير التقييم",
+      "submissions": "التسليمات",
+      "grades": "الدرجات",
+      "evidence": "الأدلة",
+      "qa": "الجودة",
+      "qaReviews": "مراجعات الجودة",
+      "correctiveActions": "الإجراءات التصحيحية",
+      "atRiskStudents": "الطلبة المتعثرون",
+      "riskCases": "حالات المخاطر",
+      "integrity": "النزاهة الأكاديمية",
+      "recognition": "طلبات الاعتراف الأكاديمي",
+      "certificates": "الشهادات الرقمية",
+      "reports": "التقارير",
+      "auditLogs": "سجل التدقيق"
+    }
+  },
+  "instructor": {
+    "home": "الرئيسية",
+    "cohorts": "دفعاتي",
+    "sessions": "الجلسات",
+    "attendance": "الحضور",
+    "assessments": "التقييمات",
+    "submissions": "التسليمات",
+    "grades": "الدرجات",
+    "evidence": "الأدلة",
+    "riskStudents": "الطلبة المتعثرون"
+  },
+  "student": {
+    "home": "الرئيسية",
+    "programs": "شهاداتي المسجل بها",
+    "content": "المحتوى",
+    "sessions": "الجلسات",
+    "attendance": "الحضور",
+    "assessments": "التقييمات",
+    "submissions": "التسليمات",
+    "grades": "الدرجات",
+    "certificate": "الشهادة الرقمية"
+  },
+  "reviewer": {
+    "home": "الرئيسية",
+    "recognition": "طلبات الاعتراف الأكاديمي",
+    "universityReports": "تقارير الجامعة",
+    "evidence": "الأدلة والمرفقات",
+    "certificates": "الشهادات المرتبطة"
+  }
+}

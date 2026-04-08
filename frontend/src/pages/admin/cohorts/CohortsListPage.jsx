@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Plus, Users } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
@@ -15,17 +15,27 @@ import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModa
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../../../utils/i18n.js';
 
 export function CohortsListPage() {
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.cohorts.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    setRows(adminCrudStore.cohorts.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.cohorts.getAll()), [filterRows, scopeId, tick, location.key]);
 
   const filtered = rows.filter((r) => {
     const matchQ =
@@ -47,50 +57,77 @@ export function CohortsListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إدارة الدفعات" description="متابعة الدفعات التدريبية والجداول الزمنية." />
+      <AdminPageHeader
+        title={tr(isArabic, 'إدارة الدفعات', 'Batch management')}
+        description={tr(
+          isArabic,
+          'متابعة الدفعات التدريبية والجداول الزمنية.',
+          'Track training batches and schedules.'
+        )}
+      />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/cohorts/create">
-          <Plus size={18} aria-hidden /> إضافة دفعة
+          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة دفعة', 'Add batch')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو المدرب أو الشهادة" />
-        <SelectField id="cohort-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="planned">مخطط</option>
-          <option value="running">قيد التنفيذ</option>
-          <option value="completed">مكتمل</option>
-          <option value="cancelled">ملغى</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr(isArabic, 'بحث بالاسم أو المدرب أو الشهادة', 'Search by name, trainer, or certificate')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField
+          id="cohort-status"
+          label={tr(isArabic, 'الحالة', 'Status')}
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="planned">{tr(isArabic, 'مخطط', 'Planned')}</option>
+          <option value="running">{tr(isArabic, 'قيد التنفيذ', 'In progress')}</option>
+          <option value="completed">{tr(isArabic, 'مكتمل', 'Completed')}</option>
+          <option value="cancelled">{tr(isArabic, 'ملغى', 'Cancelled')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي الدفعات" value={String(stats.total)} icon={Users} />
-        <StatCard label="قيد التنفيذ" value={String(stats.running)} icon={Users} />
-        <StatCard label="مخطط" value={String(stats.planned)} icon={Users} />
-        <StatCard label="مكتمل" value={String(stats.completed)} icon={Users} />
+        <StatCard label={tr(isArabic, 'إجمالي الدفعات', 'Total batches')} value={String(stats.total)} icon={Users} />
+        <StatCard label={tr(isArabic, 'قيد التنفيذ', 'In progress')} value={String(stats.running)} icon={Users} />
+        <StatCard label={tr(isArabic, 'مخطط', 'Planned')} value={String(stats.planned)} icon={Users} />
+        <StatCard label={tr(isArabic, 'مكتمل', 'Completed')} value={String(stats.completed)} icon={Users} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الدفعات">
+      <SectionCard title={tr(isArabic, 'قائمة الدفعات', 'Batches list')}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
+          emptyTitle={
+            rows.length === 0
+              ? tCommon('tenant.noCohortsForTenant')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'لا توجد نتائج', 'No results')
+                : tr(isArabic, 'لا توجد بيانات', 'No data')
+          }
           emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
+                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
           }
           columns={[
-            { key: 'name', label: 'اسم الدفعة' },
-            { key: 'credentialName', label: 'الشهادة' },
-            { key: 'instructor', label: 'المدرّب' },
-            { key: 'startDate', label: 'تاريخ البداية' },
-            { key: 'endDate', label: 'تاريخ النهاية' },
+            { key: 'name', label: tr(isArabic, 'اسم الدفعة', 'Batch name') },
+            { key: 'credentialName', label: tr(isArabic, 'الشهادة', 'Certificate') },
+            { key: 'instructor', label: tr(isArabic, 'المدرّب', 'Trainer') },
+            { key: 'startDate', label: tr(isArabic, 'تاريخ البداية', 'Start date') },
+            { key: 'endDate', label: tr(isArabic, 'تاريخ النهاية', 'End date') },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tr(isArabic, 'الحالة', 'Status'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tr(isArabic, 'الإجراءات', 'Actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/cohorts/${r.id}`}
@@ -101,7 +138,11 @@ export function CohortsListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -110,7 +151,7 @@ export function CohortsListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.cohorts.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.cohorts.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

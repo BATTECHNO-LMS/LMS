@@ -7,8 +7,12 @@ import { FormInput, FormSelect, FormNumber } from '../../../components/forms/ind
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { universitySchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function UniversityCreatePage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
@@ -40,17 +44,20 @@ export function UniversityCreatePage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إنشاء جامعة" description="أدخل بيانات الجامعة ثم احفظ." />
+      <AdminPageHeader
+        title={tr(isArabic, 'إنشاء جامعة', 'Create university')}
+        description={tr(isArabic, 'أدخل بيانات الجامعة ثم احفظ.', 'Enter university details, then save.')}
+      />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title="البيانات"
+          title={tr(isArabic, 'البيانات', 'Details')}
           actions={
             <>
               <Link className="btn btn--outline" to="/admin/universities">
-                <X size={18} aria-hidden /> إلغاء
+                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
               <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> حفظ
+                <Save size={18} aria-hidden /> {tr(isArabic, 'حفظ', 'Save')}
               </button>
             </>
           }
@@ -58,21 +65,21 @@ export function UniversityCreatePage() {
           <div className="crud-form-grid">
             <FormInput
               id="name"
-              label="اسم الجامعة"
+              label={tr(isArabic, 'اسم الجامعة', 'University name')}
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
               error={errors.name}
             />
             <FormInput
               id="contact"
-              label="جهة الاتصال"
+              label={tr(isArabic, 'جهة الاتصال', 'Contact')}
               value={form.contact}
               onChange={(e) => setField('contact', e.target.value)}
               error={errors.contact}
             />
             <FormInput
               id="email"
-              label="البريد الإلكتروني"
+              label={tr(isArabic, 'البريد الإلكتروني', 'Email')}
               type="email"
               value={form.email}
               onChange={(e) => setField('email', e.target.value)}
@@ -80,18 +87,18 @@ export function UniversityCreatePage() {
             />
             <FormSelect
               id="status"
-              label="الحالة"
+              label={tr(isArabic, 'الحالة', 'Status')}
               value={form.status}
               onChange={(e) => setField('status', e.target.value)}
               error={errors.status}
             >
-              <option value="active">نشط</option>
-              <option value="inactive">غير نشط</option>
-              <option value="suspended">موقوف</option>
+              <option value="active">{tr(isArabic, 'نشط', 'Active')}</option>
+              <option value="inactive">{tr(isArabic, 'غير نشط', 'Inactive')}</option>
+              <option value="suspended">{tr(isArabic, 'موقوف', 'Suspended')}</option>
             </FormSelect>
             <FormNumber
               id="programs"
-              label="عدد البرامج (اختياري)"
+              label={tr(isArabic, 'عدد البرامج (اختياري)', 'Program count (optional)')}
               value={form.programs}
               onChange={(e) => setField('programs', e.target.value)}
               error={errors.programs}

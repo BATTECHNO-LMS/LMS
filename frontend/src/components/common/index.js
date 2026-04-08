@@ -1,4 +1,5 @@
 export { AppNavbar } from './AppNavbar.jsx';
+export { LanguageSwitcher } from './LanguageSwitcher.jsx';
 export { AppFooter } from './AppFooter.jsx';
 export { Button } from './Button.jsx';
 export { DataTable } from '../tables/DataTable.jsx';

@@ -7,8 +7,12 @@ import { FormInput, FormSelect } from '../../../components/forms/index.js';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { userSchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { tr } from '../../../utils/i18n.js';
 
 export function UserEditPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const { id } = useParams();
   const navigate = useNavigate();
   const [form, setForm] = useState(null);
@@ -47,17 +51,20 @@ export function UserEditPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="تعديل مستخدم" description="تحديث بيانات المستخدم المحدد." />
+      <AdminPageHeader
+        title={tr(isArabic, 'تعديل مستخدم', 'Edit user')}
+        description={tr(isArabic, 'تحديث بيانات المستخدم المحدد.', 'Update the selected user.')}
+      />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title="البيانات"
+          title={tr(isArabic, 'البيانات', 'Details')}
           actions={
             <>
               <Link className="btn btn--outline" to={`/admin/users/${id}`}>
-                <X size={18} aria-hidden /> إلغاء
+                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
               <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> تحديث
+                <Save size={18} aria-hidden /> {tr(isArabic, 'تحديث', 'Update')}
               </button>
             </>
           }
@@ -65,28 +72,40 @@ export function UserEditPage() {
           <div className="crud-form-grid">
             <FormInput
               id="name"
-              label="الاسم"
+              label={tr(isArabic, 'الاسم', 'Name')}
               value={form.name}
               onChange={(e) => setField('name', e.target.value)}
               error={errors.name}
             />
             <FormInput
               id="email"
-              label="البريد الإلكتروني"
+              label={tr(isArabic, 'البريد الإلكتروني', 'Email')}
               type="email"
               value={form.email}
               onChange={(e) => setField('email', e.target.value)}
               error={errors.email}
             />
-            <FormSelect id="role" label="الدور" value={form.role} onChange={(e) => setField('role', e.target.value)} error={errors.role}>
-              <option value="instructor">مدرّس</option>
-              <option value="student">طالب</option>
-              <option value="admin">إداري</option>
-              <option value="qa_officer">مسؤول جودة</option>
+            <FormSelect
+              id="role"
+              label={tr(isArabic, 'الدور', 'Role')}
+              value={form.role}
+              onChange={(e) => setField('role', e.target.value)}
+              error={errors.role}
+            >
+              <option value="instructor">{tr(isArabic, 'مدرّس', 'Instructor')}</option>
+              <option value="student">{tr(isArabic, 'طالب', 'Student')}</option>
+              <option value="admin">{tr(isArabic, 'إداري', 'Admin')}</option>
+              <option value="qa_officer">{tr(isArabic, 'مسؤول جودة', 'QA Officer')}</option>
             </FormSelect>
-            <FormSelect id="status" label="الحالة" value={form.status} onChange={(e) => setField('status', e.target.value)} error={errors.status}>
-              <option value="active">نشط</option>
-              <option value="inactive">غير نشط</option>
+            <FormSelect
+              id="status"
+              label={tr(isArabic, 'الحالة', 'Status')}
+              value={form.status}
+              onChange={(e) => setField('status', e.target.value)}
+              error={errors.status}
+            >
+              <option value="active">{tr(isArabic, 'نشط', 'Active')}</option>
+              <option value="inactive">{tr(isArabic, 'غير نشط', 'Inactive')}</option>
             </FormSelect>
           </div>
         </SectionCard>

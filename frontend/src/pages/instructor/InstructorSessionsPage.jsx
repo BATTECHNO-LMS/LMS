@@ -6,27 +6,42 @@ import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function InstructorSessionsPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+
   return (
     <div className="page page--dashboard page--instructor">
-      <AdminPageHeader title="الجلسات" description="جدول الجلسات الحضورية والافتراضية المرتبطة بدفعاتك." />
+      <AdminPageHeader
+        title={tr(isArabic, 'الجلسات', 'Sessions')}
+        description={tr(
+          isArabic,
+          'جدول الجلسات الحضورية والافتراضية المرتبطة بدفعاتك.',
+          'Schedule of onsite and online sessions linked to your cohorts.'
+        )}
+      />
       <AdminFilterBar>
-        <SearchInput placeholder="بحث بالدفعة أو الموضوع" aria-label="بحث" />
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث بالدفعة أو الموضوع', 'Search by cohort or topic')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="جلسات اليوم" value="—" icon={CalendarDays} />
-        <StatCard label="قادمة" value="—" icon={Clock} />
-        <StatCard label="حضوري" value="—" icon={MapPin} />
-        <StatCard label="عن بُعد" value="—" icon={Video} />
+        <StatCard label={tr(isArabic, 'جلسات اليوم', 'Today sessions')} value="—" icon={CalendarDays} />
+        <StatCard label={tr(isArabic, 'قادمة', 'Upcoming')} value="—" icon={Clock} />
+        <StatCard label={tr(isArabic, 'حضوري', 'Onsite')} value="—" icon={MapPin} />
+        <StatCard label={tr(isArabic, 'عن بُعد', 'Online')} value="—" icon={Video} />
       </AdminStatsGrid>
-      <SectionCard title="الجلسات القادمة">
+      <SectionCard title={tr(isArabic, 'الجلسات القادمة', 'Upcoming sessions')}>
         <DataTable
           columns={[
-            { key: 'when', label: 'التاريخ والوقت' },
-            { key: 'topic', label: 'الموضوع' },
-            { key: 'cohort', label: 'الدفعة' },
-            { key: 'mode', label: 'النوع' },
+            { key: 'when', label: tr(isArabic, 'التاريخ والوقت', 'Date and time') },
+            { key: 'topic', label: tr(isArabic, 'الموضوع', 'Topic') },
+            { key: 'cohort', label: tr(isArabic, 'الدفعة', 'Cohort') },
+            { key: 'mode', label: tr(isArabic, 'النوع', 'Mode') },
           ]}
           rows={[]}
         />

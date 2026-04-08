@@ -10,39 +10,50 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { PermissionGate } from '../../components/permissions/PermissionGate.jsx';
 import { Button } from '../../components/common/Button.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function InstructorEvidencePage() {
   const P = UI_PERMISSION;
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
 
   return (
     <div className="page page--dashboard page--instructor">
       <AdminPageHeader
-        title="الأدلة"
-        description="رفع وإدارة الأدلة المرتبطة بالدفعات المسندة إليك فقط — حسب صلاحيات الواجهة."
+        title={tr(isArabic, 'الأدلة', 'Evidence')}
+        description={tr(
+          isArabic,
+          'رفع وإدارة الأدلة المرتبطة بالدفعات المسندة إليك فقط — حسب صلاحيات الواجهة.',
+          'Upload and manage evidence linked only to your assigned cohorts, based on UI permissions.'
+        )}
       />
       <AdminActionBar>
         <PermissionGate permission={P.canUploadEvidence}>
           <Button type="button" variant="primary">
-            <Upload size={18} aria-hidden /> رفع دليل
+            <Upload size={18} aria-hidden /> {tr(isArabic, 'رفع دليل', 'Upload evidence')}
           </Button>
         </PermissionGate>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput placeholder="بحث بالعنوان أو النوع" aria-label="بحث" />
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث بالعنوان أو النوع', 'Search by title or type')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="ملفات مرفوعة" value="—" icon={FolderOpen} />
-        <StatCard label="مستندات" value="—" icon={FileText} />
-        <StatCard label="مرفقات" value="—" icon={Paperclip} />
-        <StatCard label="معتمدة" value="—" icon={ShieldCheck} />
+        <StatCard label={tr(isArabic, 'ملفات مرفوعة', 'Uploaded files')} value="—" icon={FolderOpen} />
+        <StatCard label={tr(isArabic, 'مستندات', 'Documents')} value="—" icon={FileText} />
+        <StatCard label={tr(isArabic, 'مرفقات', 'Attachments')} value="—" icon={Paperclip} />
+        <StatCard label={tr(isArabic, 'معتمدة', 'Approved')} value="—" icon={ShieldCheck} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الأدلة">
+      <SectionCard title={tr(isArabic, 'قائمة الأدلة', 'Evidence list')}>
         <DataTable
           columns={[
-            { key: 'title', label: 'العنوان' },
-            { key: 'cohort', label: 'الدفعة' },
-            { key: 'type', label: 'النوع' },
-            { key: 'updated', label: 'آخر تحديث' },
+            { key: 'title', label: tr(isArabic, 'العنوان', 'Title') },
+            { key: 'cohort', label: tr(isArabic, 'الدفعة', 'Cohort') },
+            { key: 'type', label: tr(isArabic, 'النوع', 'Type') },
+            { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
           ]}
           rows={[]}
         />

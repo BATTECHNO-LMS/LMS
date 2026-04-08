@@ -1,19 +1,22 @@
 import { Navigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../../components/common/PageHeader.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { useAuth } from '../../features/auth/index.js';
 import { canAccessPath, getPageTitleForPath } from '../../constants/navigation.js';
 import { getDashboardPathForRole } from '../../utils/helpers.js';
+import { getLoginPathForCurrentPortal } from '../../utils/portal.js';
 
 /**
  * Fallback for module routes until feature pages exist.
  */
 export function ModulePlaceholderPage() {
   const { user } = useAuth();
+  const { t: tEmpty } = useTranslation('emptyStates');
   const location = useLocation();
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to={getLoginPathForCurrentPortal()} replace />;
   }
 
   if (!canAccessPath(user.role, location.pathname)) {
@@ -24,10 +27,10 @@ export function ModulePlaceholderPage() {
 
   return (
     <div className="page page--dashboard">
-      <PageHeader title={title} subtitle="هذه الصفحة جاهزة هيكلياً وستُربط بالواجهة الخلفية لاحقاً." />
+      <PageHeader title={title} subtitle={tEmpty('modulePlaceholder.subtitle')} />
       <EmptyState
-        title="لا يوجد محتوى بعد"
-        description="سيتم عرض بيانات الوحدة هنا بعد التكامل مع الخادم."
+        title={tEmpty('modulePlaceholder.emptyTitle')}
+        description={tEmpty('modulePlaceholder.emptyDescription')}
       />
     </div>
   );

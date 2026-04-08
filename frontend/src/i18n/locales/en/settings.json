@@ -1,0 +1,22 @@
+{
+  "title": "Settings",
+  "description": "General system, integration, and notification settings.",
+  "profile": {
+    "title": "Admin profile",
+    "displayName": "Display name",
+    "email": "Email"
+  },
+  "system": {
+    "title": "System settings",
+    "platformName": "Platform name",
+    "timezone": "Time zone",
+    "interfaceLanguage": "Interface language",
+    "langAr": "Arabic (RTL)",
+    "langEn": "English (LTR)"
+  },
+  "integrations": {
+    "title": "Integrations and notifications",
+    "hint": "Webhook and email integrations will be enabled later from the backend.",
+    "open": "Open integration settings"
+  }
+}

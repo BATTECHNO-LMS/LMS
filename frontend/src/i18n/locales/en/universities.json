@@ -1,0 +1,34 @@
+{
+  "title": "University management",
+  "description": "Manage higher education institutions and partnerships.",
+  "add": "Add university",
+  "searchPlaceholder": "Search by name, email, or contact",
+  "listTitle": "Universities list",
+  "stats": {
+    "total": "Total universities",
+    "active": "Active universities",
+    "suspended": "Suspended universities",
+    "programs": "Total programs"
+  },
+  "table": {
+    "name": "University name",
+    "contact": "Contact",
+    "email": "Email",
+    "programs": "Programs count"
+  },
+  "empty": {
+    "noData": "No data",
+    "noResults": "No results",
+    "tryFilters": "Try adjusting filters or search.",
+    "noRecords": "No records found."
+  },
+  "create": {
+    "title": "Create university"
+  },
+  "edit": {
+    "title": "Edit university"
+  },
+  "view": {
+    "title": "University details"
+  }
+}

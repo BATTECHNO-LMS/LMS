@@ -5,6 +5,12 @@ import { InstructorLayout } from '../../layouts/InstructorLayout.jsx';
 import { StudentLayout } from '../../layouts/StudentLayout.jsx';
 import { ReviewerLayout } from '../../layouts/ReviewerLayout.jsx';
 import { LoginPage } from '../../pages/auth/LoginPage.jsx';
+import {
+  AdminLoginPage,
+  InstructorLoginPage,
+  StudentLoginPage,
+  ReviewerLoginPage,
+} from '../../pages/auth/portalLogins.jsx';
 import { AdminDashboardPage } from '../../pages/admin/AdminDashboardPage.jsx';
 import { UsersListPage } from '../../pages/admin/users/UsersListPage.jsx';
 import { UserCreatePage } from '../../pages/admin/users/UserCreatePage.jsx';
@@ -53,6 +59,7 @@ import { CertificatesPage } from '../../pages/admin/CertificatesPage.jsx';
 import { ReportsPage } from '../../pages/admin/ReportsPage.jsx';
 import { AuditLogsPage } from '../../pages/admin/AuditLogsPage.jsx';
 import { SettingsPage } from '../../pages/admin/SettingsPage.jsx';
+import { SuperAdminAnalyticsRoute } from '../../pages/admin/SuperAdminAnalyticsRoute.jsx';
 import { InstructorDashboardPage } from '../../pages/instructor/InstructorDashboardPage.jsx';
 import { MyCohortsPage } from '../../pages/instructor/MyCohortsPage.jsx';
 import { InstructorSessionsPage } from '../../pages/instructor/InstructorSessionsPage.jsx';
@@ -84,6 +91,16 @@ import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
 import { RootRedirect } from '../../components/common/RootRedirect.jsx';
 import { RoleShellPermissionOutlet } from '../../components/permissions/RoleShellPermissionOutlet.jsx';
 import { ADMIN_ROLE_SET, ROLES } from '../../constants/roles.js';
+import { getCurrentPortalKey } from '../../utils/portal.js';
+
+function SubdomainLoginRedirect() {
+  const portal = getCurrentPortalKey();
+  if (portal === 'admin') return <Navigate to="/login/admin" replace />;
+  if (portal === 'instructor') return <Navigate to="/login/instructor" replace />;
+  if (portal === 'student') return <Navigate to="/login/student" replace />;
+  if (portal === 'reviewer') return <Navigate to="/login/reviewer" replace />;
+  return <LoginPage />;
+}
 
 export function AppRouter() {
   return (
@@ -91,7 +108,11 @@ export function AppRouter() {
       <Route path="/" element={<RootRedirect />} />
 
       <Route path="/login" element={<AuthLayout />}>
-        <Route index element={<LoginPage />} />
+        <Route index element={<SubdomainLoginRedirect />} />
+        <Route path="admin" element={<AdminLoginPage />} />
+        <Route path="instructor" element={<InstructorLoginPage />} />
+        <Route path="student" element={<StudentLoginPage />} />
+        <Route path="reviewer" element={<ReviewerLoginPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
@@ -99,6 +120,7 @@ export function AppRouter() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={ADMIN_ROLE_SET} />}>
             <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="analytics" element={<SuperAdminAnalyticsRoute />} />
             <Route path="users/create" element={<UserCreatePage />} />
             <Route path="users/:id/edit" element={<UserEditPage />} />
             <Route path="users/:id" element={<UserViewPage />} />

@@ -12,6 +12,7 @@ export const INSTRUCTOR_ASSESSMENTS = [
     submissionsCount: 12,
     status: 'published',
     cohortName: 'دفعة ربيع 2026',
+    tenantId: 'uni-1',
   },
   {
     id: '2',
@@ -24,6 +25,7 @@ export const INSTRUCTOR_ASSESSMENTS = [
     submissionsCount: 5,
     status: 'draft',
     cohortName: 'دفعة ربيع 2026',
+    tenantId: 'uni-1',
   },
 ];
 
@@ -34,6 +36,7 @@ export const STUDENT_ASSESSMENTS = [
     type: 'quiz',
     due: '2026-04-20',
     submissionState: 'open',
+    tenantId: 'uni-1',
   },
   {
     id: '2',
@@ -41,6 +44,7 @@ export const STUDENT_ASSESSMENTS = [
     type: 'assignment',
     due: '2026-04-10',
     submissionState: 'submitted',
+    tenantId: 'uni-1',
   },
   {
     id: '3',
@@ -48,6 +52,7 @@ export const STUDENT_ASSESSMENTS = [
     type: 'lab',
     due: '2026-03-01',
     submissionState: 'late',
+    tenantId: 'uni-1',
   },
   {
     id: '4',
@@ -55,6 +60,7 @@ export const STUDENT_ASSESSMENTS = [
     type: 'presentation',
     due: '2026-05-30',
     submissionState: 'graded',
+    tenantId: 'uni-1',
   },
 ];
 
@@ -66,6 +72,7 @@ export const STUDENT_SUBMISSION_ROWS = [
     submittedAt: '2026-04-08',
     state: 'submitted',
     score: '—',
+    tenantId: 'uni-1',
   },
   {
     id: '2',
@@ -74,6 +81,7 @@ export const STUDENT_SUBMISSION_ROWS = [
     submittedAt: '—',
     state: 'late',
     score: '—',
+    tenantId: 'uni-1',
   },
 ];
 
@@ -81,18 +89,28 @@ export const INSTRUCTOR_SUBMISSION_ROWS = [
   {
     id: '1',
     studentName: 'محمد علي',
+    studentNameAr: 'محمد علي',
+    studentNameEn: 'Mohammad Ali',
     assessmentName: 'واجب التحليل',
+    assessmentNameAr: 'واجب التحليل',
+    assessmentNameEn: 'Analysis assignment',
     submittedAt: '2026-04-08 14:20',
     status: 'submitted',
     gradeStatus: 'pending',
+    tenantId: 'uni-1',
   },
   {
     id: '2',
     studentName: 'سارة أحمد',
+    studentNameAr: 'سارة أحمد',
+    studentNameEn: 'Sarah Ahmad',
     assessmentName: 'واجب التحليل',
+    assessmentNameAr: 'واجب التحليل',
+    assessmentNameEn: 'Analysis assignment',
     submittedAt: '2026-04-09 09:05',
     status: 'submitted',
     gradeStatus: 'graded',
+    tenantId: 'uni-1',
   },
 ];
 

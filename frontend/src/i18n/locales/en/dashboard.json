@@ -1,0 +1,74 @@
+{
+  "admin": {
+    "title": "Admin dashboard",
+    "description": "Operational overview for the selected university scope (frontend simulation).",
+    "statsHint": "Counts from demo data for the active tenant scope",
+    "stats": {
+      "activeUsers": "Users (scope)",
+      "universities": "Universities (scope)",
+      "cohorts": "Cohorts (scope)",
+      "assessments": "Assessments (scope)",
+      "reports": "Ready reports",
+      "activity": "Daily activity",
+      "hint": "Updates after backend integration"
+    },
+    "recentActivity": "Recent activity",
+    "emptyActivity": "No activity rows in the demo feed.",
+    "table": {
+      "time": "Time",
+      "event": "Event",
+      "actor": "User"
+    },
+    "recent": {
+      "title": "Recent activity",
+      "time": "Time",
+      "event": "Event",
+      "user": "User"
+    }
+  },
+  "instructor": {
+    "title": "Instructor dashboard",
+    "description": "Track cohorts, sessions, and assessments for your university.",
+    "statsHint": "Demo counts scoped to tenant",
+    "sessions": "Sessions (scope)",
+    "cohorts": "Active cohorts",
+    "pendingGrading": "Submissions awaiting grading",
+    "alerts": "Student alerts",
+    "upcoming": "Upcoming activity",
+    "table": {
+      "time": "Time",
+      "event": "Assessment",
+      "cohort": "Cohort"
+    }
+  },
+  "student": {
+    "title": "Student dashboard",
+    "description": "Track your progress within your university.",
+    "statsHint": "Demo counts scoped to tenant",
+    "tasks": "Open tasks",
+    "submissions": "Submissions",
+    "grades": "Published grades",
+    "content": "New content",
+    "upcoming": "Upcoming schedule",
+    "table": {
+      "time": "Due",
+      "event": "Assessment",
+      "credential": "Credential / track"
+    }
+  },
+  "reviewer": {
+    "title": "Academic reviewer dashboard",
+    "description": "Recognition requests and reports for your university.",
+    "statsHint": "Demo counts scoped to tenant",
+    "requests": "Requests (scope)",
+    "reports": "Updated reports",
+    "evidence": "Uploaded evidence",
+    "alerts": "Alerts",
+    "latest": "Latest updates",
+    "table": {
+      "time": "Created",
+      "event": "Request",
+      "reference": "Reference"
+    }
+  }
+}

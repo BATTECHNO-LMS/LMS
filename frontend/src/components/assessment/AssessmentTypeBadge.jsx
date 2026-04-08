@@ -1,4 +1,4 @@
-import { ASSESSMENT_TYPE_OPTIONS } from '../../constants/permissions.js';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../admin/StatusBadge.jsx';
 
 const TYPE_VARIANT = {
@@ -11,10 +11,9 @@ const TYPE_VARIANT = {
   presentation: 'info',
 };
 
-const labelByValue = Object.fromEntries(ASSESSMENT_TYPE_OPTIONS.map((o) => [o.value, o.label]));
-
 export function AssessmentTypeBadge({ type, className }) {
-  const label = labelByValue[type] ?? type;
+  const { t } = useTranslation('assessments');
+  const label = t(`typeLabels.${type}`, { defaultValue: type });
   const variant = TYPE_VARIANT[type] ?? 'default';
   return (
     <StatusBadge variant={variant} className={className}>

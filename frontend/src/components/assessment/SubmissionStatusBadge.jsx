@@ -1,18 +1,21 @@
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../admin/StatusBadge.jsx';
 
-const MAP = {
-  open: { variant: 'success', label: 'مفتوح' },
-  submitted: { variant: 'info', label: 'تم التسليم' },
-  late: { variant: 'danger', label: 'متأخر' },
-  graded: { variant: 'success', label: 'تم التقييم' },
-  draft: { variant: 'muted', label: 'مسودة' },
+const STATE_VARIANT = {
+  open: 'success',
+  submitted: 'info',
+  late: 'danger',
+  graded: 'success',
+  draft: 'muted',
 };
 
 export function SubmissionStatusBadge({ state, className }) {
-  const cfg = MAP[state] ?? { variant: 'default', label: state };
+  const { t } = useTranslation('submissions');
+  const variant = STATE_VARIANT[state] ?? 'default';
+  const label = t(`states.${state}`, { defaultValue: state });
   return (
-    <StatusBadge variant={cfg.variant} className={className}>
-      {cfg.label}
+    <StatusBadge variant={variant} className={className}>
+      {label}
     </StatusBadge>
   );
 }

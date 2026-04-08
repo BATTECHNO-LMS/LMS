@@ -1,42 +1,53 @@
+import { useMemo } from 'react';
 import { FileSpreadsheet, Download, LineChart, PieChart } from 'lucide-react';
-import {
-  AdminPageHeader,
-  AdminActionBar,
-  AdminStatsGrid,
-  SectionCard,
-} from '../../components/admin/index.js';
+import { useTranslation } from 'react-i18next';
+import { AdminPageHeader, AdminActionBar, AdminStatsGrid, SectionCard } from '../../components/admin/index.js';
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { MOCK_REPORTS } from '../../mocks/adminCrud.js';
+import { useTenant } from '../../features/tenant/index.js';
+import { getTenantById, getTenantName } from '../../constants/tenants.js';
 
 export function ReportsPage() {
+  const { t, i18n } = useTranslation('common');
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(MOCK_REPORTS), [filterRows, scopeId]);
+
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader title="التقارير" description="تقارير تشغيلية وأكاديمية قابلة للتصدير." />
+      <AdminPageHeader title={<>{t('reportsPage.title')}</>} description={<>{t('reportsPage.description')}</>} />
       <AdminActionBar>
         <Button type="button" variant="primary">
-          <Download size={18} aria-hidden /> تصدير سريع
+          <Download size={18} aria-hidden /> {t('reportsPage.quickExport')}
         </Button>
         <Button type="button" variant="outline">
-          جدولة تقرير
+          {t('reportsPage.schedule')}
         </Button>
       </AdminActionBar>
       <AdminStatsGrid>
-        <StatCard label="تقارير جاهزة" value="—" icon={FileSpreadsheet} />
-        <StatCard label="تصديرات اليوم" value="—" icon={Download} />
-        <StatCard label="مؤشرات اتجاه" value="—" icon={LineChart} />
-        <StatCard label="توزيعات" value="—" icon={PieChart} />
+        <StatCard label={t('reportsPage.statReady')} value={String(rows.length)} icon={FileSpreadsheet} />
+        <StatCard label={t('reportsPage.statExports')} value="—" icon={Download} />
+        <StatCard label={t('reportsPage.statTrend')} value="—" icon={LineChart} />
+        <StatCard label={t('reportsPage.statDist')} value="—" icon={PieChart} />
       </AdminStatsGrid>
-      <SectionCard title="تقارير مقترحة">
+      <SectionCard title={<>{t('reportsPage.sectionTitle')}</>}>
         <DataTable
+          emptyTitle={t('tenant.emptyForScope')}
+          emptyDescription={t('tenant.emptyForScope')}
           columns={[
-            { key: 'name', label: 'التقرير' },
-            { key: 'audience', label: 'الجمهور' },
-            { key: 'frequency', label: 'التكرار' },
-            { key: 'last', label: 'آخر تشغيل' },
-            { key: 'actions', label: 'الإجراءات' },
+            { key: 'name', label: t('reportsPage.colName') },
+            {
+              key: 'tenantId',
+              label: t('reportsPage.colTenant'),
+              render: (r) => getTenantName(getTenantById(r.tenantId), i18n.language) ?? r.tenantId,
+            },
+            { key: 'audience', label: t('reportsPage.colAudience') },
+            { key: 'frequency', label: t('reportsPage.colFrequency') },
+            { key: 'last', label: t('reportsPage.colLast') },
+            { key: 'actions', label: t('reportsPage.colActions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

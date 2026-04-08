@@ -7,30 +7,45 @@ import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { tr } from '../../utils/i18n.js';
 
 export function MyCohortsPage() {
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
+
   return (
     <div className="page page--dashboard page--instructor">
-      <AdminPageHeader title="دفعاتي" description="إدارة الدفعات التدريبية المرتبطة بحسابك ومتابعة تقدمها." />
+      <AdminPageHeader
+        title={tr(isArabic, 'دفعاتي', 'My cohorts')}
+        description={tr(
+          isArabic,
+          'إدارة الدفعات التدريبية المرتبطة بحسابك ومتابعة تقدمها.',
+          'Manage your assigned training cohorts and track their progress.'
+        )}
+      />
       <AdminFilterBar>
-        <SearchInput placeholder="بحث باسم الدفعة أو الشهادة" aria-label="بحث" />
+        <SearchInput
+          placeholder={tr(isArabic, 'بحث باسم الدفعة أو الشهادة', 'Search by cohort or credential')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="الدفعات النشطة" value="—" icon={Layers} />
-        <StatCard label="إجمالي المتعلمين" value="—" icon={Users} />
-        <StatCard label="جلسات هذا الأسبوع" value="—" icon={CalendarDays} />
-        <StatCard label="مهام معلّقة" value="—" icon={ClipboardCheck} />
+        <StatCard label={tr(isArabic, 'الدفعات النشطة', 'Active cohorts')} value="—" icon={Layers} />
+        <StatCard label={tr(isArabic, 'إجمالي المتعلمين', 'Total learners')} value="—" icon={Users} />
+        <StatCard label={tr(isArabic, 'جلسات هذا الأسبوع', 'Sessions this week')} value="—" icon={CalendarDays} />
+        <StatCard label={tr(isArabic, 'مهام معلّقة', 'Pending tasks')} value="—" icon={ClipboardCheck} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الدفعات">
+      <SectionCard title={tr(isArabic, 'قائمة الدفعات', 'Cohorts list')}>
         <DataTable
           columns={[
-            { key: 'name', label: 'الدفعة' },
-            { key: 'credential', label: 'الشهادة' },
-            { key: 'learners', label: 'عدد المتعلمين' },
+            { key: 'name', label: tr(isArabic, 'الدفعة', 'Cohort') },
+            { key: 'credential', label: tr(isArabic, 'الشهادة', 'Credential') },
+            { key: 'learners', label: tr(isArabic, 'عدد المتعلمين', 'Learners count') },
             {
               key: 'status',
-              label: 'الحالة',
-              render: () => <StatusBadge variant="info">قيد التنفيذ</StatusBadge>,
+              label: tr(isArabic, 'الحالة', 'Status'),
+              render: () => <StatusBadge variant="info">{tr(isArabic, 'قيد التنفيذ', 'In progress')}</StatusBadge>,
             },
           ]}
           rows={[]}

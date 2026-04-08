@@ -30,6 +30,13 @@
   white-space: nowrap;
 }
 
+.app-header__logo-image {
+  height: 2.15rem;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
 .app-header__divider {
   width: 1px;
   height: 1.5rem;
@@ -48,6 +55,41 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.app-header__theme-btn,
+.app-header__lang-btn {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  @include transition(border-color background-color, 0.15s);
+
+  &:hover {
+    border-color: $color-primary-light;
+    background: var(--color-surface-light);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.app-header__lang-btn {
+  min-width: 3rem;
+}
+
+.app-header__lang-select {
+  min-width: 7.5rem;
+  cursor: pointer;
+  appearance: auto;
 }
 
 .notification-bell {
@@ -181,9 +223,85 @@
   }
 }
 
+/* Tenant scope (global users) — frontend simulation only */
+.tenant-scope {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: min(14rem, 38vw);
+}
+
+.tenant-scope__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.tenant-scope__select {
+  min-height: 2.35rem;
+  max-width: 100%;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-card);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+
+  &:hover {
+    border-color: $color-primary-light;
+    background: var(--color-surface-light);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.tenant-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(16rem, 42vw);
+  min-height: 2.35rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-surface-light);
+}
+
+.tenant-badge__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.tenant-badge__value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  @include line-clamp(1);
+}
+
 @include respond(640px) {
+  .app-header__logo-image {
+    height: 1.8rem;
+  }
+
   .app-header__divider,
   .app-header__page-title {
     display: none;
+  }
+
+  .tenant-scope {
+    max-width: min(11rem, 55vw);
+  }
+
+  .tenant-badge {
+    max-width: min(12rem, 55vw);
   }
 }

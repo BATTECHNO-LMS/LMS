@@ -1,0 +1,159 @@
+{
+  "title": "Assessment management",
+  "description": "Define assessments and link them to cohorts and due dates.",
+  "add": "Add assessment",
+  "searchPlaceholder": "Search by name or cohort",
+  "stats": {
+    "total": "Total assessments",
+    "published": "Published",
+    "pending": "Pending review",
+    "drafts": "Drafts"
+  },
+  "listTitle": "Assessments list",
+  "table": {
+    "name": "Assessment name",
+    "type": "Type",
+    "weight": "Weight %",
+    "cohort": "Cohort",
+    "dueDate": "Due date"
+  },
+  "types": {
+    "quiz": "Quiz",
+    "assignment": "Assignment",
+    "project": "Project",
+    "exam": "Exam"
+  },
+  "typeLabels": {
+    "quiz": "Quiz",
+    "assignment": "Assignment",
+    "lab": "Lab",
+    "practical_exam": "Practical Exam",
+    "milestone": "Milestone",
+    "capstone_project": "Capstone Project",
+    "presentation": "Presentation"
+  },
+  "create": {
+    "title": "Create assessment",
+    "description": "Link the assessment to a cohort and set weight and due date."
+  },
+  "edit": {
+    "title": "Edit assessment",
+    "description": "Update assessment details."
+  },
+  "view": {
+    "title": "Assessment details",
+    "description": "View assessment and cohort details.",
+    "notFound": "Assessment not found."
+  },
+  "student": {
+    "title": "Assessments",
+    "description": "View enrolled assessments, due dates, and submission and grading status.",
+    "sectionTitle": "Assessments",
+    "stats": {
+      "open": "Open",
+      "submitted": "Submitted",
+      "upcoming": "Upcoming",
+      "total": "Total"
+    },
+    "searchPlaceholder": "Search by assessment or course",
+    "searchAria": "Search",
+    "table": {
+      "name": "Assessment title",
+      "type": "Type",
+      "due": "Due date",
+      "submissionState": "Submission status",
+      "actions": "Actions"
+    },
+    "actions": {
+      "viewDetails": "View details",
+      "upload": "Upload submission",
+      "editSubmission": "Edit submission",
+      "viewFeedback": "View feedback"
+    },
+    "empty": {
+      "title": "No assessments available yet",
+      "description": "Assessments linked to your credentials will appear when the course is active."
+    }
+  },
+  "instructor": {
+    "title": "Assessments",
+    "description": "Manage assessments for your assigned cohorts: creation, grading, rubrics, and feedback.",
+    "addAssessment": "Add assessment",
+    "listTitle": "Assessments list",
+    "stats": {
+      "active": "Active assessments",
+      "awaitingGrading": "Awaiting grading",
+      "upcoming": "Upcoming",
+      "averageGrades": "Average grades"
+    },
+    "searchPlaceholder": "Search by assessment or cohort",
+    "searchAria": "Search",
+    "table": {
+      "name": "Assessment name",
+      "type": "Type",
+      "weight": "Weight %",
+      "learningOutcome": "Learning outcome",
+      "openDate": "Open date",
+      "closeDate": "Close date",
+      "submissionsCount": "Submissions count",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "rowStatus": {
+      "published": "Published",
+      "draft": "Draft",
+      "active": "Active",
+      "pending": "Pending review",
+      "closed": "Closed",
+      "planned": "Planned",
+      "running": "In progress",
+      "completed": "Completed"
+    },
+    "actions": {
+      "viewSubmissions": "View submissions",
+      "edit": "Edit",
+      "manageRubric": "Manage rubric",
+      "startGrading": "Start grading",
+      "publishFeedback": "Publish feedback"
+    },
+    "empty": {
+      "title": "No assessments for this cohort yet",
+      "description": "Add a new assessment linked to the cohort and learning outcomes."
+    }
+  },
+  "instructorCreate": {
+    "title": "Add assessment",
+    "description": "Create a new assessment for a cohort with type, dates, and learning outcomes.",
+    "sections": {
+      "basic": "Basic information",
+      "submissionType": "Required submission type",
+      "quiz": "Quiz settings (preview)",
+      "presentation": "Presentation attachments"
+    },
+    "fields": {
+      "title": "Assessment title",
+      "type": "Type",
+      "weight": "Weight %",
+      "cohort": "Cohort",
+      "learningOutcome": "Learning outcome",
+      "openDate": "Open date",
+      "closeDate": "Close date",
+      "instructions": "Instructions",
+      "rubric": "Rubric",
+      "submission": "Submission"
+    },
+    "hints": {
+      "submissionSettings": "Upload and file validation settings will be added with the backend.",
+      "quizPlaceholder": "Duration, attempts, and question bank will be added when the server is connected.",
+      "presentationPlaceholder": "Slides and links upload area — ready for later integration."
+    },
+    "cohorts": {
+      "spring2026": "Spring 2026 cohort"
+    },
+    "submissionTypes": {
+      "file_upload": "File upload",
+      "repo_link": "Repository link",
+      "text_response": "Text response"
+    }
+  }
+}

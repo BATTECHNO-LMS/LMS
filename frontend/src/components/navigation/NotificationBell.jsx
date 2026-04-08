@@ -1,14 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers.js';
 
 /**
  * Placeholder — wire to notifications API later.
  */
 export function NotificationBell({ className, count = 0 }) {
+  const { t } = useTranslation('common');
   return (
     <button
       type="button"
       className={cn('notification-bell', className)}
-      aria-label="الإشعارات"
+      aria-label={t('notifications')}
     >
       <span className="notification-bell__icon" aria-hidden />
       {count > 0 ? (

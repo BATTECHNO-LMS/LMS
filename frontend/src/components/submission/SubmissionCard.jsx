@@ -1,6 +1,8 @@
 import { cn } from '../../utils/helpers.js';
 import { SubmissionStatusBadge } from '../assessment/SubmissionStatusBadge.jsx';
 import { AssessmentTypeBadge } from '../assessment/AssessmentTypeBadge.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { translateText } from '../../utils/i18n.js';
 
 export function SubmissionCard({
   title,
@@ -12,6 +14,7 @@ export function SubmissionCard({
   actions,
   className,
 }) {
+  const { locale } = useLocale();
   return (
     <article className={cn('submission-card', className)}>
       <div className="submission-card__head">
@@ -21,24 +24,24 @@ export function SubmissionCard({
       <dl className="submission-card__meta">
         {dueDate ? (
           <div>
-            <dt>الاستحقاق</dt>
+            <dt>{translateText('الاستحقاق', locale)}</dt>
             <dd>{dueDate}</dd>
           </div>
         ) : null}
         {submittedAt ? (
           <div>
-            <dt>تاريخ التسليم</dt>
+            <dt>{translateText('تاريخ التسليم', locale)}</dt>
             <dd>{submittedAt}</dd>
           </div>
         ) : null}
         {score != null && score !== '' ? (
           <div>
-            <dt>الدرجة</dt>
+            <dt>{translateText('الدرجة', locale)}</dt>
             <dd>{score}</dd>
           </div>
         ) : null}
         <div>
-          <dt>الحالة</dt>
+          <dt>{translateText('الحالة', locale)}</dt>
           <dd>
             <SubmissionStatusBadge state={state} />
           </dd>

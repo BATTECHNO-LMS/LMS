@@ -1,0 +1,29 @@
+{
+  "title": "Batch management",
+  "description": "Track training batches and schedules.",
+  "add": "Add batch",
+  "searchPlaceholder": "Search by name, trainer, or certificate",
+  "listTitle": "Batches list",
+  "stats": {
+    "total": "Total batches",
+    "running": "In progress",
+    "planned": "Planned",
+    "completed": "Completed"
+  },
+  "table": {
+    "name": "Batch name",
+    "certificate": "Certificate",
+    "trainer": "Trainer",
+    "startDate": "Start date",
+    "endDate": "End date"
+  },
+  "create": {
+    "title": "Create batch"
+  },
+  "edit": {
+    "title": "Edit batch"
+  },
+  "view": {
+    "title": "Batch details"
+  }
+}

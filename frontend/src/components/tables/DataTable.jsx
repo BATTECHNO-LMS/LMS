@@ -1,5 +1,7 @@
 import { cn } from '../../utils/helpers.js';
 import { EmptyState } from '../common/EmptyState.jsx';
+import { useLocale } from '../../features/locale/index.js';
+import { translateText } from '../../utils/i18n.js';
 
 /**
  * @typedef {{ key: string, label: string, render?: (row: object) => React.ReactNode }} Column
@@ -12,6 +14,7 @@ export function DataTable({
   emptyDescription = 'لم يتم العثور على سجلات مطابقة.',
   footer,
 }) {
+  const { locale } = useLocale();
   const colCount = columns.length;
 
   return (
@@ -21,7 +24,7 @@ export function DataTable({
           <thead>
             <tr>
               {columns.map((col) => (
-                <th key={col.key}>{col.label}</th>
+                <th key={col.key}>{typeof col.label === 'string' ? translateText(col.label, locale) : col.label}</th>
               ))}
             </tr>
           </thead>
@@ -29,7 +32,14 @@ export function DataTable({
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={colCount || 1} className="data-table__empty-cell">
-                  <EmptyState title={emptyTitle} description={emptyDescription} />
+                  <EmptyState
+                    title={typeof emptyTitle === 'string' ? translateText(emptyTitle, locale) : emptyTitle}
+                    description={
+                      typeof emptyDescription === 'string'
+                        ? translateText(emptyDescription, locale)
+                        : emptyDescription
+                    }
+                  />
                 </td>
               </tr>
             ) : (

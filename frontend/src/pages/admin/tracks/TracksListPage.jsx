@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { GitBranch, Layers, Plus, Route } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
@@ -15,17 +15,27 @@ import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModa
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../../../utils/i18n.js';
 
 export function TracksListPage() {
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.tracks.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
   useEffect(() => {
-    setRows(adminCrudStore.tracks.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.tracks.getAll()), [filterRows, scopeId, tick, location.key]);
 
   const filtered = rows.filter((r) => {
     const matchQ = !q || r.name.includes(q) || r.code.toLowerCase().includes(q.toLowerCase()) || r.level.includes(q);
@@ -42,48 +52,79 @@ export function TracksListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إدارة المسارات" description="تعريف المسارات التعليمية والمستويات." />
+      <AdminPageHeader
+        title={tr(isArabic, 'إدارة المسارات', 'Track management')}
+        description={tr(
+          isArabic,
+          'تعريف المسارات التعليمية والمستويات.',
+          'Define educational tracks and levels.'
+        )}
+      />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/tracks/create">
-          <Plus size={18} aria-hidden /> إضافة مسار
+          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة مسار', 'Add track')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو الرمز أو المستوى" />
-        <SelectField id="track-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="active">نشط</option>
-          <option value="draft">مسودة</option>
-          <option value="inactive">غير نشط</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr(isArabic, 'بحث بالاسم أو الرمز أو المستوى', 'Search by name, code, or level')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField
+          id="track-status"
+          label={tr(isArabic, 'الحالة', 'Status')}
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="active">{tr(isArabic, 'نشط', 'Active')}</option>
+          <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
+          <option value="inactive">{tr(isArabic, 'غير نشط', 'Inactive')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي المسارات" value={String(stats.total)} icon={Route} />
-        <StatCard label="المسارات النشطة" value={String(stats.active)} icon={GitBranch} />
-        <StatCard label="المسارات (مسودة)" value={String(stats.draft)} icon={Layers} />
-        <StatCard label="إجمالي الدفعات المرتبطة" value={String(stats.cohorts)} icon={Layers} />
+        <StatCard label={tr(isArabic, 'إجمالي المسارات', 'Total tracks')} value={String(stats.total)} icon={Route} />
+        <StatCard label={tr(isArabic, 'المسارات النشطة', 'Active tracks')} value={String(stats.active)} icon={GitBranch} />
+        <StatCard label={tr(isArabic, 'المسارات (مسودة)', 'Draft tracks')} value={String(stats.draft)} icon={Layers} />
+        <StatCard
+          label={tr(isArabic, 'إجمالي الدفعات المرتبطة', 'Total linked cohorts')}
+          value={String(stats.cohorts)}
+          icon={Layers}
+        />
       </AdminStatsGrid>
-      <SectionCard title="قائمة المسارات">
+      <SectionCard title={tr(isArabic, 'قائمة المسارات', 'Tracks list')}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
+          emptyTitle={
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'لا توجد نتائج', 'No results')
+                : tr(isArabic, 'لا توجد بيانات', 'No data')
+          }
           emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
+                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
           }
           columns={[
-            { key: 'name', label: 'اسم المسار' },
-            { key: 'code', label: 'الرمز' },
-            { key: 'level', label: 'المستوى' },
+            { key: 'name', label: tr(isArabic, 'اسم المسار', 'Track name') },
+            { key: 'code', label: tr(isArabic, 'الرمز', 'Code') },
+            { key: 'level', label: tr(isArabic, 'المستوى', 'Level') },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tr(isArabic, 'الحالة', 'Status'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
-            { key: 'cohorts', label: 'الدفعات' },
+            { key: 'cohorts', label: tr(isArabic, 'الدفعات', 'Cohorts') },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tr(isArabic, 'الإجراءات', 'Actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/tracks/${r.id}`}
@@ -94,7 +135,11 @@ export function TracksListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -103,7 +148,7 @@ export function TracksListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.tracks.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.tracks.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

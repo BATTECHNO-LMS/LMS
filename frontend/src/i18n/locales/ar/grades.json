@@ -1,0 +1,30 @@
+{
+  "instructor": {
+    "title": "الدرجات",
+    "description": "جدول التصحيح والدرجات الجاهزة للنشر للدفعات المسندة إليك.",
+    "sectionTitle": "جدول الدرجات",
+    "stats": {
+      "awaitingPublish": "بانتظار النشر",
+      "cohortAverage": "متوسط الدفعة",
+      "students": "طلبة",
+      "topScore": "أعلى درجة"
+    },
+    "searchPlaceholder": "بحث بالطالب أو التقييم",
+    "searchAria": "بحث",
+    "table": {
+      "student": "الطالب",
+      "assessment": "التقييم",
+      "score": "الدرجة",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "actions": {
+      "edit": "تعديل",
+      "publish": "نشر"
+    },
+    "empty": {
+      "title": "لا توجد درجات للعرض",
+      "description": "ستظهر الدرجات بعد التصحيح وربط البيانات بالخادم."
+    }
+  }
+}

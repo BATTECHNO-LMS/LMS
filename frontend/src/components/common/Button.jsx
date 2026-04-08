@@ -1,4 +1,6 @@
 import { cn } from '../../utils/helpers.js';
+import { useLocale } from '../../features/locale/index.js';
+import { translateText } from '../../utils/i18n.js';
 
 export function Button({
   children,
@@ -8,6 +10,8 @@ export function Button({
   disabled,
   ...rest
 }) {
+  const { locale } = useLocale();
+  const renderedChildren = typeof children === 'string' ? translateText(children, locale) : children;
   return (
     <button
       type={type}
@@ -15,7 +19,7 @@ export function Button({
       disabled={disabled}
       {...rest}
     >
-      {children}
+      {renderedChildren}
     </button>
   );
 }

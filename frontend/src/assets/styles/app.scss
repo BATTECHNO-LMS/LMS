@@ -16,6 +16,9 @@
 @use './components/permission-gate';
 @use './components/assessment-ui';
 @use './components/submission-ui';
+@use './components/analytics-cards';
+@use './components/analytics-filters';
+@use './components/analytics-charts';
 @use './layouts/dashboard-layout';
 @use './layouts/sidebar';
 @use './layouts/header';
@@ -27,3 +30,4 @@
 @use './pages/instructor';
 @use './pages/student';
 @use './pages/reviewer';
+@use './pages/analytics';

@@ -1,0 +1,128 @@
+{
+  "appName": "BATTECHNO LMS",
+  "brand": "BATTECHNO-LMS",
+  "actions": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "add": "إضافة",
+    "edit": "تعديل",
+    "view": "عرض",
+    "details": "تفاصيل",
+    "search": "بحث",
+    "export": "تصدير",
+    "back": "رجوع",
+    "backToList": "العودة للقائمة",
+    "update": "تحديث",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "submit": "إرسال"
+  },
+  "status": {
+    "label": "الحالة",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "draft": "مسودة",
+    "pending": "قيد المراجعة",
+    "published": "منشور",
+    "closed": "مغلق",
+    "completed": "مكتمل",
+    "cancelled": "ملغى",
+    "approved": "معتمد",
+    "rejected": "مرفوض",
+    "archived": "مؤرشف",
+    "suspended": "موقوف",
+    "planned": "مخطط",
+    "running": "قيد التنفيذ",
+    "open": "مفتوح",
+    "all": "الكل",
+    "allStatuses": "كل الحالات"
+  },
+  "theme": {
+    "light": "وضع فاتح",
+    "dark": "وضع داكن",
+    "switchToLight": "التبديل إلى الوضع الفاتح",
+    "switchToDark": "التبديل إلى الوضع الداكن"
+  },
+  "language": {
+    "arabic": "العربية",
+    "english": "الإنجليزية",
+    "switchToEn": "تغيير اللغة إلى الإنجليزية",
+    "switchToAr": "تغيير اللغة إلى العربية",
+    "choose": "اختر اللغة"
+  },
+  "pagination": {
+    "stub": "ترقيم الصفحات — سيتم تفعيله لاحقاً"
+  },
+  "loading": "جاري التحميل",
+  "user": {
+    "fallbackName": "مستخدم",
+    "logout": "تسجيل الخروج"
+  },
+  "notifications": "الإشعارات",
+  "rights": "جميع الحقوق محفوظة",
+  "table": {
+    "actions": "الإجراءات"
+  },
+  "errors": {
+    "notFound": "غير موجود",
+    "generic": "حدث خطأ"
+  },
+  "sidebar": {
+    "adminMenuAria": "قائمة الإدارة"
+  },
+  "logo": {
+    "alt": "باتمان تكنولوجي"
+  },
+  "unauthorized": {
+    "title": "غير مصرح لك بالوصول إلى هذه الصفحة",
+    "description": "لا تملك الصلاحيات الكافية لعرض هذا المحتوى ضمن واجهة النظام. إذا كان يجب أن يكون لديك وصول، تواصل مع الإدارة.",
+    "backToDashboard": "العودة للوحة الرئيسية"
+  },
+  "evidencePage": {
+    "title": "الأدلة",
+    "description": "أرشفة الأدلة والمرفقات حسب نطاق الجامعة (عرض واجهة فقط).",
+    "upload": "رفع دليل",
+    "searchPlaceholder": "بحث بالعنوان",
+    "allTypes": "كل الأنواع",
+    "doc": "وثيقة",
+    "media": "وسائط",
+    "statArchived": "أدلة ضمن النطاق",
+    "statRecent": "مرفقات حديثة",
+    "statAssessed": "مقيّمة",
+    "statPending": "بانتظار المراجعة",
+    "listTitle": "قائمة الأدلة",
+    "colTitle": "العنوان",
+    "colTenant": "الجامعة",
+    "colType": "النوع"
+  },
+  "reportsPage": {
+    "title": "التقارير",
+    "description": "تقارير تشغيلية ضمن نطاق الجامعة (عرض واجهة فقط).",
+    "quickExport": "تصدير سريع",
+    "schedule": "جدولة تقرير",
+    "statReady": "تقارير ضمن النطاق",
+    "statExports": "تصديرات اليوم",
+    "statTrend": "مؤشرات اتجاه",
+    "statDist": "توزيعات",
+    "sectionTitle": "تقارير مقترحة",
+    "colName": "التقرير",
+    "colTenant": "الجامعة",
+    "colAudience": "الجمهور",
+    "colFrequency": "التكرار",
+    "colLast": "آخر تشغيل",
+    "colActions": "الإجراءات"
+  },
+  "tenant": {
+    "scope": "نطاق الجامعة",
+    "current": "الجامعة الحالية",
+    "allUniversities": "جميع الجامعات",
+    "select": "اختر الجامعة",
+    "emptyForScope": "لا توجد بيانات للجامعة المحددة",
+    "emptyGeneric": "لا توجد سجلات في نطاق العرض التجريبي.",
+    "noCohortsForTenant": "لا توجد دفعات لهذه الجامعة",
+    "noAssessmentsForTenant": "لا توجد تقييمات ضمن الجامعة المحددة",
+    "noRecognitionForTenant": "لا توجد طلبات اعتراف أكاديمي لهذه الجامعة",
+    "sidebarHint": "سياق البيانات"
+  }
+}

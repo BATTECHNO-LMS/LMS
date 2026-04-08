@@ -15,21 +15,31 @@ import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModa
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { useLocale } from '../../../features/locale/index.js';
+import { useTenant } from '../../../features/tenant/index.js';
+import { useTranslation } from 'react-i18next';
+import { tr } from '../../../utils/i18n.js';
 
 export function MicroCredentialsListPage() {
+  const { t: tCommon } = useTranslation('common');
+  const { locale } = useLocale();
+  const isArabic = locale === 'ar';
   const location = useLocation();
-  const [rows, setRows] = useState(() => adminCrudStore.microCredentials.getAll());
+  const { filterRows, scopeId } = useTenant();
+  const [tick, setTick] = useState(0);
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [trackId, setTrackId] = useState('');
   const [deleteId, setDeleteId] = useState(null);
 
-  const tracks = useMemo(() => adminCrudStore.tracks.getAll(), [location.key]);
-  const trackNameById = useMemo(() => Object.fromEntries(tracks.map((t) => [t.id, t.name])), [tracks]);
-
   useEffect(() => {
-    setRows(adminCrudStore.microCredentials.getAll());
-  }, [location.key, location.pathname]);
+    setTick((x) => x + 1);
+  }, [location.key, location.pathname, scopeId]);
+
+  const rows = useMemo(() => filterRows(adminCrudStore.microCredentials.getAll()), [filterRows, scopeId, tick, location.key]);
+
+  const tracks = useMemo(() => filterRows(adminCrudStore.tracks.getAll()), [filterRows, scopeId, tick, location.key]);
+  const trackNameById = useMemo(() => Object.fromEntries(tracks.map((t) => [t.id, t.name])), [tracks]);
 
   const filtered = rows.filter((r) => {
     const matchQ =
@@ -51,61 +61,93 @@ export function MicroCredentialsListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title="إدارة الشهادات المصغرة" description="تعريف الشهادات المصغرة والساعات والمستويات." />
+      <AdminPageHeader
+        title={tr(isArabic, 'إدارة الشهادات المصغرة', 'Micro-credential management')}
+        description={tr(
+          isArabic,
+          'تعريف الشهادات المصغرة والساعات والمستويات.',
+          'Define micro-credentials, hours, and levels.'
+        )}
+      />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/micro-credentials/create">
-          <Plus size={18} aria-hidden /> إضافة شهادة مصغرة
+          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة شهادة مصغرة', 'Add micro-credential')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="بحث بالاسم أو الرمز أو المستوى" />
-        <SelectField id="mc-track" label="المسار" value={trackId} onChange={(e) => setTrackId(e.target.value)}>
-          <option value="">كل المسارات</option>
+        <SearchInput
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={tr(isArabic, 'بحث بالاسم أو الرمز أو المستوى', 'Search by name, code, or level')}
+          aria-label={tr(isArabic, 'بحث', 'Search')}
+        />
+        <SelectField
+          id="mc-track"
+          label={tr(isArabic, 'المسار', 'Track')}
+          value={trackId}
+          onChange={(e) => setTrackId(e.target.value)}
+        >
+          <option value="">{tr(isArabic, 'كل المسارات', 'All tracks')}</option>
           {tracks.map((t) => (
             <option key={t.id} value={t.id}>
               {t.name}
             </option>
           ))}
         </SelectField>
-        <SelectField id="mc-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">كل الحالات</option>
-          <option value="draft">مسودة</option>
-          <option value="approved">معتمد</option>
-          <option value="archived">مؤرشف</option>
+        <SelectField
+          id="mc-status"
+          label={tr(isArabic, 'الحالة', 'Status')}
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
+          <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
+          <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
+          <option value="archived">{tr(isArabic, 'مؤرشف', 'Archived')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label="إجمالي الشهادات" value={String(stats.total)} icon={Award} />
-        <StatCard label="المعتمدة" value={String(stats.approved)} icon={Award} />
-        <StatCard label="مسودات" value={String(stats.draft)} icon={Award} />
-        <StatCard label="إجمالي الساعات" value={String(stats.hours)} icon={Clock} />
+        <StatCard label={tr(isArabic, 'إجمالي الشهادات', 'Total credentials')} value={String(stats.total)} icon={Award} />
+        <StatCard label={tr(isArabic, 'المعتمدة', 'Approved')} value={String(stats.approved)} icon={Award} />
+        <StatCard label={tr(isArabic, 'مسودات', 'Drafts')} value={String(stats.draft)} icon={Award} />
+        <StatCard label={tr(isArabic, 'إجمالي الساعات', 'Total hours')} value={String(stats.hours)} icon={Clock} />
       </AdminStatsGrid>
-      <SectionCard title="قائمة الشهادات المصغرة">
+      <SectionCard title={tr(isArabic, 'قائمة الشهادات المصغرة', 'Micro-credentials list')}>
         <DataTable
-          emptyTitle={rows.length && !filtered.length ? 'لا توجد نتائج' : 'لا توجد بيانات'}
+          emptyTitle={
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'لا توجد نتائج', 'No results')
+                : tr(isArabic, 'لا توجد بيانات', 'No data')
+          }
           emptyDescription={
-            rows.length && !filtered.length ? 'جرّب تعديل عوامل التصفية أو البحث.' : 'لم يتم العثور على سجلات.'
+            rows.length === 0
+              ? tCommon('tenant.emptyForScope')
+              : rows.length && !filtered.length
+                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
+                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
           }
           columns={[
-            { key: 'name', label: 'الاسم' },
-            { key: 'code', label: 'الرمز' },
-            { key: 'level', label: 'المستوى' },
-            { key: 'hours', label: 'الساعات' },
+            { key: 'name', label: tr(isArabic, 'الاسم', 'Name') },
+            { key: 'code', label: tr(isArabic, 'الرمز', 'Code') },
+            { key: 'level', label: tr(isArabic, 'المستوى', 'Level') },
+            { key: 'hours', label: tr(isArabic, 'الساعات', 'Hours') },
             {
               key: 'trackId',
-              label: 'المسار',
+              label: tr(isArabic, 'المسار', 'Track'),
               render: (r) => trackNameById[r.trackId] ?? r.trackId,
             },
             {
               key: 'status',
-              label: 'الحالة',
+              label: tr(isArabic, 'الحالة', 'Status'),
               render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status)}</StatusBadge>
+                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
               ),
             },
             {
               key: 'actions',
-              label: 'الإجراءات',
+              label: tr(isArabic, 'الإجراءات', 'Actions'),
               render: (r) => (
                 <TableIconActions
                   viewTo={`/admin/micro-credentials/${r.id}`}
@@ -116,7 +158,11 @@ export function MicroCredentialsListPage() {
             },
           ]}
           rows={filtered}
-          footer={<div className="data-table__pagination">ترقيم الصفحات — سيتم تفعيله لاحقاً</div>}
+          footer={
+            <div className="data-table__pagination">
+              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
+            </div>
+          }
         />
       </SectionCard>
       <ConfirmDeleteModal
@@ -125,7 +171,7 @@ export function MicroCredentialsListPage() {
         onConfirm={() => {
           if (deleteId) adminCrudStore.microCredentials.remove(deleteId);
           setDeleteId(null);
-          setRows(adminCrudStore.microCredentials.getAll());
+          setTick((x) => x + 1);
         }}
       />
     </div>

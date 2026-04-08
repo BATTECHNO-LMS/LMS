@@ -15,47 +15,58 @@ import {
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
 import { UI_PERMISSION } from './permissions.js';
-import { flattenAdminNavItems, getAdminNavGroupsForRole } from './adminNavigation.js';
+import {
+  flattenAdminNavItems,
+  flattenAdminNavPaths,
+  getAdminNavGroupsForRole,
+} from './adminNavigation.js';
 import { hasUiPermission, canAccessPathWithUiPermissions } from '../utils/rolePermissions.js';
+import i18n from '../i18n/config.js';
 
 const P = UI_PERMISSION;
 
-function navItem(to, label, icon, permission) {
-  return { to, label, icon, permission };
+function navItem(to, labelKey, icon, permission) {
+  return { to, labelKey, icon, permission };
 }
 
-/** Non-admin roles — `{ to, label, icon, permission }`. */
+const ROLE_NAV_PREFIX = {
+  [ROLES.INSTRUCTOR]: 'instructor',
+  [ROLES.STUDENT]: 'student',
+  [ROLES.UNIVERSITY_REVIEWER]: 'reviewer',
+};
+
+/** Non-admin roles — `{ to, labelKey, icon, permission }`. */
 export const NAV_BY_ROLE = {
   [ROLES.INSTRUCTOR]: [
-    navItem('/instructor/dashboard', 'الرئيسية', LayoutDashboard, P.canViewDashboard),
-    navItem('/instructor/cohorts', 'دفعاتي', Layers, P.canManageCohorts),
-    navItem('/instructor/sessions', 'الجلسات', CalendarDays, P.canManageSessions),
-    navItem('/instructor/attendance', 'الحضور', ClipboardCheck, P.canManageAttendance),
-    navItem('/instructor/assessments', 'التقييمات', FileCheck, P.canViewAssessments),
-    navItem('/instructor/submissions', 'التسليمات', Upload, P.canViewSubmissionsTeaching),
-    navItem('/instructor/grades', 'الدرجات', BarChart3, P.canViewGradesTeaching),
-    navItem('/instructor/evidence', 'الأدلة', FolderOpen, P.canUploadEvidence),
-    navItem('/instructor/risk-students', 'الطلبة المتعثرون', AlertTriangle, P.canManageRiskStudents),
+    navItem('/instructor/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/instructor/cohorts', 'cohorts', Layers, P.canManageCohorts),
+    navItem('/instructor/sessions', 'sessions', CalendarDays, P.canManageSessions),
+    navItem('/instructor/attendance', 'attendance', ClipboardCheck, P.canManageAttendance),
+    navItem('/instructor/assessments', 'assessments', FileCheck, P.canViewAssessments),
+    navItem('/instructor/submissions', 'submissions', Upload, P.canViewSubmissionsTeaching),
+    navItem('/instructor/grades', 'grades', BarChart3, P.canViewGradesTeaching),
+    navItem('/instructor/evidence', 'evidence', FolderOpen, P.canUploadEvidence),
+    navItem('/instructor/risk-students', 'riskStudents', AlertTriangle, P.canManageRiskStudents),
   ],
 
   [ROLES.STUDENT]: [
-    navItem('/student/dashboard', 'الرئيسية', LayoutDashboard, P.canViewDashboard),
-    navItem('/student/programs', 'شهاداتي المسجل بها', GraduationCap, P.canViewEnrolledPrograms),
-    navItem('/student/content', 'المحتوى', BookOpen, P.canViewContent),
-    navItem('/student/sessions', 'الجلسات', CalendarDays, P.canViewSessions),
-    navItem('/student/attendance', 'الحضور', ClipboardCheck, P.canViewAttendance),
-    navItem('/student/assessments', 'التقييمات', FileCheck, P.canViewAssessments),
-    navItem('/student/submissions', 'التسليمات', Upload, P.canViewSubmissionStatus),
-    navItem('/student/grades', 'الدرجات', BarChart3, P.canViewGrades),
-    navItem('/student/certificate', 'الشهادة الرقمية', Award, P.canViewCertificates),
+    navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
+    navItem('/student/content', 'content', BookOpen, P.canViewContent),
+    navItem('/student/sessions', 'sessions', CalendarDays, P.canViewSessions),
+    navItem('/student/attendance', 'attendance', ClipboardCheck, P.canViewAttendance),
+    navItem('/student/assessments', 'assessments', FileCheck, P.canViewAssessments),
+    navItem('/student/submissions', 'submissions', Upload, P.canViewSubmissionStatus),
+    navItem('/student/grades', 'grades', BarChart3, P.canViewGrades),
+    navItem('/student/certificate', 'certificate', Award, P.canViewCertificates),
   ],
 
   [ROLES.UNIVERSITY_REVIEWER]: [
-    navItem('/reviewer/dashboard', 'الرئيسية', LayoutDashboard, P.canViewDashboard),
-    navItem('/reviewer/recognition-requests', 'طلبات الاعتراف الأكاديمي', FileBadge, P.canViewRecognitionRequests),
-    navItem('/reviewer/university-reports', 'تقارير الجامعة', BarChart3, P.canViewUniversityReports),
-    navItem('/reviewer/evidence', 'الأدلة والمرفقات', FolderOpen, P.canViewReviewerEvidence),
-    navItem('/reviewer/certificates', 'الشهادات المرتبطة', Award, P.canViewLinkedCertificates),
+    navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),
+    navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
+    navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),
+    navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
   ],
 };
 
@@ -64,62 +75,98 @@ function filterNavItemsByUi(role, items) {
   return items.filter((item) => hasUiPermission(role, item.permission));
 }
 
+function resolveRoleNavLabel(role, item, tNav) {
+  const prefix = ROLE_NAV_PREFIX[role];
+  if (!prefix) return item.labelKey;
+  return tNav(`${prefix}.${item.labelKey}`);
+}
+
 /**
  * Unified sidebar: admin groups unchanged; other roles filtered by UI permissions.
+ * @param {Function} tNav - `useTranslation('navigation').t`
  */
-export function getDashboardNavGroups(role) {
+export function getDashboardNavGroups(role, tNav) {
   if (!role) return [];
   if (ADMIN_ROLE_SET.includes(role)) {
-    return getAdminNavGroupsForRole(role);
+    return getAdminNavGroupsForRole(role, tNav);
   }
-  const items = filterNavItemsByUi(role, NAV_BY_ROLE[role]);
+  const items = filterNavItemsByUi(role, NAV_BY_ROLE[role]).map((item) => ({
+    ...item,
+    label: resolveRoleNavLabel(role, item, tNav),
+  }));
   if (!items.length) return [];
-  return [{ id: 'main', title: 'القائمة الرئيسية', items }];
+  return [{ id: 'main', title: tNav('mainMenu'), items }];
 }
 
-export function getNavItemsForRole(role) {
+export function getNavItemsForRole(role, tNav) {
   if (role && ADMIN_ROLE_SET.includes(role)) {
-    return flattenAdminNavItems(role);
+    return flattenAdminNavItems(role, tNav);
   }
-  return filterNavItemsByUi(role, NAV_BY_ROLE[role] ?? NAV_BY_ROLE[ROLES.STUDENT]);
+  return filterNavItemsByUi(role, NAV_BY_ROLE[role] ?? NAV_BY_ROLE[ROLES.STUDENT]).map((item) => ({
+    ...item,
+    label: resolveRoleNavLabel(role, item, tNav),
+  }));
 }
 
-const CRUD_MODULE_TITLES = {
-  users: 'المستخدمون',
-  universities: 'الجامعات',
-  tracks: 'المسارات',
-  'micro-credentials': 'الشهادات المصغرة',
-  cohorts: 'الدفعات',
-  assessments: 'التقييمات',
-  'recognition-requests': 'طلبات الاعتراف الأكاديمي',
+/** Admin path segment → i18n namespace for CRUD titles */
+const CRUD_MODULE_NS = {
+  users: 'users',
+  universities: 'universities',
+  tracks: 'tracks',
+  'micro-credentials': 'microCredentials',
+  cohorts: 'cohorts',
+  assessments: 'assessments',
+  'recognition-requests': 'recognition',
 };
+
+function crudPageTitle(parts, ns) {
+  const lng = i18n.language;
+  const tf = i18n.getFixedT(lng, ns);
+  const tCommon = i18n.getFixedT(lng, 'common');
+
+  if (parts.length === 2) return tf('title');
+
+  if (parts[2] === 'create') {
+    const full = tf('create.title', { defaultValue: '' });
+    return full || `${tf('title')} — ${tCommon('actions.add')}`;
+  }
+
+  if (parts.length >= 4 && parts[3] === 'edit') {
+    const full = tf('edit.title', { defaultValue: '' });
+    return full || `${tf('title')} — ${tCommon('actions.edit')}`;
+  }
+
+  if (parts.length === 3 && parts[2] !== 'create') {
+    const full = tf('view.title', { defaultValue: '' });
+    return full || `${tf('title')} — ${tCommon('actions.details')}`;
+  }
+
+  return tf('title');
+}
 
 function matchCrudTitle(pathname) {
   const clean = pathname.replace(/\/+$/, '');
   const parts = clean.split('/').filter(Boolean);
   if (parts[0] !== 'admin') return null;
   const mod = parts[1];
-  const base = CRUD_MODULE_TITLES[mod];
-  if (!base) return null;
-  if (parts[2] === 'create') return `${base} — إنشاء`;
-  if (parts[3] === 'edit') return `${base} — تعديل`;
-  if (parts[2] && parts[2] !== 'create' && !parts[3]) return `${base} — تفاصيل`;
-  return null;
+  const ns = CRUD_MODULE_NS[mod];
+  if (!ns) return null;
+  return crudPageTitle(parts, ns);
 }
 
-const INSTRUCTOR_ASSESSMENT_TITLES = {
-  create: 'التقييمات — إضافة',
-  edit: 'التقييمات — تعديل',
-};
-
 export function getPageTitleForPath(role, pathname) {
+  const lng = i18n.language;
+  const tCommon = i18n.getFixedT(lng, 'common');
+  const tAssess = i18n.getFixedT(lng, 'assessments');
+
   const crud = matchCrudTitle(pathname);
   if (crud) return crud;
 
-  if (pathname.includes('/instructor/assessments/create')) return INSTRUCTOR_ASSESSMENT_TITLES.create;
-  if (/\/instructor\/assessments\/.+\/edit/.test(pathname)) return INSTRUCTOR_ASSESSMENT_TITLES.edit;
+  if (pathname.includes('/instructor/assessments/create')) return tAssess('create.title');
+  if (/\/instructor\/assessments\/.+\/edit/.test(pathname)) return tAssess('edit.title');
 
-  const items = getNavItemsForRole(role);
+  const tNav = i18n.getFixedT(lng, 'navigation');
+  const items = getNavItemsForRole(role, tNav);
   const exact = items.find((n) => n.to === pathname);
   if (exact) return exact.label;
 
@@ -127,16 +174,17 @@ export function getPageTitleForPath(role, pathname) {
   const prefix = sorted.find((n) => pathname.startsWith(`${n.to}/`));
   if (prefix) return prefix.label;
 
-  return 'BATTECHNO-LMS';
+  return tCommon('brand');
 }
 
 export function canAccessPath(role, pathname) {
   if (!role) return false;
   if (ADMIN_ROLE_SET.includes(role)) {
-    const items = flattenAdminNavItems(role);
-    return items.some((n) => pathname === n.to || pathname.startsWith(`${n.to}/`));
+    const paths = flattenAdminNavPaths(role);
+    return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
   if (!canAccessPathWithUiPermissions(role, pathname)) return false;
-  const items = getNavItemsForRole(role);
+  const tNav = i18n.getFixedT(i18n.language, 'navigation');
+  const items = getNavItemsForRole(role, tNav);
   return items.some((n) => pathname === n.to || pathname.startsWith(`${n.to}/`));
 }
