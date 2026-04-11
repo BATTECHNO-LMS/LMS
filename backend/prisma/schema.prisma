@@ -1,5 +1,3 @@
-// BATTECHNO-LMS — PostgreSQL schema (expand models as domains are implemented).
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,10 +7,716 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Example anchor model — replace/extend with full user model when implementing auth.
-model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cohorts {
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String        @db.Uuid
+  university_id       String        @db.Uuid
+  instructor_id       String?       @db.Uuid
+  title               String        @db.VarChar(255)
+  start_date          DateTime      @db.Date
+  end_date            DateTime      @db.Date
+  capacity            Int
+  status              cohort_status @default(planned)
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime      @default(now()) @db.Timestamptz(6)
+
+  @@index([instructor_id], map: "idx_cohorts_instructor_id")
+  @@index([micro_credential_id], map: "idx_cohorts_micro_credential_id")
+  @@index([status], map: "idx_cohorts_status")
+  @@index([university_id], map: "idx_cohorts_university_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model contents {
+  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  module_id    String       @db.Uuid
+  title        String       @db.VarChar(255)
+  content_type content_type
+  file_url     String?
+  external_url String?
+  sequence_no  Int
+  publish_at   DateTime?    @db.Timestamptz(6)
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime     @default(now()) @db.Timestamptz(6)
+
+  @@unique([module_id, sequence_no], map: "uq_contents_sequence")
+  @@index([module_id], map: "idx_contents_module_id")
+}
+
+model corrective_actions {
+  id           String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  qa_review_id String                   @db.Uuid
+  assigned_to  String?                  @db.Uuid
+  action_text  String
+  due_date     DateTime                 @db.Date
+  status       corrective_action_status @default(open)
+  closed_at    DateTime?                @db.Timestamptz(6)
+  created_at   DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                 @default(now()) @db.Timestamptz(6)
+
+  @@index([qa_review_id], map: "idx_corrective_actions_qa_review_id")
+  @@index([status], map: "idx_corrective_actions_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model enrollments {
+  id                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id                      String                          @db.Uuid
+  student_id                     String                          @db.Uuid
+  enrollment_status              enrollment_status               @default(pending)
+  final_status                   final_status                    @default(in_progress)
+  final_grade                    Decimal?                        @db.Decimal(5, 2)
+  attendance_percentage          Decimal?                        @default(0) @db.Decimal(5, 2)
+  enrolled_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  completion_date                DateTime?                       @db.Date
+  certificate_issued_at          DateTime?                       @db.Timestamptz(6)
+  recognition_eligibility_status recognition_eligibility_status? @default(unknown)
+  created_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+
+  @@unique([cohort_id, student_id], map: "uq_enrollments")
+  @@index([cohort_id], map: "idx_enrollments_cohort_id")
+  @@index([final_status], map: "idx_enrollments_final_status")
+  @@index([student_id], map: "idx_enrollments_student_id")
+}
+
+model evidence_files {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String   @db.Uuid
+  cohort_id           String   @db.Uuid
+  student_id          String?  @db.Uuid
+  assessment_id       String?  @db.Uuid
+  session_id          String?  @db.Uuid
+  evidence_type       String   @db.VarChar(100)
+  file_url            String
+  title               String   @db.VarChar(255)
+  uploaded_by         String?  @db.Uuid
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([assessment_id], map: "idx_evidence_files_assessment_id")
+  @@index([cohort_id], map: "idx_evidence_files_cohort_id")
+  @@index([micro_credential_id], map: "idx_evidence_files_micro_credential_id")
+  @@index([session_id], map: "idx_evidence_files_session_id")
+  @@index([student_id], map: "idx_evidence_files_student_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model grades {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assessment_id String   @db.Uuid
+  student_id    String   @db.Uuid
+  grader_id     String?  @db.Uuid
+  score         Decimal  @db.Decimal(6, 2)
+  feedback      String?
+  graded_at     DateTime @default(now()) @db.Timestamptz(6)
+  is_final      Boolean  @default(true)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([assessment_id, student_id, is_final], map: "uq_grades")
+  @@index([assessment_id], map: "idx_grades_assessment_id")
+  @@index([student_id], map: "idx_grades_student_id")
+}
+
+model integrity_cases {
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id      String                @db.Uuid
+  student_id     String                @db.Uuid
+  assessment_id  String?               @db.Uuid
+  reported_by    String?               @db.Uuid
+  case_type      integrity_case_type
+  evidence_notes String?
+  decision       String?
+  status         integrity_case_status @default(reported)
+  created_at     DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime              @default(now()) @db.Timestamptz(6)
+
+  @@index([cohort_id], map: "idx_integrity_cases_cohort_id")
+  @@index([status], map: "idx_integrity_cases_status")
+  @@index([student_id], map: "idx_integrity_cases_student_id")
+}
+
+model learning_outcomes {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String   @db.Uuid
+  outcome_code        String   @db.VarChar(80)
+  outcome_text        String
+  outcome_type        String?  @db.VarChar(100)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([micro_credential_id, outcome_code], map: "uq_learning_outcomes_code")
+  @@index([micro_credential_id], map: "idx_learning_outcomes_micro_credential_id")
+}
+
+model micro_credential_universities {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String   @db.Uuid
+  university_id       String   @db.Uuid
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([micro_credential_id, university_id], map: "uq_micro_credential_universities")
+  @@index([university_id], map: "idx_micro_credential_universities_university_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model micro_credential_versions {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String   @db.Uuid
+  version_no          Int
+  notes               String?
+  created_by          String?  @db.Uuid
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([micro_credential_id, version_no], map: "uq_micro_credential_versions")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model micro_credentials {
+  id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  track_id                 String                   @db.Uuid
+  title                    String                   @db.VarChar(255)
+  code                     String                   @unique @db.VarChar(100)
+  description              String?
+  level                    String                   @db.VarChar(100)
+  duration_hours           Decimal                  @db.Decimal(8, 2)
+  delivery_mode            delivery_mode
+  prerequisites            String?
+  passing_policy           String?
+  attendance_policy        String?
+  internal_approval_status internal_approval_status @default(not_started)
+  status                   micro_credential_status  @default(draft)
+  created_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                 @default(now()) @db.Timestamptz(6)
+
+  @@index([status], map: "idx_micro_credentials_status")
+  @@index([track_id], map: "idx_micro_credentials_track_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model modules {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String   @db.Uuid
+  title               String   @db.VarChar(255)
+  description         String?
+  sequence_no         Int
+  is_published        Boolean  @default(false)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([micro_credential_id, sequence_no], map: "uq_modules_sequence")
+  @@index([micro_credential_id], map: "idx_modules_micro_credential_id")
+}
+
+model notifications {
+  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String            @db.Uuid
+  title      String            @db.VarChar(255)
+  body       String?
+  type       notification_type @default(info)
+  is_read    Boolean           @default(false)
+  created_at DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([is_read], map: "idx_notifications_is_read")
+  @@index([user_id], map: "idx_notifications_user_id")
+}
+
+model permissions {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @db.VarChar(150)
+  code        String   @unique @db.VarChar(120)
+  module      String   @db.VarChar(80)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model qa_reviews {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id       String           @db.Uuid
+  reviewer_id     String?          @db.Uuid
+  review_date     DateTime         @db.Date
+  review_type     review_type      @default(scheduled)
+  findings        String?
+  action_required String?
+  status          qa_review_status @default(open)
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@index([cohort_id], map: "idx_qa_reviews_cohort_id")
+  @@index([status], map: "idx_qa_reviews_status")
+}
+
+model recognition_documents {
+  id                     String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recognition_request_id String                    @db.Uuid
+  document_type          recognition_document_type
+  file_url               String
+  title                  String                    @db.VarChar(255)
+  created_at             DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime                  @default(now()) @db.Timestamptz(6)
+
+  @@index([recognition_request_id], map: "idx_recognition_documents_request_id")
+}
+
+model recognition_requests {
+  id                  String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id       String                     @db.Uuid
+  micro_credential_id String                     @db.Uuid
+  cohort_id           String                     @db.Uuid
+  created_by          String?                    @db.Uuid
+  status              recognition_request_status @default(draft)
+  submitted_at        DateTime?                  @db.Timestamptz(6)
+  reviewed_at         DateTime?                  @db.Timestamptz(6)
+  decision_notes      String?
+  created_at          DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime                   @default(now()) @db.Timestamptz(6)
+
+  @@index([cohort_id], map: "idx_recognition_requests_cohort_id")
+  @@index([micro_credential_id], map: "idx_recognition_requests_micro_credential_id")
+  @@index([status], map: "idx_recognition_requests_status")
+  @@index([university_id], map: "idx_recognition_requests_university_id")
+}
+
+model risk_cases {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id   String           @db.Uuid
+  student_id  String           @db.Uuid
+  risk_type   risk_type
+  risk_level  risk_level
+  opened_by   String?          @db.Uuid
+  action_plan String?
+  status      risk_case_status @default(open)
+  created_at  DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@index([cohort_id], map: "idx_risk_cases_cohort_id")
+  @@index([status], map: "idx_risk_cases_status")
+  @@index([student_id], map: "idx_risk_cases_student_id")
+}
+
+model role_permissions {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_id       String   @db.Uuid
+  permission_id String   @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([role_id, permission_id], map: "uq_role_permissions")
+  @@index([permission_id], map: "idx_role_permissions_permission_id")
+  @@index([role_id], map: "idx_role_permissions_role_id")
+}
+
+model roles {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String     @db.VarChar(120)
+  code        String     @unique @db.VarChar(80)
+  scope       role_scope @default(university)
+  description String?
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime   @default(now()) @db.Timestamptz(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model rubric_criteria {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rubric_id             String   @db.Uuid
+  criterion_name        String   @db.VarChar(255)
+  criterion_description String?
+  weight                Decimal  @db.Decimal(5, 2)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model rubrics {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String   @db.VarChar(255)
+  description String?
+  status      String   @default("active") @db.VarChar(50)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sessions {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id            String               @db.Uuid
+  module_id            String?              @db.Uuid
+  title                String               @db.VarChar(255)
+  session_date         DateTime             @db.Date
+  start_time           DateTime             @db.Time(6)
+  end_time             DateTime             @db.Time(6)
+  session_type         session_type         @default(lecture)
+  notes                String?
+  documentation_status documentation_status @default(pending)
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime             @default(now()) @db.Timestamptz(6)
+
+  @@index([cohort_id], map: "idx_sessions_cohort_id")
+  @@index([module_id], map: "idx_sessions_module_id")
+  @@index([session_date], map: "idx_sessions_session_date")
+}
+
+model submissions {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assessment_id   String            @db.Uuid
+  student_id      String            @db.Uuid
+  attempt_id      String?           @db.Uuid
+  submission_type submission_type
+  file_url        String?
+  repo_url        String?
+  text_response   String?
+  submitted_at    DateTime          @default(now()) @db.Timestamptz(6)
+  status          submission_status @default(submitted)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+
+  @@index([assessment_id], map: "idx_submissions_assessment_id")
+  @@index([attempt_id], map: "idx_submissions_attempt_id")
+  @@index([status], map: "idx_submissions_status")
+  @@index([student_id], map: "idx_submissions_student_id")
+}
+
+model system_settings {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  setting_key   String   @unique @db.VarChar(150)
+  setting_value Json
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model tracks {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String       @db.VarChar(255)
+  code        String       @unique @db.VarChar(80)
+  description String?
+  status      track_status @default(active)
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime     @default(now()) @db.Timestamptz(6)
+}
+
+model universities {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                     String                     @unique(map: "uq_universities_name") @db.VarChar(255)
+  type                     String?                    @db.VarChar(120)
+  contact_person           String?                    @db.VarChar(255)
+  contact_email            String?                    @db.VarChar(255)
+  contact_phone            String?                    @db.VarChar(50)
+  status                   university_status          @default(active)
+  partnership_state        partnership_status         @default(active)
+  notes                    String?
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  university_email_domains university_email_domains[]
+}
+
+model university_email_domains {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id  String   @db.Uuid
+  domain         String   @db.VarChar(255)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  universities universities @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([university_id, domain], map: "uq_university_email_domains_university_domain")
+  @@index([university_id], map: "idx_university_email_domains_university_id")
+}
+
+model university_users {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id     String   @db.Uuid
+  user_id           String   @db.Uuid
+  relationship_type String   @db.VarChar(100)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([university_id, user_id], map: "uq_university_users")
+  @@index([university_id], map: "idx_university_users_university_id")
+  @@index([user_id], map: "idx_university_users_user_id")
+}
+
+model user_roles {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String   @db.Uuid
+  role_id    String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, role_id], map: "uq_user_roles")
+  @@index([role_id], map: "idx_user_roles_role_id")
+  @@index([user_id], map: "idx_user_roles_user_id")
+}
+
+model users {
+  id                    String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name             String      @db.VarChar(255)
+  email                 String      @unique @db.VarChar(255)
+  password_hash         String
+  phone                 String?     @db.VarChar(50)
+  status                user_status @default(active)
+  primary_university_id String?     @db.Uuid
+  last_login_at         DateTime?   @db.Timestamptz(6)
+  created_at            DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime    @default(now()) @db.Timestamptz(6)
+
+  @@index([primary_university_id], map: "idx_users_primary_university_id")
+}
+
+enum assessment_status {
+  draft
+  published
+  open
+  closed
+  archived
+}
+
+enum assessment_type {
+  quiz
+  assignment
+  lab
+  practical_exam
+  milestone
+  capstone_project
+  presentation
+}
+
+enum attempt_status {
+  started
+  submitted
+  late_submitted
+  cancelled
+  graded
+}
+
+enum attendance_status {
+  present
+  late
+  absent
+  excused
+}
+
+enum certificate_status {
+  issued
+  revoked
+  superseded
+}
+
+enum cohort_status {
+  planned
+  open_for_enrollment
+  active
+  completed
+  closed
+  cancelled
+}
+
+enum content_type {
+  lesson
+  pdf
+  video
+  external_link
+  lab_guide
+  assignment_guide
+  project_brief
+}
+
+enum corrective_action_status {
+  open
+  in_progress
+  resolved
+  closed
+  overdue
+}
+
+enum delivery_mode {
+  online
+  onsite
+  hybrid
+  self_paced
+}
+
+enum documentation_status {
+  pending
+  documented
+  incomplete
+}
+
+enum enrollment_status {
+  pending
+  enrolled
+  withdrawn
+  cancelled
+  completed
+}
+
+enum final_status {
+  in_progress
+  passed
+  failed
+  withdrawn
+  incomplete
+}
+
+enum integrity_case_status {
+  reported
+  under_investigation
+  resolved
+  closed
+}
+
+enum integrity_case_type {
+  cheating
+  plagiarism
+  non_original_submission
+  attendance_manipulation
+  unauthorized_tools
+  other
+}
+
+enum internal_approval_status {
+  not_started
+  in_review
+  approved
+  rejected
+}
+
+enum micro_credential_status {
+  draft
+  under_review
+  approved
+  active
+  archived
+}
+
+enum notification_type {
+  info
+  success
+  warning
+  danger
+  system
+}
+
+enum partnership_status {
+  active
+  inactive
+  pending
+  ended
+}
+
+enum qa_review_status {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum recognition_document_type {
+  credential_description
+  alignment_matrix
+  attendance_report
+  grades_report
+  evidence_samples
+  delivery_report
+  qa_report
+  academic_recommendation
+  other
+}
+
+enum recognition_eligibility_status {
+  unknown
+  eligible
+  not_eligible
+  under_review
+}
+
+enum recognition_request_status {
+  draft
+  in_preparation
+  ready_for_submission
+  submitted
+  under_review
+  approved
+  rejected
+  needs_revision
+}
+
+enum review_type {
+  scheduled
+  periodic
+  pre_closure
+  special
+}
+
+enum risk_case_status {
+  open
+  in_progress
+  resolved
+  closed
+  escalated
+}
+
+enum risk_level {
+  low
+  medium
+  high
+  critical
+}
+
+enum risk_type {
+  low_attendance
+  assessment_failure
+  missing_project
+  continuous_decline
+  other
+}
+
+enum role_scope {
+  global
+  university
+}
+
+enum session_type {
+  lecture
+  lab
+  workshop
+  review
+  assessment
+  other
+}
+
+enum submission_status {
+  draft
+  submitted
+  late
+  resubmitted
+  graded
+  returned
+}
+
+enum submission_type {
+  file
+  repo_url
+  text_response
+  mixed
+}
+
+enum track_status {
+  active
+  inactive
+  archived
+}
+
+enum university_status {
+  active
+  inactive
+  archived
+}
+
+enum user_status {
+  active
+  inactive
+  suspended
 }

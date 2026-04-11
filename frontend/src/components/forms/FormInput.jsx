@@ -1,15 +1,12 @@
+import { forwardRef } from 'react';
 import { cn } from '../../utils/helpers.js';
 import { useLocale } from '../../features/locale/index.js';
 import { translateText } from '../../utils/i18n.js';
 
-export function FormInput({
-  id,
-  label,
-  error,
-  className,
-  inputClassName,
-  ...rest
-}) {
+export const FormInput = forwardRef(function FormInput(
+  { id, label, error, className, inputClassName, ...rest },
+  ref
+) {
   const { locale } = useLocale();
   const translatedRest = {
     ...rest,
@@ -23,8 +20,15 @@ export function FormInput({
           {typeof label === 'string' ? translateText(label, locale) : label}
         </label>
       ) : null}
-      <input id={id} className={cn('form-field__control', inputClassName)} {...translatedRest} />
-      {error ? <p className="form-field__error">{typeof error === 'string' ? translateText(error, locale) : error}</p> : null}
+      <input
+        ref={ref}
+        id={id}
+        className={cn('form-field__control', inputClassName)}
+        {...translatedRest}
+      />
+      {error ? (
+        <p className="form-field__error">{typeof error === 'string' ? translateText(error, locale) : error}</p>
+      ) : null}
     </div>
   );
-}
+});

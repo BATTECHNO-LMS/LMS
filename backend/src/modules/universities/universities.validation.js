@@ -1,4 +1,4 @@
 ﻿/**
- * universities module â€” request validation schemas (e.g. express-validator / Joi).
+ * Request validation for universities routes (extend with query/body Zod schemas).
  */
 module.exports = {};

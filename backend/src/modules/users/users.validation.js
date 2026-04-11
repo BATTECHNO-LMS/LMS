@@ -1,4 +1,4 @@
 ﻿/**
- * users module â€” request validation schemas (e.g. express-validator / Joi).
+ * Request validation for users routes (extend with Zod / query schemas).
  */
 module.exports = {};

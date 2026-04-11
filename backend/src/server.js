@@ -1,6 +1,6 @@
 const app = require('./app');
-const { env } = require('./shared/config');
-const { prisma } = require('./shared/db/prisma');
+const { env } = require('./config/env');
+const { prisma } = require('./config/db');
 
 const port = env.PORT;
 

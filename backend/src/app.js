@@ -3,7 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const routes = require('./routes');
-const { env } = require('./shared/config');
+const authRoutes = require('./modules/auth/auth.routes');
+const { env } = require('./config/env');
+const { errorMiddleware } = require('./middlewares/error.middleware');
 
 const app = express();
 
@@ -19,6 +21,9 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', service: 'battechno-lms-api' });
 });
 
-app.use(`/api/${require('./shared/constants').API_VERSION}`, routes);
+app.use('/api/auth', authRoutes);
+app.use(`/api/${env.API_VERSION}`, routes);
+
+app.use(errorMiddleware);
 
 module.exports = app;

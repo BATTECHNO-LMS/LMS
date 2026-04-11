@@ -56,3 +56,105 @@
   font-size: 0.8125rem;
   color: $color-danger;
 }
+
+@keyframes auth-register-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-register {
+  &.auth-page {
+    max-width: 28rem;
+  }
+
+  &__card {
+    padding: 2rem 1.85rem;
+  }
+
+  &__description {
+    margin-bottom: 1.75rem;
+    line-height: 1.55;
+  }
+
+  &__helper {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    line-height: 1.45;
+  }
+
+  &__field-block {
+    margin-bottom: 0;
+  }
+
+  &__form {
+    margin-top: 0.25rem;
+  }
+
+  &__actions {
+    margin-top: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__submit.btn--primary {
+    width: 100%;
+    min-height: 2.75rem;
+    font-weight: 600;
+    background: #6a73fa;
+    border-color: #6a73fa;
+    color: #fff;
+
+    &:hover:not(:disabled),
+    &:focus-visible:not(:disabled) {
+      background: #545edf;
+      border-color: #545edf;
+      color: #fff;
+
+      .auth-register__submit-icon {
+        color: #fff;
+        stroke: #fff;
+      }
+    }
+  }
+
+  &__submit-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+    animation: auth-register-spin 0.9s linear infinite;
+  }
+
+  &__login-row {
+    margin: 0;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+  }
+
+  &__login-text {
+    color: var(--color-text-muted);
+  }
+
+  &__link {
+    color: #673bb7;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: $radius-sm;
+    padding: 0.12rem 0.2rem;
+    @include transition(background-color color, 0.15s);
+
+    &:hover,
+    &:focus-visible {
+      background: #673bb7;
+      color: #fff;
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #6a73fa;
+      outline-offset: 2px;
+    }
+  }
+}
