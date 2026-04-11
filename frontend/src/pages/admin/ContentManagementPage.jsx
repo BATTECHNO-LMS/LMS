@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BookOpen, FileText, Link2, Layers } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,16 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_CONTENT } from '../../mocks/lmsPageData.js';
 
 export function ContentManagementPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_CONTENT), [filterRows, scopeId]);
+  const published = useMemo(() => rows.filter((r) => r.status === 'منشور').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -45,10 +51,10 @@ export function ContentManagementPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'وحدات منشورة', 'Published units')} value="—" icon={BookOpen} />
-        <StatCard label={tr(isArabic, 'مسودات', 'Drafts')} value="—" icon={FileText} />
-        <StatCard label={tr(isArabic, 'روابط خارجية', 'External links')} value="—" icon={Link2} />
-        <StatCard label={tr(isArabic, 'مرتبطة بدفعات', 'Linked to cohorts')} value="—" icon={Layers} />
+        <StatCard label={tr(isArabic, 'وحدات منشورة', 'Published units')} value={String(published)} icon={BookOpen} />
+        <StatCard label={tr(isArabic, 'مسودات', 'Drafts')} value={String(rows.length - published)} icon={FileText} />
+        <StatCard label={tr(isArabic, 'روابط خارجية', 'External links')} value={String(rows.filter((r) => r.type === 'رابط').length)} icon={Link2} />
+        <StatCard label={tr(isArabic, 'مرتبطة بدفعات', 'Linked to cohorts')} value={String(rows.length)} icon={Layers} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة المحتوى', 'Content list')}>
         <DataTable
@@ -62,7 +68,7 @@ export function ContentManagementPage() {
             { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

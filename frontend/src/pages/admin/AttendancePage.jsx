@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ClipboardCheck, UserCheck, UserX, Percent } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,17 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_ATTENDANCE_LOG } from '../../mocks/lmsPageData.js';
 
 export function AttendancePage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_ATTENDANCE_LOG), [filterRows, scopeId]);
+  const present = useMemo(() => rows.filter((r) => r.status === 'حاضر').length, [rows]);
+  const absent = useMemo(() => rows.filter((r) => r.status === 'غائب').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -36,10 +43,14 @@ export function AttendancePage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'متوسط الحضور', 'Attendance average')} value="—" icon={Percent} />
-        <StatCard label={tr(isArabic, 'حضور مؤكد', 'Confirmed attendance')} value="—" icon={UserCheck} />
-        <StatCard label={tr(isArabic, 'غياب مسجّل', 'Recorded absences')} value="—" icon={UserX} />
-        <StatCard label={tr(isArabic, 'جلسات مغطاة', 'Covered sessions')} value="—" icon={ClipboardCheck} />
+        <StatCard
+          label={tr(isArabic, 'متوسط الحضور', 'Attendance average')}
+          value={rows.length ? `${Math.round((present / rows.length) * 100)}%` : '—'}
+          icon={Percent}
+        />
+        <StatCard label={tr(isArabic, 'حضور مؤكد', 'Confirmed attendance')} value={String(present)} icon={UserCheck} />
+        <StatCard label={tr(isArabic, 'غياب مسجّل', 'Recorded absences')} value={String(absent)} icon={UserX} />
+        <StatCard label={tr(isArabic, 'جلسات مغطاة', 'Covered sessions')} value={String(new Set(rows.map((r) => r.session)).size)} icon={ClipboardCheck} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'سجل الحضور', 'Attendance log')}>
         <DataTable
@@ -52,7 +63,7 @@ export function AttendancePage() {
             { key: 'time', label: tr(isArabic, 'الوقت', 'Time') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

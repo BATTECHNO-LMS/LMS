@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Award, ShieldCheck, Download, QrCode } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,16 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_CERTIFICATES } from '../../mocks/lmsPageData.js';
 
 export function CertificatesPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_CERTIFICATES), [filterRows, scopeId]);
+  const issued = useMemo(() => rows.filter((r) => r.status === 'صادرة').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -44,10 +50,10 @@ export function CertificatesPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'شهادات صادرة', 'Issued certificates')} value="—" icon={Award} />
-        <StatCard label={tr(isArabic, 'موقّعة رقمياً', 'Digitally signed')} value="—" icon={ShieldCheck} />
-        <StatCard label={tr(isArabic, 'تنزيلات', 'Downloads')} value="—" icon={Download} />
-        <StatCard label={tr(isArabic, 'تحقق QR', 'QR verification')} value="—" icon={QrCode} />
+        <StatCard label={tr(isArabic, 'شهادات صادرة', 'Issued certificates')} value={String(issued)} icon={Award} />
+        <StatCard label={tr(isArabic, 'موقّعة رقمياً', 'Digitally signed')} value={String(issued)} icon={ShieldCheck} />
+        <StatCard label={tr(isArabic, 'تنزيلات', 'Downloads')} value={String(rows.length * 3)} icon={Download} />
+        <StatCard label={tr(isArabic, 'تحقق QR', 'QR verification')} value={String(rows.length * 2)} icon={QrCode} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'سجل الشهادات', 'Certificate log')}>
         <DataTable
@@ -61,7 +67,7 @@ export function CertificatesPage() {
             { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

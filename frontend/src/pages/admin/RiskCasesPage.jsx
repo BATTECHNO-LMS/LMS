@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AlertTriangle, TrendingUp, UserX, ShieldAlert } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,20 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_RISK_CASES } from '../../mocks/lmsPageData.js';
 
 export function RiskCasesPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_RISK_CASES), [filterRows, scopeId]);
+
+  const openCases = useMemo(() => rows.filter((r) => r.status === 'مفتوحة').length, [rows]);
+  const inProgress = useMemo(() => rows.filter((r) => r.status === 'قيد المتابعة').length, [rows]);
+  const closed = useMemo(() => rows.filter((r) => r.status === 'مغلقة').length, [rows]);
+  const escalating = useMemo(() => rows.filter((r) => r.level === 'مرتفع' && r.status !== 'مغلقة').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -41,10 +51,10 @@ export function RiskCasesPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'حالات مفتوحة', 'Open cases')} value="—" icon={AlertTriangle} />
-        <StatCard label={tr(isArabic, 'متصاعدة', 'Escalating')} value="—" icon={TrendingUp} />
-        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value="—" icon={ShieldAlert} />
-        <StatCard label={tr(isArabic, 'متابعة نشطة', 'Active follow-up')} value="—" icon={UserX} />
+        <StatCard label={tr(isArabic, 'حالات مفتوحة', 'Open cases')} value={String(openCases)} icon={AlertTriangle} />
+        <StatCard label={tr(isArabic, 'متصاعدة', 'Escalating')} value={String(escalating)} icon={TrendingUp} />
+        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value={String(closed)} icon={ShieldAlert} />
+        <StatCard label={tr(isArabic, 'متابعة نشطة', 'Active follow-up')} value={String(inProgress)} icon={UserX} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة الحالات', 'Cases list')}>
         <DataTable
@@ -58,7 +68,7 @@ export function RiskCasesPage() {
             { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

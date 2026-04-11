@@ -1,6 +1,6 @@
 /**
- * Mock analytics dataset — replace with API via analytics.service.js when backend exists.
- * System-wide (super admin) view; not tenant-filtered in mock.
+ * Analytics aggregates for the super-admin dashboard (static dataset).
+ * System-wide view; not tenant-filtered in this module.
  */
 
 export const TIME_PRESETS = ['last7', 'last30', 'thisTerm', 'thisYear', 'all'];

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { CalendarDays, Clock, MapPin, Video } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,16 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_SESSIONS } from '../../mocks/lmsPageData.js';
 
 export function SessionsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_SESSIONS), [filterRows, scopeId]);
+  const upcoming = useMemo(() => rows.filter((r) => r.status === 'مجدولة').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -41,10 +47,10 @@ export function SessionsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'جلسات هذا الأسبوع', 'Sessions this week')} value="—" icon={CalendarDays} />
-        <StatCard label={tr(isArabic, 'قادمة', 'Upcoming')} value="—" icon={Clock} />
-        <StatCard label={tr(isArabic, 'مواقع', 'Locations')} value="—" icon={MapPin} />
-        <StatCard label={tr(isArabic, 'جلسات مباشرة', 'Live sessions')} value="—" icon={Video} />
+        <StatCard label={tr(isArabic, 'جلسات هذا الأسبوع', 'Sessions this week')} value={String(rows.length)} icon={CalendarDays} />
+        <StatCard label={tr(isArabic, 'قادمة', 'Upcoming')} value={String(upcoming)} icon={Clock} />
+        <StatCard label={tr(isArabic, 'مواقع', 'Locations')} value={String(rows.filter((r) => r.mode === 'حضوري' || r.mode === 'مختلط').length)} icon={MapPin} />
+        <StatCard label={tr(isArabic, 'جلسات مباشرة', 'Live sessions')} value={String(rows.filter((r) => r.mode === 'عن بُعد').length)} icon={Video} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة الجلسات', 'Sessions list')}>
         <DataTable
@@ -58,7 +64,7 @@ export function SessionsPage() {
             { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

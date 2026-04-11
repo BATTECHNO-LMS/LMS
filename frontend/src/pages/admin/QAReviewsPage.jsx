@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ShieldCheck, User, Calendar, Flag } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,20 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_QA_REVIEWS } from '../../mocks/lmsPageData.js';
 
 export function QAReviewsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_QA_REVIEWS), [filterRows, scopeId]);
+
+  const scheduled = useMemo(() => rows.filter((r) => r.status === 'مجدولة' || r.status === 'قيد التحضير').length, [rows]);
+  const reviewers = useMemo(() => new Set(rows.map((r) => r.lead)).size, [rows]);
+  const critical = useMemo(() => rows.filter((r) => r.status === 'مفتوحة').length, [rows]);
+  const completed = useMemo(() => rows.filter((r) => r.status === 'مغلقة').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -41,10 +51,10 @@ export function QAReviewsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'مراجعات مجدولة', 'Scheduled reviews')} value="—" icon={Calendar} />
-        <StatCard label={tr(isArabic, 'مراجعون', 'Reviewers')} value="—" icon={User} />
-        <StatCard label={tr(isArabic, 'ملاحظات حرجة', 'Critical notes')} value="—" icon={Flag} />
-        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value="—" icon={ShieldCheck} />
+        <StatCard label={tr(isArabic, 'مراجعات مجدولة', 'Scheduled reviews')} value={String(scheduled)} icon={Calendar} />
+        <StatCard label={tr(isArabic, 'مراجعون', 'Reviewers')} value={String(reviewers)} icon={User} />
+        <StatCard label={tr(isArabic, 'ملاحظات حرجة', 'Critical notes')} value={String(critical)} icon={Flag} />
+        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value={String(completed)} icon={ShieldCheck} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة المراجعات', 'Reviews list')}>
         <DataTable
@@ -58,7 +68,7 @@ export function QAReviewsPage() {
             { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

@@ -1,4 +1,4 @@
-/** In-memory demo records for CRUD UI — tenant-scoped for frontend simulation only. */
+/** سجلات عرض للواجهات — مرتبطة بنطاق الجامعة عبر tenantId */
 
 export const MOCK_USERS = [
   {
@@ -15,8 +15,8 @@ export const MOCK_USERS = [
     name: 'محمد علي',
     email: 'mali@yu.edu.jo',
     role: 'student',
-    status: 'inactive',
-    lastLogin: '—',
+    status: 'active',
+    lastLogin: '2026-04-08',
     tenantId: 'uni-1',
   },
   {
@@ -37,6 +37,17 @@ export const MOCK_USERS = [
     lastLogin: '2026-04-03',
     tenantId: 'uni-3',
   },
+  { id: 'u5', name: 'خالد سعيد', email: 'khaled@yu.edu.jo', role: 'student', status: 'active', lastLogin: '2026-04-07', tenantId: 'uni-1' },
+  { id: 'u6', name: 'هند أبو زيد', email: 'hind@uj.edu.jo', role: 'program_admin', status: 'active', lastLogin: '2026-04-06', tenantId: 'uni-2' },
+  { id: 'u7', name: 'د. سامي النجار', email: 'samyn@psut.edu.jo', role: 'academic_admin', status: 'active', lastLogin: '2026-04-05', tenantId: 'uni-3' },
+  { id: 'u8', name: 'نورا حسن', email: 'noura@uj.edu.jo', role: 'student', status: 'active', lastLogin: '2026-04-08', tenantId: 'uni-2' },
+  { id: 'u9', name: 'أحمد الكردي', email: 'ahmad.k@uj.edu.jo', role: 'student', status: 'inactive', lastLogin: '2026-03-20', tenantId: 'uni-2' },
+  { id: 'u10', name: 'رغد الطراونة', email: 'raghad@psut.edu.jo', role: 'instructor', status: 'active', lastLogin: '2026-04-04', tenantId: 'uni-3' },
+  { id: 'u11', name: 'ليان مصطفى', email: 'layan@psut.edu.jo', role: 'student', status: 'active', lastLogin: '2026-04-08', tenantId: 'uni-3' },
+  { id: 'u12', name: 'م. يوسف العبادي', email: 'yousef@yu.edu.jo', role: 'qa_officer', status: 'active', lastLogin: '2026-04-07', tenantId: 'uni-1' },
+  { id: 'u13', name: 'دانيا مرعي', email: 'dania@yu.edu.jo', role: 'student', status: 'active', lastLogin: '2026-04-06', tenantId: 'uni-1' },
+  { id: 'u14', name: 'طارق مناصرة', email: 'tariq@uj.edu.jo', role: 'university_reviewer', status: 'active', lastLogin: '2026-04-01', tenantId: 'uni-2' },
+  { id: 'u15', name: 'إيمان السعودي', email: 'eman@psut.edu.jo', role: 'instructor', status: 'active', lastLogin: '2026-04-02', tenantId: 'uni-3' },
 ];
 
 export const MOCK_UNIVERSITIES = [
@@ -66,6 +77,24 @@ export const MOCK_UNIVERSITIES = [
     status: 'active',
     programs: 5,
     tenantId: 'uni-3',
+  },
+  {
+    id: 'uni-4',
+    name: 'جامعة آل البيت',
+    contact: 'عمادة البرامج الخاصة',
+    email: 'contact@ahu.edu.jo',
+    status: 'active',
+    programs: 4,
+    tenantId: 'uni-4',
+  },
+  {
+    id: 'uni-5',
+    name: 'جامعة العلوم والتكنولوجيا الأردنية',
+    contact: 'مكتب التعاون الأكاديمي',
+    email: 'contact@just.edu.jo',
+    status: 'active',
+    programs: 12,
+    tenantId: 'uni-5',
   },
 ];
 
@@ -97,6 +126,9 @@ export const MOCK_TRACKS = [
     cohorts: 0,
     tenantId: 'uni-3',
   },
+  { id: 't4', name: 'مسار الشبكات والاتصالات', code: 'NET-110', level: 'متوسط', status: 'active', cohorts: 1, tenantId: 'uni-4' },
+  { id: 't5', name: 'مسار هندسة الطاقة', code: 'ENR-205', level: 'متقدم', status: 'active', cohorts: 1, tenantId: 'uni-5' },
+  { id: 't6', name: 'مسار علوم الحاسوب', code: 'CS-401', level: 'متوسط', status: 'active', cohorts: 2, tenantId: 'uni-1' },
 ];
 
 export const MOCK_MICRO_CREDENTIALS = [
@@ -133,6 +165,9 @@ export const MOCK_MICRO_CREDENTIALS = [
     cohorts: 0,
     tenantId: 'uni-3',
   },
+  { id: 'mc4', name: 'أساسيات الشبكات', code: 'NET-X1', level: 'مبتدئ', hours: 36, status: 'approved', trackId: 't4', cohorts: 1, tenantId: 'uni-4' },
+  { id: 'mc5', name: 'الطاقة المتجددة', code: 'REN-12', level: 'متوسط', hours: 45, status: 'approved', trackId: 't5', cohorts: 1, tenantId: 'uni-5' },
+  { id: 'mc6', name: 'الخوارزميات وهياكل البيانات', code: 'CS-210', level: 'متوسط', hours: 48, status: 'approved', trackId: 't6', cohorts: 2, tenantId: 'uni-1' },
 ];
 
 export const MOCK_COHORTS = [
@@ -175,6 +210,45 @@ export const MOCK_COHORTS = [
     status: 'planned',
     tenantId: 'uni-3',
   },
+  {
+    id: 'c4',
+    name: 'دفعة خريف 2025 — آل البيت',
+    credentialId: 'mc4',
+    credentialName: 'أساسيات الشبكات',
+    universityId: 'uni-4',
+    universityName: 'جامعة آل البيت',
+    instructor: 'د. ماجد السعودي',
+    startDate: '2025-09-15',
+    endDate: '2026-02-01',
+    status: 'running',
+    tenantId: 'uni-4',
+  },
+  {
+    id: 'c5',
+    name: 'دفعة ربيع 2026 — العلوم والتكنولوجيا',
+    credentialId: 'mc5',
+    credentialName: 'الطاقة المتجددة',
+    universityId: 'uni-5',
+    universityName: 'جامعة العلوم والتكنولوجيا الأردنية',
+    instructor: 'د. هبة النابلسي',
+    startDate: '2026-02-10',
+    endDate: '2026-08-01',
+    status: 'running',
+    tenantId: 'uni-5',
+  },
+  {
+    id: 'c6',
+    name: 'دفعة صيف 2026 — يرموك (علوم حاسوب)',
+    credentialId: 'mc6',
+    credentialName: 'الخوارزميات وهياكل البيانات',
+    universityId: 'uni-1',
+    universityName: 'جامعة اليرموك',
+    instructor: 'د. أحمد خطيب',
+    startDate: '2026-06-01',
+    endDate: '2026-12-15',
+    status: 'planned',
+    tenantId: 'uni-1',
+  },
 ];
 
 export const MOCK_ASSESSMENTS = [
@@ -211,6 +285,13 @@ export const MOCK_ASSESSMENTS = [
     status: 'draft',
     tenantId: 'uni-3',
   },
+  { id: 'a4', name: 'معمل إعداد الشبكة', type: 'lab', weight: 10, cohortId: 'c4', cohortName: 'دفعة خريف 2025 — آل البيت', dueDate: '2026-04-20', status: 'published', tenantId: 'uni-4' },
+  { id: 'a5', name: 'اختبار نظري — طاقة', type: 'quiz', weight: 25, cohortId: 'c5', cohortName: 'دفعة ربيع 2026 — العلوم والتكنولوجيا', dueDate: '2026-04-18', status: 'pending', tenantId: 'uni-5' },
+  { id: 'a6', name: 'مشروع خوارزميات', type: 'assignment', weight: 35, cohortId: 'c6', cohortName: 'دفعة صيف 2026 — يرموك (علوم حاسوب)', dueDate: '2026-09-01', status: 'draft', tenantId: 'uni-1' },
+  { id: 'a7', name: 'عرض شفهي — تحليل البيانات', type: 'presentation', weight: 15, cohortId: 'c1', cohortName: 'دفعة ربيع 2026 — يرموك', dueDate: '2026-05-01', status: 'published', tenantId: 'uni-1' },
+  { id: 'a8', name: 'امتحان عملي', type: 'practical_exam', weight: 20, cohortId: 'c2', cohortName: 'دفعة خريف 2025 — أردنية', dueDate: '2026-02-28', status: 'published', tenantId: 'uni-2' },
+  { id: 'a9', name: 'واجب قصير — أمن', type: 'assignment', weight: 10, cohortId: 'c2', cohortName: 'دفعة خريف 2025 — أردنية', dueDate: '2026-04-12', status: 'pending', tenantId: 'uni-2' },
+  { id: 'a10', name: 'تقرير نصف الفصل', type: 'milestone', weight: 12, cohortId: 'c1', cohortName: 'دفعة ربيع 2026 — يرموك', dueDate: '2026-04-25', status: 'pending', tenantId: 'uni-1' },
 ];
 
 export const MOCK_RECOGNITION = [
@@ -247,16 +328,26 @@ export const MOCK_RECOGNITION = [
     createdAt: '2026-04-01',
     tenantId: 'uni-3',
   },
+  { id: 'r4', title: 'تحديث اعتماد — مسار الشبكات', universityId: 'uni-4', universityName: 'جامعة آل البيت', credentialName: 'أساسيات الشبكات', cohortName: 'دفعة خريف 2025 — آل البيت', status: 'pending', createdAt: '2026-03-28', tenantId: 'uni-4' },
+  { id: 'r5', title: 'اعتماد برنامج الطاقة', universityId: 'uni-5', universityName: 'جامعة العلوم والتكنولوجيا الأردنية', credentialName: 'الطاقة المتجددة', cohortName: 'دفعة ربيع 2026 — العلوم والتكنولوجيا', status: 'draft', createdAt: '2026-04-05', tenantId: 'uni-5' },
+  { id: 'r6', title: 'طلب تجديد اعتماد — يرموك', universityId: 'uni-1', universityName: 'جامعة اليرموك', credentialName: 'الخوارزميات وهياكل البيانات', cohortName: 'دفعة صيف 2026 — يرموك (علوم حاسوب)', status: 'pending', createdAt: '2026-04-06', tenantId: 'uni-1' },
 ];
 
-/** Evidence rows (admin Evidence page) */
 export const MOCK_EVIDENCE = [
   { id: 'e1', title: 'دليل جودة — يرموك', type: 'doc', tenantId: 'uni-1' },
   { id: 'e2', title: 'مرفق تدقيق — أردنية', type: 'doc', tenantId: 'uni-2' },
   { id: 'e3', title: 'عرض تقديمي — سمية', type: 'media', tenantId: 'uni-3' },
+  { id: 'e4', title: 'سياسة التقييم المعتمدة', type: 'doc', tenantId: 'uni-1' },
+  { id: 'e5', title: 'سجل حضور الجلسات', type: 'doc', tenantId: 'uni-1' },
+  { id: 'e6', title: 'لقطات شاشة — منصة التعلم', type: 'media', tenantId: 'uni-2' },
+  { id: 'e7', title: 'محضر لجنة الجودة', type: 'doc', tenantId: 'uni-2' },
+  { id: 'e8', title: 'فيديو تعريفي بالبرنامج', type: 'media', tenantId: 'uni-3' },
+  { id: 'e9', title: 'خطة تحسين الأداء', type: 'doc', tenantId: 'uni-3' },
+  { id: 'e10', title: 'تقرير زيارة ميدانية', type: 'doc', tenantId: 'uni-4' },
+  { id: 'e11', title: 'شهادات حضور الورش', type: 'doc', tenantId: 'uni-4' },
+  { id: 'e12', title: 'وثيقة المختبرات', type: 'doc', tenantId: 'uni-5' },
 ];
 
-/** Report catalog rows (admin Reports page) */
 export const MOCK_REPORTS = [
   {
     id: 'rep1',
@@ -279,7 +370,14 @@ export const MOCK_REPORTS = [
     name: 'تقرير الاعتراف الأكاديمي',
     audience: 'الجامعة',
     frequency: 'ربع سنوي',
-    last: '—',
+    last: '2026-03-20',
     tenantId: 'uni-3',
   },
+  { id: 'rep4', name: 'تقرير التقدم الأكاديمي', audience: 'العمادة', frequency: 'شهري', last: '2026-04-07', tenantId: 'uni-1' },
+  { id: 'rep5', name: 'تقرير التسليمات المتأخرة', audience: 'التدريس', frequency: 'أسبوعي', last: '2026-04-08', tenantId: 'uni-1' },
+  { id: 'rep6', name: 'تقرير رضا المتعلمين', audience: 'الجودة', frequency: 'فصلي', last: '2026-03-25', tenantId: 'uni-2' },
+  { id: 'rep7', name: 'تقرير الشهادات الصادرة', audience: 'الشهادات', frequency: 'شهري', last: '2026-04-01', tenantId: 'uni-2' },
+  { id: 'rep8', name: 'تقرير مخاطر الأداء', audience: 'المتابعة', frequency: 'أسبوعي', last: '2026-04-06', tenantId: 'uni-3' },
+  { id: 'rep9', name: 'تقرير الجلسات التعليمية', audience: 'التعليم الإلكتروني', frequency: 'شهري', last: '2026-03-30', tenantId: 'uni-4' },
+  { id: 'rep10', name: 'تقرير المختبرات', audience: 'الكلية', frequency: 'فصلي', last: '2026-04-02', tenantId: 'uni-5' },
 ];

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AlertTriangle, UserX, TrendingDown, Users } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,19 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_AT_RISK } from '../../mocks/lmsPageData.js';
 
 export function AtRiskStudentsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_AT_RISK), [filterRows, scopeId]);
+
+  const highTier = useMemo(() => rows.filter((r) => r.tier === 'مرتفع').length, [rows]);
+  const mediumTier = useMemo(() => rows.filter((r) => r.tier === 'متوسط').length, [rows]);
+  const lowTier = useMemo(() => rows.filter((r) => r.tier === 'منخفض').length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -45,10 +54,10 @@ export function AtRiskStudentsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'حالات نشطة', 'Active cases')} value="—" icon={AlertTriangle} />
-        <StatCard label={tr(isArabic, 'معدّل التحسّن', 'Improvement rate')} value="—" icon={TrendingDown} />
-        <StatCard label={tr(isArabic, 'متابعة وقائية', 'Preventive follow-up')} value="—" icon={Users} />
-        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value="—" icon={UserX} />
+        <StatCard label={tr(isArabic, 'حالات نشطة', 'Active cases')} value={String(rows.length)} icon={AlertTriangle} />
+        <StatCard label={tr(isArabic, 'مستوى مرتفع', 'High tier')} value={String(highTier)} icon={TrendingDown} />
+        <StatCard label={tr(isArabic, 'مستوى متوسط', 'Medium tier')} value={String(mediumTier)} icon={Users} />
+        <StatCard label={tr(isArabic, 'مستوى منخفض', 'Low tier')} value={String(lowTier)} icon={UserX} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة الطلبة', 'Students list')}>
         <DataTable
@@ -62,7 +71,7 @@ export function AtRiskStudentsPage() {
             { key: 'owner', label: tr(isArabic, 'المسؤول', 'Owner') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

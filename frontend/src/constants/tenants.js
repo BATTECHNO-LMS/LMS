@@ -30,6 +30,18 @@ export const TENANTS = [
     nameAr: 'جامعة الأميرة سمية للتكنولوجيا',
     nameEn: 'Princess Sumaya University for Technology',
   },
+  {
+    id: 'uni-4',
+    code: 'AHU',
+    nameAr: 'جامعة آل البيت',
+    nameEn: 'Al al-Bayt University',
+  },
+  {
+    id: 'uni-5',
+    code: 'JUST',
+    nameAr: 'جامعة العلوم والتكنولوجيا الأردنية',
+    nameEn: 'Jordan University of Science and Technology',
+  },
 ];
 
 const BY_ID = Object.fromEntries(TENANTS.map((t) => [t.id, t]));

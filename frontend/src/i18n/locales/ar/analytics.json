@@ -20,7 +20,7 @@
     "openIntegrity": "عدد حالات النزاهة المفتوحة",
     "certificatesIssued": "عدد الشهادات الصادرة",
     "activeUsers": "عدد المستخدمين النشطين",
-    "helperDemo": "بيانات تجريبية — ستُزامن مع الخادم لاحقاً"
+    "helperDemo": "حسب الفترة والفلاتر المختارة"
   },
   "filters": {
     "university": "الجامعة",
@@ -226,8 +226,8 @@
     "issuedThisMonth": "صادر هذا الشهر",
     "byUniversity": "حسب الجامعة",
     "byCredential": "حسب الشهادة",
-    "reportsGenerated": "تشغيل التقارير (عرض تجريبي)",
-    "sensitiveActivities": "أنشطة حساسة (عرض تجريبي)"
+    "reportsGenerated": "تشغيل التقارير",
+    "sensitiveActivities": "أنشطة حساسة"
   },
   "roles": {
     "instructor": "مدربون",

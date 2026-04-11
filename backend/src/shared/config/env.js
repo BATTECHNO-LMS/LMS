@@ -1,4 +1,9 @@
-require('dotenv').config();
+const path = require('path');
+
+// Resolve backend/.env regardless of process cwd (e.g. monorepo root).
+require('dotenv').config({
+  path: path.join(__dirname, '..', '..', '..', '.env'),
+});
 
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',

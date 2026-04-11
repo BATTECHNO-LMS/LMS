@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Upload, Inbox, Clock, CheckCircle2 } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,17 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_SUBMISSIONS } from '../../mocks/lmsPageData.js';
 
 export function SubmissionsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_SUBMISSIONS), [filterRows, scopeId]);
+  const pending = useMemo(() => rows.filter((r) => r.status.includes('بانتظار')).length, [rows]);
+  const done = useMemo(() => rows.filter((r) => r.status.includes('مُصح')).length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -45,10 +52,10 @@ export function SubmissionsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'تسليمات جديدة', 'New submissions')} value="—" icon={Inbox} />
-        <StatCard label={tr(isArabic, 'بانتظار التصحيح', 'Pending grading')} value="—" icon={Clock} />
-        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value="—" icon={CheckCircle2} />
-        <StatCard label={tr(isArabic, 'مرفوعات', 'Uploads')} value="—" icon={Upload} />
+        <StatCard label={tr(isArabic, 'تسليمات جديدة', 'New submissions')} value={String(rows.length)} icon={Inbox} />
+        <StatCard label={tr(isArabic, 'بانتظار التصحيح', 'Pending grading')} value={String(pending)} icon={Clock} />
+        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value={String(done)} icon={CheckCircle2} />
+        <StatCard label={tr(isArabic, 'مرفوعات', 'Uploads')} value={String(rows.length)} icon={Upload} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'قائمة التسليمات', 'Submissions list')}>
         <DataTable
@@ -61,7 +68,7 @@ export function SubmissionsPage() {
             { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

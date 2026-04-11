@@ -119,7 +119,7 @@
     "allUniversities": "جميع الجامعات",
     "select": "اختر الجامعة",
     "emptyForScope": "لا توجد بيانات للجامعة المحددة",
-    "emptyGeneric": "لا توجد سجلات في نطاق العرض التجريبي.",
+    "emptyGeneric": "لا توجد سجلات في النطاق المحدد.",
     "noCohortsForTenant": "لا توجد دفعات لهذه الجامعة",
     "noAssessmentsForTenant": "لا توجد تقييمات ضمن الجامعة المحددة",
     "noRecognitionForTenant": "لا توجد طلبات اعتراف أكاديمي لهذه الجامعة",

@@ -70,11 +70,11 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
             ) : (
               <>
                 <p className="auth-form__mock-label">
-                  {locale === 'ar' ? 'وضع تجريبي — اختيار السيناريو (جامعة / نطاق)' : 'Demo mode — scenario (university / scope)'}
+                  {locale === 'ar' ? 'اختيار الجامعة والنطاق' : 'University and scope'}
                 </p>
                 <FormSelect
                   id="mock-scenario"
-                  label={locale === 'ar' ? 'محاكاة الدخول كـ' : 'Simulate login as'}
+                  label={locale === 'ar' ? 'تسجيل الدخول كـ' : 'Sign in as'}
                   value={scenarioKey}
                   onChange={(e) => setScenarioKey(e.target.value)}
                 >

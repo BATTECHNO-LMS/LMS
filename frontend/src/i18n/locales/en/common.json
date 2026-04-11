@@ -119,7 +119,7 @@
     "allUniversities": "All universities",
     "select": "Select university",
     "emptyForScope": "No data for the selected university",
-    "emptyGeneric": "No records in the demo scope.",
+    "emptyGeneric": "No records in the selected scope.",
     "noCohortsForTenant": "No cohorts for this university",
     "noAssessmentsForTenant": "No assessments for the selected university",
     "noRecognitionForTenant": "No recognition requests for this university",

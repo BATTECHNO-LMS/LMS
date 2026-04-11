@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BarChart3, Sigma, TrendingUp, Users } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,21 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_GRADES } from '../../mocks/lmsPageData.js';
 
 export function GradesPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_GRADES), [filterRows, scopeId]);
+  const avg = useMemo(() => {
+    const nums = rows.map((r) => parseFloat(r.score, 10)).filter((n) => !Number.isNaN(n));
+    if (!nums.length) return '—';
+    return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1);
+  }, [rows]);
+  const pass = useMemo(() => rows.filter((r) => parseFloat(r.score, 10) >= 60).length, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -39,10 +50,10 @@ export function GradesPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'متوسط عام', 'Overall average')} value="—" icon={Sigma} />
-        <StatCard label={tr(isArabic, 'نسبة النجاح', 'Pass rate')} value="—" icon={TrendingUp} />
-        <StatCard label={tr(isArabic, 'طلاب مكشوفون', 'Students covered')} value="—" icon={Users} />
-        <StatCard label={tr(isArabic, 'عناصر تقييم', 'Assessment items')} value="—" icon={BarChart3} />
+        <StatCard label={tr(isArabic, 'متوسط عام', 'Overall average')} value={String(avg)} icon={Sigma} />
+        <StatCard label={tr(isArabic, 'نسبة النجاح', 'Pass rate')} value={rows.length ? `${Math.round((pass / rows.length) * 100)}%` : '—'} icon={TrendingUp} />
+        <StatCard label={tr(isArabic, 'طلاب مكشوفون', 'Students covered')} value={String(rows.length)} icon={Users} />
+        <StatCard label={tr(isArabic, 'عناصر تقييم', 'Assessment items')} value={String(rows.length)} icon={BarChart3} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'ملخص الدرجات', 'Grade summary')}>
         <DataTable
@@ -56,7 +67,7 @@ export function GradesPage() {
             { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

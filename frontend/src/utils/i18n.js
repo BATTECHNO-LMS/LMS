@@ -73,7 +73,7 @@ const AR_TO_EN = {
   'لوحة المدرب': 'Instructor dashboard',
   'لوحة الطالب': 'Student dashboard',
   'لوحة المراجع الجامعي': 'Academic reviewer dashboard',
-  'يُحدَّث عند الربط بالخادم': 'Updates after backend integration',
+  'حسب آخر المزامنات': 'Based on latest sync',
   'آخر النشاطات': 'Recent activity',
   'نشاط قريب': 'Upcoming activity',
   'مواعيد قريبة': 'Upcoming schedule',

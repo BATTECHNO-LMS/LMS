@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { ScrollText, User, Monitor, Filter } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -12,11 +13,16 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_AUDIT_LOGS } from '../../mocks/lmsPageData.js';
 
 export function AuditLogsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_AUDIT_LOGS), [filterRows, scopeId]);
+  const actors = useMemo(() => new Set(rows.map((r) => r.actor)).size, [rows]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -41,10 +47,10 @@ export function AuditLogsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'أحداث اليوم', 'Today events')} value="—" icon={ScrollText} />
-        <StatCard label={tr(isArabic, 'مستخدمون فريدون', 'Unique users')} value="—" icon={User} />
-        <StatCard label={tr(isArabic, 'مصادر', 'Sources')} value="—" icon={Monitor} />
-        <StatCard label={tr(isArabic, 'مرشّحات نشطة', 'Active filters')} value="—" icon={Filter} />
+        <StatCard label={tr(isArabic, 'أحداث اليوم', 'Today events')} value={String(rows.length)} icon={ScrollText} />
+        <StatCard label={tr(isArabic, 'مستخدمون فريدون', 'Unique users')} value={String(actors)} icon={User} />
+        <StatCard label={tr(isArabic, 'مصادر', 'Sources')} value={String(rows.filter((r) => r.ip !== '—').length)} icon={Monitor} />
+        <StatCard label={tr(isArabic, 'مرشّحات نشطة', 'Active filters')} value="3" icon={Filter} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'السجل', 'Log')}>
         <DataTable
@@ -57,7 +63,7 @@ export function AuditLogsPage() {
             { key: 'resource', label: tr(isArabic, 'المورد', 'Resource') },
             { key: 'ip', label: tr(isArabic, 'المصدر', 'Source') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

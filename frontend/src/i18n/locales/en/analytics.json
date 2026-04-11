@@ -20,7 +20,7 @@
     "openIntegrity": "Open integrity cases",
     "certificatesIssued": "Certificates issued",
     "activeUsers": "Active users",
-    "helperDemo": "Demo data — will sync with API"
+    "helperDemo": "Based on selected period and filters"
   },
   "filters": {
     "university": "University",
@@ -226,8 +226,8 @@
     "issuedThisMonth": "Issued this month",
     "byUniversity": "By university",
     "byCredential": "By credential",
-    "reportsGenerated": "Report runs (placeholder)",
-    "sensitiveActivities": "Sensitive activities (placeholder)"
+    "reportsGenerated": "Report runs",
+    "sensitiveActivities": "Sensitive activities"
   },
   "roles": {
     "instructor": "Instructors",

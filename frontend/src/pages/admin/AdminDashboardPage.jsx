@@ -8,6 +8,7 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useTenant } from '../../features/tenant/index.js';
 import { adminCrudStore } from '../../mocks/adminCrudStore.js';
+import { ADMIN_RECENT_ACTIVITY } from '../../mocks/lmsPageData.js';
 
 export function AdminDashboardPage() {
   const { t } = useTranslation('dashboard');
@@ -26,6 +27,8 @@ export function AdminDashboardPage() {
       assessments: assessments.length,
     };
   }, [filterRows, scopeId]);
+
+  const activityRows = useMemo(() => filterRows(ADMIN_RECENT_ACTIVITY), [filterRows, scopeId]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -50,7 +53,7 @@ export function AdminDashboardPage() {
             { key: 'what', label: t('admin.table.event') },
             { key: 'actor', label: t('admin.table.actor') },
           ]}
-          rows={[]}
+          rows={activityRows}
         />
       </SectionCard>
     </div>

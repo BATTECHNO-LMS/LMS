@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { HeartPulse, ClipboardList, AlertCircle, CheckCircle2 } from 'lucide-react';
 import {
   AdminPageHeader,
@@ -9,11 +10,26 @@ import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
+import { ADMIN_QA_INDICATORS, ADMIN_QA_REVIEWS } from '../../mocks/lmsPageData.js';
 
 export function QAPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { filterRows, scopeId } = useTenant();
+  const rows = useMemo(() => filterRows(ADMIN_QA_INDICATORS), [filterRows, scopeId]);
+  const reviews = useMemo(() => filterRows(ADMIN_QA_REVIEWS), [filterRows, scopeId]);
+
+  const openReviews = useMemo(
+    () => reviews.filter((r) => r.status === 'مفتوحة' || r.status === 'مجدولة' || r.status === 'قيد التحضير').length,
+    [reviews]
+  );
+  const alerts = useMemo(
+    () => rows.filter((r) => r.status === 'يحتاج متابعة' || r.status === 'قيد المراجعة').length,
+    [rows]
+  );
+  const closedMonth = useMemo(() => reviews.filter((r) => r.status === 'مغلقة').length, [reviews]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -30,10 +46,10 @@ export function QAPage() {
         </Button>
       </AdminActionBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'مؤشرات نشطة', 'Active indicators')} value="—" icon={HeartPulse} />
-        <StatCard label={tr(isArabic, 'مراجعات مفتوحة', 'Open reviews')} value="—" icon={ClipboardList} />
-        <StatCard label={tr(isArabic, 'تنبيهات', 'Alerts')} value="—" icon={AlertCircle} />
-        <StatCard label={tr(isArabic, 'مغلقة هذا الشهر', 'Closed this month')} value="—" icon={CheckCircle2} />
+        <StatCard label={tr(isArabic, 'مؤشرات نشطة', 'Active indicators')} value={String(rows.length)} icon={HeartPulse} />
+        <StatCard label={tr(isArabic, 'مراجعات مفتوحة', 'Open reviews')} value={String(openReviews)} icon={ClipboardList} />
+        <StatCard label={tr(isArabic, 'تنبيهات', 'Alerts')} value={String(alerts)} icon={AlertCircle} />
+        <StatCard label={tr(isArabic, 'مغلقة هذا الشهر', 'Closed this month')} value={String(closedMonth)} icon={CheckCircle2} />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'مؤشرات الجودة', 'Quality indicators')}>
         <DataTable
@@ -46,7 +62,7 @@ export function QAPage() {
             { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
             { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>
