@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { storageKeys, getStorageItem } from '../utils/storage.js';
+import { triggerUnauthorized } from './authSessionBridge.js';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -23,8 +24,9 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Hook for global logout / refresh when backend exists
+    const hadAuth = Boolean(error.config?.headers?.Authorization);
+    if (error.response?.status === 401 && hadAuth) {
+      triggerUnauthorized();
     }
     return Promise.reject(error);
   }

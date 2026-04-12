@@ -3,15 +3,27 @@ import { z } from 'zod';
 export const userSchema = z.object({
   name: z.string().min(1, 'الاسم مطلوب'),
   email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
-  role: z.string().min(1, 'الدور مطلوب'),
-  status: z.enum(['active', 'inactive'], { required_error: 'الحالة مطلوبة' }),
+  password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
+  role: z.enum(['instructor', 'student', 'program_admin', 'qa_officer', 'academic_admin'], {
+    required_error: 'الدور مطلوب',
+  }),
+  status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
+});
+
+export const userUpdateSchema = z.object({
+  name: z.string().min(1, 'الاسم مطلوب'),
+  role: z.enum(['instructor', 'student', 'program_admin', 'qa_officer', 'academic_admin'], {
+    required_error: 'الدور مطلوب',
+  }),
+  status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
+  phone: z.string().max(50).optional(),
 });
 
 export const universitySchema = z.object({
   name: z.string().min(1, 'اسم الجامعة مطلوب'),
   contact: z.string().min(1, 'جهة الاتصال مطلوبة'),
   email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
-  status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
+  status: z.enum(['active', 'inactive', 'archived'], { required_error: 'الحالة مطلوبة' }),
   programs: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? undefined : v),
     z.coerce.number().min(0, 'القيمة غير صالحة').optional()

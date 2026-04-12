@@ -1,23 +1,12 @@
 /**
- * Mock universities for student registration (academic email domains).
+ * Registration / catalog helpers — real university rows must come from the API.
+ * @param {Array<{ id: string, name?: string }>} rows
+ * @returns {Array<{ id: string, name: string }>}
  */
-export const MOCK_UNIVERSITIES = [
-  {
-    id: 'yarmouk',
-    nameAr: 'جامعة اليرموك',
-    nameEn: 'Yarmouk University',
-    domains: ['yu.edu.jo'],
-  },
-  {
-    id: 'jordan_university',
-    nameAr: 'الجامعة الأردنية',
-    nameEn: 'University of Jordan',
-    domains: ['ju.edu.jo'],
-  },
-  {
-    id: 'psut',
-    nameAr: 'جامعة الأميرة سمية للتكنولوجيا',
-    nameEn: 'Princess Sumaya University for Technology',
-    domains: ['psut.edu.jo'],
-  },
-];
+export function mapUniversitiesForSelect(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((u) => ({
+    id: String(u.id),
+    name: String(u.name ?? u.id),
+  }));
+}

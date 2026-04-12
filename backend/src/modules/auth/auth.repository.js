@@ -108,6 +108,15 @@ async function touchLastLogin(userId) {
   });
 }
 
+/** Minimal list for self-service registration (unauthenticated). */
+async function findActiveUniversitiesForRegistration() {
+  return prisma.universities.findMany({
+    where: { status: 'active' },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+}
+
 module.exports = {
   findUniversityById,
   findActiveEmailDomainsForUniversity,
@@ -117,4 +126,5 @@ module.exports = {
   loadRolesAndPermissions,
   createStudentUser,
   touchLastLogin,
+  findActiveUniversitiesForRegistration,
 };

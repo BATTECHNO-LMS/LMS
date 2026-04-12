@@ -5,14 +5,13 @@ import { AdminPageHeader, AdminActionBar, AdminStatsGrid, SectionCard } from '..
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
-import { MOCK_REPORTS } from '../../mocks/adminCrud.js';
 import { useTenant } from '../../features/tenant/index.js';
-import { getTenantById, getTenantName } from '../../constants/tenants.js';
+import { getTenantName } from '../../constants/tenants.js';
 
 export function ReportsPage() {
   const { t, i18n } = useTranslation('common');
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(MOCK_REPORTS), [filterRows, scopeId]);
+  const { filterRows, scopeId, tenantCatalog } = useTenant();
+  const rows = useMemo(() => filterRows([]), [filterRows, scopeId]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -40,7 +39,8 @@ export function ReportsPage() {
             {
               key: 'tenantId',
               label: t('reportsPage.colTenant'),
-              render: (r) => getTenantName(getTenantById(r.tenantId), i18n.language) ?? r.tenantId,
+              render: (r) =>
+                getTenantName(tenantCatalog.find((x) => x.id === r.tenantId), i18n.language) || r.tenantId || '—',
             },
             { key: 'audience', label: t('reportsPage.colAudience') },
             { key: 'frequency', label: t('reportsPage.colFrequency') },

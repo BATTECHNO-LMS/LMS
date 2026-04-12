@@ -13,14 +13,13 @@ import {
 import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
-import { MOCK_EVIDENCE } from '../../mocks/adminCrud.js';
 import { useTenant } from '../../features/tenant/index.js';
-import { getTenantById, getTenantName } from '../../constants/tenants.js';
+import { getTenantName } from '../../constants/tenants.js';
 
 export function EvidencePage() {
   const { t, i18n } = useTranslation('common');
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(MOCK_EVIDENCE), [filterRows, scopeId]);
+  const { filterRows, scopeId, tenantCatalog } = useTenant();
+  const rows = useMemo(() => filterRows([]), [filterRows, scopeId]);
 
   return (
     <div className="page page--dashboard page--admin">
@@ -53,7 +52,8 @@ export function EvidencePage() {
             {
               key: 'tenantId',
               label: t('evidencePage.colTenant'),
-              render: (r) => getTenantName(getTenantById(r.tenantId), i18n.language) ?? r.tenantId,
+              render: (r) =>
+                getTenantName(tenantCatalog.find((x) => x.id === r.tenantId), i18n.language) || r.tenantId || '—',
             },
             { key: 'type', label: t('evidencePage.colType') },
           ]}

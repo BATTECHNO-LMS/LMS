@@ -1,4 +1,4 @@
-import { TENANT_SCOPE_ALL, getTenantById, getTenantName } from '../constants/tenants.js';
+import { TENANT_SCOPE_ALL, getTenantName } from '../constants/tenants.js';
 
 /**
  * @param {Array<object>} rows
@@ -18,11 +18,12 @@ export function isAllTenantsSelected(scopeId) {
 /**
  * @param {string | null | undefined} scopeId
  * @param {string} locale - i18n language
+ * @param {Array<{ id: string, nameAr: string, nameEn: string }>} [catalog]
  */
-export function resolveTenantScopeLabel(scopeId, locale) {
+export function resolveTenantScopeLabel(scopeId, locale, catalog = []) {
   if (isAllTenantsSelected(scopeId)) return null;
-  const t = getTenantById(scopeId);
-  return t ? getTenantName(t, locale) : scopeId;
+  const t = catalog.find((x) => x.id === scopeId);
+  return t ? getTenantName(t, locale) : scopeId ?? '';
 }
 
 /**

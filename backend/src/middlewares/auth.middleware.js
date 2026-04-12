@@ -21,4 +21,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-module.exports = { authMiddleware };
+/** Alias for `authMiddleware` — same JWT verification and `req.user` shape. */
+const authenticate = authMiddleware;
+
+module.exports = { authMiddleware, authenticate };

@@ -3,23 +3,24 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Save, X } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
-import { FormInput, FormSelect, FormNumber } from '../../../components/forms/index.js';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
+import { FormInput, FormSelect } from '../../../components/forms/index.js';
 import { universitySchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { tr } from '../../../utils/i18n.js';
+import { useCreateUniversity } from '../../../features/universities/index.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
 export function UniversityCreatePage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
   const navigate = useNavigate();
+  const createUniversityMutation = useCreateUniversity();
   const [form, setForm] = useState({
     name: '',
     contact: '',
     email: '',
     status: 'active',
-    programs: '',
   });
   const [errors, setErrors] = useState({});
 
@@ -27,19 +28,25 @@ export function UniversityCreatePage() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
-    const payload = {
-      ...form,
-      programs: form.programs === '' ? undefined : form.programs,
-    };
-    const res = safeParse(universitySchema, payload);
+    const res = safeParse(universitySchema, { ...form, programs: undefined });
     if (!res.ok) {
       setErrors(res.errors);
       return;
     }
-    adminCrudStore.universities.create({ ...res.data, programs: res.data.programs ?? 0 });
-    navigate('/admin/universities');
+    try {
+      await createUniversityMutation.mutateAsync({
+        name: res.data.name,
+        contact_person: res.data.contact,
+        contact_email: res.data.email,
+        status: res.data.status,
+        partnership_state: 'active',
+      });
+      navigate('/admin/universities');
+    } catch (err) {
+      setErrors({ _form: err?.message ?? 'Error' });
+    }
   }
 
   return (
@@ -56,12 +63,13 @@ export function UniversityCreatePage() {
               <Link className="btn btn--outline" to="/admin/universities">
                 <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
               </Link>
-              <button type="submit" className="btn btn--primary">
+              <button type="submit" className="btn btn--primary" disabled={createUniversityMutation.isPending}>
                 <Save size={18} aria-hidden /> {tr(isArabic, 'حفظ', 'Save')}
               </button>
             </>
           }
         >
+          {errors._form ? <p className="auth-form__error">{errors._form}</p> : null}
           <div className="crud-form-grid">
             <FormInput
               id="name"
@@ -94,16 +102,8 @@ export function UniversityCreatePage() {
             >
               <option value="active">{tr(isArabic, 'نشط', 'Active')}</option>
               <option value="inactive">{tr(isArabic, 'غير نشط', 'Inactive')}</option>
-              <option value="suspended">{tr(isArabic, 'موقوف', 'Suspended')}</option>
+              <option value="archived">{tr(isArabic, 'مؤرشف', 'Archived')}</option>
             </FormSelect>
-            <FormNumber
-              id="programs"
-              label={tr(isArabic, 'عدد البرامج (اختياري)', 'Program count (optional)')}
-              value={form.programs}
-              onChange={(e) => setField('programs', e.target.value)}
-              error={errors.programs}
-              min={0}
-            />
           </div>
         </SectionCard>
       </form>

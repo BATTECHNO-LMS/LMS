@@ -1,6 +1,6 @@
 /**
- * Analytics aggregates for the super-admin dashboard (static dataset).
- * System-wide view; not tenant-filtered in this module.
+ * DEV-ONLY analytics chart payloads. Not production data.
+ * Used only when `import.meta.env.VITE_ANALYTICS_PLACEHOLDER === 'true'`.
  */
 
 export const TIME_PRESETS = ['last7', 'last30', 'thisTerm', 'thisYear', 'all'];

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchAnalytics } from './analytics.service.js';
-import { TIME_PRESETS } from './mockAnalytics.js';
+import { TIME_PRESETS } from './analytics.placeholder.js';
 
 const defaultFilters = {
   universityId: '',

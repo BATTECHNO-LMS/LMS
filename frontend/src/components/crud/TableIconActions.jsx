@@ -18,15 +18,17 @@ export function TableIconActions({ viewTo, editTo, onDelete, className }) {
       <Link className="btn btn--icon btn--ghost" to={editTo} title={editLabel} aria-label={editLabel}>
         <Pencil size={18} />
       </Link>
-      <button
-        type="button"
-        className="btn btn--icon btn--ghost"
-        title={deleteLabel}
-        aria-label={deleteLabel}
-        onClick={onDelete}
-      >
-        <Trash2 size={18} />
-      </button>
+      {onDelete ? (
+        <button
+          type="button"
+          className="btn btn--icon btn--ghost"
+          title={deleteLabel}
+          aria-label={deleteLabel}
+          onClick={onDelete}
+        >
+          <Trash2 size={18} />
+        </button>
+      ) : null}
     </div>
   );
 }

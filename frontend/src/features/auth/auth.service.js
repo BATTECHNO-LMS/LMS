@@ -1,69 +1,58 @@
 import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
-import { AUTH_MOCK_SCENARIOS } from '../../constants/authMockScenarios.js';
-import { getTenantById, TENANT_SCOPE_ALL } from '../../constants/tenants.js';
+import { unwrapApiData } from '../../services/apiHelpers.js';
+import { mapAuthUser } from './authUserMapper.js';
 
 /**
- * Auth API — mock fallback until backend is wired.
- * @param {{ email: string, password: string, role: string, scenarioKey?: string }} credentials
+ * @param {{ email: string, password: string }} credentials
  */
 export async function login(credentials) {
-  const { email, password, role, scenarioKey } = credentials;
+  const { email, password } = credentials;
+  const res = await apiClient.post(endpoints.auth.login, { email, password });
+  const payload = unwrapApiData(res);
+  const token = payload?.token;
+  const user = mapAuthUser(payload?.user);
+  return { data: { token, user } };
+}
 
-  return apiClient.post(endpoints.auth.login, { email, password, role }).catch(() => {
-    return mockLoginResponse({ email, role, scenarioKey });
+/**
+ * Student self-registration (backend validates email domain per university).
+ * @param {{ full_name: string, email: string, password: string, university_id: string, phone?: string }} body
+ */
+export async function registerStudent(body) {
+  const res = await apiClient.post(endpoints.auth.register, body);
+  const payload = unwrapApiData(res);
+  const token = payload?.token;
+  const user = mapAuthUser({
+    ...payload?.user,
+    roles: payload?.user?.roles ?? ['student'],
   });
-}
-
-const MOCK_NAMES = {
-  super_admin: 'مسؤول النظام',
-  program_admin: 'مسؤول البرامج',
-  academic_admin: 'مسؤول أكاديمي',
-  qa_officer: 'مسؤول الجودة',
-  instructor: 'مدرّس',
-  student: 'طالب',
-  university_reviewer: 'مراجع جامعي',
-};
-
-function pickScenario(role, scenarioKey) {
-  if (scenarioKey) {
-    const byKey = AUTH_MOCK_SCENARIOS.find((s) => s.key === scenarioKey);
-    if (byKey) return byKey;
-  }
-  return AUTH_MOCK_SCENARIOS.find((s) => s.role === role) ?? AUTH_MOCK_SCENARIOS[0];
-}
-
-function mockLoginResponse({ email, role, scenarioKey }) {
-  const scenario = pickScenario(role, scenarioKey);
-  const resolvedRole = scenario.role;
-  const isGlobal = scenario.isGlobal;
-  let tenantId = scenario.tenantId;
-  if (isGlobal) {
-    tenantId = TENANT_SCOPE_ALL;
-  }
-  const tenant = tenantId && tenantId !== TENANT_SCOPE_ALL ? getTenantById(tenantId) : null;
-
-  const id = `mock-${scenario.key}`;
-  const token = `mock-token-${id}`;
-  const user = {
-    id,
-    email: email || `user@${resolvedRole}.local`,
-    name: MOCK_NAMES[resolvedRole] || resolvedRole,
-    role: resolvedRole,
-    roles: [resolvedRole],
-    isGlobal,
-    tenantId,
-    tenantCode: tenant?.code ?? null,
-    tenantNameAr: tenant?.nameAr ?? null,
-    tenantNameEn: tenant?.nameEn ?? null,
-  };
   return { data: { token, user } };
 }
 
 export async function logout() {
-  return apiClient.post(endpoints.auth.logout).catch(() => ({ data: {} }));
+  try {
+    await apiClient.post(endpoints.auth.logout);
+  } catch {
+    /* still clear client session */
+  }
+  return { data: {} };
 }
 
 export async function fetchCurrentUser() {
-  return apiClient.get(endpoints.auth.me).catch(() => ({ data: null }));
+  const res = await apiClient.get(endpoints.auth.me);
+  const payload = unwrapApiData(res);
+  const user = mapAuthUser(payload?.user);
+  return { data: { user } };
+}
+
+/** Public catalog for student registration (no JWT). */
+export async function fetchRegisterUniversitiesCatalog() {
+  const res = await apiClient.get(endpoints.auth.registerUniversities);
+  const payload = unwrapApiData(res);
+  const list = payload?.universities;
+  if (!Array.isArray(list)) {
+    throw new Error('Invalid universities catalog response');
+  }
+  return list;
 }

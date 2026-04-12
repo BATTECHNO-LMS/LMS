@@ -1,18 +1,39 @@
-import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { FormInput } from '../../../components/forms/FormInput.jsx';
-import { ROLES } from '../../../constants/roles.js';
 import { createRegisterStudentSchema } from '../validation/registerStudentSchema.js';
 import { UniversitySelect } from './UniversitySelect.jsx';
 import { SubmitButton } from './SubmitButton.jsx';
+import { fetchRegisterUniversitiesCatalog } from '../auth.service.js';
+import { mapUniversitiesForSelect } from '../../../constants/universities.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { getDashboardPathForRole } from '../../../utils/helpers.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
 export function RegisterForm() {
   const { t, i18n } = useTranslation('auth');
+  const navigate = useNavigate();
+  const { signUp } = useAuth();
+  const [formError, setFormError] = useState('');
 
   const schema = useMemo(() => createRegisterStudentSchema(t), [t, i18n.language]);
+
+  const {
+    data: universityRows = [],
+    isLoading: universitiesLoading,
+    isError: universitiesError,
+    error: universitiesErr,
+  } = useQuery({
+    queryKey: ['auth', 'registerUniversities'],
+    queryFn: fetchRegisterUniversitiesCatalog,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const universityOptions = useMemo(() => mapUniversitiesForSelect(universityRows), [universityRows]);
 
   const {
     register,
@@ -32,8 +53,8 @@ export function RegisterForm() {
   });
 
   async function onSubmit(data) {
+    setFormError('');
     const payload = {
-      role: ROLES.STUDENT,
       full_name: data.full_name.trim(),
       email: data.email.trim().toLowerCase(),
       password: data.password,
@@ -41,14 +62,18 @@ export function RegisterForm() {
       phone: data.phone?.trim() || undefined,
     };
 
-    // eslint-disable-next-line no-console
-    console.log('[register] payload (ready for API)', payload);
-
-    await new Promise((r) => setTimeout(r, 500));
+    try {
+      const { redirectTo } = await signUp(payload);
+      navigate(redirectTo ?? getDashboardPathForRole('student'), { replace: true });
+    } catch (err) {
+      setFormError(getApiErrorMessage(err, t('register.submitFailed')));
+    }
   }
 
   return (
     <form className="auth-form auth-register__form" onSubmit={handleSubmit(onSubmit)} noValidate>
+      {formError ? <p className="auth-form__error">{formError}</p> : null}
+
       <FormInput
         id="register-full-name"
         autoComplete="name"
@@ -83,10 +108,24 @@ export function RegisterForm() {
             label={t('register.labels.university')}
             error={errors.university?.message}
             disabled={isSubmitting}
+            options={universityOptions}
+            loading={universitiesLoading}
             {...field}
           />
         )}
       />
+
+      {universitiesError ? (
+        <p className="auth-form__error" role="alert">
+          {getApiErrorMessage(universitiesErr, t('register.submitFailed'))}
+        </p>
+      ) : null}
+
+      {!universitiesLoading && !universitiesError && universityOptions.length === 0 ? (
+        <p className="auth-register__helper" role="status">
+          {t('register.universitiesEmpty')}
+        </p>
+      ) : null}
 
       <FormInput
         id="register-password"

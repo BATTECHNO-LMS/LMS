@@ -3,18 +3,27 @@ import { Pencil } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { tr } from '../../../utils/i18n.js';
+import { useUniversity } from '../../../features/universities/index.js';
 
 export function UniversityViewPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
   const { id } = useParams();
-  const row = adminCrudStore.universities.getById(id);
+  const { data: row, isLoading, isError } = useUniversity(id);
 
-  if (!row) {
+  if (isLoading) {
+    return (
+      <div className="page page--admin crud-page">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isError || !row) {
     return (
       <div className="page page--admin crud-page">
         <AdminPageHeader
@@ -49,11 +58,11 @@ export function UniversityViewPage() {
           </div>
           <div>
             <dt>{tr(isArabic, 'جهة الاتصال', 'Contact')}</dt>
-            <dd>{row.contact}</dd>
+            <dd>{row.contact_person ?? '—'}</dd>
           </div>
           <div>
             <dt>{tr(isArabic, 'البريد الإلكتروني', 'Email')}</dt>
-            <dd>{row.email}</dd>
+            <dd>{row.contact_email ?? '—'}</dd>
           </div>
           <div>
             <dt>{tr(isArabic, 'الحالة', 'Status')}</dt>
@@ -62,8 +71,8 @@ export function UniversityViewPage() {
             </dd>
           </div>
           <div>
-            <dt>{tr(isArabic, 'عدد البرامج', 'Program count')}</dt>
-            <dd>{row.programs ?? 0}</dd>
+            <dt>{tr(isArabic, 'شراكة', 'Partnership')}</dt>
+            <dd>{row.partnership_state ?? '—'}</dd>
           </div>
         </dl>
         <div className="crud-view-actions">

@@ -33,4 +33,13 @@ function logout(_req, res) {
   return okMessage(res, message);
 }
 
-module.exports = { register, login, me, logout };
+async function registrationUniversities(_req, res, next) {
+  try {
+    const data = await authService.universitiesForRegistration();
+    return success(res, data, { message: 'Universities retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = { register, login, me, logout, registrationUniversities };

@@ -6,6 +6,7 @@ const authController = require('./auth.controller');
 
 const router = express.Router();
 
+router.get('/register/universities', authController.registrationUniversities);
 router.post('/register', validateBody(registerSchema), authController.register);
 router.post('/login', validateBody(loginSchema), authController.login);
 router.get('/me', authMiddleware, authController.me);

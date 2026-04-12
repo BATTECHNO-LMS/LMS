@@ -1,10 +1,21 @@
 import { useTranslation } from 'react-i18next';
-import { MOCK_UNIVERSITIES } from '../../../constants/universities.js';
-import { FormError } from './FormError.jsx';
 
-export function UniversitySelect({ id, label, error, value, onChange, onBlur, name, disabled }) {
-  const { t, i18n } = useTranslation('auth');
-  const isAr = i18n.language.startsWith('ar');
+/**
+ * @param {{
+ *   id?: string,
+ *   label: string,
+ *   value: string,
+ *   onChange: (e: import('react').ChangeEvent<HTMLSelectElement>) => void,
+ *   onBlur?: () => void,
+ *   name?: string,
+ *   error?: string,
+ *   disabled?: boolean,
+ *   options: { id: string, name: string }[],
+ *   loading?: boolean,
+ * }} props
+ */
+export function UniversitySelect({ id, label, value, onChange, onBlur, name, error, disabled, options, loading }) {
+  const { t } = useTranslation('auth');
 
   return (
     <div className="form-field">
@@ -13,23 +24,23 @@ export function UniversitySelect({ id, label, error, value, onChange, onBlur, na
       </label>
       <select
         id={id}
-        name={name}
-        className="form-field__control"
+        className={`form-field__control${error ? ' form-field__control--error' : ''}`}
         value={value}
         onChange={onChange}
         onBlur={onBlur}
-        disabled={disabled}
-        aria-invalid={error ? 'true' : 'false'}
-        aria-describedby={error ? `${id}-error` : undefined}
+        name={name}
+        disabled={disabled || loading}
+        aria-invalid={Boolean(error)}
+        aria-busy={Boolean(loading)}
       >
-        <option value="">{t('register.universityPlaceholder')}</option>
-        {MOCK_UNIVERSITIES.map((u) => (
+        <option value="">{loading ? t('register.universitiesLoading') : t('register.universityPlaceholder')}</option>
+        {options.map((u) => (
           <option key={u.id} value={u.id}>
-            {isAr ? u.nameAr : u.nameEn}
+            {u.name}
           </option>
         ))}
       </select>
-      <FormError id={error ? `${id}-error` : undefined} message={error} />
+      {error ? <p className="form-field__error">{error}</p> : null}
     </div>
   );
 }

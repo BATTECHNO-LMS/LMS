@@ -145,4 +145,9 @@ function logout() {
   return { message: 'Signed out successfully' };
 }
 
-module.exports = { register, login, me, logout };
+async function universitiesForRegistration() {
+  const universities = await authRepository.findActiveUniversitiesForRegistration();
+  return { universities };
+}
+
+module.exports = { register, login, me, logout, universitiesForRegistration };

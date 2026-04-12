@@ -1,9 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../auth/index.js';
-import { TENANTS, TENANT_SCOPE_ALL, getTenantById, getTenantName } from '../../../constants/tenants.js';
+import { TENANT_SCOPE_ALL, getTenantName } from '../../../constants/tenants.js';
 import { getStorageItem, setStorageItem, storageKeys } from '../../../utils/storage.js';
 import { isAllTenantsSelected } from '../../../utils/tenant.js';
+import { fetchUniversitiesList } from '../../universities/universities.service.js';
 
 export const TenantContext = createContext(null);
 
@@ -11,6 +13,16 @@ function readStoredScope() {
   const raw = getStorageItem(storageKeys.tenantScope);
   if (raw == null || raw === '') return TENANT_SCOPE_ALL;
   return typeof raw === 'string' ? raw : TENANT_SCOPE_ALL;
+}
+
+function mapUniversitiesToTenants(rows) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map((u) => ({
+    id: String(u.id),
+    code: (String(u.name ?? '').slice(0, 4).toUpperCase() || 'UNI'),
+    nameAr: String(u.name ?? ''),
+    nameEn: String(u.name ?? ''),
+  }));
 }
 
 export function TenantProvider({ children }) {
@@ -23,6 +35,15 @@ export function TenantProvider({ children }) {
     if (!user.isGlobal) return user.tenantId || TENANT_SCOPE_ALL;
     return readStoredScope();
   });
+
+  const { data: uniPayload } = useQuery({
+    queryKey: ['tenant-universities-catalog'],
+    queryFn: fetchUniversitiesList,
+    enabled: Boolean(user),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const tenantCatalog = useMemo(() => mapUniversitiesToTenants(uniPayload?.universities ?? []), [uniPayload]);
 
   useEffect(() => {
     if (!user) {
@@ -48,8 +69,8 @@ export function TenantProvider({ children }) {
 
   const currentTenant = useMemo(() => {
     if (isAllTenantsSelected(scopeId)) return null;
-    return getTenantById(scopeId);
-  }, [scopeId]);
+    return tenantCatalog.find((t) => t.id === scopeId) ?? null;
+  }, [scopeId, tenantCatalog]);
 
   const lng = i18n.language;
 
@@ -57,15 +78,15 @@ export function TenantProvider({ children }) {
     if (!user) return '';
     if (user.isGlobal) {
       if (isAllTenantsSelected(scopeId)) return null;
-      const t = getTenantById(scopeId);
+      const t = tenantCatalog.find((x) => x.id === scopeId);
       return t ? getTenantName(t, lng) : '';
     }
     if (user.tenantNameAr || user.tenantNameEn) {
       return String(lng || '').toLowerCase().startsWith('en') ? user.tenantNameEn : user.tenantNameAr;
     }
-    const t = getTenantById(user.tenantId);
+    const t = tenantCatalog.find((x) => x.id === user.tenantId);
     return t ? getTenantName(t, lng) : '';
-  }, [user, scopeId, lng]);
+  }, [user, scopeId, lng, tenantCatalog]);
 
   const value = useMemo(
     () => ({
@@ -73,7 +94,8 @@ export function TenantProvider({ children }) {
       setScopeId,
       currentTenant,
       currentTenantId: user?.isGlobal ? scopeId : user?.tenantId ?? null,
-      availableTenants: TENANTS,
+      availableTenants: user?.isGlobal ? tenantCatalog : [],
+      tenantCatalog,
       isGlobalTenantAccess: Boolean(user?.isGlobal),
       isAllTenantsSelected: isAllTenantsSelected(scopeId),
       currentTenantLabel,
@@ -83,7 +105,7 @@ export function TenantProvider({ children }) {
         return rows.filter((r) => r?.[key] === scopeId);
       },
     }),
-    [scopeId, setScopeId, currentTenant, user, currentTenantLabel]
+    [scopeId, setScopeId, currentTenant, user, currentTenantLabel, tenantCatalog]
   );
 
   return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;

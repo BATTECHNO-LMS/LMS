@@ -15,13 +15,11 @@ import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
 import { useTenant } from '../../features/tenant/index.js';
 import { tr } from '../../utils/i18n.js';
-import { ADMIN_AT_RISK } from '../../mocks/lmsPageData.js';
-
 export function AtRiskStudentsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
   const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_AT_RISK), [filterRows, scopeId]);
+  const rows = useMemo(() => filterRows([]), [filterRows, scopeId]);
 
   const highTier = useMemo(() => rows.filter((r) => r.tier === 'مرتفع').length, [rows]);
   const mediumTier = useMemo(() => rows.filter((r) => r.tier === 'متوسط').length, [rows]);

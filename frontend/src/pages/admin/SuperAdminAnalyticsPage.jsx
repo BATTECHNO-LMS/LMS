@@ -158,7 +158,7 @@ export function SuperAdminAnalyticsPage() {
     );
   }
 
-  if (!data) {
+  if (!data || data.mode === 'empty') {
     return (
       <div className="page page--admin page--analytics">
         <AnalyticsEmptyState />
