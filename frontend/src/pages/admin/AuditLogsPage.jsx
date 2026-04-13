@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { ScrollText, User, Monitor, Filter } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ScrollText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
@@ -7,63 +9,80 @@ import {
   AdminStatsGrid,
   SectionCard,
   SearchInput,
-  SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { TableIconActions } from '../../components/crud/TableIconActions.jsx';
 import { useLocale } from '../../features/locale/index.js';
 import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_AUDIT_LOGS } from '../../mocks/lmsPageData.js';
+import { useAuditLogs } from '../../features/auditLogs/hooks/useAuditLogs.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 export function AuditLogsPage() {
+  const { t } = useTranslation('auditLogs');
+  const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_AUDIT_LOGS), [filterRows, scopeId]);
-  const actors = useMemo(() => new Set(rows.map((r) => r.actor)).size, [rows]);
+  const { scopeId, isAllTenantsSelected } = useTenant();
+  const [q, setQ] = useState('');
+
+  const params = useMemo(() => {
+    const p = {};
+    if (!isAllTenantsSelected && scopeId) p.university_id = scopeId;
+    if (q.trim()) p.search = q.trim();
+    return p;
+  }, [scopeId, isAllTenantsSelected, q]);
+
+  const { data, isLoading, isError, error } = useAuditLogs(params, { staleTime: 30_000 });
+  const rows = useMemo(() => {
+    const list = data?.audit_logs ?? [];
+    return list.map((r) => ({
+      id: r.id,
+      time: r.created_at ? new Date(r.created_at).toLocaleString(locale) : '—',
+      actor: r.user?.full_name ?? r.user?.email ?? '—',
+      action: r.action_type,
+      resource: r.entity_type,
+      entityId: r.entity_id ?? '—',
+      university: r.university?.name ?? '—',
+    }));
+  }, [data, locale]);
+
+  const emptyTitle = isError ? tCommon('errors.generic') : t('list.emptyTitle');
+  const emptyDescription = isError ? getApiErrorMessage(error, t('list.loadError')) : t('list.emptyDescription');
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'سجل التدقيق', 'Audit log')}
-        description={tr(isArabic, 'سجل العمليات الحساسة والوصول للبيانات.', 'Log of sensitive operations and data access.')}
-      />
-      <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'تصدير السجل', 'Export log')}
-        </Button>
-      </AdminActionBar>
+      <AdminPageHeader title={t('list.title')} description={t('list.description')} />
+      <AdminActionBar />
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالحدث أو المستخدم', 'Search by event or user')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('list.searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField id="audit-level" label={tr(isArabic, 'الخطورة', 'Severity')} defaultValue="">
-          <option value="">{tr(isArabic, 'كل المستويات', 'All levels')}</option>
-          <option value="high">{tr(isArabic, 'مرتفع', 'High')}</option>
-          <option value="low">{tr(isArabic, 'منخفض', 'Low')}</option>
-        </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'أحداث اليوم', 'Today events')} value={String(rows.length)} icon={ScrollText} />
-        <StatCard label={tr(isArabic, 'مستخدمون فريدون', 'Unique users')} value={String(actors)} icon={User} />
-        <StatCard label={tr(isArabic, 'مصادر', 'Sources')} value={String(rows.filter((r) => r.ip !== '—').length)} icon={Monitor} />
-        <StatCard label={tr(isArabic, 'مرشّحات نشطة', 'Active filters')} value="3" icon={Filter} />
+        <StatCard label={t('list.stats.events')} value={String(rows.length)} icon={ScrollText} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'السجل', 'Log')}>
+      <SectionCard title={t('list.title')}>
+        {isLoading ? <p className="crud-muted">{tCommon('loading')}</p> : null}
         <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
+          emptyTitle={emptyTitle}
+          emptyDescription={emptyDescription}
           columns={[
-            { key: 'time', label: tr(isArabic, 'الوقت', 'Time') },
-            { key: 'actor', label: tr(isArabic, 'المستخدم', 'User') },
-            { key: 'action', label: tr(isArabic, 'الحدث', 'Event') },
-            { key: 'resource', label: tr(isArabic, 'المورد', 'Resource') },
-            { key: 'ip', label: tr(isArabic, 'المصدر', 'Source') },
+            { key: 'time', label: t('list.columns.time') },
+            { key: 'actor', label: t('list.columns.user') },
+            { key: 'action', label: t('list.columns.action') },
+            { key: 'resource', label: t('list.columns.entity') },
+            { key: 'entityId', label: t('list.columns.entityId') },
+            { key: 'university', label: t('list.columns.university') },
+            {
+              key: 'actions',
+              label: tCommon('actions.view'),
+              render: (r) => <TableIconActions viewTo={`/admin/audit-logs/${r.id}`} />,
+            },
           ]}
-          rows={rows}
+          rows={isError ? [] : rows}
         />
       </SectionCard>
     </div>

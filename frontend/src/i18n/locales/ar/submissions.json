@@ -4,7 +4,9 @@
     "submitted": "تم التسليم",
     "late": "متأخر",
     "graded": "تم التقييم",
-    "draft": "مسودة"
+    "draft": "مسودة",
+    "resubmitted": "أعيد التسليم",
+    "returned": "مُعاد"
   },
   "student": {
     "title": "التسليمات",
@@ -43,7 +45,8 @@
     "stats": {
       "awaitingReview": "بانتظار المراجعة",
       "graded": "تم التصحيح",
-      "late": "متأخرة"
+      "late": "متأخرة",
+      "total": "إجمالي التسليمات"
     },
     "searchPlaceholder": "بحث بالمتعلم أو التقييم",
     "searchAria": "بحث",

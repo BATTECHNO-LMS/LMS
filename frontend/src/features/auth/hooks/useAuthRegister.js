@@ -1,13 +1,16 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { registerStudent as registerApi } from '../auth.service.js';
 import { useAuth } from './useAuth.js';
 
 export function useAuthRegister() {
-  const { applySession } = useAuth();
+  const qc = useQueryClient();
+  const { persistTokenAndHydrate } = useAuth();
   return useMutation({
     mutationFn: registerApi,
-    onSuccess: (res) => {
-      applySession(res.data.token, res.data.user);
+    onSuccess: async (res) => {
+      await persistTokenAndHydrate(res.data.token, res.data.user);
+      qc.invalidateQueries({ queryKey: ['users'] });
+      qc.invalidateQueries({ queryKey: ['universities'] });
     },
   });
 }

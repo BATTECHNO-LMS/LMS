@@ -2,20 +2,44 @@
   "title": "إدارة الدفعات",
   "description": "متابعة الدفعات التدريبية والجداول الزمنية.",
   "add": "إضافة دفعة",
-  "searchPlaceholder": "بحث بالاسم أو المدرب أو الشهادة",
+  "searchPlaceholder": "بحث بالعنوان أو الشهادة أو المدرّب",
   "listTitle": "قائمة الدفعات",
   "stats": {
     "total": "إجمالي الدفعات",
-    "running": "قيد التنفيذ",
+    "active": "نشطة",
     "planned": "مخطط",
-    "completed": "مكتمل"
+    "completed": "مكتمل",
+    "open": "مفتوحة للتسجيل"
   },
   "table": {
-    "name": "اسم الدفعة",
-    "certificate": "الشهادة",
+    "title": "العنوان",
+    "certificate": "الشهادة المصغّرة",
     "trainer": "المدرّب",
+    "capacity": "السعة",
     "startDate": "تاريخ البداية",
     "endDate": "تاريخ النهاية"
+  },
+  "form": {
+    "title": "عنوان الدفعة",
+    "university": "الجامعة",
+    "capacity": "السعة",
+    "instructor": "المدرّب (اختياري للمخطط)",
+    "sessionsLink": "الجلسات",
+    "summaryLink": "ملخص الحضور"
+  },
+  "status": {
+    "planned": "مخطط",
+    "open_for_enrollment": "مفتوح للتسجيل",
+    "active": "نشط",
+    "completed": "مكتمل",
+    "closed": "مغلق",
+    "cancelled": "ملغى"
+  },
+  "view": {
+    "title": "تفاصيل الدفعة",
+    "enrollments": "التسجيلات",
+    "attendanceSummary": "ملخص الحضور",
+    "setStatus": "تغيير الحالة"
   },
   "create": {
     "title": "إنشاء دفعة"
@@ -23,7 +47,9 @@
   "edit": {
     "title": "تعديل دفعة"
   },
-  "view": {
-    "title": "تفاصيل الدفعة"
+  "empty": {
+    "noRecords": "لا توجد دفعات.",
+    "noResults": "لا توجد نتائج",
+    "tryFilters": "جرّب تعديل عوامل التصفية أو البحث."
   }
 }

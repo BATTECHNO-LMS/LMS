@@ -15,9 +15,11 @@ export function TableIconActions({ viewTo, editTo, onDelete, className }) {
       <Link className="btn btn--icon btn--ghost" to={viewTo} title={viewLabel} aria-label={viewLabel}>
         <Eye size={18} />
       </Link>
-      <Link className="btn btn--icon btn--ghost" to={editTo} title={editLabel} aria-label={editLabel}>
-        <Pencil size={18} />
-      </Link>
+      {editTo ? (
+        <Link className="btn btn--icon btn--ghost" to={editTo} title={editLabel} aria-label={editLabel}>
+          <Pencil size={18} />
+        </Link>
+      ) : null}
       {onDelete ? (
         <button
           type="button"

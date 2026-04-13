@@ -67,6 +67,7 @@ async function findManyForList(where, skip, take) {
       phone: true,
       status: true,
       primary_university_id: true,
+      last_login_at: true,
     },
   });
 }

@@ -38,6 +38,7 @@ const STUDENT = {
   [P.canViewUniversityReports]: false,
   [P.canViewReviewerEvidence]: false,
   [P.canViewLinkedCertificates]: false,
+  [P.canViewNotifications]: true,
 };
 
 const INSTRUCTOR = {
@@ -69,6 +70,7 @@ const INSTRUCTOR = {
   [P.canViewUniversityReports]: false,
   [P.canViewReviewerEvidence]: false,
   [P.canViewLinkedCertificates]: false,
+  [P.canViewNotifications]: true,
 };
 
 const REVIEWER = {
@@ -78,6 +80,7 @@ const REVIEWER = {
   [P.canViewUniversityReports]: true,
   [P.canViewReviewerEvidence]: true,
   [P.canViewLinkedCertificates]: true,
+  [P.canViewNotifications]: true,
 };
 
 const BY_ROLE = {
@@ -106,6 +109,24 @@ export function hasUiPermission(role, key) {
 }
 
 /**
+ * UI permission check using `/api/auth/me` payload when present: backend `permissions`
+ * codes can match a {@link UI_PERMISSION} value; `*` / `ui.all` grant the full role matrix.
+ * Otherwise falls back to role-only {@link hasUiPermission}.
+ * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * @param {string} key
+ */
+export function hasUiPermissionForUser(user, key) {
+  if (!key) return true;
+  if (key === UI_ROUTE_DENY) return false;
+  const codes = Array.isArray(user?.permissions) ? user.permissions.map(String) : [];
+  if (codes.includes('*') || codes.includes('ui.all')) {
+    return Boolean(getUiPermissions(user?.role)[key]);
+  }
+  if (codes.includes(key)) return true;
+  return hasUiPermission(user?.role, key);
+}
+
+/**
  * Ordered: most specific path patterns first.
  * @type {Array<[RegExp, string]>}
  */
@@ -130,6 +151,7 @@ const ROUTE_RULES = [
   [/^\/instructor\/attendance(\/|$)/, P.canManageAttendance],
   [/^\/instructor\/sessions(\/|$)/, P.canManageSessions],
   [/^\/instructor\/cohorts(\/|$)/, P.canManageCohorts],
+  [/^\/instructor\/enrollments(\/|$)/, P.canManageCohorts],
   [/^\/instructor\/dashboard\/?$/, P.canViewDashboard],
 
   [/^\/reviewer\/recognition-requests(\/|$)/, P.canViewRecognitionRequests],
@@ -137,6 +159,10 @@ const ROUTE_RULES = [
   [/^\/reviewer\/evidence(\/|$)/, P.canViewReviewerEvidence],
   [/^\/reviewer\/certificates(\/|$)/, P.canViewLinkedCertificates],
   [/^\/reviewer\/dashboard\/?$/, P.canViewDashboard],
+
+  [/^\/student\/notifications(\/|$)/, P.canViewNotifications],
+  [/^\/instructor\/notifications(\/|$)/, P.canViewNotifications],
+  [/^\/reviewer\/notifications(\/|$)/, P.canViewNotifications],
 ];
 
 /**
@@ -167,5 +193,20 @@ export function canAccessPathWithUiPermissions(role, pathname) {
   const perm = getRouteUiPermission(pathname);
   if (perm === null) return true;
   if (perm === UI_ROUTE_DENY || !hasUiPermission(role, perm)) return false;
+  return true;
+}
+
+/**
+ * Same as {@link canAccessPathWithUiPermissions} but uses `/me` permissions when present.
+ * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * @param {string} pathname
+ */
+export function canAccessPathWithUiPermissionsForUser(user, pathname) {
+  const role = user?.role;
+  if (!role) return false;
+  if (ADMIN_ROLE_SET.includes(role)) return true;
+  const perm = getRouteUiPermission(pathname);
+  if (perm === null) return true;
+  if (perm === UI_ROUTE_DENY || !hasUiPermissionForUser(user, perm)) return false;
   return true;
 }

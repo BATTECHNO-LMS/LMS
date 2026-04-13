@@ -19,11 +19,11 @@ export function ModulePlaceholderPage() {
     return <Navigate to={getLoginPathForCurrentPortal()} replace />;
   }
 
-  if (!canAccessPath(user.role, location.pathname)) {
+  if (!canAccessPath(user, location.pathname)) {
     return <Navigate to={getDashboardPathForRole(user.role)} replace />;
   }
 
-  const title = getPageTitleForPath(user.role, location.pathname);
+  const title = getPageTitleForPath(user.role, location.pathname, user);
 
   return (
     <div className="page page--dashboard">

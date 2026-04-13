@@ -7,7 +7,8 @@
     "total": "إجمالي التقييمات",
     "published": "منشورة",
     "pending": "قيد المراجعة",
-    "drafts": "مسودات"
+    "drafts": "مسودات",
+    "open": "مفتوحة"
   },
   "listTitle": "قائمة التقييمات",
   "table": {
@@ -43,7 +44,10 @@
   "view": {
     "title": "تفاصيل التقييم",
     "description": "عرض بيانات التقييم والدفعة.",
-    "notFound": "لم يتم العثور على التقييم."
+    "notFound": "لم يتم العثور على التقييم.",
+    "counts": "النشاط",
+    "submissions": "التسليمات",
+    "grades": "الدرجات"
   },
   "student": {
     "title": "التقييمات",
@@ -84,7 +88,8 @@
       "active": "تقييمات نشطة",
       "awaitingGrading": "بانتظار التصحيح",
       "upcoming": "مواعيد قريبة",
-      "averageGrades": "متوسط الدرجات"
+      "averageGrades": "متوسط الدرجات",
+      "totalListed": "المعروضة"
     },
     "searchPlaceholder": "بحث باسم التقييم أو الدفعة",
     "searchAria": "بحث",

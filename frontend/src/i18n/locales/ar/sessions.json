@@ -1,0 +1,16 @@
+{
+  "title": "الجلسات",
+  "sessionTitle": "عنوان الجلسة",
+  "listTitle": "جلسات الدفعة",
+  "create": "جلسة جديدة",
+  "edit": "تعديل الجلسة",
+  "attendance": "الحضور",
+  "sessionDate": "تاريخ الجلسة",
+  "startTime": "وقت البداية",
+  "endTime": "وقت النهاية",
+  "sessionType": "نوع الجلسة",
+  "documentation": "التوثيق",
+  "notes": "ملاحظات",
+  "empty": "لا توجد جلسات بعد.",
+  "backToCohort": "العودة للدفعة"
+}

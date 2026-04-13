@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { ClipboardList, AlertTriangle, Timer, CheckCircle2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ClipboardList, Plus, Timer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
@@ -9,77 +11,116 @@ import {
   SearchInput,
   SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { TableIconActions } from '../../components/crud/TableIconActions.jsx';
+import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { useCorrectiveActions } from '../../features/correctiveActions/index.js';
+import { usePortalPathPrefix } from '../../utils/portalPathPrefix.js';
+import { genericStatusVariant, statusLabelAr } from '../../utils/statusMap.js';
 import { useLocale } from '../../features/locale/index.js';
-import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_CORRECTIVE } from '../../mocks/lmsPageData.js';
 
 export function CorrectiveActionsPage() {
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('correctiveActions');
+  const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_CORRECTIVE), [filterRows, scopeId]);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [overdue, setOverdue] = useState('');
 
-  const openCount = useMemo(() => rows.filter((r) => r.status === 'مفتوح').length, [rows]);
-  const doneCount = useMemo(() => rows.filter((r) => r.status === 'مكتمل').length, [rows]);
-  const overdueHint = useMemo(() => {
-    const today = new Date('2026-04-08');
-    return rows.filter((r) => {
-      if (r.status === 'مكتمل') return false;
-      const d = new Date(r.due);
-      return d < today;
-    }).length;
+  const listParams = useMemo(() => {
+    const p = {};
+    const s = q.trim();
+    if (s) p.search = s;
+    if (status) p.status = status;
+    if (overdue === 'true' || overdue === 'false') p.overdue = overdue;
+    return p;
+  }, [q, status, overdue]);
+
+  const { data, isLoading, isError, error } = useCorrectiveActions(listParams, { staleTime: 30_000 });
+  const rows = data?.corrective_actions ?? [];
+
+  const stats = useMemo(() => {
+    const open = rows.filter((r) => r.status === 'open' || r.status === 'overdue').length;
+    const overdueCt = rows.filter((r) => r.status === 'overdue').length;
+    const resolved = rows.filter((r) => r.status === 'resolved' || r.status === 'closed').length;
+    return { total: rows.length, open, overdueCt, resolved };
   }, [rows]);
 
   return (
-    <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'الإجراءات التصحيحية', 'Corrective actions')}
-        description={tr(
-          isArabic,
-          'متابعة خطط المعالجة والإغلاق بعد مراجعات الجودة.',
-          'Track remediation plans and closure after quality reviews.'
-        )}
-      />
+    <div className="page page--dashboard page--admin crud-page">
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'إجراء جديد', 'New action')}
-        </Button>
+        <Link className="btn btn--primary" to={`${base}/corrective-actions/create`}>
+          <Plus size={18} aria-hidden /> {t('add')}
+        </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالوحدة', 'Search by unit')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField id="ca-status" label={tr(isArabic, 'الحالة', 'Status')} defaultValue="">
-          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
-          <option value="open">{tr(isArabic, 'مفتوح', 'Open')}</option>
-          <option value="done">{tr(isArabic, 'مكتمل', 'Done')}</option>
+        <SelectField id="ca-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="open">{statusLabelAr('open', locale)}</option>
+          <option value="in_progress">{statusLabelAr('in_progress', locale)}</option>
+          <option value="overdue">{statusLabelAr('overdue', locale)}</option>
+          <option value="resolved">{statusLabelAr('resolved', locale)}</option>
+          <option value="closed">{statusLabelAr('closed', locale)}</option>
+        </SelectField>
+        <SelectField id="ca-overdue" label={t('filters.overdueOnly')} value={overdue} onChange={(e) => setOverdue(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="true">{t('filters.overdueOnly')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'إجراءات مفتوحة', 'Open actions')} value={String(openCount)} icon={AlertTriangle} />
-        <StatCard label={tr(isArabic, 'متأخرة', 'Overdue')} value={String(overdueHint)} icon={Timer} />
-        <StatCard label={tr(isArabic, 'مغلقة', 'Closed')} value={String(doneCount)} icon={CheckCircle2} />
-        <StatCard label={tr(isArabic, 'خطط نشطة', 'Active plans')} value={String(rows.length)} icon={ClipboardList} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={ClipboardList} />
+        <StatCard label={t('stats.open')} value={String(stats.open)} icon={ClipboardList} />
+        <StatCard label={t('stats.overdue')} value={String(stats.overdueCt)} icon={Timer} />
+        <StatCard label={t('stats.resolved')} value={String(stats.resolved)} icon={ClipboardList} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة الإجراءات التصحيحية', 'Corrective actions list')}>
-        <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
-          columns={[
-            { key: 'id', label: tr(isArabic, 'المرجع', 'Reference') },
-            { key: 'issue', label: tr(isArabic, 'الملاحظة', 'Finding') },
-            { key: 'owner', label: tr(isArabic, 'المسؤول', 'Owner') },
-            { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
-            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
-            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
-          ]}
-          rows={rows}
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={isError ? tCommon('errors.generic') : tCommon('emptyStates.noResultsTitle')}
+            emptyDescription={isError ? String(error?.message ?? '') : tCommon('emptyStates.noResultsDescription')}
+            columns={[
+              {
+                key: 'qa',
+                label: t('table.qaReview'),
+                render: (r) => r.qa_review?.cohort?.title ?? r.qa_review_id ?? '—',
+              },
+              { key: 'action_text', label: t('table.text') },
+              {
+                key: 'due_date',
+                label: t('table.due'),
+                render: (r) => (r.due_date ? String(r.due_date).slice(0, 10) : '—'),
+              },
+              {
+                key: 'status',
+                label: t('table.status'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                ),
+              },
+              { key: 'assignee', label: t('table.assignee'), render: (r) => r.assignee?.full_name ?? '—' },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => (
+                  <TableIconActions viewTo={`${base}/corrective-actions/${r.id}`} editTo={`${base}/corrective-actions/${r.id}/edit`} />
+                ),
+              },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
     </div>
   );

@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Award, Clock, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
 import { AdminFilterBar } from '../../../components/admin/AdminFilterBar.jsx';
@@ -10,170 +11,173 @@ import { SearchInput } from '../../../components/admin/SearchInput.jsx';
 import { SelectField } from '../../../components/admin/SelectField.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
 import { StatCard } from '../../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
-import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModal.jsx';
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
-import { useTranslation } from 'react-i18next';
-import { tr } from '../../../utils/i18n.js';
+import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
+import { useMicroCredentials } from '../../../features/microCredentials/index.js';
+import { useTracks } from '../../../features/tracks/index.js';
+
+function mapMcRow(mc) {
+  return {
+    id: String(mc.id),
+    title: String(mc.title ?? ''),
+    code: String(mc.code ?? ''),
+    level: String(mc.level ?? ''),
+    hours: Number(mc.duration_hours ?? 0),
+    trackName: mc.track?.name ? String(mc.track.name) : '—',
+    status: String(mc.status ?? ''),
+    internal_approval_status: String(mc.internal_approval_status ?? ''),
+    linked_university_ids: Array.isArray(mc.linked_university_ids) ? mc.linked_university_ids.map(String) : [],
+  };
+}
 
 export function MicroCredentialsListPage() {
+  const { t } = useTranslation('microCredentials');
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const location = useLocation();
-  const { filterRows, scopeId } = useTenant();
-  const [tick, setTick] = useState(0);
+  const { scopeId, isAllTenantsSelected } = useTenant();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [trackId, setTrackId] = useState('');
-  const [deleteId, setDeleteId] = useState(null);
+  const [internalApproval, setInternalApproval] = useState('');
 
-  useEffect(() => {
-    setTick((x) => x + 1);
-  }, [location.key, location.pathname, scopeId]);
+  const listParams = useMemo(() => {
+    const p = {};
+    if (status) p.status = status;
+    if (trackId) p.track_id = trackId;
+    if (internalApproval) p.internal_approval_status = internalApproval;
+    const s = q.trim();
+    if (s) p.search = s;
+    return p;
+  }, [status, trackId, internalApproval, q]);
 
-  const rows = useMemo(() => filterRows(adminCrudStore.microCredentials.getAll()), [filterRows, scopeId, tick, location.key]);
+  const { data: tracksData } = useTracks({}, { staleTime: 60_000 });
+  const trackOptions = tracksData?.tracks ?? [];
 
-  const tracks = useMemo(() => filterRows(adminCrudStore.tracks.getAll()), [filterRows, scopeId, tick, location.key]);
-  const trackNameById = useMemo(() => Object.fromEntries(tracks.map((t) => [t.id, t.name])), [tracks]);
+  const { data, isLoading, isError, error } = useMicroCredentials(listParams);
 
-  const filtered = rows.filter((r) => {
-    const matchQ =
-      !q ||
-      r.name.includes(q) ||
-      r.code.toLowerCase().includes(q.toLowerCase()) ||
-      r.level.includes(q);
-    const matchStatus = !status || r.status === status;
-    const matchTrack = !trackId || r.trackId === trackId;
-    return matchQ && matchStatus && matchTrack;
-  });
+  const rows = useMemo(() => {
+    const list = data?.micro_credentials ?? [];
+    const mapped = list.map(mapMcRow);
+    if (isAllTenantsSelected(scopeId) || !scopeId || scopeId === TENANT_SCOPE_ALL) return mapped;
+    return mapped.filter((r) => r.linked_university_ids.includes(String(scopeId)));
+  }, [data, scopeId, isAllTenantsSelected]);
 
-  const stats = {
-    total: rows.length,
-    approved: rows.filter((r) => r.status === 'approved').length,
-    draft: rows.filter((r) => r.status === 'draft').length,
-    hours: rows.reduce((a, r) => a + (r.hours || 0), 0),
-  };
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const active = rows.filter((r) => r.status === 'active').length;
+    const draft = rows.filter((r) => r.status === 'draft').length;
+    const hours = rows.reduce((a, r) => a + (r.hours || 0), 0);
+    return { total, active, draft, hours };
+  }, [rows]);
+
+  const emptyTitle = isError ? tCommon('errors.generic') : rows.length ? t('empty.noResults') : t('empty.noRecords');
+  const emptyDescription = isError
+    ? String(error?.message ?? tCommon('errors.generic'))
+    : rows.length
+      ? t('empty.tryFilters')
+      : t('empty.noRecords');
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader
-        title={tr(isArabic, 'إدارة الشهادات المصغرة', 'Micro-credential management')}
-        description={tr(
-          isArabic,
-          'تعريف الشهادات المصغرة والساعات والمستويات.',
-          'Define micro-credentials, hours, and levels.'
-        )}
-      />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/micro-credentials/create">
-          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة شهادة مصغرة', 'Add micro-credential')}
+          <Plus size={18} aria-hidden /> {t('add')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={tr(isArabic, 'بحث بالاسم أو الرمز أو المستوى', 'Search by name, code, or level')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField
-          id="mc-track"
-          label={tr(isArabic, 'المسار', 'Track')}
-          value={trackId}
-          onChange={(e) => setTrackId(e.target.value)}
-        >
-          <option value="">{tr(isArabic, 'كل المسارات', 'All tracks')}</option>
-          {tracks.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
+        <SelectField id="mc-track" label={t('filters.track')} value={trackId} onChange={(e) => setTrackId(e.target.value)}>
+          <option value="">{t('filters.allTracks')}</option>
+          {trackOptions.map((tr) => (
+            <option key={tr.id} value={tr.id}>
+              {tr.name}
             </option>
           ))}
         </SelectField>
+        <SelectField id="mc-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="draft">{tCommon('status.draft')}</option>
+          <option value="under_review">{t('statusOption.under_review')}</option>
+          <option value="approved">{tCommon('status.approved')}</option>
+          <option value="active">{tCommon('status.active')}</option>
+          <option value="archived">{tCommon('status.archived')}</option>
+        </SelectField>
         <SelectField
-          id="mc-status"
-          label={tr(isArabic, 'الحالة', 'Status')}
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          id="mc-internal"
+          label={t('filters.internalApproval')}
+          value={internalApproval}
+          onChange={(e) => setInternalApproval(e.target.value)}
         >
-          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
-          <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
-          <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
-          <option value="archived">{tr(isArabic, 'مؤرشف', 'Archived')}</option>
+          <option value="">{t('filters.allInternal')}</option>
+          <option value="not_started">not_started</option>
+          <option value="in_review">in_review</option>
+          <option value="approved">approved</option>
+          <option value="rejected">rejected</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'إجمالي الشهادات', 'Total credentials')} value={String(stats.total)} icon={Award} />
-        <StatCard label={tr(isArabic, 'المعتمدة', 'Approved')} value={String(stats.approved)} icon={Award} />
-        <StatCard label={tr(isArabic, 'مسودات', 'Drafts')} value={String(stats.draft)} icon={Award} />
-        <StatCard label={tr(isArabic, 'إجمالي الساعات', 'Total hours')} value={String(stats.hours)} icon={Clock} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={Award} />
+        <StatCard label={t('stats.active')} value={String(stats.active)} icon={Award} />
+        <StatCard label={t('stats.draft')} value={String(stats.draft)} icon={Award} />
+        <StatCard label={t('stats.hours')} value={String(stats.hours)} icon={Clock} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة الشهادات المصغرة', 'Micro-credentials list')}>
-        <DataTable
-          emptyTitle={
-            rows.length === 0
-              ? tCommon('tenant.emptyForScope')
-              : rows.length && !filtered.length
-                ? tr(isArabic, 'لا توجد نتائج', 'No results')
-                : tr(isArabic, 'لا توجد بيانات', 'No data')
-          }
-          emptyDescription={
-            rows.length === 0
-              ? tCommon('tenant.emptyForScope')
-              : rows.length && !filtered.length
-                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
-                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
-          }
-          columns={[
-            { key: 'name', label: tr(isArabic, 'الاسم', 'Name') },
-            { key: 'code', label: tr(isArabic, 'الرمز', 'Code') },
-            { key: 'level', label: tr(isArabic, 'المستوى', 'Level') },
-            { key: 'hours', label: tr(isArabic, 'الساعات', 'Hours') },
-            {
-              key: 'trackId',
-              label: tr(isArabic, 'المسار', 'Track'),
-              render: (r) => trackNameById[r.trackId] ?? r.trackId,
-            },
-            {
-              key: 'status',
-              label: tr(isArabic, 'الحالة', 'Status'),
-              render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
-              ),
-            },
-            {
-              key: 'actions',
-              label: tr(isArabic, 'الإجراءات', 'Actions'),
-              render: (r) => (
-                <TableIconActions
-                  viewTo={`/admin/micro-credentials/${r.id}`}
-                  editTo={`/admin/micro-credentials/${r.id}/edit`}
-                  onDelete={() => setDeleteId(r.id)}
-                />
-              ),
-            },
-          ]}
-          rows={filtered}
-          footer={
-            <div className="data-table__pagination">
-              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
-            </div>
-          }
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
+            columns={[
+              { key: 'title', label: t('table.title') },
+              { key: 'code', label: t('table.code') },
+              { key: 'level', label: t('table.level') },
+              { key: 'hours', label: t('table.hours') },
+              { key: 'trackName', label: t('table.track') },
+              {
+                key: 'internal_approval_status',
+                label: t('table.internalApproval'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.internal_approval_status)}>
+                    {statusLabelAr(r.internal_approval_status, locale)}
+                  </StatusBadge>
+                ),
+              },
+              {
+                key: 'status',
+                label: t('table.status'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                ),
+              },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => (
+                  <TableIconActions viewTo={`/admin/micro-credentials/${r.id}`} editTo={`/admin/micro-credentials/${r.id}/edit`} />
+                ),
+              },
+            ]}
+            rows={rows}
+            footer={
+              <div className="data-table__pagination">
+                {tCommon('pagination.stub')}
+              </div>
+            }
+          />
+        )}
       </SectionCard>
-      <ConfirmDeleteModal
-        open={Boolean(deleteId)}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => {
-          if (deleteId) adminCrudStore.microCredentials.remove(deleteId);
-          setDeleteId(null);
-          setTick((x) => x + 1);
-        }}
-      />
     </div>
   );
 }

@@ -1,4 +1,7 @@
-import { FolderOpen, FileText, Paperclip, ShieldCheck, Upload } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FolderOpen, Paperclip, ShieldCheck, Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../components/admin/AdminActionBar.jsx';
@@ -7,56 +10,78 @@ import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { TableIconActions } from '../../components/crud/TableIconActions.jsx';
 import { PermissionGate } from '../../components/permissions/PermissionGate.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { useLocale } from '../../features/locale/index.js';
-import { tr } from '../../utils/i18n.js';
+import { useEvidence } from '../../features/evidence/index.js';
+import { usePortalPathPrefix } from '../../utils/portalPathPrefix.js';
 
 export function InstructorEvidencePage() {
   const P = UI_PERMISSION;
-  const { locale } = useLocale();
-  const isArabic = locale === 'ar';
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('evidence');
+  const { t: tCommon } = useTranslation('common');
+  const [q, setQ] = useState('');
+
+  const listParams = useMemo(() => {
+    const p = {};
+    const s = q.trim();
+    if (s) p.search = s;
+    return p;
+  }, [q]);
+
+  const { data, isLoading, isError, error } = useEvidence(listParams, { staleTime: 30_000 });
+  const rows = data?.evidence ?? [];
+
+  const stats = useMemo(() => {
+    const withStudent = rows.filter((r) => r.student_id).length;
+    return { total: rows.length, withStudent };
+  }, [rows]);
 
   return (
     <div className="page page--dashboard page--instructor">
-      <AdminPageHeader
-        title={tr(isArabic, 'الأدلة', 'Evidence')}
-        description={tr(
-          isArabic,
-          'رفع وإدارة الأدلة المرتبطة بالدفعات المسندة إليك فقط — حسب صلاحيات الواجهة.',
-          'Upload and manage evidence linked only to your assigned cohorts, based on UI permissions.'
-        )}
-      />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <PermissionGate permission={P.canUploadEvidence}>
-          <Button type="button" variant="primary">
-            <Upload size={18} aria-hidden /> {tr(isArabic, 'رفع دليل', 'Upload evidence')}
-          </Button>
+          <Link className="btn btn--primary" to={`${base}/evidence/create`}>
+            <Upload size={18} aria-hidden /> {t('add')}
+          </Link>
         </PermissionGate>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالعنوان أو النوع', 'Search by title or type')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'ملفات مرفوعة', 'Uploaded files')} value="—" icon={FolderOpen} />
-        <StatCard label={tr(isArabic, 'مستندات', 'Documents')} value="—" icon={FileText} />
-        <StatCard label={tr(isArabic, 'مرفقات', 'Attachments')} value="—" icon={Paperclip} />
-        <StatCard label={tr(isArabic, 'معتمدة', 'Approved')} value="—" icon={ShieldCheck} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={FolderOpen} />
+        <StatCard label={t('stats.withStudent')} value={String(stats.withStudent)} icon={Paperclip} />
+        <StatCard label={t('stats.withAssessment')} value="—" icon={ShieldCheck} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة الأدلة', 'Evidence list')}>
-        <DataTable
-          columns={[
-            { key: 'title', label: tr(isArabic, 'العنوان', 'Title') },
-            { key: 'cohort', label: tr(isArabic, 'الدفعة', 'Cohort') },
-            { key: 'type', label: tr(isArabic, 'النوع', 'Type') },
-            { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
-          ]}
-          rows={[]}
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={isError ? tCommon('errors.generic') : tCommon('emptyStates.noResultsTitle')}
+            emptyDescription={isError ? String(error?.message ?? '') : tCommon('emptyStates.noResultsDescription')}
+            columns={[
+              { key: 'title', label: t('table.title') },
+              { key: 'evidence_type', label: t('table.type') },
+              { key: 'cohort', label: t('table.cohort'), render: (r) => r.cohort?.title ?? '—' },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => <TableIconActions viewTo={`${base}/evidence/${r.id}`} editTo={`${base}/evidence/${r.id}/edit`} />,
+              },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
     </div>
   );

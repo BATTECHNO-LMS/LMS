@@ -1,0 +1,14 @@
+{
+  "title": "Corrective actions",
+  "description": "Remediation tasks linked to QA reviews.",
+  "add": "New action",
+  "listTitle": "Actions",
+  "searchPlaceholder": "Search action text",
+  "stats": { "total": "Total", "open": "Open", "overdue": "Overdue", "resolved": "Resolved / closed" },
+  "filters": { "overdueOnly": "Overdue only" },
+  "table": { "qaReview": "QA review", "text": "Action", "due": "Due", "status": "Status", "assignee": "Assignee" },
+  "create": { "title": "New corrective action", "submit": "Create", "cancel": "Cancel" },
+  "edit": { "title": "Edit corrective action", "submit": "Save" },
+  "detail": { "title": "Corrective action", "back": "Back" },
+  "form": { "qaReview": "QA review", "actionText": "Action text", "dueDate": "Due date", "assignee": "Assignee (optional)", "status": "Status" }
+}

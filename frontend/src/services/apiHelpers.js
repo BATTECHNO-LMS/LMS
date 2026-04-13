@@ -25,6 +25,14 @@ export function unwrapApiData(res) {
 export function getApiErrorMessage(err, fallback = 'Request failed') {
   const body = err?.response?.data;
   if (body && typeof body === 'object' && typeof body.message === 'string' && body.message) {
+    const fields = body.details?.fields;
+    if (fields && typeof fields === 'object') {
+      const firstKey = Object.keys(fields).find((k) => Array.isArray(fields[k]) && fields[k].length);
+      if (firstKey) {
+        const msg = fields[firstKey][0];
+        if (typeof msg === 'string' && msg) return msg;
+      }
+    }
     return body.message;
   }
   if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {

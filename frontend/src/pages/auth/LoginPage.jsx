@@ -54,8 +54,8 @@ export function LoginPage({ forcedRole: _forcedRole = null, forcedRoleLabelAr = 
 
         <form className="auth-form" onSubmit={handleSubmit} noValidate>
           {forcedRole ? (
-            <div className="auth-form__mock">
-              <p className="auth-form__mock-label">{locale === 'ar' ? 'بوابة الدخول' : 'Portal login'}</p>
+            <div className="auth-form__portal">
+              <p className="auth-form__portal-label">{locale === 'ar' ? 'بوابة الدخول' : 'Portal login'}</p>
               <FormInput
                 id="portal-role"
                 label={locale === 'ar' ? 'الدور' : 'Role'}

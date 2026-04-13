@@ -12,6 +12,7 @@ import {
   BookOpen,
   Award,
   FileBadge,
+  Bell,
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
 import { UI_PERMISSION } from './permissions.js';
@@ -20,7 +21,7 @@ import {
   flattenAdminNavPaths,
   getAdminNavGroupsForRole,
 } from './adminNavigation.js';
-import { hasUiPermission, canAccessPathWithUiPermissions } from '../utils/rolePermissions.js';
+import { hasUiPermissionForUser, canAccessPathWithUiPermissionsForUser } from '../utils/rolePermissions.js';
 import i18n from '../i18n/config.js';
 
 const P = UI_PERMISSION;
@@ -47,6 +48,7 @@ export const NAV_BY_ROLE = {
     navItem('/instructor/grades', 'grades', BarChart3, P.canViewGradesTeaching),
     navItem('/instructor/evidence', 'evidence', FolderOpen, P.canUploadEvidence),
     navItem('/instructor/risk-students', 'riskStudents', AlertTriangle, P.canManageRiskStudents),
+    navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
   [ROLES.STUDENT]: [
@@ -59,6 +61,7 @@ export const NAV_BY_ROLE = {
     navItem('/student/submissions', 'submissions', Upload, P.canViewSubmissionStatus),
     navItem('/student/grades', 'grades', BarChart3, P.canViewGrades),
     navItem('/student/certificate', 'certificate', Award, P.canViewCertificates),
+    navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
   [ROLES.UNIVERSITY_REVIEWER]: [
@@ -67,12 +70,13 @@ export const NAV_BY_ROLE = {
     navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
     navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),
     navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
+    navItem('/reviewer/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 };
 
-function filterNavItemsByUi(role, items) {
+function filterNavItemsByUi(user, items) {
   if (!items) return [];
-  return items.filter((item) => hasUiPermission(role, item.permission));
+  return items.filter((item) => hasUiPermissionForUser(user, item.permission));
 }
 
 function resolveRoleNavLabel(role, item, tNav) {
@@ -83,14 +87,16 @@ function resolveRoleNavLabel(role, item, tNav) {
 
 /**
  * Unified sidebar: admin groups unchanged; other roles filtered by UI permissions.
+ * @param {{ role?: string, permissions?: string[] } | null | undefined} user
  * @param {Function} tNav - `useTranslation('navigation').t`
  */
-export function getDashboardNavGroups(role, tNav) {
+export function getDashboardNavGroups(user, tNav) {
+  const role = user?.role;
   if (!role) return [];
   if (ADMIN_ROLE_SET.includes(role)) {
     return getAdminNavGroupsForRole(role, tNav);
   }
-  const items = filterNavItemsByUi(role, NAV_BY_ROLE[role]).map((item) => ({
+  const items = filterNavItemsByUi(user, NAV_BY_ROLE[role]).map((item) => ({
     ...item,
     label: resolveRoleNavLabel(role, item, tNav),
   }));
@@ -98,11 +104,12 @@ export function getDashboardNavGroups(role, tNav) {
   return [{ id: 'main', title: tNav('mainMenu'), items }];
 }
 
-export function getNavItemsForRole(role, tNav) {
+export function getNavItemsForRole(role, tNav, user = null) {
   if (role && ADMIN_ROLE_SET.includes(role)) {
     return flattenAdminNavItems(role, tNav);
   }
-  return filterNavItemsByUi(role, NAV_BY_ROLE[role] ?? NAV_BY_ROLE[ROLES.STUDENT]).map((item) => ({
+  const u = user && user.role === role ? user : { role };
+  return filterNavItemsByUi(u, NAV_BY_ROLE[role] ?? NAV_BY_ROLE[ROLES.STUDENT]).map((item) => ({
     ...item,
     label: resolveRoleNavLabel(role, item, tNav),
   }));
@@ -113,6 +120,7 @@ const CRUD_MODULE_NS = {
   users: 'users',
   universities: 'universities',
   tracks: 'tracks',
+  'learning-outcomes': 'learningOutcomes',
   'micro-credentials': 'microCredentials',
   cohorts: 'cohorts',
   assessments: 'assessments',
@@ -154,7 +162,7 @@ function matchCrudTitle(pathname) {
   return crudPageTitle(parts, ns);
 }
 
-export function getPageTitleForPath(role, pathname) {
+export function getPageTitleForPath(role, pathname, user = null) {
   const lng = i18n.language;
   const tCommon = i18n.getFixedT(lng, 'common');
   const tAssess = i18n.getFixedT(lng, 'assessments');
@@ -166,7 +174,7 @@ export function getPageTitleForPath(role, pathname) {
   if (/\/instructor\/assessments\/.+\/edit/.test(pathname)) return tAssess('edit.title');
 
   const tNav = i18n.getFixedT(lng, 'navigation');
-  const items = getNavItemsForRole(role, tNav);
+  const items = getNavItemsForRole(role, tNav, user ?? (role ? { role } : null));
   const exact = items.find((n) => n.to === pathname);
   if (exact) return exact.label;
 
@@ -177,14 +185,15 @@ export function getPageTitleForPath(role, pathname) {
   return tCommon('brand');
 }
 
-export function canAccessPath(role, pathname) {
+export function canAccessPath(user, pathname) {
+  const role = user?.role;
   if (!role) return false;
   if (ADMIN_ROLE_SET.includes(role)) {
     const paths = flattenAdminNavPaths(role);
     return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
-  if (!canAccessPathWithUiPermissions(role, pathname)) return false;
+  if (!canAccessPathWithUiPermissionsForUser(user, pathname)) return false;
   const tNav = i18n.getFixedT(i18n.language, 'navigation');
-  const items = getNavItemsForRole(role, tNav);
+  const items = getNavItemsForRole(role, tNav, user);
   return items.some((n) => pathname === n.to || pathname.startsWith(`${n.to}/`));
 }

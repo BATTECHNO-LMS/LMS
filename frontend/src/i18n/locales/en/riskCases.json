@@ -1,0 +1,21 @@
+{
+  "title": "Risk cases",
+  "description": "Academic risk tracking for learners in cohorts.",
+  "add": "Log case",
+  "listTitle": "Cases",
+  "searchPlaceholder": "Search action plan",
+  "stats": { "total": "Total", "open": "Open", "escalated": "Escalated", "closed": "Closed" },
+  "table": { "student": "Learner", "cohort": "Cohort", "type": "Risk type", "level": "Level", "status": "Status" },
+  "filters": { "allCohorts": "All cohorts" },
+  "create": { "title": "New risk case", "submit": "Create", "cancel": "Cancel" },
+  "edit": { "title": "Edit risk case", "submit": "Save" },
+  "detail": { "title": "Risk case", "back": "Back" },
+  "form": {
+    "cohort": "Cohort",
+    "student": "Student",
+    "riskType": "Risk type",
+    "riskLevel": "Risk level",
+    "actionPlan": "Action plan",
+    "status": "Status"
+  }
+}

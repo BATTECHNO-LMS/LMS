@@ -1,0 +1,71 @@
+{
+  "list": {
+    "title": "Digital certificates",
+    "description": "Issue certificates and verify authenticity.",
+    "searchPlaceholder": "Search by certificate number or verification code",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "issue": "Issue certificate",
+    "verifyLink": "Verify by code",
+    "columns": {
+      "certificateNo": "Certificate no.",
+      "verificationCode": "Verification code",
+      "student": "Learner",
+      "microCredential": "Micro-credential",
+      "cohort": "Cohort",
+      "issuedAt": "Issued at",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "stats": {
+      "issued": "Issued",
+      "total": "Total listed"
+    },
+    "emptyTitle": "No certificates",
+    "emptyDescription": "No records for the current filters.",
+    "loadError": "Could not load certificates."
+  },
+  "issue": {
+    "title": "Issue certificate",
+    "studentId": "Student user id",
+    "cohortId": "Cohort id",
+    "microCredentialId": "Micro-credential id",
+    "submit": "Issue",
+    "cancel": "Cancel",
+    "error": "Could not issue certificate."
+  },
+  "detail": {
+    "title": "Certificate details",
+    "description": "View certificate metadata and lifecycle status.",
+    "cardTitle": "Certificate",
+    "certificateNo": "Certificate number",
+    "verificationCode": "Verification code",
+    "status": "Status",
+    "issuedAt": "Issued at",
+    "student": "Student",
+    "cohort": "Cohort",
+    "microCredential": "Micro-credential",
+    "updateStatus": "Update status",
+    "chooseStatus": "Choose new status…",
+    "apply": "Apply"
+  },
+  "verify": {
+    "prompt": "Enter verification code",
+    "shortCode": "Verification code is missing or too short.",
+    "notValid": "Not valid as an active certificate",
+    "title": "Certificate verification",
+    "description": "Public verification using a verification code.",
+    "invalid": "This verification code was not found.",
+    "valid": "Verification result",
+    "certificateNo": "Certificate number",
+    "status": "Status",
+    "issuedAt": "Issued at",
+    "microCredential": "Micro-credential",
+    "cohort": "Cohort"
+  },
+  "statuses": {
+    "issued": "Issued",
+    "revoked": "Revoked",
+    "superseded": "Superseded"
+  }
+}

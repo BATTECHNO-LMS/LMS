@@ -15,7 +15,6 @@ export function AppNavbar({
   userName,
   userEmail,
   onLogout,
-  notificationCount = 0,
   className,
 }) {
   const { t } = useTranslation('common');
@@ -43,7 +42,7 @@ export function AppNavbar({
           {isDark ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
         </button>
         <LanguageSwitcher />
-        <NotificationBell count={notificationCount} />
+        <NotificationBell />
         <UserDropdown userName={userName} userEmail={userEmail} onLogout={onLogout} />
       </div>
     </header>

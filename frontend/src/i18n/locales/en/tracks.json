@@ -1,5 +1,30 @@
 {
   "title": "Track management",
+  "description": "Define educational tracks and catalogue structure.",
+  "addTrack": "Add track",
+  "searchPlaceholder": "Search by name, code, or description",
+  "stats": {
+    "total": "Total tracks",
+    "active": "Active tracks",
+    "inactive": "Inactive / archived",
+    "microLinks": "Linked micro-credentials"
+  },
+  "listTitle": "Tracks list",
+  "table": {
+    "name": "Track name",
+    "code": "Code",
+    "description": "Description",
+    "status": "Status",
+    "microCount": "Micro-credentials"
+  },
+  "empty": {
+    "noResults": "No results",
+    "tryFilters": "Try adjusting filters or search.",
+    "noRecords": "No records found."
+  },
+  "fields": {
+    "description": "Description"
+  },
   "create": { "title": "Create track" },
   "edit": { "title": "Edit track" },
   "view": { "title": "Track details" }

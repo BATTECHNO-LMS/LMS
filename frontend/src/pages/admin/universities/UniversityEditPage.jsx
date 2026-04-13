@@ -56,7 +56,9 @@ export function UniversityEditPage() {
       });
       navigate(`/admin/universities/${id}`);
     } catch (err) {
-      setErrors({ _form: err?.message ?? 'Error' });
+      setErrors({
+        _form: getApiErrorMessage(err, isArabic ? 'تعذّر التحديث.' : 'Could not update university.'),
+      });
     }
   }
 

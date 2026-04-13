@@ -1,28 +1,35 @@
 import { Link, useParams } from 'react-router-dom';
 import { Pencil } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { useLocale } from '../../../features/locale/index.js';
-import { tr } from '../../../utils/i18n.js';
+import { useTrack } from '../../../features/tracks/index.js';
 
 export function TrackViewPage() {
+  const { t } = useTranslation('tracks');
+  const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
   const { id } = useParams();
-  const row = adminCrudStore.tracks.getById(id);
+  const { data: row, isLoading, isError } = useTrack(id);
 
-  if (!row) {
+  if (isLoading) {
     return (
       <div className="page page--admin crud-page">
-        <AdminPageHeader
-          title={tr(isArabic, 'غير موجود', 'Not found')}
-          description={tr(isArabic, 'لم يتم العثور على المسار.', 'Track not found.')}
-        />
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isError || !row) {
+    return (
+      <div className="page page--admin crud-page">
+        <AdminPageHeader title={<>{tCommon('errors.generic')}</>} description={<>{t('empty.noRecords')}</>} />
         <Link className="btn btn--primary" to="/admin/tracks">
-          {tr(isArabic, 'العودة للقائمة', 'Back to list')}
+          {tCommon('actions.backToList')}
         </Link>
       </div>
     );
@@ -30,45 +37,42 @@ export function TrackViewPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader
-        title={tr(isArabic, 'تفاصيل المسار', 'Track details')}
-        description={tr(isArabic, 'عرض بيانات المسار.', 'View track details.')}
-      />
+      <AdminPageHeader title={<>{t('view.title')}</>} description={<>{t('description')}</>} />
       <SectionCard
-        title={tr(isArabic, 'البيانات', 'Details')}
+        title={tCommon('actions.details')}
         actions={
           <Link className="btn btn--primary" to={`/admin/tracks/${id}/edit`}>
-            <Pencil size={18} aria-hidden /> {tr(isArabic, 'تعديل', 'Edit')}
+            <Pencil size={18} aria-hidden /> {tCommon('actions.edit')}
           </Link>
         }
       >
         <dl className="crud-dl">
           <div>
-            <dt>{tr(isArabic, 'اسم المسار', 'Track name')}</dt>
+            <dt>{t('table.name')}</dt>
             <dd>{row.name}</dd>
           </div>
           <div>
-            <dt>{tr(isArabic, 'الرمز', 'Code')}</dt>
+            <dt>{t('table.code')}</dt>
             <dd>{row.code}</dd>
           </div>
           <div>
-            <dt>{tr(isArabic, 'المستوى', 'Level')}</dt>
-            <dd>{row.level}</dd>
+            <dt>{t('fields.description')}</dt>
+            <dd>{row.description ?? '—'}</dd>
           </div>
           <div>
-            <dt>{tr(isArabic, 'الحالة', 'Status')}</dt>
+            <dt>{t('table.status')}</dt>
             <dd>
               <StatusBadge variant={genericStatusVariant(row.status)}>{statusLabelAr(row.status, locale)}</StatusBadge>
             </dd>
           </div>
           <div>
-            <dt>{tr(isArabic, 'الدفعات المرتبطة', 'Linked cohorts')}</dt>
-            <dd>{row.cohorts ?? 0}</dd>
+            <dt>{t('table.microCount')}</dt>
+            <dd>{row.micro_credentials_count ?? 0}</dd>
           </div>
         </dl>
         <div className="crud-view-actions">
           <Link className="btn btn--outline" to="/admin/tracks">
-            {tr(isArabic, 'رجوع للقائمة', 'Back to list')}
+            {tCommon('actions.backToList')}
           </Link>
         </div>
       </SectionCard>

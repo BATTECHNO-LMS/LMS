@@ -34,6 +34,7 @@ export function mapAuthUser(raw) {
     email: String(raw.email ?? ''),
     name: String(raw.full_name ?? raw.name ?? ''),
     full_name: raw.full_name != null ? String(raw.full_name) : String(raw.name ?? ''),
+    status: raw.status != null ? String(raw.status) : undefined,
     role,
     roles,
     isGlobal,

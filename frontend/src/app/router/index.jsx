@@ -35,6 +35,12 @@ import { CohortsListPage } from '../../pages/admin/cohorts/CohortsListPage.jsx';
 import { CohortCreatePage } from '../../pages/admin/cohorts/CohortCreatePage.jsx';
 import { CohortViewPage } from '../../pages/admin/cohorts/CohortViewPage.jsx';
 import { CohortEditPage } from '../../pages/admin/cohorts/CohortEditPage.jsx';
+import { CohortSessionsListPage } from '../../pages/admin/cohorts/CohortSessionsListPage.jsx';
+import { SessionCreatePage } from '../../pages/admin/cohorts/SessionCreatePage.jsx';
+import { SessionViewPage } from '../../pages/admin/sessions/SessionViewPage.jsx';
+import { SessionEditPage } from '../../pages/admin/sessions/SessionEditPage.jsx';
+import { SessionAttendancePage } from '../../pages/admin/sessions/SessionAttendancePage.jsx';
+import { EnrollmentViewPage } from '../../pages/admin/enrollments/EnrollmentViewPage.jsx';
 import { ContentManagementPage } from '../../pages/admin/ContentManagementPage.jsx';
 import { SessionsPage } from '../../pages/admin/SessionsPage.jsx';
 import { AttendancePage } from '../../pages/admin/AttendancePage.jsx';
@@ -43,22 +49,42 @@ import { AssessmentCreatePage } from '../../pages/admin/assessments/AssessmentCr
 import { AssessmentViewPage } from '../../pages/admin/assessments/AssessmentViewPage.jsx';
 import { AssessmentEditPage } from '../../pages/admin/assessments/AssessmentEditPage.jsx';
 import { RubricsPage } from '../../pages/admin/RubricsPage.jsx';
+import { RubricCreatePage } from '../../pages/admin/rubrics/RubricCreatePage.jsx';
+import { RubricDetailPage } from '../../pages/admin/rubrics/RubricDetailPage.jsx';
 import { SubmissionsPage } from '../../pages/admin/SubmissionsPage.jsx';
 import { GradesPage } from '../../pages/admin/GradesPage.jsx';
 import { EvidencePage } from '../../pages/admin/EvidencePage.jsx';
+import { EvidenceCreatePage } from '../../pages/admin/evidence/EvidenceCreatePage.jsx';
+import { EvidenceEditPage } from '../../pages/admin/evidence/EvidenceEditPage.jsx';
+import { EvidenceViewPage } from '../../pages/admin/evidence/EvidenceViewPage.jsx';
 import { QAPage } from '../../pages/admin/QAPage.jsx';
 import { QAReviewsPage } from '../../pages/admin/QAReviewsPage.jsx';
+import { QAReviewCreatePage } from '../../pages/admin/qa-reviews/QAReviewCreatePage.jsx';
+import { QAReviewEditPage } from '../../pages/admin/qa-reviews/QAReviewEditPage.jsx';
+import { QAReviewViewPage } from '../../pages/admin/qa-reviews/QAReviewViewPage.jsx';
 import { CorrectiveActionsPage } from '../../pages/admin/CorrectiveActionsPage.jsx';
+import { CorrectiveActionCreatePage } from '../../pages/admin/corrective-actions/CorrectiveActionCreatePage.jsx';
+import { CorrectiveActionEditPage } from '../../pages/admin/corrective-actions/CorrectiveActionEditPage.jsx';
+import { CorrectiveActionViewPage } from '../../pages/admin/corrective-actions/CorrectiveActionViewPage.jsx';
 import { AtRiskStudentsPage } from '../../pages/admin/AtRiskStudentsPage.jsx';
 import { RiskCasesPage } from '../../pages/admin/RiskCasesPage.jsx';
+import { RiskCaseCreatePage } from '../../pages/admin/risk-cases/RiskCaseCreatePage.jsx';
+import { RiskCaseEditPage } from '../../pages/admin/risk-cases/RiskCaseEditPage.jsx';
+import { RiskCaseViewPage } from '../../pages/admin/risk-cases/RiskCaseViewPage.jsx';
 import { IntegrityCasesPage } from '../../pages/admin/IntegrityCasesPage.jsx';
+import { IntegrityCaseCreatePage } from '../../pages/admin/integrity-cases/IntegrityCaseCreatePage.jsx';
+import { IntegrityCaseEditPage } from '../../pages/admin/integrity-cases/IntegrityCaseEditPage.jsx';
+import { IntegrityCaseViewPage } from '../../pages/admin/integrity-cases/IntegrityCaseViewPage.jsx';
 import { RecognitionRequestsListPage } from '../../pages/admin/recognition-requests/RecognitionRequestsListPage.jsx';
 import { RecognitionRequestCreatePage } from '../../pages/admin/recognition-requests/RecognitionRequestCreatePage.jsx';
 import { RecognitionRequestViewPage } from '../../pages/admin/recognition-requests/RecognitionRequestViewPage.jsx';
 import { RecognitionRequestEditPage } from '../../pages/admin/recognition-requests/RecognitionRequestEditPage.jsx';
 import { CertificatesPage } from '../../pages/admin/CertificatesPage.jsx';
+import { CertificateIssuePage } from '../../pages/admin/certificates/CertificateIssuePage.jsx';
+import { CertificateDetailPage } from '../../pages/admin/certificates/CertificateDetailPage.jsx';
 import { ReportsPage } from '../../pages/admin/ReportsPage.jsx';
 import { AuditLogsPage } from '../../pages/admin/AuditLogsPage.jsx';
+import { AuditLogDetailsPage } from '../../pages/admin/AuditLogDetailsPage.jsx';
 import { SettingsPage } from '../../pages/admin/SettingsPage.jsx';
 import { SuperAdminAnalyticsRoute } from '../../pages/admin/SuperAdminAnalyticsRoute.jsx';
 import { InstructorDashboardPage } from '../../pages/instructor/InstructorDashboardPage.jsx';
@@ -87,6 +113,8 @@ import { UniversityReportsPage } from '../../pages/reviewer/UniversityReportsPag
 import { EvidenceViewerPage } from '../../pages/reviewer/EvidenceViewerPage.jsx';
 import { CertificatesReviewPage } from '../../pages/reviewer/CertificatesReviewPage.jsx';
 import { ModulePlaceholderPage } from '../../pages/common/ModulePlaceholderPage.jsx';
+import { NotificationsPage } from '../../pages/common/NotificationsPage.jsx';
+import { CertificateVerifyPage } from '../../pages/public/CertificateVerifyPage.jsx';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute.jsx';
 import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
 import { RootRedirect } from '../../components/common/RootRedirect.jsx';
@@ -120,6 +148,8 @@ export function AppRouter() {
         <Route index element={<RegisterPage />} />
       </Route>
 
+      <Route path="/verify/certificate/:verificationCode" element={<CertificateVerifyPage />} />
+
       <Route element={<ProtectedRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
@@ -145,9 +175,15 @@ export function AppRouter() {
             <Route path="micro-credentials" element={<MicroCredentialsListPage />} />
             <Route path="learning-outcomes" element={<LearningOutcomesPage />} />
             <Route path="cohorts/create" element={<CohortCreatePage />} />
+            <Route path="cohorts/:id/sessions/create" element={<SessionCreatePage />} />
+            <Route path="cohorts/:id/sessions" element={<CohortSessionsListPage />} />
             <Route path="cohorts/:id/edit" element={<CohortEditPage />} />
             <Route path="cohorts/:id" element={<CohortViewPage />} />
             <Route path="cohorts" element={<CohortsListPage />} />
+            <Route path="enrollments/:id" element={<EnrollmentViewPage />} />
+            <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
+            <Route path="sessions/:sessionId/edit" element={<SessionEditPage />} />
+            <Route path="sessions/:sessionId" element={<SessionViewPage />} />
             <Route path="content" element={<ContentManagementPage />} />
             <Route path="sessions" element={<SessionsPage />} />
             <Route path="attendance" element={<AttendancePage />} />
@@ -155,6 +191,8 @@ export function AppRouter() {
             <Route path="assessments/:id/edit" element={<AssessmentEditPage />} />
             <Route path="assessments/:id" element={<AssessmentViewPage />} />
             <Route path="assessments" element={<AssessmentsListPage />} />
+            <Route path="rubrics/create" element={<RubricCreatePage />} />
+            <Route path="rubrics/:id" element={<RubricDetailPage />} />
             <Route path="rubrics" element={<RubricsPage />} />
             <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="grades" element={<GradesPage />} />
@@ -169,8 +207,12 @@ export function AppRouter() {
             <Route path="recognition-requests/:id/edit" element={<RecognitionRequestEditPage />} />
             <Route path="recognition-requests/:id" element={<RecognitionRequestViewPage />} />
             <Route path="recognition-requests" element={<RecognitionRequestsListPage />} />
+            <Route path="certificates/issue" element={<CertificateIssuePage />} />
+            <Route path="certificates/:id" element={<CertificateDetailPage />} />
             <Route path="certificates" element={<CertificatesPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="reports" element={<ReportsPage />} />
+            <Route path="audit-logs/:id" element={<AuditLogDetailsPage />} />
             <Route path="audit-logs" element={<AuditLogsPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="*" element={<ModulePlaceholderPage />} />
@@ -183,16 +225,29 @@ export function AppRouter() {
             <Route path="at-risk-students" element={<Navigate to="/instructor/risk-students" replace />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<InstructorDashboardPage />} />
+              <Route path="cohorts/:id/sessions/create" element={<SessionCreatePage />} />
+              <Route path="cohorts/:id/sessions" element={<CohortSessionsListPage />} />
+              <Route path="cohorts/:id/edit" element={<CohortEditPage />} />
+              <Route path="cohorts/:id" element={<CohortViewPage />} />
               <Route path="cohorts" element={<MyCohortsPage />} />
+              <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
+              <Route path="sessions/:sessionId/edit" element={<SessionEditPage />} />
+              <Route path="sessions/:sessionId" element={<SessionViewPage />} />
+              <Route path="enrollments/:id" element={<EnrollmentViewPage />} />
               <Route path="sessions" element={<InstructorSessionsPage />} />
               <Route path="attendance" element={<InstructorAttendancePage />} />
               <Route path="assessments/create" element={<InstructorAssessmentCreatePage />} />
               <Route path="assessments/:id/edit" element={<InstructorAssessmentEditPage />} />
+              <Route path="assessments/:id" element={<AssessmentViewPage />} />
               <Route path="assessments" element={<InstructorAssessmentsPage />} />
               <Route path="submissions" element={<InstructorSubmissionsPage />} />
               <Route path="grades" element={<InstructorGradesPage />} />
+              <Route path="evidence/create" element={<EvidenceCreatePage />} />
+              <Route path="evidence/:id/edit" element={<EvidenceEditPage />} />
+              <Route path="evidence/:id" element={<EvidenceViewPage />} />
               <Route path="evidence" element={<InstructorEvidencePage />} />
               <Route path="risk-students" element={<RiskStudentsPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="*" element={<ModulePlaceholderPage />} />
             </Route>
           </Route>
@@ -212,6 +267,7 @@ export function AppRouter() {
               <Route path="submissions" element={<StudentSubmissionsPage />} />
               <Route path="grades" element={<StudentGradesPage />} />
               <Route path="certificate" element={<CertificatePage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="*" element={<ModulePlaceholderPage />} />
             </Route>
           </Route>
@@ -222,10 +278,13 @@ export function AppRouter() {
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.UNIVERSITY_REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<ReviewerDashboardPage />} />
+              <Route path="recognition-requests/:id" element={<RecognitionRequestViewPage />} />
               <Route path="recognition-requests" element={<ReviewerRecognitionRequestsPage />} />
               <Route path="university-reports" element={<UniversityReportsPage />} />
               <Route path="evidence" element={<EvidenceViewerPage />} />
+              <Route path="certificates/:id" element={<CertificateDetailPage />} />
               <Route path="certificates" element={<CertificatesReviewPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
               <Route path="*" element={<ModulePlaceholderPage />} />
             </Route>
           </Route>

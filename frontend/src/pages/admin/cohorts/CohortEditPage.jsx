@@ -1,120 +1,155 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Save, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { FormInput, FormSelect, FormDate } from '../../../components/forms/index.js';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
+import { useMicroCredentials } from '../../../features/microCredentials/index.js';
+import { useUniversities } from '../../../features/universities/index.js';
+import { useUsers } from '../../../features/users/index.js';
+import { useCohort, useUpdateCohort } from '../../../features/cohorts/index.js';
 import { cohortSchema } from '../../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../../utils/zodErrors.js';
-import { useLocale } from '../../../features/locale/index.js';
-import { tr } from '../../../utils/i18n.js';
+import { ROLES } from '../../../constants/roles.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { usePortalPathPrefix } from '../../../utils/portalPathPrefix.js';
 
 export function CohortEditPage() {
-  const { locale } = useLocale();
-  const isArabic = locale === 'ar';
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('cohorts');
+  const { t: tCommon } = useTranslation('common');
   const { id } = useParams();
   const navigate = useNavigate();
-  const micros = useMemo(() => adminCrudStore.microCredentials.getAll(), []);
-  const unis = useMemo(() => adminCrudStore.universities.getAll(), []);
+  const { data, isLoading, isError } = useCohort(id);
+  const updateMut = useUpdateCohort();
+
+  const { data: mcData } = useMicroCredentials({}, { staleTime: 60_000 });
+  const micros = mcData?.micro_credentials ?? [];
+  const { data: uniData } = useUniversities();
+  const unis = uniData?.universities ?? [];
+
   const [form, setForm] = useState(null);
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
+
+  const userParams = useMemo(() => {
+    const p = { page: 1, page_size: 100 };
+    if (form?.university_id) p.university_id = form.university_id;
+    return p;
+  }, [form?.university_id]);
+
+  const { data: usersPayload } = useUsers(userParams, { staleTime: 30_000, enabled: Boolean(form?.university_id) });
+  const instructors = useMemo(() => {
+    const items = usersPayload?.items ?? [];
+    return items.filter((u) => Array.isArray(u.roles) && u.roles.map((r) => String(r).toLowerCase()).includes(ROLES.INSTRUCTOR));
+  }, [usersPayload]);
 
   useEffect(() => {
-    const row = adminCrudStore.cohorts.getById(id);
-    if (!row) {
-      navigate('/admin/cohorts', { replace: true });
-      return;
-    }
+    if (!data) return;
     setForm({
-      name: row.name,
-      credentialId: row.credentialId,
-      credentialName: row.credentialName,
-      universityId: row.universityId,
-      universityName: row.universityName,
-      instructor: row.instructor,
-      startDate: row.startDate,
-      endDate: row.endDate,
-      status: row.status,
+      title: data.title ?? '',
+      micro_credential_id: data.micro_credential?.id ?? '',
+      university_id: data.university?.id ?? '',
+      instructor_id: data.instructor?.id ?? '',
+      capacity: data.capacity ?? 1,
+      start_date: data.start_date ?? '',
+      end_date: data.end_date ?? '',
+      status: data.status ?? 'planned',
     });
-  }, [id, navigate]);
+  }, [data]);
 
   function setField(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function onCredentialChange(e) {
-    const cid = e.target.value;
-    const mc = adminCrudStore.microCredentials.getById(cid);
-    setForm((f) => ({ ...f, credentialId: cid, credentialName: mc?.name ?? '' }));
-  }
-
-  function onUniversityChange(e) {
-    const uid = e.target.value;
-    const u = adminCrudStore.universities.getById(uid);
-    setForm((f) => ({ ...f, universityId: uid, universityName: u?.name ?? '' }));
-  }
-
-  function onSubmit(e) {
+  async function onSubmit(e) {
     e.preventDefault();
-    const res = safeParse(cohortSchema, form);
+    if (!form) return;
+    setApiError('');
+    const res = safeParse(cohortSchema, {
+      ...form,
+      instructor_id: form.instructor_id || undefined,
+      capacity: form.capacity === '' ? undefined : form.capacity,
+    });
     if (!res.ok) {
       setErrors(res.errors);
       return;
     }
-    adminCrudStore.cohorts.update(id, { ...res.data });
-    navigate(`/admin/cohorts/${id}`);
+    setErrors({});
+    try {
+      await updateMut.mutateAsync({ id, body: res.data });
+      navigate(`${base}/cohorts/${id}`);
+    } catch (err) {
+      setApiError(getApiErrorMessage(err, tCommon('errors.generic')));
+    }
   }
 
-  if (!form) return null;
+  if (isLoading || !form) {
+    return (
+      <div className="page page--admin crud-page">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="page page--admin crud-page">
+        <AdminPageHeader title={tCommon('errors.notFound')} description="" />
+        <Link className="btn btn--primary" to={`${base}/cohorts`}>
+          {tCommon('actions.backToList')}
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader
-        title={tr(isArabic, 'تعديل دفعة', 'Edit batch')}
-        description={tr(isArabic, 'تحديث بيانات الدفعة.', 'Update batch details.')}
-      />
+      <AdminPageHeader title={<>{t('edit.title')}</>} description={<>{t('description')}</>} />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title={tr(isArabic, 'البيانات', 'Details')}
+          title={tCommon('actions.details')}
           actions={
             <>
-              <Link className="btn btn--outline" to={`/admin/cohorts/${id}`}>
-                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
+              <Link className="btn btn--outline" to={`${base}/cohorts/${id}`}>
+                <X size={18} aria-hidden /> {tCommon('actions.cancel')}
               </Link>
-              <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> {tr(isArabic, 'تحديث', 'Update')}
+              <button type="submit" className="btn btn--primary" disabled={updateMut.isPending}>
+                <Save size={18} aria-hidden /> {tCommon('actions.update')}
               </button>
             </>
           }
         >
+          {apiError ? <p className="form-error" role="alert">{apiError}</p> : null}
           <div className="crud-form-grid">
             <FormInput
-              id="name"
-              label={tr(isArabic, 'اسم الدفعة', 'Batch name')}
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              error={errors.name}
+              id="title"
+              label={t('form.title')}
+              value={form.title}
+              onChange={(e) => setField('title', e.target.value)}
+              error={errors.title}
             />
             <FormSelect
-              id="credentialId"
-              label={tr(isArabic, 'الشهادة', 'Certificate')}
-              value={form.credentialId}
-              onChange={onCredentialChange}
-              error={errors.credentialId}
+              id="micro_credential_id"
+              label={t('table.certificate')}
+              value={form.micro_credential_id}
+              onChange={(e) => setField('micro_credential_id', e.target.value)}
+              error={errors.micro_credential_id}
             >
               {micros.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name}
+                  {m.title}
                 </option>
               ))}
             </FormSelect>
             <FormSelect
-              id="universityId"
-              label={tr(isArabic, 'الجامعة', 'University')}
-              value={form.universityId}
-              onChange={onUniversityChange}
-              error={errors.universityId}
+              id="university_id"
+              label={t('form.university')}
+              value={form.university_id}
+              onChange={(e) => setField('university_id', e.target.value)}
+              error={errors.university_id}
             >
               {unis.map((u) => (
                 <option key={u.id} value={u.id}>
@@ -122,38 +157,56 @@ export function CohortEditPage() {
                 </option>
               ))}
             </FormSelect>
+            <FormSelect
+              id="instructor_id"
+              label={t('form.instructor')}
+              value={form.instructor_id}
+              onChange={(e) => setField('instructor_id', e.target.value)}
+              error={errors.instructor_id}
+            >
+              <option value="">—</option>
+              {instructors.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name}
+                </option>
+              ))}
+            </FormSelect>
             <FormInput
-              id="instructor"
-              label={tr(isArabic, 'المدرّب', 'Trainer')}
-              value={form.instructor}
-              onChange={(e) => setField('instructor', e.target.value)}
-              error={errors.instructor}
+              id="capacity"
+              type="number"
+              min={1}
+              label={t('form.capacity')}
+              value={String(form.capacity)}
+              onChange={(e) => setField('capacity', e.target.value === '' ? '' : Number(e.target.value))}
+              error={errors.capacity}
             />
             <FormDate
-              id="startDate"
-              label={tr(isArabic, 'تاريخ البداية', 'Start date')}
-              value={form.startDate}
-              onChange={(e) => setField('startDate', e.target.value)}
-              error={errors.startDate}
+              id="start_date"
+              label={t('table.startDate')}
+              value={form.start_date}
+              onChange={(e) => setField('start_date', e.target.value)}
+              error={errors.start_date}
             />
             <FormDate
-              id="endDate"
-              label={tr(isArabic, 'تاريخ النهاية', 'End date')}
-              value={form.endDate}
-              onChange={(e) => setField('endDate', e.target.value)}
-              error={errors.endDate}
+              id="end_date"
+              label={t('table.endDate')}
+              value={form.end_date}
+              onChange={(e) => setField('end_date', e.target.value)}
+              error={errors.end_date}
             />
             <FormSelect
               id="status"
-              label={tr(isArabic, 'الحالة', 'Status')}
+              label={tCommon('status.label')}
               value={form.status}
               onChange={(e) => setField('status', e.target.value)}
               error={errors.status}
             >
-              <option value="planned">{tr(isArabic, 'مخطط', 'Planned')}</option>
-              <option value="running">{tr(isArabic, 'قيد التنفيذ', 'In progress')}</option>
-              <option value="completed">{tr(isArabic, 'مكتمل', 'Completed')}</option>
-              <option value="cancelled">{tr(isArabic, 'ملغى', 'Cancelled')}</option>
+              <option value="planned">{t('status.planned')}</option>
+              <option value="open_for_enrollment">{t('status.open_for_enrollment')}</option>
+              <option value="active">{t('status.active')}</option>
+              <option value="completed">{t('status.completed')}</option>
+              <option value="closed">{t('status.closed')}</option>
+              <option value="cancelled">{t('status.cancelled')}</option>
             </FormSelect>
           </div>
         </SectionCard>

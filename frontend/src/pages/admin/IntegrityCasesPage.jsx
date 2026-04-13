@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { BadgeAlert, Gavel, Lock, Eye } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { BadgeAlert, Plus, Eye } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
@@ -9,71 +11,115 @@ import {
   SearchInput,
   SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { TableIconActions } from '../../components/crud/TableIconActions.jsx';
+import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { useIntegrityCases } from '../../features/integrity/index.js';
+import { useCohorts } from '../../features/cohorts/index.js';
+import { usePortalPathPrefix } from '../../utils/portalPathPrefix.js';
+import { genericStatusVariant, statusLabelAr } from '../../utils/statusMap.js';
 import { useLocale } from '../../features/locale/index.js';
-import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_INTEGRITY } from '../../mocks/lmsPageData.js';
 
 export function IntegrityCasesPage() {
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('integrityCases');
+  const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_INTEGRITY), [filterRows, scopeId]);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
+  const [cohortId, setCohortId] = useState('');
 
-  const openCases = useMemo(() => rows.filter((r) => r.status === 'مفتوحة').length, [rows]);
-  const investigating = useMemo(() => rows.filter((r) => r.status === 'قيد التحقيق').length, [rows]);
-  const closed = useMemo(() => rows.filter((r) => r.status === 'مغلقة').length, [rows]);
-  const archived = useMemo(() => closed, [closed]);
+  const listParams = useMemo(() => {
+    const p = {};
+    const s = q.trim();
+    if (s) p.search = s;
+    if (status) p.status = status;
+    if (cohortId) p.cohort_id = cohortId;
+    return p;
+  }, [q, status, cohortId]);
+
+  const { data: cohortsPayload } = useCohorts({}, { staleTime: 60_000 });
+  const cohorts = cohortsPayload?.cohorts ?? [];
+
+  const { data, isLoading, isError, error } = useIntegrityCases(listParams, { staleTime: 30_000 });
+  const rows = data?.integrity_cases ?? [];
+
+  const stats = useMemo(() => {
+    const reported = rows.filter((r) => r.status === 'reported').length;
+    const investigation = rows.filter((r) => r.status === 'under_investigation').length;
+    const closed = rows.filter((r) => r.status === 'closed' || r.status === 'resolved').length;
+    return { total: rows.length, reported, investigation, closed };
+  }, [rows]);
 
   return (
-    <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'النزاهة الأكاديمية', 'Academic integrity')}
-        description={tr(
-          isArabic,
-          'إدارة قضايا النزاهة والتحقيقات المرتبطة بالشواهد.',
-          'Manage integrity cases and investigations linked to evidence.'
-        )}
-      />
+    <div className="page page--dashboard page--admin crud-page">
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'قضية جديدة', 'New case')}
-        </Button>
+        <Link className="btn btn--primary" to={`${base}/integrity-cases/create`}>
+          <Plus size={18} aria-hidden /> {t('add')}
+        </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالمرجع', 'Search by reference')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField id="int-status" label={tr(isArabic, 'الحالة', 'Status')} defaultValue="">
-          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
-          <option value="open">{tr(isArabic, 'مفتوحة', 'Open')}</option>
-          <option value="closed">{tr(isArabic, 'مغلقة', 'Closed')}</option>
+        <SelectField id="int-cohort" label={t('form.cohort')} value={cohortId} onChange={(e) => setCohortId(e.target.value)}>
+          <option value="">{t('filters.allCohorts')}</option>
+          {cohorts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField id="int-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="reported">{statusLabelAr('reported', locale)}</option>
+          <option value="under_investigation">{statusLabelAr('under_investigation', locale)}</option>
+          <option value="resolved">{statusLabelAr('resolved', locale)}</option>
+          <option value="closed">{statusLabelAr('closed', locale)}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'قضايا مفتوحة', 'Open cases')} value={String(openCases)} icon={BadgeAlert} />
-        <StatCard label={tr(isArabic, 'قيد التحقيق', 'Under investigation')} value={String(investigating)} icon={Eye} />
-        <StatCard label={tr(isArabic, 'قرارات', 'Decisions')} value={String(closed)} icon={Gavel} />
-        <StatCard label={tr(isArabic, 'مؤرشفة', 'Archived')} value={String(archived)} icon={Lock} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={BadgeAlert} />
+        <StatCard label={t('stats.reported')} value={String(stats.reported)} icon={BadgeAlert} />
+        <StatCard label={t('stats.investigation')} value={String(stats.investigation)} icon={Eye} />
+        <StatCard label={t('stats.closed')} value={String(stats.closed)} icon={BadgeAlert} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة القضايا', 'Cases list')}>
-        <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
-          columns={[
-            { key: 'ref', label: tr(isArabic, 'المرجع', 'Reference') },
-            { key: 'type', label: tr(isArabic, 'النوع', 'Type') },
-            { key: 'party', label: tr(isArabic, 'الجهة', 'Party') },
-            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
-            { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
-            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
-          ]}
-          rows={rows}
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={isError ? tCommon('errors.generic') : tCommon('emptyStates.noResultsTitle')}
+            emptyDescription={isError ? String(error?.message ?? '') : tCommon('emptyStates.noResultsDescription')}
+            columns={[
+              { key: 'case_type', label: t('table.type') },
+              { key: 'student', label: t('table.student'), render: (r) => r.student?.full_name ?? '—' },
+              { key: 'cohort', label: t('table.cohort'), render: (r) => r.cohort?.title ?? '—' },
+              { key: 'assessment', label: t('table.assessment'), render: (r) => r.assessment?.title ?? '—' },
+              {
+                key: 'status',
+                label: t('table.status'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                ),
+              },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => (
+                  <TableIconActions viewTo={`${base}/integrity-cases/${r.id}`} editTo={`${base}/integrity-cases/${r.id}/edit`} />
+                ),
+              },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
     </div>
   );

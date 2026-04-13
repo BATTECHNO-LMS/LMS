@@ -1,0 +1,26 @@
+{
+  "title": "Learning outcomes",
+  "description": "Define and maintain learning outcomes linked to micro-credentials.",
+  "panelTitle": "Learning outcomes",
+  "addOutcome": "Add outcome",
+  "editOutcome": "Edit outcome",
+  "confirmDelete": "Delete this learning outcome?",
+  "table": {
+    "code": "Code",
+    "text": "Outcome text",
+    "type": "Type"
+  },
+  "empty": {
+    "title": "No learning outcomes",
+    "description": "Add at least one outcome before requesting curriculum review."
+  },
+  "errors": {
+    "save": "Could not save learning outcome.",
+    "delete": "Could not delete learning outcome."
+  },
+  "catalog": {
+    "pickLabel": "Micro-credential",
+    "pickPlaceholder": "Select a micro-credential to load its outcomes",
+    "hint": "Choose a credential from the list to view and manage outcomes."
+  }
+}

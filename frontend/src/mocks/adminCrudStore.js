@@ -19,5 +19,4 @@ export const adminCrudStore = {
   microCredentials: emptyEntity(),
   cohorts: emptyEntity(),
   assessments: emptyEntity(),
-  recognition: emptyEntity(),
 };

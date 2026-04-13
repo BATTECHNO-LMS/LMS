@@ -1,8 +1,10 @@
 /**
- * Central REST path map — aligned with backend (`/api/auth/*`, `/api/v1/*`).
+ * Central REST path map — aligned with backend (`/api/auth/*`, versioned `/api/:version/*`).
+ * Version defaults to `v1` (Express: `app.use('/api/' + API_VERSION, routes)`).
  */
 const API_ROOT = '/api';
-const API_V1 = `${API_ROOT}/v1`;
+const API_VERSION = import.meta.env.VITE_API_VERSION || 'v1';
+const API_V = `${API_ROOT}/${API_VERSION}`;
 
 export const endpoints = {
   auth: {
@@ -13,22 +15,30 @@ export const endpoints = {
     refresh: `${API_ROOT}/auth/refresh`,
     me: `${API_ROOT}/auth/me`,
   },
-  users: `${API_V1}/users`,
-  universities: `${API_V1}/universities`,
-  tracks: `${API_V1}/tracks`,
-  microCredentials: `${API_V1}/micro-credentials`,
-  cohorts: `${API_V1}/cohorts`,
-  sessions: `${API_V1}/sessions`,
-  attendance: `${API_V1}/attendance`,
-  assessments: `${API_V1}/assessments`,
-  rubrics: `${API_V1}/rubrics`,
-  submissions: `${API_V1}/submissions`,
-  grades: `${API_V1}/grades`,
-  evidence: `${API_V1}/evidence`,
-  qa: `${API_V1}/qa`,
-  risks: `${API_V1}/risks`,
-  integrity: `${API_V1}/integrity`,
-  recognition: `${API_V1}/recognition`,
-  certificates: `${API_V1}/certificates`,
-  reports: `${API_V1}/reports`,
+  users: `${API_V}/users`,
+  universities: `${API_V}/universities`,
+  tracks: `${API_V}/tracks`,
+  microCredentials: `${API_V}/micro-credentials`,
+  learningOutcomes: `${API_V}/learning-outcomes`,
+  cohorts: `${API_V}/cohorts`,
+  enrollments: `${API_V}/enrollments`,
+  sessions: `${API_V}/sessions`,
+  attendanceRecords: `${API_V}/attendance-records`,
+  assessments: `${API_V}/assessments`,
+  rubrics: `${API_V}/rubrics`,
+  submissions: `${API_V}/submissions`,
+  grades: `${API_V}/grades`,
+  rubricCriteria: `${API_V}/rubric-criteria`,
+  students: `${API_V}/students`,
+  evidence: `${API_V}/evidence`,
+  qaReviews: `${API_V}/qa-reviews`,
+  correctiveActions: `${API_V}/corrective-actions`,
+  riskCases: `${API_V}/risk-cases`,
+  integrityCases: `${API_V}/integrity-cases`,
+  recognitionRequests: `${API_V}/recognition-requests`,
+  recognitionDocuments: `${API_V}/recognition-documents`,
+  certificates: `${API_V}/certificates`,
+  notifications: `${API_V}/notifications`,
+  auditLogs: `${API_V}/audit-logs`,
+  reports: `${API_V}/reports`,
 };

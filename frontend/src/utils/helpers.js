@@ -3,6 +3,7 @@ import { ADMIN_ROLE_SET, ROLES } from '../constants/roles.js';
 const DASHBOARD_BY_ROLE = {
   [ROLES.SUPER_ADMIN]: '/admin/dashboard',
   [ROLES.PROGRAM_ADMIN]: '/admin/dashboard',
+  [ROLES.UNIVERSITY_ADMIN]: '/admin/dashboard',
   [ROLES.ACADEMIC_ADMIN]: '/admin/dashboard',
   [ROLES.QA_OFFICER]: '/admin/dashboard',
   [ROLES.INSTRUCTOR]: '/instructor/dashboard',

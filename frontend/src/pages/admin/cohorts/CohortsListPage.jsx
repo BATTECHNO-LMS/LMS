@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Plus, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
 import { AdminFilterBar } from '../../../components/admin/AdminFilterBar.jsx';
@@ -10,150 +11,136 @@ import { SearchInput } from '../../../components/admin/SearchInput.jsx';
 import { SelectField } from '../../../components/admin/SelectField.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
 import { StatCard } from '../../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
-import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModal.jsx';
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
-import { useTranslation } from 'react-i18next';
-import { tr } from '../../../utils/i18n.js';
+import { useCohorts } from '../../../features/cohorts/index.js';
+import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
+
+function mapRow(c, locale) {
+  return {
+    id: String(c.id),
+    title: String(c.title ?? ''),
+    credentialTitle: c.micro_credential?.title ? String(c.micro_credential.title) : '—',
+    instructorName: c.instructor?.full_name ? String(c.instructor.full_name) : '—',
+    capacity: c.capacity != null ? String(c.capacity) : '—',
+    start_date: c.start_date ? String(c.start_date) : '—',
+    end_date: c.end_date ? String(c.end_date) : '—',
+    status: String(c.status ?? ''),
+    locale,
+  };
+}
 
 export function CohortsListPage() {
+  const { t } = useTranslation('cohorts');
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const location = useLocation();
-  const { filterRows, scopeId } = useTenant();
-  const [tick, setTick] = useState(0);
+  const { isAllTenantsSelected, currentTenantId } = useTenant();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
-  const [deleteId, setDeleteId] = useState(null);
 
-  useEffect(() => {
-    setTick((x) => x + 1);
-  }, [location.key, location.pathname, scopeId]);
+  const listParams = useMemo(() => {
+    const p = {};
+    if (status) p.status = status;
+    const s = q.trim();
+    if (s) p.search = s;
+    if (!isAllTenantsSelected && currentTenantId && currentTenantId !== TENANT_SCOPE_ALL) {
+      p.university_id = currentTenantId;
+    }
+    return p;
+  }, [status, q, isAllTenantsSelected, currentTenantId]);
 
-  const rows = useMemo(() => filterRows(adminCrudStore.cohorts.getAll()), [filterRows, scopeId, tick, location.key]);
+  const { data, isLoading, isError, error } = useCohorts(listParams);
 
-  const filtered = rows.filter((r) => {
-    const matchQ =
-      !q ||
-      r.name.includes(q) ||
-      r.instructor.includes(q) ||
-      (r.credentialName && r.credentialName.includes(q)) ||
-      (r.universityName && r.universityName.includes(q));
-    const matchStatus = !status || r.status === status;
-    return matchQ && matchStatus;
-  });
+  const rows = useMemo(() => {
+    const list = data?.cohorts ?? [];
+    return list.map((c) => mapRow(c, locale));
+  }, [data, locale]);
 
-  const stats = {
-    total: rows.length,
-    running: rows.filter((r) => r.status === 'running').length,
-    planned: rows.filter((r) => r.status === 'planned').length,
-    completed: rows.filter((r) => r.status === 'completed').length,
-  };
+  const stats = useMemo(() => {
+    const total = rows.length;
+    const active = rows.filter((r) => r.status === 'active').length;
+    const planned = rows.filter((r) => r.status === 'planned').length;
+    const completed = rows.filter((r) => r.status === 'completed').length;
+    const open = rows.filter((r) => r.status === 'open_for_enrollment').length;
+    return { total, active, planned, completed, open };
+  }, [rows]);
+
+  const emptyTitle = isError ? tCommon('errors.generic') : rows.length ? t('empty.noResults') : t('empty.noRecords');
+  const emptyDescription = isError
+    ? String(error?.message ?? tCommon('errors.generic'))
+    : rows.length
+      ? t('empty.tryFilters')
+      : t('empty.noRecords');
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader
-        title={tr(isArabic, 'إدارة الدفعات', 'Batch management')}
-        description={tr(
-          isArabic,
-          'متابعة الدفعات التدريبية والجداول الزمنية.',
-          'Track training batches and schedules.'
-        )}
-      />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/cohorts/create">
-          <Plus size={18} aria-hidden /> {tr(isArabic, 'إضافة دفعة', 'Add batch')}
+          <Plus size={18} aria-hidden /> {t('add')}
         </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder={tr(isArabic, 'بحث بالاسم أو المدرب أو الشهادة', 'Search by name, trainer, or certificate')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField
-          id="cohort-status"
-          label={tr(isArabic, 'الحالة', 'Status')}
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
-          <option value="planned">{tr(isArabic, 'مخطط', 'Planned')}</option>
-          <option value="running">{tr(isArabic, 'قيد التنفيذ', 'In progress')}</option>
-          <option value="completed">{tr(isArabic, 'مكتمل', 'Completed')}</option>
-          <option value="cancelled">{tr(isArabic, 'ملغى', 'Cancelled')}</option>
+        <SelectField id="cohort-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="planned">{t('status.planned')}</option>
+          <option value="open_for_enrollment">{t('status.open_for_enrollment')}</option>
+          <option value="active">{t('status.active')}</option>
+          <option value="completed">{t('status.completed')}</option>
+          <option value="closed">{t('status.closed')}</option>
+          <option value="cancelled">{t('status.cancelled')}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'إجمالي الدفعات', 'Total batches')} value={String(stats.total)} icon={Users} />
-        <StatCard label={tr(isArabic, 'قيد التنفيذ', 'In progress')} value={String(stats.running)} icon={Users} />
-        <StatCard label={tr(isArabic, 'مخطط', 'Planned')} value={String(stats.planned)} icon={Users} />
-        <StatCard label={tr(isArabic, 'مكتمل', 'Completed')} value={String(stats.completed)} icon={Users} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={Users} />
+        <StatCard label={t('stats.active')} value={String(stats.active)} icon={Users} />
+        <StatCard label={t('stats.planned')} value={String(stats.planned)} icon={Users} />
+        <StatCard label={t('stats.open')} value={String(stats.open)} icon={Users} />
+        <StatCard label={t('stats.completed')} value={String(stats.completed)} icon={Users} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة الدفعات', 'Batches list')}>
-        <DataTable
-          emptyTitle={
-            rows.length === 0
-              ? tCommon('tenant.noCohortsForTenant')
-              : rows.length && !filtered.length
-                ? tr(isArabic, 'لا توجد نتائج', 'No results')
-                : tr(isArabic, 'لا توجد بيانات', 'No data')
-          }
-          emptyDescription={
-            rows.length === 0
-              ? tCommon('tenant.emptyForScope')
-              : rows.length && !filtered.length
-                ? tr(isArabic, 'جرّب تعديل عوامل التصفية أو البحث.', 'Try adjusting filters or search.')
-                : tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')
-          }
-          columns={[
-            { key: 'name', label: tr(isArabic, 'اسم الدفعة', 'Batch name') },
-            { key: 'credentialName', label: tr(isArabic, 'الشهادة', 'Certificate') },
-            { key: 'instructor', label: tr(isArabic, 'المدرّب', 'Trainer') },
-            { key: 'startDate', label: tr(isArabic, 'تاريخ البداية', 'Start date') },
-            { key: 'endDate', label: tr(isArabic, 'تاريخ النهاية', 'End date') },
-            {
-              key: 'status',
-              label: tr(isArabic, 'الحالة', 'Status'),
-              render: (r) => (
-                <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
-              ),
-            },
-            {
-              key: 'actions',
-              label: tr(isArabic, 'الإجراءات', 'Actions'),
-              render: (r) => (
-                <TableIconActions
-                  viewTo={`/admin/cohorts/${r.id}`}
-                  editTo={`/admin/cohorts/${r.id}/edit`}
-                  onDelete={() => setDeleteId(r.id)}
-                />
-              ),
-            },
-          ]}
-          rows={filtered}
-          footer={
-            <div className="data-table__pagination">
-              {tr(isArabic, 'ترقيم الصفحات — سيتم تفعيله لاحقاً', 'Pagination — will be enabled later')}
-            </div>
-          }
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={emptyTitle}
+            emptyDescription={emptyDescription}
+            columns={[
+              { key: 'title', label: t('table.title') },
+              { key: 'credentialTitle', label: t('table.certificate') },
+              { key: 'instructorName', label: t('table.trainer') },
+              { key: 'capacity', label: t('table.capacity') },
+              { key: 'start_date', label: t('table.startDate') },
+              { key: 'end_date', label: t('table.endDate') },
+              {
+                key: 'status',
+                label: tCommon('status.label'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, r.locale)}</StatusBadge>
+                ),
+              },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => (
+                  <TableIconActions viewTo={`/admin/cohorts/${r.id}`} editTo={`/admin/cohorts/${r.id}/edit`} />
+                ),
+              },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
-      <ConfirmDeleteModal
-        open={Boolean(deleteId)}
-        onClose={() => setDeleteId(null)}
-        onConfirm={() => {
-          if (deleteId) adminCrudStore.cohorts.remove(deleteId);
-          setDeleteId(null);
-          setTick((x) => x + 1);
-        }}
-      />
     </div>
   );
 }

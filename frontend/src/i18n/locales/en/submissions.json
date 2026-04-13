@@ -4,7 +4,9 @@
     "submitted": "Submitted",
     "late": "Late",
     "graded": "Graded",
-    "draft": "Draft"
+    "draft": "Draft",
+    "resubmitted": "Resubmitted",
+    "returned": "Returned"
   },
   "student": {
     "title": "Submissions",
@@ -43,7 +45,8 @@
     "stats": {
       "awaitingReview": "Awaiting review",
       "graded": "Graded",
-      "late": "Late"
+      "late": "Late",
+      "total": "Total submissions"
     },
     "searchPlaceholder": "Search by learner or assessment",
     "searchAria": "Search",

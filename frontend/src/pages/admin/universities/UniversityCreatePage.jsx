@@ -45,7 +45,9 @@ export function UniversityCreatePage() {
       });
       navigate('/admin/universities');
     } catch (err) {
-      setErrors({ _form: err?.message ?? 'Error' });
+      setErrors({
+        _form: getApiErrorMessage(err, isArabic ? 'تعذّر إنشاء الجامعة.' : 'Could not create university.'),
+      });
     }
   }
 

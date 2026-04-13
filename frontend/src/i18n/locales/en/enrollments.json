@@ -1,0 +1,16 @@
+{
+  "title": "Enrollments",
+  "viewTitle": "Enrollment details",
+  "backToCohort": "Back to cohort",
+  "viewEnrollment": "Details",
+  "addStudent": "Enroll student",
+  "student": "Student",
+  "enrollmentStatus": "Enrollment status",
+  "finalStatus": "Final status",
+  "attendancePct": "Attendance %",
+  "recognition": "Recognition eligibility",
+  "empty": "No enrollments yet.",
+  "selectStudent": "Select student",
+  "save": "Enroll",
+  "updateStatus": "Update"
+}

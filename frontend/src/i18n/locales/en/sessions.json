@@ -1,0 +1,16 @@
+{
+  "title": "Sessions",
+  "sessionTitle": "Session title",
+  "listTitle": "Sessions for cohort",
+  "create": "New session",
+  "edit": "Edit session",
+  "attendance": "Attendance",
+  "sessionDate": "Session date",
+  "startTime": "Start time",
+  "endTime": "End time",
+  "sessionType": "Session type",
+  "documentation": "Documentation",
+  "notes": "Notes",
+  "empty": "No sessions yet.",
+  "backToCohort": "Back to cohort"
+}

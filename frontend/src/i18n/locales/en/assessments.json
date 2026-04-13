@@ -7,7 +7,8 @@
     "total": "Total assessments",
     "published": "Published",
     "pending": "Pending review",
-    "drafts": "Drafts"
+    "drafts": "Drafts",
+    "open": "Open"
   },
   "listTitle": "Assessments list",
   "table": {
@@ -43,7 +44,10 @@
   "view": {
     "title": "Assessment details",
     "description": "View assessment and cohort details.",
-    "notFound": "Assessment not found."
+    "notFound": "Assessment not found.",
+    "counts": "Activity",
+    "submissions": "Submissions",
+    "grades": "Grades"
   },
   "student": {
     "title": "Assessments",
@@ -84,7 +88,8 @@
       "active": "Active assessments",
       "awaitingGrading": "Awaiting grading",
       "upcoming": "Upcoming",
-      "averageGrades": "Average grades"
+      "averageGrades": "Average grades",
+      "totalListed": "Listed"
     },
     "searchPlaceholder": "Search by assessment or cohort",
     "searchAria": "Search",

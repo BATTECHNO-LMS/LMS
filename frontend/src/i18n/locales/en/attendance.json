@@ -1,0 +1,17 @@
+{
+  "title": "Attendance",
+  "markTitle": "Mark attendance",
+  "statusCol": "Status",
+  "saveMarks": "Save attendance",
+  "saveRow": "Save row",
+  "summaryTitle": "Cohort attendance summary",
+  "selectCohort": "Cohort",
+  "totalSessions": "Sessions",
+  "present": "Present",
+  "absent": "Absent",
+  "late": "Late",
+  "excused": "Excused",
+  "pct": "Attendance %",
+  "pickSession": "Select a cohort and session to mark attendance.",
+  "emptyRoster": "No enrolled students for this session."
+}

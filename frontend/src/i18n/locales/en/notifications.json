@@ -1,0 +1,19 @@
+{
+  "title": "Notifications",
+  "description": "Updates and system messages for your account.",
+  "list": {
+    "columns": {
+      "time": "Time",
+      "title": "Title"
+    },
+    "read": "Read"
+  },
+  "emptyTitle": "No notifications",
+  "emptyDescription": "You are all caught up.",
+  "markRead": "Mark as read",
+  "markAllRead": "Mark all as read",
+  "unread": "Unread",
+  "type": "Type",
+  "all": "All",
+  "loadError": "Could not load notifications."
+}

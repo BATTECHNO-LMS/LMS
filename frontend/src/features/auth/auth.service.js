@@ -11,7 +11,13 @@ export async function login(credentials) {
   const res = await apiClient.post(endpoints.auth.login, { email, password });
   const payload = unwrapApiData(res);
   const token = payload?.token;
+  if (!token || typeof token !== 'string') {
+    throw new Error('Invalid login response: missing token');
+  }
   const user = mapAuthUser(payload?.user);
+  if (!user) {
+    throw new Error('Invalid login response: missing user');
+  }
   return { data: { token, user } };
 }
 
@@ -23,10 +29,16 @@ export async function registerStudent(body) {
   const res = await apiClient.post(endpoints.auth.register, body);
   const payload = unwrapApiData(res);
   const token = payload?.token;
+  if (!token || typeof token !== 'string') {
+    throw new Error('Invalid registration response: missing token');
+  }
   const user = mapAuthUser({
     ...payload?.user,
     roles: payload?.user?.roles ?? ['student'],
   });
+  if (!user) {
+    throw new Error('Invalid registration response: missing user');
+  }
   return { data: { token, user } };
 }
 

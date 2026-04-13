@@ -1,0 +1,71 @@
+{
+  "list": {
+    "title": "الشهادات الرقمية",
+    "description": "إصدار الشهادات والتحقق من صحتها.",
+    "searchPlaceholder": "بحث برقم الشهادة أو رمز التحقق",
+    "status": "الحالة",
+    "allStatuses": "كل الحالات",
+    "issue": "إصدار شهادة",
+    "verifyLink": "التحقق برمز",
+    "columns": {
+      "certificateNo": "رقم الشهادة",
+      "verificationCode": "رمز التحقق",
+      "student": "المتعلّم",
+      "microCredential": "الشهادة المصغّرة",
+      "cohort": "الدفعة",
+      "issuedAt": "تاريخ الإصدار",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "stats": {
+      "issued": "صادرة",
+      "total": "إجمالي المعروض"
+    },
+    "emptyTitle": "لا توجد شهادات",
+    "emptyDescription": "لا توجد سجلات للمرشحات الحالية.",
+    "loadError": "تعذر تحميل الشهادات."
+  },
+  "issue": {
+    "title": "إصدار شهادة",
+    "studentId": "معرّف المستخدم (طالب)",
+    "cohortId": "معرّف الدفعة",
+    "microCredentialId": "معرّف الشهادة المصغّرة",
+    "submit": "إصدار",
+    "cancel": "إلغاء",
+    "error": "تعذر إصدار الشهادة."
+  },
+  "detail": {
+    "title": "تفاصيل الشهادة",
+    "description": "عرض بيانات الشهادة وحالة دورة الحياة.",
+    "cardTitle": "الشهادة",
+    "certificateNo": "رقم الشهادة",
+    "verificationCode": "رمز التحقق",
+    "status": "الحالة",
+    "issuedAt": "تاريخ الإصدار",
+    "student": "الطالب",
+    "cohort": "الدفعة",
+    "microCredential": "الشهادة المصغّرة",
+    "updateStatus": "تحديث الحالة",
+    "chooseStatus": "اختر الحالة الجديدة…",
+    "apply": "تطبيق"
+  },
+  "verify": {
+    "prompt": "أدخل رمز التحقق",
+    "shortCode": "رمز التحقق مفقود أو قصير جداً.",
+    "notValid": "غير صالحة كشهادة نشطة",
+    "title": "التحقق من الشهادة",
+    "description": "تحقق عام باستخدام رمز التحقق.",
+    "invalid": "لم يُعثر على رمز التحقق.",
+    "valid": "نتيجة التحقق",
+    "certificateNo": "رقم الشهادة",
+    "status": "الحالة",
+    "issuedAt": "تاريخ الإصدار",
+    "microCredential": "الشهادة المصغّرة",
+    "cohort": "الدفعة"
+  },
+  "statuses": {
+    "issued": "صادرة",
+    "revoked": "ملغاة",
+    "superseded": "مستبدلة"
+  }
+}

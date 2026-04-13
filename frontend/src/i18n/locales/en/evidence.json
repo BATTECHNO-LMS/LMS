@@ -1,0 +1,51 @@
+{
+  "title": "Evidence",
+  "description": "Cohort-scoped evidence records linked to micro-credentials, assessments, and sessions.",
+  "add": "Add evidence",
+  "searchPlaceholder": "Search title or type",
+  "listTitle": "Evidence files",
+  "stats": {
+    "total": "Total records",
+    "withStudent": "Linked to learner",
+    "withAssessment": "Linked to assessment"
+  },
+  "filters": {
+    "cohort": "Cohort",
+    "allCohorts": "All cohorts",
+    "evidenceType": "Evidence type",
+    "allTypes": "All types"
+  },
+  "table": {
+    "title": "Title",
+    "type": "Type",
+    "cohort": "Cohort",
+    "microCredential": "Micro-credential",
+    "updated": "Updated"
+  },
+  "create": {
+    "title": "New evidence",
+    "description": "Create an evidence record with a file URL (upload pipeline can be wired separately).",
+    "submit": "Save",
+    "cancel": "Cancel"
+  },
+  "edit": {
+    "title": "Edit evidence",
+    "submit": "Save changes"
+  },
+  "detail": {
+    "title": "Evidence details",
+    "fileLink": "Open file",
+    "back": "Back to list"
+  },
+  "form": {
+    "cohort": "Cohort",
+    "microCredential": "Micro-credential",
+    "title": "Title",
+    "evidenceType": "Evidence type",
+    "fileUrl": "File URL",
+    "student": "Student (optional)",
+    "assessment": "Assessment (optional)",
+    "session": "Session (optional)",
+    "none": "— None —"
+  }
+}

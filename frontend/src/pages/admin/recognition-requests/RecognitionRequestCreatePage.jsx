@@ -1,117 +1,131 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Save, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
-import { FormInput, FormSelect } from '../../../components/forms/index.js';
-import { adminCrudStore } from '../../../mocks/adminCrudStore.js';
-import { recognitionSchema } from '../../../schemas/adminCrudSchemas.js';
-import { safeParse } from '../../../utils/zodErrors.js';
-import { useLocale } from '../../../features/locale/index.js';
-import { tr } from '../../../utils/i18n.js';
+import { FormSelect } from '../../../components/forms/index.js';
+import { useAuth } from '../../../features/auth/index.js';
+import { useUniversities } from '../../../features/universities/hooks/useUniversities.js';
+import { useCohorts } from '../../../features/cohorts/hooks/useCohorts.js';
+import { useCreateRecognitionRequest } from '../../../features/recognition/hooks/useCreateRecognitionRequest.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+
+const CREATE_STATUSES = ['draft', 'in_preparation'];
 
 export function RecognitionRequestCreatePage() {
-  const { isArabic } = useLocale();
+  const { t } = useTranslation('recognition');
+  const { t: tCommon } = useTranslation('common');
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const unis = useMemo(() => adminCrudStore.universities.getAll(), []);
-  const first = unis[0];
-  const [form, setForm] = useState({
-    title: '',
-    universityId: first?.id ?? '',
-    universityName: first?.name ?? '',
-    credentialName: '',
-    cohortName: '',
-    status: 'draft',
-  });
-  const [errors, setErrors] = useState({});
+  const isGlobal = Boolean(user?.isGlobal);
+  const [universityId, setUniversityId] = useState(() => (isGlobal ? '' : user?.tenantId) || '');
+  const [cohortId, setCohortId] = useState('');
+  const [status, setStatus] = useState('draft');
+  const [formError, setFormError] = useState('');
 
-  function setField(key, value) {
-    setForm((f) => ({ ...f, [key]: value }));
-  }
+  const { data: uniPayload } = useUniversities({ enabled: Boolean(user) && isGlobal });
+  const universities = uniPayload?.universities ?? [];
 
-  function onUniversityChange(e) {
-    const uid = e.target.value;
-    const u = adminCrudStore.universities.getById(uid);
-    setForm((f) => ({ ...f, universityId: uid, universityName: u?.name ?? '' }));
-  }
+  const { data: cohortsPayload, isLoading: cohortsLoading } = useCohorts(
+    { university_id: universityId || undefined },
+    { enabled: Boolean(universityId), staleTime: 30_000 }
+  );
+  const cohorts = cohortsPayload?.cohorts ?? [];
+
+  const selectedCohort = useMemo(() => cohorts.find((c) => c.id === cohortId), [cohorts, cohortId]);
+
+  useEffect(() => {
+    if (!isGlobal && user?.tenantId) setUniversityId(String(user.tenantId));
+  }, [isGlobal, user?.tenantId]);
+
+  const createMutation = useCreateRecognitionRequest();
 
   function onSubmit(e) {
     e.preventDefault();
-    const res = safeParse(recognitionSchema, form);
-    if (!res.ok) {
-      setErrors(res.errors);
+    setFormError('');
+    if (!selectedCohort) {
+      setFormError(t('form.selectCohortHint'));
       return;
     }
-    adminCrudStore.recognition.create({ ...res.data });
-    navigate('/admin/recognition-requests');
+    createMutation.mutate(
+      {
+        university_id: selectedCohort.university_id,
+        micro_credential_id: selectedCohort.micro_credential_id,
+        cohort_id: selectedCohort.id,
+        status,
+      },
+      {
+        onSuccess: (payload) => {
+          const id = payload?.recognition_request?.id;
+          navigate(id ? `/admin/recognition-requests/${id}` : '/admin/recognition-requests');
+        },
+        onError: (err) => setFormError(getApiErrorMessage(err, t('form.createError'))),
+      }
+    );
   }
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader
-        title={tr(isArabic, 'إنشاء طلب اعتراف', 'Create recognition request')}
-        description={tr(isArabic, 'تسجيل طلب اعتراف أكاديمي جديد.', 'Register a new academic recognition request.')}
-      />
+      <AdminPageHeader title={t('create.title')} description={t('list.description')} />
       <form onSubmit={onSubmit} noValidate>
         <SectionCard
-          title={tr(isArabic, 'البيانات', 'Details')}
+          title={t('view.title')}
           actions={
             <>
               <Link className="btn btn--outline" to="/admin/recognition-requests">
-                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
+                <X size={18} aria-hidden /> {t('form.cancel')}
               </Link>
-              <button type="submit" className="btn btn--primary">
-                <Save size={18} aria-hidden /> {tr(isArabic, 'حفظ', 'Save')}
+              <button type="submit" className="btn btn--primary" disabled={createMutation.isPending}>
+                <Save size={18} aria-hidden /> {t('form.save')}
               </button>
             </>
           }
         >
+          {formError ? (
+            <p className="crud-muted" role="alert">
+              {formError}
+            </p>
+          ) : null}
           <div className="crud-form-grid">
-            <FormInput
-              id="title"
-              label={tr(isArabic, 'عنوان الطلب', 'Request title')}
-              value={form.title}
-              onChange={(e) => setField('title', e.target.value)}
-              error={errors.title}
-            />
+            {isGlobal ? (
+              <FormSelect
+                id="universityId"
+                label={t('form.university')}
+                value={universityId}
+                onChange={(e) => {
+                  setUniversityId(e.target.value);
+                  setCohortId('');
+                }}
+              >
+                <option value="">{t('form.selectUniversity')}</option>
+                {universities.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name}
+                  </option>
+                ))}
+              </FormSelect>
+            ) : null}
             <FormSelect
-              id="universityId"
-              label={tr(isArabic, 'الجامعة', 'University')}
-              value={form.universityId}
-              onChange={onUniversityChange}
-              error={errors.universityId}
+              id="cohortId"
+              label={t('form.cohort')}
+              value={cohortId}
+              onChange={(e) => setCohortId(e.target.value)}
+              disabled={!universityId || cohortsLoading}
             >
-              {unis.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
+              <option value="">{cohortsLoading ? tCommon('loading') : t('form.selectCohortPlaceholder')}</option>
+              {cohorts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title} {c.micro_credential?.title ? `— ${c.micro_credential.title}` : ''}
                 </option>
               ))}
             </FormSelect>
-            <FormInput
-              id="credentialName"
-              label={tr(isArabic, 'اسم الشهادة', 'Certificate name')}
-              value={form.credentialName}
-              onChange={(e) => setField('credentialName', e.target.value)}
-              error={errors.credentialName}
-            />
-            <FormInput
-              id="cohortName"
-              label={tr(isArabic, 'اسم الدفعة', 'Cohort name')}
-              value={form.cohortName}
-              onChange={(e) => setField('cohortName', e.target.value)}
-              error={errors.cohortName}
-            />
-            <FormSelect
-              id="status"
-              label={tr(isArabic, 'الحالة', 'Status')}
-              value={form.status}
-              onChange={(e) => setField('status', e.target.value)}
-              error={errors.status}
-            >
-              <option value="draft">{tr(isArabic, 'مسودة', 'Draft')}</option>
-              <option value="pending">{tr(isArabic, 'قيد المراجعة', 'Pending review')}</option>
-              <option value="approved">{tr(isArabic, 'معتمد', 'Approved')}</option>
-              <option value="rejected">{tr(isArabic, 'مرفوض', 'Rejected')}</option>
+            <FormSelect id="status" label={t('form.initialStatus')} value={status} onChange={(e) => setStatus(e.target.value)}>
+              {CREATE_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {t(`statuses.${s}`)}
+                </option>
+              ))}
             </FormSelect>
           </div>
         </SectionCard>

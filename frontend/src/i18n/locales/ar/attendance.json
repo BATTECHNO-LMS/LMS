@@ -1,0 +1,17 @@
+{
+  "title": "الحضور",
+  "markTitle": "تسجيل الحضور",
+  "statusCol": "الحالة",
+  "saveMarks": "حفظ الحضور",
+  "saveRow": "حفظ الصف",
+  "summaryTitle": "ملخص حضور الدفعة",
+  "selectCohort": "الدفعة",
+  "totalSessions": "الجلسات",
+  "present": "حاضر",
+  "absent": "غائب",
+  "late": "متأخر",
+  "excused": "معذور",
+  "pct": "نسبة الحضور %",
+  "pickSession": "اختر الدفعة والجلسة لتسجيل الحضور.",
+  "emptyRoster": "لا يوجد طلاب مسجّلون في هذه الجلسة."
+}

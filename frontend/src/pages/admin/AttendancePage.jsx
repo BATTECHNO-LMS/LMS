@@ -1,70 +1,97 @@
-import { useMemo } from 'react';
-import { ClipboardCheck, UserCheck, UserX, Percent } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Percent } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
   AdminFilterBar,
   AdminStatsGrid,
   SectionCard,
-  SearchInput,
   SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { useCohorts, useCohortAttendanceSummary } from '../../features/cohorts/index.js';
 import { useLocale } from '../../features/locale/index.js';
-import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_ATTENDANCE_LOG } from '../../mocks/lmsPageData.js';
+import { usePortalPathPrefix } from '../../utils/portalPathPrefix.js';
 
 export function AttendancePage() {
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('attendance');
+  const { t: tCommon } = useTranslation('common');
+  const { t: tEn } = useTranslation('enrollments');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_ATTENDANCE_LOG), [filterRows, scopeId]);
-  const present = useMemo(() => rows.filter((r) => r.status === 'حاضر').length, [rows]);
-  const absent = useMemo(() => rows.filter((r) => r.status === 'غائب').length, [rows]);
+  const [cohortId, setCohortId] = useState('');
+
+  const { data: cohortsPayload, isLoading: cLoading } = useCohorts({}, { staleTime: 60_000 });
+  const cohorts = cohortsPayload?.cohorts ?? [];
+
+  const { data: summary, isLoading: sLoading } = useCohortAttendanceSummary(cohortId || undefined, { enabled: Boolean(cohortId) });
+
+  const rows = useMemo(
+    () =>
+      (summary?.students ?? []).map((s) => ({
+        ...s,
+        studentName: s.student?.full_name ?? '—',
+        locale,
+      })),
+    [summary, locale]
+  );
+
+  const totals = useMemo(() => {
+    const list = summary?.students ?? [];
+    const p = list.reduce((a, r) => a + (r.total_present ?? 0), 0);
+    const ab = list.reduce((a, r) => a + (r.total_absent ?? 0), 0);
+    return { p, ab, n: list.length };
+  }, [summary]);
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'الحضور', 'Attendance')}
-        description={tr(isArabic, 'متابعة الحضور والغياب على مستوى الجلسات والدفعات.', 'Track attendance and absence across sessions and cohorts.')}
-      />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('summaryTitle')}</>} />
       <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'تصدير تقرير', 'Export report')}
-        </Button>
+        <Link className="btn btn--outline" to={`${base}/cohorts`}>
+          {tCommon('actions.backToList')}
+        </Link>
       </AdminActionBar>
       <AdminFilterBar>
-        <SearchInput placeholder={tr(isArabic, 'بحث بالمتعلّم', 'Search learner')} aria-label={tr(isArabic, 'بحث', 'Search')} />
-        <SelectField id="att-cohort" label={tr(isArabic, 'الدفعة', 'Cohort')} defaultValue="">
-          <option value="">{tr(isArabic, 'كل الدفعات', 'All cohorts')}</option>
+        <SelectField id="att-cohort" label={t('selectCohort')} value={cohortId} onChange={(e) => setCohortId(e.target.value)}>
+          <option value="">—</option>
+          {cohorts.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.title}
+            </option>
+          ))}
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard
-          label={tr(isArabic, 'متوسط الحضور', 'Attendance average')}
-          value={rows.length ? `${Math.round((present / rows.length) * 100)}%` : '—'}
-          icon={Percent}
-        />
-        <StatCard label={tr(isArabic, 'حضور مؤكد', 'Confirmed attendance')} value={String(present)} icon={UserCheck} />
-        <StatCard label={tr(isArabic, 'غياب مسجّل', 'Recorded absences')} value={String(absent)} icon={UserX} />
-        <StatCard label={tr(isArabic, 'جلسات مغطاة', 'Covered sessions')} value={String(new Set(rows.map((r) => r.session)).size)} icon={ClipboardCheck} />
+        <StatCard label={tEn('student')} value={String(totals.n)} icon={Percent} />
+        <StatCard label={t('present')} value={String(totals.p)} icon={Percent} />
+        <StatCard label={t('absent')} value={String(totals.ab)} icon={Percent} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'سجل الحضور', 'Attendance log')}>
-        <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
-          columns={[
-            { key: 'learner', label: tr(isArabic, 'المتعلّم', 'Learner') },
-            { key: 'session', label: tr(isArabic, 'الجلسة', 'Session') },
-            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
-            { key: 'time', label: tr(isArabic, 'الوقت', 'Time') },
-            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
-          ]}
-          rows={rows}
-        />
+      <SectionCard title={<>{t('summaryTitle')}</>}>
+        {cLoading ? <LoadingSpinner /> : null}
+        {!cohortId ? (
+          <p>{t('selectCohort')}</p>
+        ) : sLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={tCommon('errors.generic')}
+            emptyDescription=""
+            columns={[
+              { key: 'studentName', label: tEn('student') },
+              { key: 'total_sessions', label: t('totalSessions') },
+              { key: 'total_present', label: t('present') },
+              { key: 'total_late', label: t('late') },
+              { key: 'total_absent', label: t('absent') },
+              { key: 'total_excused', label: t('excused') },
+              { key: 'attendance_percentage', label: t('pct'), render: (r) => `${r.attendance_percentage ?? 0}%` },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
     </div>
   );

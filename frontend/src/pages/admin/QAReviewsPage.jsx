@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { ShieldCheck, User, Calendar, Flag } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ClipboardList, Plus, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
@@ -9,67 +11,113 @@ import {
   SearchInput,
   SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { TableIconActions } from '../../components/crud/TableIconActions.jsx';
+import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { useQaReviews } from '../../features/qa/index.js';
+import { usePortalPathPrefix } from '../../utils/portalPathPrefix.js';
+import { genericStatusVariant, statusLabelAr } from '../../utils/statusMap.js';
 import { useLocale } from '../../features/locale/index.js';
-import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_QA_REVIEWS } from '../../mocks/lmsPageData.js';
+
+function reviewTypeLabel(t, type) {
+  const k = `types.${type}`;
+  const v = t(k, { defaultValue: type });
+  return v === k ? type : v;
+}
 
 export function QAReviewsPage() {
+  const base = usePortalPathPrefix();
+  const { t } = useTranslation('qaReviews');
+  const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_QA_REVIEWS), [filterRows, scopeId]);
+  const [q, setQ] = useState('');
+  const [status, setStatus] = useState('');
 
-  const scheduled = useMemo(() => rows.filter((r) => r.status === 'مجدولة' || r.status === 'قيد التحضير').length, [rows]);
-  const reviewers = useMemo(() => new Set(rows.map((r) => r.lead)).size, [rows]);
-  const critical = useMemo(() => rows.filter((r) => r.status === 'مفتوحة').length, [rows]);
-  const completed = useMemo(() => rows.filter((r) => r.status === 'مغلقة').length, [rows]);
+  const listParams = useMemo(() => {
+    const p = {};
+    const s = q.trim();
+    if (s) p.search = s;
+    if (status) p.status = status;
+    return p;
+  }, [q, status]);
+
+  const { data, isLoading, isError, error } = useQaReviews(listParams, { staleTime: 30_000 });
+  const rows = data?.qa_reviews ?? [];
+
+  const stats = useMemo(() => {
+    const open = rows.filter((r) => r.status === 'open').length;
+    const inProgress = rows.filter((r) => r.status === 'in_progress').length;
+    const closed = rows.filter((r) => r.status === 'closed').length;
+    return { total: rows.length, open, inProgress, closed };
+  }, [rows]);
 
   return (
-    <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'مراجعات الجودة', 'QA reviews')}
-        description={tr(isArabic, 'جدولة ومتابعة جولات المراجعة الداخلية.', 'Schedule and track internal review rounds.')}
-      />
+    <div className="page page--dashboard page--admin crud-page">
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'مراجعة جديدة', 'New review')}
-        </Button>
+        <Link className="btn btn--primary" to={`${base}/qa-reviews/create`}>
+          <Plus size={18} aria-hidden /> {t('add')}
+        </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالدفعة أو الوحدة', 'Search by cohort or unit')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
-        <SelectField id="qa-status" label={tr(isArabic, 'الحالة', 'Status')} defaultValue="">
-          <option value="">{tr(isArabic, 'كل الحالات', 'All statuses')}</option>
-          <option value="open">{tr(isArabic, 'مفتوحة', 'Open')}</option>
-          <option value="closed">{tr(isArabic, 'مغلقة', 'Closed')}</option>
+        <SelectField id="qa-status" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+          <option value="">{tCommon('status.allStatuses')}</option>
+          <option value="open">{statusLabelAr('open', locale)}</option>
+          <option value="in_progress">{statusLabelAr('in_progress', locale)}</option>
+          <option value="resolved">{statusLabelAr('resolved', locale)}</option>
+          <option value="closed">{statusLabelAr('closed', locale)}</option>
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'مراجعات مجدولة', 'Scheduled reviews')} value={String(scheduled)} icon={Calendar} />
-        <StatCard label={tr(isArabic, 'مراجعون', 'Reviewers')} value={String(reviewers)} icon={User} />
-        <StatCard label={tr(isArabic, 'ملاحظات حرجة', 'Critical notes')} value={String(critical)} icon={Flag} />
-        <StatCard label={tr(isArabic, 'مكتملة', 'Completed')} value={String(completed)} icon={ShieldCheck} />
+        <StatCard label={t('stats.total')} value={String(stats.total)} icon={ClipboardList} />
+        <StatCard label={t('stats.open')} value={String(stats.open)} icon={ShieldCheck} />
+        <StatCard label={t('stats.inProgress')} value={String(stats.inProgress)} icon={ClipboardList} />
+        <StatCard label={t('stats.closed')} value={String(stats.closed)} icon={ShieldCheck} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة المراجعات', 'Reviews list')}>
-        <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
-          columns={[
-            { key: 'title', label: tr(isArabic, 'المراجعة', 'Review') },
-            { key: 'scope', label: tr(isArabic, 'النطاق', 'Scope') },
-            { key: 'lead', label: tr(isArabic, 'قائد المراجعة', 'Review lead') },
-            { key: 'status', label: tr(isArabic, 'الحالة', 'Status') },
-            { key: 'due', label: tr(isArabic, 'الاستحقاق', 'Due') },
-            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
-          ]}
-          rows={rows}
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={isError ? tCommon('errors.generic') : tCommon('emptyStates.noResultsTitle')}
+            emptyDescription={isError ? String(error?.message ?? '') : tCommon('emptyStates.noResultsDescription')}
+            columns={[
+              { key: 'cohort', label: t('table.cohort'), render: (r) => r.cohort?.title ?? '—' },
+              {
+                key: 'review_date',
+                label: t('table.date'),
+                render: (r) => (r.review_date ? String(r.review_date).slice(0, 10) : '—'),
+              },
+              {
+                key: 'review_type',
+                label: t('table.type'),
+                render: (r) => reviewTypeLabel(t, r.review_type),
+              },
+              {
+                key: 'status',
+                label: t('table.status'),
+                render: (r) => (
+                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                ),
+              },
+              { key: 'reviewer', label: t('table.reviewer'), render: (r) => r.reviewer?.full_name ?? '—' },
+              {
+                key: 'actions',
+                label: tCommon('table.actions'),
+                render: (r) => <TableIconActions viewTo={`${base}/qa-reviews/${r.id}`} editTo={`${base}/qa-reviews/${r.id}/edit`} />,
+              },
+            ]}
+            rows={rows}
+          />
+        )}
       </SectionCard>
     </div>
   );

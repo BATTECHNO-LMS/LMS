@@ -18,14 +18,11 @@ export function BaseDashboardLayout({ brand }) {
 
   const resolvedBrand = brand ?? tCommon('brand');
 
-  const groups = useMemo(
-    () => getDashboardNavGroups(user?.role, tNav),
-    [user?.role, tNav, i18n.language]
-  );
+  const groups = useMemo(() => getDashboardNavGroups(user, tNav), [user, tNav, i18n.language]);
 
   const pageTitle = useMemo(
-    () => getPageTitleForPath(user?.role, location.pathname),
-    [user?.role, location.pathname, i18n.language]
+    () => getPageTitleForPath(user?.role, location.pathname, user),
+    [user, user?.role, location.pathname, i18n.language]
   );
 
   return (

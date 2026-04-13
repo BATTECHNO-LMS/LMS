@@ -36,6 +36,8 @@ export const UI_PERMISSION = {
   canViewUniversityReports: 'canViewUniversityReports',
   canViewReviewerEvidence: 'canViewReviewerEvidence',
   canViewLinkedCertificates: 'canViewLinkedCertificates',
+
+  canViewNotifications: 'canViewNotifications',
 };
 
 /**

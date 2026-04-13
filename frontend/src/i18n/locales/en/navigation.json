@@ -36,7 +36,8 @@
       "recognition": "Recognition requests",
       "certificates": "Digital certificates",
       "reports": "Reports",
-      "auditLogs": "Audit log"
+      "auditLogs": "Audit log",
+      "notifications": "Notifications"
     }
   },
   "instructor": {
@@ -48,7 +49,8 @@
     "submissions": "Submissions",
     "grades": "Grades",
     "evidence": "Evidence",
-    "riskStudents": "At-risk students"
+    "riskStudents": "At-risk students",
+    "notifications": "Notifications"
   },
   "student": {
     "home": "Home",
@@ -59,13 +61,15 @@
     "assessments": "Assessments",
     "submissions": "Submissions",
     "grades": "Grades",
-    "certificate": "Digital certificate"
+    "certificate": "Digital certificate",
+    "notifications": "Notifications"
   },
   "reviewer": {
     "home": "Home",
     "recognition": "Recognition requests",
     "universityReports": "University reports",
     "evidence": "Evidence and attachments",
-    "certificates": "Linked certificates"
+    "certificates": "Linked certificates",
+    "notifications": "Notifications"
   }
 }

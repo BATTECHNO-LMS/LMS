@@ -33,14 +33,40 @@ import arTracks from './locales/ar/tracks.json';
 import enTracks from './locales/en/tracks.json';
 import arMicroCredentials from './locales/ar/microCredentials.json';
 import enMicroCredentials from './locales/en/microCredentials.json';
+import arLearningOutcomes from './locales/ar/learningOutcomes.json';
+import enLearningOutcomes from './locales/en/learningOutcomes.json';
+import arEnrollments from './locales/ar/enrollments.json';
+import enEnrollments from './locales/en/enrollments.json';
+import arSessions from './locales/ar/sessions.json';
+import enSessions from './locales/en/sessions.json';
+import arAttendance from './locales/ar/attendance.json';
+import enAttendance from './locales/en/attendance.json';
 import arRecognition from './locales/ar/recognition.json';
 import enRecognition from './locales/en/recognition.json';
 import arAnalytics from './locales/ar/analytics.json';
 import enAnalytics from './locales/en/analytics.json';
+import arRubrics from './locales/ar/rubrics.json';
+import enRubrics from './locales/en/rubrics.json';
 import arSubmissions from './locales/ar/submissions.json';
 import enSubmissions from './locales/en/submissions.json';
 import arGrades from './locales/ar/grades.json';
 import enGrades from './locales/en/grades.json';
+import arEvidence from './locales/ar/evidence.json';
+import enEvidence from './locales/en/evidence.json';
+import arQaReviews from './locales/ar/qaReviews.json';
+import enQaReviews from './locales/en/qaReviews.json';
+import arCorrectiveActions from './locales/ar/correctiveActions.json';
+import enCorrectiveActions from './locales/en/correctiveActions.json';
+import arRiskCases from './locales/ar/riskCases.json';
+import enRiskCases from './locales/en/riskCases.json';
+import arIntegrityCases from './locales/ar/integrityCases.json';
+import enIntegrityCases from './locales/en/integrityCases.json';
+import arCertificates from './locales/ar/certificates.json';
+import enCertificates from './locales/en/certificates.json';
+import arNotifications from './locales/ar/notifications.json';
+import enNotifications from './locales/en/notifications.json';
+import arAuditLogs from './locales/ar/auditLogs.json';
+import enAuditLogs from './locales/en/auditLogs.json';
 
 export const I18N_NAMESPACES = [
   'common',
@@ -58,8 +84,21 @@ export const I18N_NAMESPACES = [
   'settings',
   'tracks',
   'microCredentials',
+  'learningOutcomes',
+  'enrollments',
+  'sessions',
+  'attendance',
   'recognition',
   'analytics',
+  'rubrics',
+  'evidence',
+  'qaReviews',
+  'correctiveActions',
+  'riskCases',
+  'integrityCases',
+  'certificates',
+  'notifications',
+  'auditLogs',
 ];
 
 const resources = {
@@ -79,8 +118,21 @@ const resources = {
     settings: arSettings,
     tracks: arTracks,
     microCredentials: arMicroCredentials,
+    learningOutcomes: arLearningOutcomes,
+    enrollments: arEnrollments,
+    sessions: arSessions,
+    attendance: arAttendance,
     recognition: arRecognition,
     analytics: arAnalytics,
+    rubrics: arRubrics,
+    evidence: arEvidence,
+    qaReviews: arQaReviews,
+    correctiveActions: arCorrectiveActions,
+    riskCases: arRiskCases,
+    integrityCases: arIntegrityCases,
+    certificates: arCertificates,
+    notifications: arNotifications,
+    auditLogs: arAuditLogs,
   },
   en: {
     common: enCommon,
@@ -91,6 +143,14 @@ const resources = {
     assessments: enAssessments,
     submissions: enSubmissions,
     grades: enGrades,
+    evidence: enEvidence,
+    qaReviews: enQaReviews,
+    correctiveActions: enCorrectiveActions,
+    riskCases: enRiskCases,
+    integrityCases: enIntegrityCases,
+    certificates: enCertificates,
+    notifications: enNotifications,
+    auditLogs: enAuditLogs,
     cohorts: enCohorts,
     universities: enUniversities,
     validation: enValidation,
@@ -98,8 +158,13 @@ const resources = {
     settings: enSettings,
     tracks: enTracks,
     microCredentials: enMicroCredentials,
+    learningOutcomes: enLearningOutcomes,
+    enrollments: enEnrollments,
+    sessions: enSessions,
+    attendance: enAttendance,
     recognition: enRecognition,
     analytics: enAnalytics,
+    rubrics: enRubrics,
   },
 };
 

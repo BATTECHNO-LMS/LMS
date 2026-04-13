@@ -1,5 +1,7 @@
-import { useMemo } from 'react';
-import { ListChecks, ListTree, Scale } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ListChecks } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   AdminPageHeader,
   AdminActionBar,
@@ -8,56 +10,71 @@ import {
   SectionCard,
   SearchInput,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
-import { useLocale } from '../../features/locale/index.js';
-import { useTenant } from '../../features/tenant/index.js';
-import { tr } from '../../utils/i18n.js';
-import { ADMIN_RUBRICS } from '../../mocks/lmsPageData.js';
+import { useRubrics } from '../../features/rubrics/index.js';
 
 export function RubricsPage() {
-  const { locale } = useLocale();
-  const isArabic = locale === 'ar';
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(ADMIN_RUBRICS), [filterRows, scopeId]);
-  const levelSum = useMemo(() => rows.reduce((a, r) => a + Number(r.levels || 0), 0), [rows]);
+  const { t } = useTranslation('rubrics');
+  const { t: tCommon } = useTranslation('common');
+  const [q, setQ] = useState('');
+
+  const params = useMemo(() => {
+    const p = {};
+    const s = q.trim();
+    if (s) p.search = s;
+    return p;
+  }, [q]);
+
+  const { data, isLoading, isError, error } = useRubrics(params, { staleTime: 30_000 });
+  const rubrics = data?.rubrics ?? [];
+  const criteriaRows = useMemo(() => rubrics.reduce((a, r) => a + (r.criteria_count ?? 0), 0), [rubrics]);
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader
-        title={tr(isArabic, 'معايير التقييم', 'Rubrics')}
-        description={tr(isArabic, 'بناء وإدارة سلالم التقييم والمعايير الفرعية.', 'Build and manage rubrics and criteria.')}
-      />
+      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
-        <Button type="button" variant="primary">
-          {tr(isArabic, 'معيار جديد', 'New rubric')}
-        </Button>
+        <Link className="btn btn--primary" to="/admin/rubrics/create">
+          {t('add')}
+        </Link>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
-          placeholder={tr(isArabic, 'بحث بالمعيار', 'Search rubric')}
-          aria-label={tr(isArabic, 'بحث', 'Search')}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder={t('searchPlaceholder')}
+          aria-label={tCommon('actions.search')}
         />
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'معايير معرّفة', 'Defined rubrics')} value={String(rows.length)} icon={ListChecks} />
-        <StatCard label={tr(isArabic, 'مستويات أداء', 'Performance levels')} value={String(levelSum)} icon={ListTree} />
-        <StatCard label={tr(isArabic, 'أوزان مرتبطة', 'Linked weights')} value={String(rows.reduce((a, r) => a + Number(r.linked || 0), 0))} icon={Scale} />
+        <StatCard label={t('stats.total')} value={String(rubrics.length)} icon={ListChecks} />
+        <StatCard label={t('stats.criteria')} value={String(criteriaRows)} icon={ListChecks} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'قائمة المعايير', 'Rubrics list')}>
-        <DataTable
-          emptyTitle={tr(isArabic, 'لا توجد بيانات', 'No data')}
-          emptyDescription={tr(isArabic, 'لم يتم العثور على سجلات.', 'No records found.')}
-          columns={[
-            { key: 'name', label: tr(isArabic, 'المعيار', 'Rubric') },
-            { key: 'levels', label: tr(isArabic, 'عدد المستويات', 'Level count') },
-            { key: 'linked', label: tr(isArabic, 'مرتبط بتقييمات', 'Linked to assessments') },
-            { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
-            { key: 'actions', label: tr(isArabic, 'الإجراءات', 'Actions') },
-          ]}
-          rows={rows}
-        />
+      <SectionCard title={<>{t('listTitle')}</>}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <DataTable
+            emptyTitle={isError ? tCommon('errors.generic') : tCommon('emptyStates.noResultsTitle')}
+            emptyDescription={isError ? String(error?.message ?? '') : tCommon('emptyStates.noResultsDescription')}
+            columns={[
+              { key: 'title', label: t('table.title') },
+              { key: 'criteria_count', label: t('table.criteriaCount') },
+              { key: 'status', label: t('table.status') },
+              {
+                key: 'actions',
+                label: t('table.actions'),
+                render: (r) => (
+                  <Link className="btn btn--outline" to={`/admin/rubrics/${r.id}`}>
+                    {tCommon('actions.view')}
+                  </Link>
+                ),
+              },
+            ]}
+            rows={rubrics}
+          />
+        )}
       </SectionCard>
     </div>
   );

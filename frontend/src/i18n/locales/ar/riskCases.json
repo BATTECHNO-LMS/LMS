@@ -1,0 +1,21 @@
+{
+  "title": "حالات المخاطر",
+  "description": "متابعة المخاطر الأكاديمية للمتعلّمين ضمن الدفعات.",
+  "add": "تسجيل حالة",
+  "listTitle": "الحالات",
+  "searchPlaceholder": "بحث في خطة العمل",
+  "stats": { "total": "الإجمالي", "open": "مفتوحة", "escalated": "متصاعدة", "closed": "مغلقة" },
+  "table": { "student": "المتعلّم", "cohort": "الدفعة", "type": "نوع الخطر", "level": "المستوى", "status": "الحالة" },
+  "filters": { "allCohorts": "كل الدفعات" },
+  "create": { "title": "حالة خطر جديدة", "submit": "إنشاء", "cancel": "إلغاء" },
+  "edit": { "title": "تعديل حالة الخطر", "submit": "حفظ" },
+  "detail": { "title": "حالة الخطر", "back": "رجوع" },
+  "form": {
+    "cohort": "الدفعة",
+    "student": "المتعلّم",
+    "riskType": "نوع الخطر",
+    "riskLevel": "مستوى الخطر",
+    "actionPlan": "خطة العمل",
+    "status": "الحالة"
+  }
+}

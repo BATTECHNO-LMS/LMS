@@ -1,4 +1,43 @@
-﻿/**
- * auditLogs module â€” request validation schemas (e.g. express-validator / Joi).
- */
-module.exports = {};
+﻿const { z } = require('zod');
+
+const uuidParamSchema = z.object({
+  id: z.string().uuid('Invalid id'),
+});
+
+const listAuditLogsQuerySchema = z
+  .object({
+    user_id: z.string().uuid().optional(),
+    university_id: z.string().uuid().optional(),
+    action_type: z.string().max(120).optional(),
+    entity_type: z.string().max(120).optional(),
+    from: z.string().max(40).optional(),
+    to: z.string().max(40).optional(),
+    search: z.string().max(255).optional(),
+  })
+  .strict()
+  .transform((q) => {
+    let fromDate;
+    let toDate;
+    if (q.from) {
+      const d = new Date(q.from);
+      if (!Number.isNaN(d.getTime())) fromDate = d;
+    }
+    if (q.to) {
+      const d = new Date(q.to);
+      if (!Number.isNaN(d.getTime())) toDate = d;
+    }
+    return {
+      user_id: q.user_id,
+      university_id: q.university_id,
+      action_type: q.action_type?.trim() || undefined,
+      entity_type: q.entity_type?.trim() || undefined,
+      from: fromDate,
+      to: toDate,
+      search: q.search?.trim() || undefined,
+    };
+  });
+
+module.exports = {
+  uuidParamSchema,
+  listAuditLogsQuerySchema,
+};

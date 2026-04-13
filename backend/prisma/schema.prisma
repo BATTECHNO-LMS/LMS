@@ -9,17 +9,18 @@ datasource db {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model cohorts {
-  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  micro_credential_id String        @db.Uuid
-  university_id       String        @db.Uuid
-  instructor_id       String?       @db.Uuid
-  title               String        @db.VarChar(255)
-  start_date          DateTime      @db.Date
-  end_date            DateTime      @db.Date
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String         @db.Uuid
+  university_id       String         @db.Uuid
+  instructor_id       String?        @db.Uuid
+  title               String         @db.VarChar(255)
+  start_date          DateTime       @db.Date
+  end_date            DateTime       @db.Date
   capacity            Int
-  status              cohort_status @default(planned)
-  created_at          DateTime      @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime      @default(now()) @db.Timestamptz(6)
+  status              cohort_status  @default(planned)
+  created_at          DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime       @default(now()) @db.Timestamptz(6)
+  assessments         assessments[]
 
   @@index([instructor_id], map: "idx_cohorts_instructor_id")
   @@index([micro_credential_id], map: "idx_cohorts_micro_credential_id")
@@ -81,6 +82,37 @@ model enrollments {
   @@index([student_id], map: "idx_enrollments_student_id")
 }
 
+/// Cohort-scoped academic assessments (weights, scheduling, rubric linkage).
+model assessments {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id           String            @db.Uuid
+  micro_credential_id String            @db.Uuid
+  title               String            @db.VarChar(255)
+  assessment_type     assessment_type
+  weight              Decimal           @db.Decimal(5, 2)
+  open_at             DateTime?         @db.Timestamptz(6)
+  due_date            DateTime          @db.Timestamptz(6)
+  linked_outcome_id   String?           @db.Uuid
+  rubric_id           String?           @db.Uuid
+  instructions        String?
+  status              assessment_status @default(draft)
+  created_at          DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime          @default(now()) @db.Timestamptz(6)
+
+  cohorts           cohorts            @relation(fields: [cohort_id], references: [id], onUpdate: NoAction)
+  micro_credentials micro_credentials  @relation(fields: [micro_credential_id], references: [id], onUpdate: NoAction)
+  learning_outcomes learning_outcomes? @relation(fields: [linked_outcome_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  rubrics           rubrics?           @relation(fields: [rubric_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([cohort_id], map: "idx_assessments_cohort_id")
+  @@index([micro_credential_id], map: "idx_assessments_micro_credential_id")
+  @@index([linked_outcome_id], map: "idx_assessments_linked_outcome_id")
+  @@index([rubric_id], map: "idx_assessments_rubric_id")
+  @@index([status], map: "idx_assessments_status")
+  submissions submissions[]
+  grades      grades[]
+}
+
 model evidence_files {
   id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   micro_credential_id String   @db.Uuid
@@ -104,16 +136,17 @@ model evidence_files {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model grades {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  assessment_id String   @db.Uuid
-  student_id    String   @db.Uuid
-  grader_id     String?  @db.Uuid
-  score         Decimal  @db.Decimal(6, 2)
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assessment_id String    @db.Uuid
+  student_id    String      @db.Uuid
+  grader_id     String?     @db.Uuid
+  score         Decimal     @db.Decimal(6, 2)
   feedback      String?
-  graded_at     DateTime @default(now()) @db.Timestamptz(6)
-  is_final      Boolean  @default(true)
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+  graded_at     DateTime    @default(now()) @db.Timestamptz(6)
+  is_final      Boolean     @default(true)
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime    @default(now()) @db.Timestamptz(6)
+  assessments   assessments @relation(fields: [assessment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([assessment_id, student_id, is_final], map: "uq_grades")
   @@index([assessment_id], map: "idx_grades_assessment_id")
@@ -139,13 +172,14 @@ model integrity_cases {
 }
 
 model learning_outcomes {
-  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  micro_credential_id String   @db.Uuid
-  outcome_code        String   @db.VarChar(80)
+  id                  String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  micro_credential_id String        @db.Uuid
+  outcome_code        String        @db.VarChar(80)
   outcome_text        String
-  outcome_type        String?  @db.VarChar(100)
-  created_at          DateTime @default(now()) @db.Timestamptz(6)
-  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+  outcome_type        String?       @db.VarChar(100)
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime      @default(now()) @db.Timestamptz(6)
+  assessments         assessments[]
 
   @@unique([micro_credential_id, outcome_code], map: "uq_learning_outcomes_code")
   @@index([micro_credential_id], map: "idx_learning_outcomes_micro_credential_id")
@@ -190,6 +224,7 @@ model micro_credentials {
   status                   micro_credential_status  @default(draft)
   created_at               DateTime                 @default(now()) @db.Timestamptz(6)
   updated_at               DateTime                 @default(now()) @db.Timestamptz(6)
+  assessments              assessments[]
 
   @@index([status], map: "idx_micro_credentials_status")
   @@index([track_id], map: "idx_micro_credentials_track_id")
@@ -222,6 +257,47 @@ model notifications {
 
   @@index([is_read], map: "idx_notifications_is_read")
   @@index([user_id], map: "idx_notifications_user_id")
+}
+
+/// Issued micro-credential certificates (verification + lifecycle).
+model certificates {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student_id          String             @db.Uuid
+  cohort_id           String             @db.Uuid
+  micro_credential_id String             @db.Uuid
+  certificate_no      String             @unique @db.VarChar(80)
+  verification_code   String             @unique @db.VarChar(64)
+  qr_code_url         String?
+  status              certificate_status @default(issued)
+  issued_at           DateTime           @default(now()) @db.Timestamptz(6)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime           @default(now()) @db.Timestamptz(6)
+
+  @@unique([student_id, cohort_id, micro_credential_id], map: "uq_certificates_student_cohort_mc")
+  @@index([student_id], map: "idx_certificates_student_id")
+  @@index([cohort_id], map: "idx_certificates_cohort_id")
+  @@index([micro_credential_id], map: "idx_certificates_micro_credential_id")
+  @@index([status], map: "idx_certificates_status")
+}
+
+/// Append-only audit trail (writes via internal helpers, not public POST).
+model audit_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?  @db.Uuid
+  university_id String?  @db.Uuid
+  action_type   String   @db.VarChar(120)
+  entity_type   String   @db.VarChar(120)
+  entity_id     String?  @db.Uuid
+  old_values    Json?
+  new_values    Json?
+  ip_address    String?  @db.VarChar(64)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_audit_logs_user_id")
+  @@index([university_id], map: "idx_audit_logs_university_id")
+  @@index([action_type], map: "idx_audit_logs_action_type")
+  @@index([entity_type], map: "idx_audit_logs_entity_type")
+  @@index([created_at], map: "idx_audit_logs_created_at")
 }
 
 model permissions {
@@ -328,15 +404,18 @@ model rubric_criteria {
   weight                Decimal  @db.Decimal(5, 2)
   created_at            DateTime @default(now()) @db.Timestamptz(6)
   updated_at            DateTime @default(now()) @db.Timestamptz(6)
+  rubrics               rubrics  @relation(fields: [rubric_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model rubrics {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title       String   @db.VarChar(255)
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title       String        @db.VarChar(255)
   description String?
-  status      String   @default("active") @db.VarChar(50)
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+  status      String        @default("active") @db.VarChar(50)
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime      @default(now()) @db.Timestamptz(6)
+  assessments     assessments[]
+  rubric_criteria rubric_criteria[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -359,6 +438,21 @@ model sessions {
   @@index([session_date], map: "idx_sessions_session_date")
 }
 
+/// One attendance row per student per session (cohort inferred via session).
+model attendance_records {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id         String             @db.Uuid
+  student_id         String             @db.Uuid
+  attendance_status  attendance_status
+  notes              String?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime           @default(now()) @db.Timestamptz(6)
+
+  @@unique([session_id, student_id], map: "uq_attendance_session_student")
+  @@index([session_id], map: "idx_attendance_records_session_id")
+  @@index([student_id], map: "idx_attendance_records_student_id")
+}
+
 model submissions {
   id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   assessment_id   String            @db.Uuid
@@ -372,6 +466,7 @@ model submissions {
   status          submission_status @default(submitted)
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+  assessments     assessments       @relation(fields: [assessment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([assessment_id], map: "idx_submissions_assessment_id")
   @@index([attempt_id], map: "idx_submissions_attempt_id")

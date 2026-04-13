@@ -1,0 +1,24 @@
+{
+  "title": "Academic integrity",
+  "description": "Integrity cases tied to cohorts, learners, and optionally assessments.",
+  "add": "New case",
+  "listTitle": "Cases",
+  "searchPlaceholder": "Search notes or decision",
+  "stats": { "total": "Total", "reported": "Reported", "investigation": "Under investigation", "closed": "Resolved / closed" },
+  "filters": { "allCohorts": "All cohorts" },
+  "table": { "type": "Case type", "student": "Learner", "cohort": "Cohort", "assessment": "Assessment", "status": "Status" },
+  "create": { "title": "New integrity case", "submit": "Create", "cancel": "Cancel" },
+  "edit": { "title": "Edit integrity case", "submit": "Save" },
+  "detail": { "title": "Integrity case", "back": "Back" },
+  "form": {
+    "noneStudent": "Select student",
+    "noneAssessment": "No assessment",
+    "cohort": "Cohort",
+    "student": "Student",
+    "caseType": "Case type",
+    "assessment": "Assessment (optional)",
+    "evidenceNotes": "Evidence notes",
+    "decision": "Decision",
+    "status": "Status"
+  }
+}

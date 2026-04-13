@@ -1,0 +1,24 @@
+{
+  "title": "النزاهة الأكاديمية",
+  "description": "قضايا النزاهة المرتبطة بالدفعات والمتعلّمين ويمكن ربطها بتقييم.",
+  "add": "قضية جديدة",
+  "listTitle": "القضايا",
+  "searchPlaceholder": "بحث في الملاحظات أو القرار",
+  "stats": { "total": "الإجمالي", "reported": "مبلّغة", "investigation": "قيد التحقيق", "closed": "محسومة / مغلقة" },
+  "filters": { "allCohorts": "كل الدفعات" },
+  "table": { "type": "نوع القضية", "student": "المتعلّم", "cohort": "الدفعة", "assessment": "التقييم", "status": "الحالة" },
+  "create": { "title": "قضية نزاهة جديدة", "submit": "إنشاء", "cancel": "إلغاء" },
+  "edit": { "title": "تعديل قضية النزاهة", "submit": "حفظ" },
+  "detail": { "title": "قضية النزاهة", "back": "رجوع" },
+  "form": {
+    "noneStudent": "اختر المتعلّم",
+    "noneAssessment": "بدون تقييم",
+    "cohort": "الدفعة",
+    "student": "المتعلّم",
+    "caseType": "نوع القضية",
+    "assessment": "التقييم (اختياري)",
+    "evidenceNotes": "ملاحظات الشواهد",
+    "decision": "القرار",
+    "status": "الحالة"
+  }
+}

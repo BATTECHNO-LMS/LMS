@@ -1,0 +1,16 @@
+{
+  "title": "التسجيلات",
+  "viewTitle": "تفاصيل التسجيل",
+  "backToCohort": "العودة للدفعة",
+  "viewEnrollment": "التفاصيل",
+  "addStudent": "تسجيل طالب",
+  "student": "الطالب",
+  "enrollmentStatus": "حالة التسجيل",
+  "finalStatus": "الحالة النهائية",
+  "attendancePct": "نسبة الحضور %",
+  "recognition": "أهلية الاعتراف",
+  "empty": "لا توجد تسجيلات بعد.",
+  "selectStudent": "اختر الطالب",
+  "save": "تسجيل",
+  "updateStatus": "تحديث"
+}

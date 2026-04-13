@@ -1,0 +1,39 @@
+{
+  "title": "QA reviews",
+  "description": "Schedule and track cohort-bound internal quality reviews.",
+  "add": "New review",
+  "listTitle": "Reviews",
+  "searchPlaceholder": "Search findings or actions",
+  "stats": {
+    "total": "Total",
+    "open": "Open",
+    "inProgress": "In progress",
+    "closed": "Closed"
+  },
+  "table": {
+    "cohort": "Cohort",
+    "date": "Review date",
+    "type": "Type",
+    "status": "Status",
+    "reviewer": "Reviewer"
+  },
+  "create": { "title": "New QA review", "submit": "Create", "cancel": "Cancel" },
+  "edit": { "title": "Edit QA review", "submit": "Save" },
+  "detail": { "title": "QA review", "correctiveTitle": "Corrective actions", "back": "Back" },
+  "form": {
+    "selectCohort": "Select cohort",
+    "cohort": "Cohort",
+    "reviewDate": "Review date",
+    "reviewType": "Review type",
+    "reviewer": "Reviewer (optional)",
+    "findings": "Findings",
+    "actionRequired": "Action required",
+    "status": "Status"
+  },
+  "types": {
+    "scheduled": "Scheduled",
+    "periodic": "Periodic",
+    "pre_closure": "Pre-closure",
+    "special": "Special"
+  }
+}

@@ -1,5 +1,5 @@
 import { useAuth } from '../../features/auth/index.js';
-import { hasUiPermission } from '../../utils/rolePermissions.js';
+import { hasUiPermissionForUser } from '../../utils/rolePermissions.js';
 import { UnauthorizedPage } from './UnauthorizedPage.jsx';
 
 /**
@@ -8,13 +8,12 @@ import { UnauthorizedPage } from './UnauthorizedPage.jsx';
  */
 export function PagePermissionGate({ permission, anyOf, children }) {
   const { user } = useAuth();
-  const role = user?.role;
 
   let ok = true;
   if (anyOf?.length) {
-    ok = anyOf.some((p) => hasUiPermission(role, p));
+    ok = anyOf.some((p) => hasUiPermissionForUser(user, p));
   } else if (permission) {
-    ok = hasUiPermission(role, permission);
+    ok = hasUiPermissionForUser(user, permission);
   }
 
   if (!ok) return <UnauthorizedPage />;

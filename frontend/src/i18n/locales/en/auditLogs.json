@@ -1,0 +1,29 @@
+{
+  "list": {
+    "title": "Audit log",
+    "description": "Sensitive operations and data access history.",
+    "searchPlaceholder": "Search by action or entity type",
+    "columns": {
+      "time": "Time",
+      "user": "User",
+      "action": "Action",
+      "entity": "Entity",
+      "entityId": "Entity id",
+      "university": "University"
+    },
+    "emptyTitle": "No audit events",
+    "emptyDescription": "No records for the current filters.",
+    "loadError": "Could not load audit logs.",
+    "stats": {
+      "events": "Events loaded"
+    }
+  },
+  "detail": {
+    "title": "Audit event",
+    "description": "Full event payload.",
+    "oldValues": "Previous values",
+    "newValues": "New values",
+    "ip": "IP address",
+    "back": "Back to audit log"
+  }
+}

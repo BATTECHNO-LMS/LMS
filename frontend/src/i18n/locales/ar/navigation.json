@@ -36,7 +36,8 @@
       "recognition": "طلبات الاعتراف الأكاديمي",
       "certificates": "الشهادات الرقمية",
       "reports": "التقارير",
-      "auditLogs": "سجل التدقيق"
+      "auditLogs": "سجل التدقيق",
+      "notifications": "الإشعارات"
     }
   },
   "instructor": {
@@ -48,7 +49,8 @@
     "submissions": "التسليمات",
     "grades": "الدرجات",
     "evidence": "الأدلة",
-    "riskStudents": "الطلبة المتعثرون"
+    "riskStudents": "الطلبة المتعثرون",
+    "notifications": "الإشعارات"
   },
   "student": {
     "home": "الرئيسية",
@@ -59,13 +61,15 @@
     "assessments": "التقييمات",
     "submissions": "التسليمات",
     "grades": "الدرجات",
-    "certificate": "الشهادة الرقمية"
+    "certificate": "الشهادة الرقمية",
+    "notifications": "الإشعارات"
   },
   "reviewer": {
     "home": "الرئيسية",
     "recognition": "طلبات الاعتراف الأكاديمي",
     "universityReports": "تقارير الجامعة",
     "evidence": "الأدلة والمرفقات",
-    "certificates": "الشهادات المرتبطة"
+    "certificates": "الشهادات المرتبطة",
+    "notifications": "الإشعارات"
   }
 }

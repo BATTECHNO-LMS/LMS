@@ -2,20 +2,44 @@
   "title": "Batch management",
   "description": "Track training batches and schedules.",
   "add": "Add batch",
-  "searchPlaceholder": "Search by name, trainer, or certificate",
+  "searchPlaceholder": "Search by title, certificate, or instructor",
   "listTitle": "Batches list",
   "stats": {
     "total": "Total batches",
-    "running": "In progress",
+    "active": "Active",
     "planned": "Planned",
-    "completed": "Completed"
+    "completed": "Completed",
+    "open": "Open for enrollment"
   },
   "table": {
-    "name": "Batch name",
-    "certificate": "Certificate",
-    "trainer": "Trainer",
+    "title": "Title",
+    "certificate": "Micro-credential",
+    "trainer": "Instructor",
+    "capacity": "Capacity",
     "startDate": "Start date",
     "endDate": "End date"
+  },
+  "form": {
+    "title": "Cohort title",
+    "university": "University",
+    "capacity": "Capacity",
+    "instructor": "Instructor (optional for planned)",
+    "sessionsLink": "Sessions",
+    "summaryLink": "Attendance summary"
+  },
+  "status": {
+    "planned": "Planned",
+    "open_for_enrollment": "Open for enrollment",
+    "active": "Active",
+    "completed": "Completed",
+    "closed": "Closed",
+    "cancelled": "Cancelled"
+  },
+  "view": {
+    "title": "Batch details",
+    "enrollments": "Enrollments",
+    "attendanceSummary": "Attendance summary",
+    "setStatus": "Set status"
   },
   "create": {
     "title": "Create batch"
@@ -23,7 +47,9 @@
   "edit": {
     "title": "Edit batch"
   },
-  "view": {
-    "title": "Batch details"
+  "empty": {
+    "noRecords": "No cohorts found.",
+    "noResults": "No results",
+    "tryFilters": "Try adjusting filters or search."
   }
 }

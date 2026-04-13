@@ -4,6 +4,7 @@
 export const ROLES = {
   SUPER_ADMIN: 'super_admin',
   PROGRAM_ADMIN: 'program_admin',
+  UNIVERSITY_ADMIN: 'university_admin',
   ACADEMIC_ADMIN: 'academic_admin',
   QA_OFFICER: 'qa_officer',
   INSTRUCTOR: 'instructor',
@@ -15,6 +16,7 @@ export const ROLES = {
 export const ADMIN_ROLE_SET = [
   ROLES.SUPER_ADMIN,
   ROLES.PROGRAM_ADMIN,
+  ROLES.UNIVERSITY_ADMIN,
   ROLES.ACADEMIC_ADMIN,
   ROLES.QA_OFFICER,
 ];

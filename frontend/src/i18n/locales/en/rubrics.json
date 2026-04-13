@@ -1,0 +1,34 @@
+{
+  "title": "Rubrics",
+  "description": "Build and manage rubrics and criteria weights.",
+  "add": "New rubric",
+  "listTitle": "Rubrics list",
+  "searchPlaceholder": "Search rubrics",
+  "stats": {
+    "total": "Defined rubrics",
+    "criteria": "Total criteria rows"
+  },
+  "table": {
+    "title": "Rubric",
+    "criteriaCount": "Criteria",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "create": {
+    "title": "Create rubric",
+    "description": "Add a reusable rubric for assessments.",
+    "descriptionField": "Description"
+  },
+  "detail": {
+    "title": "Rubric details",
+    "notFound": "Rubric not found.",
+    "weightSum": "Criteria weight sum",
+    "valid": "Weights sum to 100%",
+    "invalid": "Weights should total 100% before relying on auto-scoring.",
+    "addCriterion": "Add criterion",
+    "criterionName": "Criterion name",
+    "weight": "Weight %",
+    "delete": "Delete",
+    "criteriaList": "Criteria"
+  }
+}

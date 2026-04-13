@@ -5,10 +5,12 @@
     "sectionTitle": "جدول الدرجات",
     "stats": {
       "awaitingPublish": "بانتظار النشر",
-      "cohortAverage": "متوسط الدفعة",
-      "students": "طلبة",
-      "topScore": "أعلى درجة"
+      "cohortAverage": "متوسط الدرجات",
+      "students": "سجلات",
+      "topScore": "أعلى درجة",
+      "passRate": "نسبة النجاح (≥٦٠)"
     },
+    "filterCohort": "الدفعة",
     "searchPlaceholder": "بحث بالطالب أو التقييم",
     "searchAria": "بحث",
     "table": {

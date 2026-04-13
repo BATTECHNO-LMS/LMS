@@ -5,10 +5,12 @@
     "sectionTitle": "Grades table",
     "stats": {
       "awaitingPublish": "Awaiting publish",
-      "cohortAverage": "Cohort average",
-      "students": "Students",
-      "topScore": "Top score"
+      "cohortAverage": "Average score",
+      "students": "Records",
+      "topScore": "Top score",
+      "passRate": "Pass rate (≥60)"
     },
+    "filterCohort": "Cohort",
     "searchPlaceholder": "Search by student or assessment",
     "searchAria": "Search",
     "table": {

@@ -35,6 +35,7 @@
     "pendingGrading": "Submissions awaiting grading",
     "alerts": "Student alerts",
     "upcoming": "Upcoming activity",
+    "upcomingEmpty": "No upcoming assessment deadlines are loaded yet. Use Sessions and Cohorts for live delivery data.",
     "table": {
       "time": "Time",
       "event": "Assessment",

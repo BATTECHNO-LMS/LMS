@@ -1,0 +1,39 @@
+{
+  "title": "مراجعات الجودة",
+  "description": "جدولة ومتابعة مراجعات الجودة الداخلية المرتبطة بالدفعات.",
+  "add": "مراجعة جديدة",
+  "listTitle": "المراجعات",
+  "searchPlaceholder": "بحث في الملاحظات أو الإجراءات",
+  "stats": {
+    "total": "الإجمالي",
+    "open": "مفتوحة",
+    "inProgress": "قيد التنفيذ",
+    "closed": "مغلقة"
+  },
+  "table": {
+    "cohort": "الدفعة",
+    "date": "تاريخ المراجعة",
+    "type": "النوع",
+    "status": "الحالة",
+    "reviewer": "المراجع"
+  },
+  "create": { "title": "مراجعة جودة جديدة", "submit": "إنشاء", "cancel": "إلغاء" },
+  "edit": { "title": "تعديل مراجعة الجودة", "submit": "حفظ" },
+  "detail": { "title": "مراجعة الجودة", "correctiveTitle": "الإجراءات التصحيحية", "back": "رجوع" },
+  "form": {
+    "selectCohort": "اختر الدفعة",
+    "cohort": "الدفعة",
+    "reviewDate": "تاريخ المراجعة",
+    "reviewType": "نوع المراجعة",
+    "reviewer": "المراجع (اختياري)",
+    "findings": "الملاحظات",
+    "actionRequired": "الإجراء المطلوب",
+    "status": "الحالة"
+  },
+  "types": {
+    "scheduled": "مجدولة",
+    "periodic": "دورية",
+    "pre_closure": "قبل الإغلاق",
+    "special": "خاصة"
+  }
+}
