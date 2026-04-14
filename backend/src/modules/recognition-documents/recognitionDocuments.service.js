@@ -1,4 +1,5 @@
 const { ApiError } = require('../../utils/apiError');
+const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const requestsRepo = require('../recognition-requests/recognitionRequests.repository');
 const repo = require('./recognitionDocuments.repository');
 const recognitionRequestsService = require('../recognition-requests/recognitionRequests.service');
@@ -17,7 +18,7 @@ function mapDoc(d) {
     recognition_request_id: d.recognition_request_id,
     document_type: d.document_type,
     title: d.title,
-    file_url: d.file_url,
+    file_url: resolvePublicUrl(d.file_url),
     created_at: d.created_at,
     updated_at: d.updated_at,
   };

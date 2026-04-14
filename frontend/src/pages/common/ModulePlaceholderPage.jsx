@@ -4,7 +4,7 @@ import { PageHeader } from '../../components/common/PageHeader.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { useAuth } from '../../features/auth/index.js';
 import { canAccessPath, getPageTitleForPath } from '../../constants/navigation.js';
-import { getDashboardPathForRole } from '../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getLoginPathForCurrentPortal } from '../../utils/portal.js';
 
 /**
@@ -20,7 +20,7 @@ export function ModulePlaceholderPage() {
   }
 
   if (!canAccessPath(user, location.pathname)) {
-    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+    return <Navigate to={getDefaultDashboardPath(user)} replace />;
   }
 
   const title = getPageTitleForPath(user.role, location.pathname, user);

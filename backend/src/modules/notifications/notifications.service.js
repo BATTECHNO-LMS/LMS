@@ -17,8 +17,20 @@ async function listNotifications(query, requester) {
   const where = {};
   if (query.is_read !== undefined) where.is_read = query.is_read;
   if (query.type) where.type = query.type;
-  const rows = await repo.findManyForUser(requester.userId, where, { take: 200 });
-  return { notifications: rows.map(mapNotification) };
+  const [total, rows] = await Promise.all([
+    repo.countForUser(requester.userId, where),
+    repo.findManyForUser(requester.userId, where, { skip: query.skip, take: query.take }),
+  ]);
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    notifications: rows.map(mapNotification),
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getNotificationById(id, requester) {

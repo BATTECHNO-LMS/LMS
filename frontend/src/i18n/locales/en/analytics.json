@@ -27,6 +27,8 @@
     "track": "Track",
     "microCredential": "Micro-credential",
     "cohort": "Cohort",
+    "from": "From",
+    "to": "To",
     "timeRange": "Time range",
     "all": "All",
     "presets": {

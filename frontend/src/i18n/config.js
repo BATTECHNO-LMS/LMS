@@ -67,6 +67,8 @@ import arNotifications from './locales/ar/notifications.json';
 import enNotifications from './locales/en/notifications.json';
 import arAuditLogs from './locales/ar/auditLogs.json';
 import enAuditLogs from './locales/en/auditLogs.json';
+import arReports from './locales/ar/reports.json';
+import enReports from './locales/en/reports.json';
 
 export const I18N_NAMESPACES = [
   'common',
@@ -99,6 +101,7 @@ export const I18N_NAMESPACES = [
   'certificates',
   'notifications',
   'auditLogs',
+  'reports',
 ];
 
 const resources = {
@@ -133,6 +136,7 @@ const resources = {
     certificates: arCertificates,
     notifications: arNotifications,
     auditLogs: arAuditLogs,
+    reports: arReports,
   },
   en: {
     common: enCommon,
@@ -151,6 +155,7 @@ const resources = {
     certificates: enCertificates,
     notifications: enNotifications,
     auditLogs: enAuditLogs,
+    reports: enReports,
     cohorts: enCohorts,
     universities: enUniversities,
     validation: enValidation,

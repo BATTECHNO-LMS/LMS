@@ -159,9 +159,21 @@ function generateVerificationCode() {
 
 async function listCertificates(query, requester) {
   const where = await buildCertificateListWhere(query, requester);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const certificates = await hydrateCertificates(rows);
-  return { certificates };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    certificates,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getCertificateById(id, requester) {

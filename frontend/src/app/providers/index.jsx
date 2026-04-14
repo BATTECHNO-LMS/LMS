@@ -5,19 +5,22 @@ import { AuthProvider } from '../../features/auth/index.js';
 import { LocaleProvider } from '../../features/locale/index.js';
 import { ThemeProvider } from '../../features/theme/index.js';
 import { TenantProvider } from '../../features/tenant/index.js';
+import { ErrorBoundary } from '../../components/ErrorBoundary.jsx';
 
 export function AppProviders({ children }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <LocaleProvider>
-          <BrowserRouter>
-            <AuthProvider>
-              <TenantProvider>{children}</TenantProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </LocaleProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <LocaleProvider>
+            <BrowserRouter>
+              <AuthProvider>
+                <TenantProvider>{children}</TenantProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </LocaleProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

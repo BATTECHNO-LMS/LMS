@@ -1,5 +1,9 @@
 ﻿const { prisma } = require('../../config/db');
 
+async function count(where) {
+  return prisma.certificates.count({ where });
+}
+
 async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.certificates.findMany({
     where,
@@ -30,6 +34,7 @@ async function update(id, data) {
 }
 
 module.exports = {
+  count,
   findMany,
   findById,
   findByVerificationCode,

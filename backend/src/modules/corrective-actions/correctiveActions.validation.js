@@ -1,4 +1,5 @@
 const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -13,15 +14,23 @@ const listCorrectiveQuerySchema = z
     status: correctiveStatusEnum.optional(),
     overdue: z.enum(['true', 'false']).optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    qa_review_id: q.qa_review_id,
-    assigned_to: q.assigned_to,
-    status: q.status,
-    overdue: q.overdue === 'true' ? true : q.overdue === 'false' ? false : undefined,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      qa_review_id: q.qa_review_id,
+      assigned_to: q.assigned_to,
+      status: q.status,
+      overdue: q.overdue === 'true' ? true : q.overdue === 'false' ? false : undefined,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const createCorrectiveBodySchema = z
   .object({

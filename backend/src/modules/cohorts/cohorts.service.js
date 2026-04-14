@@ -136,9 +136,21 @@ async function serializeCohortDetail(row) {
 async function listCohorts(query, requester) {
   const scope = cohortListWhere(requester);
   const where = buildListWhere(query, scope || undefined);
-  const rows = await cohortsRepository.findMany(where, { take: 500 });
+  const [total, rows] = await Promise.all([
+    cohortsRepository.count(where),
+    cohortsRepository.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const cohorts = await Promise.all(rows.map((r) => serializeCohortListRow(r)));
-  return { cohorts };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    cohorts,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getCohortById(id, requester) {

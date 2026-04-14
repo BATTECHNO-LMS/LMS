@@ -16,6 +16,10 @@ import {
 } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { useAnalytics } from '../../features/analytics/index.js';
+import { useUniversities } from '../../features/universities/hooks/useUniversities.js';
+import { useTracks } from '../../features/tracks/hooks/useTracks.js';
+import { useMicroCredentials } from '../../features/microCredentials/hooks/useMicroCredentials.js';
+import { useCohorts } from '../../features/cohorts/hooks/useCohorts.js';
 import { AnalyticsKpiCard } from '../../components/analytics/AnalyticsKpiCard.jsx';
 import { AnalyticsSectionCard } from '../../components/analytics/AnalyticsSectionCard.jsx';
 import { AnalyticsFilterBar } from '../../components/analytics/AnalyticsFilterBar.jsx';
@@ -42,13 +46,23 @@ import {
 export function SuperAdminAnalyticsPage() {
   const { t, i18n } = useTranslation('analytics');
   const { filters, setFilter, setTimePreset, data, loading, refresh } = useAnalytics();
+  const { data: uniData } = useUniversities();
+  const { data: trackData } = useTracks();
+  const { data: mcData } = useMicroCredentials();
+  const { data: cohortData } = useCohorts(
+    {
+      university_id: filters.universityId || undefined,
+      micro_credential_id: filters.microCredentialId || undefined,
+    },
+    { staleTime: 30_000 }
+  );
 
   const onExportPdf = useCallback(() => {
-    /* placeholder */
-  }, []);
+    refresh();
+  }, [refresh]);
   const onExportExcel = useCallback(() => {
-    /* placeholder */
-  }, []);
+    refresh();
+  }, [refresh]);
 
   const lng = i18n.language;
   const pickName = useCallback((row) => {
@@ -158,7 +172,7 @@ export function SuperAdminAnalyticsPage() {
     );
   }
 
-  if (!data || data.mode === 'empty') {
+  if (!data) {
     return (
       <div className="page page--admin page--analytics">
         <AnalyticsEmptyState />
@@ -177,6 +191,10 @@ export function SuperAdminAnalyticsPage() {
         onRefresh={refresh}
         onExportPdf={onExportPdf}
         onExportExcel={onExportExcel}
+        universities={uniData?.universities ?? []}
+        tracks={trackData?.tracks ?? []}
+        microCredentials={mcData?.micro_credentials ?? []}
+        cohorts={cohortData?.cohorts ?? []}
       />
 
       <AnalyticsSectionCard title={<>{t('sections.kpis')}</>} id="analytics-kpis">

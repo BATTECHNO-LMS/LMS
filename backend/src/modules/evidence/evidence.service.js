@@ -1,4 +1,5 @@
 ﻿const { ApiError } = require('../../utils/apiError');
+const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { resolveScopedCohortIds, cohortIdInScope } = require('../../utils/cohortScope');
 const { canAccessCohort } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
@@ -106,7 +107,7 @@ async function hydrateRows(rows) {
       id: r.id,
       title: r.title,
       evidence_type: r.evidence_type,
-      file_url: r.file_url,
+      file_url: resolvePublicUrl(r.file_url),
       micro_credential_id: r.micro_credential_id,
       cohort_id: r.cohort_id,
       student_id: r.student_id,
@@ -134,9 +135,21 @@ async function assertCanAccessEvidence(requester, cohortId) {
 async function listEvidence(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
   const where = await buildListWhere(query, scopeIds);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const evidence = await hydrateRows(rows);
-  return { evidence };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    evidence,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getEvidenceById(id, requester) {

@@ -1,65 +1,91 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useTranslation } from 'react-i18next';
 import { FormInput } from '../../components/forms/FormInput.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { useAuth } from '../../features/auth/index.js';
-import { useLocale } from '../../features/locale/index.js';
-import { getDashboardPathForRole } from '../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
 
-export function LoginPage({ forcedRole: _forcedRole = null, forcedRoleLabelAr = '', forcedRoleLabelEn = '' }) {
+export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRoleLabelEn = '' }) {
+  const { t, i18n } = useTranslation('auth');
   const { login, isAuthenticated, user, isAuthReady } = useAuth();
-  const { locale } = useLocale();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname;
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
+
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .min(1, t('login.errors.emailRequired'))
+          .email(t('login.errors.invalidEmail')),
+        password: z.string().min(1, t('login.errors.passwordRequired')),
+      }),
+    [t, i18n.language]
+  );
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '' },
+  });
 
   if (!isAuthReady) {
     return <LoadingSpinner />;
   }
 
   if (isAuthenticated && user) {
-    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+    return <Navigate to={getDefaultDashboardPath(user)} replace />;
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
+  async function onSubmit(values) {
+    setServerError('');
     setSubmitting(true);
     try {
-      const { redirectTo } = await login({ email, password });
+      const { redirectTo } = await login({ email: values.email.trim(), password: values.password });
       navigate(from && from !== '/login' ? from : redirectTo, { replace: true });
     } catch (err) {
-      const fallback =
-        locale === 'ar'
-          ? 'تعذّر تسجيل الدخول. تحقق من البيانات أو من تشغيل الخادم.'
-          : 'Login failed. Check your credentials or that the API is running.';
-      setError(getApiErrorMessage(err, fallback));
+      if (!err?.response) {
+        setServerError(t('login.errors.network'));
+      } else {
+        const raw = getApiErrorMessage(err, t('login.errors.generic'));
+        setServerError(mapAuthErrorToLoginMessage(raw, t));
+      }
     } finally {
       setSubmitting(false);
     }
   }
 
+  const portalLabel = i18n.language?.startsWith('ar') ? forcedRoleLabelAr : forcedRoleLabelEn;
+
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <h1 className="auth-card__title">BATTECHNO-LMS</h1>
-        <p className="auth-card__subtitle">{locale === 'ar' ? 'تسجيل الدخول' : 'Sign in'}</p>
+        <h1 className="auth-card__title">{t('login.brandTitle')}</h1>
+        <p className="auth-card__subtitle">{t('login.title')}</p>
+        <p className="text-muted small mb-3">{t('login.subtitle')}</p>
 
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
+        <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
           {forcedRole ? (
             <div className="auth-form__portal">
-              <p className="auth-form__portal-label">{locale === 'ar' ? 'بوابة الدخول' : 'Portal login'}</p>
+              <p className="auth-form__portal-label">{t('login.portalHint')}</p>
               <FormInput
                 id="portal-role"
-                label={locale === 'ar' ? 'الدور' : 'Role'}
-                value={locale === 'ar' ? forcedRoleLabelAr : forcedRoleLabelEn}
+                label={t('login.roleLabel')}
+                value={portalLabel}
                 readOnly
               />
             </div>
@@ -69,27 +95,27 @@ export function LoginPage({ forcedRole: _forcedRole = null, forcedRoleLabelAr = 
             id="email"
             type="email"
             name="email"
-            label={locale === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+            label={t('login.email')}
             autoComplete="username"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
+            placeholder={t('login.placeholders.email')}
+            error={errors.email?.message}
+            {...register('email')}
           />
           <FormInput
             id="password"
             type="password"
             name="password"
-            label={locale === 'ar' ? 'كلمة المرور' : 'Password'}
+            label={t('login.password')}
             autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder={t('login.placeholders.password')}
+            error={errors.password?.message}
+            {...register('password')}
           />
 
-          {error ? <p className="auth-form__error">{error}</p> : null}
+          {serverError ? <p className="auth-form__error">{serverError}</p> : null}
 
           <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? (locale === 'ar' ? 'جاري الدخول…' : 'Signing in...') : locale === 'ar' ? 'دخول' : 'Sign in'}
+            {submitting ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
       </div>

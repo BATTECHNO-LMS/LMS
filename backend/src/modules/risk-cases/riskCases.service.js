@@ -98,9 +98,21 @@ async function listRiskCases(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
   if (query.cohort_id && !cohortIdInScope(scopeIds, query.cohort_id)) throw new ApiError(403, 'Forbidden');
   const where = await buildListWhere(query, scopeIds);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const risk_cases = await hydrateRiskRows(rows);
-  return { risk_cases };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    risk_cases,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getRiskCaseById(id, requester) {

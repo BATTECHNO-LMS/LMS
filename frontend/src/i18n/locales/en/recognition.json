@@ -67,6 +67,8 @@
     "documentTitle": "Title",
     "fileUrl": "File URL",
     "addDocument": "Add document",
+    "editDocument": "Edit",
+    "updateDocument": "Update document",
     "deleteDocument": "Delete",
     "documentError": "Could not save document.",
     "yes": "Yes",

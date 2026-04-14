@@ -4,7 +4,8 @@
   "list": {
     "columns": {
       "time": "Time",
-      "title": "Title"
+      "title": "Title",
+      "type": "Type"
     },
     "read": "Read"
   },
@@ -15,5 +16,12 @@
   "unread": "Unread",
   "type": "Type",
   "all": "All",
+  "allTypes": "All types",
+  "types": {
+    "info": "Info",
+    "warning": "Warning",
+    "success": "Success",
+    "action_required": "Action required"
+  },
   "loadError": "Could not load notifications."
 }

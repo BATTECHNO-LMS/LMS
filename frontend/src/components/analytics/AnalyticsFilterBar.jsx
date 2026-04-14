@@ -9,6 +9,10 @@ export function AnalyticsFilterBar({
   onRefresh,
   onExportPdf,
   onExportExcel,
+  universities = [],
+  tracks = [],
+  microCredentials = [],
+  cohorts = [],
   className,
 }) {
   const { t } = useTranslation('analytics');
@@ -25,9 +29,11 @@ export function AnalyticsFilterBar({
             aria-label={t('filters.university')}
           >
             <option value="">{t('filters.all')}</option>
-            <option value="uni-1">YU</option>
-            <option value="uni-2">UJ</option>
-            <option value="uni-3">PSUT</option>
+            {universities.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
           </select>
         </label>
         <label className="analytics-filter-bar__field">
@@ -39,8 +45,11 @@ export function AnalyticsFilterBar({
             aria-label={t('filters.track')}
           >
             <option value="">{t('filters.all')}</option>
-            <option value="t1">DS-101</option>
-            <option value="t2">SE-201</option>
+            {tracks.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
           </select>
         </label>
         <label className="analytics-filter-bar__field">
@@ -52,8 +61,11 @@ export function AnalyticsFilterBar({
             aria-label={t('filters.microCredential')}
           >
             <option value="">{t('filters.all')}</option>
-            <option value="mc1">AI-X1</option>
-            <option value="mc2">SEC-10</option>
+            {microCredentials.map((mc) => (
+              <option key={mc.id} value={mc.id}>
+                {mc.title}
+              </option>
+            ))}
           </select>
         </label>
         <label className="analytics-filter-bar__field">
@@ -65,9 +77,32 @@ export function AnalyticsFilterBar({
             aria-label={t('filters.cohort')}
           >
             <option value="">{t('filters.all')}</option>
-            <option value="c1">c1</option>
-            <option value="c2">c2</option>
+            {cohorts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title}
+              </option>
+            ))}
           </select>
+        </label>
+        <label className="analytics-filter-bar__field">
+          <span className="analytics-filter-bar__label">{t('filters.from')}</span>
+          <input
+            className="analytics-filter-bar__select"
+            type="date"
+            value={filters.from || ''}
+            onChange={(e) => onFilterChange('from', e.target.value)}
+            aria-label={t('filters.from')}
+          />
+        </label>
+        <label className="analytics-filter-bar__field">
+          <span className="analytics-filter-bar__label">{t('filters.to')}</span>
+          <input
+            className="analytics-filter-bar__select"
+            type="date"
+            value={filters.to || ''}
+            onChange={(e) => onFilterChange('to', e.target.value)}
+            aria-label={t('filters.to')}
+          />
         </label>
       </div>
       <div className="analytics-filter-bar__row analytics-filter-bar__row--actions">

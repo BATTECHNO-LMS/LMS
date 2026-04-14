@@ -1,9 +1,14 @@
 const { prisma } = require('../../config/db');
 
-async function findMany(where, { take = 200 } = {}) {
+async function count(where) {
+  return prisma.corrective_actions.count({ where });
+}
+
+async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.corrective_actions.findMany({
     where,
     orderBy: [{ due_date: 'asc' }, { created_at: 'desc' }],
+    skip,
     take,
   });
 }
@@ -24,4 +29,4 @@ async function findQaReviewById(id) {
   return prisma.qa_reviews.findUnique({ where: { id } });
 }
 
-module.exports = { findMany, findById, create, update, findQaReviewById };
+module.exports = { count, findMany, findById, create, update, findQaReviewById };

@@ -9,7 +9,7 @@ import {
 } from '../auth.service.js';
 import { mapAuthUser, pickPrimaryRole } from '../authUserMapper.js';
 import { storageKeys, getStorageItem, setStorageItem, removeStorageItem } from '../../../utils/storage.js';
-import { getDashboardPathForRole } from '../../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../../utils/authRouting.js';
 import { ROLES } from '../../../constants/roles.js';
 import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
 import { setOnUnauthorized } from '../../../services/authSessionBridge.js';
@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
 
   /** Store JWT, then load full profile from GET /api/auth/me (roles, permissions, isGlobal). */
   const persistTokenAndHydrate = useCallback(
-    async (token, fallbackUser) => {
+    async (token) => {
       if (!token || typeof token !== 'string') {
         throw new Error('Missing authentication token');
       }
@@ -72,14 +72,9 @@ export function AuthProvider({ children }) {
           setUser(normalized);
           return normalized;
         }
-      } catch {
-        /* fall back to login/register envelope */
-      }
-      const normalized = normalizeUser(fallbackUser);
-      if (normalized) {
-        setStorageItem(storageKeys.authUser, normalized);
-        setUser(normalized);
-        return normalized;
+      } catch (e) {
+        clearSession();
+        throw e;
       }
       clearSession();
       throw new Error('Could not load user profile');
@@ -127,11 +122,11 @@ export function AuthProvider({ children }) {
   const login = useCallback(
     async ({ email, password }) => {
       const { data } = await loginRequest({ email, password });
-      const normalized = await persistTokenAndHydrate(data.token, data.user);
+      const normalized = await persistTokenAndHydrate(data.token);
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['universities'] });
       setIsAuthReady(true);
-      return { redirectTo: getDashboardPathForRole(normalized.role) };
+      return { redirectTo: getDefaultDashboardPath(normalized) };
     },
     [persistTokenAndHydrate, qc]
   );
@@ -139,11 +134,11 @@ export function AuthProvider({ children }) {
   const signUp = useCallback(
     async (payload) => {
       const { data } = await registerStudentRequest(payload);
-      const normalized = await persistTokenAndHydrate(data.token, data.user);
+      const normalized = await persistTokenAndHydrate(data.token);
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['universities'] });
       setIsAuthReady(true);
-      return { redirectTo: getDashboardPathForRole(normalized.role) };
+      return { redirectTo: getDefaultDashboardPath(normalized) };
     },
     [persistTokenAndHydrate, qc]
   );

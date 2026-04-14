@@ -4,6 +4,7 @@ const {
   assessmentCohortScopeWhere,
   canAccessCohort,
 } = require('../../utils/deliveryAccess');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const enrollmentsRepo = require('../enrollments/enrollments.repository');
 const repo = require('./assessments.repository');
 
@@ -115,8 +116,20 @@ async function assertCanWriteAssessment(requester, row) {
 
 async function listAssessments(query, requester) {
   const where = await listWhereForUser(requester, query);
-  const rows = await repo.findMany(where, { take: 200 });
-  return { assessments: rows.map(mapAssessment) };
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    assessments: rows.map(mapAssessment),
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getAssessmentById(id, requester) {
@@ -196,6 +209,9 @@ async function createAssessment(body, requester) {
   };
 
   const row = await repo.create(data);
+  if (due < new Date()) {
+    await dispatchAppEvent('assessment_overdue', { assessment: mapAssessment(row) });
+  }
   return mapAssessment(row);
 }
 
@@ -243,6 +259,9 @@ async function updateAssessment(id, body, requester) {
     instructions: merged.instructions,
     status: merged.status,
   });
+  if (new Date(merged.due_date) < new Date() && ['published', 'open'].includes(merged.status)) {
+    await dispatchAppEvent('assessment_overdue', { assessment: mapAssessment(row) });
+  }
   return mapAssessment(row);
 }
 
@@ -258,6 +277,13 @@ async function patchAssessmentStatus(id, body, requester) {
     throw new ApiError(400, `Invalid status transition from ${cur} to ${next}`);
   }
   const row = await repo.update(id, { status: next });
+  if (next === 'closed') {
+    const submissionsCount = await repo.countSubmissions(id);
+    const gradesCount = await repo.countGrades(id);
+    if (submissionsCount > gradesCount) {
+      await dispatchAppEvent('assessment_ungraded_before_closure', { assessment: mapAssessment(row) });
+    }
+  }
   return mapAssessment(row);
 }
 

@@ -3,7 +3,7 @@ const { verifyToken } = require('../utils/jwt');
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'Unauthorized' });
+    return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
   }
 
   const token = header.slice(7);
@@ -17,7 +17,11 @@ function authMiddleware(req, res, next) {
     };
     return next();
   } catch {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid or expired token',
+      code: 'TOKEN_INVALID',
+    });
   }
 }
 

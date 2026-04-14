@@ -1,6 +1,6 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/index.js';
-import { getDashboardPathForRole } from '../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getLoginPathForCurrentPortal } from '../../utils/portal.js';
 import { LoadingSpinner } from './LoadingSpinner.jsx';
 
@@ -31,7 +31,7 @@ export function RoleBasedRoute({ allowedRoles = [] }) {
   const allowed = codes.some((r) => allowedRoles.includes(r));
 
   if (!allowed) {
-    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+    return <Navigate to={getDefaultDashboardPath(user)} replace />;
   }
 
   return <Outlet />;

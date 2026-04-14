@@ -1,9 +1,14 @@
 ﻿const { prisma } = require('../../config/db');
 
-async function findMany(where, { take = 200 } = {}) {
+async function count(where) {
+  return prisma.recognition_requests.count({ where });
+}
+
+async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.recognition_requests.findMany({
     where,
     orderBy: { created_at: 'desc' },
+    skip,
     take,
   });
 }
@@ -31,4 +36,4 @@ async function hasDocumentType(requestId, documentType) {
   return n > 0;
 }
 
-module.exports = { findMany, findById, create, update, countDocuments, hasDocumentType };
+module.exports = { count, findMany, findById, create, update, countDocuments, hasDocumentType };

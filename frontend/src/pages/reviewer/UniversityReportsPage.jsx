@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { BarChart3, FileSpreadsheet, LineChart, PieChart } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
@@ -9,10 +10,23 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useLocale } from '../../features/locale/index.js';
 import { tr } from '../../utils/i18n.js';
+import { useTenant } from '../../features/tenant/index.js';
+import { useReport } from '../../features/reports/index.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 export function UniversityReportsPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
+  const { scopeId, isAllTenantsSelected } = useTenant();
+  const params = useMemo(
+    () => ({
+      university_id: !isAllTenantsSelected && scopeId ? scopeId : undefined,
+    }),
+    [scopeId, isAllTenantsSelected]
+  );
+  const { data, isLoading, isError, error } = useReport('universities', params, { staleTime: 30_000 });
+  const rows = data?.rows ?? [];
+  const summary = data?.summary ?? {};
 
   return (
     <div className="page page--dashboard page--reviewer">
@@ -32,20 +46,35 @@ export function UniversityReportsPage() {
         </SelectField>
       </AdminFilterBar>
       <AdminStatsGrid>
-        <StatCard label={tr(isArabic, 'تقارير منشورة', 'Published reports')} value="—" icon={FileSpreadsheet} />
-        <StatCard label={tr(isArabic, 'مؤشرات رئيسية', 'Key metrics')} value="—" icon={BarChart3} />
-        <StatCard label={tr(isArabic, 'اتجاهات', 'Trends')} value="—" icon={LineChart} />
-        <StatCard label={tr(isArabic, 'توزيع', 'Distribution')} value="—" icon={PieChart} />
+        <StatCard label={tr(isArabic, 'تقارير منشورة', 'Published reports')} value={String(summary.total_rows ?? rows.length)} icon={FileSpreadsheet} />
+        <StatCard
+          label={tr(isArabic, 'مؤشرات رئيسية', 'Key metrics')}
+          value={String(rows.reduce((s, r) => s + Number(r.enrolled_students_count || 0), 0))}
+          icon={BarChart3}
+        />
+        <StatCard
+          label={tr(isArabic, 'اتجاهات', 'Trends')}
+          value={String(rows.reduce((s, r) => s + Number(r.recognition_requests_count || 0), 0))}
+          icon={LineChart}
+        />
+        <StatCard
+          label={tr(isArabic, 'توزيع', 'Distribution')}
+          value={String(rows.reduce((s, r) => s + Number(r.certificates_count || 0), 0))}
+          icon={PieChart}
+        />
       </AdminStatsGrid>
       <SectionCard title={tr(isArabic, 'التقارير المتاحة', 'Available reports')}>
+        {isLoading ? <p className="crud-muted">{tr(isArabic, 'جاري التحميل...', 'Loading...')}</p> : null}
+        {isError ? <p className="crud-muted">{getApiErrorMessage(error, tr(isArabic, 'تعذر التحميل', 'Load failed'))}</p> : null}
         <DataTable
           columns={[
-            { key: 'name', label: tr(isArabic, 'التقرير', 'Report') },
-            { key: 'period', label: tr(isArabic, 'الفترة', 'Period') },
-            { key: 'updated', label: tr(isArabic, 'آخر تحديث', 'Last update') },
-            { key: 'format', label: tr(isArabic, 'الصيغة', 'Format') },
+            { key: 'university_name', label: tr(isArabic, 'الجامعة', 'University') },
+            { key: 'cohorts_count', label: tr(isArabic, 'الدفعات', 'Cohorts') },
+            { key: 'enrolled_students_count', label: tr(isArabic, 'الطلبة', 'Students') },
+            { key: 'recognition_requests_count', label: tr(isArabic, 'الاعتراف', 'Recognition') },
+            { key: 'certificates_count', label: tr(isArabic, 'الشهادات', 'Certificates') },
           ]}
-          rows={[]}
+          rows={rows}
         />
       </SectionCard>
     </div>

@@ -74,9 +74,21 @@ async function hydrateAuditDetail(row) {
 
 async function listAuditLogs(query, requester) {
   const where = await buildListWhere(query, requester);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const audit_logs = await hydrateAuditRows(rows);
-  return { audit_logs };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    audit_logs,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getAuditLogById(id, requester) {

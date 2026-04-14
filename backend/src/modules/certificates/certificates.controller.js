@@ -1,5 +1,5 @@
 ﻿const certificatesService = require('./certificates.service');
-const { recordAudit } = require('../../utils/auditRecorder');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const { success, created } = require('../../utils/apiResponse');
 
 async function verify(req, res, next) {
@@ -33,13 +33,9 @@ async function getById(req, res, next) {
 async function create(req, res, next) {
   try {
     const data = await certificatesService.createCertificate(req.validated.body, req.user);
-    await recordAudit({
-      userId: req.user.userId,
-      universityId: req.user.universityId ?? null,
-      actionType: 'certificate.issue',
-      entityType: 'certificate',
-      entityId: data.certificate.id,
-      newValues: { certificate_no: data.certificate.certificate_no, student_id: data.certificate.student_id },
+    await dispatchAppEvent('certificate_issued', {
+      certificate: data.certificate,
+      actor: req.user,
       ipAddress: req.ip || null,
     });
     return created(res, data, { message: 'Certificate issued' });
@@ -51,13 +47,9 @@ async function create(req, res, next) {
 async function patchStatus(req, res, next) {
   try {
     const data = await certificatesService.patchCertificateStatus(req.validated.params.id, req.validated.body, req.user);
-    await recordAudit({
-      userId: req.user.userId,
-      universityId: req.user.universityId ?? null,
-      actionType: 'certificate.status',
-      entityType: 'certificate',
-      entityId: req.validated.params.id,
-      newValues: { status: data.certificate.status },
+    await dispatchAppEvent('certificate_status_changed', {
+      certificate: data.certificate,
+      actor: req.user,
       ipAddress: req.ip || null,
     });
     return success(res, data, { message: 'Certificate status updated' });

@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth.js';
-import { getDashboardPathForRole } from '../../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../../utils/authRouting.js';
 import { RegisterForm } from '../components/RegisterForm.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 
@@ -14,7 +14,7 @@ export function RegisterPage() {
   }
 
   if (isAuthenticated && user) {
-    return <Navigate to={getDashboardPathForRole(user.role)} replace />;
+    return <Navigate to={getDefaultDashboardPath(user)} replace />;
   }
 
   return (

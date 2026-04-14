@@ -20,7 +20,9 @@ export function CertificateDetailPage() {
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
   const { user } = useAuth();
+  const location = useLocation();
   const { id } = useParams();
+  const base = location.pathname.startsWith('/reviewer') ? '/reviewer' : '/admin';
   const { data, isLoading, isError, error } = useCertificate(id, { staleTime: 30_000 });
   const patch = useUpdateCertificateStatus();
   const [next, setNext] = useState('');

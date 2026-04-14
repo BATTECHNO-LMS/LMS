@@ -1,4 +1,4 @@
-const { prisma } = require('../config/db');
+const { recordAudit: recordAuditEntry } = require('../shared/services/audit.service');
 
 /**
  * Record an audit log row (internal use from services / future hooks).
@@ -14,18 +14,7 @@ const { prisma } = require('../config/db');
  * }} payload
  */
 async function recordAudit(payload) {
-  return prisma.audit_logs.create({
-    data: {
-      user_id: payload.userId ?? null,
-      university_id: payload.universityId ?? null,
-      action_type: payload.actionType,
-      entity_type: payload.entityType,
-      entity_id: payload.entityId ?? null,
-      old_values: payload.oldValues ?? undefined,
-      new_values: payload.newValues ?? undefined,
-      ip_address: payload.ipAddress ?? null,
-    },
-  });
+  return recordAuditEntry(payload);
 }
 
 module.exports = { recordAudit };

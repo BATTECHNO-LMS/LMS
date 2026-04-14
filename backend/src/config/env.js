@@ -10,6 +10,11 @@ function parseRoleCodes(csv) {
   return [...new Set(csv.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))];
 }
 
+function parseCorsOrigins(csv) {
+  if (!csv || typeof csv !== 'string') return [];
+  return [...new Set(csv.split(',').map((s) => s.trim()).filter(Boolean))];
+}
+
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT) || 4000,
@@ -17,7 +22,22 @@ const env = {
   DATABASE_URL: process.env.DATABASE_URL || '',
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  /** Minimum length for JWT_SECRET when NODE_ENV=production */
+  JWT_SECRET_MIN_LENGTH: Number(process.env.JWT_SECRET_MIN_LENGTH) || 32,
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'uploads',
+  /** Public API base (no trailing slash), e.g. https://api.example.com — used for absolute file URLs */
+  PUBLIC_BASE_URL: (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, ''),
+  /** local | s3 — object URLs resolved in shared/storage/fileStorage */
+  STORAGE_BACKEND: process.env.STORAGE_BACKEND || 'local',
+  /** When STORAGE_BACKEND=s3, public bucket/CDN origin for keys */
+  S3_PUBLIC_BASE_URL: (process.env.S3_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
+  /** Comma-separated browser origins allowed for CORS (required in production) */
+  CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS || ''),
+  /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
+  TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
+  RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 300,
+  AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 30,
   /** DB `roles.code` for student registration (must exist in `roles` table). */
   STUDENT_ROLE_CODE: process.env.STUDENT_ROLE_CODE || 'student',
   /** Role code that grants global admin scope in JWT (`isGlobal`). */
@@ -104,6 +124,11 @@ const env = {
   /** Audit log read (restricted). */
   AUDIT_LOG_READ_ROLE_CODES: parseRoleCodes(
     process.env.AUDIT_LOG_READ_ROLE_CODES || 'super_admin,program_admin,university_admin,academic_admin'
+  ),
+  /** Reports read/export access. */
+  REPORT_READ_ROLE_CODES: parseRoleCodes(
+    process.env.REPORT_READ_ROLE_CODES ||
+      'super_admin,program_admin,university_admin,academic_admin,qa_officer,university_reviewer'
   ),
 };
 

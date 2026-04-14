@@ -1,5 +1,9 @@
 ﻿const { prisma } = require('../../config/db');
 
+async function count(where) {
+  return prisma.audit_logs.count({ where });
+}
+
 async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.audit_logs.findMany({
     where,
@@ -13,4 +17,4 @@ async function findById(id) {
   return prisma.audit_logs.findUnique({ where: { id } });
 }
 
-module.exports = { findMany, findById };
+module.exports = { count, findMany, findById };

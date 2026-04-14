@@ -3,6 +3,14 @@
     "title": "سجل التدقيق",
     "description": "سجل العمليات الحساسة والوصول للبيانات.",
     "searchPlaceholder": "بحث بالحدث أو نوع الكيان",
+    "filters": {
+      "actionType": "نوع الحدث",
+      "entityType": "نوع الكيان",
+      "allActions": "كل الأحداث",
+      "allEntities": "كل الكيانات",
+      "from": "من تاريخ",
+      "to": "إلى تاريخ"
+    },
     "columns": {
       "time": "الوقت",
       "user": "المستخدم",

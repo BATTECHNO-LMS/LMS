@@ -3,6 +3,7 @@ const { resolveScopedCohortIds, cohortIdInScope } = require('../../utils/cohortS
 const { canAccessCohort } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
 const { prisma } = require('../../config/db');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const repo = require('./correctiveActions.repository');
 
 const CORRECTIVE_STATUS_FLOW = {
@@ -30,6 +31,12 @@ function startOfTodayUtc() {
   const d = new Date();
   d.setUTCHours(0, 0, 0, 0);
   return d;
+}
+
+function isOverdueAction(row) {
+  if (!row?.due_date) return false;
+  const due = new Date(row.due_date);
+  return due < startOfTodayUtc() && ['open', 'in_progress', 'overdue'].includes(row.status);
 }
 
 async function scopedQaReviewIds(scopeIds) {
@@ -129,9 +136,21 @@ async function assertCorrectiveAccess(requester, qaReviewId) {
 async function listCorrectiveActions(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
   const where = await buildListWhere(query, scopeIds);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const corrective_actions = await hydrateCorrective(rows);
-  return { corrective_actions };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    corrective_actions,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getCorrectiveById(id, requester) {
@@ -165,6 +184,9 @@ async function createCorrectiveAction(body, requester) {
     status,
   });
   const [full] = await hydrateCorrective([created]);
+  if (isOverdueAction(full)) {
+    await dispatchAppEvent('corrective_action_overdue', { correctiveAction: full });
+  }
   return { corrective_action: full };
 }
 
@@ -191,6 +213,9 @@ async function updateCorrectiveAction(id, body, requester) {
 
   const updated = await repo.update(id, data);
   const [full] = await hydrateCorrective([updated]);
+  if (isOverdueAction(full)) {
+    await dispatchAppEvent('corrective_action_overdue', { correctiveAction: full });
+  }
   return { corrective_action: full };
 }
 
@@ -204,6 +229,9 @@ async function patchCorrectiveStatus(id, body, requester) {
   else data.closed_at = null;
   const updated = await repo.update(id, data);
   const [full] = await hydrateCorrective([updated]);
+  if (isOverdueAction(full)) {
+    await dispatchAppEvent('corrective_action_overdue', { correctiveAction: full });
+  }
   return { corrective_action: full };
 }
 

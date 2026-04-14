@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -23,16 +24,24 @@ const listAssessmentsQuerySchema = z
     status: assessmentStatusEnum.optional(),
     linked_outcome_id: z.string().uuid().optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    cohort_id: q.cohort_id,
-    micro_credential_id: q.micro_credential_id,
-    assessment_type: q.assessment_type,
-    status: q.status,
-    linked_outcome_id: q.linked_outcome_id,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      cohort_id: q.cohort_id,
+      micro_credential_id: q.micro_credential_id,
+      assessment_type: q.assessment_type,
+      status: q.status,
+      linked_outcome_id: q.linked_outcome_id,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const createAssessmentBodySchema = z
   .object({

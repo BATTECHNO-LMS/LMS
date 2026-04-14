@@ -1,0 +1,16 @@
+{
+  "title": "التقارير",
+  "description": "تقارير تشغيلية مولدة من بيانات فعلية.",
+  "types": {
+    "universities": "الجامعات",
+    "cohorts": "الدفعات",
+    "attendance": "الحضور",
+    "assessments": "التقييمات",
+    "recognition": "الاعتراف",
+    "certificates": "الشهادات"
+  },
+  "actions": {
+    "exportCsv": "تصدير CSV",
+    "exportJson": "تصدير JSON"
+  }
+}

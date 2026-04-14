@@ -1,5 +1,11 @@
 ﻿const { prisma } = require('../../config/db');
 
+async function countForUser(userId, where) {
+  return prisma.notifications.count({
+    where: { user_id: userId, ...where },
+  });
+}
+
 async function findManyForUser(userId, where, { skip = 0, take = 200 } = {}) {
   return prisma.notifications.findMany({
     where: { user_id: userId, ...where },
@@ -31,6 +37,7 @@ async function markAllReadForUser(userId) {
 }
 
 module.exports = {
+  countForUser,
   findManyForUser,
   findByIdForUser,
   create,

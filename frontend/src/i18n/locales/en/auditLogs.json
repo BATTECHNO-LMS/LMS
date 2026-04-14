@@ -3,6 +3,14 @@
     "title": "Audit log",
     "description": "Sensitive operations and data access history.",
     "searchPlaceholder": "Search by action or entity type",
+    "filters": {
+      "actionType": "Action type",
+      "entityType": "Entity type",
+      "allActions": "All actions",
+      "allEntities": "All entities",
+      "from": "From",
+      "to": "To"
+    },
     "columns": {
       "time": "Time",
       "user": "User",

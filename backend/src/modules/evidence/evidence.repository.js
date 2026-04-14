@@ -1,13 +1,18 @@
 ﻿const { prisma } = require('../../config/db');
 
+async function count(where) {
+  return prisma.evidence_files.count({ where });
+}
+
 /**
  * @param {import('@prisma/client').Prisma.evidence_filesWhereInput} where
- * @param {{ take?: number }} [opts]
+ * @param {{ skip?: number, take?: number }} [opts]
  */
-async function findMany(where, { take = 200 } = {}) {
+async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.evidence_files.findMany({
     where,
     orderBy: { created_at: 'desc' },
+    skip,
     take,
   });
 }
@@ -24,4 +29,4 @@ async function update(id, data) {
   return prisma.evidence_files.update({ where: { id }, data });
 }
 
-module.exports = { findMany, findById, create, update };
+module.exports = { count, findMany, findById, create, update };

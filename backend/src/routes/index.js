@@ -28,6 +28,7 @@ router.use('/recognition-requests', require('../modules/recognition-requests/rec
 router.use('/recognition-documents', require('../modules/recognition-documents/recognitionDocuments.routes'));
 router.use('/certificates', require('../modules/certificates/certificates.routes'));
 router.use('/notifications', require('../modules/notifications/notifications.routes'));
+router.use('/analytics', require('../modules/analytics/analytics.routes'));
 router.use('/reports', require('../modules/reports/reports.routes'));
 router.use('/audit-logs', require('../modules/audit-logs/auditLogs.routes'));
 

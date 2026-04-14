@@ -67,6 +67,8 @@
     "documentTitle": "العنوان",
     "fileUrl": "رابط الملف",
     "addDocument": "إضافة مستند",
+    "editDocument": "تعديل",
+    "updateDocument": "تحديث المستند",
     "deleteDocument": "حذف",
     "documentError": "تعذر حفظ المستند.",
     "yes": "نعم",

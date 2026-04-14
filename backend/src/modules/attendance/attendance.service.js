@@ -5,6 +5,7 @@ const attendanceRepository = require('./attendance.repository');
 const cohortsRepository = require('../cohorts/cohorts.repository');
 const sessionsService = require('../sessions/sessions.service');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 
 function countsAsAttended(status) {
   return status === 'present' || status === 'late' || status === 'excused';
@@ -37,6 +38,25 @@ async function recalcCohortAttendancePercentages(cohortId) {
     );
   }
   if (updates.length) await prisma.$transaction(updates);
+}
+
+async function emitLowAttendanceIfNeeded(cohortId) {
+  const agg = await prisma.enrollments.aggregate({
+    where: {
+      cohort_id: cohortId,
+      enrollment_status: { in: ['enrolled', 'pending', 'completed'] },
+    },
+    _avg: { attendance_percentage: true },
+  });
+  const avg = Number(agg._avg.attendance_percentage || 0);
+  const threshold = 75;
+  if (avg < threshold) {
+    await dispatchAppEvent('attendance_below_threshold', {
+      cohortId,
+      attendanceRate: avg,
+      threshold,
+    });
+  }
 }
 
 async function assertSessionAttendanceAccess(sessionId, requester) {
@@ -106,6 +126,7 @@ async function saveSessionAttendance(sessionId, body, requester) {
   }
 
   await recalcCohortAttendancePercentages(cohort.id);
+  await emitLowAttendanceIfNeeded(cohort.id);
   return getSessionAttendance(sessionId, requester);
 }
 
@@ -120,7 +141,10 @@ async function updateAttendanceRecord(recordId, body, requester) {
 
   await attendanceRepository.updateRecord(recordId, data);
   const sessionRow = await sessionsService.findSessionByIdRaw(rec.session_id);
-  if (sessionRow) await recalcCohortAttendancePercentages(sessionRow.cohort_id);
+  if (sessionRow) {
+    await recalcCohortAttendancePercentages(sessionRow.cohort_id);
+    await emitLowAttendanceIfNeeded(sessionRow.cohort_id);
+  }
 
   const updated = await attendanceRepository.findById(recordId);
   return {

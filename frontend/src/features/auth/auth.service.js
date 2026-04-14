@@ -14,11 +14,7 @@ export async function login(credentials) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid login response: missing token');
   }
-  const user = mapAuthUser(payload?.user);
-  if (!user) {
-    throw new Error('Invalid login response: missing user');
-  }
-  return { data: { token, user } };
+  return { data: { token } };
 }
 
 /**
@@ -32,14 +28,7 @@ export async function registerStudent(body) {
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid registration response: missing token');
   }
-  const user = mapAuthUser({
-    ...payload?.user,
-    roles: payload?.user?.roles ?? ['student'],
-  });
-  if (!user) {
-    throw new Error('Invalid registration response: missing user');
-  }
-  return { data: { token, user } };
+  return { data: { token } };
 }
 
 export async function logout() {
@@ -55,6 +44,11 @@ export async function fetchCurrentUser() {
   const res = await apiClient.get(endpoints.auth.me);
   const payload = unwrapApiData(res);
   const user = mapAuthUser(payload?.user);
+  if (!user) {
+    const err = new Error('Invalid profile response');
+    err.code = 'PROFILE_INVALID';
+    throw err;
+  }
   return { data: { user } };
 }
 

@@ -98,7 +98,7 @@
   },
   "reportsPage": {
     "title": "Reports",
-    "description": "Operational reports for the selected university scope (UI simulation).",
+    "description": "Operational reports generated from real platform data.",
     "quickExport": "Quick export",
     "schedule": "Schedule report",
     "statReady": "Reports in scope",

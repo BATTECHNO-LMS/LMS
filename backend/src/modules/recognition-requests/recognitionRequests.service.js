@@ -1,4 +1,5 @@
 ﻿const { ApiError } = require('../../utils/apiError');
+const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
 const { prisma } = require('../../config/db');
@@ -105,7 +106,7 @@ async function mapDocuments(docs) {
     recognition_request_id: d.recognition_request_id,
     document_type: d.document_type,
     title: d.title,
-    file_url: d.file_url,
+    file_url: resolvePublicUrl(d.file_url),
     created_at: d.created_at,
     updated_at: d.updated_at,
   }));
@@ -136,9 +137,21 @@ async function assertMeetsReadyForSubmission(requestId) {
 
 async function listRecognitionRequests(query, requester) {
   const where = await buildListWhere(query, requester);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const recognition_requests = await hydrateRequests(rows);
-  return { recognition_requests };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    recognition_requests,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getRecognitionRequestById(id, requester) {

@@ -11,6 +11,10 @@ const assessmentInclude = {
  * @param {import('@prisma/client').Prisma.assessmentsWhereInput} where
  * @param {{ skip?: number, take?: number }} [opts]
  */
+async function count(where) {
+  return prisma.assessments.count({ where });
+}
+
 async function findMany(where, opts = {}) {
   const { skip = 0, take = 200 } = opts;
   return prisma.assessments.findMany({
@@ -82,6 +86,7 @@ async function findRubric(id) {
 }
 
 module.exports = {
+  count,
   findMany,
   findById,
   create,

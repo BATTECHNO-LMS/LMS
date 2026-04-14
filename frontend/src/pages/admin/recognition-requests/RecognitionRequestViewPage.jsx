@@ -15,6 +15,7 @@ import { useRecognitionDocuments } from '../../../features/recognition/hooks/use
 import { useUpdateRecognitionRequestStatus } from '../../../features/recognition/hooks/useUpdateRecognitionRequestStatus.js';
 import { useCreateRecognitionDocument } from '../../../features/recognition/hooks/useCreateRecognitionDocument.js';
 import { useDeleteRecognitionDocument } from '../../../features/recognition/hooks/useDeleteRecognitionDocument.js';
+import { useUpdateRecognitionDocument } from '../../../features/recognition/hooks/useUpdateRecognitionDocument.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { canPatchRecognitionStatus, canWriteRecognitionRequest } from '../../../utils/recognitionPermissions.js';
 
@@ -60,11 +61,13 @@ export function RecognitionRequestViewPage() {
   const [nextStatus, setNextStatus] = useState('');
   const [statusErr, setStatusErr] = useState('');
   const [docForm, setDocForm] = useState({ document_type: 'credential_description', title: '', file_url: '' });
+  const [editingDocumentId, setEditingDocumentId] = useState('');
   const [docErr, setDocErr] = useState('');
 
   const patchStatus = useUpdateRecognitionRequestStatus();
   const createDoc = useCreateRecognitionDocument();
   const deleteDoc = useDeleteRecognitionDocument();
+  const updateDoc = useUpdateRecognitionDocument();
 
   const canWrite = canWriteRecognitionRequest(user);
   const canStatus = canPatchRecognitionStatus(user);
@@ -112,9 +115,14 @@ export function RecognitionRequestViewPage() {
         key: 'actions',
         label: t('list.columns.actions'),
         render: (r) => (
-          <button type="button" className="btn btn--outline btn--sm" onClick={() => onDeleteDocument(r.id)}>
-            {t('form.deleteDocument')}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button type="button" className="btn btn--outline btn--sm" onClick={() => onStartEditDocument(r)}>
+              {t('form.editDocument')}
+            </button>
+            <button type="button" className="btn btn--outline btn--sm" onClick={() => onDeleteDocument(r.id)}>
+              {t('form.deleteDocument')}
+            </button>
+          </div>
         ),
       });
     }
@@ -164,6 +172,45 @@ export function RecognitionRequestViewPage() {
       { recognitionRequestId: id, body: { document_type: docForm.document_type, title: docForm.title, file_url: docForm.file_url } },
       {
         onSuccess: () => setDocForm((f) => ({ ...f, title: '', file_url: '' })),
+        onError: (err) => setDocErr(getApiErrorMessage(err, t('form.documentError'))),
+      }
+    );
+  }
+
+  function onStartEditDocument(doc) {
+    setDocErr('');
+    setEditingDocumentId(doc.id);
+    setDocForm({
+      document_type: doc.document_type || 'other',
+      title: doc.title || '',
+      file_url: doc.file_url || '',
+    });
+  }
+
+  function onCancelEditDocument() {
+    setEditingDocumentId('');
+    setDocForm({ document_type: 'credential_description', title: '', file_url: '' });
+  }
+
+  function onSaveDocumentEdit(e) {
+    e.preventDefault();
+    setDocErr('');
+    if (!id || !editingDocumentId || !docForm.title.trim() || !docForm.file_url.trim()) {
+      setDocErr(t('form.documentError'));
+      return;
+    }
+    updateDoc.mutate(
+      {
+        id: editingDocumentId,
+        recognitionRequestId: id,
+        body: {
+          document_type: docForm.document_type,
+          title: docForm.title.trim(),
+          file_url: docForm.file_url.trim(),
+        },
+      },
+      {
+        onSuccess: () => onCancelEditDocument(),
         onError: (err) => setDocErr(getApiErrorMessage(err, t('form.documentError'))),
       }
     );
@@ -281,7 +328,7 @@ export function RecognitionRequestViewPage() {
         <DataTable emptyTitle={t('list.emptyTitle')} emptyDescription={t('list.emptyDescription')} columns={documentColumns} rows={docRows} />
 
         {canWrite ? (
-          <form className="crud-form-grid" style={{ marginTop: '1rem' }} onSubmit={onAddDocument}>
+          <form className="crud-form-grid" style={{ marginTop: '1rem' }} onSubmit={editingDocumentId ? onSaveDocumentEdit : onAddDocument}>
             <FormSelect
               id="doc-type"
               label={t('form.documentType')}
@@ -316,9 +363,16 @@ export function RecognitionRequestViewPage() {
                 onChange={(e) => setDocForm((f) => ({ ...f, file_url: e.target.value }))}
               />
             </div>
-            <button type="submit" className="btn btn--primary" disabled={createDoc.isPending}>
-              {t('form.addDocument')}
-            </button>
+            <div className="crud-view-actions" style={{ gap: '0.5rem' }}>
+              <button type="submit" className="btn btn--primary" disabled={createDoc.isPending || updateDoc.isPending}>
+                {editingDocumentId ? t('form.updateDocument') : t('form.addDocument')}
+              </button>
+              {editingDocumentId ? (
+                <button type="button" className="btn btn--outline" onClick={onCancelEditDocument}>
+                  {t('form.cancel')}
+                </button>
+              ) : null}
+            </div>
           </form>
         ) : null}
       </SectionCard>

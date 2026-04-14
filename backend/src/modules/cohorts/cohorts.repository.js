@@ -4,6 +4,10 @@ async function findById(id) {
   return prisma.cohorts.findUnique({ where: { id } });
 }
 
+async function count(where) {
+  return prisma.cohorts.count({ where });
+}
+
 async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.cohorts.findMany({
     where,
@@ -65,6 +69,7 @@ async function findMicroCredentialUniversityLink(microCredentialId, universityId
 
 module.exports = {
   findById,
+  count,
   findMany,
   create,
   update,

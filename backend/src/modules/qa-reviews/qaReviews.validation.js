@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -14,15 +15,23 @@ const listQaReviewsQuerySchema = z
     review_type: reviewTypeEnum.optional(),
     status: qaReviewStatusEnum.optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    cohort_id: q.cohort_id,
-    reviewer_id: q.reviewer_id,
-    review_type: q.review_type,
-    status: q.status,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      cohort_id: q.cohort_id,
+      reviewer_id: q.reviewer_id,
+      review_type: q.review_type,
+      status: q.status,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const getQaReviewQuerySchema = z
   .object({

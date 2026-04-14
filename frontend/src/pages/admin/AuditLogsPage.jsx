@@ -9,6 +9,7 @@ import {
   AdminStatsGrid,
   SectionCard,
   SearchInput,
+  SelectField,
 } from '../../components/admin/index.js';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
@@ -24,13 +25,21 @@ export function AuditLogsPage() {
   const { locale } = useLocale();
   const { scopeId, isAllTenantsSelected } = useTenant();
   const [q, setQ] = useState('');
+  const [actionType, setActionType] = useState('');
+  const [entityType, setEntityType] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
 
   const params = useMemo(() => {
     const p = {};
     if (!isAllTenantsSelected && scopeId) p.university_id = scopeId;
+    if (actionType) p.action_type = actionType;
+    if (entityType) p.entity_type = entityType;
+    if (from) p.from = from;
+    if (to) p.to = to;
     if (q.trim()) p.search = q.trim();
     return p;
-  }, [scopeId, isAllTenantsSelected, q]);
+  }, [scopeId, isAllTenantsSelected, q, actionType, entityType, from, to]);
 
   const { data, isLoading, isError, error } = useAuditLogs(params, { staleTime: 30_000 });
   const rows = useMemo(() => {
@@ -60,6 +69,35 @@ export function AuditLogsPage() {
           placeholder={t('list.searchPlaceholder')}
           aria-label={tCommon('actions.search')}
         />
+        <SelectField id="audit-action-type" label={t('list.filters.actionType')} value={actionType} onChange={(e) => setActionType(e.target.value)}>
+          <option value="">{t('list.filters.allActions')}</option>
+          <option value="certificate.issue">certificate.issue</option>
+          <option value="certificate.status">certificate.status</option>
+          <option value="recognition_request.create">recognition_request.create</option>
+          <option value="recognition_request.status">recognition_request.status</option>
+          <option value="recognition_document.create">recognition_document.create</option>
+          <option value="recognition_document.update">recognition_document.update</option>
+          <option value="recognition_document.delete">recognition_document.delete</option>
+        </SelectField>
+        <SelectField id="audit-entity-type" label={t('list.filters.entityType')} value={entityType} onChange={(e) => setEntityType(e.target.value)}>
+          <option value="">{t('list.filters.allEntities')}</option>
+          <option value="certificate">certificate</option>
+          <option value="recognition_request">recognition_request</option>
+          <option value="recognition_document">recognition_document</option>
+          <option value="notification">notification</option>
+        </SelectField>
+        <div className="form-field">
+          <label className="form-field__label" htmlFor="audit-from">
+            {t('list.filters.from')}
+          </label>
+          <input id="audit-from" className="form-field__control" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </div>
+        <div className="form-field">
+          <label className="form-field__label" htmlFor="audit-to">
+            {t('list.filters.to')}
+          </label>
+          <input id="audit-to" className="form-field__control" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </div>
       </AdminFilterBar>
       <AdminStatsGrid>
         <StatCard label={t('list.stats.events')} value={String(rows.length)} icon={ScrollText} />

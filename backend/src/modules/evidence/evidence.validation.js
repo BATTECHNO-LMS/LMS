@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -13,17 +14,25 @@ const listEvidenceQuerySchema = z
     session_id: z.string().uuid().optional(),
     evidence_type: z.string().max(100).optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    micro_credential_id: q.micro_credential_id,
-    cohort_id: q.cohort_id,
-    student_id: q.student_id,
-    assessment_id: q.assessment_id,
-    session_id: q.session_id,
-    evidence_type: q.evidence_type?.trim() || undefined,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      micro_credential_id: q.micro_credential_id,
+      cohort_id: q.cohort_id,
+      student_id: q.student_id,
+      assessment_id: q.assessment_id,
+      session_id: q.session_id,
+      evidence_type: q.evidence_type?.trim() || undefined,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const createEvidenceBodySchema = z
   .object({

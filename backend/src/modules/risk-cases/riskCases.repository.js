@@ -1,9 +1,14 @@
 ﻿const { prisma } = require('../../config/db');
 
-async function findMany(where, { take = 200 } = {}) {
+async function count(where) {
+  return prisma.risk_cases.count({ where });
+}
+
+async function findMany(where, { skip = 0, take = 200 } = {}) {
   return prisma.risk_cases.findMany({
     where,
     orderBy: { created_at: 'desc' },
+    skip,
     take,
   });
 }
@@ -31,4 +36,4 @@ async function countOpenByTypeStudentCohort(cohortId, studentId, riskType) {
   });
 }
 
-module.exports = { findMany, findById, create, update, countOpenByTypeStudentCohort };
+module.exports = { count, findMany, findById, create, update, countOpenByTypeStudentCohort };

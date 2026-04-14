@@ -3,6 +3,7 @@ const { resolveScopedCohortIds, cohortIdInScope } = require('../../utils/cohortS
 const { canAccessCohort } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
 const { prisma } = require('../../config/db');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const repo = require('./qaReviews.repository');
 
 const QA_STATUS_FLOW = {
@@ -115,9 +116,21 @@ async function listQaReviews(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
   if (query.cohort_id && !cohortIdInScope(scopeIds, query.cohort_id)) throw new ApiError(403, 'Forbidden');
   const where = await buildListWhere(query, scopeIds);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const qa_reviews = await hydrateQaRows(rows);
-  return { qa_reviews };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    qa_reviews,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getQaReviewById(id, query, requester) {
@@ -151,6 +164,7 @@ async function createQaReview(body, requester) {
     status: 'open',
   });
   const [full] = await hydrateQaRows([created]);
+  await dispatchAppEvent('qa_review_opened', { qaReview: full });
   return { qa_review: full };
 }
 

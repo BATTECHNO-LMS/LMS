@@ -1,0 +1,16 @@
+{
+  "title": "Reports",
+  "description": "Operational reports generated from real data.",
+  "types": {
+    "universities": "Universities",
+    "cohorts": "Cohorts",
+    "attendance": "Attendance",
+    "assessments": "Assessments",
+    "recognition": "Recognition",
+    "certificates": "Certificates"
+  },
+  "actions": {
+    "exportCsv": "Export CSV",
+    "exportJson": "Export JSON"
+  }
+}

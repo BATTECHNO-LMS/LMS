@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -22,16 +23,24 @@ const listRiskCasesQuerySchema = z
     risk_level: riskLevelEnum.optional(),
     status: riskCaseStatusEnum.optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    cohort_id: q.cohort_id,
-    student_id: q.student_id,
-    risk_type: q.risk_type,
-    risk_level: q.risk_level,
-    status: q.status,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      cohort_id: q.cohort_id,
+      student_id: q.student_id,
+      risk_type: q.risk_type,
+      risk_level: q.risk_level,
+      status: q.status,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const createRiskCaseBodySchema = z
   .object({

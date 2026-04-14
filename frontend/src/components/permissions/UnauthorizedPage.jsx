@@ -2,13 +2,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ShieldOff } from 'lucide-react';
 import { useAuth } from '../../features/auth/index.js';
-import { getDashboardPathForRole } from '../../utils/helpers.js';
+import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 
 /** Optional `title` / `description` override default `common.unauthorized` copy. */
 export function UnauthorizedPage({ title, description } = {}) {
   const { user } = useAuth();
   const { t } = useTranslation('common');
-  const home = getDashboardPathForRole(user?.role);
+  const home = getDefaultDashboardPath(user);
 
   return (
     <div className="page page--unauthorized">

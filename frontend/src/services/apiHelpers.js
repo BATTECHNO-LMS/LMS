@@ -23,6 +23,9 @@ export function unwrapApiData(res) {
  * @param {string} [fallback]
  */
 export function getApiErrorMessage(err, fallback = 'Request failed') {
+  if (!err?.response) {
+    return fallback;
+  }
   const body = err?.response?.data;
   if (body && typeof body === 'object' && typeof body.message === 'string' && body.message) {
     const fields = body.details?.fields;

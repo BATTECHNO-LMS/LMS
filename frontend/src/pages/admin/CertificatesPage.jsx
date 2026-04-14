@@ -11,7 +11,7 @@ import {
   SearchInput,
   SelectField,
 } from '../../components/admin/index.js';
-import { Button } from '../../components/common/Button.jsx';
+import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { TableIconActions } from '../../components/crud/TableIconActions.jsx';

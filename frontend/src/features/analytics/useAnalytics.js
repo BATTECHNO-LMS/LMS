@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { fetchAnalytics } from './analytics.service.js';
-import { TIME_PRESETS } from './analytics.placeholder.js';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchAnalyticsOverview } from './analytics.service.js';
 
 const defaultFilters = {
   universityId: '',
@@ -8,33 +8,36 @@ const defaultFilters = {
   microCredentialId: '',
   cohortId: '',
   timePreset: 'last30',
+  from: '',
+  to: '',
 };
 
 export function useAnalytics() {
   const [filters, setFilters] = useState(defaultFilters);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const payload = await fetchAnalytics(filters);
-      setData(payload);
-    } catch (e) {
-      setError(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const query = useQuery({
+    queryKey: ['analytics', 'overview', filters],
+    queryFn: () => fetchAnalyticsOverview(filters),
+    staleTime: 30_000,
+  });
 
   const setTimePreset = useCallback((timePreset) => {
-    setFilters((f) => ({ ...f, timePreset: TIME_PRESETS.includes(timePreset) ? timePreset : 'last30' }));
+    const now = new Date();
+    const to = now.toISOString().slice(0, 10);
+    let from = '';
+    if (timePreset === 'last7') {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 7);
+      from = d.toISOString().slice(0, 10);
+    } else if (timePreset === 'last30') {
+      const d = new Date(now);
+      d.setDate(d.getDate() - 30);
+      from = d.toISOString().slice(0, 10);
+    } else if (timePreset === 'thisYear') {
+      from = `${now.getFullYear()}-01-01`;
+    } else if (timePreset === 'thisTerm') {
+      from = `${now.getFullYear()}-${now.getMonth() < 6 ? '01' : '07'}-01`;
+    }
+    setFilters((f) => ({ ...f, timePreset, from, to: timePreset === 'all' ? '' : to }));
   }, []);
 
   const setFilter = useCallback((key, value) => {
@@ -45,7 +48,7 @@ export function useAnalytics() {
     setFilters(defaultFilters);
   }, []);
 
-  const timePresets = useMemo(() => TIME_PRESETS, []);
+  const timePresets = useMemo(() => ['last7', 'last30', 'thisTerm', 'thisYear', 'all'], []);
 
   return {
     filters,
@@ -53,9 +56,9 @@ export function useAnalytics() {
     setTimePreset,
     resetFilters,
     timePresets,
-    data,
-    loading,
-    error,
-    refresh: load,
+    data: query.data,
+    loading: query.isLoading,
+    error: query.error,
+    refresh: query.refetch,
   };
 }

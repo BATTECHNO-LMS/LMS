@@ -257,6 +257,7 @@ model notifications {
 
   @@index([is_read], map: "idx_notifications_is_read")
   @@index([user_id], map: "idx_notifications_user_id")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_notifications_user_created")
 }
 
 /// Issued micro-credential certificates (verification + lifecycle).

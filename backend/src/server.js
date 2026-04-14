@@ -4,7 +4,23 @@ const { prisma } = require('./config/db');
 
 const port = env.PORT;
 
+function assertProductionConfig() {
+  if (env.NODE_ENV !== 'production') return;
+  const errors = [];
+  if (!env.DATABASE_URL) errors.push('DATABASE_URL is required in production');
+  if (!env.JWT_SECRET || env.JWT_SECRET.length < env.JWT_SECRET_MIN_LENGTH) {
+    errors.push(`JWT_SECRET must be at least ${env.JWT_SECRET_MIN_LENGTH} characters in production`);
+  }
+  if (!env.CORS_ORIGINS.length) errors.push('CORS_ORIGINS must list at least one origin in production');
+  if (errors.length) {
+    // eslint-disable-next-line no-console
+    console.error('Invalid production configuration:\n', errors.join('\n'));
+    process.exit(1);
+  }
+}
+
 async function start() {
+  assertProductionConfig();
   if (!env.DATABASE_URL) {
     // eslint-disable-next-line no-console
     console.warn('DATABASE_URL is not set; starting without a database connection.');

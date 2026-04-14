@@ -40,5 +40,6 @@ export const endpoints = {
   certificates: `${API_V}/certificates`,
   notifications: `${API_V}/notifications`,
   auditLogs: `${API_V}/audit-logs`,
+  analytics: `${API_V}/analytics`,
   reports: `${API_V}/reports`,
 };

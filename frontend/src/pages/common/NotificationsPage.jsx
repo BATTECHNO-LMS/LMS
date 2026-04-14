@@ -16,11 +16,14 @@ export function NotificationsPage() {
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
   const [filter, setFilter] = useState('');
+  const [type, setType] = useState('');
   const params = useMemo(() => {
-    if (filter === 'unread') return { is_read: false };
-    if (filter === 'read') return { is_read: true };
-    return {};
-  }, [filter]);
+    const payload = {};
+    if (filter === 'unread') payload.is_read = false;
+    if (filter === 'read') payload.is_read = true;
+    if (type) payload.type = type;
+    return payload;
+  }, [filter, type]);
 
   const { data, isLoading, isError, error } = useNotifications(params, { staleTime: 15_000 });
   const markOne = useMarkNotificationRead();
@@ -46,6 +49,13 @@ export function NotificationsPage() {
           <option value="unread">{t('unread')}</option>
           <option value="read">{t('list.read')}</option>
         </SelectField>
+        <SelectField id="notif-type" label={t('list.columns.type')} value={type} onChange={(e) => setType(e.target.value)}>
+          <option value="">{t('allTypes')}</option>
+          <option value="info">{t('types.info')}</option>
+          <option value="warning">{t('types.warning')}</option>
+          <option value="success">{t('types.success')}</option>
+          <option value="action_required">{t('types.action_required')}</option>
+        </SelectField>
         <button type="button" className="btn btn--outline" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
           {t('markAllRead')}
         </button>
@@ -63,7 +73,7 @@ export function NotificationsPage() {
           columns={[
             { key: 'created_at', label: t('list.columns.time') },
             { key: 'title', label: t('list.columns.title') },
-            { key: 'type', label: t('type') },
+            { key: 'type', label: t('list.columns.type') },
             {
               key: 'is_read',
               label: tCommon('status.label'),

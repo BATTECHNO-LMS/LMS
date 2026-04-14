@@ -8,7 +8,7 @@ export function useAuthRegister() {
   return useMutation({
     mutationFn: registerApi,
     onSuccess: async (res) => {
-      await persistTokenAndHydrate(res.data.token, res.data.user);
+      await persistTokenAndHydrate(res.data.token);
       qc.invalidateQueries({ queryKey: ['users'] });
       qc.invalidateQueries({ queryKey: ['universities'] });
     },

@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -18,16 +19,24 @@ const listCertificatesQuerySchema = z
     micro_credential_id: z.string().uuid().optional(),
     status: certificateStatusEnum.optional(),
     search: z.string().max(255).optional(),
+    ...paginationQueryShape,
   })
   .strict()
-  .transform((q) => ({
-    university_id: q.university_id,
-    student_id: q.student_id,
-    cohort_id: q.cohort_id,
-    micro_credential_id: q.micro_credential_id,
-    status: q.status,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    const p = normalizePagination(q);
+    return {
+      university_id: q.university_id,
+      student_id: q.student_id,
+      cohort_id: q.cohort_id,
+      micro_credential_id: q.micro_credential_id,
+      status: q.status,
+      search: q.search?.trim() || undefined,
+      page: p.page,
+      page_size: p.page_size,
+      skip: p.skip,
+      take: p.take,
+    };
+  });
 
 const createCertificateBodySchema = z
   .object({

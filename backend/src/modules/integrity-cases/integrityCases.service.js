@@ -4,6 +4,7 @@ const { canAccessCohort } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
 const enrollmentsRepo = require('../enrollments/enrollments.repository');
 const { prisma } = require('../../config/db');
+const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const repo = require('./integrityCases.repository');
 
 const INTEGRITY_STATUS_FLOW = {
@@ -115,9 +116,21 @@ async function listIntegrityCases(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
   if (query.cohort_id && !cohortIdInScope(scopeIds, query.cohort_id)) throw new ApiError(403, 'Forbidden');
   const where = await buildListWhere(query, scopeIds);
-  const rows = await repo.findMany(where, { take: 200 });
+  const [total, rows] = await Promise.all([
+    repo.count(where),
+    repo.findMany(where, { skip: query.skip, take: query.take }),
+  ]);
   const integrity_cases = await hydrateIntegrityRows(rows);
-  return { integrity_cases };
+  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
+  return {
+    integrity_cases,
+    meta: {
+      page: query.page,
+      page_size: query.page_size,
+      total,
+      total_pages,
+    },
+  };
 }
 
 async function getIntegrityCaseById(id, requester) {
@@ -153,6 +166,10 @@ async function createIntegrityCase(body, requester) {
     status,
   });
   const [full] = await hydrateIntegrityRows([created]);
+  await dispatchAppEvent('integrity_case_reported', {
+    integrityCase: full,
+    actor: requester,
+  });
   return { integrity_case: full };
 }
 
