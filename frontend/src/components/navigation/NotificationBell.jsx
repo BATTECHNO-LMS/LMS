@@ -1,16 +1,18 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers.js';
 import { useAuth } from '../../features/auth/index.js';
 import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
 import { getNotificationsPathForUser } from '../../utils/notificationsPath.js';
+import { getAdminNotificationDeepLink } from '../../utils/notificationDeepLink.js';
 
 export function NotificationBell({ className }) {
   const { t } = useTranslation('notifications');
   const { t: tCommon } = useTranslation('common');
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
@@ -72,23 +74,49 @@ export function NotificationBell({ className }) {
           {isLoading ? <p className="crud-muted">{tCommon('loading')}</p> : null}
           {!isLoading && preview.length === 0 ? <p className="crud-muted">{t('emptyTitle')}</p> : null}
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-            {preview.map((n) => (
-              <li key={n.id} style={{ padding: '8px 4px', borderBottom: '1px solid var(--border, #eee)' }}>
-                <div style={{ fontWeight: 600 }}>{n.title}</div>
-                {n.body ? <div className="crud-muted" style={{ fontSize: 12 }}>{n.body}</div> : null}
-                {!n.is_read ? (
-                  <button
-                    type="button"
-                    className="btn btn--ghost btn--sm"
-                    style={{ marginTop: 4 }}
-                    onClick={() => markRead.mutate(n.id)}
-                    disabled={markRead.isPending}
-                  >
-                    {t('markRead')}
-                  </button>
-                ) : null}
-              </li>
-            ))}
+            {preview.map((n) => {
+              const deepLink = getAdminNotificationDeepLink(n, user);
+              return (
+                <li key={n.id} style={{ padding: '8px 4px', borderBottom: '1px solid var(--border, #eee)' }}>
+                  {deepLink ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!n.is_read) markRead.mutate(n.id);
+                        navigate(deepLink);
+                        setOpen(false);
+                      }}
+                      style={{
+                        fontWeight: 600,
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        cursor: 'pointer',
+                        textAlign: 'inherit',
+                        color: 'inherit',
+                        width: '100%',
+                      }}
+                    >
+                      {n.title}
+                    </button>
+                  ) : (
+                    <div style={{ fontWeight: 600 }}>{n.title}</div>
+                  )}
+                  {n.body ? <div className="crud-muted" style={{ fontSize: 12 }}>{n.body}</div> : null}
+                  {!n.is_read ? (
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      style={{ marginTop: 4 }}
+                      onClick={() => markRead.mutate(n.id)}
+                      disabled={markRead.isPending}
+                    >
+                      {t('markRead')}
+                    </button>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
           <div style={{ marginTop: 8 }}>
             <Link className="btn btn--outline btn--sm" to={notifPath} onClick={() => setOpen(false)}>

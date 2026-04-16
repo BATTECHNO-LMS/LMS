@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
@@ -15,11 +15,12 @@ import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { roleLabelAr } from '../../../utils/labelsAr.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
 import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
-import { useUsers, mapUserListRow } from '../../../features/users/index.js';
+import { useUsers, mapUserListRow, useActivateUser } from '../../../features/users/index.js';
 import { Users, UserCheck, UserX, UserPlus } from 'lucide-react';
 
 export function UsersListPage() {
@@ -27,9 +28,19 @@ export function UsersListPage() {
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
   const { filterRows, scopeId } = useTenant();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState('');
   const [role, setRole] = useState('');
-  const [status, setStatus] = useState('');
+  const status = searchParams.get('status') || '';
+  const [activationFeedback, setActivationFeedback] = useState('');
+  const activateUser = useActivateUser();
+
+  const setStatusParam = (value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('status', value);
+    else next.delete('status');
+    setSearchParams(next, { replace: true });
+  };
 
   const listParams = useMemo(() => {
     const params = { page: 1, page_size: 100 };
@@ -95,13 +106,23 @@ export function UsersListPage() {
           <option value="program_admin">{t('filters.admin')}</option>
           <option value="qa_officer">{t('filters.qaOfficer')}</option>
         </SelectField>
-        <SelectField id="status-filter" label={tCommon('status.label')} value={status} onChange={(e) => setStatus(e.target.value)}>
+        <SelectField
+          id="status-filter"
+          label={tCommon('status.label')}
+          value={status}
+          onChange={(e) => setStatusParam(e.target.value)}
+        >
           <option value="">{tCommon('status.allStatuses')}</option>
           <option value="active">{tCommon('status.active')}</option>
           <option value="inactive">{tCommon('status.inactive')}</option>
           <option value="suspended">{tCommon('status.suspended')}</option>
         </SelectField>
       </AdminFilterBar>
+      {activationFeedback ? (
+        <p className="auth-register__helper" role="status" style={{ margin: '0 0 12px' }}>
+          {activationFeedback}
+        </p>
+      ) : null}
       <AdminStatsGrid>
         <StatCard label={t('stats.total')} value={String(stats.total)} icon={Users} />
         <StatCard label={t('stats.active')} value={String(stats.active)} icon={UserCheck} />
@@ -126,16 +147,45 @@ export function UsersListPage() {
               {
                 key: 'status',
                 label: tCommon('status.label'),
-                render: (r) => (
-                  <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
-                ),
+                render: (r) => {
+                  const isPendingStudent =
+                    r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student');
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
+                      <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                      {isPendingStudent ? (
+                        <StatusBadge variant="warning">{t('list.pendingActivation')}</StatusBadge>
+                      ) : null}
+                    </div>
+                  );
+                },
               },
               { key: 'lastLogin', label: t('table.lastLogin') },
               {
                 key: 'actions',
                 label: tCommon('table.actions'),
                 render: (r) => (
-                  <TableIconActions viewTo={`/admin/users/${r.id}`} editTo={`/admin/users/${r.id}/edit`} />
+                  <div className="table-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    {r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student') ? (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        disabled={activateUser.isPending}
+                        onClick={async () => {
+                          setActivationFeedback('');
+                          try {
+                            await activateUser.mutateAsync(r.id);
+                            setActivationFeedback(t('list.activateSuccess'));
+                          } catch (e) {
+                            setActivationFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+                          }
+                        }}
+                      >
+                        {t('list.activateAccount')}
+                      </button>
+                    ) : null}
+                    <TableIconActions viewTo={`/admin/users/${r.id}`} editTo={`/admin/users/${r.id}/edit`} />
+                  </div>
                 ),
               },
             ]}

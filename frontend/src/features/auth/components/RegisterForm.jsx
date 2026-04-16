@@ -11,7 +11,6 @@ import { SubmitButton } from './SubmitButton.jsx';
 import { fetchRegisterUniversitiesCatalog } from '../auth.service.js';
 import { mapUniversitiesForSelect } from '../../../constants/universities.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { getDashboardPathForRole } from '../../../utils/helpers.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
 export function RegisterForm() {
@@ -63,8 +62,14 @@ export function RegisterForm() {
     };
 
     try {
-      const { redirectTo } = await signUp(payload);
-      navigate(redirectTo ?? getDashboardPathForRole('student'), { replace: true });
+      const result = await signUp(payload);
+      if (result?.pendingApproval) {
+        navigate('/login/student?registered=pending', { replace: true });
+        return;
+      }
+      if (result?.redirectTo) {
+        navigate(result.redirectTo, { replace: true });
+      }
     } catch (err) {
       setFormError(getApiErrorMessage(err, t('register.submitFailed')));
     }

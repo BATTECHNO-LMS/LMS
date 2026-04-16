@@ -43,6 +43,8 @@ const listAssessmentsQuerySchema = z
     };
   });
 
+const submissionPreferenceEnum = z.enum(['file', 'repo_url', 'text_response', 'mixed']);
+
 const createAssessmentBodySchema = z
   .object({
     cohort_id: z.string().uuid(),
@@ -56,6 +58,18 @@ const createAssessmentBodySchema = z
     rubric_id: z.string().uuid().optional().nullable(),
     instructions: z.string().max(20000).optional().nullable(),
     status: assessmentStatusEnum.optional(),
+    time_limit_minutes: z
+      .preprocess(
+        (v) => (v === '' || v === undefined ? undefined : v === null ? null : Number(v)),
+        z.number().int().min(1).max(10080).nullable().optional()
+      ),
+    max_attempts: z.preprocess(
+      (v) => (v === '' || v === undefined ? undefined : Number(v)),
+      z.coerce.number().int().min(1).max(50).optional()
+    ),
+    shuffle_questions: z.boolean().optional(),
+    question_bank_ref: z.string().trim().max(255).optional().nullable(),
+    preferred_submission_type: submissionPreferenceEnum.optional().nullable(),
   })
   .strict()
   .transform((b) => ({
@@ -63,6 +77,7 @@ const createAssessmentBodySchema = z
     title: b.title.trim(),
     due_date: b.due_date,
     open_at: b.open_at ?? undefined,
+    question_bank_ref: b.question_bank_ref && b.question_bank_ref.length ? b.question_bank_ref : null,
   }));
 
 const updateAssessmentBodySchema = z
@@ -78,8 +93,27 @@ const updateAssessmentBodySchema = z
     rubric_id: z.string().uuid().optional().nullable(),
     instructions: z.string().max(20000).optional().nullable(),
     status: assessmentStatusEnum.optional(),
+    time_limit_minutes: z
+      .preprocess(
+        (v) => (v === '' || v === undefined ? undefined : v === null ? null : Number(v)),
+        z.number().int().min(1).max(10080).nullable().optional()
+      ),
+    max_attempts: z.preprocess(
+      (v) => (v === '' || v === undefined ? undefined : Number(v)),
+      z.coerce.number().int().min(1).max(50).optional()
+    ),
+    shuffle_questions: z.boolean().optional(),
+    question_bank_ref: z.string().trim().max(255).optional().nullable(),
+    preferred_submission_type: submissionPreferenceEnum.optional().nullable(),
   })
   .strict()
+  .transform((b) => ({
+    ...b,
+    ...(b.title !== undefined ? { title: b.title.trim() } : {}),
+    ...(b.question_bank_ref !== undefined
+      ? { question_bank_ref: b.question_bank_ref && b.question_bank_ref.length ? b.question_bank_ref : null }
+      : {}),
+  }))
   .refine((b) => Object.keys(b).length > 0, { message: 'At least one field is required' });
 
 const patchAssessmentStatusBodySchema = z

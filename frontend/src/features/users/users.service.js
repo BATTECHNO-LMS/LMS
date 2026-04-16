@@ -43,3 +43,11 @@ export async function patchUserStatus(id, body) {
   const res = await apiClient.patch(`${endpoints.users}/${id}/status`, body);
   return unwrapApiData(res);
 }
+
+/**
+ * @param {string} id
+ */
+export async function activateUserAccount(id) {
+  const res = await apiClient.patch(`${endpoints.users}/${id}/activate`);
+  return unwrapApiData(res);
+}

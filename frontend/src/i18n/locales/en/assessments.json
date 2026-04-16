@@ -47,7 +47,8 @@
     "notFound": "Assessment not found.",
     "counts": "Activity",
     "submissions": "Submissions",
-    "grades": "Grades"
+    "grades": "Grades",
+    "unlimited": "No limit"
   },
   "student": {
     "title": "Assessments",
@@ -132,7 +133,7 @@
     "sections": {
       "basic": "Basic information",
       "submissionType": "Required submission type",
-      "quiz": "Quiz settings (preview)",
+      "quiz": "Quiz settings",
       "presentation": "Presentation attachments"
     },
     "fields": {
@@ -145,11 +146,16 @@
       "closeDate": "Close date",
       "instructions": "Instructions",
       "rubric": "Rubric",
-      "submission": "Submission"
+      "submission": "Submission",
+      "timeLimitMinutes": "Time limit (minutes)",
+      "maxAttempts": "Max attempts",
+      "questionBankRef": "Question bank reference",
+      "shuffleQuestions": "Shuffle questions"
     },
     "hints": {
-      "submissionSettings": "Upload and file validation settings will be added with the backend.",
-      "quizPlaceholder": "Duration, attempts, and question bank will be added when the server is connected.",
+      "submissionSettings": "Default submission channel for this assessment (stored on the server).",
+      "timeLimitOptional": "Leave time limit empty for no per-attempt cap. Max 10080 minutes (7 days).",
+      "quizQuestionBank": "Use a short ID or name for your question bank integration; optional until a bank module is linked.",
       "presentationPlaceholder": "Slides and links upload area — ready for later integration."
     },
     "cohorts": {

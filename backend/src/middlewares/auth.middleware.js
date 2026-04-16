@@ -1,4 +1,5 @@
 const { verifyToken } = require('../utils/jwt');
+const { env } = require('../config/env');
 
 function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
@@ -9,11 +10,15 @@ function authMiddleware(req, res, next) {
   const token = header.slice(7);
   try {
     const payload = verifyToken(token);
+    const roles = Array.isArray(payload.roles) ? payload.roles : [];
+    const superCode = String(env.SUPER_ADMIN_ROLE_CODE || 'super_admin').toLowerCase();
+    const hasSuperAdminRole = roles.some((r) => String(r).toLowerCase() === superCode);
     req.user = {
       userId: payload.userId,
-      roles: Array.isArray(payload.roles) ? payload.roles : [],
+      roles,
       universityId: payload.universityId ?? null,
-      isGlobal: Boolean(payload.isGlobal),
+      /** Tokens minted before `isGlobal` existed still carry the role list — treat as global. */
+      isGlobal: Boolean(payload.isGlobal) || hasSuperAdminRole,
     };
     return next();
   } catch {

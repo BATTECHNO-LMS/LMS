@@ -10,12 +10,12 @@ import {
 } from '../../constants/permissions.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
-import { FormInput, FormSelect, FormNumber, FormTextarea, FormDate } from '../../components/forms/index.js';
+import { FormInput, FormSelect, FormNumber, FormTextarea, FormDate, FormSwitch } from '../../components/forms/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { useCohorts } from '../../features/cohorts/index.js';
 import { useRubrics } from '../../features/rubrics/index.js';
-import { useCreateAssessment } from '../../features/assessments/index.js';
+import { useCreateAssessment, preferredSubmissionToApi } from '../../features/assessments/index.js';
 import { fetchLearningOutcomesByMicroCredential } from '../../features/learningOutcomes/learningOutcomes.service.js';
 import { assessmentApiSchema } from '../../schemas/adminCrudSchemas.js';
 import { safeParse } from '../../utils/zodErrors.js';
@@ -46,6 +46,10 @@ export function InstructorAssessmentCreatePage() {
     rubric_id: '',
     status: 'draft',
     submissionRequired: 'file_upload',
+    timeLimitMinutes: '',
+    maxAttempts: '1',
+    shuffleQuestions: false,
+    questionBankRef: '',
   });
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState('');
@@ -110,6 +114,23 @@ export function InstructorAssessmentCreatePage() {
       instructions: form.instructions || undefined,
       status: form.status,
     };
+    if (showQuizSection) {
+      payload.time_limit_minutes =
+        String(form.timeLimitMinutes).trim() === '' ? null : Number(form.timeLimitMinutes);
+      payload.max_attempts = Math.min(50, Math.max(1, Number(form.maxAttempts) || 1));
+      payload.shuffle_questions = Boolean(form.shuffleQuestions);
+      payload.question_bank_ref = String(form.questionBankRef).trim() || null;
+    } else {
+      payload.time_limit_minutes = null;
+      payload.max_attempts = 1;
+      payload.shuffle_questions = false;
+      payload.question_bank_ref = null;
+    }
+    if (showSubmissionTypes) {
+      payload.preferred_submission_type = preferredSubmissionToApi(form.submissionRequired);
+    } else {
+      payload.preferred_submission_type = null;
+    }
     const res = safeParse(assessmentApiSchema, payload);
     if (!res.ok) {
       setErrors(res.errors);
@@ -242,7 +263,42 @@ export function InstructorAssessmentCreatePage() {
 
           {showQuizSection ? (
             <SectionCard title={<>{t('instructorCreate.sections.quiz')}</>}>
-              <p className="assessment-form__placeholder">{t('instructorCreate.hints.quizPlaceholder')}</p>
+              <p className="assessment-form__hint">{t('instructorCreate.hints.timeLimitOptional')}</p>
+              <div className="crud-form-grid">
+                <FormNumber
+                  id="timeLimitMinutes"
+                  label={t('instructorCreate.fields.timeLimitMinutes')}
+                  value={form.timeLimitMinutes}
+                  onChange={(e) => setField('timeLimitMinutes', e.target.value)}
+                  min={1}
+                  max={10080}
+                  error={errors.time_limit_minutes}
+                />
+                <FormNumber
+                  id="maxAttempts"
+                  label={t('instructorCreate.fields.maxAttempts')}
+                  value={form.maxAttempts}
+                  onChange={(e) => setField('maxAttempts', e.target.value)}
+                  min={1}
+                  max={50}
+                  error={errors.max_attempts}
+                />
+                <FormInput
+                  id="questionBankRef"
+                  label={t('instructorCreate.fields.questionBankRef')}
+                  value={form.questionBankRef}
+                  onChange={(e) => setField('questionBankRef', e.target.value)}
+                  error={errors.question_bank_ref}
+                />
+                <FormSwitch
+                  id="shuffleQuestions"
+                  label={t('instructorCreate.fields.shuffleQuestions')}
+                  checked={form.shuffleQuestions}
+                  onChange={(e) => setField('shuffleQuestions', e.target.checked)}
+                  error={errors.shuffle_questions}
+                />
+              </div>
+              <p className="assessment-form__hint">{t('instructorCreate.hints.quizQuestionBank')}</p>
             </SectionCard>
           ) : null}
 

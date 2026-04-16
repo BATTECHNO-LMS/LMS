@@ -167,13 +167,11 @@ async function getCohortAttendanceSummary(cohortId, requester) {
   const enrollRows = await enrollmentsRepository.findManyByCohort(cohortId);
   const active = enrollRows.filter((e) => !['withdrawn', 'cancelled'].includes(e.enrollment_status));
 
-  const allRecs =
-    sessionIds.length === 0
-      ? []
-      : await prisma.attendance_records.findMany({
-          where: { session_id: { in: sessionIds } },
-          select: { session_id: true, student_id: true, attendance_status: true },
-        });
+  const allRecs = await attendanceRepository.findManyBySessionIdsForSummary(sessionIds, {
+    session_id: true,
+    student_id: true,
+    attendance_status: true,
+  });
   const statusByStudentSession = new Map(
     allRecs.map((r) => [`${r.student_id}:${r.session_id}`, r.attendance_status])
   );

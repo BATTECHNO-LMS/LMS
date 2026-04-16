@@ -16,6 +16,7 @@ const router = express.Router();
 
 const adminRead = authorizeRoles(...env.ADMIN_READ_ROLE_CODES);
 const userWrite = authorizeRoles(...env.USER_WRITE_ROLE_CODES);
+const userActivate = authorizeRoles(...env.USER_ACTIVATE_ROLE_CODES);
 
 router.get(
   '/',
@@ -55,6 +56,14 @@ router.patch(
   userWrite,
   validateRequest({ params: uuidParamSchema, body: patchUserStatusBodySchema }),
   usersController.patchStatus
+);
+
+router.patch(
+  '/:id/activate',
+  authenticate,
+  userActivate,
+  validateRequest({ params: uuidParamSchema }),
+  usersController.activate
 );
 
 module.exports = router;

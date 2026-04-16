@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,7 +17,9 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
   const { login, isAuthenticated, user, isAuthReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const from = location.state?.from?.pathname;
+  const registrationPendingNotice = searchParams.get('registered') === 'pending';
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
@@ -79,6 +81,11 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
         <p className="text-muted small mb-3">{t('login.subtitle')}</p>
 
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
+          {registrationPendingNotice ? (
+            <p className="auth-register__helper" role="status" style={{ marginBottom: 12 }}>
+              {t('register.pendingApproval')}
+            </p>
+          ) : null}
           {forcedRole ? (
             <div className="auth-form__portal">
               <p className="auth-form__portal-label">{t('login.portalHint')}</p>

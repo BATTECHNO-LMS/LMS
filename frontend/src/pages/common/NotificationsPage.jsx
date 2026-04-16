@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -10,11 +11,14 @@ import { useMarkNotificationRead } from '../../features/notifications/hooks/useM
 import { useMarkAllNotificationsRead } from '../../features/notifications/hooks/useMarkAllNotificationsRead.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { useLocale } from '../../features/locale/index.js';
+import { useAuth } from '../../features/auth/index.js';
+import { getAdminNotificationDeepLink } from '../../utils/notificationDeepLink.js';
 
 export function NotificationsPage() {
   const { t } = useTranslation('notifications');
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
+  const { user } = useAuth();
   const [filter, setFilter] = useState('');
   const [type, setType] = useState('');
   const params = useMemo(() => {
@@ -55,6 +59,7 @@ export function NotificationsPage() {
           <option value="warning">{t('types.warning')}</option>
           <option value="success">{t('types.success')}</option>
           <option value="action_required">{t('types.action_required')}</option>
+          <option value="user_pending_activation">{t('types.user_pending_activation')}</option>
         </SelectField>
         <button type="button" className="btn btn--outline" disabled={markAll.isPending} onClick={() => markAll.mutate()}>
           {t('markAllRead')}
@@ -72,8 +77,31 @@ export function NotificationsPage() {
           emptyDescription={t('emptyDescription')}
           columns={[
             { key: 'created_at', label: t('list.columns.time') },
-            { key: 'title', label: t('list.columns.title') },
-            { key: 'type', label: t('list.columns.type') },
+            {
+              key: 'title',
+              label: t('list.columns.title'),
+              render: (r) => {
+                const deep = getAdminNotificationDeepLink({ type: r.type }, user);
+                if (deep) {
+                  return (
+                    <Link
+                      to={deep}
+                      onClick={() => {
+                        if (!r.is_read) markOne.mutate(r.id);
+                      }}
+                    >
+                      {r.title}
+                    </Link>
+                  );
+                }
+                return r.title;
+              },
+            },
+            {
+              key: 'type',
+              label: t('list.columns.type'),
+              render: (r) => t(`types.${r.type}`, { defaultValue: r.type }),
+            },
             {
               key: 'is_read',
               label: tCommon('status.label'),

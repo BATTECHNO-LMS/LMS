@@ -2,6 +2,7 @@
 const { hashPassword } = require('../../utils/password');
 const { prisma } = require('../../config/db');
 const usersRepository = require('./users.repository');
+const { recordAudit } = require('../../utils/auditRecorder');
 
 async function mapUsersWithRoles(userRows) {
   const ids = userRows.map((u) => u.id);
@@ -193,10 +194,53 @@ async function patchUserStatus(id, status) {
   return getUserById(id);
 }
 
+async function activateUser(id, { actorUserId, ipAddress } = {}) {
+  const existing = await usersRepository.findUserById(id);
+  if (!existing) {
+    throw new ApiError(404, 'User not found');
+  }
+  if (existing.status === 'suspended') {
+    throw new ApiError(400, 'Suspended accounts cannot be activated via this endpoint');
+  }
+  if (existing.status === 'active') {
+    return getUserById(id);
+  }
+  const now = new Date();
+  try {
+    await usersRepository.updateUser(id, {
+      status: 'active',
+      activated_at: now,
+      updated_at: now,
+    });
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const missingActivatedAt = err?.code === 'P2022' || msg.includes('activated_at');
+    if (!missingActivatedAt) throw err;
+    await usersRepository.updateUser(id, {
+      status: 'active',
+      updated_at: now,
+    });
+  }
+
+  await recordAudit({
+    userId: actorUserId ?? null,
+    universityId: existing.primary_university_id ?? null,
+    actionType: 'USER_ACTIVATED',
+    entityType: 'user',
+    entityId: id,
+    oldValues: { status: existing.status },
+    newValues: { status: 'active', activated_at: now.toISOString() },
+    ipAddress,
+  });
+
+  return getUserById(id);
+}
+
 module.exports = {
   listUsers,
   getUserById,
   createUser,
   updateUser,
   patchUserStatus,
+  activateUser,
 };

@@ -42,7 +42,17 @@
   "export": {
     "pdf": "Export PDF",
     "excel": "Export Excel",
-    "refresh": "Refresh"
+    "exportPowerBi": "Power BI export",
+    "refresh": "Refresh",
+    "emptySheet": "No data",
+    "failed": "Export failed. Please try again.",
+    "powerBi": {
+      "title": "Power BI — LMS analytics package",
+      "step1": "1) In Power BI Desktop: Home > Get data > Excel workbook, then open this file.",
+      "step2": "2) Select sheets (KPIs, Universities, Enrollment, …) and load or transform into your model.",
+      "apiLabel": "Optional live JSON (same filters; requires authentication):",
+      "authNote": "Call the URL with Authorization: Bearer <token> or use a data gateway for scheduled refresh."
+    }
   },
   "charts": {
     "universitiesOverview": {
@@ -153,7 +163,12 @@
   },
   "empty": {
     "title": "No analytics data",
-    "description": "Data will appear when the service is connected."
+    "description": "The overview response was empty. Try refreshing or adjusting filters."
+  },
+  "error": {
+    "title": "Could not load analytics",
+    "retry": "Try again",
+    "hint": "Check that the API server is running, the connection is stable, and you are signed in as a super administrator."
   },
   "modules": {
     "users": "Users",

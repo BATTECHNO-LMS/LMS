@@ -18,6 +18,11 @@
     "newUsers": "مستخدمون جدد"
   },
   "listTitle": "قائمة المستخدمين",
+  "list": {
+    "pendingActivation": "بانتظار التفعيل",
+    "activateAccount": "تفعيل الحساب",
+    "activateSuccess": "تم تفعيل الحساب بنجاح."
+  },
   "table": {
     "name": "الاسم",
     "email": "البريد الإلكتروني",

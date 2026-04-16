@@ -1,5 +1,41 @@
 ﻿const { prisma } = require('../../config/db');
 
+function isMissingDbObjectError(err) {
+  if (!err) return false;
+  const msg = String(err.message || '');
+  return (
+    err.code === 'P2021' ||
+    msg.includes('does not exist in the current database') ||
+    (/relation/i.test(msg) && /does not exist/i.test(msg))
+  );
+}
+
+/**
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+async function safeQuery(fn, fallback) {
+  try {
+    return await fn();
+  } catch (err) {
+    if (isMissingDbObjectError(err)) return fallback;
+    throw err;
+  }
+}
+
+/** Students linked to a university (self-registration / staff-created), independent of cohort enrollments. */
+async function countUniversityStudentMemberships(universityId) {
+  return safeQuery(
+    () =>
+      prisma.university_users.count({
+        where: { university_id: universityId, relationship_type: 'student' },
+      }),
+    0
+  );
+}
+
 function inDateRange(field, filters) {
   if (!filters.from && !filters.to) return {};
   return {
@@ -17,21 +53,29 @@ function hasScopedCohortFilter(filters) {
 async function resolveCohortIds(filters) {
   let microCredentialIds = null;
   if (filters.track_id) {
-    const mcs = await prisma.micro_credentials.findMany({
-      where: { track_id: filters.track_id },
-      select: { id: true },
-    });
+    const mcs = await safeQuery(
+      () =>
+        prisma.micro_credentials.findMany({
+          where: { track_id: filters.track_id },
+          select: { id: true },
+        }),
+      []
+    );
     microCredentialIds = mcs.map((m) => m.id);
   }
   if (filters.micro_credential_id) microCredentialIds = [filters.micro_credential_id];
-  const cohorts = await prisma.cohorts.findMany({
-    where: {
-      ...(filters.cohort_id ? { id: filters.cohort_id } : {}),
-      ...(filters.university_id ? { university_id: filters.university_id } : {}),
-      ...(microCredentialIds ? { micro_credential_id: { in: microCredentialIds } } : {}),
-    },
-    select: { id: true },
-  });
+  const cohorts = await safeQuery(
+    () =>
+      prisma.cohorts.findMany({
+        where: {
+          ...(filters.cohort_id ? { id: filters.cohort_id } : {}),
+          ...(filters.university_id ? { university_id: filters.university_id } : {}),
+          ...(microCredentialIds ? { micro_credential_id: { in: microCredentialIds } } : {}),
+        },
+        select: { id: true },
+      }),
+    []
+  );
   return cohorts.map((c) => c.id);
 }
 
@@ -44,35 +88,62 @@ function cohortWhereFromIds(cohortIds, filters) {
 async function universitiesReport(filters) {
   const scopedCohortIds = await resolveCohortIds(filters);
   const cohortScope = cohortWhereFromIds(scopedCohortIds, filters);
-  const cohorts = await prisma.cohorts.findMany({
-    where: {
-      ...(cohortScope ? { id: cohortScope } : {}),
-      ...inDateRange('created_at', filters),
-    },
-    select: { id: true, university_id: true, micro_credential_id: true },
-  });
+  const cohorts = await safeQuery(
+    () =>
+      prisma.cohorts.findMany({
+        where: {
+          ...(cohortScope ? { id: cohortScope } : {}),
+          ...inDateRange('created_at', filters),
+        },
+        select: { id: true, university_id: true, micro_credential_id: true },
+      }),
+    []
+  );
   const uniIds = [...new Set(cohorts.map((c) => c.university_id))];
   const universities = uniIds.length
-    ? await prisma.universities.findMany({
-        where: { id: { in: uniIds } },
-        select: { id: true, name: true, status: true, partnership_state: true },
-      })
+    ? await safeQuery(
+        () =>
+          prisma.universities.findMany({
+            where: { id: { in: uniIds } },
+            select: { id: true, name: true, status: true, partnership_state: true },
+          }),
+        []
+      )
     : [];
   const rows = [];
   for (const uni of universities) {
     const cohortIds = cohorts.filter((c) => c.university_id === uni.id).map((c) => c.id);
     const studentIds = cohortIds.length
-      ? await prisma.enrollments.findMany({
-          where: { cohort_id: { in: cohortIds }, ...inDateRange('enrolled_at', filters) },
-          select: { student_id: true },
-        })
+      ? await safeQuery(
+          () =>
+            prisma.enrollments.findMany({
+              where: { cohort_id: { in: cohortIds }, ...inDateRange('enrolled_at', filters) },
+              select: { student_id: true },
+            }),
+          []
+        )
       : [];
     const recognition_count = cohortIds.length
-      ? await prisma.recognition_requests.count({ where: { cohort_id: { in: cohortIds }, ...inDateRange('created_at', filters) } })
+      ? await safeQuery(
+          () =>
+            prisma.recognition_requests.count({
+              where: { cohort_id: { in: cohortIds }, ...inDateRange('created_at', filters) },
+            }),
+          0
+        )
       : 0;
     const certificates_count = cohortIds.length
-      ? await prisma.certificates.count({ where: { cohort_id: { in: cohortIds }, ...inDateRange('issued_at', filters) } })
+      ? await safeQuery(
+          () =>
+            prisma.certificates.count({
+              where: { cohort_id: { in: cohortIds }, ...inDateRange('issued_at', filters) },
+            }),
+          0
+        )
       : 0;
+    const enrollmentDistinct = new Set(studentIds.map((s) => s.student_id)).size;
+    const linkedStudentsAtUniversity = await countUniversityStudentMemberships(uni.id);
+    const enrolled_students_count = Math.max(enrollmentDistinct, linkedStudentsAtUniversity);
     rows.push({
       university_id: uni.id,
       university_name: uni.name,
@@ -80,7 +151,7 @@ async function universitiesReport(filters) {
       partnership_state: uni.partnership_state,
       cohorts_count: cohortIds.length,
       active_micro_credentials: new Set(cohorts.filter((c) => c.university_id === uni.id).map((c) => c.micro_credential_id)).size,
-      enrolled_students_count: new Set(studentIds.map((s) => s.student_id)).size,
+      enrolled_students_count,
       recognition_requests_count: recognition_count,
       certificates_count,
     });
@@ -91,24 +162,41 @@ async function universitiesReport(filters) {
 async function cohortsReport(filters) {
   const cohortIds = await resolveCohortIds(filters);
   const cohortWhere = cohortWhereFromIds(cohortIds, filters);
-  const cohorts = await prisma.cohorts.findMany({
-    where: { ...(cohortWhere ? { id: cohortWhere } : {}) },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      start_date: true,
-      end_date: true,
-      micro_credential_id: true,
-      university_id: true,
-    },
-  });
+  const cohorts = await safeQuery(
+    () =>
+      prisma.cohorts.findMany({
+        where: { ...(cohortWhere ? { id: cohortWhere } : {}) },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          start_date: true,
+          end_date: true,
+          micro_credential_id: true,
+          university_id: true,
+        },
+      }),
+    []
+  );
   const rows = [];
   for (const c of cohorts) {
     const [enrollments, assessments, qaReviews] = await Promise.all([
-      prisma.enrollments.findMany({ where: { cohort_id: c.id }, select: { attendance_percentage: true, final_status: true } }),
-      prisma.assessments.count({ where: { cohort_id: c.id } }),
-      prisma.qa_reviews.count({ where: { cohort_id: c.id, status: { in: ['open', 'in_progress'] } } }),
+      safeQuery(
+        () =>
+          prisma.enrollments.findMany({
+            where: { cohort_id: c.id },
+            select: { attendance_percentage: true, final_status: true },
+          }),
+        []
+      ),
+      safeQuery(() => prisma.assessments.count({ where: { cohort_id: c.id } }), 0),
+      safeQuery(
+        () =>
+          prisma.qa_reviews.count({
+            where: { cohort_id: c.id, status: { in: ['open', 'in_progress'] } },
+          }),
+        0
+      ),
     ]);
     const avgAttendance = enrollments.length
       ? Math.round((enrollments.reduce((s, e) => s + Number(e.attendance_percentage || 0), 0) / enrollments.length) * 100) / 100
@@ -136,55 +224,71 @@ async function cohortsReport(filters) {
 async function attendanceReport(filters) {
   const cohortIds = await resolveCohortIds(filters);
   const cohortWhere = cohortWhereFromIds(cohortIds, filters);
-  return prisma.enrollments.findMany({
-    where: {
-      ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
-      ...inDateRange('enrolled_at', filters),
-    },
-    select: {
-      id: true,
-      cohort_id: true,
-      student_id: true,
-      enrollment_status: true,
-      attendance_percentage: true,
-    },
-  });
+  return safeQuery(
+    () =>
+      prisma.enrollments.findMany({
+        where: {
+          ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
+          ...inDateRange('enrolled_at', filters),
+        },
+        select: {
+          id: true,
+          cohort_id: true,
+          student_id: true,
+          enrollment_status: true,
+          attendance_percentage: true,
+        },
+      }),
+    []
+  );
 }
 
 async function assessmentsReport(filters) {
   const cohortIds = await resolveCohortIds(filters);
   const cohortWhere = cohortWhereFromIds(cohortIds, filters);
-  const assessments = await prisma.assessments.findMany({
-    where: {
-      ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
-      ...inDateRange('due_date', filters),
-    },
-    select: {
-      id: true,
-      title: true,
-      cohort_id: true,
-      micro_credential_id: true,
-      assessment_type: true,
-      status: true,
-      due_date: true,
-    },
-  });
+  const assessments = await safeQuery(
+    () =>
+      prisma.assessments.findMany({
+        where: {
+          ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
+          ...inDateRange('due_date', filters),
+        },
+        select: {
+          id: true,
+          title: true,
+          cohort_id: true,
+          micro_credential_id: true,
+          assessment_type: true,
+          status: true,
+          due_date: true,
+        },
+      }),
+    []
+  );
   const ids = assessments.map((a) => a.id);
   const [subs, grades] = await Promise.all([
     ids.length
-      ? prisma.submissions.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: ids } },
-          _count: { _all: true },
-        })
+      ? safeQuery(
+          () =>
+            prisma.submissions.groupBy({
+              by: ['assessment_id'],
+              where: { assessment_id: { in: ids } },
+              _count: { _all: true },
+            }),
+          []
+        )
       : [],
     ids.length
-      ? prisma.grades.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: ids } },
-          _count: { _all: true },
-          _avg: { score: true },
-        })
+      ? safeQuery(
+          () =>
+            prisma.grades.groupBy({
+              by: ['assessment_id'],
+              where: { assessment_id: { in: ids } },
+              _count: { _all: true },
+              _avg: { score: true },
+            }),
+          []
+        )
       : [],
   ]);
   const subMap = new Map(subs.map((r) => [r.assessment_id, r._count._all]));
@@ -206,30 +310,38 @@ async function assessmentsReport(filters) {
 async function recognitionReport(filters) {
   const cohortIds = await resolveCohortIds(filters);
   const cohortWhere = cohortWhereFromIds(cohortIds, filters);
-  const requests = await prisma.recognition_requests.findMany({
-    where: {
-      ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
-      ...inDateRange('created_at', filters),
-    },
-    orderBy: { created_at: 'desc' },
-    select: {
-      id: true,
-      university_id: true,
-      micro_credential_id: true,
-      cohort_id: true,
-      created_by: true,
-      status: true,
-      submitted_at: true,
-      reviewed_at: true,
-      created_at: true,
-    },
-  });
+  const requests = await safeQuery(
+    () =>
+      prisma.recognition_requests.findMany({
+        where: {
+          ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
+          ...inDateRange('created_at', filters),
+        },
+        orderBy: { created_at: 'desc' },
+        select: {
+          id: true,
+          university_id: true,
+          micro_credential_id: true,
+          cohort_id: true,
+          created_by: true,
+          status: true,
+          submitted_at: true,
+          reviewed_at: true,
+          created_at: true,
+        },
+      }),
+    []
+  );
   const requestIds = requests.map((r) => r.id);
   const docs = requestIds.length
-    ? await prisma.recognition_documents.findMany({
-        where: { recognition_request_id: { in: requestIds } },
-        select: { recognition_request_id: true, document_type: true },
-      })
+    ? await safeQuery(
+        () =>
+          prisma.recognition_documents.findMany({
+            where: { recognition_request_id: { in: requestIds } },
+            select: { recognition_request_id: true, document_type: true },
+          }),
+        []
+      )
     : [];
   const byReq = new Map();
   for (const d of docs) {
@@ -258,26 +370,37 @@ async function recognitionReport(filters) {
 async function certificatesReport(filters) {
   const cohortIds = await resolveCohortIds(filters);
   const cohortWhere = cohortWhereFromIds(cohortIds, filters);
-  const certs = await prisma.certificates.findMany({
-    where: {
-      ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
-      ...inDateRange('issued_at', filters),
-    },
-    orderBy: { issued_at: 'desc' },
-    select: {
-      id: true,
-      certificate_no: true,
-      issued_at: true,
-      status: true,
-      student_id: true,
-      cohort_id: true,
-      micro_credential_id: true,
-    },
-  });
-  const cohorts = await prisma.cohorts.findMany({
-    where: { id: { in: [...new Set(certs.map((c) => c.cohort_id))] } },
-    select: { id: true, university_id: true, title: true },
-  });
+  const certs = await safeQuery(
+    () =>
+      prisma.certificates.findMany({
+        where: {
+          ...(cohortWhere ? { cohort_id: cohortWhere } : {}),
+          ...inDateRange('issued_at', filters),
+        },
+        orderBy: { issued_at: 'desc' },
+        select: {
+          id: true,
+          certificate_no: true,
+          issued_at: true,
+          status: true,
+          student_id: true,
+          cohort_id: true,
+          micro_credential_id: true,
+        },
+      }),
+    []
+  );
+  const cohortIdsForCerts = [...new Set(certs.map((c) => c.cohort_id))];
+  const cohorts = cohortIdsForCerts.length
+    ? await safeQuery(
+        () =>
+          prisma.cohorts.findMany({
+            where: { id: { in: cohortIdsForCerts } },
+            select: { id: true, university_id: true, title: true },
+          }),
+        []
+      )
+    : [];
   const cohortMap = new Map(cohorts.map((c) => [c.id, c]));
   return certs.map((c) => ({
     certificate_id: c.id,

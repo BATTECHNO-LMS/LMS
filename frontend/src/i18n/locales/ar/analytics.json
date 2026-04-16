@@ -42,7 +42,17 @@
   "export": {
     "pdf": "تصدير PDF",
     "excel": "تصدير Excel",
-    "refresh": "تحديث"
+    "exportPowerBi": "تصدير Power BI",
+    "refresh": "تحديث",
+    "emptySheet": "لا توجد بيانات",
+    "failed": "فشل التصدير. حاول مرة أخرى.",
+    "powerBi": {
+      "title": "Power BI — حزمة تحليلات LMS",
+      "step1": "1) في Power BI Desktop: الصفحة الرئيسية > الحصول على البيانات > مصنف Excel، ثم افتح هذا الملف.",
+      "step2": "2) اختر الأوراق (KPIs، Universities، Enrollment، …) وحمّلها أو حوّلها إلى النموذج.",
+      "apiLabel": "JSON مباشر (نفس الفلاتر؛ يتطلب مصادقة):",
+      "authNote": "استدعِ الرابط مع ترويسة Authorization: Bearer <token> أو استخدم بوابة بيانات للتحديث المجدول."
+    }
   },
   "charts": {
     "universitiesOverview": {
@@ -153,7 +163,12 @@
   },
   "empty": {
     "title": "لا توجد بيانات تحليلية",
-    "description": "ستظهر البيانات عند ربط الخدمة."
+    "description": "استجابة الملخص فارغة. جرّب التحديث أو تغيير الفلاتر."
+  },
+  "error": {
+    "title": "تعذر تحميل التحليلات",
+    "retry": "إعادة المحاولة",
+    "hint": "تأكد من أن خادم الـ API يعمل وأن الاتصال مستقر، وأنك مسجّل كمسؤول أعلى للنظام."
   },
   "modules": {
     "users": "المستخدمون",

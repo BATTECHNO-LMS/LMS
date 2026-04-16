@@ -4,6 +4,8 @@ const { signToken } = require('../../utils/jwt');
 const { hashPassword, comparePassword } = require('../../utils/password');
 const { extractEmailDomain, emailDomainMatchesAllowed } = require('../../utils/emailDomain');
 const authRepository = require('./auth.repository');
+const { recordAudit } = require('../../utils/auditRecorder');
+const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
 
 function isGlobalFromRoleRecords(roleRecords) {
   const code = (env.SUPER_ADMIN_ROLE_CODE || 'super_admin').toLowerCase();
@@ -82,19 +84,28 @@ async function register(validated) {
     studentRoleId: studentRole.id,
   });
 
-  const roleRecords = [studentRole];
-  const token = signToken(
-    buildTokenPayload(user.id, roleRecords, user.primary_university_id)
-  );
+  await recordAudit({
+    userId: null,
+    universityId: validated.university_id,
+    actionType: 'USER_REGISTERED',
+    entityType: 'user',
+    entityId: user.id,
+    newValues: { email: user.email, status: user.status, full_name: user.full_name },
+  });
+
+  await notifyAdminsStudentRegistrationPending({
+    universityId: validated.university_id,
+    studentEmail: user.email,
+    studentName: user.full_name,
+  });
 
   return {
-    token,
+    pending_approval: true,
     user: {
       id: user.id,
       full_name: user.full_name,
       email: user.email,
-      roles: roleRecords.map((r) => r.code),
-      primary_university_id: user.primary_university_id,
+      status: user.status,
     },
   };
 }
@@ -105,13 +116,16 @@ async function login(validated) {
     throw new ApiError(401, 'Invalid credentials');
   }
 
-  if (user.status !== 'active') {
-    throw new ApiError(403, 'Account is inactive or suspended');
-  }
-
   const ok = await comparePassword(validated.password, user.password_hash);
   if (!ok) {
     throw new ApiError(401, 'Invalid credentials');
+  }
+
+  if (user.status === 'inactive') {
+    throw new ApiError(403, 'Your account is not activated yet. Please wait for admin approval.');
+  }
+  if (user.status !== 'active') {
+    throw new ApiError(403, 'Account is inactive or suspended');
   }
 
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);

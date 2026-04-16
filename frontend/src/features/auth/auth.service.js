@@ -25,10 +25,18 @@ export async function registerStudent(body) {
   const res = await apiClient.post(endpoints.auth.register, body);
   const payload = unwrapApiData(res);
   const token = payload?.token;
-  if (!token || typeof token !== 'string') {
-    throw new Error('Invalid registration response: missing token');
+  if (token && typeof token === 'string') {
+    return { data: { token } };
   }
-  return { data: { token } };
+  if (payload?.pending_approval) {
+    return {
+      data: {
+        pending_approval: true,
+        user: payload.user ?? null,
+      },
+    };
+  }
+  throw new Error('Invalid registration response');
 }
 
 export async function logout() {

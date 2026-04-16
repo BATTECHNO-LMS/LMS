@@ -95,6 +95,15 @@ model assessments {
   linked_outcome_id   String?           @db.Uuid
   rubric_id           String?           @db.Uuid
   instructions        String?
+  /// Quiz / timed assessment: max minutes (null = no per-attempt cap).
+  time_limit_minutes  Int?
+  /// Max submission attempts (quiz-focused; default 1).
+  max_attempts        Int               @default(1)
+  shuffle_questions   Boolean           @default(false)
+  /// External or future question bank identifier (slug/name until a banks table exists).
+  question_bank_ref   String?           @db.VarChar(255)
+  /// Suggested submission channel for assignment-like types (maps to `submission_type` enum).
+  preferred_submission_type submission_type?
   status              assessment_status @default(draft)
   created_at          DateTime          @default(now()) @db.Timestamptz(6)
   updated_at          DateTime          @default(now()) @db.Timestamptz(6)
@@ -552,8 +561,9 @@ model users {
   email                 String      @unique @db.VarChar(255)
   password_hash         String
   phone                 String?     @db.VarChar(50)
-  status                user_status @default(active)
+  status                user_status @default(inactive)
   primary_university_id String?     @db.Uuid
+  activated_at          DateTime?   @db.Timestamptz(6)
   last_login_at         DateTime?   @db.Timestamptz(6)
   created_at            DateTime    @default(now()) @db.Timestamptz(6)
   updated_at            DateTime    @default(now()) @db.Timestamptz(6)
@@ -693,6 +703,8 @@ enum notification_type {
   warning
   danger
   system
+  user_pending_activation
+  action_required
 }
 
 enum partnership_status {

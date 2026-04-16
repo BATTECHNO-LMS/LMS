@@ -4,7 +4,9 @@ const { created, success, okMessage } = require('../../utils/apiResponse');
 async function register(req, res, next) {
   try {
     const data = await authService.register(req.validated);
-    return created(res, data, { message: 'Registration successful' });
+    return created(res, data, {
+      message: 'Your account has been created and is pending admin approval',
+    });
   } catch (e) {
     return next(e);
   }

@@ -1,4 +1,5 @@
 ﻿const { prisma } = require('../../config/db');
+const { ApiError } = require('../../utils/apiError');
 
 const assessmentInclude = {
   cohorts: { select: { id: true, title: true, status: true, university_id: true, instructor_id: true } },
@@ -7,45 +8,89 @@ const assessmentInclude = {
   rubrics: { select: { id: true, title: true, status: true } },
 };
 
+function isMissingTableError(err, tableName) {
+  const msg = String(err?.message || '').toLowerCase();
+  return err?.code === 'P2021' || msg.includes('does not exist') || msg.includes(`public.${tableName}`.toLowerCase());
+}
+
 /**
  * @param {import('@prisma/client').Prisma.assessmentsWhereInput} where
  * @param {{ skip?: number, take?: number }} [opts]
  */
 async function count(where) {
-  return prisma.assessments.count({ where });
+  try {
+    return await prisma.assessments.count({ where });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) return 0;
+    throw err;
+  }
 }
 
 async function findMany(where, opts = {}) {
   const { skip = 0, take = 200 } = opts;
-  return prisma.assessments.findMany({
-    where,
-    orderBy: { due_date: 'desc' },
-    skip,
-    take,
-    include: assessmentInclude,
-  });
+  try {
+    return await prisma.assessments.findMany({
+      where,
+      orderBy: { due_date: 'desc' },
+      skip,
+      take,
+      include: assessmentInclude,
+    });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) return [];
+    throw err;
+  }
 }
 
 async function findById(id) {
-  return prisma.assessments.findUnique({
-    where: { id },
-    include: assessmentInclude,
-  });
+  try {
+    return await prisma.assessments.findUnique({
+      where: { id },
+      include: assessmentInclude,
+    });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) return null;
+    throw err;
+  }
 }
 
 async function create(data) {
-  return prisma.assessments.create({
-    data,
-    include: assessmentInclude,
-  });
+  try {
+    return await prisma.assessments.create({
+      data,
+      include: assessmentInclude,
+    });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) {
+      throw new ApiError(
+        503,
+        'The assessments table is missing on this database. From the backend folder run: npx prisma migrate deploy',
+        undefined,
+        'ASSESSMENTS_TABLE_MISSING'
+      );
+    }
+    throw err;
+  }
 }
 
 async function update(id, data) {
-  return prisma.assessments.update({
-    where: { id },
-    data,
-    include: assessmentInclude,
-  });
+  try {
+    return await prisma.assessments.update({
+      where: { id },
+      data,
+      include: assessmentInclude,
+    });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) {
+      throw new ApiError(
+        503,
+        'The assessments table is missing on this database. From the backend folder run: npx prisma migrate deploy',
+        undefined,
+        'ASSESSMENTS_TABLE_MISSING'
+      );
+    }
+    throw err;
+  }
 }
 
 /**
@@ -54,35 +99,66 @@ async function update(id, data) {
  * @param {string} [excludeAssessmentId]
  */
 async function sumWeightsForCohort(cohortId, excludeAssessmentId) {
-  const agg = await prisma.assessments.aggregate({
-    where: {
-      cohort_id: cohortId,
-      status: { not: 'archived' },
-      ...(excludeAssessmentId ? { id: { not: excludeAssessmentId } } : {}),
-    },
-    _sum: { weight: true },
-  });
+  let agg;
+  try {
+    agg = await prisma.assessments.aggregate({
+      where: {
+        cohort_id: cohortId,
+        status: { not: 'archived' },
+        ...(excludeAssessmentId ? { id: { not: excludeAssessmentId } } : {}),
+      },
+      _sum: { weight: true },
+    });
+  } catch (err) {
+    if (isMissingTableError(err, 'assessments')) return 0;
+    throw err;
+  }
   return agg._sum.weight != null ? Number(agg._sum.weight) : 0;
 }
 
 async function countSubmissions(assessmentId) {
-  return prisma.submissions.count({ where: { assessment_id: assessmentId } });
+  try {
+    return await prisma.submissions.count({ where: { assessment_id: assessmentId } });
+  } catch (err) {
+    if (isMissingTableError(err, 'submissions')) return 0;
+    throw err;
+  }
 }
 
 async function countGrades(assessmentId) {
-  return prisma.grades.count({ where: { assessment_id: assessmentId } });
+  try {
+    return await prisma.grades.count({ where: { assessment_id: assessmentId } });
+  } catch (err) {
+    if (isMissingTableError(err, 'grades')) return 0;
+    throw err;
+  }
 }
 
 async function findCohortById(cohortId) {
-  return prisma.cohorts.findUnique({ where: { id: cohortId } });
+  try {
+    return await prisma.cohorts.findUnique({ where: { id: cohortId } });
+  } catch (err) {
+    if (isMissingTableError(err, 'cohorts')) return null;
+    throw err;
+  }
 }
 
 async function findLearningOutcome(id) {
-  return prisma.learning_outcomes.findUnique({ where: { id } });
+  try {
+    return await prisma.learning_outcomes.findUnique({ where: { id } });
+  } catch (err) {
+    if (isMissingTableError(err, 'learning_outcomes')) return null;
+    throw err;
+  }
 }
 
 async function findRubric(id) {
-  return prisma.rubrics.findUnique({ where: { id } });
+  try {
+    return await prisma.rubrics.findUnique({ where: { id } });
+  } catch (err) {
+    if (isMissingTableError(err, 'rubrics')) return null;
+    throw err;
+  }
 }
 
 module.exports = {

@@ -13,7 +13,9 @@ const {
 
 const router = express.Router();
 
-const evidenceRead = authorizeRoles(...env.EVIDENCE_READ_ROLE_CODES);
+/** Reviewer portal lists evidence by university — always allow this role for GET even if env CSV omits it. */
+const EVIDENCE_READ_CODES = [...new Set([...env.EVIDENCE_READ_ROLE_CODES, 'university_reviewer'])];
+const evidenceRead = authorizeRoles(...EVIDENCE_READ_CODES);
 const evidenceWrite = authorizeRoles(...env.EVIDENCE_WRITE_ROLE_CODES);
 
 router.get('/', authenticate, evidenceRead, validateRequest({ query: listEvidenceQuerySchema }), evidenceController.list);

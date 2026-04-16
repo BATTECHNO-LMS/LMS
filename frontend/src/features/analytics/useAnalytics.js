@@ -58,6 +58,7 @@ export function useAnalytics() {
     timePresets,
     data: query.data,
     loading: query.isLoading,
+    isError: query.isError,
     error: query.error,
     refresh: query.refetch,
   };

@@ -1,5 +1,6 @@
 const repo = require('./analytics.repository');
 const { prisma } = require('../../config/db');
+const { isMissingPrismaModelTableError } = require('./prismaMissingTable.js');
 
 function toRecognitionStatusKey(status) {
   const map = {
@@ -63,6 +64,19 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics) {
   const totalRecognition = recognitionFunnel.reduce((s, x) => s + x.count, 0);
   const approvedRecognition = recognitionFunnel.find((x) => x.statusKey === 'approved')?.count || 0;
   const approvedRate = totalRecognition ? Math.round((approvedRecognition / totalRecognition) * 10000) / 100 : 0;
+
+  let reportsGeneratedPlaceholder = 0;
+  let sensitiveActivitiesPlaceholder = 0;
+  try {
+    [reportsGeneratedPlaceholder, sensitiveActivitiesPlaceholder] = await Promise.all([
+      prisma.audit_logs.count({ where: { entity_type: 'report' } }),
+      prisma.audit_logs.count({
+        where: { action_type: { in: ['integrity_case.reported', 'certificate.status', 'recognition_request.status'] } },
+      }),
+    ]);
+  } catch (e) {
+    if (!isMissingPrismaModelTableError(e, 'audit_logs')) throw e;
+  }
 
   return {
     users: {
@@ -157,10 +171,8 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics) {
       issuedThisMonth: certificatesAnalytics.byMonth.at(-1)?.count || 0,
     },
     reportsAudit: {
-      reportsGeneratedPlaceholder: await prisma.audit_logs.count({ where: { entity_type: 'report' } }),
-      sensitiveActivitiesPlaceholder: await prisma.audit_logs.count({
-        where: { action_type: { in: ['integrity_case.reported', 'certificate.status', 'recognition_request.status'] } },
-      }),
+      reportsGeneratedPlaceholder,
+      sensitiveActivitiesPlaceholder,
     },
   };
 }

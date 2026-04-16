@@ -6,7 +6,11 @@ import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
 import { FormSelect } from '../../../components/forms/index.js';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
-import { useAssessment, useUpdateAssessmentStatus } from '../../../features/assessments/index.js';
+import {
+  useAssessment,
+  useUpdateAssessmentStatus,
+  preferredSubmissionFromApi,
+} from '../../../features/assessments/index.js';
 import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
@@ -100,6 +104,37 @@ export function AssessmentViewPage() {
               {t('view.submissions')}: {data.submissions_count ?? 0} · {t('view.grades')}: {data.grades_count ?? 0}
             </dd>
           </div>
+          {data.assessment_type === 'quiz' ? (
+            <>
+              <div>
+                <dt>{t('instructorCreate.fields.timeLimitMinutes')}</dt>
+                <dd>{data.time_limit_minutes != null ? data.time_limit_minutes : t('view.unlimited')}</dd>
+              </div>
+              <div>
+                <dt>{t('instructorCreate.fields.maxAttempts')}</dt>
+                <dd>{data.max_attempts ?? 1}</dd>
+              </div>
+              <div>
+                <dt>{t('instructorCreate.fields.shuffleQuestions')}</dt>
+                <dd>{data.shuffle_questions ? '✓' : '—'}</dd>
+              </div>
+              <div>
+                <dt>{t('instructorCreate.fields.questionBankRef')}</dt>
+                <dd>{data.question_bank_ref?.trim() ? data.question_bank_ref : '—'}</dd>
+              </div>
+            </>
+          ) : null}
+          {data.preferred_submission_type ? (
+            <div>
+              <dt>{t('instructorCreate.fields.submission')}</dt>
+              <dd>
+                {t(
+                  `instructorCreate.submissionTypes.${preferredSubmissionFromApi(data.preferred_submission_type)}`,
+                  { defaultValue: data.preferred_submission_type }
+                )}
+              </dd>
+            </div>
+          ) : null}
         </dl>
         <div className="crud-view-actions">
           <Link className="btn btn--outline" to={`${base}/assessments`}>

@@ -8,6 +8,9 @@ export function mapAuthErrorToLoginMessage(raw, t) {
   if (!msg) return t('login.errors.generic');
   const lower = msg.toLowerCase();
   if (lower.includes('invalid credentials')) return t('login.errors.invalidCredentials');
+  if (lower.includes('not activated') || lower.includes('admin approval')) {
+    return t('login.errors.accountPendingActivation');
+  }
   if (lower.includes('inactive') || lower.includes('suspended')) return t('login.errors.accountInactive');
   return msg;
 }

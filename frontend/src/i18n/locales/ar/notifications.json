@@ -21,7 +21,10 @@
     "info": "معلومات",
     "warning": "تنبيه",
     "success": "نجاح",
-    "action_required": "يتطلب إجراء"
+    "danger": "تنبيه حرج",
+    "system": "النظام",
+    "action_required": "يتطلب إجراء",
+    "user_pending_activation": "بانتظار تفعيل الحساب"
   },
   "loadError": "تعذر تحميل الإشعارات."
 }

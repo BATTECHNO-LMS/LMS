@@ -58,6 +58,11 @@ function mapAssessment(row) {
       ? { id: lo.id, outcome_code: lo.outcome_code, outcome_text: lo.outcome_text }
       : null,
     rubric: rub ? { id: rub.id, title: rub.title, status: rub.status } : null,
+    time_limit_minutes: row.time_limit_minutes ?? null,
+    max_attempts: row.max_attempts != null ? Number(row.max_attempts) : 1,
+    shuffle_questions: Boolean(row.shuffle_questions),
+    question_bank_ref: row.question_bank_ref ?? null,
+    preferred_submission_type: row.preferred_submission_type ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -206,6 +211,11 @@ async function createAssessment(body, requester) {
     rubric_id: body.rubric_id || null,
     instructions: body.instructions != null ? String(body.instructions) : null,
     status: body.status || 'draft',
+    time_limit_minutes: body.time_limit_minutes ?? null,
+    max_attempts: body.max_attempts ?? 1,
+    shuffle_questions: body.shuffle_questions ?? false,
+    question_bank_ref: body.question_bank_ref ?? null,
+    preferred_submission_type: body.preferred_submission_type ?? null,
   };
 
   const row = await repo.create(data);
@@ -233,6 +243,17 @@ async function updateAssessment(id, body, requester) {
     rubric_id: body.rubric_id !== undefined ? body.rubric_id || null : existing.rubric_id,
     instructions: body.instructions !== undefined ? body.instructions : existing.instructions,
     status: body.status !== undefined ? body.status : existing.status,
+    time_limit_minutes:
+      body.time_limit_minutes !== undefined ? body.time_limit_minutes : existing.time_limit_minutes,
+    max_attempts: body.max_attempts !== undefined ? body.max_attempts : Number(existing.max_attempts ?? 1),
+    shuffle_questions:
+      body.shuffle_questions !== undefined ? body.shuffle_questions : Boolean(existing.shuffle_questions),
+    question_bank_ref:
+      body.question_bank_ref !== undefined ? body.question_bank_ref || null : existing.question_bank_ref,
+    preferred_submission_type:
+      body.preferred_submission_type !== undefined
+        ? body.preferred_submission_type
+        : existing.preferred_submission_type,
   };
 
   await validateAssessmentPayload(
@@ -258,6 +279,11 @@ async function updateAssessment(id, body, requester) {
     rubric_id: merged.rubric_id,
     instructions: merged.instructions,
     status: merged.status,
+    time_limit_minutes: merged.time_limit_minutes,
+    max_attempts: merged.max_attempts,
+    shuffle_questions: merged.shuffle_questions,
+    question_bank_ref: merged.question_bank_ref,
+    preferred_submission_type: merged.preferred_submission_type,
   });
   if (new Date(merged.due_date) < new Date() && ['published', 'open'].includes(merged.status)) {
     await dispatchAppEvent('assessment_overdue', { assessment: mapAssessment(row) });

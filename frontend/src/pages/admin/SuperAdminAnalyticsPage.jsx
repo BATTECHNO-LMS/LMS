@@ -15,7 +15,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
-import { useAnalytics } from '../../features/analytics/index.js';
+import { useAnalytics, exportAnalyticsExcel, exportAnalyticsPdf, exportAnalyticsPowerBi } from '../../features/analytics/index.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { useUniversities } from '../../features/universities/hooks/useUniversities.js';
 import { useTracks } from '../../features/tracks/hooks/useTracks.js';
 import { useMicroCredentials } from '../../features/microCredentials/hooks/useMicroCredentials.js';
@@ -45,7 +46,7 @@ import {
 
 export function SuperAdminAnalyticsPage() {
   const { t, i18n } = useTranslation('analytics');
-  const { filters, setFilter, setTimePreset, data, loading, refresh } = useAnalytics();
+  const { filters, setFilter, setTimePreset, data, loading, isError, error, refresh } = useAnalytics();
   const { data: uniData } = useUniversities();
   const { data: trackData } = useTracks();
   const { data: mcData } = useMicroCredentials();
@@ -58,11 +59,34 @@ export function SuperAdminAnalyticsPage() {
   );
 
   const onExportPdf = useCallback(() => {
-    refresh();
-  }, [refresh]);
+    if (!data) return;
+    try {
+      exportAnalyticsPdf({ data, filters, t });
+    } catch (e) {
+      console.error(e);
+      window.alert(t('export.failed'));
+    }
+  }, [data, filters, t]);
+
   const onExportExcel = useCallback(() => {
-    refresh();
-  }, [refresh]);
+    if (!data) return;
+    try {
+      exportAnalyticsExcel({ data, filters, t });
+    } catch (e) {
+      console.error(e);
+      window.alert(t('export.failed'));
+    }
+  }, [data, filters, t]);
+
+  const onExportPowerBi = useCallback(() => {
+    if (!data) return;
+    try {
+      exportAnalyticsPowerBi({ data, filters, t });
+    } catch (e) {
+      console.error(e);
+      window.alert(t('export.failed'));
+    }
+  }, [data, filters, t]);
 
   const lng = i18n.language;
   const pickName = useCallback((row) => {
@@ -172,6 +196,22 @@ export function SuperAdminAnalyticsPage() {
     );
   }
 
+  if (isError && !data) {
+    return (
+      <div className="page page--admin page--analytics">
+        <AdminPageHeader title={<>{t('page.title')}</>} description={<>{t('page.description')}</>} />
+        <div className="analytics-empty-state analytics-empty-state--error" role="alert">
+          <p className="analytics-empty-state__title">{t('error.title')}</p>
+          <p className="analytics-empty-state__desc">{getApiErrorMessage(error, t('error.title'))}</p>
+          <p className="analytics-empty-state__desc">{t('error.hint')}</p>
+          <button type="button" className="btn btn--primary" onClick={() => refresh()}>
+            {t('error.retry')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="page page--admin page--analytics">
@@ -191,6 +231,7 @@ export function SuperAdminAnalyticsPage() {
         onRefresh={refresh}
         onExportPdf={onExportPdf}
         onExportExcel={onExportExcel}
+        onExportPowerBi={onExportPowerBi}
         universities={uniData?.universities ?? []}
         tracks={trackData?.tracks ?? []}
         microCredentials={mcData?.micro_credentials ?? []}

@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 import { CalendarDays, Layers, Upload, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -9,11 +10,18 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useCohorts } from '../../features/cohorts/index.js';
+import { useAssessments } from '../../features/assessments/index.js';
+import { useSubmissions } from '../../features/submissions/index.js';
+import { useLocale } from '../../features/locale/index.js';
 import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
 import { sessionsKeys } from '../../features/sessions/hooks/useSessions.js';
 
+const AWAITING_GRADE_STATUSES = new Set(['submitted', 'late', 'resubmitted']);
+const UPCOMING_STATUSES = new Set(['published', 'open']);
+
 export function InstructorDashboardPage() {
   const { t } = useTranslation('dashboard');
+  const { locale } = useLocale();
 
   const { data: cohortsPayload, isLoading: cohortsLoading } = useCohorts({}, { staleTime: 60_000 });
   const cohorts = cohortsPayload?.cohorts ?? [];
@@ -28,6 +36,9 @@ export function InstructorDashboardPage() {
     })),
   });
 
+  const { data: assessmentsPayload, isLoading: assessmentsLoading } = useAssessments({}, { staleTime: 60_000 });
+  const { data: submissionsPayload, isLoading: submissionsLoading } = useSubmissions({}, { staleTime: 60_000 });
+
   const sessionsLoading = sessionQueries.some((q) => q.isLoading);
   const sessionCount = useMemo(() => {
     let n = 0;
@@ -37,7 +48,35 @@ export function InstructorDashboardPage() {
     return n;
   }, [sessionQueries]);
 
-  const loading = cohortsLoading || (cohortIds.length > 0 && sessionsLoading);
+  const pendingGradingCount = useMemo(() => {
+    const list = submissionsPayload?.submissions ?? [];
+    return list.filter((s) => AWAITING_GRADE_STATUSES.has(s.status)).length;
+  }, [submissionsPayload]);
+
+  const upcomingRows = useMemo(() => {
+    const list = assessmentsPayload?.assessments ?? [];
+    const now = Date.now();
+    return list
+      .filter((a) => {
+        if (!a?.due_date || !UPCOMING_STATUSES.has(a.status)) return false;
+        const due = new Date(a.due_date).getTime();
+        return !Number.isNaN(due) && due >= now;
+      })
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .slice(0, 20)
+      .map((a) => ({
+        id: a.id,
+        when: new Date(a.due_date).toLocaleString(locale),
+        title: a.title,
+        cohort: a.cohort?.title ?? '—',
+      }));
+  }, [assessmentsPayload, locale]);
+
+  const loading =
+    cohortsLoading ||
+    (cohortIds.length > 0 && sessionsLoading) ||
+    assessmentsLoading ||
+    submissionsLoading;
 
   return (
     <div className="page page--dashboard page--instructor">
@@ -61,7 +100,7 @@ export function InstructorDashboardPage() {
             />
             <StatCard
               label={t('instructor.pendingGrading')}
-              value="0"
+              value={String(pendingGradingCount)}
               hint={t('instructor.statsHint')}
               icon={Upload}
             />
@@ -73,10 +112,18 @@ export function InstructorDashboardPage() {
               emptyDescription=""
               columns={[
                 { key: 'when', label: <>{t('instructor.table.time')}</> },
-                { key: 'what', label: <>{t('instructor.table.event')}</> },
+                {
+                  key: 'what',
+                  label: <>{t('instructor.table.event')}</>,
+                  render: (r) => (
+                    <Link to={`/instructor/assessments/${r.id}`}>
+                      {r.title}
+                    </Link>
+                  ),
+                },
                 { key: 'cohort', label: <>{t('instructor.table.cohort')}</> },
               ]}
-              rows={[]}
+              rows={upcomingRows}
             />
           </SectionCard>
         </>

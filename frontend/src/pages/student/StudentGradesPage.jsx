@@ -6,37 +6,37 @@ import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { GradeSummaryCard } from '../../components/grades/GradeSummaryCard.jsx';
-
-const SELF_GRADE_ROWS = [
-  { id: '1', course: 'أساسيات الذكاء الاصطناعي', item: 'اختبار منتصف المدة', score: '18 / 20', weight: '20%' },
-  { id: '2', course: 'أساسيات الذكاء الاصطناعي', item: 'واجب تحليل البيانات', score: '27 / 30', weight: '15%' },
-  { id: '3', course: 'مهارات البرمجة للتحليل', item: 'مشروع الفصل', score: '42 / 50', weight: '25%' },
-  { id: '4', course: 'أمن المعلومات التطبيقي', item: 'اختبار قصير', score: '16 / 20', weight: '10%' },
-];
-
-function ratioFromScore(scoreStr) {
-  const m = String(scoreStr).match(/(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
-  if (!m) return null;
-  const a = Number(m[1]);
-  const b = Number(m[2]);
-  if (!b) return null;
-  return a / b;
-}
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
+import { useGrades } from '../../features/grades/index.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 export function StudentGradesPage() {
+  const { data: gradesPayload, isLoading, isError, error } = useGrades({}, { staleTime: 30_000 });
+  const rows = useMemo(
+    () =>
+      (gradesPayload?.grades ?? []).map((g) => ({
+        id: g.id,
+        course: g.assessment?.cohort?.title ?? '—',
+        item: g.assessment?.title ?? '—',
+        score: g.score != null ? String(g.score) : '—',
+        weight: g.assessment?.weight != null ? `${g.assessment.weight}%` : '—',
+      })),
+    [gradesPayload]
+  );
   const { gpaPct, highestPct, courseCount } = useMemo(() => {
-    const ratios = SELF_GRADE_ROWS.map((r) => ratioFromScore(r.score)).filter((x) => x != null);
-    if (ratios.length === 0) {
+    const scores = rows.map((r) => Number(r.score)).filter((n) => !Number.isNaN(n));
+    if (!scores.length) {
       return { gpaPct: null, highestPct: null, courseCount: 0 };
     }
-    const avg = ratios.reduce((a, b) => a + b, 0) / ratios.length;
-    const hi = Math.max(...ratios);
-    const courses = new Set(SELF_GRADE_ROWS.map((r) => r.course)).size;
-    return { gpaPct: Math.round(avg * 100), highestPct: Math.round(hi * 100), courseCount: courses };
-  }, []);
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const hi = Math.max(...scores);
+    const courses = new Set(rows.map((r) => r.course)).size;
+    return { gpaPct: Math.round(avg), highestPct: Math.round(hi), courseCount: courses };
+  }, [rows]);
 
   const gpaLabel = gpaPct != null ? `${gpaPct}%` : '—';
   const highLabel = highestPct != null ? `${highestPct}%` : '—';
+  const loadError = isError ? getApiErrorMessage(error, 'تعذر تحميل الدرجات') : '';
 
   return (
     <div className="page page--dashboard page--student">
@@ -54,17 +54,21 @@ export function StudentGradesPage() {
         <SearchInput placeholder="بحث بالمساق" aria-label="بحث" />
       </AdminFilterBar>
       <SectionCard title="درجاتي">
-        <DataTable
-          emptyTitle="لا توجد درجات منشورة بعد"
-          emptyDescription="ستظهر الدرجات المعتمدة من المدرّس هنا."
-          columns={[
-            { key: 'course', label: 'المساق / الشهادة' },
-            { key: 'item', label: 'عنصر التقييم' },
-            { key: 'score', label: 'الدرجة' },
-            { key: 'weight', label: 'الوزن' },
-          ]}
-          rows={SELF_GRADE_ROWS}
-        />
+        {isLoading ? <LoadingSpinner /> : null}
+        {loadError ? <p className="crud-muted">{loadError}</p> : null}
+        {!isLoading ? (
+          <DataTable
+            emptyTitle="لا توجد درجات منشورة بعد"
+            emptyDescription="ستظهر الدرجات المعتمدة من المدرّس هنا."
+            columns={[
+              { key: 'course', label: 'المساق / الشهادة' },
+              { key: 'item', label: 'عنصر التقييم' },
+              { key: 'score', label: 'الدرجة' },
+              { key: 'weight', label: 'الوزن' },
+            ]}
+            rows={loadError ? [] : rows}
+          />
+        ) : null}
       </SectionCard>
     </div>
   );

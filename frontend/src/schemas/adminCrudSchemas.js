@@ -136,6 +136,8 @@ const assessmentStatusApiEnum = z.enum(['draft', 'published', 'open', 'closed', 
   required_error: 'الحالة مطلوبة',
 });
 
+const submissionTypeApiEnum = z.enum(['file', 'repo_url', 'text_response', 'mixed']);
+
 /** Payload aligned with POST/PUT /api/assessments */
 export const assessmentApiSchema = z.object({
   title: z.string().min(1, 'العنوان مطلوب'),
@@ -161,6 +163,20 @@ export const assessmentApiSchema = z.object({
   ),
   instructions: z.string().max(20000).optional().or(z.literal('')),
   status: assessmentStatusApiEnum.optional(),
+  time_limit_minutes: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : v === null ? null : Number(v)),
+    z.number().int().min(1).max(10080).nullable().optional()
+  ),
+  max_attempts: z.preprocess(
+    (v) => (v === '' || v === undefined ? undefined : Number(v)),
+    z.coerce.number().int().min(1).max(50).optional()
+  ),
+  shuffle_questions: z.boolean().optional(),
+  question_bank_ref: z.preprocess(
+    (v) => (v === '' || v === undefined || v === null ? undefined : v),
+    z.string().max(255).optional().nullable()
+  ),
+  preferred_submission_type: submissionTypeApiEnum.optional().nullable(),
 });
 
 export const recognitionSchema = z.object({

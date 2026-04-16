@@ -35,6 +35,23 @@ async function start() {
     console.log(`BATTECHNO-LMS API listening on port ${port}`);
   });
 
+  async function shutdown(signal) {
+    // eslint-disable-next-line no-console
+    console.log(`${signal} received; closing HTTP server and database pool.`);
+    await new Promise((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+    try {
+      await prisma.$disconnect();
+    } catch {
+      /* ignore */
+    }
+    process.exit(0);
+  }
+
+  process.once('SIGINT', () => void shutdown('SIGINT'));
+  process.once('SIGTERM', () => void shutdown('SIGTERM'));
+
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       // eslint-disable-next-line no-console

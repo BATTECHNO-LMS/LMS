@@ -12,6 +12,7 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import { useCohorts } from '../../features/cohorts/index.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { genericStatusVariant, statusLabelAr } from '../../utils/statusMap.js';
 import { useLocale } from '../../features/locale/index.js';
 
@@ -68,7 +69,7 @@ export function MyCohortsPage() {
         ) : (
           <DataTable
             emptyTitle={isError ? tCommon('errors.generic') : t('empty.noRecords')}
-            emptyDescription={isError ? String(error?.message ?? '') : ''}
+            emptyDescription={isError ? getApiErrorMessage(error, tCommon('errors.generic')) : ''}
             columns={[
               { key: 'title', label: t('table.title') },
               { key: 'credential', label: t('table.certificate') },

@@ -16,6 +16,8 @@ import { useSessionAttendance, useSaveAttendance } from '../../features/attendan
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 const STATUSES = ['present', 'late', 'absent', 'excused'];
+/** Stable ref so `useEffect(..., [students])` does not re-fire every render when data is missing. */
+const EMPTY_STUDENTS = [];
 
 export function InstructorAttendancePage() {
   const { t } = useTranslation('attendance');
@@ -36,7 +38,7 @@ export function InstructorAttendancePage() {
   const { data: attData, isLoading: aLoading, isError } = useSessionAttendance(sessionId || undefined, { enabled: Boolean(sessionId) });
   const saveMut = useSaveAttendance();
 
-  const students = attData?.students ?? [];
+  const students = attData?.students ?? EMPTY_STUDENTS;
 
   useEffect(() => {
     if (!cohortId) setSessionId('');

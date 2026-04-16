@@ -17,12 +17,36 @@ async function findActiveEmailDomainsForUniversity(universityId) {
 async function findUserByEmail(email) {
   return prisma.users.findUnique({
     where: { email },
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      password_hash: true,
+      phone: true,
+      status: true,
+      primary_university_id: true,
+      last_login_at: true,
+      created_at: true,
+      updated_at: true,
+    },
   });
 }
 
 async function findUserById(id) {
   return prisma.users.findUnique({
     where: { id },
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      password_hash: true,
+      phone: true,
+      status: true,
+      primary_university_id: true,
+      last_login_at: true,
+      created_at: true,
+      updated_at: true,
+    },
   });
 }
 
@@ -74,8 +98,20 @@ async function createStudentUserTx(tx, { full_name, email, password_hash, phone,
       email,
       password_hash,
       phone: phone ?? null,
-      status: 'active',
+      status: 'inactive',
       primary_university_id: university_id,
+    },
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      password_hash: true,
+      phone: true,
+      status: true,
+      primary_university_id: true,
+      last_login_at: true,
+      created_at: true,
+      updated_at: true,
     },
   });
 
@@ -105,14 +141,20 @@ async function touchLastLogin(userId) {
   await prisma.users.update({
     where: { id: userId },
     data: { last_login_at: new Date() },
+    select: { id: true },
   });
 }
 
 /** Minimal list for self-service registration (unauthenticated). */
 async function findActiveUniversitiesForRegistration() {
   return prisma.universities.findMany({
-    where: { status: 'active' },
-    select: { id: true, name: true },
+    where: {
+      status: 'active',
+      university_email_domains: {
+        some: { is_active: true },
+      },
+    },
+    select: { id: true, name: true, type: true, status: true },
     orderBy: { name: 'asc' },
   });
 }

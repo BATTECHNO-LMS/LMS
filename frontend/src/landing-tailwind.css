@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#battechno-landing {
+  -webkit-font-smoothing: antialiased;
+}

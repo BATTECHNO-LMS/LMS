@@ -1,5 +1,6 @@
 ﻿const { ApiError } = require('../../utils/apiError');
 const { canAccessCohort, cohortListWhere } = require('../../utils/deliveryAccess');
+const { prisma } = require('../../config/db');
 const cohortsRepository = require('./cohorts.repository');
 
 function parseDateOnly(s) {
@@ -95,23 +96,46 @@ async function validateStatusTransition(current, next, cohortRow) {
   }
 }
 
-async function serializeCohortListRow(row) {
-  const [micro_credential, university, instructor] = await Promise.all([
-    loadMicroBrief(row.micro_credential_id),
-    loadUniversityBrief(row.university_id),
-    loadUserBrief(row.instructor_id),
+/** Batch-load related rows to avoid N+1 queries on cohort lists (fixes timeouts / flaky 500s). */
+async function serializeCohortListRows(rows) {
+  if (!rows.length) return [];
+  const mcIds = [...new Set(rows.map((r) => r.micro_credential_id).filter(Boolean))];
+  const uniIds = [...new Set(rows.map((r) => r.university_id).filter(Boolean))];
+  const insIds = [...new Set(rows.map((r) => r.instructor_id).filter(Boolean))];
+
+  const [mcs, unis, instructors] = await Promise.all([
+    mcIds.length ? prisma.micro_credentials.findMany({ where: { id: { in: mcIds } } }) : [],
+    uniIds.length ? prisma.universities.findMany({ where: { id: { in: uniIds } } }) : [],
+    insIds.length
+      ? prisma.users.findMany({ where: { id: { in: insIds } }, select: { id: true, full_name: true, email: true } })
+      : [],
   ]);
-  return {
-    id: row.id,
-    title: row.title,
-    status: row.status,
-    start_date: dateOnlyISO(row.start_date),
-    end_date: dateOnlyISO(row.end_date),
-    capacity: row.capacity,
-    micro_credential,
-    university,
-    instructor,
-  };
+
+  const mcMap = new Map(mcs.map((m) => [m.id, m]));
+  const uniMap = new Map(unis.map((u) => [u.id, u]));
+  const insMap = new Map(instructors.map((u) => [u.id, u]));
+
+  return rows.map((row) => {
+    const mc = mcMap.get(row.micro_credential_id);
+    const uni = uniMap.get(row.university_id);
+    const ins = row.instructor_id ? insMap.get(row.instructor_id) : null;
+    return {
+      id: row.id,
+      title: row.title,
+      status: row.status,
+      start_date: dateOnlyISO(row.start_date),
+      end_date: dateOnlyISO(row.end_date),
+      capacity: row.capacity,
+      micro_credential: mc ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status } : null,
+      university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
+      instructor: ins ? { id: ins.id, full_name: ins.full_name, email: ins.email } : null,
+    };
+  });
+}
+
+async function serializeCohortListRow(row) {
+  const [one] = await serializeCohortListRows([row]);
+  return one;
 }
 
 async function serializeCohortDetail(row) {
@@ -140,7 +164,7 @@ async function listCohorts(query, requester) {
     cohortsRepository.count(where),
     cohortsRepository.findMany(where, { skip: query.skip, take: query.take }),
   ]);
-  const cohorts = await Promise.all(rows.map((r) => serializeCohortListRow(r)));
+  const cohorts = await serializeCohortListRows(rows);
   const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     cohorts,

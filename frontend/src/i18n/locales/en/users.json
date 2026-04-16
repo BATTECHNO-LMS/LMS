@@ -18,6 +18,11 @@
     "newUsers": "New users"
   },
   "listTitle": "User list",
+  "list": {
+    "pendingActivation": "Pending activation",
+    "activateAccount": "Activate account",
+    "activateSuccess": "Account activated successfully."
+  },
   "table": {
     "name": "Name",
     "email": "Email",

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { RefreshCw, FileDown, FileSpreadsheet } from 'lucide-react';
+import { RefreshCw, FileDown, FileSpreadsheet, LayoutDashboard } from 'lucide-react';
 import { cn } from '../../utils/helpers.js';
 
 export function AnalyticsFilterBar({
@@ -9,6 +9,7 @@ export function AnalyticsFilterBar({
   onRefresh,
   onExportPdf,
   onExportExcel,
+  onExportPowerBi,
   universities = [],
   tracks = [],
   microCredentials = [],
@@ -124,6 +125,9 @@ export function AnalyticsFilterBar({
           </button>
           <button type="button" className="btn btn--outline analytics-filter-bar__btn" onClick={onExportExcel}>
             <FileSpreadsheet size={16} aria-hidden /> {t('export.excel')}
+          </button>
+          <button type="button" className="btn btn--outline analytics-filter-bar__btn" onClick={onExportPowerBi}>
+            <LayoutDashboard size={16} aria-hidden /> {t('export.exportPowerBi')}
           </button>
           <button type="button" className="btn btn--primary analytics-filter-bar__btn" onClick={onRefresh}>
             <RefreshCw size={16} aria-hidden /> {t('export.refresh')}

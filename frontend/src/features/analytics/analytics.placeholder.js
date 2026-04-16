@@ -1,6 +1,5 @@
 /**
- * DEV-ONLY analytics chart payloads. Not production data.
- * Used only when `import.meta.env.VITE_ANALYTICS_PLACEHOLDER === 'true'`.
+ * Optional mock chart payloads for local tooling/tests — not used by the analytics page.
  */
 
 export const TIME_PRESETS = ['last7', 'last30', 'thisTerm', 'thisYear', 'all'];

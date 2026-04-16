@@ -134,11 +134,19 @@ export function AuthProvider({ children }) {
   const signUp = useCallback(
     async (payload) => {
       const { data } = await registerStudentRequest(payload);
-      const normalized = await persistTokenAndHydrate(data.token);
-      qc.invalidateQueries({ queryKey: ['users'] });
-      qc.invalidateQueries({ queryKey: ['universities'] });
-      setIsAuthReady(true);
-      return { redirectTo: getDefaultDashboardPath(normalized) };
+      if (data?.token && typeof data.token === 'string') {
+        const normalized = await persistTokenAndHydrate(data.token);
+        qc.invalidateQueries({ queryKey: ['users'] });
+        qc.invalidateQueries({ queryKey: ['universities'] });
+        setIsAuthReady(true);
+        return { redirectTo: getDefaultDashboardPath(normalized) };
+      }
+      if (data?.pending_approval) {
+        qc.invalidateQueries({ queryKey: ['users'] });
+        qc.invalidateQueries({ queryKey: ['universities'] });
+        return { pendingApproval: true };
+      }
+      throw new Error('Invalid registration response');
     },
     [persistTokenAndHydrate, qc]
   );

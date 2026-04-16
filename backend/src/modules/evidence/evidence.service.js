@@ -40,11 +40,29 @@ async function assertEvidenceLinks(body) {
 
 }
 
-async function buildListWhere(query, scopeIds) {
+async function buildListWhere(query, scopeIds, requester) {
   const and = [];
-  if (scopeIds !== null) {
-    if (!scopeIds.length) return { id: { in: [] } };
-    and.push({ cohort_id: { in: scopeIds } });
+  let effectiveScope = scopeIds;
+
+  if (query.university_id) {
+    if (!requester.isGlobal && String(query.university_id) !== String(requester.universityId || '')) {
+      throw new ApiError(403, 'Forbidden');
+    }
+    const uniRows = await prisma.cohorts.findMany({
+      where: { university_id: query.university_id },
+      select: { id: true },
+    });
+    const uniCohortIds = uniRows.map((r) => r.id);
+    if (effectiveScope === null) {
+      effectiveScope = uniCohortIds;
+    } else {
+      effectiveScope = effectiveScope.filter((id) => uniCohortIds.includes(id));
+    }
+  }
+
+  if (effectiveScope !== null) {
+    if (!effectiveScope.length) return { id: { in: [] } };
+    and.push({ cohort_id: { in: effectiveScope } });
   }
   if (query.micro_credential_id) and.push({ micro_credential_id: query.micro_credential_id });
   if (query.cohort_id) and.push({ cohort_id: query.cohort_id });
@@ -134,7 +152,7 @@ async function assertCanAccessEvidence(requester, cohortId) {
 
 async function listEvidence(query, requester) {
   const scopeIds = await resolveScopedCohortIds(requester);
-  const where = await buildListWhere(query, scopeIds);
+  const where = await buildListWhere(query, scopeIds, requester);
   const [total, rows] = await Promise.all([
     repo.count(where),
     repo.findMany(where, { skip: query.skip, take: query.take }),

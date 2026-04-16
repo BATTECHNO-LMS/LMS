@@ -1,0 +1,114 @@
+{
+  "a11y": {
+    "skipToMain": "Skip to main content"
+  },
+  "brand": "BATTECHNO-LMS",
+  "brandSubtitle": "Micro-credentials & academic operations",
+  "header": {
+    "navCapabilities": "Capabilities",
+    "navPartners": "Partners",
+    "navPreview": "App preview",
+    "explore": "Explore",
+    "login": "Login",
+    "register": "Register",
+    "menuOpen": "Open menu",
+    "menuClose": "Close menu"
+  },
+  "hero": {
+    "title": "A complete academic platform for managing micro-credentials and learning operations",
+    "description": "Manage tracks, micro-credentials, cohorts, attendance, assessments, quality assurance, academic recognition, and digital certificates in one integrated platform.",
+    "ctaRegister": "Register",
+    "ctaLogin": "Login",
+    "ctaExplore": "Explore platform",
+    "companyTitle": "About BATTECHNO",
+    "companyLead": "An IT company established in 2017, working in information technology and freelancing.",
+    "companyBody": "We deliver modern technical and educational solutions — from digital learning infrastructure to governance-ready academic workflows.",
+    "badge": "EdTech · IT · Since 2017",
+    "stats": {
+      "cohorts": "Cohorts & sessions",
+      "credentials": "Micro-credentials",
+      "uptime": "Audit-ready evidence"
+    }
+  },
+  "about": {
+    "eyebrow": "Company",
+    "title": "BATTECHNO in focus",
+    "lead": "An IT company established in 2017, working in information technology and freelancing.",
+    "p1": "We build secure, scalable digital platforms for universities, training partners, and quality teams.",
+    "p2": "BATTECHNO-LMS unifies recognition, evidence, and learner journeys in one governed workspace.",
+    "chip1": "ISO-minded QA",
+    "chip2": "Role-based access",
+    "chip3": "Digital certificates"
+  },
+  "showcase": {
+    "eyebrow": "Product",
+    "title": "The mobile experience your teams expect",
+    "subtitle": "A flagship preview of dashboards, partners, and secure access — fully interactive, not a static mockup."
+  },
+  "cta": {
+    "title": "Ready to modernize academic operations?",
+    "subtitle": "Create your organization space, invite instructors and reviewers, and align credentials with policy.",
+    "primary": "Create account",
+    "secondary": "Sign in"
+  },
+  "capabilities": {
+    "title": "Platform capabilities",
+    "subtitle": "Role-aware workflows for institutions, instructors, reviewers, and learners.",
+    "items": {
+      "usersRoles": "Users & permissions",
+      "universities": "Universities",
+      "tracks": "Programs & tracks",
+      "microCredentials": "Micro-credentials",
+      "cohortsSessions": "Cohorts & sessions",
+      "attendanceAssessments": "Attendance & assessments",
+      "evidenceQuality": "Evidence & QA",
+      "recognition": "Academic recognition",
+      "certificates": "Digital certificates",
+      "reportsAnalytics": "Reports & analytics"
+    }
+  },
+  "partners": {
+    "title": "Partners",
+    "success": "Success partners",
+    "successDesc": "Organizations that grow learner outcomes with BATTECHNO delivery.",
+    "academic": "Academic partners",
+    "academicDesc": "Universities and faculties aligning credentials with national frameworks."
+  },
+  "phone": {
+    "greeting": "Welcome back",
+    "subtitle": "Live LMS preview",
+    "btnSuccessPartners": "Success partners",
+    "btnAcademicPartners": "Academic partners",
+    "btnRegister": "Register",
+    "btnLogin": "Login",
+    "tabOverview": "Overview",
+    "tabQuick": "Quick access",
+    "navHome": "Home",
+    "navSuccess": "Success",
+    "navAcademic": "Academic",
+    "navAccount": "Account",
+    "statActive": "Active cohorts",
+    "statPending": "Reviews",
+    "statCerts": "Certificates",
+    "statActiveVal": "24",
+    "statPendingVal": "12",
+    "statCertsVal": "186",
+    "overviewCard1": "Micro-credentials",
+    "overviewCard2": "Attendance & grades",
+    "overviewCard3": "Digital certificates",
+    "views": {
+      "overview": "Navigate cohorts, assessments, evidence, and recognition from one secure workspace.",
+      "successPartners": "Joint success programs with measurable completion, QA loops, and transparent reporting.",
+      "academicPartners": "Curriculum-aligned micro-credentials, reviewer workflows, and audit-ready evidence.",
+      "quick": "Jump to registration or login to access your portal."
+    }
+  },
+  "footer": {
+    "rights": "© {{year}} BATTECHNO. All rights reserved.",
+    "contact": "Contact",
+    "support": "Support",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "tagline": "Academic operations · Micro-credentials · Quality"
+  }
+}

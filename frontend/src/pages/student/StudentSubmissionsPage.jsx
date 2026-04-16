@@ -14,15 +14,46 @@ import { PagePermissionGate } from '../../components/permissions/PagePermissionG
 import { AssessmentTypeBadge } from '../../components/assessment/AssessmentTypeBadge.jsx';
 import { SubmissionStatusBadge } from '../../components/assessment/SubmissionStatusBadge.jsx';
 import { Upload as UploadIcon, CheckCircle2, XCircle, History } from 'lucide-react';
-import { STUDENT_SUBMISSION_ROWS } from '../../mocks/instructorAssessmentWorkspace.js';
-import { useTenant } from '../../features/tenant/index.js';
+import { useSubmissions } from '../../features/submissions/index.js';
+import { useGrades } from '../../features/grades/index.js';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 export function StudentSubmissionsPage() {
   const { t } = useTranslation('submissions');
   const { t: tCommon } = useTranslation('common');
-  const { filterRows, scopeId } = useTenant();
-  const rows = useMemo(() => filterRows(STUDENT_SUBMISSION_ROWS), [filterRows, scopeId]);
+  const {
+    data: submissionsPayload,
+    isLoading: submissionsLoading,
+    isError: submissionsError,
+    error: submissionsErrorObj,
+  } = useSubmissions({}, { staleTime: 30_000 });
+  const { data: gradesPayload, isLoading: gradesLoading } = useGrades({}, { staleTime: 30_000 });
+  const scoreByAssessment = useMemo(() => {
+    const map = new Map();
+    for (const g of gradesPayload?.grades ?? []) {
+      map.set(g.assessment_id, g.score != null ? String(g.score) : '—');
+    }
+    return map;
+  }, [gradesPayload]);
+  const rows = useMemo(
+    () =>
+      (submissionsPayload?.submissions ?? []).map((s) => ({
+        id: s.id,
+        assessmentName: s.assessment?.title ?? '—',
+        type: s.assessment?.assessment_type ?? s.submission_type,
+        submittedAt: s.submitted_at ? String(s.submitted_at).slice(0, 19) : '—',
+        state: s.status,
+        score: scoreByAssessment.get(s.assessment_id) ?? '—',
+      })),
+    [submissionsPayload, scoreByAssessment]
+  );
   const P = UI_PERMISSION;
+  const loading = submissionsLoading || gradesLoading;
+  const loadError = submissionsError ? getApiErrorMessage(submissionsErrorObj, tCommon('errors.generic')) : '';
+  const accepted = rows.filter((r) => r.state === 'graded' || r.state === 'submitted').length;
+  const needsRedo = rows.filter((r) => r.state === 'returned').length;
+  const history = rows.length;
 
   return (
     <PagePermissionGate permission={P.canViewSubmissionStatus}>
@@ -32,74 +63,78 @@ export function StudentSubmissionsPage() {
           <SearchInput placeholder={t('student.searchPlaceholder')} aria-label={t('student.searchAria')} />
         </AdminFilterBar>
         <AdminStatsGrid>
-          <StatCard label={t('student.stats.accepted')} value="—" icon={CheckCircle2} />
-          <StatCard label={t('student.stats.needsRedo')} value="—" icon={XCircle} />
-          <StatCard label={t('student.stats.history')} value="—" icon={History} />
-          <StatCard label={t('student.stats.total')} value="—" icon={UploadIcon} />
+          <StatCard label={t('student.stats.accepted')} value={String(accepted)} icon={CheckCircle2} />
+          <StatCard label={t('student.stats.needsRedo')} value={String(needsRedo)} icon={XCircle} />
+          <StatCard label={t('student.stats.history')} value={String(history)} icon={History} />
+          <StatCard label={t('student.stats.total')} value={String(rows.length)} icon={UploadIcon} />
         </AdminStatsGrid>
         <SectionCard title={<>{t('student.sectionTitle')}</>}>
-          <DataTable
-            emptyTitle={t('student.empty.title')}
-            emptyDescription={t('student.empty.description')}
-            columns={[
-              { key: 'assessmentName', label: t('student.table.assessmentName') },
-              {
-                key: 'type',
-                label: t('student.table.type'),
-                render: (r) => <AssessmentTypeBadge type={r.type} />,
-              },
-              { key: 'submittedAt', label: t('student.table.submittedAt') },
-              {
-                key: 'state',
-                label: t('student.table.state'),
-                render: (r) => <SubmissionStatusBadge state={r.state} />,
-              },
-              { key: 'score', label: t('student.table.score') },
-              {
-                key: 'actions',
-                label: tCommon('table.actions'),
-                render: (r) => (
-                  <div className="table-row-actions">
-                    <PermissionGate permission={P.canViewSubmissionStatus}>
-                      <button
-                        type="button"
-                        className="btn btn--icon btn--ghost"
-                        title={t('student.actions.view')}
-                        aria-label={t('student.actions.view')}
-                      >
-                        <Eye size={18} />
-                      </button>
-                    </PermissionGate>
-                    <PermissionGate permission={P.canSubmitAssessments}>
-                      {r.state === 'late' || r.state === 'open' ? (
+          {loading ? <LoadingSpinner /> : null}
+          {loadError ? <p className="crud-muted">{loadError}</p> : null}
+          {!loading ? (
+            <DataTable
+              emptyTitle={t('student.empty.title')}
+              emptyDescription={t('student.empty.description')}
+              columns={[
+                { key: 'assessmentName', label: t('student.table.assessmentName') },
+                {
+                  key: 'type',
+                  label: t('student.table.type'),
+                  render: (r) => <AssessmentTypeBadge type={r.type} />,
+                },
+                { key: 'submittedAt', label: t('student.table.submittedAt') },
+                {
+                  key: 'state',
+                  label: t('student.table.state'),
+                  render: (r) => <SubmissionStatusBadge state={r.state} />,
+                },
+                { key: 'score', label: t('student.table.score') },
+                {
+                  key: 'actions',
+                  label: tCommon('table.actions'),
+                  render: (r) => (
+                    <div className="table-row-actions">
+                      <PermissionGate permission={P.canViewSubmissionStatus}>
                         <button
                           type="button"
                           className="btn btn--icon btn--ghost"
-                          title={t('student.actions.upload')}
-                          aria-label={t('student.actions.upload')}
+                          title={t('student.actions.view')}
+                          aria-label={t('student.actions.view')}
                         >
-                          <Upload size={18} />
+                          <Eye size={18} />
                         </button>
-                      ) : null}
-                    </PermissionGate>
-                    <PermissionGate permission={P.canEditOwnSubmission}>
-                      {r.state === 'submitted' ? (
-                        <button
-                          type="button"
-                          className="btn btn--icon btn--ghost"
-                          title={t('student.actions.edit')}
-                          aria-label={t('student.actions.edit')}
-                        >
-                          <Pencil size={18} />
-                        </button>
-                      ) : null}
-                    </PermissionGate>
-                  </div>
-                ),
-              },
-            ]}
-            rows={rows}
-          />
+                      </PermissionGate>
+                      <PermissionGate permission={P.canSubmitAssessments}>
+                        {r.state === 'late' || r.state === 'open' ? (
+                          <button
+                            type="button"
+                            className="btn btn--icon btn--ghost"
+                            title={t('student.actions.upload')}
+                            aria-label={t('student.actions.upload')}
+                          >
+                            <Upload size={18} />
+                          </button>
+                        ) : null}
+                      </PermissionGate>
+                      <PermissionGate permission={P.canEditOwnSubmission}>
+                        {r.state === 'submitted' ? (
+                          <button
+                            type="button"
+                            className="btn btn--icon btn--ghost"
+                            title={t('student.actions.edit')}
+                            aria-label={t('student.actions.edit')}
+                          >
+                            <Pencil size={18} />
+                          </button>
+                        ) : null}
+                      </PermissionGate>
+                    </div>
+                  ),
+                },
+              ]}
+              rows={loadError ? [] : rows}
+            />
+          ) : null}
         </SectionCard>
       </div>
     </PagePermissionGate>

@@ -39,7 +39,7 @@ export function MicroCredentialsListPage() {
   const { t } = useTranslation('microCredentials');
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
-  const { scopeId, isAllTenantsSelected } = useTenant();
+  const { scopeId, isAllTenantsSelected: allTenantsSelected } = useTenant();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [trackId, setTrackId] = useState('');
@@ -63,9 +63,9 @@ export function MicroCredentialsListPage() {
   const rows = useMemo(() => {
     const list = data?.micro_credentials ?? [];
     const mapped = list.map(mapMcRow);
-    if (isAllTenantsSelected(scopeId) || !scopeId || scopeId === TENANT_SCOPE_ALL) return mapped;
+    if (allTenantsSelected || !scopeId || scopeId === TENANT_SCOPE_ALL) return mapped;
     return mapped.filter((r) => r.linked_university_ids.includes(String(scopeId)));
-  }, [data, scopeId, isAllTenantsSelected]);
+  }, [data, scopeId, allTenantsSelected]);
 
   const stats = useMemo(() => {
     const total = rows.length;

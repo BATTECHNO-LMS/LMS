@@ -7,6 +7,7 @@ const uuidParamSchema = z.object({
 
 const listEvidenceQuerySchema = z
   .object({
+    university_id: z.string().uuid().optional(),
     micro_credential_id: z.string().uuid().optional(),
     cohort_id: z.string().uuid().optional(),
     student_id: z.string().uuid().optional(),
@@ -20,6 +21,7 @@ const listEvidenceQuerySchema = z
   .transform((q) => {
     const p = normalizePagination(q);
     return {
+      university_id: q.university_id,
       micro_credential_id: q.micro_credential_id,
       cohort_id: q.cohort_id,
       student_id: q.student_id,

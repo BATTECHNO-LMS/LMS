@@ -21,7 +21,10 @@
     "info": "Info",
     "warning": "Warning",
     "success": "Success",
-    "action_required": "Action required"
+    "danger": "Alert",
+    "system": "System",
+    "action_required": "Action required",
+    "user_pending_activation": "Activation required"
   },
   "loadError": "Could not load notifications."
 }

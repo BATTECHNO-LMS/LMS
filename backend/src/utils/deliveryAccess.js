@@ -15,7 +15,7 @@ function cohortListWhere(requester) {
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
   const uniStaff = roles.some((r) =>
-    ['program_admin', 'university_admin', 'academic_admin', 'qa_officer'].includes(r)
+    ['program_admin', 'university_admin', 'academic_admin', 'qa_officer', 'university_reviewer'].includes(r)
   );
   if (uni && uniStaff) {
     return { university_id: uni };
@@ -39,7 +39,7 @@ function canAccessCohort(requester, cohort) {
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
   const uniStaff = roles.some((r) =>
-    ['program_admin', 'university_admin', 'academic_admin', 'qa_officer'].includes(r)
+    ['program_admin', 'university_admin', 'academic_admin', 'qa_officer', 'university_reviewer'].includes(r)
   );
   if (uni && uniStaff && cohort.university_id === uni) return true;
   if (roles.includes('instructor') && cohort.instructor_id === requester.userId) return true;

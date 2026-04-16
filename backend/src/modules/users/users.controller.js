@@ -46,10 +46,23 @@ async function patchStatus(req, res, next) {
   }
 }
 
+async function activate(req, res, next) {
+  try {
+    const data = await usersService.activateUser(req.validated.params.id, {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+    });
+    return success(res, data, { message: 'User activated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   getById,
   create,
   update,
   patchStatus,
+  activate,
 };

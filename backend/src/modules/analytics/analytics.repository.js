@@ -1,6 +1,22 @@
 const { prisma } = require('../../config/db');
+const { isMissingPrismaModelTableError } = require('./prismaMissingTable.js');
 
 const COHORT_STATUSES = ['planned', 'open_for_enrollment', 'active', 'completed', 'closed', 'cancelled'];
+
+const EMPTY_ASSESSMENT_HEALTH = [
+  { key: 'total', value: 0 },
+  { key: 'pendingGrading', value: 0 },
+  { key: 'overdue', value: 0 },
+  { key: 'graded', value: 0 },
+];
+
+const EMPTY_CERTIFICATES_ANALYTICS = {
+  byMonth: [],
+  byUniversity: [],
+  byCredential: [],
+  issuedCount: 0,
+};
+
 const RECOGNITION_STATUSES = [
   'draft',
   'in_preparation',
@@ -116,50 +132,60 @@ async function getOverview(filters) {
   const sessionIds = sessions.map((s) => s.id);
   let overallAttendanceRate = 0;
   if (sessionIds.length) {
-    const records = await prisma.attendance_records.findMany({
-      where: { session_id: { in: sessionIds } },
-      select: { attendance_status: true },
-    });
-    if (records.length) {
-      const attended = records.filter((r) => ['present', 'late', 'excused'].includes(r.attendance_status)).length;
-      overallAttendanceRate = Math.round((attended / records.length) * 10000) / 100;
+    let attendanceRows = [];
+    try {
+      attendanceRows = await prisma.attendance_records.findMany({
+        where: { session_id: { in: sessionIds } },
+        select: { attendance_status: true },
+      });
+    } catch (e) {
+      if (!isMissingPrismaModelTableError(e, 'attendance_records')) throw e;
+    }
+    if (attendanceRows.length) {
+      const attended = attendanceRows.filter((r) => ['present', 'late', 'excused'].includes(r.attendance_status)).length;
+      overallAttendanceRate = Math.round((attended / attendanceRows.length) * 10000) / 100;
     }
   }
 
-  const assessments = await prisma.assessments.findMany({
-    where: {
-      ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
-      ...inDateRange('due_date', filters),
-    },
-    select: { id: true, due_date: true, status: true, assessment_type: true },
-  });
-  const assessmentIds = assessments.map((a) => a.id);
-  const [submissionCounts, gradeCounts] = await Promise.all([
-    assessmentIds.length
-      ? prisma.submissions.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: assessmentIds } },
-          _count: { _all: true },
-        })
-      : [],
-    assessmentIds.length
-      ? prisma.grades.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: assessmentIds } },
-          _count: { _all: true },
-        })
-      : [],
-  ]);
-  const subMap = new Map(submissionCounts.map((r) => [r.assessment_id, r._count._all]));
-  const gradeMap = new Map(gradeCounts.map((r) => [r.assessment_id, r._count._all]));
-  const now = new Date();
-  const delayedOrUngradedAssessments = assessments.filter((a) => {
-    const duePassed = a.due_date && new Date(a.due_date) < now;
-    const subs = subMap.get(a.id) || 0;
-    const grads = gradeMap.get(a.id) || 0;
-    const pendingGrading = subs > grads;
-    return duePassed && (pendingGrading || ['published', 'open'].includes(a.status));
-  }).length;
+  let delayedOrUngradedAssessments = 0;
+  try {
+    const assessments = await prisma.assessments.findMany({
+      where: {
+        ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
+        ...inDateRange('due_date', filters),
+      },
+      select: { id: true, due_date: true, status: true, assessment_type: true },
+    });
+    const assessmentIds = assessments.map((a) => a.id);
+    const [submissionCounts, gradeCounts] = await Promise.all([
+      assessmentIds.length
+        ? prisma.submissions.groupBy({
+            by: ['assessment_id'],
+            where: { assessment_id: { in: assessmentIds } },
+            _count: { _all: true },
+          })
+        : [],
+      assessmentIds.length
+        ? prisma.grades.groupBy({
+            by: ['assessment_id'],
+            where: { assessment_id: { in: assessmentIds } },
+            _count: { _all: true },
+          })
+        : [],
+    ]);
+    const subMap = new Map(submissionCounts.map((r) => [r.assessment_id, r._count._all]));
+    const gradeMap = new Map(gradeCounts.map((r) => [r.assessment_id, r._count._all]));
+    const now = new Date();
+    delayedOrUngradedAssessments = assessments.filter((a) => {
+      const duePassed = a.due_date && new Date(a.due_date) < now;
+      const subs = subMap.get(a.id) || 0;
+      const grads = gradeMap.get(a.id) || 0;
+      const pendingGrading = subs > grads;
+      return duePassed && (pendingGrading || ['published', 'open'].includes(a.status));
+    }).length;
+  } catch (e) {
+    if (!isMissingPrismaModelTableError(e, 'assessments')) throw e;
+  }
 
   const evidenceRows = await prisma.evidence_files.findMany({
     where: {
@@ -171,7 +197,7 @@ async function getOverview(filters) {
   const evidenceSessionIds = new Set(evidenceRows.map((e) => e.session_id).filter(Boolean));
   const missingEvidenceCount = sessions.filter((s) => !evidenceSessionIds.has(s.id)).length;
 
-  const [readyRecognition, openQa, openIntegrity, issuedCertificates] = await Promise.all([
+  const [readyRecognition, openQa, openIntegrity] = await Promise.all([
     prisma.recognition_requests.count({
       where: {
         ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
@@ -193,14 +219,19 @@ async function getOverview(filters) {
         ...inDateRange('created_at', filters),
       },
     }),
-    prisma.certificates.count({
+  ]);
+  let issuedCertificates = 0;
+  try {
+    issuedCertificates = await prisma.certificates.count({
       where: {
         ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
         status: 'issued',
         ...inDateRange('issued_at', filters),
       },
-    }),
-  ]);
+    });
+  } catch (e) {
+    if (!isMissingPrismaModelTableError(e, 'certificates')) throw e;
+  }
 
   const activeUsers = await prisma.users.count({
     where: {
@@ -292,43 +323,48 @@ async function getCohortStatusDistribution(filters) {
 async function getAssessmentHealth(filters) {
   const scope = await resolveCohortScope(filters);
   const scopedCohorts = cohortIdWhere(scope, filters);
-  const assessments = await prisma.assessments.findMany({
-    where: {
-      ...(scopedCohorts ? { cohort_id: scopedCohorts } : {}),
-      ...inDateRange('due_date', filters),
-    },
-    select: { id: true, due_date: true, status: true },
-  });
-  const ids = assessments.map((a) => a.id);
-  const [subs, grades] = await Promise.all([
-    ids.length
-      ? prisma.submissions.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: ids } },
-          _count: { _all: true },
-        })
-      : [],
-    ids.length
-      ? prisma.grades.groupBy({
-          by: ['assessment_id'],
-          where: { assessment_id: { in: ids } },
-          _count: { _all: true },
-        })
-      : [],
-  ]);
-  const subMap = new Map(subs.map((r) => [r.assessment_id, r._count._all]));
-  const gradeMap = new Map(grades.map((r) => [r.assessment_id, r._count._all]));
-  const now = new Date();
-  const total = assessments.length;
-  const overdue = assessments.filter((a) => a.due_date && new Date(a.due_date) < now && ['published', 'open'].includes(a.status)).length;
-  const pendingGrading = assessments.filter((a) => (subMap.get(a.id) || 0) > (gradeMap.get(a.id) || 0)).length;
-  const graded = assessments.filter((a) => (subMap.get(a.id) || 0) > 0 && (subMap.get(a.id) || 0) <= (gradeMap.get(a.id) || 0)).length;
-  return [
-    { key: 'total', value: total },
-    { key: 'pendingGrading', value: pendingGrading },
-    { key: 'overdue', value: overdue },
-    { key: 'graded', value: graded },
-  ];
+  try {
+    const assessments = await prisma.assessments.findMany({
+      where: {
+        ...(scopedCohorts ? { cohort_id: scopedCohorts } : {}),
+        ...inDateRange('due_date', filters),
+      },
+      select: { id: true, due_date: true, status: true },
+    });
+    const ids = assessments.map((a) => a.id);
+    const [subs, grades] = await Promise.all([
+      ids.length
+        ? prisma.submissions.groupBy({
+            by: ['assessment_id'],
+            where: { assessment_id: { in: ids } },
+            _count: { _all: true },
+          })
+        : [],
+      ids.length
+        ? prisma.grades.groupBy({
+            by: ['assessment_id'],
+            where: { assessment_id: { in: ids } },
+            _count: { _all: true },
+          })
+        : [],
+    ]);
+    const subMap = new Map(subs.map((r) => [r.assessment_id, r._count._all]));
+    const gradeMap = new Map(grades.map((r) => [r.assessment_id, r._count._all]));
+    const now = new Date();
+    const total = assessments.length;
+    const overdue = assessments.filter((a) => a.due_date && new Date(a.due_date) < now && ['published', 'open'].includes(a.status)).length;
+    const pendingGrading = assessments.filter((a) => (subMap.get(a.id) || 0) > (gradeMap.get(a.id) || 0)).length;
+    const graded = assessments.filter((a) => (subMap.get(a.id) || 0) > 0 && (subMap.get(a.id) || 0) <= (gradeMap.get(a.id) || 0)).length;
+    return [
+      { key: 'total', value: total },
+      { key: 'pendingGrading', value: pendingGrading },
+      { key: 'overdue', value: overdue },
+      { key: 'graded', value: graded },
+    ];
+  } catch (e) {
+    if (isMissingPrismaModelTableError(e, 'assessments')) return EMPTY_ASSESSMENT_HEALTH.slice();
+    throw e;
+  }
 }
 
 async function getAttendanceAnalytics(filters) {
@@ -349,10 +385,15 @@ async function getAttendanceAnalytics(filters) {
       lowAttendanceCohorts: [],
     };
   }
-  const records = await prisma.attendance_records.findMany({
-    where: { session_id: { in: sessions.map((s) => s.id) } },
-    select: { session_id: true, attendance_status: true },
-  });
+  let records = [];
+  try {
+    records = await prisma.attendance_records.findMany({
+      where: { session_id: { in: sessions.map((s) => s.id) } },
+      select: { session_id: true, attendance_status: true },
+    });
+  } catch (e) {
+    if (!isMissingPrismaModelTableError(e, 'attendance_records')) throw e;
+  }
   const bySession = new Map();
   for (const rec of records) {
     if (!bySession.has(rec.session_id)) bySession.set(rec.session_id, []);
@@ -486,59 +527,64 @@ async function getRecognitionFunnel(filters) {
 async function getCertificatesAnalytics(filters) {
   const scope = await resolveCohortScope(filters);
   const scopedCohorts = cohortIdWhere(scope, filters);
-  const certs = await prisma.certificates.findMany({
-    where: {
-      ...(scopedCohorts ? { cohort_id: scopedCohorts } : {}),
-      ...inDateRange('issued_at', filters),
-    },
-    select: { id: true, issued_at: true, cohort_id: true, micro_credential_id: true, status: true },
-  });
-  const issued = certs.filter((c) => c.status === 'issued');
-  const byMonth = new Map();
-  for (const cert of issued) {
-    const key = monthKeyFromDate(new Date(cert.issued_at));
-    byMonth.set(key, (byMonth.get(key) || 0) + 1);
+  try {
+    const certs = await prisma.certificates.findMany({
+      where: {
+        ...(scopedCohorts ? { cohort_id: scopedCohorts } : {}),
+        ...inDateRange('issued_at', filters),
+      },
+      select: { id: true, issued_at: true, cohort_id: true, micro_credential_id: true, status: true },
+    });
+    const issued = certs.filter((c) => c.status === 'issued');
+    const byMonth = new Map();
+    for (const cert of issued) {
+      const key = monthKeyFromDate(new Date(cert.issued_at));
+      byMonth.set(key, (byMonth.get(key) || 0) + 1);
+    }
+    const cohorts = await prisma.cohorts.findMany({
+      where: { id: { in: [...new Set(issued.map((c) => c.cohort_id))] } },
+      select: { id: true, university_id: true },
+    });
+    const cohortUniversity = new Map(cohorts.map((c) => [c.id, c.university_id]));
+    const uniMap = new Map();
+    for (const cert of issued) {
+      const uniId = cohortUniversity.get(cert.cohort_id);
+      if (!uniId) continue;
+      uniMap.set(uniId, (uniMap.get(uniId) || 0) + 1);
+    }
+    const universities = await prisma.universities.findMany({
+      where: { id: { in: [...uniMap.keys()] } },
+      select: { id: true, name: true },
+    });
+    const byUniversity = universities.map((u) => ({
+      university_id: u.id,
+      name: u.name,
+      count: uniMap.get(u.id) || 0,
+    }));
+    const mcMap = new Map();
+    for (const cert of issued) {
+      mcMap.set(cert.micro_credential_id, (mcMap.get(cert.micro_credential_id) || 0) + 1);
+    }
+    const mcs = await prisma.micro_credentials.findMany({
+      where: { id: { in: [...mcMap.keys()] } },
+      select: { id: true, title: true, code: true },
+    });
+    const byCredential = mcs.map((mc) => ({
+      micro_credential_id: mc.id,
+      title: mc.title,
+      code: mc.code,
+      count: mcMap.get(mc.id) || 0,
+    }));
+    return {
+      byMonth: normalizeMonthSeries(byMonth),
+      byUniversity,
+      byCredential,
+      issuedCount: issued.length,
+    };
+  } catch (e) {
+    if (isMissingPrismaModelTableError(e, 'certificates')) return { ...EMPTY_CERTIFICATES_ANALYTICS };
+    throw e;
   }
-  const cohorts = await prisma.cohorts.findMany({
-    where: { id: { in: [...new Set(issued.map((c) => c.cohort_id))] } },
-    select: { id: true, university_id: true },
-  });
-  const cohortUniversity = new Map(cohorts.map((c) => [c.id, c.university_id]));
-  const uniMap = new Map();
-  for (const cert of issued) {
-    const uniId = cohortUniversity.get(cert.cohort_id);
-    if (!uniId) continue;
-    uniMap.set(uniId, (uniMap.get(uniId) || 0) + 1);
-  }
-  const universities = await prisma.universities.findMany({
-    where: { id: { in: [...uniMap.keys()] } },
-    select: { id: true, name: true },
-  });
-  const byUniversity = universities.map((u) => ({
-    university_id: u.id,
-    name: u.name,
-    count: uniMap.get(u.id) || 0,
-  }));
-  const mcMap = new Map();
-  for (const cert of issued) {
-    mcMap.set(cert.micro_credential_id, (mcMap.get(cert.micro_credential_id) || 0) + 1);
-  }
-  const mcs = await prisma.micro_credentials.findMany({
-    where: { id: { in: [...mcMap.keys()] } },
-    select: { id: true, title: true, code: true },
-  });
-  const byCredential = mcs.map((mc) => ({
-    micro_credential_id: mc.id,
-    title: mc.title,
-    code: mc.code,
-    count: mcMap.get(mc.id) || 0,
-  }));
-  return {
-    byMonth: normalizeMonthSeries(byMonth),
-    byUniversity,
-    byCredential,
-    issuedCount: issued.length,
-  };
 }
 
 module.exports = {

@@ -5,11 +5,14 @@
   "description": "BATTECHNO-LMS REST API",
   "main": "src/server.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "seed": "node prisma/seed.js",
     "seed:auth": "node scripts/seed-auth-minimum.js",
     "test": "node --test tests/health.test.js"
   },

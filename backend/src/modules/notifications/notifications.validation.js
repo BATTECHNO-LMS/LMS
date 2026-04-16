@@ -5,7 +5,15 @@ const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
 });
 
-const notificationTypeEnum = z.enum(['info', 'success', 'warning', 'danger', 'system']);
+const notificationTypeEnum = z.enum([
+  'info',
+  'success',
+  'warning',
+  'danger',
+  'system',
+  'user_pending_activation',
+  'action_required',
+]);
 
 const listNotificationsQuerySchema = z
   .object({

@@ -9,6 +9,10 @@ function authorizeRoles(...allowedRoleCodes) {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
+    /** JWT marks super-admin scope; allow all role-gated admin routes regardless of misconfigured env CSVs. */
+    if (req.user.isGlobal) {
+      return next();
+    }
     const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
     const userRoles = roles.map((r) => String(r).toLowerCase());
     const ok = userRoles.some((r) => normalized.includes(r));

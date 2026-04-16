@@ -1,4 +1,5 @@
 ﻿const { ApiError } = require('../../utils/apiError');
+const { normalizeType } = require('../../shared/services/notification.service');
 const repo = require('./notifications.repository');
 
 function mapNotification(n) {
@@ -60,7 +61,7 @@ async function createNotificationForUser(payload) {
     user_id: payload.userId,
     title: payload.title,
     body: payload.body ?? null,
-    type: payload.type ?? 'info',
+    type: normalizeType(payload.type ?? 'info'),
   });
   return { notification: mapNotification(created) };
 }

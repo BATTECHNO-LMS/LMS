@@ -265,6 +265,10 @@
   font-size: 0.85rem;
 }
 
+.analytics-empty-state--error .btn {
+  margin-top: 1rem;
+}
+
 .analytics-module-block {
   background: var(--color-card);
   border: 1px solid #e6e6e6;
