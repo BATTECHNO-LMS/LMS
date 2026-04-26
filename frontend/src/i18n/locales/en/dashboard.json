@@ -44,8 +44,8 @@
   },
   "student": {
     "title": "Student dashboard",
-    "description": "Track your progress within your university.",
-    "statsHint": "Counts for the active university scope",
+    "description": "Your academic overview — enrollments, sessions, assessments, and grades.",
+    "statsHint": "Based on your live enrollment data",
     "tasks": "Open tasks",
     "submissions": "Submissions",
     "grades": "Published grades",
@@ -55,6 +55,121 @@
       "time": "Due",
       "event": "Assessment",
       "credential": "Credential / track"
+    },
+    "dashboard": {
+      "summary": {
+        "welcome": "Welcome, {{name}}",
+        "university": "University: {{name}}",
+        "noUniversity": "University will appear when linked to your profile.",
+        "today": "Today: {{date}}"
+      },
+      "kpi": {
+        "enrolled": "Active programs",
+        "sessions": "Upcoming sessions",
+        "assessments": "Open assessments",
+        "pending": "Pending submissions",
+        "attendance": "Attendance (avg.)",
+        "grades": "Avg. final grade"
+      },
+      "sections": {
+        "nextActions": "What to do next",
+        "programs": "My active programs",
+        "sessions": "Upcoming sessions",
+        "assessments": "Open assessments",
+        "attendance": "Attendance overview",
+        "grades": "Latest grades",
+        "certificate": "Certificate readiness",
+        "notifications": "Notifications"
+      },
+      "empty": {
+        "enrollments": "You are not enrolled in any programs yet. Contact your administration if you believe this is a mistake.",
+        "sessions": "No upcoming sessions.",
+        "assessments": "No open assessments right now.",
+        "grades": "No grades have been published yet.",
+        "attendance": "Attendance will appear after sessions are recorded.",
+        "notifications": "No notifications yet."
+      },
+      "error": {
+        "section": "This section could not be loaded."
+      },
+      "actions": {
+        "submit": "Submit",
+        "viewAssessments": "View assessments",
+        "viewSessions": "View sessions",
+        "viewGrades": "View grades",
+        "viewAttendance": "View attendance",
+        "viewCertificate": "Certificate",
+        "viewNotifications": "All notifications",
+        "viewFeedback": "View feedback",
+        "viewSubmission": "View submission"
+      },
+      "badges": {
+        "open": "Open",
+        "due": "Due",
+        "pending": "Pending",
+        "submitted": "Submitted",
+        "graded": "Graded",
+        "final": "Final",
+        "draft": "Draft"
+      },
+      "assessmentRow": {
+        "cohort": "Program / cohort",
+        "type": "Type",
+        "due": "Due",
+        "submission": "Submission",
+        "grade": "Grade"
+      },
+      "sessionRow": {
+        "when": "When",
+        "cohort": "Cohort",
+        "type": "Type",
+        "attendance": "Your attendance"
+      },
+      "gradeRow": {
+        "assessment": "Assessment",
+        "score": "Score",
+        "feedback": "Feedback",
+        "hasFeedback": "Available",
+        "noFeedback": "None yet"
+      },
+      "certificate": {
+        "title": "Readiness checklist",
+        "attendance": "Attendance meets guideline (≥ {{pct}}%)",
+        "submissions": "No required assessments pending submission",
+        "recognition": "Recognition status: {{status}}",
+        "issued": "Certificate issued",
+        "state": {
+          "eligible": "Eligible",
+          "pending": "In progress",
+          "notEligible": "Not eligible",
+          "issued": "Issued",
+          "locked": "Locked",
+          "unknown": "Unknown"
+        },
+        "reason": {
+          "lowAttendance": "Average attendance is below {{pct}}%.",
+          "pendingSubmissions": "Complete pending assessment submissions.",
+          "recognitionBlocked": "Recognition is not marked eligible yet.",
+          "none": "Keep attending sessions and completing assessments."
+        }
+      },
+      "attendance": {
+        "lowWarning": "Your average attendance is below {{pct}}%. Reach out to your instructor if you need support."
+      },
+      "program": {
+        "progress": "Progress",
+        "attendanceLabel": "{{pct}}% attendance"
+      },
+      "next": {
+        "submitTitle": "Submit: {{title}}",
+        "submitDesc": "Assessment in {{context}}",
+        "sessionTitle": "Upcoming session: {{title}}",
+        "sessionDesc": "{{context}}",
+        "attendanceTitle": "Attendance attention",
+        "attendanceDesc": "Your average attendance needs improvement.",
+        "certificateTitle": "Certificate progress",
+        "certificateDesc": "Review readiness for your programs."
+      }
     }
   },
   "reviewer": {

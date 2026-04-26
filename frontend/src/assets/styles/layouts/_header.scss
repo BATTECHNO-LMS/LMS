@@ -8,19 +8,30 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  row-gap: 0.5rem;
+  column-gap: 0.75rem;
   min-height: $header-height;
-  padding: 0 1.25rem;
+  padding: 0.5rem 1rem;
   background: var(--color-card);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 1025px) {
+  .app-header {
+    flex-wrap: nowrap;
+    padding: 0 1.25rem;
+  }
 }
 
 .app-header__start {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1 1 0;
   min-width: 0;
+  max-width: 100%;
 }
 
 .app-header__logo {
@@ -28,6 +39,7 @@
   font-size: 0.95rem;
   color: var(--color-heading);
   white-space: nowrap;
+  min-width: 0;
 }
 
 .app-header__logo-image {
@@ -48,16 +60,138 @@
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-heading);
+  min-width: 0;
+  flex: 1 1 auto;
   @include line-clamp(1);
+}
+
+.app-header__menu-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  margin-inline-end: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-card);
+  color: var(--color-heading);
+  cursor: pointer;
+  @include transition(border-color background-color, 0.15s);
+
+  &:hover {
+    border-color: $color-primary-light;
+    background: var(--color-surface-light);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+@include respond(1024px) {
+  .app-header__menu-toggle {
+    display: inline-flex;
+  }
+
+  /** Keep a single top bar on tablet/phone; avoid stacked header rows */
+  .app-header {
+    flex-wrap: nowrap;
+    row-gap: 0;
+    align-items: center;
+  }
+
+  .notification-bell {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .user-dropdown__trigger {
+    min-height: 2.75rem;
+  }
+}
+
+/** Phone: icon language + icon-only user (see AppNavbar compact prop) */
+.app-header--compact-tools .app-header__end-group {
+  flex-wrap: nowrap;
+}
+
+.app-header__lang-icon-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  background: var(--color-card);
+  color: var(--color-heading);
+  cursor: pointer;
+  @include transition(border-color background-color, 0.15s);
+
+  &:hover {
+    border-color: $color-primary-light;
+    background: var(--color-surface-light);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.app-header__lang-icon-btn-code {
+  position: absolute;
+  bottom: 0.2rem;
+  inset-inline-end: 0.2rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.user-dropdown--compact .user-dropdown__trigger {
+  gap: 0;
+  padding-inline: 0.35rem;
+  min-width: 2.75rem;
+  justify-content: center;
+}
+
+/** Phone header: hide wide tenant switcher (global users can change scope from desktop) */
+.app-header--compact-tools .tenant-scope {
+  display: none;
 }
 
 .app-header__end {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
-.app-header__theme-btn,
+@media (min-width: 1025px) {
+  .app-header__end {
+    flex: 0 1 auto;
+  }
+}
+
+.app-header__end-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
 .app-header__lang-btn {
   min-height: 2.5rem;
   min-width: 2.5rem;
@@ -90,6 +224,12 @@
   min-width: 7.5rem;
   cursor: pointer;
   appearance: auto;
+}
+
+.notification-bell__root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
 .notification-bell {
@@ -138,6 +278,83 @@
   font-weight: 700;
   line-height: 1.1rem;
   text-align: center;
+}
+
+.notification-bell__panel {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 0.35rem);
+  width: min(
+    20rem,
+    calc(100vw - 1.25rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  max-width: calc(100vw - 1.25rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+  max-height: min(22rem, calc(100vh - var(--header-height) - 1rem));
+  overflow: auto;
+  padding: 0.5rem;
+  border-radius: $radius-md;
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-md);
+  z-index: $z-dropdown;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notification-bell__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.notification-bell__item {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--color-border);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.notification-bell__item-title {
+  font-weight: 600;
+  color: var(--color-heading);
+}
+
+.notification-bell__item-title-btn {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: inherit;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-heading);
+
+  &:hover {
+    color: $color-primary;
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
+.notification-bell__item-body {
+  font-size: 0.75rem;
+  margin-top: 0.2rem;
+}
+
+.notification-bell__mark-read {
+  margin-top: 0.35rem;
+}
+
+.notification-bell__footer {
+  margin-top: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--color-border);
 }
 
 .user-dropdown {
@@ -192,7 +409,8 @@
   position: absolute;
   top: calc(100% + 0.35rem);
   inset-inline-end: 0;
-  min-width: 12rem;
+  min-width: min(12rem, calc(100vw - 1.25rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: calc(100vw - 1.25rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
   padding: 0.5rem;
   border-radius: $radius-md;
   background: var(--color-card);
@@ -228,7 +446,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  max-width: min(14rem, 38vw);
+  max-width: min(14rem, 100%);
 }
 
 .tenant-scope__label {
@@ -263,7 +481,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  max-width: min(16rem, 42vw);
+  max-width: min(16rem, 100%);
   min-height: 2.35rem;
   padding: 0.15rem 0.55rem;
   border: 1px solid var(--color-border);
@@ -287,7 +505,8 @@
   @include line-clamp(1);
 }
 
-@include respond(640px) {
+/** Very narrow phones: hide divider + page title to free space; tablet keeps title */
+@include respond(480px) {
   .app-header__logo-image {
     height: 1.8rem;
   }
@@ -298,10 +517,17 @@
   }
 
   .tenant-scope {
-    max-width: min(11rem, 55vw);
+    max-width: min(11rem, 100%);
   }
 
   .tenant-badge {
-    max-width: min(12rem, 55vw);
+    max-width: min(12rem, 100%);
+  }
+
+  .app-header__logo {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
+

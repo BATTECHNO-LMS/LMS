@@ -10,3 +10,9 @@ export async function fetchGradesList(params = {}) {
   }
   return data;
 }
+
+/** Alias for student-scoped grades list (same endpoint; role filters on server). */
+export async function fetchMyGrades(params = {}) {
+  return fetchGradesList(params);
+}
+

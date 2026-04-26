@@ -9,37 +9,37 @@ export function HomeCtaBand() {
   const { dir } = useLocale();
 
   return (
-    <section className="relative py-16 sm:py-20">
+    <section className="relative bg-[#FAFAF7] py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.45 }}
-          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-indigo-600/90 via-indigo-800/90 to-slate-900 p-10 shadow-[0_32px_100px_-24px_rgba(79,70,229,0.55)] sm:p-14"
+          className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-10 shadow-[0_16px_48px_-16px_rgba(15,23,42,0.08)] ring-1 ring-slate-100/90 sm:p-14"
         >
           <div
-            className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl"
+            className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl"
             aria-hidden
           />
           <div
-            className="pointer-events-none absolute -bottom-20 -left-16 h-64 w-64 rounded-full bg-sky-400/15 blur-3xl"
+            className="pointer-events-none absolute -bottom-16 -left-12 h-56 w-56 rounded-full bg-slate-200/30 blur-3xl"
             aria-hidden
           />
           <div className="relative mx-auto max-w-3xl text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{t('cta.title')}</h2>
-            <p className="mt-4 text-base text-indigo-100/90 sm:text-lg">{t('cta.subtitle')}</p>
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{t('cta.title')}</h2>
+            <p className="mt-4 text-base text-slate-600 sm:text-lg">{t('cta.subtitle')}</p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
               <Link
                 to="/register"
-                className="inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-amber-400 px-8 py-3 text-base font-bold text-slate-950 shadow-lg transition hover:bg-amber-300"
+                className="inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-3 text-base font-bold text-slate-950 shadow-lg transition hover:brightness-105"
               >
                 {t('cta.primary')}
                 <FiArrowRight className={dir === 'rtl' ? 'rotate-180' : ''} aria-hidden />
               </Link>
               <Link
                 to="/login"
-                className="inline-flex min-h-[3rem] items-center justify-center rounded-2xl border-2 border-white/40 bg-white/10 px-8 py-3 text-base font-semibold text-white backdrop-blur-sm transition hover:bg-white/20"
+                className="inline-flex min-h-[3rem] items-center justify-center rounded-2xl border-2 border-slate-300 bg-white px-8 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:border-amber-300/60 hover:bg-slate-50"
               >
                 {t('cta.secondary')}
               </Link>

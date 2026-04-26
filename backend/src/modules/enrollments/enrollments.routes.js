@@ -10,6 +10,9 @@ const router = express.Router();
 
 const deliveryRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES);
 const deliveryWrite = authorizeRoles(...env.DELIVERY_WRITE_ROLE_CODES);
+const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
+
+router.get('/me', authenticate, studentOnly, enrollmentsController.listMine);
 
 router.get(
   '/:id',

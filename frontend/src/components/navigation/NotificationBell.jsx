@@ -40,7 +40,7 @@ export function NotificationBell({ className }) {
   }
 
   return (
-    <div ref={rootRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={rootRef} className="notification-bell__root">
       <button
         type="button"
         className={cn('notification-bell', className)}
@@ -54,60 +54,34 @@ export function NotificationBell({ className }) {
         ) : null}
       </button>
       {open ? (
-        <div
-          className="notification-bell__panel"
-          style={{
-            position: 'absolute',
-            insetInlineEnd: 0,
-            marginTop: 8,
-            minWidth: 280,
-            maxHeight: 360,
-            overflow: 'auto',
-            background: 'var(--surface, #fff)',
-            border: '1px solid var(--border, #ddd)',
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
-            zIndex: 50,
-            padding: 8,
-          }}
-        >
+        <div className="notification-bell__panel">
           {isLoading ? <p className="crud-muted">{tCommon('loading')}</p> : null}
           {!isLoading && preview.length === 0 ? <p className="crud-muted">{t('emptyTitle')}</p> : null}
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <ul className="notification-bell__list">
             {preview.map((n) => {
               const deepLink = getAdminNotificationDeepLink(n, user);
               return (
-                <li key={n.id} style={{ padding: '8px 4px', borderBottom: '1px solid var(--border, #eee)' }}>
+                <li key={n.id} className="notification-bell__item">
                   {deepLink ? (
                     <button
                       type="button"
+                      className="notification-bell__item-title-btn"
                       onClick={() => {
                         if (!n.is_read) markRead.mutate(n.id);
                         navigate(deepLink);
                         setOpen(false);
                       }}
-                      style={{
-                        fontWeight: 600,
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        cursor: 'pointer',
-                        textAlign: 'inherit',
-                        color: 'inherit',
-                        width: '100%',
-                      }}
                     >
                       {n.title}
                     </button>
                   ) : (
-                    <div style={{ fontWeight: 600 }}>{n.title}</div>
+                    <div className="notification-bell__item-title">{n.title}</div>
                   )}
-                  {n.body ? <div className="crud-muted" style={{ fontSize: 12 }}>{n.body}</div> : null}
+                  {n.body ? <div className="notification-bell__item-body crud-muted">{n.body}</div> : null}
                   {!n.is_read ? (
                     <button
                       type="button"
-                      className="btn btn--ghost btn--sm"
-                      style={{ marginTop: 4 }}
+                      className="btn btn--ghost btn--sm notification-bell__mark-read"
                       onClick={() => markRead.mutate(n.id)}
                       disabled={markRead.isPending}
                     >
@@ -118,7 +92,7 @@ export function NotificationBell({ className }) {
               );
             })}
           </ul>
-          <div style={{ marginTop: 8 }}>
+          <div className="notification-bell__footer">
             <Link className="btn btn--outline btn--sm" to={notifPath} onClick={() => setOpen(false)}>
               {tCommon('actions.details')}
             </Link>

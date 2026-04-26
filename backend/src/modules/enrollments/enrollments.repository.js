@@ -29,6 +29,17 @@ async function findCohortIdsForStudent(studentId) {
   return [...new Set(rows.map((r) => r.cohort_id))];
 }
 
+/** Active enrollments for a student (dashboard / sessions scope). */
+async function findManyByStudent(studentId) {
+  return prisma.enrollments.findMany({
+    where: {
+      student_id: studentId,
+      enrollment_status: { in: ['pending', 'enrolled', 'completed'] },
+    },
+    orderBy: { enrolled_at: 'desc' },
+  });
+}
+
 async function create(data) {
   return prisma.enrollments.create({ data });
 }
@@ -60,6 +71,7 @@ module.exports = {
   findById,
   findByCohortAndStudent,
   findCohortIdsForStudent,
+  findManyByStudent,
   create,
   update,
   userHasRoleCode,

@@ -1,8 +1,17 @@
-﻿const { prisma } = require('../../config/db');
+const { prisma } = require('../../config/db');
 
 async function findManyByCohort(cohortId) {
   return prisma.sessions.findMany({
     where: { cohort_id: cohortId },
+    orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
+  });
+}
+
+/** @param {string[]} cohortIds */
+async function findManyByCohortIds(cohortIds) {
+  if (!cohortIds.length) return [];
+  return prisma.sessions.findMany({
+    where: { cohort_id: { in: cohortIds } },
     orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
   });
 }
@@ -25,6 +34,7 @@ async function findModule(id) {
 
 module.exports = {
   findManyByCohort,
+  findManyByCohortIds,
   findById,
   create,
   update,

@@ -39,3 +39,13 @@ export async function patchEnrollmentStatus(id, body) {
   const res = await apiClient.patch(`${endpoints.enrollments}/${id}/status`, body);
   return unwrapApiData(res);
 }
+
+/** Current student's enrollments (GET /enrollments/me). */
+export async function fetchMyEnrollments() {
+  const res = await apiClient.get(`${endpoints.enrollments}/me`);
+  const data = unwrapApiData(res);
+  if (!data || typeof data !== 'object' || !Array.isArray(data.enrollments)) {
+    throw new Error('Invalid enrollments response');
+  }
+  return data;
+}

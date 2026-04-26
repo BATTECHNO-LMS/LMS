@@ -44,8 +44,8 @@
   },
   "student": {
     "title": "لوحة الطالب",
-    "description": "متابعة تقدّمك ضمن جامعتك.",
-    "statsHint": "حسب نطاق الجامعة المحدد",
+    "description": "نظرة أكاديمية — التسجيل، الجلسات، التقييمات، والدرجات.",
+    "statsHint": "مبني على بيانات تسجيلك الفعلية",
     "tasks": "مهام مفتوحة",
     "submissions": "تسليمات",
     "grades": "درجات منشورة",
@@ -55,6 +55,121 @@
       "time": "الاستحقاق",
       "event": "التقييم",
       "credential": "المسار / الشهادة"
+    },
+    "dashboard": {
+      "summary": {
+        "welcome": "مرحباً، {{name}}",
+        "university": "الجامعة: {{name}}",
+        "noUniversity": "ستظهر الجامعة عند ربطها بملفك.",
+        "today": "اليوم: {{date}}"
+      },
+      "kpi": {
+        "enrolled": "برامج نشطة",
+        "sessions": "جلسات قادمة",
+        "assessments": "تقييمات مفتوحة",
+        "pending": "تسليمات بانتظار الإكمال",
+        "attendance": "نسبة الحضور (متوسطة)",
+        "grades": "متوسط الدرجة النهائية"
+      },
+      "sections": {
+        "nextActions": "ماذا بعد؟",
+        "programs": "برامجي النشطة",
+        "sessions": "الجلسات القادمة",
+        "assessments": "التقييمات المفتوحة",
+        "attendance": "نظرة على الحضور",
+        "grades": "آخر الدرجات",
+        "certificate": "جاهزية الشهادة",
+        "notifications": "الإشعارات"
+      },
+      "empty": {
+        "enrollments": "لا توجد برامج مسجّلة حالياً. تواصل مع الإدارة إذا كان يفترض أنك مسجّل.",
+        "sessions": "لا توجد جلسات قادمة.",
+        "assessments": "لا توجد تقييمات مفتوحة حالياً.",
+        "grades": "لم يتم نشر درجات بعد.",
+        "attendance": "يظهر الحضور بعد تسجيل الجلسات.",
+        "notifications": "لا توجد إشعارات بعد."
+      },
+      "error": {
+        "section": "تعذّر تحميل هذا القسم."
+      },
+      "actions": {
+        "submit": "تسليم",
+        "viewAssessments": "عرض التقييمات",
+        "viewSessions": "عرض الجلسات",
+        "viewGrades": "عرض الدرجات",
+        "viewAttendance": "عرض الحضور",
+        "viewCertificate": "الشهادة",
+        "viewNotifications": "كل الإشعارات",
+        "viewFeedback": "عرض الملاحظات",
+        "viewSubmission": "عرض التسليم"
+      },
+      "badges": {
+        "open": "مفتوح",
+        "due": "الاستحقاق",
+        "pending": "معلّق",
+        "submitted": "مُسلَّم",
+        "graded": "مُقيَّم",
+        "final": "نهائي",
+        "draft": "مسودة"
+      },
+      "assessmentRow": {
+        "cohort": "البرنامج / الدفعة",
+        "type": "النوع",
+        "due": "الاستحقاق",
+        "submission": "التسليم",
+        "grade": "الدرجة"
+      },
+      "sessionRow": {
+        "when": "الموعد",
+        "cohort": "الدفعة",
+        "type": "نوع الجلسة",
+        "attendance": "حضورك"
+      },
+      "gradeRow": {
+        "assessment": "التقييم",
+        "score": "الدرجة",
+        "feedback": "الملاحظات",
+        "hasFeedback": "متوفر",
+        "noFeedback": "لا يوجد بعد"
+      },
+      "certificate": {
+        "title": "قائمة الجاهزية",
+        "attendance": "الحضور يستوفي المبدأ التوجيهي (≥ {{pct}}٪)",
+        "submissions": "لا توجد تقييمات مطلوبة بانتظار التسليم",
+        "recognition": "حالة الاعتراف: {{status}}",
+        "issued": "تم إصدار الشهادة",
+        "state": {
+          "eligible": "مؤهّل",
+          "pending": "قيد التقدّم",
+          "notEligible": "غير مؤهّل",
+          "issued": "صادرة",
+          "locked": "مقفول",
+          "unknown": "غير معروف"
+        },
+        "reason": {
+          "lowAttendance": "متوسط الحضور أقل من {{pct}}٪.",
+          "pendingSubmissions": "أكمل التقييمات المعلّقة.",
+          "recognitionBlocked": "الاعتراف الأكاديمي غير مُعلَن كمؤهّل بعد.",
+          "none": "واصل حضور الجلسات وإكمال التقييمات."
+        }
+      },
+      "attendance": {
+        "lowWarning": "متوسط حضورك أقل من {{pct}}٪. تواصل مع المدرب عند الحاجة."
+      },
+      "program": {
+        "progress": "التقدّم",
+        "attendanceLabel": "الحضور {{pct}}٪"
+      },
+      "next": {
+        "submitTitle": "تسليم: {{title}}",
+        "submitDesc": "تقييم ضمن {{context}}",
+        "sessionTitle": "جلسة قادمة: {{title}}",
+        "sessionDesc": "{{context}}",
+        "attendanceTitle": "تنبيه حضور",
+        "attendanceDesc": "متوسط حضورك يحتاج إلى تحسين.",
+        "certificateTitle": "تقدّم الشهادة",
+        "certificateDesc": "راجع جاهزية برامجك."
+      }
     }
   },
   "reviewer": {

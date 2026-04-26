@@ -21,6 +21,19 @@
   border-radius: $radius-lg;
 }
 
+.auth-card__brand {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 1.25rem;
+}
+
+.auth-card__logo {
+  height: 5.25rem;
+  width: auto;
+  max-width: min(100%, 14rem);
+  object-fit: contain;
+}
+
 .auth-card__title {
   margin: 0 0 0.25rem;
   font-size: 1.5rem;

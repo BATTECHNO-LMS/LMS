@@ -37,4 +37,13 @@ async function patchStatus(req, res, next) {
   }
 }
 
-module.exports = { listByCohort, createForCohort, getById, patchStatus };
+async function listMine(req, res, next) {
+  try {
+    const data = await enrollmentsService.listMine(req.user);
+    return success(res, data, { message: 'Enrollments retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = { listByCohort, createForCohort, getById, patchStatus, listMine };

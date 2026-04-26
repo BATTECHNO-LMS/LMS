@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorizeRoles } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
@@ -15,6 +15,9 @@ const router = express.Router();
 
 const deliveryRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES);
 const deliveryWrite = authorizeRoles(...env.DELIVERY_WRITE_ROLE_CODES);
+const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
+
+router.get('/me', authenticate, studentOnly, sessionsController.listMine);
 
 router.get(
   '/:id/attendance',

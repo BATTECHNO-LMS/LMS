@@ -1,5 +1,8 @@
 .page--reviewer {
   max-width: 80rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .page--reviewer .admin-page-header {

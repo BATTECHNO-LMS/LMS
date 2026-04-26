@@ -4,3 +4,4 @@ export * from './hooks/useEnrollments.js';
 export * from './hooks/useEnrollment.js';
 export * from './hooks/useCreateEnrollment.js';
 export * from './hooks/useUpdateEnrollmentStatus.js';
+export * from './hooks/useStudentEnrollments.js';

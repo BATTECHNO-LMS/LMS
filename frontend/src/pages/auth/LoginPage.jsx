@@ -11,9 +11,11 @@ import { useAuth } from '../../features/auth/index.js';
 import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
+import brandLogo from '../../assets/images/batman-logo.png';
 
 export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRoleLabelEn = '' }) {
   const { t, i18n } = useTranslation('auth');
+  const { t: tCommon } = useTranslation('common');
   const { login, isAuthenticated, user, isAuthReady } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,6 +78,9 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
   return (
     <div className="auth-page">
       <div className="auth-card">
+        <div className="auth-card__brand">
+          <img src={brandLogo} alt={tCommon('logo.alt')} className="auth-card__logo" decoding="async" />
+        </div>
         <h1 className="auth-card__title">{t('login.brandTitle')}</h1>
         <p className="auth-card__subtitle">{t('login.title')}</p>
         <p className="text-muted small mb-3">{t('login.subtitle')}</p>

@@ -1,5 +1,21 @@
+@use '../abstracts/mixins' as *;
+
 .table-actions {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
+  justify-content: flex-end;
+  max-width: 100%;
+}
+
+@include respond(720px) {
+  .table-actions {
+    gap: 0.45rem;
+  }
+
+  .table-actions .btn--icon {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
 }

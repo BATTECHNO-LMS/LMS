@@ -36,13 +36,9 @@
     "running": "قيد التنفيذ",
     "open": "مفتوح",
     "all": "الكل",
-    "allStatuses": "كل الحالات"
-  },
-  "theme": {
-    "light": "وضع فاتح",
-    "dark": "وضع داكن",
-    "switchToLight": "التبديل إلى الوضع الفاتح",
-    "switchToDark": "التبديل إلى الوضع الداكن"
+    "allStatuses": "كل الحالات",
+    "enrolled": "مسجّل",
+    "withdrawn": "منسحب"
   },
   "language": {
     "arabic": "العربية",
@@ -69,10 +65,13 @@
     "generic": "حدث خطأ"
   },
   "sidebar": {
-    "adminMenuAria": "قائمة الإدارة"
+    "adminMenuAria": "قائمة الإدارة",
+    "openMenu": "فتح قائمة التنقل",
+    "closeMenu": "إغلاق قائمة التنقل",
+    "closeDrawer": "إغلاق الشريط الجانبي"
   },
   "logo": {
-    "alt": "باتمان تكنولوجي"
+    "alt": "نظام إدارة التعلّم LMS"
   },
   "unauthorized": {
     "title": "غير مصرح لك بالوصول إلى هذه الصفحة",

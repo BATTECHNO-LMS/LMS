@@ -15,8 +15,9 @@
     "menuClose": "Close menu"
   },
   "hero": {
-    "title": "A complete academic platform for managing micro-credentials and learning operations",
-    "description": "Manage tracks, micro-credentials, cohorts, attendance, assessments, quality assurance, academic recognition, and digital certificates in one integrated platform.",
+    "mainTitle": "BATTECHNO-LMS",
+    "title": "An integrated academic platform for micro-credentials and academic operations",
+    "description": "Manage tracks, micro-credentials, cohorts, attendance, assessments, quality, and academic accreditation in one unified platform.",
     "ctaRegister": "Register",
     "ctaLogin": "Login",
     "ctaExplore": "Explore platform",
@@ -25,9 +26,9 @@
     "companyBody": "We deliver modern technical and educational solutions — from digital learning infrastructure to governance-ready academic workflows.",
     "badge": "EdTech · IT · Since 2017",
     "stats": {
-      "cohorts": "Cohorts & sessions",
-      "credentials": "Micro-credentials",
-      "uptime": "Audit-ready evidence"
+      "microCreds": "Micro-credentials",
+      "universities": "Universities",
+      "cohorts": "Cohorts"
     }
   },
   "about": {
@@ -43,7 +44,7 @@
   "showcase": {
     "eyebrow": "Product",
     "title": "The mobile experience your teams expect",
-    "subtitle": "A flagship preview of dashboards, partners, and secure access — fully interactive, not a static mockup."
+    "subtitle": "An interactive preview of platform screens — credentials, partners, and secure access."
   },
   "cta": {
     "title": "Ready to modernize academic operations?",
@@ -68,39 +69,63 @@
     }
   },
   "partners": {
+    "sectionTitle": "Partners in success",
+    "sectionSubtitle": "We work with national and academic institutions to support digital education and micro-credentials.",
+    "categoryMinistry": "Ministry",
+    "categoryUniversity": "University",
     "title": "Partners",
     "success": "Success partners",
     "successDesc": "Organizations that grow learner outcomes with BATTECHNO delivery.",
     "academic": "Academic partners",
     "academicDesc": "Universities and faculties aligning credentials with national frameworks."
   },
+  "institutions": {
+    "youthMinistry": "Ministry of Youth",
+    "digitalEconomyMinistry": "Ministry of Digital Economy",
+    "tafilaTech": "Tafila Technical University",
+    "mutah": "Mutah University",
+    "zaytoonah": "Al-Zaytoonah University",
+    "yarmouk": "Yarmouk University"
+  },
   "phone": {
-    "greeting": "Welcome back",
-    "subtitle": "Live LMS preview",
-    "btnSuccessPartners": "Success partners",
-    "btnAcademicPartners": "Academic partners",
-    "btnRegister": "Register",
-    "btnLogin": "Login",
-    "tabOverview": "Overview",
-    "tabQuick": "Quick access",
+    "previewBadge": "Live preview",
     "navHome": "Home",
-    "navSuccess": "Success",
-    "navAcademic": "Academic",
+    "navCredentials": "Credentials",
+    "navPartners": "Partners",
     "navAccount": "Account",
-    "statActive": "Active cohorts",
-    "statPending": "Reviews",
-    "statCerts": "Certificates",
-    "statActiveVal": "24",
-    "statPendingVal": "12",
-    "statCertsVal": "186",
-    "overviewCard1": "Micro-credentials",
-    "overviewCard2": "Attendance & grades",
-    "overviewCard3": "Digital certificates",
-    "views": {
-      "overview": "Navigate cohorts, assessments, evidence, and recognition from one secure workspace.",
-      "successPartners": "Joint success programs with measurable completion, QA loops, and transparent reporting.",
-      "academicPartners": "Curriculum-aligned micro-credentials, reviewer workflows, and audit-ready evidence.",
-      "quick": "Jump to registration or login to access your portal."
+    "home": {
+      "greeting": "Welcome to",
+      "platform": "BATTECHNO-LMS",
+      "tagline": "Integrated learning platform",
+      "statMicro": "Micro-credentials",
+      "statMicroVal": "48",
+      "statUniv": "Universities",
+      "statUnivVal": "12",
+      "statCohort": "Cohorts",
+      "statCohortVal": "36"
+    },
+    "credentials": {
+      "title": "Micro-credentials",
+      "subtitle": "Sample learning paths",
+      "card1Title": "Learning analytics",
+      "card2Title": "Academic quality management",
+      "card3Title": "Adaptive learning",
+      "statusPublished": "Published",
+      "statusDraft": "Draft",
+      "statusReview": "In review",
+      "exploreCta": "Explore credentials"
+    },
+    "partners": {
+      "title": "Partners",
+      "subtitle": "Ministries & universities"
+    },
+    "account": {
+      "title": "Account",
+      "intro": "Sign in or register to access your portal.",
+      "roleStudent": "Student",
+      "roleInstructor": "Instructor",
+      "roleReviewer": "Reviewer",
+      "roleAdmin": "Admin"
     }
   },
   "footer": {

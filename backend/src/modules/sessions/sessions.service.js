@@ -1,7 +1,10 @@
-﻿const { ApiError } = require('../../utils/apiError');
-const { canAccessCohort } = require('../../utils/deliveryAccess');
+const { ApiError } = require('../../utils/apiError');
+const { env } = require('../../config/env');
+const { canAccessCohort, normalizeRoles } = require('../../utils/deliveryAccess');
 const sessionsRepository = require('./sessions.repository');
 const cohortsRepository = require('../cohorts/cohorts.repository');
+const enrollmentsRepository = require('../enrollments/enrollments.repository');
+const attendanceRepository = require('../attendance/attendance.repository');
 const { dateOnlyISO, parseDateOnly } = require('../cohorts/cohorts.service');
 
 function parseTimeHm(str) {
@@ -66,6 +69,61 @@ async function listByCohort(cohortId, requester) {
   await assertCohortForSessions(cohortId, requester);
   const rows = await sessionsRepository.findManyByCohort(cohortId);
   const sessions = await Promise.all(rows.map((r) => serializeSession(r)));
+  return { sessions };
+}
+
+/**
+ * Sessions across cohorts the current student is enrolled in (student role only).
+ * @param {import('../../middlewares/auth.middleware').RequestUser} requester
+ */
+async function listMine(requester) {
+  const roles = normalizeRoles(requester.roles);
+  if (!roles.includes(String(env.STUDENT_ROLE_CODE || 'student').toLowerCase())) {
+    throw new ApiError(403, 'Forbidden');
+  }
+  const cohortIds = await enrollmentsRepository.findCohortIdsForStudent(requester.userId);
+  if (!cohortIds.length) return { sessions: [] };
+  const rows = await sessionsRepository.findManyByCohortIds(cohortIds);
+  const sessionIds = rows.map((r) => r.id);
+  let recs = [];
+  try {
+    recs = await attendanceRepository.findRecordsForSessionsAndStudent(sessionIds, requester.userId);
+  } catch {
+    recs = [];
+  }
+  const recMap = new Map(recs.map((r) => [r.session_id, r.attendance_status]));
+  const cohortCache = new Map();
+  for (const cid of new Set(rows.map((r) => r.cohort_id))) {
+    // eslint-disable-next-line no-await-in-loop
+    cohortCache.set(cid, await cohortsRepository.findById(cid));
+  }
+  const mcCache = new Map();
+  const sessions = [];
+  for (const row of rows) {
+    // eslint-disable-next-line no-await-in-loop
+    const base = await serializeSession(row);
+    const cohort = cohortCache.get(row.cohort_id);
+    let cohortPayload = null;
+    if (cohort) {
+      let mc = mcCache.get(cohort.micro_credential_id);
+      if (mc === undefined) {
+        // eslint-disable-next-line no-await-in-loop
+        mc = await cohortsRepository.findMicroCredential(cohort.micro_credential_id);
+        mcCache.set(cohort.micro_credential_id, mc);
+      }
+      cohortPayload = {
+        id: cohort.id,
+        title: cohort.title,
+        status: cohort.status,
+        micro_credential: mc ? { id: mc.id, title: mc.title, code: mc.code } : null,
+      };
+    }
+    sessions.push({
+      ...base,
+      cohort: cohortPayload,
+      my_attendance_status: recMap.get(row.id) ?? null,
+    });
+  }
   return { sessions };
 }
 
@@ -162,6 +220,7 @@ async function patchDocumentation(id, body, requester) {
 
 module.exports = {
   listByCohort,
+  listMine,
   createForCohort,
   getById,
   update,

@@ -3,207 +3,223 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocale } from '../../features/locale/index.js';
+import { PARTNER_INSTITUTIONS } from './home.constants.js';
 import {
-  FiGrid,
-  FiUsers,
-  FiBookOpen,
-  FiAward,
-  FiChevronRight,
   FiHome,
-  FiTrendingUp,
-  FiBook,
+  FiAward,
+  FiUsers,
   FiUser,
+  FiChevronRight,
 } from 'react-icons/fi';
 
+/** @typedef {'home' | 'credentials' | 'partners' | 'account'} PhoneScreen */
+
 /**
- * Interactive in-frame LMS preview (real JSX, not an image).
+ * Interactive iPhone-style LMS preview (real JSX).
  * @param {{ variant?: 'device' | 'standalone', className?: string }} props
  */
 export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
   const { t } = useTranslation('landing');
   const { dir } = useLocale();
-  const [panel, setPanel] = useState('overview');
+  const [activeScreen, setActiveScreen] = useState(/** @type {PhoneScreen} */ ('home'));
 
   const framed = variant === 'device';
 
-  const bottomActive = useMemo(() => {
-    if (panel === 'successPartners') return 'success';
-    if (panel === 'academicPartners') return 'academic';
-    if (panel === 'quick') return 'account';
-    return 'home';
-  }, [panel]);
+  const bottomNav = useMemo(
+    () => [
+      { id: /** @type {PhoneScreen} */ ('home'), icon: FiHome, labelKey: 'phone.navHome' },
+      { id: 'credentials', icon: FiAward, labelKey: 'phone.navCredentials' },
+      { id: 'partners', icon: FiUsers, labelKey: 'phone.navPartners' },
+      { id: 'account', icon: FiUser, labelKey: 'phone.navAccount' },
+    ],
+    []
+  );
 
-  const screenHeight = framed ? 'h-[600px]' : 'min-h-[72vh] max-h-[88vh]';
+  const credentialSamples = useMemo(
+    () => [
+      { titleKey: 'phone.credentials.card1Title', statusKey: 'phone.credentials.statusPublished', tone: 'emerald' },
+      { titleKey: 'phone.credentials.card2Title', statusKey: 'phone.credentials.statusReview', tone: 'amber' },
+      { titleKey: 'phone.credentials.card3Title', statusKey: 'phone.credentials.statusDraft', tone: 'slate' },
+    ],
+    []
+  );
 
-  const screen = (
+  const screenBody = (
     <div
-      className={`relative z-10 flex flex-col overflow-hidden bg-gradient-to-b from-slate-900 via-slate-950 to-slate-950 text-slate-100 ${screenHeight} ${
-        framed ? 'rounded-[2.25rem]' : 'rounded-3xl'
-      } border border-white/15 shadow-glass`}
-      style={{ pointerEvents: 'auto' }}
+      className={`relative z-10 flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-[2.35rem] bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800 shadow-inner ${
+        framed ? '' : 'rounded-3xl'
+      }`}
+      dir={dir}
     >
+      {/* Dynamic Island */}
       {framed ? (
         <div
-          className="pointer-events-none absolute left-1/2 top-0 z-20 h-6 w-32 -translate-x-1/2 rounded-b-2xl bg-black/80 ring-1 ring-white/10"
+          className="pointer-events-none absolute left-1/2 top-3 z-30 h-[1.35rem] w-[5.5rem] -translate-x-1/2 rounded-full bg-black shadow-md ring-1 ring-black/40"
           aria-hidden
         />
       ) : null}
 
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-white/10 px-4 pb-3 pt-7">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400/30 to-amber-600/10 text-amber-300 ring-1 ring-amber-500/30">
-            <FiGrid size={20} />
+      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-slate-200/90 bg-white/90 px-4 pb-2.5 pt-9 backdrop-blur-sm">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400/90 to-amber-600 text-sm font-black text-white shadow-sm ring-1 ring-amber-500/30">
+            B
           </span>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-bold tracking-tight text-white">{t('brand')}</p>
-            <p className="truncate text-[11px] text-slate-400">{t('phone.subtitle')}</p>
+            <p className="truncate text-[13px] font-bold tracking-tight text-slate-900">{t('brand')}</p>
+            <p className="truncate text-[10px] font-medium text-slate-500">{t('phone.previewBadge')}</p>
           </div>
         </div>
-        <FiChevronRight className={`shrink-0 text-slate-500 ${dir === 'rtl' ? 'rotate-180' : ''}`} aria-hidden />
+        <FiChevronRight className={`shrink-0 text-slate-400 ${dir === 'rtl' ? 'rotate-180' : ''}`} aria-hidden />
       </header>
 
-      <div className="relative z-10 shrink-0 border-b border-white/10 px-4 py-4">
-        <p className="text-xl font-bold tracking-tight text-white">{t('phone.greeting')}</p>
-        <p className="mt-1 text-xs text-slate-400">{t('hero.badge')}</p>
-        <div className="mt-4 grid grid-cols-3 gap-2">
-          {[
-            { label: 'statActive', val: 'statActiveVal' },
-            { label: 'statPending', val: 'statPendingVal' },
-            { label: 'statCerts', val: 'statCertsVal' },
-          ].map(({ label, val }) => (
-            <div
-              key={label}
-              className="rounded-xl border border-white/10 bg-white/[0.06] px-2 py-2 text-center shadow-inner"
-            >
-              <p className="text-lg font-bold tabular-nums text-white">{t(`phone.${val}`)}</p>
-              <p className="mt-0.5 text-[10px] font-medium leading-tight text-slate-400">{t(`phone.${label}`)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="relative z-10 shrink-0 grid grid-cols-2 gap-2 px-3 py-3">
-        <button
-          type="button"
-          onClick={() => setPanel('successPartners')}
-          className={`rounded-2xl border px-2 py-3 text-center text-[11px] font-semibold leading-snug transition ${
-            panel === 'successPartners'
-              ? 'border-amber-400/70 bg-gradient-to-br from-amber-500/25 to-amber-600/5 text-amber-100 shadow-lg shadow-amber-900/20'
-              : 'border-white/10 bg-white/[0.05] text-slate-200 hover:border-white/20 hover:bg-white/10'
-          }`}
-        >
-          {t('phone.btnSuccessPartners')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setPanel('academicPartners')}
-          className={`rounded-2xl border px-2 py-3 text-center text-[11px] font-semibold leading-snug transition ${
-            panel === 'academicPartners'
-              ? 'border-sky-400/70 bg-gradient-to-br from-sky-500/20 to-sky-700/5 text-sky-100 shadow-lg shadow-sky-900/20'
-              : 'border-white/10 bg-white/[0.05] text-slate-200 hover:border-white/20 hover:bg-white/10'
-          }`}
-        >
-          {t('phone.btnAcademicPartners')}
-        </button>
-        <Link
-          to="/register"
-          className="flex items-center justify-center rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-2 py-3 text-center text-[11px] font-bold text-slate-950 shadow-md ring-1 ring-amber-300/40 transition hover:brightness-105"
-        >
-          {t('phone.btnRegister')}
-        </Link>
-        <Link
-          to="/login"
-          className="flex items-center justify-center rounded-2xl border border-white/25 bg-white/[0.12] px-2 py-3 text-center text-[11px] font-bold text-white shadow-inner transition hover:bg-white/20"
-        >
-          {t('phone.btnLogin')}
-        </Link>
-      </div>
-
-      <div className="relative z-10 flex shrink-0 gap-1 border-b border-white/10 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => setPanel('overview')}
-          className={`flex-1 rounded-xl py-2 text-xs font-semibold transition ${
-            panel === 'overview' ? 'bg-white/15 text-white shadow-sm' : 'text-slate-400 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          {t('phone.tabOverview')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setPanel('quick')}
-          className={`flex-1 rounded-xl py-2 text-xs font-semibold transition ${
-            panel === 'quick' ? 'bg-white/15 text-white shadow-sm' : 'text-slate-400 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          {t('phone.tabQuick')}
-        </button>
-      </div>
-
-      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-3 pt-2">
         <AnimatePresence mode="wait">
           <motion.div
-            key={panel}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.2 }}
-            className="space-y-4"
+            key={activeScreen}
+            initial={{ opacity: 0, x: dir === 'rtl' ? -8 : 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: dir === 'rtl' ? 8 : -8 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-3"
           >
-            {panel === 'overview' ? (
-              <>
-                <p className="text-sm leading-relaxed text-slate-300">{t('phone.views.overview')}</p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-center transition hover:border-amber-500/40"
-                  >
-                    <FiBookOpen className="mx-auto mb-2 text-xl text-amber-400" />
-                    <p className="text-[10px] font-semibold leading-tight text-slate-200">{t('phone.overviewCard1')}</p>
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-center transition hover:border-sky-500/40"
-                  >
-                    <FiUsers className="mx-auto mb-2 text-xl text-sky-400" />
-                    <p className="text-[10px] font-semibold leading-tight text-slate-200">{t('phone.overviewCard2')}</p>
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-2xl border border-white/10 bg-white/[0.06] p-3 text-center transition hover:border-emerald-500/40"
-                  >
-                    <FiAward className="mx-auto mb-2 text-xl text-emerald-400" />
-                    <p className="text-[10px] font-semibold leading-tight text-slate-200">{t('phone.overviewCard3')}</p>
-                  </button>
+            {activeScreen === 'home' ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold text-slate-500">{t('phone.home.greeting')}</p>
+                  <p className="text-lg font-black leading-tight text-slate-900">{t('phone.home.platform')}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-600">{t('phone.home.tagline')}</p>
                 </div>
-              </>
-            ) : null}
-            {panel === 'successPartners' ? (
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
-                <p className="text-sm leading-relaxed text-slate-200">{t('phone.views.successPartners')}</p>
-              </div>
-            ) : null}
-            {panel === 'academicPartners' ? (
-              <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4">
-                <p className="text-sm leading-relaxed text-slate-200">{t('phone.views.academicPartners')}</p>
-              </div>
-            ) : null}
-            {panel === 'quick' ? (
-              <div className="space-y-4">
-                <p className="text-sm text-slate-300">{t('phone.views.quick')}</p>
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { l: 'phone.home.statMicro', v: 'phone.home.statMicroVal' },
+                    { l: 'phone.home.statUniv', v: 'phone.home.statUnivVal' },
+                    { l: 'phone.home.statCohort', v: 'phone.home.statCohortVal' },
+                  ].map(({ l, v }) => (
+                    <div
+                      key={l}
+                      className="rounded-xl border border-slate-200/80 bg-white px-1.5 py-2 text-center shadow-sm"
+                    >
+                      <p className="text-base font-bold tabular-nums text-amber-700">{t(v)}</p>
+                      <p className="mt-0.5 text-[9px] font-semibold leading-tight text-slate-600">{t(l)}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <Link
                     to="/register"
-                    className="block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 py-3.5 text-center text-sm font-bold text-slate-950 shadow-lg"
+                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-center text-[11px] font-bold text-slate-950 shadow-sm ring-1 ring-amber-500/20"
                   >
                     {t('hero.ctaRegister')}
                   </Link>
                   <Link
                     to="/login"
-                    className="block rounded-2xl border border-white/25 bg-white/10 py-3.5 text-center text-sm font-bold text-white"
+                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl border border-slate-300 bg-white text-center text-[11px] font-bold text-slate-800 shadow-sm"
                   >
                     {t('hero.ctaLogin')}
                   </Link>
+                </div>
+              </div>
+            ) : null}
+
+            {activeScreen === 'credentials' ? (
+              <div className="space-y-2.5">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{t('phone.credentials.title')}</p>
+                  <p className="text-[10px] text-slate-500">{t('phone.credentials.subtitle')}</p>
+                </div>
+                {credentialSamples.map((c) => (
+                  <div
+                    key={c.titleKey}
+                    className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="min-w-0 flex-1 text-[11px] font-bold leading-snug text-slate-900">{t(c.titleKey)}</p>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                          c.tone === 'emerald'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : c.tone === 'amber'
+                              ? 'bg-amber-100 text-amber-900'
+                              : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {t(c.statusKey)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <Link
+                  to="/register"
+                  className="mt-1 flex min-h-[2.5rem] w-full items-center justify-center rounded-xl border border-amber-300/80 bg-amber-50 text-[11px] font-bold text-amber-950"
+                >
+                  {t('phone.credentials.exploreCta')}
+                </Link>
+              </div>
+            ) : null}
+
+            {activeScreen === 'partners' ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{t('phone.partners.title')}</p>
+                  <p className="text-[10px] text-slate-500">{t('phone.partners.subtitle')}</p>
+                </div>
+                <ul className="space-y-1.5">
+                  {PARTNER_INSTITUTIONS.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-100 to-slate-100 text-[11px] font-black text-sky-900 ring-1 ring-sky-200/80">
+                        {p.initials}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold text-slate-900">{t(p.nameKey)}</p>
+                        <span className="mt-0.5 inline-block rounded-md bg-slate-100 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-600">
+                          {t(p.category === 'ministry' ? 'partners.categoryMinistry' : 'partners.categoryUniversity')}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {activeScreen === 'account' ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">{t('phone.account.title')}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{t('phone.account.intro')}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/register"
+                    className="flex min-h-[2.65rem] items-center justify-center rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[11px] font-bold text-slate-950 shadow-sm"
+                  >
+                    {t('hero.ctaRegister')}
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="flex min-h-[2.65rem] items-center justify-center rounded-xl border border-slate-300 bg-white text-[11px] font-bold text-slate-800"
+                  >
+                    {t('hero.ctaLogin')}
+                  </Link>
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{t('capabilities.subtitle')}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { k: 'phone.account.roleStudent' },
+                    { k: 'phone.account.roleInstructor' },
+                    { k: 'phone.account.roleReviewer' },
+                    { k: 'phone.account.roleAdmin' },
+                  ].map(({ k }) => (
+                    <Link
+                      key={k}
+                      to="/login"
+                      className="flex min-h-[2.4rem] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-center text-[10px] font-bold text-slate-800 transition hover:border-amber-300 hover:bg-amber-50/80"
+                    >
+                      {t(k)}
+                    </Link>
+                  ))}
                 </div>
               </div>
             ) : null}
@@ -212,33 +228,28 @@ export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
       </div>
 
       <nav
-        className="relative z-10 flex shrink-0 items-stretch justify-around gap-1 border-t border-white/10 bg-slate-950/95 px-1 py-2 backdrop-blur-md"
-        aria-label="App"
+        className="relative z-10 flex shrink-0 items-stretch justify-around gap-0.5 border-t border-slate-200/90 bg-white/95 px-1 py-1.5 backdrop-blur-md"
+        aria-label={t('phone.previewBadge')}
       >
-        {[
-          { id: 'home', panel: 'overview', icon: FiHome, label: 'navHome' },
-          { id: 'success', panel: 'successPartners', icon: FiTrendingUp, label: 'navSuccess' },
-          { id: 'academic', panel: 'academicPartners', icon: FiBook, label: 'navAcademic' },
-          { id: 'account', panel: 'quick', icon: FiUser, label: 'navAccount' },
-        ].map(({ id, panel: p, icon: Icon, label }) => {
-          const active = bottomActive === id;
+        {bottomNav.map(({ id, icon: Icon, labelKey }) => {
+          const active = activeScreen === id;
           return (
             <button
               key={id}
               type="button"
-              onClick={() => setPanel(p)}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl py-2 text-[10px] font-semibold transition ${
-                active ? 'text-amber-300' : 'text-slate-500 hover:text-slate-200'
+              onClick={() => setActiveScreen(id)}
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[9px] font-bold transition ${
+                active ? 'text-amber-700' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <span
-                className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-                  active ? 'bg-amber-500/20 ring-1 ring-amber-400/40' : 'bg-transparent'
+                className={`flex h-8 w-8 items-center justify-center rounded-xl ${
+                  active ? 'bg-amber-100 ring-1 ring-amber-300/60' : 'bg-transparent'
                 }`}
               >
-                <Icon size={18} aria-hidden />
+                <Icon size={17} aria-hidden />
               </span>
-              <span className="truncate px-0.5">{t(`phone.${label}`)}</span>
+              <span className="truncate px-0.5 leading-tight">{t(labelKey)}</span>
             </button>
           );
         })}
@@ -246,18 +257,49 @@ export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
     </div>
   );
 
-  if (!framed) {
-    return <div className={`mx-auto w-full max-w-md ${className}`}>{screen}</div>;
-  }
-
-  return (
-    <div className={`relative mx-auto w-full max-w-[420px] ${className}`} style={{ pointerEvents: 'auto' }}>
+  const deviceShell = framed ? (
+    <div
+      className={`relative mx-auto w-full max-w-[390px] ${className}`}
+      style={{ pointerEvents: 'auto' }}
+      dir="ltr"
+    >
+      {/* Decorative side buttons (device chrome) */}
       <div
-        className="rounded-[3rem] bg-gradient-to-b from-slate-500 via-slate-800 to-slate-950 p-[10px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.75)] ring-1 ring-white/15 sm:p-3"
+        className="pointer-events-none absolute -start-1 top-[22%] z-20 h-9 w-[3px] rounded-s-sm bg-gradient-to-b from-slate-600 to-slate-800 shadow-sm"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -start-1 top-[30%] z-20 h-14 w-[3px] rounded-s-sm bg-gradient-to-b from-slate-600 to-slate-800 shadow-sm"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -end-1 top-[26%] z-20 h-20 w-[3px] rounded-e-sm bg-gradient-to-b from-slate-600 to-slate-800 shadow-sm"
+        aria-hidden
+      />
+
+      <div
+        className="relative mx-auto overflow-visible rounded-[2.85rem] bg-gradient-to-b from-slate-300 via-slate-400 to-slate-700 p-[3px] shadow-[0_32px_64px_-12px_rgba(15,23,42,0.35),0_12px_24px_-8px_rgba(0,0,0,0.2)] ring-1 ring-white/40"
         style={{ pointerEvents: 'auto' }}
       >
-        {screen}
+        <div
+          className="relative flex aspect-[390/780] w-full max-h-[780px] flex-col overflow-hidden rounded-[2.65rem] bg-slate-900 p-[6px]"
+          style={{ pointerEvents: 'auto' }}
+        >
+          {screenBody}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div
+      className={`mx-auto w-full max-w-[min(390px,calc(100vw-1.5rem))] ${className}`}
+      style={{ pointerEvents: 'auto' }}
+      dir="ltr"
+    >
+      <div className="relative flex max-h-[min(780px,88vh)] min-h-[520px] w-full flex-col overflow-hidden rounded-[2.65rem] border border-slate-300/80 bg-gradient-to-b from-slate-300 to-slate-500 p-[6px] shadow-xl">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2.35rem] bg-slate-900 p-[2px]">{screenBody}</div>
       </div>
     </div>
   );
+
+  return deviceShell;
 }

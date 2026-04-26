@@ -1,6 +1,15 @@
-﻿const sessionsService = require('./sessions.service');
+const sessionsService = require('./sessions.service');
 const attendanceService = require('../attendance/attendance.service');
 const { success, created } = require('../../utils/apiResponse');
+
+async function listMine(req, res, next) {
+  try {
+    const data = await sessionsService.listMine(req.user);
+    return success(res, data, { message: 'Sessions retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
 
 async function listByCohort(req, res, next) {
   try {
@@ -70,6 +79,7 @@ async function saveAttendance(req, res, next) {
 }
 
 module.exports = {
+  listMine,
   listByCohort,
   createForCohort,
   getById,

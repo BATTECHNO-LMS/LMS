@@ -50,8 +50,14 @@ $sidebar-width: 16.5rem;
 $sidebar-collapsed-width: 4.5rem;
 $header-height: 4.5rem;
 
-$z-header: 120;
+/** Sticky dashboard header */
+$z-header: 130;
+/** Desktop sticky rail */
 $z-sidebar: 110;
+/** Full-screen dim when mobile drawer is open (above header) */
+$z-sidebar-overlay: 135;
+/** Mobile drawer panel (above overlay + header) */
+$z-sidebar-drawer: 140;
 $z-dropdown: 200;
 
 :root {
@@ -84,20 +90,7 @@ $z-dropdown: 200;
   --header-height: #{$header-height};
 }
 
-[data-theme='dark'] {
-  color-scheme: dark;
-  --color-bg: #141414;
-  --color-card: #1c1c1c;
-  --color-text: #ececec;
-  --color-heading: #e2e4f0;
-  --color-text-muted: #a8b0c2;
-  --color-border: #2a2a2a;
-  --color-surface-header: #252530;
-  --color-surface-light: #222;
-  --color-border-tinted: #32324a;
-  --shadow-card-3d: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 28px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(255, 255, 255, 0.05) inset;
-  --shadow-card-3d-hover: 0 4px 8px rgba(0, 0, 0, 0.4), 0 16px 40px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(212, 154, 42, 0.2) inset;
-  --gradient-card-face: linear-gradient(165deg, #1f1f24 0%, #1c1c1c 100%);
+/** App is light-only; keep tokens aligned if data-theme is forced to light */
+[data-theme='light'] {
+  color-scheme: light;
 }

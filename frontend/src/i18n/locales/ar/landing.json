@@ -6,7 +6,7 @@
   "brandSubtitle": "الشهادات المصغّرة والعمليات الأكاديمية",
   "header": {
     "navCapabilities": "القدرات",
-    "navPartners": "الشراكات",
+    "navPartners": "الشركاء",
     "navPreview": "معاينة التطبيق",
     "explore": "استكشف",
     "login": "تسجيل الدخول",
@@ -15,8 +15,9 @@
     "menuClose": "إغلاق القائمة"
   },
   "hero": {
+    "mainTitle": "BATTECHNO-LMS",
     "title": "منصة تعليمية متكاملة لإدارة الشهادات المصغّرة والعمليات الأكاديمية",
-    "description": "إدارة المسارات، الشهادات المصغّرة، الدفعات، الحضور، التقييمات، الجودة، الاعتراف الأكاديمي، والشهادات الرقمية ضمن منصة واحدة متكاملة.",
+    "description": "إدارة المسارات، الشهادات المصغّرة، الدفعات، الحضور، التقييمات، الجودة، والاعتماد الأكاديمي ضمن منصة واحدة متكاملة.",
     "ctaRegister": "تسجيل",
     "ctaLogin": "تسجيل الدخول",
     "ctaExplore": "استكشف المنصة",
@@ -25,9 +26,9 @@
     "companyBody": "نقدّم حلولاً تقنية وتعليمية رقمية حديثة — من البنية التحتية للتعلّم الرقمي إلى سير عمل أكاديمي جاهز للحوكمة والاعتماد.",
     "badge": "تقنية تعليم · تقنية معلومات · منذ 2017",
     "stats": {
-      "cohorts": "دفعات وجلسات",
-      "credentials": "شهادات مصغّرة",
-      "uptime": "أدلة جاهزة للتدقيق"
+      "microCreds": "الشهادات المصغّرة",
+      "universities": "الجامعات",
+      "cohorts": "الدفعات"
     }
   },
   "about": {
@@ -43,7 +44,7 @@
   "showcase": {
     "eyebrow": "المنتج",
     "title": "تجربة الجوال التي يتوقعها فريقك",
-    "subtitle": "معاينة رئيسية للوحات التحكم والشركاء والوصول الآمن — تفاعلية بالكامل وليست صورة ثابتة."
+    "subtitle": "معاينة تفاعلية لشاشات المنصة — شهادات مصغّرة، شركاء، ووصول آمن."
   },
   "cta": {
     "title": "هل أنت مستعد لتحديث العمليات الأكاديمية؟",
@@ -68,39 +69,63 @@
     }
   },
   "partners": {
+    "sectionTitle": "شركاؤنا في النجاح",
+    "sectionSubtitle": "نعمل مع مؤسسات وطنية وأكاديمية لدعم التعليم الرقمي والشهادات المصغّرة.",
+    "categoryMinistry": "وزارة",
+    "categoryUniversity": "جامعة",
     "title": "الشراكات",
     "success": "شركاء نجاح",
     "successDesc": "مؤسسات تعزّز نتائج المتعلّمين مع تنفيذ BATTECHNO.",
     "academic": "شركاء أكاديميون",
     "academicDesc": "جامعات وكليات توائم الشهادات المصغّرة مع الأطر الوطنية."
   },
+  "institutions": {
+    "youthMinistry": "وزارة الشباب",
+    "digitalEconomyMinistry": "وزارة الاقتصاد الرقمي",
+    "tafilaTech": "جامعة الطفيلة التقنية",
+    "mutah": "جامعة مؤتة",
+    "zaytoonah": "جامعة الزيتونة",
+    "yarmouk": "جامعة اليرموك"
+  },
   "phone": {
-    "greeting": "مرحباً بعودتك",
-    "subtitle": "معاينة مباشرة للمنصة",
-    "btnSuccessPartners": "شركاء نجاح",
-    "btnAcademicPartners": "شركاء أكاديميون",
-    "btnRegister": "تسجيل",
-    "btnLogin": "تسجيل الدخول",
-    "tabOverview": "نظرة عامة",
-    "tabQuick": "وصول سريع",
+    "previewBadge": "معاينة مباشرة",
     "navHome": "الرئيسية",
-    "navSuccess": "نجاح",
-    "navAcademic": "أكاديمي",
-    "navAccount": "حساب",
-    "statActive": "دفعات نشطة",
-    "statPending": "مراجعات",
-    "statCerts": "شهادات",
-    "statActiveVal": "24",
-    "statPendingVal": "12",
-    "statCertsVal": "186",
-    "overviewCard1": "شهادات مصغّرة",
-    "overviewCard2": "حضور ودرجات",
-    "overviewCard3": "شهادات رقمية",
-    "views": {
-      "overview": "تصفّح الدفعات والتقييمات والأدلة والاعتراف من مساحة عمل آمنة واحدة.",
-      "successPartners": "برامج نجاح مشتركة مع إكمال قابل للقياس وحلقات جودة وتقارير شفافة.",
-      "academicPartners": "شهادات مصغّرة متوافقة مع المناهج وسير عمل للمراجعين وأدلة جاهزة للتدقيق.",
-      "quick": "انتقل إلى التسجيل أو الدخول للوصول إلى بوابتك."
+    "navCredentials": "الشهادات",
+    "navPartners": "الشركاء",
+    "navAccount": "الحساب",
+    "home": {
+      "greeting": "مرحباً بك في",
+      "platform": "BATTECHNO-LMS",
+      "tagline": "منصة تعليمية متكاملة",
+      "statMicro": "الشهادات المصغّرة",
+      "statMicroVal": "48",
+      "statUniv": "الجامعات",
+      "statUnivVal": "12",
+      "statCohort": "الدفعات",
+      "statCohortVal": "36"
+    },
+    "credentials": {
+      "title": "الشهادات المصغّرة",
+      "subtitle": "عينات من المسارات المتاحة",
+      "card1Title": "تحليل البيانات التعليمية",
+      "card2Title": "إدارة الجودة الأكاديمية",
+      "card3Title": "التعلّم التكيفي",
+      "statusPublished": "منشور",
+      "statusDraft": "مسودة",
+      "statusReview": "قيد المراجعة",
+      "exploreCta": "استكشف الشهادات"
+    },
+    "partners": {
+      "title": "الشركاء",
+      "subtitle": "وزارات وجامعات"
+    },
+    "account": {
+      "title": "الحساب",
+      "intro": "سجّل الدخول أو أنشئ حساباً للوصول إلى بوابتك.",
+      "roleStudent": "طالب",
+      "roleInstructor": "مدرب",
+      "roleReviewer": "مراجع",
+      "roleAdmin": "أدمن"
     }
   },
   "footer": {

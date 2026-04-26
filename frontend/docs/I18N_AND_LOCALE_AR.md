@@ -89,7 +89,7 @@ features/locale: Subscribes to i18n.on('languageChanged') for React state.
 Mixed patterns: Many admin CRUD pages use useTranslation + JSON; some older pages (e.g. SessionsPage, QAPage) still use tr(isArabic, ar, en) from utils/i18n.js — not namespace keys.
 6.4 Layout and design system
 BaseDashboardLayout: Resolves getDashboardNavGroups(role, tNav) — admin uses getAdminNavGroupsForRole from adminNavigation.js (per-item roles filter); others use NAV_BY_ROLE filtered by hasUiPermission. Header title via getPageTitleForPath (CRUD-aware via CRUD_MODULE_NS + i18n.getFixedT).
-SCSS: Tokens in _variables.scss (product gold/gray palette, CSS variables for light/dark). ThemeProvider toggles light/dark, persists to storage, applyDocumentTheme on document.
+SCSS: Tokens in _variables.scss (product gold/gray palette, CSS variables). The app is light-only; `data-theme="light"` is set at boot and legacy theme storage is cleared.
 Hover: Analytics page SCSS adds rules for white text on primary/outline hover where specified; global buttons elsewhere follow existing _buttons.scss.
 6.5 Multi-tenant (frontend-only)
 constants/tenants.js: Three universities + TENANT_SCOPE_ALL.

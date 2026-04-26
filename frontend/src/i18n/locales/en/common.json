@@ -36,13 +36,9 @@
     "running": "In progress",
     "open": "Open",
     "all": "All",
-    "allStatuses": "All statuses"
-  },
-  "theme": {
-    "light": "Light mode",
-    "dark": "Dark mode",
-    "switchToLight": "Switch to light mode",
-    "switchToDark": "Switch to dark mode"
+    "allStatuses": "All statuses",
+    "enrolled": "Enrolled",
+    "withdrawn": "Withdrawn"
   },
   "language": {
     "arabic": "Arabic",
@@ -69,10 +65,13 @@
     "generic": "Something went wrong"
   },
   "sidebar": {
-    "adminMenuAria": "Admin menu"
+    "adminMenuAria": "Admin menu",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "closeDrawer": "Close sidebar"
   },
   "logo": {
-    "alt": "Batman Technology"
+    "alt": "LMS — Learning Management System"
   },
   "unauthorized": {
     "title": "You are not authorized to access this page",

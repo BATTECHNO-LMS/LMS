@@ -1,6 +1,6 @@
 const { ApiError } = require('../../utils/apiError');
 const { env } = require('../../config/env');
-const { canAccessCohort } = require('../../utils/deliveryAccess');
+const { canAccessCohort, normalizeRoles } = require('../../utils/deliveryAccess');
 const enrollmentsRepository = require('./enrollments.repository');
 const cohortsRepository = require('../cohorts/cohorts.repository');
 
@@ -101,9 +101,54 @@ async function patchStatus(id, body, requester) {
   return serializeEnrollment(updated);
 }
 
+function dateOnlyISO(d) {
+  if (!d) return null;
+  const x = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(x.getTime())) return null;
+  return x.toISOString().slice(0, 10);
+}
+
+/**
+ * Current student's enrollments with cohort / program context (student role only).
+ * @param {import('../../types/http').RequestUser} requester
+ */
+async function listMine(requester) {
+  const roles = normalizeRoles(requester.roles);
+  if (!roles.includes(String(env.STUDENT_ROLE_CODE || 'student').toLowerCase())) {
+    throw new ApiError(403, 'Forbidden');
+  }
+  const rows = await enrollmentsRepository.findManyByStudent(requester.userId);
+  const enrollments = [];
+  for (const row of rows) {
+    const base = await serializeEnrollment(row);
+    const cohort = await cohortsRepository.findById(row.cohort_id);
+    let cohortPayload = null;
+    if (cohort) {
+      const [mc, uni] = await Promise.all([
+        cohortsRepository.findMicroCredential(cohort.micro_credential_id),
+        cohortsRepository.findUniversity(cohort.university_id),
+      ]);
+      cohortPayload = {
+        id: cohort.id,
+        title: cohort.title,
+        status: cohort.status,
+        start_date: dateOnlyISO(cohort.start_date),
+        end_date: dateOnlyISO(cohort.end_date),
+        micro_credential: mc
+          ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status }
+          : null,
+        university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
+      };
+    }
+    enrollments.push({ ...base, cohort: cohortPayload });
+  }
+  return { enrollments };
+}
+
 module.exports = {
   listByCohort,
   getById,
   createForCohort,
   patchStatus,
+  listMine,
 };
