@@ -1,6 +1,7 @@
 ﻿const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
-const { canAccessCohort } = require('../../utils/deliveryAccess');
+const { canAccessCohort, normalizeRoles } = require('../../utils/deliveryAccess');
+const { env } = require('../../config/env');
 const attendanceRepository = require('./attendance.repository');
 const cohortsRepository = require('../cohorts/cohorts.repository');
 const sessionsService = require('../sessions/sessions.service');
@@ -70,7 +71,7 @@ async function assertSessionAttendanceAccess(sessionId, requester) {
 async function getSessionAttendance(sessionId, requester) {
   const { session: sessionRow, cohort } = await assertSessionAttendanceAccess(sessionId, requester);
   const enrollRows = await enrollmentsRepository.findManyByCohort(sessionRow.cohort_id);
-  const active = enrollRows.filter((e) => !['withdrawn', 'cancelled'].includes(e.enrollment_status));
+  const active = enrollRows.filter((e) => !['withdrawn', 'cancelled', 'rejected'].includes(e.enrollment_status));
   const existing = await attendanceRepository.findManyBySession(sessionId);
   const byStudent = new Map(existing.map((r) => [r.student_id, r]));
 
@@ -107,7 +108,7 @@ async function saveSessionAttendance(sessionId, body, requester) {
   const { session: sessionRow, cohort } = await assertSessionAttendanceAccess(sessionId, requester);
   const enrollRows = await enrollmentsRepository.findManyByCohort(sessionRow.cohort_id);
   const allowedIds = new Set(
-    enrollRows.filter((e) => !['withdrawn', 'cancelled'].includes(e.enrollment_status)).map((e) => e.student_id)
+    enrollRows.filter((e) => !['withdrawn', 'cancelled', 'rejected'].includes(e.enrollment_status)).map((e) => e.student_id)
   );
 
   for (const r of body.records) {
@@ -160,12 +161,25 @@ async function updateAttendanceRecord(recordId, body, requester) {
 async function getCohortAttendanceSummary(cohortId, requester) {
   const cohort = await cohortsRepository.findById(cohortId);
   if (!cohort) throw new ApiError(404, 'Cohort not found');
-  if (!canAccessCohort(requester, cohort)) throw new ApiError(403, 'Forbidden');
+
+  const roles = normalizeRoles(requester.roles);
+  const isStudent = roles.includes(String(env.STUDENT_ROLE_CODE || 'student').toLowerCase());
+  if (isStudent) {
+    const en = await enrollmentsRepository.findByCohortAndStudent(cohortId, requester.userId);
+    if (!en || !['enrolled', 'completed'].includes(en.enrollment_status)) {
+      throw new ApiError(403, 'Forbidden');
+    }
+  } else if (!canAccessCohort(requester, cohort)) {
+    throw new ApiError(403, 'Forbidden');
+  }
 
   const sessionIds = await attendanceRepository.sessionIdsForCohort(cohortId);
   const totalSessions = sessionIds.length;
   const enrollRows = await enrollmentsRepository.findManyByCohort(cohortId);
-  const active = enrollRows.filter((e) => !['withdrawn', 'cancelled'].includes(e.enrollment_status));
+  let active = enrollRows.filter((e) => !['withdrawn', 'cancelled', 'rejected'].includes(e.enrollment_status));
+  if (isStudent) {
+    active = active.filter((e) => e.student_id === requester.userId);
+  }
 
   const allRecs = await attendanceRepository.findManyBySessionIdsForSummary(sessionIds, {
     session_id: true,

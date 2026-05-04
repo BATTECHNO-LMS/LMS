@@ -19,6 +19,7 @@
       "microCredentials": "Micro-credentials",
       "learningOutcomes": "Learning outcomes",
       "cohorts": "Cohorts",
+      "enrollments": "Enrollment requests",
       "content": "Content",
       "sessions": "Sessions",
       "attendance": "Attendance",
@@ -54,7 +55,9 @@
   },
   "student": {
     "home": "Home",
+    "availableCohorts": "Browse cohorts",
     "programs": "My enrolled credentials",
+    "semesterSchedule": "Semester schedule",
     "content": "Content",
     "sessions": "Sessions",
     "attendance": "Attendance",
@@ -70,6 +73,7 @@
     "universityReports": "University reports",
     "evidence": "Evidence and attachments",
     "certificates": "Linked certificates",
+    "enrollmentRequests": "Enrollment requests",
     "notifications": "Notifications"
   }
 }

@@ -1,7 +1,15 @@
 ﻿const { ApiError } = require('../../utils/apiError');
-const { canAccessCohort, cohortListWhere } = require('../../utils/deliveryAccess');
+const {
+  canAccessCohort,
+  cohortListWhere,
+  canStudentBrowseCohort,
+  studentHasActiveProgramEnrollment,
+  isStudentRole,
+} = require('../../utils/deliveryAccess');
 const { prisma } = require('../../config/db');
 const cohortsRepository = require('./cohorts.repository');
+const enrollmentsRepository = require('../enrollments/enrollments.repository');
+const { resolvePrimaryUniversityId } = require('../../utils/studentScope');
 
 function parseDateOnly(s) {
   const d = new Date(`${s}T00:00:00.000Z`);
@@ -111,6 +119,10 @@ async function serializeCohortListRows(rows) {
       : [],
   ]);
 
+  const trackIds = [...new Set(mcs.map((m) => m.track_id).filter(Boolean))];
+  const tracks = trackIds.length ? await prisma.tracks.findMany({ where: { id: { in: trackIds } } }) : [];
+  const trackMap = new Map(tracks.map((t) => [t.id, t]));
+
   const mcMap = new Map(mcs.map((m) => [m.id, m]));
   const uniMap = new Map(unis.map((u) => [u.id, u]));
   const insMap = new Map(instructors.map((u) => [u.id, u]));
@@ -119,6 +131,7 @@ async function serializeCohortListRows(rows) {
     const mc = mcMap.get(row.micro_credential_id);
     const uni = uniMap.get(row.university_id);
     const ins = row.instructor_id ? insMap.get(row.instructor_id) : null;
+    const tr = mc?.track_id ? trackMap.get(mc.track_id) : null;
     return {
       id: row.id,
       title: row.title,
@@ -126,7 +139,16 @@ async function serializeCohortListRows(rows) {
       start_date: dateOnlyISO(row.start_date),
       end_date: dateOnlyISO(row.end_date),
       capacity: row.capacity,
-      micro_credential: mc ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status } : null,
+      micro_credential: mc
+        ? {
+            id: mc.id,
+            title: mc.title,
+            code: mc.code,
+            status: mc.status,
+            description: mc.description ?? null,
+            track: tr ? { id: tr.id, title: tr.title } : null,
+          }
+        : null,
       university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
       instructor: ins ? { id: ins.id, full_name: ins.full_name, email: ins.email } : null,
     };
@@ -180,8 +202,46 @@ async function listCohorts(query, requester) {
 async function getCohortById(id, requester) {
   const row = await cohortsRepository.findById(id);
   if (!row) throw new ApiError(404, 'Cohort not found');
-  if (!canAccessCohort(requester, row)) throw new ApiError(403, 'Forbidden');
-  return serializeCohortDetail(row);
+  if (canAccessCohort(requester, row)) return serializeCohortDetail(row);
+  if (isStudentRole(requester)) {
+    const en = await enrollmentsRepository.findByCohortAndStudent(id, requester.userId);
+    if (
+      en &&
+      (studentHasActiveProgramEnrollment(en) ||
+        ['pending', 'rejected', 'cancelled'].includes(en.enrollment_status))
+    ) {
+      return serializeCohortDetail(row);
+    }
+    if (canStudentBrowseCohort(row)) {
+      const uid = await resolvePrimaryUniversityId(requester);
+      if (!uid || String(row.university_id) !== String(uid)) {
+        throw new ApiError(403, 'Forbidden');
+      }
+      return serializeCohortDetail(row);
+    }
+  }
+  throw new ApiError(403, 'Forbidden');
+}
+
+/** Open cohorts for enrollment catalog scoped to the student's university. */
+async function listAvailableForUniversity(universityId) {
+  if (!universityId) throw new ApiError(400, 'University scope required');
+  const rows = await cohortsRepository.findMany(
+    { status: 'open_for_enrollment', university_id: universityId },
+    { skip: 0, take: 500 }
+  );
+  const cohortsBase = await serializeCohortListRows(rows);
+  const cohorts = await Promise.all(
+    cohortsBase.map(async (c) => {
+      const used = await cohortsRepository.countEnrollmentsForCapacity(c.id);
+      return {
+        ...c,
+        enrollment_count: used,
+        spots_remaining: Math.max(0, (c.capacity ?? 0) - used),
+      };
+    })
+  );
+  return { cohorts };
 }
 
 async function createCohort(body, requester) {
@@ -295,6 +355,7 @@ async function patchCohortStatus(id, body, requester) {
 module.exports = {
   listCohorts,
   getCohortById,
+  listAvailableForUniversity,
   createCohort,
   updateCohort,
   patchCohortStatus,

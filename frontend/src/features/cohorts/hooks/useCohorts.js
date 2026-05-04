@@ -4,6 +4,7 @@ import { fetchCohortsList } from '../cohorts.service.js';
 export const cohortsKeys = {
   all: ['cohorts'],
   list: (params) => [...cohortsKeys.all, 'list', params],
+  available: () => [...cohortsKeys.all, 'available'],
   detail: (id) => [...cohortsKeys.all, 'detail', id],
   attendanceSummary: (id) => [...cohortsKeys.all, 'attendance-summary', id],
 };

@@ -8,11 +8,24 @@ export default {
         sans: ['system-ui', 'Segoe UI', 'Roboto', 'Noto Sans Arabic', 'sans-serif'],
       },
       colors: {
+        /** Landing + marketing — mirrors :root tokens from `abstracts/_variables.scss` */
         bat: {
-          gold: '#d4a012',
-          golddim: '#b8890f',
-          ink: '#0c1222',
-          mist: 'rgba(255,255,255,0.06)',
+          bg: 'var(--color-bg)',
+          surface: 'var(--color-card)',
+          border: 'var(--color-border)',
+          'border-tinted': 'var(--color-border-tinted)',
+          ink: 'var(--color-heading)',
+          muted: 'var(--color-text-muted)',
+          text: 'var(--color-text)',
+          primary: 'var(--color-primary)',
+          'primary-hover': 'var(--color-primary-hover)',
+          'primary-light': 'var(--color-primary-light)',
+          secondary: 'var(--color-secondary)',
+          accent: 'var(--color-accent)',
+          'accent-hover': 'var(--color-accent-hover)',
+          'accent-soft': 'var(--color-accent-soft)',
+          'surface-header': 'var(--color-surface-header)',
+          'surface-light': 'var(--color-surface-light)',
         },
       },
       boxShadow: {

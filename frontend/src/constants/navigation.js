@@ -13,6 +13,8 @@ import {
   Award,
   FileBadge,
   Bell,
+  Library,
+  Table2,
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
 import { UI_PERMISSION } from './permissions.js';
@@ -53,7 +55,9 @@ export const NAV_BY_ROLE = {
 
   [ROLES.STUDENT]: [
     navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
     navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
+    navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
     navItem('/student/content', 'content', BookOpen, P.canViewContent),
     navItem('/student/sessions', 'sessions', CalendarDays, P.canViewSessions),
     navItem('/student/attendance', 'attendance', ClipboardCheck, P.canViewAttendance),
@@ -66,6 +70,7 @@ export const NAV_BY_ROLE = {
 
   [ROLES.UNIVERSITY_REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),
     navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),
     navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
     navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),

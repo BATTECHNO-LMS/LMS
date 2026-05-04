@@ -104,7 +104,7 @@ async function assertCanReadAssessment(requester, row) {
   const roles = normalizeRoles(requester.roles);
   if (roles.includes('student')) {
     const en = await enrollmentsRepo.findByCohortAndStudent(row.cohort_id, requester.userId);
-    if (!en || !['pending', 'enrolled', 'completed'].includes(en.enrollment_status)) {
+    if (!en || !['enrolled', 'completed'].includes(en.enrollment_status)) {
       throw new ApiError(403, 'Forbidden');
     }
     return;

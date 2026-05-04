@@ -7,7 +7,7 @@ const DASHBOARD_BY_ROLE = {
   [ROLES.ACADEMIC_ADMIN]: '/admin/dashboard',
   [ROLES.QA_OFFICER]: '/admin/dashboard',
   [ROLES.INSTRUCTOR]: '/instructor/dashboard',
-  [ROLES.STUDENT]: '/student/dashboard',
+  [ROLES.STUDENT]: '/student',
   [ROLES.UNIVERSITY_REVIEWER]: '/reviewer/dashboard',
 };
 

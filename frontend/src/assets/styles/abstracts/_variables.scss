@@ -1,27 +1,35 @@
-// BATTECHNO-LMS — design tokens (source of truth from product brief)
+// BATTECHNO-LMS — design tokens (navy wordmark + gold accent from brand logo)
 
-$color-primary: #d49a2a;
-$color-secondary: #1f2937;
-$color-primary-hover: #b57f1b;
-$color-primary-light: #e8c47a;
+// Primary — deep navy (main brand / LMS wordmark)
+$color-primary: #132d4a;
+$color-primary-hover: #0e2136;
+// Lighter navy for outlines, icon tints, and focus affordances on light surfaces
+$color-primary-light: #3a5f8a;
 
-$color-bg: #f4f5f7;
+// Secondary — darker blue variation (dense UI, secondary actions, sidebar depth)
+$color-secondary: #0c1f35;
+
+// Accent — gold (logo “M” / subtitle accent)
+$color-accent: #c9a227;
+$color-accent-hover: #a8861c;
+$color-accent-soft: #f3ead4;
+
+$color-bg: #f6f7f5;
 $color-card: #ffffff;
-$color-text: #1f2937;
-$color-heading: #111827;
-$color-text-muted: #5f6b7a;
-$color-border: #dce1e8;
-/** خلفية عناوين الجداول/رؤوس البطاقات — متناغمة مع اللون الأساسي */
-$color-surface-header: #f8f5ee;
-$color-surface-light: #f8fafc;
-/** حدود البطاقات/الجداول بلمسة خفيفة من الأساسي */
-$color-border-tinted: #f2e5cb;
+$color-text: #243241;
+$color-heading: #132d4a;
+$color-text-muted: #5c6675;
+$color-border: #dde3eb;
+/** Table headers / card title strips — soft navy-tinted neutral */
+$color-surface-header: #e9eef5;
+$color-surface-light: #f8f9fb;
+$color-border-tinted: #e4e9f0;
 
-$color-success: #7ed321;
-$color-info: #50e3c2;
-$color-warning: #ffaa16;
-$color-danger: #ff1616;
-$color-dark: #454545;
+$color-success: #2d8a54;
+$color-info: #2a6f8f;
+$color-warning: #c27803;
+$color-danger: #c41e1e;
+$color-dark: #3a4450;
 
 $font-family-base: 'Roboto', 'Noto Sans Arabic', system-ui, sans-serif;
 
@@ -33,17 +41,16 @@ $radius-pill: 50rem;
 $shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
 $shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
 
-/** ظل بطاقة ثلاثي الأبعاد — طبقات عمق + لمسة أساسية */
 $shadow-card-3d:
   0 1px 0 rgba(255, 255, 255, 0.7) inset,
   0 2px 4px rgba(0, 0, 0, 0.04),
-  0 6px 16px rgba(212, 154, 42, 0.12),
+  0 6px 16px rgba(19, 45, 74, 0.08),
   0 14px 36px -10px rgba(0, 0, 0, 0.1);
 
 $shadow-card-3d-hover:
   0 1px 0 rgba(255, 255, 255, 0.85) inset,
   0 4px 8px rgba(0, 0, 0, 0.06),
-  0 12px 28px rgba(212, 154, 42, 0.18),
+  0 12px 28px rgba(19, 45, 74, 0.14),
   0 24px 48px -12px rgba(0, 0, 0, 0.12);
 
 $sidebar-width: 16.5rem;
@@ -63,9 +70,12 @@ $z-dropdown: 200;
 :root {
   color-scheme: light;
   --color-primary: #{$color-primary};
-  --color-secondary: #{$color-secondary};
   --color-primary-hover: #{$color-primary-hover};
   --color-primary-light: #{$color-primary-light};
+  --color-secondary: #{$color-secondary};
+  --color-accent: #{$color-accent};
+  --color-accent-hover: #{$color-accent-hover};
+  --color-accent-soft: #{$color-accent-soft};
   --color-bg: #{$color-bg};
   --color-card: #{$color-card};
   --color-text: #{$color-text};
@@ -84,7 +94,7 @@ $z-dropdown: 200;
   --shadow-md: #{$shadow-md};
   --shadow-card-3d: #{$shadow-card-3d};
   --shadow-card-3d-hover: #{$shadow-card-3d-hover};
-  --gradient-card-face: linear-gradient(165deg, #ffffff 0%, #fbfaf7 45%, #f7f3eb 100%);
+  --gradient-card-face: linear-gradient(165deg, #ffffff 0%, #fafbfc 45%, #f4f6f8 100%);
   --radius-md: #{$radius-md};
   --sidebar-width: #{$sidebar-width};
   --header-height: #{$header-height};

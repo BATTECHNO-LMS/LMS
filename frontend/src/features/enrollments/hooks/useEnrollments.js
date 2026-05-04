@@ -3,6 +3,8 @@ import { fetchEnrollmentsByCohort } from '../enrollments.service.js';
 
 export const enrollmentsKeys = {
   all: ['enrollments'],
+  mine: () => [...enrollmentsKeys.all, 'mine'],
+  pending: () => [...enrollmentsKeys.all, 'pending'],
   byCohort: (cohortId) => [...enrollmentsKeys.all, 'cohort', cohortId],
   detail: (id) => [...enrollmentsKeys.all, 'detail', id],
 };

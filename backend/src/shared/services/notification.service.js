@@ -1,4 +1,5 @@
 const { prisma } = require('../../config/db');
+const { env } = require('../../config/env');
 
 function normalizeType(type) {
   const allowed = new Set([
@@ -9,6 +10,9 @@ function normalizeType(type) {
     'system',
     'user_pending_activation',
     'action_required',
+    'student_enrollment_requested',
+    'enrollment_approved',
+    'enrollment_rejected',
   ]);
   return allowed.has(type) ? type : 'info';
 }
@@ -29,14 +33,24 @@ async function createNotificationForUser(payload) {
     if (existing) return null;
   }
 
-  return prisma.notifications.create({
-    data: {
-      user_id: payload.userId,
-      title: payload.title,
-      body: payload.body ?? null,
-      type: normalizeType(payload.type),
-    },
-  });
+  const data = {
+    user_id: payload.userId,
+    title: payload.title,
+    body: payload.body ?? null,
+    type: normalizeType(payload.type),
+  };
+  if (payload.actionUrl != null) {
+    data.action_url = payload.actionUrl;
+  }
+  try {
+    return await prisma.notifications.create({ data });
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const missingCol = msg.includes('action_url') || msg.includes('Unknown arg');
+    if (!missingCol) throw err;
+    delete data.action_url;
+    return prisma.notifications.create({ data });
+  }
 }
 
 async function createNotificationsForUsers(payload) {
@@ -189,11 +203,148 @@ async function notifyAdminsStudentRegistrationPending(params) {
   }
 }
 
+/**
+ * super_admin (all) + program_admin, academic_admin, university_reviewer scoped to the cohort university.
+ * @param {string} universityId
+ * @returns {Promise<string[]>}
+ */
+async function findStakeholdersForEnrollmentRequest(universityId) {
+  if (!universityId) return [];
+  const roles = await prisma.roles.findMany({
+    where: { code: { in: ['super_admin', 'program_admin', 'academic_admin', 'university_reviewer'] } },
+    select: { id: true, code: true },
+  });
+  const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
+  const ids = new Set();
+
+  const superRoleId = roleIdByCode.get(env.SUPER_ADMIN_ROLE_CODE || 'super_admin');
+  if (superRoleId) {
+    const links = await prisma.user_roles.findMany({
+      where: { role_id: superRoleId },
+      select: { user_id: true },
+    });
+    const uids = [...new Set(links.map((l) => l.user_id))];
+    if (uids.length) {
+      const rows = await prisma.users.findMany({
+        where: { id: { in: uids }, status: 'active' },
+        select: { id: true },
+      });
+      rows.forEach((r) => ids.add(r.id));
+    }
+  }
+
+  const scopedRoleIds = [
+    roleIdByCode.get('program_admin'),
+    roleIdByCode.get('academic_admin'),
+    roleIdByCode.get('university_reviewer'),
+  ].filter(Boolean);
+  if (scopedRoleIds.length) {
+    const memberships = await prisma.university_users.findMany({
+      where: { university_id: universityId },
+      select: { user_id: true },
+    });
+    const memberIds = new Set(memberships.map((m) => m.user_id));
+    const links = await prisma.user_roles.findMany({
+      where: { role_id: { in: scopedRoleIds } },
+      select: { user_id: true },
+    });
+    const candidateIds = [...new Set(links.map((l) => l.user_id))];
+    if (candidateIds.length) {
+      const rows = await prisma.users.findMany({
+        where: {
+          id: { in: candidateIds },
+          status: 'active',
+          OR: [
+            { primary_university_id: universityId },
+            ...(memberIds.size ? [{ id: { in: [...memberIds] } }] : []),
+          ],
+        },
+        select: { id: true },
+      });
+      rows.forEach((r) => ids.add(r.id));
+    }
+  }
+
+  return [...ids];
+}
+
+/**
+ * Reviewer-only users get the reviewer queue URL; staff get the admin enrollments list.
+ * @param {string} userId
+ */
+async function resolveEnrollmentRequestActionUrl(userId) {
+  const links = await prisma.user_roles.findMany({
+    where: { user_id: userId },
+    include: { roles: { select: { code: true } } },
+  });
+  const codes = links.map((l) => l.roles.code);
+  const isElevated = codes.some((c) =>
+    ['super_admin', 'program_admin', 'academic_admin'].includes(c)
+  );
+  if (codes.includes('university_reviewer') && !isElevated) {
+    return '/reviewer/enrollment-requests?status=pending';
+  }
+  return '/admin/enrollments?status=pending';
+}
+
+/**
+ * Notify admins and reviewers that a student submitted an enrollment request.
+ * @param {{ universityId: string }} params
+ */
+async function notifyStakeholdersStudentEnrollmentRequested(params) {
+  const universityId = params?.universityId;
+  if (!universityId) return { created_count: 0 };
+
+  const userIds = await findStakeholdersForEnrollmentRequest(universityId);
+  const title = 'طلب تسجيل جديد في دفعة';
+  const body =
+    'قام طالب بطلب التسجيل في دفعة جديدة، يرجى مراجعة الطلب والموافقة أو الرفض.';
+
+  let created = 0;
+  for (const userId of userIds) {
+    const actionUrl = await resolveEnrollmentRequestActionUrl(userId);
+    const row = await createNotificationForUser({
+      userId,
+      title,
+      body,
+      type: 'student_enrollment_requested',
+      actionUrl,
+      dedupeWindowHours: 1,
+    });
+    if (row) created += 1;
+  }
+  return { created_count: created };
+}
+
+async function notifyStudentEnrollmentApproved(studentUserId) {
+  return createNotificationForUser({
+    userId: studentUserId,
+    title: 'تم قبول طلب التسجيل',
+    body: 'تمت الموافقة على تسجيلك في الدفعة ويمكنك الآن الدخول للبرنامج.',
+    type: 'enrollment_approved',
+    actionUrl: '/student/programs',
+  });
+}
+
+async function notifyStudentEnrollmentRejected(studentUserId) {
+  return createNotificationForUser({
+    userId: studentUserId,
+    title: 'تم رفض طلب التسجيل',
+    body: 'تم رفض طلب تسجيلك في الدفعة. يرجى مراجعة الإدارة لمزيد من التفاصيل.',
+    type: 'enrollment_rejected',
+    actionUrl: '/student/available-cohorts',
+  });
+}
+
 module.exports = {
   normalizeType,
   createNotificationForUser,
   createNotificationsForUsers,
   userIdsByRoleCodes,
   findActiveAdminUserIdsForStudentRegistrationAlert,
+  findStakeholdersForEnrollmentRequest,
   notifyAdminsStudentRegistrationPending,
+  notifyStakeholdersStudentEnrollmentRequested,
+  notifyStudentEnrollmentApproved,
+  notifyStudentEnrollmentRejected,
 };

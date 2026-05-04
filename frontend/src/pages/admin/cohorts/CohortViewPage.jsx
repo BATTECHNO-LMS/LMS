@@ -20,7 +20,7 @@ import { ADMIN_ROLE_SET, ROLES } from '../../../constants/roles.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
 
-const ENROLLMENT_STATUSES = ['pending', 'enrolled', 'withdrawn', 'cancelled', 'completed'];
+const ENROLLMENT_STATUSES = ['pending', 'enrolled', 'withdrawn', 'cancelled', 'completed', 'rejected'];
 
 export function CohortViewPage() {
   const base = usePortalPathPrefix();

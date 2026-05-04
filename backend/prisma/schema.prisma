@@ -73,6 +73,9 @@ model enrollments {
   completion_date                DateTime?                       @db.Date
   certificate_issued_at          DateTime?                       @db.Timestamptz(6)
   recognition_eligibility_status recognition_eligibility_status? @default(unknown)
+  approved_by                    String?                         @db.Uuid
+  approved_at                    DateTime?                       @db.Timestamptz(6)
+  rejection_reason               String?
   created_at                     DateTime                        @default(now()) @db.Timestamptz(6)
   updated_at                     DateTime                        @default(now()) @db.Timestamptz(6)
 
@@ -260,6 +263,7 @@ model notifications {
   title      String            @db.VarChar(255)
   body       String?
   type       notification_type @default(info)
+  action_url String?           @db.VarChar(2000)
   is_read    Boolean           @default(false)
   created_at DateTime          @default(now()) @db.Timestamptz(6)
   updated_at DateTime          @default(now()) @db.Timestamptz(6)
@@ -656,6 +660,7 @@ enum enrollment_status {
   withdrawn
   cancelled
   completed
+  rejected
 }
 
 enum final_status {
@@ -705,6 +710,9 @@ enum notification_type {
   system
   user_pending_activation
   action_required
+  student_enrollment_requested
+  enrollment_approved
+  enrollment_rejected
 }
 
 enum partnership_status {

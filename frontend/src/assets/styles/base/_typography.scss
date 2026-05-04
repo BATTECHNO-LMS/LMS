@@ -24,10 +24,10 @@ p {
 }
 
 a {
-  color: $color-primary;
+  color: var(--color-primary);
   text-decoration: none;
 
   &:hover {
-    color: $color-primary-hover;
+    color: var(--color-primary-hover);
   }
 }

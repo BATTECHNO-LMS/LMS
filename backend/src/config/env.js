@@ -146,6 +146,11 @@ const env = {
     process.env.REPORT_READ_ROLE_CODES,
     'super_admin,program_admin,university_admin,academic_admin,qa_officer,university_reviewer'
   ),
+  /** Approve/reject student enrollment requests (pending → enrolled/rejected). */
+  ENROLLMENT_DECISION_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.ENROLLMENT_DECISION_ROLE_CODES,
+    'super_admin,program_admin,academic_admin,university_reviewer'
+  ),
 };
 
 module.exports = { env };

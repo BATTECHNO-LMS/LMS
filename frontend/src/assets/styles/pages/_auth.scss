@@ -114,21 +114,6 @@
     width: 100%;
     min-height: 2.75rem;
     font-weight: 600;
-    background: #6a73fa;
-    border-color: #6a73fa;
-    color: #fff;
-
-    &:hover:not(:disabled),
-    &:focus-visible:not(:disabled) {
-      background: #545edf;
-      border-color: #545edf;
-      color: #fff;
-
-      .auth-register__submit-icon {
-        color: #fff;
-        stroke: #fff;
-      }
-    }
   }
 
   &__submit-icon {
@@ -151,7 +136,7 @@
   }
 
   &__link {
-    color: #673bb7;
+    color: $color-primary;
     font-weight: 600;
     text-decoration: none;
     border-radius: $radius-sm;
@@ -160,13 +145,13 @@
 
     &:hover,
     &:focus-visible {
-      background: #673bb7;
-      color: #fff;
+      background: rgba($color-primary, 0.08);
+      color: $color-primary-hover;
       text-decoration: none;
     }
 
     &:focus-visible {
-      outline: 2px solid #6a73fa;
+      outline: 2px solid $color-primary;
       outline-offset: 2px;
     }
   }

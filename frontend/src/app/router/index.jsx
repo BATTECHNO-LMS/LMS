@@ -41,6 +41,7 @@ import { SessionViewPage } from '../../pages/admin/sessions/SessionViewPage.jsx'
 import { SessionEditPage } from '../../pages/admin/sessions/SessionEditPage.jsx';
 import { SessionAttendancePage } from '../../pages/admin/sessions/SessionAttendancePage.jsx';
 import { EnrollmentViewPage } from '../../pages/admin/enrollments/EnrollmentViewPage.jsx';
+import { PendingEnrollmentsPage } from '../../pages/admin/enrollments/PendingEnrollmentsPage.jsx';
 import { ContentManagementPage } from '../../pages/admin/ContentManagementPage.jsx';
 import { SessionsPage } from '../../pages/admin/SessionsPage.jsx';
 import { AttendancePage } from '../../pages/admin/AttendancePage.jsx';
@@ -99,7 +100,11 @@ import { RiskStudentsPage } from '../../pages/instructor/RiskStudentsPage.jsx';
 import { InstructorAssessmentCreatePage } from '../../pages/instructor/InstructorAssessmentCreatePage.jsx';
 import { InstructorAssessmentEditPage } from '../../pages/instructor/InstructorAssessmentEditPage.jsx';
 import { StudentDashboardPage } from '../../pages/student/StudentDashboardPage.jsx';
+import { StudentEntryRedirect } from '../../pages/student/StudentEntryRedirect.jsx';
+import { AvailableCohortsPage } from '../../pages/student/AvailableCohortsPage.jsx';
 import { MyProgramsPage } from '../../pages/student/MyProgramsPage.jsx';
+import { StudentProgramDetailPage } from '../../pages/student/StudentProgramDetailPage.jsx';
+import { StudentSemesterSchedulePage } from '../../pages/student/StudentSemesterSchedulePage.jsx';
 import { ContentPage } from '../../pages/student/ContentPage.jsx';
 import { StudentSessionsPage } from '../../pages/student/StudentSessionsPage.jsx';
 import { StudentAttendancePage } from '../../pages/student/StudentAttendancePage.jsx';
@@ -109,6 +114,7 @@ import { StudentGradesPage } from '../../pages/student/StudentGradesPage.jsx';
 import { CertificatePage } from '../../pages/student/CertificatePage.jsx';
 import { ReviewerDashboardPage } from '../../pages/reviewer/ReviewerDashboardPage.jsx';
 import { ReviewerRecognitionRequestsPage } from '../../pages/reviewer/ReviewerRecognitionRequestsPage.jsx';
+import { ReviewerEnrollmentRequestsPage } from '../../pages/reviewer/ReviewerEnrollmentRequestsPage.jsx';
 import { UniversityReportsPage } from '../../pages/reviewer/UniversityReportsPage.jsx';
 import { EvidenceViewerPage } from '../../pages/reviewer/EvidenceViewerPage.jsx';
 import { CertificatesReviewPage } from '../../pages/reviewer/CertificatesReviewPage.jsx';
@@ -180,6 +186,7 @@ export function AppRouter() {
             <Route path="cohorts/:id/edit" element={<CohortEditPage />} />
             <Route path="cohorts/:id" element={<CohortViewPage />} />
             <Route path="cohorts" element={<CohortsListPage />} />
+            <Route path="enrollments" element={<PendingEnrollmentsPage />} />
             <Route path="enrollments/:id" element={<EnrollmentViewPage />} />
             <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
             <Route path="sessions/:sessionId/edit" element={<SessionEditPage />} />
@@ -254,11 +261,14 @@ export function AppRouter() {
         </Route>
 
         <Route path="/student" element={<StudentLayout />}>
-          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route index element={<StudentEntryRedirect />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.STUDENT]} />}>
             <Route path="enrollments" element={<Navigate to="/student/programs" replace />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<StudentDashboardPage />} />
+              <Route path="available-cohorts" element={<AvailableCohortsPage />} />
+              <Route path="semester-schedule" element={<StudentSemesterSchedulePage />} />
+              <Route path="programs/:id" element={<StudentProgramDetailPage />} />
               <Route path="programs" element={<MyProgramsPage />} />
               <Route path="content" element={<ContentPage />} />
               <Route path="sessions" element={<StudentSessionsPage />} />
@@ -278,6 +288,7 @@ export function AppRouter() {
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.UNIVERSITY_REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<ReviewerDashboardPage />} />
+              <Route path="enrollment-requests" element={<ReviewerEnrollmentRequestsPage />} />
               <Route path="recognition-requests/:id" element={<RecognitionRequestViewPage />} />
               <Route path="recognition-requests" element={<ReviewerRecognitionRequestsPage />} />
               <Route path="university-reports" element={<UniversityReportsPage />} />

@@ -5,6 +5,7 @@ import { translateText } from '../../utils/i18n.js';
 export function Button({
   children,
   type = 'button',
+  /** @type {'primary' | 'secondary' | 'outline' | 'danger' | 'light' | 'ghost' | 'accent' | 'icon'} */
   variant = 'primary',
   className,
   disabled,

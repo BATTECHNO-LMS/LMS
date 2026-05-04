@@ -3,7 +3,7 @@
 
 .analytics-filter-bar {
   background: var(--color-card);
-  border: 1px solid #e6e6e6;
+  border: 1px solid var(--color-border);
   border-radius: $radius-lg;
   padding: 1rem 1.1rem;
   margin-bottom: 1.25rem;
@@ -78,13 +78,13 @@
   @include transition(border-color background-color, 0.15s);
 
   &:hover {
-    border-color: rgba(106, 115, 250, 0.45);
+    border-color: rgba($color-primary, 0.4);
   }
 
   &.is-active {
-    border-color: #6a73fa;
-    background: color-mix(in srgb, #6a73fa 12%, #fff);
-    color: #312a2a;
+    border-color: $color-primary;
+    background: color-mix(in srgb, $color-primary 10%, #fff);
+    color: var(--color-text);
   }
 
   &:focus-visible {

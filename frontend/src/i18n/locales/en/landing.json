@@ -16,15 +16,16 @@
   },
   "hero": {
     "mainTitle": "BATTECHNO-LMS",
+    "headline": "An integrated platform for micro-credentials and academic operations",
     "title": "An integrated academic platform for micro-credentials and academic operations",
-    "description": "Manage tracks, micro-credentials, cohorts, attendance, assessments, quality, and academic accreditation in one unified platform.",
+    "description": "Run tracks, micro-credentials, attendance, assessments, quality, and accreditation in one secure, institution-ready workspace.",
     "ctaRegister": "Register",
     "ctaLogin": "Login",
     "ctaExplore": "Explore platform",
     "companyTitle": "About BATTECHNO",
     "companyLead": "An IT company established in 2017, working in information technology and freelancing.",
     "companyBody": "We deliver modern technical and educational solutions — from digital learning infrastructure to governance-ready academic workflows.",
-    "badge": "EdTech · IT · Since 2017",
+    "badge": "Advanced learning platform",
     "stats": {
       "microCreds": "Micro-credentials",
       "universities": "Universities",
@@ -47,10 +48,49 @@
     "subtitle": "An interactive preview of platform screens — credentials, partners, and secure access."
   },
   "cta": {
-    "title": "Ready to modernize academic operations?",
-    "subtitle": "Create your organization space, invite instructors and reviewers, and align credentials with policy.",
-    "primary": "Create account",
-    "secondary": "Sign in"
+    "title": "Start your learning journey today",
+    "subtitle": "Join institutions that trust BATTECHNO-LMS for learning and accreditation.",
+    "primary": "Register",
+    "secondary": "Login"
+  },
+  "features": {
+    "eyebrow": "Platform",
+    "title": "Everything you need to run academic operations",
+    "subtitle": "Governance, quality, and recognition — with clarity for every role.",
+    "list": {
+      "usersRoles": {
+        "title": "Users & permissions",
+        "desc": "Fine-grained roles, auditable access, and secure sign-in aligned with institutional policy."
+      },
+      "universities": {
+        "title": "University management",
+        "desc": "Institutional structure, programs, and academic partners in one admin surface."
+      },
+      "tracks": {
+        "title": "Program & track management",
+        "desc": "Design learning paths, requirements, and measurable outcomes for accreditation."
+      },
+      "microCredentials": {
+        "title": "Micro-credentials",
+        "desc": "Issue and monitor micro-credentials with clear review and publishing workflows."
+      },
+      "gradesAssessments": {
+        "title": "Assessments & grades",
+        "desc": "Rubrics, criteria, and gradebooks that reflect academic performance accurately."
+      },
+      "attendance": {
+        "title": "Attendance",
+        "desc": "Track sessions and presence to support learner commitment and quality."
+      },
+      "qualityAccreditation": {
+        "title": "Quality & accreditation",
+        "desc": "Evidence, KPIs, and QA workflows that support external review and recognition."
+      },
+      "reportsAnalytics": {
+        "title": "Reports & analytics",
+        "desc": "Dashboards and exports for decisions grounded in operational data."
+      }
+    }
   },
   "capabilities": {
     "title": "Platform capabilities",
@@ -85,7 +125,15 @@
     "tafilaTech": "Tafila Technical University",
     "mutah": "Mutah University",
     "zaytoonah": "Al-Zaytoonah University",
-    "yarmouk": "Yarmouk University"
+    "yarmouk": "Yarmouk University",
+    "descriptions": {
+      "youth": "A national institution focused on empowering youth and supporting training and development programs.",
+      "digital": "A government entity that advances digital transformation and builds technical and digital-economy skills.",
+      "ttu": "A Jordanian technical university emphasizing applied learning and practical skills.",
+      "mutah": "A leading Jordanian university combining academics, research, and community engagement.",
+      "zay": "A private Jordanian university offering modern programs and professional growth.",
+      "yarmouk": "An established Jordanian university contributing to education, research, and society."
+    }
   },
   "phone": {
     "previewBadge": "Live preview",

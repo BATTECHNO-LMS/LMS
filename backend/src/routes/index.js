@@ -9,6 +9,7 @@ router.use('/tracks', require('../modules/tracks/tracks.routes'));
 router.use('/micro-credentials', require('../modules/micro-credentials/microCredentials.routes'));
 router.use('/learning-outcomes', require('../modules/learning-outcomes/learningOutcomes.routes'));
 router.use('/cohorts', require('../modules/cohorts/cohorts.routes'));
+router.use('/student', require('../modules/student/student.routes'));
 router.use('/enrollments', require('../modules/enrollments/enrollments.routes'));
 router.use('/modules', require('../modules/modules/modules.routes'));
 router.use('/sessions', require('../modules/sessions/sessions.routes'));

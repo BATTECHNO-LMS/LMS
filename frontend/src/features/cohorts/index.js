@@ -6,3 +6,4 @@ export * from './hooks/useCreateCohort.js';
 export * from './hooks/useUpdateCohort.js';
 export * from './hooks/useUpdateCohortStatus.js';
 export * from './hooks/useCohortAttendanceSummary.js';
+export * from './hooks/useAvailableCohorts.js';

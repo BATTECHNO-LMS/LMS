@@ -27,6 +27,7 @@ import {
   HeartPulse,
   LineChart,
   Bell,
+  UserPlus,
 } from 'lucide-react';
 import { ROLES } from './roles.js';
 
@@ -68,6 +69,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S, U, A]),
       entry('/admin/learning-outcomes', 'admin.items.learningOutcomes', ListTree, [S, U, A]),
       entry('/admin/cohorts', 'admin.items.cohorts', Layers, [S, P, U, A]),
+      entry('/admin/enrollments', 'admin.items.enrollments', UserPlus, [S, P, A, U]),
       entry('/admin/content', 'admin.items.content', BookOpen, [S, P, U, A]),
     ],
   },

@@ -5,3 +5,7 @@ export * from './hooks/useEnrollment.js';
 export * from './hooks/useCreateEnrollment.js';
 export * from './hooks/useUpdateEnrollmentStatus.js';
 export * from './hooks/useStudentEnrollments.js';
+export * from './hooks/useRequestEnrollment.js';
+export * from './hooks/usePendingEnrollments.js';
+export * from './hooks/useEnrollmentDecision.js';
+export * from './hooks/useSemesterSchedule.js';

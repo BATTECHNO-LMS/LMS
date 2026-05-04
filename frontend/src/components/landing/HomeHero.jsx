@@ -1,133 +1,109 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 import { BattechnoPhoneApp } from './BattechnoPhoneApp.jsx';
 import { useLocale } from '../../features/locale/index.js';
-import { HERO_STAT_KEYS } from './home.constants.js';
+import battechnoLogo from '../../assets/images/batman-logo.png';
 
 const container = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.07, delayChildren: 0.06 },
+    transition: { staggerChildren: 0.06, delayChildren: 0.04 },
   },
 };
 
 const item = {
-  hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } },
 };
 
 export function HomeHero() {
-  const { t } = useTranslation('landing');
+  const { t, i18n } = useTranslation('landing');
   const { dir } = useLocale();
+  const headline = t('hero.headline', { defaultValue: t('hero.title') });
 
   return (
-    <section className="relative min-h-[calc(100vh-5rem)] overflow-hidden pb-12 pt-6 sm:pb-16 sm:pt-10 lg:flex lg:items-center lg:pb-20 lg:pt-12">
+    <section className="relative min-h-[calc(100dvh-4.25rem)] overflow-hidden pb-16 pt-10 sm:pb-20 sm:pt-14 lg:flex lg:min-h-[calc(100dvh-4.5rem)] lg:items-center lg:pb-24 lg:pt-16">
+      <div className="pointer-events-none absolute inset-0 bg-bat-bg" aria-hidden />
       <div
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 opacity-[0.45]"
         aria-hidden
         style={{
           background:
-            'radial-gradient(ellipse 100% 70% at 0% 0%, rgba(212, 154, 42, 0.06), transparent 52%), radial-gradient(ellipse 80% 55% at 100% 15%, rgba(148, 163, 184, 0.08), transparent 50%), radial-gradient(ellipse 60% 45% at 50% 100%, rgba(250, 250, 247, 0.95), transparent)',
+            'radial-gradient(ellipse 90% 60% at 0% 0%, rgba(19, 45, 74, 0.06), transparent 55%), radial-gradient(ellipse 70% 50% at 100% 20%, rgba(201, 162, 39, 0.05), transparent 50%)',
         }}
       />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#FAFAF7] to-transparent"
-        aria-hidden
-      />
 
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-10 px-4 sm:gap-12 sm:px-6 md:gap-14 lg:min-h-[560px] lg:flex-row lg:items-center lg:gap-16 lg:px-8">
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 sm:gap-16 sm:px-6 lg:min-h-[min(640px,calc(100dvh-8rem))] lg:flex-row lg:items-center lg:gap-20 lg:px-8">
         <motion.div
           variants={container}
           initial="hidden"
           animate="show"
-          className="flex w-full flex-1 flex-col justify-center space-y-6 md:max-w-xl lg:max-w-xl lg:space-y-7 xl:max-w-2xl"
+          className="flex w-full flex-1 flex-col justify-center lg:max-w-[min(100%,32rem)] xl:max-w-xl"
         >
-          <motion.div variants={item}>
-            <span className="inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-amber-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-amber-900 shadow-sm">
+          <motion.div variants={item} className="space-y-5">
+            <img
+              src={battechnoLogo}
+              alt={t('brand')}
+              className="h-12 w-auto max-w-[min(280px,85vw)] object-contain object-start sm:h-14"
+              decoding="async"
+            />
+            <span className="inline-flex items-center rounded-full border border-bat-border bg-bat-surface px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-bat-muted shadow-sm">
               {t('hero.badge')}
             </span>
           </motion.div>
 
-          <motion.div variants={item} className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl lg:text-[2.75rem] lg:leading-tight">
-              {t('hero.mainTitle')}
+          <motion.div variants={item} className="mt-6 space-y-4">
+            <h1
+              className={`text-balance text-3xl font-bold tracking-tight text-bat-ink sm:text-4xl sm:leading-[1.15] lg:text-[2.35rem] lg:leading-[1.12] ${i18n.language.startsWith('ar') ? 'font-bold' : ''}`}
+            >
+              {headline}
             </h1>
-            <p className="text-lg font-bold leading-snug text-slate-800 sm:text-xl lg:text-2xl lg:leading-snug">
-              {t('hero.title')}
-            </p>
+            <p className="max-w-xl text-base leading-relaxed text-bat-muted sm:text-lg">{t('hero.description')}</p>
           </motion.div>
 
-          <motion.p variants={item} className="max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            {t('hero.description')}
-          </motion.p>
-
-          <motion.div variants={item} className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-            {HERO_STAT_KEYS.map((key) => (
-              <div
-                key={key}
-                className="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-[0_4px_20px_-8px_rgba(15,23,42,0.06)] ring-1 ring-slate-100/80 transition hover:border-amber-200/70 hover:shadow-md"
-              >
-                <FiCheckCircle className="mt-0.5 shrink-0 text-amber-600" aria-hidden />
-                <p className="text-xs font-semibold leading-snug text-slate-700 sm:text-sm">{t(`hero.stats.${key}`)}</p>
-              </div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            variants={item}
-            className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.08)] ring-1 ring-slate-100/80"
-          >
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(212,154,42,0.6)]" aria-hidden />
-              <h2 className="text-xs font-bold uppercase tracking-[0.18em] text-sky-800/90">{t('hero.companyTitle')}</h2>
-            </div>
-            <p className="mt-3 text-sm font-semibold leading-relaxed text-slate-900 sm:text-base">{t('hero.companyLead')}</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">{t('hero.companyBody')}</p>
-          </motion.div>
-
-          <motion.div variants={item} className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <motion.div variants={item} className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <Link
               to="/register"
-              className="inline-flex min-h-[3.25rem] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 text-base font-bold text-slate-950 shadow-[0_10px_32px_-8px_rgba(212,154,42,0.45)] transition hover:brightness-105"
+              className="inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-xl bg-bat-primary px-8 text-base font-semibold text-white shadow-[0_8px_28px_-8px_rgba(19,45,74,0.35)] transition hover:bg-bat-primary-hover"
             >
               {t('hero.ctaRegister')}
               <FiArrowRight className={dir === 'rtl' ? 'rotate-180' : ''} aria-hidden />
             </Link>
             <Link
               to="/login"
-              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-2xl border border-slate-300 bg-white px-8 text-base font-bold text-slate-800 shadow-sm transition hover:border-amber-300/60 hover:bg-slate-50"
+              className="inline-flex min-h-[3rem] items-center justify-center rounded-xl border border-bat-accent bg-bat-accent-soft px-8 text-base font-semibold text-bat-primary shadow-sm transition hover:border-bat-accent-hover hover:bg-bat-accent hover:text-bat-primary"
             >
               {t('hero.ctaLogin')}
             </Link>
-            <a
-              href="#capabilities"
-              className="inline-flex min-h-[3.25rem] items-center justify-center rounded-2xl px-4 text-sm font-bold text-amber-800 underline-offset-4 hover:underline sm:px-6"
-            >
-              {t('hero.ctaExplore')}
-            </a>
           </motion.div>
         </motion.div>
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 24 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="relative hidden w-full flex-1 items-center justify-center md:flex lg:justify-end"
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+          className="relative hidden w-full flex-1 items-center justify-center lg:flex"
         >
-          <div
-            className="pointer-events-none absolute -inset-4 rounded-[3rem] opacity-70 blur-2xl sm:-inset-8"
-            style={{
-              background:
-                'radial-gradient(circle at 40% 30%, rgba(148, 163, 184, 0.18), transparent 50%), radial-gradient(circle at 70% 70%, rgba(212, 154, 42, 0.1), transparent 45%)',
-            }}
-            aria-hidden
-          />
-          <div className="relative w-full max-w-[390px] shrink-0">
-            <BattechnoPhoneApp variant="device" />
-          </div>
+          <motion.div
+            animate={{ y: [0, -7, 0] }}
+            transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+            className="relative w-full max-w-[min(100%,380px)] shrink-0 xl:max-w-[400px]"
+          >
+            <div
+              className="pointer-events-none absolute -inset-8 rounded-[3.5rem] opacity-80 blur-3xl"
+              style={{
+                background:
+                  'radial-gradient(circle at 45% 35%, rgba(19, 45, 74, 0.12), transparent 52%), radial-gradient(circle at 70% 65%, rgba(201, 162, 39, 0.1), transparent 48%)',
+              }}
+              aria-hidden
+            />
+            <div className="relative">
+              <BattechnoPhoneApp variant="device" />
+            </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>

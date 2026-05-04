@@ -64,10 +64,10 @@ export const MOCK_ENROLLMENT_GROWTH = [
 /** Cohort status distribution */
 export const MOCK_COHORT_STATUS = [
   { statusKey: 'planned', count: 5, fill: '#9ca3af' },
-  { statusKey: 'openEnrollment', count: 3, fill: '#60a5fa' },
-  { statusKey: 'active', count: 18, fill: '#6a73fa' },
+  { statusKey: 'openEnrollment', count: 3, fill: '#2a6f8f' },
+  { statusKey: 'active', count: 18, fill: '#132d4a' },
   { statusKey: 'completed', count: 12, fill: '#34d399' },
-  { statusKey: 'closed', count: 4, fill: '#a78bfa' },
+  { statusKey: 'closed', count: 4, fill: '#c9a227' },
   { statusKey: 'cancelled', count: 1, fill: '#f87171' },
 ];
 
@@ -88,8 +88,8 @@ export const MOCK_ATTENDANCE_TREND = [
 export const MOCK_EVIDENCE_ANALYTICS = [
   { key: 'complete', value: 142, fill: '#34d399' },
   { key: 'missing', value: 9, fill: '#f87171' },
-  { key: 'doc', value: 98, fill: '#6a73fa' },
-  { key: 'media', value: 44, fill: '#673bb7' },
+  { key: 'doc', value: 98, fill: '#132d4a' },
+  { key: 'media', value: 44, fill: '#c9a227' },
 ];
 
 export const MOCK_QA_INTEGRITY_BAR = [

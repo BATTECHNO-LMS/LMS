@@ -52,7 +52,25 @@ a.btn {
   border-color: $color-secondary;
 
   &:hover:not(:disabled) {
-    filter: brightness(0.95);
+    filter: brightness(1.06);
+  }
+}
+
+.btn--accent {
+  background: $color-accent;
+  color: $color-primary;
+  border-color: $color-accent;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: $color-accent-hover;
+    border-color: $color-accent-hover;
+    color: $color-primary;
+
+    svg {
+      color: $color-primary;
+      stroke: $color-primary;
+    }
   }
 }
 
@@ -95,7 +113,7 @@ a.btn {
   border-color: var(--color-border);
 
   &:hover:not(:disabled) {
-    border-color: $color-primary-light;
+    border-color: rgba($color-primary, 0.35);
   }
 }
 

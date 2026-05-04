@@ -19,6 +19,7 @@
       "microCredentials": "الشهادات المصغرة",
       "learningOutcomes": "مخرجات التعلم",
       "cohorts": "الدفعات",
+      "enrollments": "طلبات التسجيل",
       "content": "المحتوى",
       "sessions": "الجلسات",
       "attendance": "الحضور",
@@ -54,7 +55,9 @@
   },
   "student": {
     "home": "الرئيسية",
+    "availableCohorts": "الدفعات المتاحة",
     "programs": "شهاداتي المسجل بها",
+    "semesterSchedule": "الجدول الفصلي",
     "content": "المحتوى",
     "sessions": "الجلسات",
     "attendance": "الحضور",
@@ -70,6 +73,7 @@
     "universityReports": "تقارير الجامعة",
     "evidence": "الأدلة والمرفقات",
     "certificates": "الشهادات المرتبطة",
+    "enrollmentRequests": "طلبات التسجيل",
     "notifications": "الإشعارات"
   }
 }

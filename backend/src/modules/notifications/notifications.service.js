@@ -8,6 +8,7 @@ function mapNotification(n) {
     title: n.title,
     body: n.body,
     type: n.type,
+    action_url: n.action_url ?? null,
     is_read: n.is_read,
     created_at: n.created_at,
     updated_at: n.updated_at,

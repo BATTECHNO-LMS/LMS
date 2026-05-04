@@ -14,7 +14,14 @@ const createEnrollmentBodySchema = z
   })
   .strict();
 
-const enrollmentStatusEnum = z.enum(['pending', 'enrolled', 'withdrawn', 'cancelled', 'completed']);
+const enrollmentStatusEnum = z.enum(['pending', 'enrolled', 'withdrawn', 'cancelled', 'completed', 'rejected']);
+
+const requestEnrollmentBodySchema = z
+  .object({
+    cohort_id: z.string().uuid('cohort_id must be a UUID'),
+    student_id: z.string().uuid('student_id must be a UUID').optional(),
+  })
+  .strict();
 const finalStatusEnum = z.enum(['in_progress', 'passed', 'failed', 'withdrawn', 'incomplete']);
 const recognitionEligibilityEnum = z.enum(['unknown', 'eligible', 'not_eligible', 'under_review']);
 
@@ -33,9 +40,17 @@ const patchEnrollmentStatusBodySchema = z
     { message: 'At least one field is required' }
   );
 
+const rejectEnrollmentBodySchema = z
+  .object({
+    rejection_reason: z.string().max(2000).optional(),
+  })
+  .strict();
+
 module.exports = {
   uuidParamSchema,
   cohortIdParamSchema,
   createEnrollmentBodySchema,
   patchEnrollmentStatusBodySchema,
+  requestEnrollmentBodySchema,
+  rejectEnrollmentBodySchema,
 };

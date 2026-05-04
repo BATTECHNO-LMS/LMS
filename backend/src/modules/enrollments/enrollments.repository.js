@@ -22,19 +22,19 @@ async function findCohortIdsForStudent(studentId) {
   const rows = await prisma.enrollments.findMany({
     where: {
       student_id: studentId,
-      enrollment_status: { in: ['pending', 'enrolled', 'completed'] },
+      enrollment_status: { in: ['enrolled', 'completed'] },
     },
     select: { cohort_id: true },
   });
   return [...new Set(rows.map((r) => r.cohort_id))];
 }
 
-/** Active enrollments for a student (dashboard / sessions scope). */
+/** Enrollments visible to the student on GET /enrollments/me (excludes withdrawn only). */
 async function findManyByStudent(studentId) {
   return prisma.enrollments.findMany({
     where: {
       student_id: studentId,
-      enrollment_status: { in: ['pending', 'enrolled', 'completed'] },
+      enrollment_status: { notIn: ['withdrawn'] },
     },
     orderBy: { enrolled_at: 'desc' },
   });

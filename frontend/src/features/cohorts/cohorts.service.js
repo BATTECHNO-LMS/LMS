@@ -11,6 +11,16 @@ import { unwrapApiData } from '../../services/apiHelpers.js';
  *   search?: string,
  * }} [params]
  */
+/** University-scoped open cohorts for the logged-in student (GET /student/available-cohorts). */
+export async function fetchAvailableCohorts() {
+  const res = await apiClient.get(`${endpoints.student}/available-cohorts`);
+  const data = unwrapApiData(res);
+  if (!data || typeof data !== 'object' || !Array.isArray(data.cohorts)) {
+    throw new Error('Invalid cohorts list response');
+  }
+  return data;
+}
+
 export async function fetchCohortsList(params = {}) {
   const res = await apiClient.get(endpoints.cohorts, { params });
   const data = unwrapApiData(res);

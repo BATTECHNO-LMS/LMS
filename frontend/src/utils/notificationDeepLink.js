@@ -12,6 +12,20 @@ function userHasAdminShellAccess(user) {
 }
 
 /**
+ * Prefer server-provided `action_url` (relative app paths); fallback to admin heuristics.
+ * @param {{ type?: string, title?: string, body?: string | null, action_url?: string | null } | null | undefined} notification
+ * @param {unknown} user
+ * @returns {string | null}
+ */
+export function getNotificationLink(notification, user) {
+  const raw = notification?.action_url;
+  if (typeof raw === 'string' && raw.startsWith('/')) {
+    return raw;
+  }
+  return getAdminNotificationDeepLink(notification, user);
+}
+
+/**
  * @param {{ type?: string, title?: string, body?: string | null } | null | undefined} notification
  * @param {unknown} user
  * @returns {string | null}

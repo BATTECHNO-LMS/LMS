@@ -21,6 +21,7 @@ export const endpoints = {
   microCredentials: `${API_V}/micro-credentials`,
   learningOutcomes: `${API_V}/learning-outcomes`,
   cohorts: `${API_V}/cohorts`,
+  student: `${API_V}/student`,
   enrollments: `${API_V}/enrollments`,
   sessions: `${API_V}/sessions`,
   attendanceRecords: `${API_V}/attendance-records`,

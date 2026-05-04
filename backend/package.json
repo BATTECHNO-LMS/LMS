@@ -13,6 +13,7 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "seed": "node prisma/seed.js",
+    "seed:demo": "node scripts/seed-demo.js",
     "seed:auth": "node scripts/seed-auth-minimum.js",
     "test": "node --test tests/health.test.js"
   },

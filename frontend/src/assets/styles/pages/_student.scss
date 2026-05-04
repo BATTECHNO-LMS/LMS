@@ -449,3 +449,251 @@
   flex-direction: column;
   gap: 0.75rem;
 }
+
+/* Enrollment catalog & program overview */
+.student-cohort-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.student-cohort-card {
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
+  padding: 1.1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.student-cohort-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.student-cohort-card__name {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--color-navy, #0f172a);
+}
+
+.student-cohort-card__mc {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.student-cohort-card__catalog-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b45309;
+  background: rgba(180, 83, 9, 0.12);
+  border-radius: $radius-md;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+.student-cohort-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.student-cohort-card__desc {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+.student-cohort-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.student-cohort-card__cta {
+  min-width: 9rem;
+}
+
+.student-empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  border-radius: $radius-lg;
+  border: 1px dashed var(--color-border-tinted);
+  background: var(--color-surface-light);
+}
+
+.student-empty-state__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+  color: var(--color-navy, #0f172a);
+}
+
+.student-empty-state__desc {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.student-pending-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  border-radius: $radius-md;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--color-border-tinted);
+  color: var(--color-navy, #0f172a);
+  font-size: 0.9rem;
+}
+
+.student-pending-banner--warning {
+  background: rgba(180, 83, 9, 0.1);
+  border-color: rgba(180, 83, 9, 0.25);
+}
+
+.student-program-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 800px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.student-program-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.1rem 1.15rem;
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    border-color: rgba(15, 23, 42, 0.2);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.student-program-card-link__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.student-program-card-link__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-md;
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  color: #fbbf24;
+  flex-shrink: 0;
+}
+
+.student-program-card-link__title {
+  margin: 0;
+  font-size: 1.05rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.student-program-card-link__sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.student-program-card-link__progress {
+  margin-top: 0.25rem;
+}
+
+.student-program-card-link__progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.student-program-card-link__footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.student-program-card-link__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.student-program-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.student-program-tabs__tab {
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  color: var(--color-text);
+  border-radius: $radius-md;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &.is-active {
+    background: #0f172a;
+    color: #fff;
+    border-color: #0f172a;
+  }
+}
+
+.student-program-detail-split {
+  display: grid;
+  gap: 1.25rem;
+
+  @media (min-width: 900px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.student-program-detail-h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--color-navy, #0f172a);
+}
+
+.student-program-detail-stat {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+}

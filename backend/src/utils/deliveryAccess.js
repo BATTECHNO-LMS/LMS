@@ -29,6 +29,30 @@ function cohortListWhere(requester) {
   return { AND: [{ id: { in: [] } }] };
 }
 
+const { env } = require('../config/env');
+
+/**
+ * Cohort catalog browse (student): cohort open for self-service enrollment requests.
+ * @param {{ status?: string }} cohort
+ */
+function canStudentBrowseCohort(cohort) {
+  return cohort?.status === 'open_for_enrollment';
+}
+
+/**
+ * Active program access for delivery content (sessions, assessments): enrolled or completed only.
+ * @param {{ enrollment_status?: string }} enrollmentRow
+ */
+function studentHasActiveProgramEnrollment(enrollmentRow) {
+  const s = enrollmentRow?.enrollment_status;
+  return s === 'enrolled' || s === 'completed';
+}
+
+function isStudentRole(requester) {
+  const roles = normalizeRoles(requester.roles);
+  return roles.includes(String(env.STUDENT_ROLE_CODE || 'student').toLowerCase());
+}
+
 /**
  * @param {{ roles?: string[], isGlobal?: boolean, universityId?: string | null, userId?: string }} requester
  * @param {{ university_id: string, instructor_id: string | null }} cohort
@@ -56,4 +80,12 @@ function assessmentCohortScopeWhere(requester) {
   return { cohorts: cw };
 }
 
-module.exports = { normalizeRoles, cohortListWhere, canAccessCohort, assessmentCohortScopeWhere };
+module.exports = {
+  normalizeRoles,
+  cohortListWhere,
+  canAccessCohort,
+  assessmentCohortScopeWhere,
+  canStudentBrowseCohort,
+  studentHasActiveProgramEnrollment,
+  isStudentRole,
+};

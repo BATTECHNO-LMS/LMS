@@ -49,3 +49,49 @@ export async function fetchMyEnrollments() {
   }
   return data;
 }
+
+/**
+ * Self-service enrollment request (POST /student/enrollment-requests).
+ * @param {{ cohort_id: string }} body
+ */
+export async function postEnrollmentRequest(body) {
+  const res = await apiClient.post(`${endpoints.student}/enrollment-requests`, body);
+  return unwrapApiData(res);
+}
+
+/** Pending enrollment requests for admins/reviewers (GET /enrollments/pending). */
+export async function fetchPendingEnrollments() {
+  const res = await apiClient.get(`${endpoints.enrollments}/pending`);
+  const data = unwrapApiData(res);
+  if (!data || typeof data !== 'object' || !Array.isArray(data.enrollments)) {
+    throw new Error('Invalid enrollments response');
+  }
+  return data;
+}
+
+/**
+ * @param {string} id
+ */
+export async function approveEnrollmentRequest(id) {
+  const res = await apiClient.patch(`${endpoints.enrollments}/${id}/approve`);
+  return unwrapApiData(res);
+}
+
+/**
+ * @param {string} id
+ * @param {{ rejection_reason?: string }} [body]
+ */
+export async function rejectEnrollmentRequest(id, body = {}) {
+  const res = await apiClient.patch(`${endpoints.enrollments}/${id}/reject`, body);
+  return unwrapApiData(res);
+}
+
+/** Student semester schedule (GET /student/semester-schedule). */
+export async function fetchSemesterSchedule() {
+  const res = await apiClient.get(`${endpoints.student}/semester-schedule`);
+  const data = unwrapApiData(res);
+  if (!data || typeof data !== 'object' || !Array.isArray(data.schedule)) {
+    throw new Error('Invalid semester schedule response');
+  }
+  return data;
+}

@@ -6,7 +6,7 @@ import { useAuth } from '../../features/auth/index.js';
 import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
 import { getNotificationsPathForUser } from '../../utils/notificationsPath.js';
-import { getAdminNotificationDeepLink } from '../../utils/notificationDeepLink.js';
+import { getNotificationLink } from '../../utils/notificationDeepLink.js';
 
 export function NotificationBell({ className }) {
   const { t } = useTranslation('notifications');
@@ -59,7 +59,7 @@ export function NotificationBell({ className }) {
           {!isLoading && preview.length === 0 ? <p className="crud-muted">{t('emptyTitle')}</p> : null}
           <ul className="notification-bell__list">
             {preview.map((n) => {
-              const deepLink = getAdminNotificationDeepLink(n, user);
+              const deepLink = getNotificationLink(n, user);
               return (
                 <li key={n.id} className="notification-bell__item">
                   {deepLink ? (

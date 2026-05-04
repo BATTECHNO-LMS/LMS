@@ -46,4 +46,54 @@ async function listMine(req, res, next) {
   }
 }
 
-module.exports = { listByCohort, createForCohort, getById, patchStatus, listMine };
+async function requestEnrollment(req, res, next) {
+  try {
+    const data = await enrollmentsService.requestEnrollment(req.validated.body, req.user);
+    return created(res, data, { message: 'Enrollment request submitted' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function listPending(req, res, next) {
+  try {
+    const data = await enrollmentsService.listPending(req.user);
+    return success(res, data, { message: 'Enrollments retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function approve(req, res, next) {
+  try {
+    const data = await enrollmentsService.approveEnrollment(req.validated.params.id, req.user);
+    return success(res, data, { message: 'Enrollment approved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function reject(req, res, next) {
+  try {
+    const data = await enrollmentsService.rejectEnrollment(
+      req.validated.params.id,
+      req.validated.body,
+      req.user
+    );
+    return success(res, data, { message: 'Enrollment rejected' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = {
+  listByCohort,
+  createForCohort,
+  getById,
+  patchStatus,
+  listMine,
+  requestEnrollment,
+  listPending,
+  approve,
+  reject,
+};

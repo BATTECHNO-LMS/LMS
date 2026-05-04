@@ -16,10 +16,12 @@ import {
   Area,
 } from 'recharts';
 
-const PRIMARY = '#6a73fa';
-const SECONDARY = '#673bb7';
-const MUTED = '#737b8b';
-const BORDER = '#e6e6e6';
+/** Brand-aligned chart colors (see `abstracts/_variables.scss`) */
+const PRIMARY = '#132d4a';
+const SECONDARY = '#c9a227';
+const TERTIARY = '#3a5f8a';
+const MUTED = '#5c6675';
+const BORDER = '#dde3eb';
 
 const tooltipStyle = {
   backgroundColor: '#fff',
@@ -39,7 +41,7 @@ export function UniversitiesOverviewChart({ data, dataKeys }) {
         <Legend />
         <Bar dataKey="cohorts" name={dataKeys.cohorts} fill={PRIMARY} radius={[4, 4, 0, 0]} />
         <Bar dataKey="students" name={dataKeys.students} fill={SECONDARY} radius={[4, 4, 0, 0]} />
-        <Bar dataKey="recognitionRequests" name={dataKeys.recognition} fill="#a78bfa" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="recognitionRequests" name={dataKeys.recognition} fill={TERTIARY} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   );
@@ -97,7 +99,7 @@ export function AttendanceTrendChart({ data }) {
         <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 11 }} />
         <YAxis tick={{ fill: MUTED, fontSize: 11 }} domain={[80, 100]} />
         <Tooltip contentStyle={tooltipStyle} />
-        <Area type="monotone" dataKey="rate" stroke={SECONDARY} fill="#673bb733" strokeWidth={2} />
+        <Area type="monotone" dataKey="rate" stroke={SECONDARY} fill="rgba(201, 162, 39, 0.22)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   );

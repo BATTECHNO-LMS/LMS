@@ -19,6 +19,7 @@ const { createSessionBodySchema } = require('../sessions/sessions.validation');
 const router = express.Router();
 
 const deliveryRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES);
+const cohortDetailRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES, env.STUDENT_ROLE_CODE);
 const deliveryWrite = authorizeRoles(...env.DELIVERY_WRITE_ROLE_CODES);
 
 router.get(
@@ -96,7 +97,7 @@ router.put(
 router.get(
   '/:id',
   authenticate,
-  deliveryRead,
+  cohortDetailRead,
   validateRequest({ params: uuidParamSchema }),
   cohortsController.getById
 );

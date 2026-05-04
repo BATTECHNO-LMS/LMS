@@ -61,8 +61,13 @@ async function serializeSession(row) {
 async function assertCohortForSessions(cohortId, requester) {
   const cohort = await cohortsRepository.findById(cohortId);
   if (!cohort) throw new ApiError(404, 'Cohort not found');
-  if (!canAccessCohort(requester, cohort)) throw new ApiError(403, 'Forbidden');
-  return cohort;
+  if (canAccessCohort(requester, cohort)) return cohort;
+  const roles = normalizeRoles(requester.roles);
+  if (roles.includes(String(env.STUDENT_ROLE_CODE || 'student').toLowerCase())) {
+    const en = await enrollmentsRepository.findByCohortAndStudent(cohortId, requester.userId);
+    if (en && ['enrolled', 'completed'].includes(en.enrollment_status)) return cohort;
+  }
+  throw new ApiError(403, 'Forbidden');
 }
 
 async function listByCohort(cohortId, requester) {

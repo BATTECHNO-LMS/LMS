@@ -12,7 +12,7 @@ import { useMarkAllNotificationsRead } from '../../features/notifications/hooks/
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { useLocale } from '../../features/locale/index.js';
 import { useAuth } from '../../features/auth/index.js';
-import { getAdminNotificationDeepLink } from '../../utils/notificationDeepLink.js';
+import { getNotificationLink } from '../../utils/notificationDeepLink.js';
 
 export function NotificationsPage() {
   const { t } = useTranslation('notifications');
@@ -39,6 +39,7 @@ export function NotificationsPage() {
       title: n.title,
       body: n.body ?? '',
       type: n.type,
+      action_url: n.action_url ?? null,
       is_read: n.is_read,
       created_at: n.created_at ? new Date(n.created_at).toLocaleString(locale) : '—',
     }));
@@ -81,7 +82,10 @@ export function NotificationsPage() {
               key: 'title',
               label: t('list.columns.title'),
               render: (r) => {
-                const deep = getAdminNotificationDeepLink({ type: r.type }, user);
+                const deep = getNotificationLink(
+                  { type: r.type, title: r.title, body: r.body, action_url: r.action_url },
+                  user
+                );
                 if (deep) {
                   return (
                     <Link

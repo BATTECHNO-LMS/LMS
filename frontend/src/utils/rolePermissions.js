@@ -133,7 +133,11 @@ export function hasUiPermissionForUser(user, key) {
 const ROUTE_RULES = [
   [/^\/instructor\/assessments\/create\/?$/, P.canCreateAssessments],
   [/^\/instructor\/assessments\/[^/]+\/edit\/?$/, P.canEditAssessments],
-  [/^\/student\/programs(\/|$)/, P.canViewEnrolledPrograms],
+  [/^\/student\/programs\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
+  [/^\/student\/available-cohorts\/?$/, P.canViewEnrolledPrograms],
+  [/^\/student\/semester-schedule\/?$/, P.canViewEnrolledPrograms],
+  [/^\/student\/?$/, P.canViewDashboard],
+  [/^\/student\/programs\/?$/, P.canViewEnrolledPrograms],
   [/^\/student\/content(\/|$)/, P.canViewContent],
   [/^\/student\/sessions(\/|$)/, P.canViewSessions],
   [/^\/student\/attendance(\/|$)/, P.canViewAttendance],
@@ -158,6 +162,7 @@ const ROUTE_RULES = [
   [/^\/reviewer\/university-reports(\/|$)/, P.canViewUniversityReports],
   [/^\/reviewer\/evidence(\/|$)/, P.canViewReviewerEvidence],
   [/^\/reviewer\/certificates(\/|$)/, P.canViewLinkedCertificates],
+  [/^\/reviewer\/enrollment-requests(\/|$)/, P.canViewUniversityReports],
   [/^\/reviewer\/dashboard\/?$/, P.canViewDashboard],
 
   [/^\/student\/notifications(\/|$)/, P.canViewNotifications],
