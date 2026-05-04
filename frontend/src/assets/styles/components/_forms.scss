@@ -14,6 +14,43 @@
   color: var(--color-heading);
 }
 
+.form-field__password-wrap {
+  position: relative;
+  display: block;
+}
+
+.form-field__control--with-password-toggle {
+  padding-inline-end: 2.65rem;
+}
+
+.form-field__password-toggle {
+  position: absolute;
+  inset-inline-end: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: none;
+  border-radius: $radius-sm;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  @include transition(color background-color, 0.15s);
+
+  &:hover {
+    color: $color-primary;
+    background: rgba($color-primary, 0.07);
+  }
+
+  &:focus-visible {
+    @include focus-ring-primary;
+  }
+}
+
 .form-field__control {
   width: 100%;
   min-height: 2.5rem;

@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Building2,
@@ -13,6 +14,7 @@ import {
   ShieldAlert,
   Award,
   UserCheck,
+  UserPlus,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { useAnalytics, exportAnalyticsExcel, exportAnalyticsPdf, exportAnalyticsPowerBi } from '../../features/analytics/index.js';
@@ -43,6 +45,20 @@ import {
   CertificatesByUniversityChart,
   CertificatesByCredentialChart,
 } from '../../components/analytics/charts/AnalyticsCharts.jsx';
+
+function AnalyticsModuleHead({ title, to }) {
+  const { t } = useTranslation('analytics');
+  return (
+    <div className="analytics-module-block__head">
+      <h3 className="analytics-module-block__title">{title}</h3>
+      {to ? (
+        <Link to={to} className="analytics-module-block__manage">
+          {t('moduleLabels.openModule')}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
 
 export function SuperAdminAnalyticsPage() {
   const { t, i18n } = useTranslation('analytics');
@@ -269,6 +285,13 @@ export function SuperAdminAnalyticsPage() {
             helperText={t('kpi.helperDemo')}
           />
           <AnalyticsKpiCard
+            title={t('kpi.pendingEnrollments')}
+            value={String(kpis?.pendingEnrollments ?? '—')}
+            icon={UserPlus}
+            trend={trends?.pendingEnrollments?.pct}
+            helperText={t('kpi.helperEnrollments')}
+          />
+          <AnalyticsKpiCard
             title={t('kpi.attendanceRate')}
             value={`${kpis?.attendanceRatePct ?? '—'}%`}
             icon={Percent}
@@ -388,7 +411,7 @@ export function SuperAdminAnalyticsPage() {
       <AnalyticsSectionCard title={<>{t('sections.modules')}</>} id="analytics-modules">
         <div className="analytics-modules-grid">
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.users')}</h3>
+            <AnalyticsModuleHead title={t('modules.users')} to="/admin/users" />
             <div className="analytics-module-block__stats">
               <AnalyticsMiniStat label={t('moduleLabels.totalUsers')} value={String(modules?.users?.total ?? '—')} />
               <AnalyticsMiniStat label={t('moduleLabels.activeUsers')} value={String(modules?.users?.active ?? '—')} />
@@ -403,7 +426,7 @@ export function SuperAdminAnalyticsPage() {
             </ul>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.universities')}</h3>
+            <AnalyticsModuleHead title={t('modules.universities')} to="/admin/universities" />
             <AnalyticsMiniStat label={t('moduleLabels.totalUniversities')} value={String(modules?.universities?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.activePartnerships')} value={String(modules?.universities?.activePartnerships ?? '—')} />
             <p className="analytics-module-block__line">
@@ -411,7 +434,7 @@ export function SuperAdminAnalyticsPage() {
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.tracks')}</h3>
+            <AnalyticsModuleHead title={t('modules.tracks')} to="/admin/tracks" />
             <AnalyticsMiniStat label={t('moduleLabels.totalTracks')} value={String(modules?.tracks?.total ?? '—')} />
             <p className="analytics-module-block__line">
               {t('moduleLabels.mostActive')}:{' '}
@@ -419,7 +442,7 @@ export function SuperAdminAnalyticsPage() {
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.microCredentials')}</h3>
+            <AnalyticsModuleHead title={t('modules.microCredentials')} to="/admin/micro-credentials" />
             <AnalyticsMiniStat label={t('moduleLabels.totalMc')} value={String(modules?.microCredentials?.total ?? '—')} />
             <AnalyticsMiniStat
               label={t('moduleLabels.activeVsArchived')}
@@ -431,7 +454,7 @@ export function SuperAdminAnalyticsPage() {
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.cohorts')}</h3>
+            <AnalyticsModuleHead title={t('modules.cohorts')} to="/admin/cohorts" />
             <AnalyticsMiniStat label={t('moduleLabels.totalCohorts')} value={String(modules?.cohorts?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.activeCohorts')} value={String(modules?.cohorts?.active ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.completedCohorts')} value={String(modules?.cohorts?.completed ?? '—')} />
@@ -444,13 +467,13 @@ export function SuperAdminAnalyticsPage() {
             </ul>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.sessions')}</h3>
+            <AnalyticsModuleHead title={t('modules.sessions')} to="/admin/sessions" />
             <AnalyticsMiniStat label={t('moduleLabels.totalSessions')} value={String(modules?.sessions?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.documented')} value={String(modules?.sessions?.documented ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.undocumented')} value={String(modules?.sessions?.undocumented ?? '—')} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.attendance')}</h3>
+            <AnalyticsModuleHead title={t('modules.attendance')} to="/admin/attendance" />
             <AnalyticsMiniStat label={t('moduleLabels.overallRate')} value={`${modules?.attendance?.overallRate ?? '—'}%`} />
             <AnalyticsMiniStat label={t('moduleLabels.lowCohorts')} value={String(modules?.attendance?.lowAttendanceCohorts ?? '—')} />
             <p className="analytics-module-block__line">
@@ -459,7 +482,7 @@ export function SuperAdminAnalyticsPage() {
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.assessments')}</h3>
+            <AnalyticsModuleHead title={t('modules.assessments')} to="/admin/assessments" />
             <AnalyticsMiniStat label={t('moduleLabels.totalAssessments')} value={String(modules?.assessments?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.pendingGrading')} value={String(modules?.assessments?.pendingGrading ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.overdue')} value={String(modules?.assessments?.overdue ?? '—')} />
@@ -468,18 +491,18 @@ export function SuperAdminAnalyticsPage() {
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.rubrics')}</h3>
+            <AnalyticsModuleHead title={t('modules.rubrics')} to="/admin/rubrics" />
             <AnalyticsMiniStat label={t('moduleLabels.totalRubrics')} value={String(modules?.rubrics?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.usageRate')} value={`${modules?.rubrics?.usageRatePct ?? '—'}%`} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.submissions')}</h3>
+            <AnalyticsModuleHead title={t('modules.submissions')} to="/admin/submissions" />
             <AnalyticsMiniStat label={t('moduleLabels.totalSubmissions')} value={String(modules?.submissions?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.onTime')} value={String(modules?.submissions?.onTime ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.late')} value={String(modules?.submissions?.late ?? '—')} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.grades')}</h3>
+            <AnalyticsModuleHead title={t('modules.grades')} to="/admin/grades" />
             <AnalyticsMiniStat label={t('moduleLabels.completionRate')} value={`${modules?.grades?.completionRatePct ?? '—'}%`} />
             <AnalyticsMiniStat label={t('moduleLabels.avgScore')} value={String(modules?.grades?.avgScore ?? '—')} />
             <AnalyticsMiniStat
@@ -488,48 +511,63 @@ export function SuperAdminAnalyticsPage() {
             />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.evidence')}</h3>
+            <AnalyticsModuleHead title={t('modules.evidence')} to="/admin/evidence" />
             <AnalyticsMiniStat label={t('moduleLabels.totalFiles')} value={String(modules?.evidence?.totalFiles ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.missing')} value={String(modules?.evidence?.missing ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.completion')} value={`${modules?.evidence?.completionRatePct ?? '—'}%`} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.qa')}</h3>
+            <AnalyticsModuleHead title={t('modules.qa')} to="/admin/qa-reviews" />
             <AnalyticsMiniStat label={t('moduleLabels.totalReviews')} value={String(modules?.qa?.totalReviews ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.openCases')} value={String(modules?.qa?.openCases ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.unresolvedCorrective')} value={String(modules?.qa?.unresolvedCorrective ?? '—')} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.riskCases')}</h3>
+            <AnalyticsModuleHead title={t('modules.riskCases')} to="/admin/risk-cases" />
             <AnalyticsMiniStat label={t('moduleLabels.atRiskStudents')} value={String(modules?.riskCases?.totalAtRisk ?? '—')} />
             <p className="analytics-module-block__line">
               {t('moduleLabels.trend')}: {t(`trends.${modules?.riskCases?.trendKey ?? 'stable'}`)}
             </p>
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.integrityCases')}</h3>
+            <AnalyticsModuleHead title={t('modules.integrityCases')} to="/admin/integrity-cases" />
             <AnalyticsMiniStat label={t('moduleLabels.totalCases')} value={String(modules?.integrityCases?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.underInvestigation')} value={String(modules?.integrityCases?.underInvestigation ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.resolved')} value={String(modules?.integrityCases?.resolved ?? '—')} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.recognition')}</h3>
+            <AnalyticsModuleHead title={t('modules.recognition')} to="/admin/recognition-requests" />
             <AnalyticsMiniStat label={t('moduleLabels.totalRequests')} value={String(modules?.recognition?.total ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.readyForSubmission')} value={String(modules?.recognition?.readyForSubmission ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.approvedRate')} value={`${modules?.recognition?.approvedRatePct ?? '—'}%`} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.certificates')}</h3>
+            <AnalyticsModuleHead title={t('modules.certificates')} to="/admin/certificates" />
             <AnalyticsMiniStat label={t('moduleLabels.totalIssued')} value={String(modules?.certificates?.totalIssued ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.issuedThisMonth')} value={String(modules?.certificates?.issuedThisMonth ?? '—')} />
           </div>
           <div className="analytics-module-block">
-            <h3 className="analytics-module-block__title">{t('modules.reportsAudit')}</h3>
+            <AnalyticsModuleHead title={t('modules.enrollmentRequests')} to="/admin/enrollments" />
+            <AnalyticsMiniStat label={t('moduleLabels.pendingReview')} value={String(modules?.enrollments?.pendingReview ?? '—')} />
+          </div>
+          <div className="analytics-module-block">
+            <AnalyticsModuleHead title={t('modules.learningOutcomes')} to="/admin/learning-outcomes" />
+            <AnalyticsMiniStat label={t('moduleLabels.totalOutcomes')} value={String(modules?.learningOutcomes?.total ?? '—')} />
+          </div>
+          <div className="analytics-module-block">
+            <AnalyticsModuleHead title={t('modules.content')} to="/admin/content" />
+            <AnalyticsMiniStat label={t('moduleLabels.courseModules')} value={String(modules?.content?.courseModules ?? '—')} />
+          </div>
+          <div className="analytics-module-block">
+            <AnalyticsModuleHead title={t('modules.reportsAudit')} to="/admin/reports" />
             <AnalyticsMiniStat label={t('moduleLabels.reportsGenerated')} value={String(modules?.reportsAudit?.reportsGeneratedPlaceholder ?? '—')} />
             <AnalyticsMiniStat
               label={t('moduleLabels.sensitiveActivities')}
               value={String(modules?.reportsAudit?.sensitiveActivitiesPlaceholder ?? '—')}
             />
+            <Link to="/admin/audit-logs" className="analytics-module-block__manage analytics-module-block__manage--inline">
+              {t('moduleLabels.openAuditLog')}
+            </Link>
           </div>
         </div>
       </AnalyticsSectionCard>

@@ -139,6 +139,7 @@ export function RegisterForm() {
         label={t('register.labels.password')}
         placeholder={t('register.placeholders.password')}
         error={errors.password?.message}
+        passwordToggle
         {...register('password')}
       />
 
@@ -149,6 +150,7 @@ export function RegisterForm() {
         label={t('register.labels.confirmPassword')}
         placeholder={t('register.placeholders.confirmPassword')}
         error={errors.confirm_password?.message}
+        passwordToggle
         {...register('confirm_password')}
       />
 

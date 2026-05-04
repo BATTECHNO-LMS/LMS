@@ -12,6 +12,7 @@
     "microCredentials": "Micro-credentials",
     "activeCohorts": "Active cohorts",
     "enrolledStudents": "Enrolled students",
+    "pendingEnrollments": "Pending enrollment requests",
     "attendanceRate": "Overall attendance rate",
     "delayedAssessments": "Delayed assessments",
     "missingEvidence": "Missing evidence items",
@@ -20,7 +21,8 @@
     "openIntegrity": "Open integrity cases",
     "certificatesIssued": "Certificates issued",
     "activeUsers": "Active users",
-    "helperDemo": "Based on selected period and filters"
+    "helperDemo": "Based on selected period and filters",
+    "helperEnrollments": "Awaiting staff approval (scoped by filters)"
   },
   "filters": {
     "university": "University",
@@ -153,9 +155,11 @@
     "topTrack": "Fastest-growing track: {{name}}",
     "lowAttendance": "Cohort with low attendance: {{name}}",
     "criticalLateAssessments": "Critical late assessments: {{count}}",
-    "recognitionReady": "Recognition requests ready for submission: {{count}}"
+    "recognitionReady": "Recognition requests ready for submission: {{count}}",
+    "pendingEnrollments": "Enrollment requests awaiting approval: {{count}}"
   },
   "alerts": {
+    "enrollmentPending": "{{count}} enrollment request(s) are pending review",
     "missingEvidence": "{{count}} evidence items are missing or incomplete",
     "integrityOpen": "{{count}} integrity cases are open",
     "qaOpen": "{{count}} QA reviews are not closed",
@@ -188,9 +192,17 @@
     "integrityCases": "Integrity",
     "recognition": "Recognition requests",
     "certificates": "Certificates",
+    "enrollmentRequests": "Enrollment requests",
+    "learningOutcomes": "Learning outcomes",
+    "content": "Course content",
     "reportsAudit": "Reports & audit"
   },
   "moduleLabels": {
+    "openModule": "Open in admin",
+    "openAuditLog": "Open audit log",
+    "pendingReview": "Pending review",
+    "totalOutcomes": "Learning outcomes defined",
+    "courseModules": "Course modules",
     "totalUsers": "Total users",
     "activeUsers": "Active users",
     "usersByRole": "Users by role",

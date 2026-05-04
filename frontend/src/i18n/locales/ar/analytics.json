@@ -12,6 +12,7 @@
     "microCredentials": "عدد الشهادات المصغرة",
     "activeCohorts": "عدد الدفعات النشطة",
     "enrolledStudents": "عدد الطلبة المسجلين",
+    "pendingEnrollments": "طلبات تسجيل بانتظار الموافقة",
     "attendanceRate": "نسبة الحضور العامة",
     "delayedAssessments": "عدد التقييمات المتأخرة",
     "missingEvidence": "عدد الأدلة الناقصة",
@@ -20,7 +21,8 @@
     "openIntegrity": "عدد حالات النزاهة المفتوحة",
     "certificatesIssued": "عدد الشهادات الصادرة",
     "activeUsers": "عدد المستخدمين النشطين",
-    "helperDemo": "حسب الفترة والفلاتر المختارة"
+    "helperDemo": "حسب الفترة والفلاتر المختارة",
+    "helperEnrollments": "بانتظار موافقة الإدارة (حسب نطاق الفلاتر)"
   },
   "filters": {
     "university": "الجامعة",
@@ -153,9 +155,11 @@
     "topTrack": "أكثر مسار نموًا: {{name}}",
     "lowAttendance": "الدفعات ذات الحضور المنخفض: {{name}}",
     "criticalLateAssessments": "التقييمات المتأخرة الحرجة: {{count}}",
-    "recognitionReady": "طلبات الاعتراف الجاهزة للتقديم: {{count}}"
+    "recognitionReady": "طلبات الاعتراف الجاهزة للتقديم: {{count}}",
+    "pendingEnrollments": "طلبات تسجيل بانتظار الموافقة: {{count}}"
   },
   "alerts": {
+    "enrollmentPending": "عدد {{count}} طلب(ات) تسجيل بانتظار المراجعة",
     "missingEvidence": "أدلة ناقصة أو غير مكتملة: {{count}}",
     "integrityOpen": "حالات نزاهة مفتوحة: {{count}}",
     "qaOpen": "مراجعات جودة غير مغلقة: {{count}}",
@@ -188,9 +192,17 @@
     "integrityCases": "النزاهة",
     "recognition": "طلبات الاعتراف",
     "certificates": "الشهادات",
+    "enrollmentRequests": "طلبات التسجيل",
+    "learningOutcomes": "مخرجات التعلم",
+    "content": "محتوى المقرر",
     "reportsAudit": "التقارير والتدقيق"
   },
   "moduleLabels": {
+    "openModule": "فتح في الإدارة",
+    "openAuditLog": "سجل التدقيق",
+    "pendingReview": "بانتظار المراجعة",
+    "totalOutcomes": "مخرجات التعلم المعرفة",
+    "courseModules": "وحدات المقرر",
     "totalUsers": "إجمالي المستخدمين",
     "activeUsers": "المستخدمون النشطون",
     "usersByRole": "المستخدمون حسب الدور",

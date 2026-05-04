@@ -22,10 +22,13 @@ export function AppNavbar({
 }) {
   const { t } = useTranslation('common');
   const title = projectTitle ?? t('brand');
-  const compactHeader = useMediaQuery('(max-width: 640px)');
+  /** Icon-only lang + user to save horizontal space on tablet / narrow desktop */
+  const narrowHeader = useMediaQuery('(max-width: 1024px)');
+  /** Hide tenant switcher on phones where global scope is rarely changed */
+  const compactTools = useMediaQuery('(max-width: 640px)');
 
   return (
-    <header className={cn('app-header', compactHeader && 'app-header--compact-tools', className)}>
+    <header className={cn('app-header', compactTools && 'app-header--compact-tools', className)}>
       <div className="app-header__start">
         {showMobileMenuToggle ? (
           <button
@@ -45,14 +48,12 @@ export function AppNavbar({
         <span className="app-header__page-title">{pageTitle}</span>
       </div>
       <div className="app-header__end">
-        <div className="app-header__end-group">
+        <div className="app-header__tools">
           <TenantSwitcher />
           <TenantReadonlyBadge />
-        </div>
-        <div className="app-header__end-group">
-          <LanguageSwitcher compact={compactHeader} />
+          <LanguageSwitcher compact={narrowHeader} />
           <NotificationBell />
-          <UserDropdown userName={userName} userEmail={userEmail} onLogout={onLogout} compact={compactHeader} />
+          <UserDropdown userName={userName} userEmail={userEmail} onLogout={onLogout} compact={narrowHeader} />
         </div>
       </div>
     </header>

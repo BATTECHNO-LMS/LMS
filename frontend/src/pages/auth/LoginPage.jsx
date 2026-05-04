@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import { useAuth } from '../../features/auth/index.js';
 import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
+import { ROLES } from '../../constants/roles.js';
 import brandLogo from '../../assets/images/batman-logo.png';
 
 export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRoleLabelEn = '' }) {
@@ -74,6 +75,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
   }
 
   const portalLabel = i18n.language?.startsWith('ar') ? forcedRoleLabelAr : forcedRoleLabelEn;
+  const showStudentSignUp = !forcedRole || forcedRole === ROLES.STUDENT;
 
   return (
     <div className="auth-page">
@@ -121,14 +123,26 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
             autoComplete="current-password"
             placeholder={t('login.placeholders.password')}
             error={errors.password?.message}
+            passwordToggle
             {...register('password')}
           />
 
           {serverError ? <p className="auth-form__error">{serverError}</p> : null}
 
-          <Button type="submit" variant="primary" disabled={submitting}>
-            {submitting ? t('login.submitting') : t('login.submit')}
-          </Button>
+          <div className="auth-form__actions">
+            <Button type="submit" variant="primary" disabled={submitting}>
+              {submitting ? t('login.submitting') : t('login.submit')}
+            </Button>
+          </div>
+
+          {showStudentSignUp ? (
+            <p className="auth-form__sign-up-row">
+              <span>{t('login.signUpPrompt')}</span>{' '}
+              <Link className="auth-form__sign-up-link" to="/register">
+                {t('login.signUpLink')}
+              </Link>
+            </p>
+          ) : null}
         </form>
       </div>
     </div>

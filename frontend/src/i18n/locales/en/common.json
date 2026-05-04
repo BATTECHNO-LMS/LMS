@@ -73,6 +73,10 @@
   "logo": {
     "alt": "LMS — Learning Management System"
   },
+  "passwordVisibility": {
+    "show": "Show password",
+    "hide": "Hide password"
+  },
   "unauthorized": {
     "title": "You are not authorized to access this page",
     "description": "You do not have enough permissions to view this content. If you should have access, contact an administrator.",

@@ -1,16 +1,20 @@
 @use '../abstracts/variables' as *;
 @use '../abstracts/mixins' as *;
 
+/**
+ * Grid (not flex + margin:auto): column 1 sits at inline-start, tools at inline-end.
+ * Under `dir=rtl`, column 1 is on the right — brand + title stay clustered without a hollow flex middle.
+ */
 .app-header {
   position: sticky;
   top: 0;
   z-index: $z-header;
-  display: flex;
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  column-gap: 1rem;
   row-gap: 0.5rem;
-  column-gap: 0.75rem;
   min-height: $header-height;
   padding: 0.5rem 1rem;
   background: var(--color-card);
@@ -20,7 +24,6 @@
 
 @media (min-width: 1025px) {
   .app-header {
-    flex-wrap: nowrap;
     padding: 0 1.25rem;
   }
 }
@@ -29,9 +32,10 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1 1 0;
   min-width: 0;
   max-width: 100%;
+  /** Shrink-to-fit in the first track so the page title does not span the whole `1fr` cell */
+  justify-self: start;
 }
 
 .app-header__logo {
@@ -61,8 +65,10 @@
   font-weight: 600;
   color: var(--color-heading);
   min-width: 0;
-  flex: 1 1 auto;
-  @include line-clamp(1);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-header__menu-toggle {
@@ -96,11 +102,27 @@
     display: inline-flex;
   }
 
-  /** Keep a single top bar on tablet/phone; avoid stacked header rows */
+  /** Stacked rows: title row, then a full-width tool strip (prevents overlap). */
   .app-header {
-    flex-wrap: nowrap;
-    row-gap: 0;
-    align-items: center;
+    grid-template-columns: 1fr;
+  }
+
+  .app-header__logo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(42vw, 15rem);
+  }
+
+  .app-header__end {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 100%;
+    justify-self: stretch;
+    justify-content: flex-end;
+  }
+
+  .app-header__lang-select {
+    min-width: 5.5rem;
   }
 
   .notification-bell {
@@ -111,10 +133,21 @@
   .user-dropdown__trigger {
     min-height: 2.75rem;
   }
+
+  .tenant-scope {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: min(22rem, 100%);
+  }
+
+  .tenant-scope__select {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
 }
 
 /** Phone: icon language + icon-only user (see AppNavbar compact prop) */
-.app-header--compact-tools .app-header__end-group {
+.app-header--compact-tools .app-header__tools {
   flex-wrap: nowrap;
 }
 
@@ -170,26 +203,24 @@
 .app-header__end {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0.5rem;
   min-width: 0;
-  flex: 1 1 auto;
+  max-width: 100%;
+  justify-self: end;
 }
 
-@media (min-width: 1025px) {
-  .app-header__end {
-    flex: 0 1 auto;
-  }
-}
-
-.app-header__end-group {
+/**
+ * One flex strip for tenant + lang + actions. Wrapping avoids overlap when the
+ * university select is wide next to the language control on mid-width desktops.
+ */
+.app-header__tools {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
   justify-content: flex-end;
+  gap: 0.5rem 0.75rem;
   min-width: 0;
+  max-width: 100%;
 }
 
 .app-header__lang-btn {
@@ -222,6 +253,7 @@
 
 .app-header__lang-select {
   min-width: 7.5rem;
+  flex-shrink: 0;
   cursor: pointer;
   appearance: auto;
 }
@@ -446,6 +478,8 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  flex: 0 1 auto;
+  min-width: 0;
   max-width: min(14rem, 100%);
 }
 
@@ -454,10 +488,13 @@
   font-weight: 700;
   color: var(--color-text-muted);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tenant-scope__select {
+  min-width: 0;
   min-height: 2.35rem;
+  width: 100%;
   max-width: 100%;
   padding: 0.2rem 0.5rem;
   border: 1px solid var(--color-border);

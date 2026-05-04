@@ -105,6 +105,7 @@ export function UserCreatePage() {
               onChange={(e) => setField('password', e.target.value)}
               error={errors.password}
               autoComplete="new-password"
+              passwordToggle
             />
             <FormSelect
               id="role"

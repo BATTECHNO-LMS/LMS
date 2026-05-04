@@ -116,10 +116,19 @@ async function getOverview(filters) {
     ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
     ...inDateRange('enrolled_at', filters),
   };
-  const enrolledRows = await prisma.enrollments.findMany({
-    where: enrollmentsWhere,
-    select: { student_id: true, attendance_percentage: true, final_status: true },
-  });
+  const [enrolledRows, pendingEnrollmentCount] = await Promise.all([
+    prisma.enrollments.findMany({
+      where: enrollmentsWhere,
+      select: { student_id: true, attendance_percentage: true, final_status: true },
+    }),
+    prisma.enrollments.count({
+      where: {
+        ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
+        enrollment_status: 'pending',
+        ...inDateRange('enrolled_at', filters),
+      },
+    }),
+  ]);
   const totalEnrolledStudents = new Set(enrolledRows.map((r) => r.student_id)).size;
 
   const sessions = await prisma.sessions.findMany({
@@ -254,6 +263,7 @@ async function getOverview(filters) {
       openIntegrityCases: openIntegrity,
       certificatesIssued: issuedCertificates,
       activeUsers,
+      pendingEnrollments: pendingEnrollmentCount,
     },
     scope,
   };
@@ -598,4 +608,6 @@ module.exports = {
   getQaIntegrityOverview,
   getRecognitionFunnel,
   getCertificatesAnalytics,
+  resolveCohortScope,
+  hasScopedCohortFilter,
 };

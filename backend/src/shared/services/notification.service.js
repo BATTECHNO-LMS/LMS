@@ -42,14 +42,42 @@ async function createNotificationForUser(payload) {
   if (payload.actionUrl != null) {
     data.action_url = payload.actionUrl;
   }
+
+  function isInvalidNotificationType(msg) {
+    return (
+      msg.includes('Invalid value for argument `type`') ||
+      (msg.includes('invalid input value for enum') && msg.includes('notification_type'))
+    );
+  }
+
+  async function createWithTypeFallback(err, attemptData) {
+    const msg = String(err?.message || '');
+    if (!isInvalidNotificationType(msg) || attemptData.type === 'system') {
+      throw err;
+    }
+    // Stale Prisma client (run `npx prisma generate`) or DB enum behind migrations (`prisma migrate deploy`).
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[createNotificationForUser] Falling back to type "system" (extended enum not in client or database).',
+      err?.code || msg.slice(0, 200)
+    );
+    return prisma.notifications.create({ data: { ...attemptData, type: 'system' } });
+  }
+
   try {
     return await prisma.notifications.create({ data });
   } catch (err) {
     const msg = String(err?.message || '');
     const missingCol = msg.includes('action_url') || msg.includes('Unknown arg');
-    if (!missingCol) throw err;
-    delete data.action_url;
-    return prisma.notifications.create({ data });
+    if (missingCol) {
+      delete data.action_url;
+      try {
+        return await prisma.notifications.create({ data });
+      } catch (err2) {
+        return createWithTypeFallback(err2, data);
+      }
+    }
+    return createWithTypeFallback(err, data);
   }
 }
 
@@ -275,9 +303,17 @@ async function findStakeholdersForEnrollmentRequest(universityId) {
 async function resolveEnrollmentRequestActionUrl(userId) {
   const links = await prisma.user_roles.findMany({
     where: { user_id: userId },
-    include: { roles: { select: { code: true } } },
+    select: { role_id: true },
   });
-  const codes = links.map((l) => l.roles.code);
+  const roleIds = [...new Set(links.map((l) => l.role_id))];
+  const roleRows =
+    roleIds.length > 0
+      ? await prisma.roles.findMany({
+          where: { id: { in: roleIds } },
+          select: { code: true },
+        })
+      : [];
+  const codes = roleRows.map((r) => r.code);
   const isElevated = codes.some((c) =>
     ['super_admin', 'program_admin', 'academic_admin'].includes(c)
   );
