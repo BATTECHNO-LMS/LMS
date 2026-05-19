@@ -11,6 +11,8 @@
     "items": {
       "dashboard": "Home",
       "analytics": "Analytics & statistics",
+      "courses": "Course management",
+      "fieldTraining": "Field training management",
       "users": "Users",
       "roles": "Roles and permissions",
       "settings": "Settings",
@@ -56,6 +58,8 @@
   "student": {
     "home": "Home",
     "availableCohorts": "Browse cohorts",
+    "courses": "Courses",
+    "fieldTraining": "Field training",
     "programs": "My enrolled credentials",
     "semesterSchedule": "Semester schedule",
     "content": "Content",

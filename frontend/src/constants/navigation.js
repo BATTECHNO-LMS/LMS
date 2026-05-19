@@ -10,6 +10,8 @@ import {
   AlertTriangle,
   GraduationCap,
   BookOpen,
+  BookMarked,
+  Briefcase,
   Award,
   FileBadge,
   Bell,
@@ -56,6 +58,8 @@ export const NAV_BY_ROLE = {
   [ROLES.STUDENT]: [
     navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
     navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
+    navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
+    navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining),
     navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
     navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
     navItem('/student/content', 'content', BookOpen, P.canViewContent),

@@ -88,6 +88,11 @@ import { AuditLogsPage } from '../../pages/admin/AuditLogsPage.jsx';
 import { AuditLogDetailsPage } from '../../pages/admin/AuditLogDetailsPage.jsx';
 import { SettingsPage } from '../../pages/admin/SettingsPage.jsx';
 import { SuperAdminAnalyticsRoute } from '../../pages/admin/SuperAdminAnalyticsRoute.jsx';
+import { SuperAdminCoursesRoute } from '../../pages/admin/courses/SuperAdminCoursesRoute.jsx';
+import { AdminCourseLessonsPage } from '../../pages/admin/courses/AdminCourseLessonsPage.jsx';
+import { SuperAdminFieldTrainingRoute } from '../../pages/admin/fieldTraining/SuperAdminFieldTrainingRoute.jsx';
+import { AdminFieldTrainingApplicationsPage } from '../../pages/admin/fieldTraining/AdminFieldTrainingApplicationsPage.jsx';
+import { AdminFieldTrainingTasksPage } from '../../pages/admin/fieldTraining/AdminFieldTrainingTasksPage.jsx';
 import { InstructorDashboardPage } from '../../pages/instructor/InstructorDashboardPage.jsx';
 import { MyCohortsPage } from '../../pages/instructor/MyCohortsPage.jsx';
 import { InstructorSessionsPage } from '../../pages/instructor/InstructorSessionsPage.jsx';
@@ -100,6 +105,10 @@ import { RiskStudentsPage } from '../../pages/instructor/RiskStudentsPage.jsx';
 import { InstructorAssessmentCreatePage } from '../../pages/instructor/InstructorAssessmentCreatePage.jsx';
 import { InstructorAssessmentEditPage } from '../../pages/instructor/InstructorAssessmentEditPage.jsx';
 import { StudentDashboardPage } from '../../pages/student/StudentDashboardPage.jsx';
+import { StudentCoursesPage } from '../../pages/student/StudentCoursesPage.jsx';
+import { StudentCourseDetailPage } from '../../pages/student/StudentCourseDetailPage.jsx';
+import { StudentFieldTrainingPage } from '../../pages/student/StudentFieldTrainingPage.jsx';
+import { StudentFieldTrainingDetailPage } from '../../pages/student/StudentFieldTrainingDetailPage.jsx';
 import { StudentEntryRedirect } from '../../pages/student/StudentEntryRedirect.jsx';
 import { AvailableCohortsPage } from '../../pages/student/AvailableCohortsPage.jsx';
 import { MyProgramsPage } from '../../pages/student/MyProgramsPage.jsx';
@@ -162,6 +171,32 @@ export function AppRouter() {
           <Route element={<RoleBasedRoute allowedRoles={ADMIN_ROLE_SET} />}>
             <Route path="dashboard" element={<AdminDashboardPage />} />
             <Route path="analytics" element={<SuperAdminAnalyticsRoute />} />
+            <Route path="courses" element={<SuperAdminCoursesRoute />} />
+            <Route
+              path="courses/:id/lessons"
+              element={
+                <SuperAdminCoursesRoute>
+                  <AdminCourseLessonsPage />
+                </SuperAdminCoursesRoute>
+              }
+            />
+            <Route path="field-training" element={<SuperAdminFieldTrainingRoute />} />
+            <Route
+              path="field-training/:id/applications"
+              element={
+                <SuperAdminFieldTrainingRoute>
+                  <AdminFieldTrainingApplicationsPage />
+                </SuperAdminFieldTrainingRoute>
+              }
+            />
+            <Route
+              path="field-training/:id/tasks"
+              element={
+                <SuperAdminFieldTrainingRoute>
+                  <AdminFieldTrainingTasksPage />
+                </SuperAdminFieldTrainingRoute>
+              }
+            />
             <Route path="users/create" element={<UserCreatePage />} />
             <Route path="users/:id/edit" element={<UserEditPage />} />
             <Route path="users/:id" element={<UserViewPage />} />
@@ -266,6 +301,10 @@ export function AppRouter() {
             <Route path="enrollments" element={<Navigate to="/student/programs" replace />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<StudentDashboardPage />} />
+              <Route path="courses" element={<StudentCoursesPage />} />
+              <Route path="courses/:id" element={<StudentCourseDetailPage />} />
+              <Route path="field-training" element={<StudentFieldTrainingPage />} />
+              <Route path="field-training/:id" element={<StudentFieldTrainingDetailPage />} />
               <Route path="available-cohorts" element={<AvailableCohortsPage />} />
               <Route path="semester-schedule" element={<StudentSemesterSchedulePage />} />
               <Route path="programs/:id" element={<StudentProgramDetailPage />} />

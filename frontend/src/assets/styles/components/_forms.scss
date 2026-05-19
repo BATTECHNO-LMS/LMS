@@ -111,19 +111,20 @@ textarea.form-field__control--textarea {
   border-radius: $radius-pill;
   background: var(--color-border);
   flex-shrink: 0;
+  overflow: hidden;
   @include transition(background-color, 0.15s);
 
   &::after {
     content: '';
     position: absolute;
     top: 2px;
-    right: 2px;
+    inset-inline-start: 2px;
     width: 1.15rem;
     height: 1.15rem;
     border-radius: 50%;
     background: var(--color-card);
     box-shadow: $shadow-sm;
-    @include transition(transform, 0.15s);
+    @include transition(inset-inline-start, 0.15s);
   }
 }
 
@@ -136,11 +137,7 @@ textarea.form-field__control--textarea {
 }
 
 .form-switch__input:checked + .form-switch__slider::after {
-  transform: translateX(-1.2rem);
-}
-
-[dir='rtl'] .form-switch__input:checked + .form-switch__slider::after {
-  transform: translateX(1.2rem);
+  inset-inline-start: calc(100% - 1.15rem - 2px);
 }
 
 .form-switch__label {

@@ -21,6 +21,7 @@ model cohorts {
   created_at          DateTime       @default(now()) @db.Timestamptz(6)
   updated_at          DateTime       @default(now()) @db.Timestamptz(6)
   assessments         assessments[]
+  course_cohorts      course_cohorts[]
 
   @@index([instructor_id], map: "idx_cohorts_instructor_id")
   @@index([micro_credential_id], map: "idx_cohorts_micro_credential_id")
@@ -835,4 +836,252 @@ enum user_status {
   active
   inactive
   suspended
+}
+
+/// Standalone LMS courses; visibility to students via course_cohorts (optional).
+model courses {
+  id                         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                      String        @db.VarChar(255)
+  slug                       String        @unique @db.VarChar(255)
+  short_description          String?
+  description                String?
+  cover_image_url            String?
+  category                   String?       @db.VarChar(120)
+  level                      course_level  @default(beginner)
+  status                     course_status @default(draft)
+  estimated_duration_minutes Int?
+  created_by_id              String?       @db.Uuid
+  published_at               DateTime?     @db.Timestamptz(6)
+  created_at                 DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime      @default(now()) @db.Timestamptz(6)
+
+  course_sections        course_sections[]
+  course_lessons         course_lessons[]
+  course_enrollments     course_enrollments[]
+  course_lesson_progress course_lesson_progress[]
+  course_cohorts         course_cohorts[]
+
+  @@index([status], map: "idx_courses_status")
+  @@index([level], map: "idx_courses_level")
+  @@index([created_by_id], map: "idx_courses_created_by_id")
+}
+
+model course_sections {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id  String   @db.Uuid
+  title      String   @db.VarChar(255)
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+
+  courses        courses          @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lessons course_lessons[]
+
+  @@index([course_id], map: "idx_course_sections_course_id")
+}
+
+model course_lessons {
+  id                String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id         String               @db.Uuid
+  section_id        String               @db.Uuid
+  title             String               @db.VarChar(255)
+  description       String?
+  type              course_lesson_type
+  video_url         String?
+  content           String?
+  resource_url      String?
+  duration_minutes  Int?
+  sort_order        Int                  @default(0)
+  is_preview        Boolean              @default(false)
+  is_required       Boolean              @default(true)
+  status            course_lesson_status @default(draft)
+  created_at        DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime             @default(now()) @db.Timestamptz(6)
+
+  courses                courses                  @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_sections        course_sections          @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lesson_progress course_lesson_progress[]
+
+  @@index([course_id], map: "idx_course_lessons_course_id")
+  @@index([section_id], map: "idx_course_lessons_section_id")
+  @@index([status], map: "idx_course_lessons_status")
+}
+
+model course_cohorts {
+  course_id  String   @db.Uuid
+  cohort_id  String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  courses courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  cohorts cohorts @relation(fields: [cohort_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([course_id, cohort_id])
+  @@index([cohort_id], map: "idx_course_cohorts_cohort_id")
+}
+
+model course_enrollments {
+  id           String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id    String                   @db.Uuid
+  student_id   String                   @db.Uuid
+  status       course_enrollment_status @default(active)
+  started_at   DateTime                 @default(now()) @db.Timestamptz(6)
+  completed_at DateTime?                @db.Timestamptz(6)
+  created_at   DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                 @default(now()) @db.Timestamptz(6)
+
+  courses courses @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([course_id, student_id], map: "uq_course_enrollments")
+  @@index([student_id], map: "idx_course_enrollments_student_id")
+}
+
+model course_lesson_progress {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  course_id    String    @db.Uuid
+  lesson_id    String    @db.Uuid
+  student_id   String    @db.Uuid
+  is_completed Boolean   @default(false)
+  completed_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+
+  courses        courses        @relation(fields: [course_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  course_lessons course_lessons @relation(fields: [lesson_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([lesson_id, student_id], map: "uq_course_lesson_progress")
+  @@index([course_id, student_id], map: "idx_course_lesson_progress_course_student")
+}
+
+enum course_level {
+  beginner
+  intermediate
+  advanced
+  all_levels
+}
+
+enum course_status {
+  draft
+  published
+  archived
+}
+
+enum course_lesson_type {
+  video
+  text
+  link
+  file
+}
+
+enum course_lesson_status {
+  draft
+  published
+}
+
+enum course_enrollment_status {
+  active
+  completed
+}
+
+/// Field training opportunities (MVP — independent from courses / cohorts).
+model field_training_opportunities {
+  id                   String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                String                            @db.VarChar(255)
+  slug                 String                            @unique @db.VarChar(255)
+  organization_name    String                            @db.VarChar(255)
+  location             String                            @db.VarChar(255)
+  training_mode        field_training_mode
+  short_description    String?
+  description          String?
+  requirements         String?
+  benefits             String?
+  seats_limit          Int?
+  start_date           DateTime?                         @db.Date
+  end_date             DateTime?                         @db.Date
+  application_deadline DateTime?                         @db.Date
+  status               field_training_opportunity_status @default(draft)
+  created_by_id        String?                           @db.Uuid
+  published_at         DateTime?                         @db.Timestamptz(6)
+  created_at           DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                          @default(now()) @db.Timestamptz(6)
+
+  field_training_applications field_training_applications[]
+  field_training_tasks        field_training_tasks[]
+
+  @@index([status], map: "idx_field_training_opportunities_status")
+  @@index([training_mode], map: "idx_field_training_opportunities_mode")
+  @@index([created_by_id], map: "idx_field_training_opportunities_created_by")
+}
+
+model field_training_applications {
+  id              String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunity_id  String                            @db.Uuid
+  student_id      String                            @db.Uuid
+  status          field_training_application_status @default(pending)
+  student_message String?
+  admin_note      String?
+  reviewed_by_id  String?                           @db.Uuid
+  reviewed_at     DateTime?                         @db.Timestamptz(6)
+  created_at      DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                          @default(now()) @db.Timestamptz(6)
+
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_task_submissions field_training_task_submissions[]
+
+  @@unique([opportunity_id, student_id], map: "uq_field_training_applications")
+  @@index([student_id], map: "idx_field_training_applications_student")
+  @@index([status], map: "idx_field_training_applications_status")
+}
+
+enum field_training_mode {
+  onsite
+  remote
+  hybrid
+}
+
+enum field_training_opportunity_status {
+  draft
+  published
+  archived
+}
+
+enum field_training_application_status {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+model field_training_tasks {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  opportunity_id String   @db.Uuid
+  title          String   @db.VarChar(255)
+  description    String?
+  sort_order     Int      @default(0)
+  due_date       DateTime? @db.Date
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_opportunities    field_training_opportunities    @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_task_submissions field_training_task_submissions[]
+
+  @@index([opportunity_id], map: "idx_field_training_tasks_opportunity")
+}
+
+model field_training_task_submissions {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id        String   @db.Uuid
+  application_id String   @db.Uuid
+  student_id     String   @db.Uuid
+  file_path      String   @db.VarChar(500)
+  file_name      String   @db.VarChar(255)
+  mime_type      String?  @db.VarChar(120)
+  submitted_at   DateTime @default(now()) @db.Timestamptz(6)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_tasks        field_training_tasks        @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([task_id, application_id], map: "uq_field_training_task_submissions")
+  @@index([student_id], map: "idx_field_training_task_submissions_student")
 }

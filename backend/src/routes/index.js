@@ -32,5 +32,9 @@ router.use('/notifications', require('../modules/notifications/notifications.rou
 router.use('/analytics', require('../modules/analytics/analytics.routes'));
 router.use('/reports', require('../modules/reports/reports.routes'));
 router.use('/audit-logs', require('../modules/audit-logs/auditLogs.routes'));
+router.use('/admin/courses', require('../modules/courses/adminCourses.routes'));
+router.use('/student/courses', require('../modules/courses/studentCourses.routes'));
+router.use('/admin/field-training', require('../modules/fieldTraining/adminFieldTraining.routes'));
+router.use('/student/field-training', require('../modules/fieldTraining/studentFieldTraining.routes'));
 
 module.exports = router;

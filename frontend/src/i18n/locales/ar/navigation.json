@@ -11,6 +11,8 @@
     "items": {
       "dashboard": "الرئيسية",
       "analytics": "الإحصائيات والتحليلات",
+      "courses": "إدارة الكورسات",
+      "fieldTraining": "إدارة التدريب الميداني",
       "users": "المستخدمون",
       "roles": "الأدوار والصلاحيات",
       "settings": "الإعدادات",
@@ -56,6 +58,8 @@
   "student": {
     "home": "الرئيسية",
     "availableCohorts": "الدفعات المتاحة",
+    "courses": "الكورسات",
+    "fieldTraining": "التدريب الميداني",
     "programs": "شهاداتي المسجل بها",
     "semesterSchedule": "الجدول الفصلي",
     "content": "المحتوى",
