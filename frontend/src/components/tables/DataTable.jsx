@@ -26,6 +26,7 @@ import { getCellContent, resolveMobileLayout } from './dataTableMobileLayout.js'
  *   emptyTitle?: string | React.ReactNode,
  *   emptyDescription?: string | React.ReactNode,
  *   footer?: React.ReactNode,
+ *   getRowClassName?: (row: object, index: number) => string | undefined,
  * }} props
  */
 export function DataTable({
@@ -35,6 +36,7 @@ export function DataTable({
   emptyTitle = 'لا توجد بيانات',
   emptyDescription = 'لم يتم العثور على سجلات مطابقة.',
   footer,
+  getRowClassName,
 }) {
   const { locale } = useLocale();
   const layout = useMemo(() => resolveMobileLayout(columns), [columns]);
@@ -76,7 +78,7 @@ export function DataTable({
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={row.id ?? i}>
+                <tr key={row.id ?? i} className={getRowClassName?.(row, i)}>
                   {columns.map((col) => {
                     const isActionsCol = col.key === 'actions';
                     return (

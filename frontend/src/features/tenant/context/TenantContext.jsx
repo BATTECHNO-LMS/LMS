@@ -39,8 +39,9 @@ export function TenantProvider({ children }) {
   const { data: uniPayload } = useQuery({
     queryKey: ['tenant-universities-catalog'],
     queryFn: fetchUniversitiesList,
-    enabled: Boolean(user),
+    enabled: Boolean(user?.isGlobal),
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   const tenantCatalog = useMemo(() => mapUniversitiesToTenants(uniPayload?.universities ?? []), [uniPayload]);

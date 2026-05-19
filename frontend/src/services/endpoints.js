@@ -43,4 +43,8 @@ export const endpoints = {
   auditLogs: `${API_V}/audit-logs`,
   analytics: `${API_V}/analytics`,
   reports: `${API_V}/reports`,
+  adminCourses: `${API_V}/admin/courses`,
+  studentCourses: `${API_V}/student/courses`,
+  adminFieldTraining: `${API_V}/admin/field-training`,
+  studentFieldTraining: `${API_V}/student/field-training`,
 };
