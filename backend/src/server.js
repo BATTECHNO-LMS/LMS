@@ -11,7 +11,6 @@ function assertProductionConfig() {
   if (!env.JWT_SECRET || env.JWT_SECRET.length < env.JWT_SECRET_MIN_LENGTH) {
     errors.push(`JWT_SECRET must be at least ${env.JWT_SECRET_MIN_LENGTH} characters in production`);
   }
-  if (!env.CORS_ORIGINS.length) errors.push('CORS_ORIGINS must list at least one origin in production');
   if (errors.length) {
     // eslint-disable-next-line no-console
     console.error('Invalid production configuration:\n', errors.join('\n'));

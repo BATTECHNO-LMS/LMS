@@ -24,14 +24,27 @@ app.use(
   })
 );
 
-const corsOrigins =
-  env.NODE_ENV === 'production'
-    ? env.CORS_ORIGINS
-    : [...new Set([...env.CORS_ORIGINS, 'http://localhost:5173', 'http://127.0.0.1:5173'])];
+const allowedOrigins = [
+  ...new Set([
+    'https://lms.battechno.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    ...env.CORS_ORIGINS,
+  ]),
+];
+
 app.use(
   cors({
-    origin: corsOrigins.length ? corsOrigins : false,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400,
   })
 );

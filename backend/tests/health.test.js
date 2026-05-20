@@ -15,3 +15,23 @@ test('GET /health returns 200', async () => {
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.status, 'ok');
 });
+
+test('CORS preflight allows production frontend for /api/auth/login', async () => {
+  const res = await request(app)
+    .options('/api/auth/login')
+    .set('Origin', 'https://lms.battechno.com')
+    .set('Access-Control-Request-Method', 'POST')
+    .set('Access-Control-Request-Headers', 'Content-Type, Authorization');
+
+  assert.strictEqual(res.status, 204);
+  assert.strictEqual(res.headers['access-control-allow-origin'], 'https://lms.battechno.com');
+  assert.match(res.headers['access-control-allow-methods'], /POST/);
+});
+
+test('CORS rejects unknown origins', async () => {
+  const res = await request(app)
+    .get('/health')
+    .set('Origin', 'https://evil.example.com');
+
+  assert.notStrictEqual(res.headers['access-control-allow-origin'], 'https://evil.example.com');
+});
