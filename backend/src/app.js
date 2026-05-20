@@ -14,24 +14,11 @@ const { apiLimiter, authLimiter } = require('./middlewares/rateLimit.middleware'
 const app = express();
 app.set('trust proxy', 1);
 
-app.use(requestIdMiddleware);
-
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' },
-  })
-);
-
 const allowedOrigins = [
-  ...new Set([
-    'https://lms.battechno.com',
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    ...env.CORS_ORIGINS,
-  ]),
+  'https://lms.battechno.com',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  ...env.CORS_ORIGINS,
 ];
 
 app.use(
@@ -46,6 +33,16 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     maxAge: 86400,
+  })
+);
+
+app.use(requestIdMiddleware);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
 
