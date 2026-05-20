@@ -12,10 +12,7 @@ const { createRequestLogger } = require('./middlewares/requestLogger.middleware'
 const { apiLimiter, authLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
-
-if (env.TRUST_PROXY) {
-  app.set('trust proxy', 1);
-}
+app.set('trust proxy', 1);
 
 app.use(requestIdMiddleware);
 
@@ -44,6 +41,14 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 app.use(express.json({ limit: '2mb' }));
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    service: 'BATTECHNO-LMS API',
+    status: 'running',
+  });
+});
 
 app.get('/health', (req, res) => {
   res.status(200).json({

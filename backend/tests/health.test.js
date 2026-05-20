@@ -3,6 +3,13 @@ const assert = require('node:assert');
 const request = require('supertest');
 const app = require('../src/app');
 
+test('GET / returns 200', async () => {
+  const res = await request(app).get('/');
+  assert.strictEqual(res.status, 200);
+  assert.strictEqual(res.body.success, true);
+  assert.strictEqual(res.body.status, 'running');
+});
+
 test('GET /health returns 200', async () => {
   const res = await request(app).get('/health');
   assert.strictEqual(res.status, 200);
