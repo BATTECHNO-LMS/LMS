@@ -12,29 +12,37 @@ const { createRequestLogger } = require('./middlewares/requestLogger.middleware'
 const { apiLimiter, authLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
+
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
   'https://lms.battechno.com',
+  'https://www.lms.battechno.com',
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
   ...env.CORS_ORIGINS,
 ];
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 86400,
-  })
-);
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked origin: ${origin}`));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+app.use(express.json({ limit: '2mb' }));
 
 app.use(requestIdMiddleware);
 
@@ -49,8 +57,6 @@ app.use(
 if (process.env.NODE_ENV !== 'test') {
   app.use(createRequestLogger());
 }
-
-app.use(express.json({ limit: '2mb' }));
 
 app.get('/', (req, res) => {
   res.status(200).json({

@@ -4,11 +4,14 @@ const { env } = require('../config/env');
 const windowMs = env.RATE_LIMIT_WINDOW_MS;
 const max = env.RATE_LIMIT_MAX;
 
+const skipPreflight = (req) => req.method === 'OPTIONS';
+
 const apiLimiter = rateLimit({
   windowMs,
   max,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipPreflight,
   message: { success: false, message: 'Too many requests', code: 'RATE_LIMIT' },
 });
 
@@ -17,6 +20,7 @@ const authLimiter = rateLimit({
   max: env.AUTH_RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: skipPreflight,
   message: { success: false, message: 'Too many authentication attempts', code: 'AUTH_RATE_LIMIT' },
 });
 

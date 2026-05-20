@@ -21,11 +21,23 @@ test('CORS preflight allows production frontend for /api/auth/login', async () =
     .options('/api/auth/login')
     .set('Origin', 'https://lms.battechno.com')
     .set('Access-Control-Request-Method', 'POST')
-    .set('Access-Control-Request-Headers', 'Content-Type, Authorization');
+    .set('Access-Control-Request-Headers', 'content-type, authorization, x-requested-with');
 
   assert.strictEqual(res.status, 204);
   assert.strictEqual(res.headers['access-control-allow-origin'], 'https://lms.battechno.com');
   assert.match(res.headers['access-control-allow-methods'], /POST/);
+  assert.ok(res.headers['access-control-allow-credentials']);
+});
+
+test('CORS preflight allows www production frontend', async () => {
+  const res = await request(app)
+    .options('/api/auth/me')
+    .set('Origin', 'https://www.lms.battechno.com')
+    .set('Access-Control-Request-Method', 'GET')
+    .set('Access-Control-Request-Headers', 'authorization');
+
+  assert.strictEqual(res.status, 204);
+  assert.strictEqual(res.headers['access-control-allow-origin'], 'https://www.lms.battechno.com');
 });
 
 test('CORS rejects unknown origins', async () => {
