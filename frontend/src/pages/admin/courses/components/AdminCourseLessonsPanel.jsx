@@ -306,6 +306,7 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
             {lessons.map((lesson, index) => (
               <AdminLessonRow
                 key={lesson.id}
+                courseId={courseId}
                 index={index}
                 lesson={lesson}
                 expanded={expandedLessonId === lesson.id}

@@ -94,6 +94,40 @@ const listStudentCoursesQuerySchema = z.object({
   category: z.string().optional(),
 });
 
+const lessonTrainingQuestionSchema = z.object({
+  id: z.string().uuid().optional(),
+  question_text: z.string().min(1).max(10000),
+  code_snippet: z.string().max(20000).optional().nullable(),
+  points: z.coerce.number().int().min(1).max(100).optional(),
+  sort_order: z.coerce.number().int().min(0).optional(),
+  expected_answer: z.string().max(5000).optional().nullable(),
+});
+
+const upsertLessonTrainingBodySchema = z.object({
+  task_instructions: z.string().max(20000).optional().nullable(),
+  task_file_url: z.string().max(2000).optional().nullable(),
+  task_file_name: z.string().max(255).optional().nullable(),
+  model_answer_url: z.string().max(2000).optional().nullable(),
+  model_answer_name: z.string().max(255).optional().nullable(),
+  correction_prompt: z.string().max(20000).optional().nullable(),
+  max_score: z.coerce.number().int().min(1).max(1000).optional(),
+  pass_score: z.coerce.number().int().min(0).max(1000).optional(),
+  upload_weight: z.coerce.number().int().min(0).max(100).optional(),
+  questions: z.array(lessonTrainingQuestionSchema).max(50).optional(),
+});
+
+const submitLessonAnswersBodySchema = z.object({
+  answers: z
+    .array(
+      z.object({
+        question_id: z.string().uuid(),
+        answer_text: z.string().max(20000),
+      })
+    )
+    .min(0)
+    .max(50),
+});
+
 module.exports = {
   uuidParamSchema,
   courseIdParamSchema,
@@ -109,4 +143,6 @@ module.exports = {
   reorderLessonsBodySchema,
   youtubePreviewBodySchema,
   listStudentCoursesQuerySchema,
+  upsertLessonTrainingBodySchema,
+  submitLessonAnswersBodySchema,
 };

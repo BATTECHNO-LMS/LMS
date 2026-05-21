@@ -6,3 +6,4 @@ export * from './youtubeUtils.js';
 export * from './hooks/useAdminCourses.js';
 export * from './hooks/useCourseStructure.js';
 export * from './hooks/useStudentCourses.js';
+export * from './hooks/useLessonTraining.js';

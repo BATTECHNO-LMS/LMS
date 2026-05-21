@@ -40,6 +40,8 @@ const env = {
   S3_PUBLIC_BASE_URL: (process.env.S3_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
   /** Comma-separated browser origins allowed for CORS (required in production) */
   CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS || ''),
+  /** YouTube Data API v3 key — enables fetching unlisted playlists (public RSS is not enough). */
+  YOUTUBE_API_KEY: (process.env.YOUTUBE_API_KEY || '').trim(),
   /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
   TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,

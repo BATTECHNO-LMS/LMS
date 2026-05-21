@@ -113,3 +113,42 @@ export async function fetchStudentCourseProgress(id) {
   const res = await apiClient.get(`${student}/${id}/progress`);
   return unwrapApiData(res);
 }
+
+export async function fetchLessonTraining(courseId, lessonId) {
+  const res = await apiClient.get(`${student}/${courseId}/lessons/${lessonId}/training`);
+  return unwrapApiData(res);
+}
+
+export async function startLessonTraining(courseId, lessonId) {
+  const res = await apiClient.post(`${student}/${courseId}/lessons/${lessonId}/training/start`);
+  return unwrapApiData(res);
+}
+
+export async function uploadLessonSubmission(courseId, lessonId, file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiClient.post(
+    `${student}/${courseId}/lessons/${lessonId}/training/submission`,
+    fd,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return unwrapApiData(res);
+}
+
+export async function submitLessonTrainingAnswers(courseId, lessonId, answers) {
+  const res = await apiClient.post(
+    `${student}/${courseId}/lessons/${lessonId}/training/answers`,
+    { answers }
+  );
+  return unwrapApiData(res);
+}
+
+export async function fetchAdminLessonTraining(courseId, lessonId) {
+  const res = await apiClient.get(`${admin}/${courseId}/lessons/${lessonId}/training`);
+  return unwrapApiData(res);
+}
+
+export async function saveAdminLessonTraining(courseId, lessonId, body) {
+  const res = await apiClient.put(`${admin}/${courseId}/lessons/${lessonId}/training`, body);
+  return unwrapApiData(res);
+}

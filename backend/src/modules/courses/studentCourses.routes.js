@@ -4,10 +4,13 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const studentCoursesController = require('./studentCourses.controller');
+const lessonTrainingController = require('./lessonTraining.controller');
+const { handleLessonSubmissionUpload } = require('./lessonTraining.upload');
 const {
   uuidParamSchema,
   lessonIdParamSchema,
   listStudentCoursesQuerySchema,
+  submitLessonAnswersBodySchema,
 } = require('./courses.validation');
 
 const router = express.Router();
@@ -27,6 +30,39 @@ router.post(
   studentOnly,
   validateRequest({ params: lessonIdParamSchema }),
   studentCoursesController.completeLesson
+);
+
+router.get(
+  '/:courseId/lessons/:lessonId/training',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: lessonIdParamSchema }),
+  lessonTrainingController.getState
+);
+
+router.post(
+  '/:courseId/lessons/:lessonId/training/start',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: lessonIdParamSchema }),
+  lessonTrainingController.start
+);
+
+router.post(
+  '/:courseId/lessons/:lessonId/training/submission',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: lessonIdParamSchema }),
+  handleLessonSubmissionUpload,
+  lessonTrainingController.uploadSubmission
+);
+
+router.post(
+  '/:courseId/lessons/:lessonId/training/answers',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: lessonIdParamSchema, body: submitLessonAnswersBodySchema }),
+  lessonTrainingController.submitAnswers
 );
 
 router.post(

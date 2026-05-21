@@ -4,6 +4,7 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const adminCoursesController = require('./adminCourses.controller');
+const lessonTrainingController = require('./lessonTraining.controller');
 const { handleCoverUpload } = require('./courses.upload');
 const {
   uuidParamSchema,
@@ -19,6 +20,7 @@ const {
   updateLessonBodySchema,
   reorderLessonsBodySchema,
   youtubePreviewBodySchema,
+  upsertLessonTrainingBodySchema,
 } = require('./courses.validation');
 
 const router = express.Router();
@@ -102,6 +104,22 @@ router.delete(
   superAdminOnly,
   validateRequest({ params: lessonIdParamSchema }),
   adminCoursesController.deleteLesson
+);
+
+router.get(
+  '/:courseId/lessons/:lessonId/training',
+  authenticate,
+  superAdminOnly,
+  validateRequest({ params: lessonIdParamSchema }),
+  lessonTrainingController.getAdminConfig
+);
+
+router.put(
+  '/:courseId/lessons/:lessonId/training',
+  authenticate,
+  superAdminOnly,
+  validateRequest({ params: lessonIdParamSchema, body: upsertLessonTrainingBodySchema }),
+  lessonTrainingController.upsertAdminConfig
 );
 
 router.post(

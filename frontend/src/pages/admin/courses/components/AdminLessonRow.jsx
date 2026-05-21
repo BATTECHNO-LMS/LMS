@@ -11,8 +11,10 @@ import { useTranslation } from 'react-i18next';
 import { FormSwitch } from '../../../../components/forms/FormSwitch.jsx';
 import { lessonFormToBody, lessonToForm, validateLessonForm } from '../../../../features/courses/courseStructureValidation.js';
 import { lessonVideoId, youtubeThumbnail } from '../../../../features/courses/youtubeUtils.js';
+import { AdminLessonTrainingSection } from './AdminLessonTrainingSection.jsx';
 
 export function AdminLessonRow({
+  courseId,
   index,
   lesson,
   expanded,
@@ -170,6 +172,8 @@ export function AdminLessonRow({
           checked={form.is_preview}
           onChange={(e) => setField('is_preview', e.target.checked)}
         />
+
+        {courseId ? <AdminLessonTrainingSection courseId={courseId} lessonId={lesson.id} /> : null}
 
         <div className="admin-lesson-row__form-actions">
           <button
