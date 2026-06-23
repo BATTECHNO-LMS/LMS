@@ -10,6 +10,8 @@ const {
   createUserBodySchema,
   updateUserBodySchema,
   patchUserStatusBodySchema,
+  activatePendingQuerySchema,
+  activatePendingBodySchema,
 } = require('./users.validation');
 
 const router = express.Router();
@@ -24,6 +26,14 @@ router.get(
   adminRead,
   validateRequest({ query: listUsersQuerySchema }),
   usersController.list
+);
+
+router.post(
+  '/activate-pending',
+  authenticate,
+  userActivate,
+  validateRequest({ query: activatePendingQuerySchema, body: activatePendingBodySchema }),
+  usersController.activateAllPending
 );
 
 router.get(

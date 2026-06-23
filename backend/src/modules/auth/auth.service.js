@@ -4,6 +4,7 @@ const { signToken } = require('../../utils/jwt');
 const { hashPassword, comparePassword } = require('../../utils/password');
 const { extractEmailDomain, emailDomainMatchesAllowed } = require('../../utils/emailDomain');
 const authRepository = require('./auth.repository');
+const { ensureUserLinkedToUniversityFromEmail } = require('./universityEmailLink.service');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
 
@@ -21,14 +22,27 @@ function buildTokenPayload(userId, roleRecords, primaryUniversityId) {
   };
 }
 
-function toLoginUser(user, roleRecords, permissionCodes, isGlobal) {
+async function toLoginUser(user, roleRecords, permissionCodes, isGlobal) {
+  let primaryUniversityId = user.primary_university_id;
+  let university = null;
+
+  if (!primaryUniversityId) {
+    university = await ensureUserLinkedToUniversityFromEmail(user.id, user.email);
+    if (university) primaryUniversityId = university.id;
+  } else {
+    const row = await authRepository.findUniversityById(primaryUniversityId);
+    university = row ? { id: row.id, name: row.name } : null;
+  }
+
   return {
     id: user.id,
     full_name: user.full_name,
     email: user.email,
     phone: user.phone,
     status: user.status,
-    primary_university_id: user.primary_university_id,
+    primary_university_id: primaryUniversityId,
+    primary_university: university,
+    university,
     roles: roleRecords.map((r) => r.code),
     permissions: permissionCodes,
     isGlobal,
@@ -130,15 +144,16 @@ async function login(validated) {
 
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);
   const isGlobal = isGlobalFromRoleRecords(roleRecords);
+  const profile = await toLoginUser(user, roleRecords, permissionCodes, isGlobal);
   const token = signToken(
-    buildTokenPayload(user.id, roleRecords, user.primary_university_id)
+    buildTokenPayload(user.id, roleRecords, profile.primary_university_id)
   );
 
   await authRepository.touchLastLogin(user.id);
 
   return {
     token,
-    user: toLoginUser(user, roleRecords, permissionCodes, isGlobal),
+    user: profile,
   };
 }
 

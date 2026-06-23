@@ -14,7 +14,19 @@ import { useTranslation } from 'react-i18next';
  *   loading?: boolean,
  * }} props
  */
-export function UniversitySelect({ id, label, value, onChange, onBlur, name, error, disabled, options, loading }) {
+export function UniversitySelect({
+  id,
+  label,
+  value,
+  onChange,
+  onBlur,
+  name,
+  error,
+  disabled,
+  options,
+  loading,
+  controlClassName = '',
+}) {
   const { t } = useTranslation('auth');
 
   return (
@@ -24,7 +36,7 @@ export function UniversitySelect({ id, label, value, onChange, onBlur, name, err
       </label>
       <select
         id={id}
-        className={`form-field__control${error ? ' form-field__control--error' : ''}`}
+        className={`form-field__control${controlClassName ? ` ${controlClassName}` : ''}${error ? ' form-field__control--error' : ''}`}
         value={value}
         onChange={onChange}
         onBlur={onBlur}

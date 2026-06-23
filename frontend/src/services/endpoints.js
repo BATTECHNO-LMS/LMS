@@ -47,4 +47,7 @@ export const endpoints = {
   studentCourses: `${API_V}/student/courses`,
   adminFieldTraining: `${API_V}/admin/field-training`,
   studentFieldTraining: `${API_V}/student/field-training`,
+  public: {
+    landingStats: `${API_V}/public/landing-stats`,
+  },
 };

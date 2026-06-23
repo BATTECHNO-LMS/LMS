@@ -4,4 +4,1406 @@
 
 #battechno-landing {
   -webkit-font-smoothing: antialiased;
+  /* Homepage rhythm — section padding, grids, container width */
+  --landing-section-y: clamp(2.5rem, 4.5vw, 4rem);
+  --landing-section-y-compact: clamp(2rem, 3.5vw, 3.25rem);
+  --landing-header-gap: clamp(1.5rem, 2.5vw, 2.25rem);
+  --landing-grid-gap: clamp(1rem, 1.75vw, 1.5rem);
+  --landing-grid-gap-lg: clamp(1.25rem, 2vw, 1.75rem);
+  --landing-container-max: 90rem;
+  --landing-container-pad: clamp(1rem, 2.5vw, 2.5rem);
+  --landing-title-section: clamp(1.75rem, 3.2vw, 2.5rem);
+  --landing-title-hero: clamp(2rem, 4.5vw, 3.25rem);
+  --landing-title-cockpit: clamp(1.75rem, 4.8vw, 3.5rem);
+}
+
+@layer components {
+  #battechno-landing .landing-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: var(--landing-container-max);
+    margin-inline: auto;
+    padding-inline: var(--landing-container-pad);
+  }
+
+  #battechno-landing .landing-section-shell {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    scroll-margin-top: 5rem;
+    padding-block: var(--landing-section-y);
+  }
+
+  #battechno-landing .landing-section-shell--compact {
+    padding-block: var(--landing-section-y-compact);
+  }
+
+  #battechno-landing .landing-after-header {
+    margin-top: var(--landing-header-gap);
+  }
+
+  /* ── Section flow transitions (gradient + animated data-flow line) ── */
+  #battechno-landing .landing-section-transition {
+    --landing-flow-gold: rgba(201, 162, 39, 0.28);
+    --landing-flow-navy: rgba(19, 45, 74, 0.2);
+    position: relative;
+    z-index: 2;
+    height: clamp(2rem, 3.8vw, 3rem);
+    margin-block: calc(var(--landing-section-y) * -0.38);
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  #battechno-landing .landing-section-transition__fade,
+  #battechno-landing .landing-section-transition__wave,
+  #battechno-landing .landing-section-transition__glow,
+  #battechno-landing .landing-section-transition__line,
+  #battechno-landing .landing-section-transition__dots {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  #battechno-landing .landing-section-transition__fade {
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-bg) 35%, white) 38%,
+      color-mix(in srgb, var(--color-surface-light) 42%, white) 62%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .landing-section-transition--from-hero .landing-section-transition__fade {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-bg) 55%, white) 42%,
+      rgba(255, 255, 255, 0.72) 72%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .landing-section-transition--to-warm .landing-section-transition__fade {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.55) 35%,
+      color-mix(in srgb, var(--color-accent-soft) 38%, var(--color-bg)) 68%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .landing-section-transition--to-surface .landing-section-transition__fade {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-bg) 30%, white) 40%,
+      color-mix(in srgb, var(--color-surface) 55%, white) 70%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .landing-section-transition__wave {
+    inset-inline: 0;
+    bottom: 0;
+    height: 72%;
+    opacity: 0.42;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 48' preserveAspectRatio='none'%3E%3Cpath fill='%23C9A227' fill-opacity='0.07' d='M0,30 C240,6 480,42 720,22 C960,2 1200,36 1440,18 L1440,48 L0,48 Z'/%3E%3Cpath fill='%23132D4A' fill-opacity='0.04' d='M0,38 C200,18 400,46 600,30 C800,14 1000,42 1200,26 C1320,16 1380,34 1440,28 L1440,48 L0,48 Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    background-size: 100% 100%;
+    mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+  }
+
+  #battechno-landing .landing-section-transition__glow {
+    inset-inline: 18%;
+    top: 50%;
+    height: 3px;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    filter: blur(6px);
+    opacity: 0.55;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--landing-flow-gold),
+      var(--landing-flow-navy),
+      var(--landing-flow-gold),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: landing-section-flow 10s ease-in-out infinite;
+  }
+
+  #battechno-landing .landing-section-transition__line {
+    inset-inline: clamp(1.5rem, 10vw, 8rem);
+    top: 50%;
+    height: 1px;
+    transform: translateY(-50%);
+    border-radius: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--landing-flow-gold) 22%,
+      var(--landing-flow-navy) 50%,
+      var(--landing-flow-gold) 78%,
+      transparent 100%
+    );
+    background-size: 220% 100%;
+    animation: landing-section-flow 9s ease-in-out infinite;
+  }
+
+  #battechno-landing .landing-section-transition__dots {
+    inset-inline: clamp(2rem, 14vw, 10rem);
+    top: 50%;
+    height: 5px;
+    transform: translateY(-50%);
+    opacity: 0.45;
+    background-image: radial-gradient(circle, rgba(19, 45, 74, 0.14) 1px, transparent 1px);
+    background-size: 14px 5px;
+    mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent);
+  }
+
+  #battechno-landing[dir='rtl'] .landing-section-transition__line,
+  #battechno-landing[dir='rtl'] .landing-section-transition__glow {
+    animation-direction: reverse;
+  }
+
+  @keyframes landing-section-flow {
+    0%,
+    100% {
+      background-position: 100% 0;
+    }
+
+    50% {
+      background-position: 0% 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #battechno-landing .landing-section-transition__line,
+    #battechno-landing .landing-section-transition__glow {
+      animation: none;
+      background-position: 50% 0;
+    }
+  }
+
+  #battechno-landing .landing-grid {
+    display: grid;
+    gap: var(--landing-grid-gap);
+  }
+
+  #battechno-landing .landing-grid--loose {
+    gap: var(--landing-grid-gap-lg);
+  }
+
+  /* ── Premium hero cockpit (reference-inspired, LMS palette) ── */
+  #battechno-landing .hero-cockpit {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, var(--color-accent) 15%);
+    background:
+      linear-gradient(165deg, rgba(255, 255, 255, 0.92) 0%, rgba(248, 249, 251, 0.88) 42%, rgba(243, 234, 212, 0.35) 100%);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.65) inset,
+      0 24px 64px -28px rgba(19, 45, 74, 0.22),
+      0 8px 24px -12px rgba(19, 45, 74, 0.1);
+    backdrop-filter: blur(12px);
+    padding: clamp(1rem, 2.5vw, 1.75rem);
+  }
+
+  #battechno-landing .hero-cockpit::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgba(201, 162, 39, 0.08), transparent 55%),
+      linear-gradient(rgba(19, 45, 74, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(19, 45, 74, 0.03) 1px, transparent 1px);
+    background-size: auto, 40px 40px, 40px 40px;
+    opacity: 0.7;
+  }
+
+  #battechno-landing .hero-cockpit > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  #battechno-landing .hero-cockpit__title {
+    font-size: var(--landing-title-cockpit);
+  }
+
+  #battechno-landing .hero-glass-panel {
+    border: 1px solid color-mix(in srgb, var(--color-border) 80%, white 20%);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 4px 20px -10px rgba(19, 45, 74, 0.12);
+    backdrop-filter: blur(8px);
+  }
+
+  #battechno-landing .hero-callout {
+    position: absolute;
+    max-width: 9.5rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border) 55%);
+    background: rgba(255, 255, 255, 0.82);
+    padding: 0.35rem 0.65rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-primary);
+    box-shadow: 0 4px 16px -6px rgba(19, 45, 74, 0.14);
+    backdrop-filter: blur(6px);
+  }
+
+  #battechno-landing .hero-callout--top-start {
+    top: 4%;
+    inset-inline-start: -2%;
+  }
+
+  #battechno-landing .hero-callout--top-end {
+    top: 10%;
+    inset-inline-end: -4%;
+  }
+
+  #battechno-landing .hero-callout--mid-start {
+    top: 42%;
+    inset-inline-start: -6%;
+  }
+
+  #battechno-landing .hero-callout--mid-end {
+    top: 48%;
+    inset-inline-end: -5%;
+  }
+
+  #battechno-landing .hero-callout--bottom-start {
+    bottom: 18%;
+    inset-inline-start: 0;
+  }
+
+  #battechno-landing .hero-product-stage__phone .landing-phone-scene {
+    max-width: min(100%, 19.5rem);
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-product-stage__phone .landing-phone-scene {
+      max-width: min(100%, 22rem);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    #battechno-landing .hero-product-stage__phone .landing-phone-scene {
+      max-width: min(100%, 26rem);
+    }
+  }
+
+  #battechno-landing .hero-cockpit-cta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--color-primary) 90%, var(--color-accent) 10%);
+    background: var(--color-primary);
+    padding: 0.75rem 2rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 12px 32px -10px rgba(19, 45, 74, 0.45);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  #battechno-landing .hero-cockpit-cta:hover {
+    background: var(--color-primary-hover);
+    box-shadow: 0 16px 40px -10px rgba(19, 45, 74, 0.5);
+    transform: translateY(-1px);
+  }
+
+  #battechno-landing .hero-cockpit--staffly {
+    text-align: center;
+  }
+
+  #battechno-landing .hero-staffly-title {
+    font-size: clamp(1.875rem, 5vw, 3.25rem);
+    max-width: 22ch;
+    margin-inline: auto;
+  }
+
+  #battechno-landing .hero-staffly-intro {
+    padding-top: clamp(0.5rem, 2vw, 1.25rem);
+  }
+
+  #battechno-landing .hero-staffly-stage {
+    position: relative;
+  }
+
+  #battechno-landing .landing-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(0.75rem, 3vw, 1.125rem);
+    width: 100%;
+    max-width: 52rem;
+    margin-inline: auto;
+  }
+
+  #battechno-landing .landing-stats-grid--hero {
+    max-width: 22rem;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-stats-grid--hero {
+      max-width: 36rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .landing-stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--landing-grid-gap);
+    }
+
+    #battechno-landing .landing-stats-grid--hero {
+      max-width: 52rem;
+    }
+  }
+
+  #battechno-landing .landing-stat-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    border-radius: 1.125rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 68%, var(--color-accent) 22%);
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.97) 0%,
+      color-mix(in srgb, var(--color-accent-soft) 62%, white) 46%,
+      rgba(255, 255, 255, 0.94) 100%
+    );
+    padding: 0.875rem 0.65rem 1rem;
+    text-align: center;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.85) inset,
+      0 10px 32px -16px rgba(19, 45, 74, 0.22);
+    backdrop-filter: blur(8px);
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.35s ease;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-stat-card {
+      aspect-ratio: auto;
+      min-height: 7.75rem;
+      padding: 1rem 0.75rem 1.125rem;
+    }
+  }
+
+  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    #battechno-landing .landing-stat-card:hover {
+      transform: translateY(-3px);
+      border-color: color-mix(in srgb, var(--color-accent) 42%, var(--color-border) 58%);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 16px 40px -14px rgba(19, 45, 74, 0.28);
+    }
+  }
+
+  #battechno-landing .landing-stat-card__wave {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 95% 60% at 8% 0%, rgba(201, 162, 39, 0.16), transparent 58%),
+      radial-gradient(ellipse 75% 55% at 100% 100%, rgba(19, 45, 74, 0.07), transparent 52%);
+    opacity: 0.92;
+  }
+
+  #battechno-landing .landing-stat-card__glow {
+    position: absolute;
+    inset-inline: -15%;
+    bottom: -45%;
+    height: 72%;
+    pointer-events: none;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.14), transparent 68%);
+  }
+
+  #battechno-landing .landing-stat-card__accent {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 3.25rem;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, transparent 100%);
+    mask-image: linear-gradient(180deg, black 0%, transparent 100%);
+  }
+
+  #battechno-landing .landing-stat-card__accent::after {
+    content: '';
+    position: absolute;
+    inset-inline: 1.15rem;
+    top: 0;
+    height: 2px;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    opacity: 0.88;
+  }
+
+  #battechno-landing .landing-stat-card__icon {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-inline: auto;
+    border-radius: 0.625rem;
+    border: 1px solid color-mix(in srgb, var(--color-accent) 48%, var(--color-border) 52%);
+    background: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.95),
+      color-mix(in srgb, var(--color-accent-soft) 88%, white)
+    );
+    color: var(--color-accent-hover);
+    box-shadow: 0 4px 12px -6px rgba(19, 45, 74, 0.18);
+  }
+
+  #battechno-landing .landing-stat-card__value {
+    position: relative;
+    z-index: 1;
+    margin: 0.5rem 0 0;
+    font-size: clamp(1.35rem, 4.5vw, 1.75rem);
+    font-weight: 800;
+    line-height: 1.1;
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  #battechno-landing .landing-stat-card__label {
+    position: relative;
+    z-index: 1;
+    margin: 0.35rem 0 0;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-stat-card__label {
+      font-size: 0.75rem;
+    }
+  }
+
+  #battechno-landing .hero-cockpit-cta__glow {
+    position: absolute;
+    inset: -20% -10%;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(201, 162, 39, 0.25), transparent 65%);
+    opacity: 0.6;
+    filter: blur(12px);
+  }
+
+  #battechno-landing .landing-premium-card {
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, var(--color-accent) 8%);
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 4px 24px -12px rgba(19, 45, 74, 0.1);
+  }
+
+  /* ── Open hero showcase (reference-inspired) ── */
+  #battechno-landing .hero-showcase__glow {
+    background:
+      radial-gradient(ellipse 80% 55% at 50% 38%, rgba(201, 162, 39, 0.1), transparent 62%),
+      radial-gradient(ellipse 60% 45% at 50% 55%, rgba(19, 45, 74, 0.05), transparent 70%);
+  }
+
+  #battechno-landing .hero-showcase__title {
+    font-size: clamp(1.875rem, 5.2vw, 3.25rem);
+  }
+
+  #battechno-landing .hero-showcase__layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 2.5rem);
+    min-height: min(30rem, 68vh);
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-showcase__layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 38rem) minmax(0, 1.1fr);
+      grid-template-rows: minmax(0, 1fr);
+      align-items: center;
+      column-gap: clamp(1rem, 2vw, 2rem);
+      row-gap: 0;
+      min-height: min(34rem, 72vh);
+    }
+  }
+
+  #battechno-landing .hero-deco__connector {
+    display: none;
+  }
+
+  #battechno-landing .hero-showcase__center {
+    position: relative;
+    z-index: 2;
+    order: 1;
+    width: 100%;
+    max-width: 38rem;
+    margin-inline: auto;
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-showcase__center {
+      grid-column: 2;
+      order: unset;
+      margin-inline: 0;
+    }
+  }
+
+  #battechno-landing .hero-deco-col {
+    position: relative;
+    z-index: 1;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    align-items: center;
+    gap: clamp(1rem, 2.5vh, 1.75rem);
+    width: 100%;
+    max-width: 10rem;
+    margin-inline: auto;
+    padding-block: 0.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-deco-col {
+      grid-column: 1;
+      max-width: none;
+      min-height: 100%;
+      margin-inline: 0;
+      padding-block: 1.5rem;
+      justify-items: end;
+      padding-inline-end: 0.25rem;
+    }
+  }
+
+  #battechno-landing .hero-phone-panel {
+    position: relative;
+    z-index: 1;
+    order: 2;
+    display: flex;
+    width: 100%;
+    max-width: min(100%, 20rem);
+    justify-content: center;
+    margin-inline: auto;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .hero-phone-panel {
+      max-width: min(100%, 22rem);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-phone-panel {
+      grid-column: 3;
+      order: unset;
+      max-width: none;
+      justify-content: flex-start;
+      align-items: center;
+      padding-inline-start: 0.25rem;
+    }
+  }
+
+  #battechno-landing .hero-phone-panel__inner {
+    width: 100%;
+    max-width: min(100%, 20rem);
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .hero-phone-panel__inner {
+      max-width: min(100%, 22.5rem);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    #battechno-landing .hero-phone-panel__inner {
+      max-width: min(100%, 24.5rem);
+    }
+
+    #battechno-landing .hero-phone-panel__inner .landing-phone-scene {
+      max-width: min(100%, 24.5rem);
+    }
+
+    #battechno-landing .hero-phone-panel__inner .phone-device {
+      max-width: 340px;
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    #battechno-landing .hero-deco-illus {
+      width: min(7.75rem, 92%);
+    }
+
+    #battechno-landing .hero-phone-panel__inner {
+      max-width: min(100%, 20rem);
+    }
+  }
+
+  #battechno-landing .hero-deco-illus {
+    position: relative;
+    margin: 0;
+    width: min(8.5rem, 100%);
+    justify-self: center;
+  }
+
+  @media (min-width: 1280px) {
+    #battechno-landing .hero-deco-illus {
+      width: min(9rem, 100%);
+    }
+  }
+
+  #battechno-landing .hero-deco-col--start .hero-deco-illus {
+    justify-self: end;
+  }
+
+  #battechno-landing .hero-deco-col--end {
+    display: none;
+  }
+
+  #battechno-landing .hero-deco-illus__halo {
+    position: absolute;
+    inset: -18%;
+    z-index: 0;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-accent-soft) 55%, transparent) 0%,
+      transparent 68%
+    );
+    opacity: 0.65;
+    pointer-events: none;
+  }
+
+  #battechno-landing .hero-deco-illus--bottom .hero-deco-illus__halo {
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--color-primary) 8%, transparent) 0%,
+      transparent 70%
+    );
+    opacity: 0.5;
+  }
+
+  #battechno-landing .hero-deco-illus__img {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+    opacity: 0.88;
+  }
+
+  /* ── Section decorative illustrations ── */
+  #battechno-landing .landing-section-deco {
+    z-index: 0;
+  }
+
+  #battechno-landing .landing-deco-illus {
+    position: absolute;
+    margin: 0;
+    width: auto;
+    max-width: min(14rem, 34vw);
+  }
+
+  #battechno-landing .landing-deco-illus--sm {
+    max-width: min(9rem, 26vw);
+  }
+
+  #battechno-landing .landing-deco-illus--md {
+    max-width: min(12rem, 30vw);
+  }
+
+  #battechno-landing .landing-deco-illus--lg {
+    max-width: min(14rem, 34vw);
+  }
+
+  #battechno-landing .landing-deco-illus--start {
+    inset-inline-start: clamp(0.25rem, 2vw, 1.5rem);
+    top: 12%;
+  }
+
+  #battechno-landing .landing-deco-illus--end {
+    inset-inline-end: clamp(0.25rem, 2vw, 1.5rem);
+    top: 10%;
+  }
+
+  #battechno-landing .landing-deco-illus--center {
+    left: 50%;
+    top: 8%;
+    transform: translateX(-50%);
+  }
+
+  #battechno-landing .landing-deco-illus__frame {
+    position: absolute;
+    inset: -4%;
+    border-radius: 1rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 78%, var(--color-accent) 10%);
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.75) 0%,
+      color-mix(in srgb, var(--color-accent-soft) 35%, white) 100%
+    );
+    box-shadow: 0 12px 32px -20px rgba(19, 45, 74, 0.14);
+    opacity: 0.85;
+  }
+
+  #battechno-landing .landing-deco-illus__img {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+    opacity: var(--landing-deco-opacity, 0.5);
+  }
+
+  @media (max-width: 1023px) {
+    #battechno-landing .landing-deco-illus {
+      display: none;
+    }
+  }
+
+  @media (min-width: 1024px) and (max-width: 1279px) {
+    #battechno-landing .landing-deco-illus--md,
+    #battechno-landing .landing-deco-illus--lg {
+      max-width: min(10rem, 22vw);
+      opacity: 0.85;
+    }
+
+    #battechno-landing .landing-deco-illus__img {
+      opacity: calc(var(--landing-deco-opacity, 0.5) * 0.85);
+    }
+  }
+
+  #battechno-landing .landing-section--journey .landing-deco-illus--start {
+    top: 18%;
+  }
+
+  #battechno-landing .landing-section--features .landing-deco-illus--end {
+    top: 14%;
+  }
+
+  #battechno-landing .landing-section--cta .landing-deco-illus--end {
+    top: auto;
+    bottom: 8%;
+    max-width: min(8.5rem, 20vw);
+  }
+
+
+  #battechno-landing .hero-floating-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-bg) 94%, transparent) 0%,
+      color-mix(in srgb, var(--color-bg) 72%, transparent) 72%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .hero-floating-nav__bar {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--color-border) 68%, var(--color-accent) 22%);
+    background: linear-gradient(
+      128deg,
+      rgba(255, 255, 255, 0.97) 0%,
+      color-mix(in srgb, var(--color-accent-soft) 58%, white) 44%,
+      rgba(255, 255, 255, 0.95) 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 10px 36px -14px rgba(19, 45, 74, 0.2);
+    backdrop-filter: blur(10px);
+  }
+
+  #battechno-landing .hero-floating-nav__bar--desktop {
+    border-radius: 9999px;
+  }
+
+  #battechno-landing .hero-floating-nav__bar--mobile,
+  #battechno-landing .hero-floating-nav__bar--menu {
+    border-radius: 1rem;
+  }
+
+  #battechno-landing .hero-floating-nav__bar--menu {
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.88) inset,
+      0 12px 32px -12px rgba(19, 45, 74, 0.22);
+  }
+
+  #battechno-landing .hero-floating-nav__inner {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+  }
+
+  #battechno-landing .hero-floating-nav__wave {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 42% 140% at 0% 50%, rgba(201, 162, 39, 0.15), transparent 58%),
+      radial-gradient(ellipse 38% 130% at 100% 50%, rgba(19, 45, 74, 0.07), transparent 55%),
+      radial-gradient(ellipse 55% 90% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 70%);
+    opacity: 0.95;
+  }
+
+  #battechno-landing .hero-floating-nav__glow {
+    position: absolute;
+    inset-inline: -8%;
+    bottom: -55%;
+    height: 85%;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 0%, rgba(201, 162, 39, 0.13), transparent 68%);
+  }
+
+  #battechno-landing .hero-floating-nav__wave-edge {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 42%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.55;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 56' preserveAspectRatio='none'%3E%3Cpath fill='%23C9A227' fill-opacity='0.14' d='M0,36 C180,8 360,48 540,28 C720,8 900,44 1080,24 C1260,4 1350,32 1440,20 L1440,56 L0,56 Z'/%3E%3Cpath fill='%23132D4A' fill-opacity='0.05' d='M0,44 C220,20 440,52 660,34 C880,16 1100,48 1320,30 C1380,24 1410,38 1440,32 L1440,56 L0,56 Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: bottom center;
+    background-size: 100% 100%;
+    mask-image: linear-gradient(180deg, transparent 0%, black 55%);
+  }
+
+  #battechno-landing .hero-floating-nav__bar::after {
+    content: '';
+    position: absolute;
+    inset-inline: 10%;
+    top: 0;
+    height: 2px;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 0 0 2px 2px;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    opacity: 0.82;
+  }
+
+  /* ── Institutional partner cards ── */
+  #battechno-landing .partner-card {
+    min-height: 17rem;
+    padding: 1.5rem 1.35rem 1.35rem;
+    border-radius: 1.25rem;
+    border: 1px solid color-mix(in srgb, var(--color-border) 72%, var(--color-accent) 18%);
+    background: linear-gradient(
+      168deg,
+      rgba(255, 255, 255, 0.99) 0%,
+      color-mix(in srgb, var(--color-accent-soft) 28%, white) 52%,
+      rgba(255, 255, 255, 0.97) 100%
+    );
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.92) inset,
+      0 8px 32px -14px rgba(19, 45, 74, 0.14);
+    transition:
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.35s ease;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .partner-card {
+      padding: 1.65rem 1.5rem 1.5rem;
+    }
+  }
+
+  #battechno-landing .partner-card:focus-within {
+    border-color: color-mix(in srgb, var(--color-accent) 48%, var(--color-border) 52%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 16px 44px -16px rgba(19, 45, 74, 0.2);
+    outline: none;
+  }
+
+  #battechno-landing .partner-card__accent {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 3px;
+    border-radius: 1.25rem 1.25rem 0 0;
+    pointer-events: none;
+    opacity: 0.92;
+    transition: opacity 0.35s ease;
+  }
+
+  #battechno-landing .partner-card--ministry .partner-card__accent {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-accent-hover),
+      var(--color-accent),
+      var(--color-accent-hover),
+      transparent
+    );
+  }
+
+  #battechno-landing .partner-card--university .partner-card__accent {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-primary),
+      var(--color-accent),
+      var(--color-primary),
+      transparent
+    );
+  }
+
+  #battechno-landing .partner-card__watermark {
+    position: absolute;
+    inset-inline-end: -8%;
+    bottom: -10%;
+    width: min(9.5rem, 42%);
+    height: min(9.5rem, 42%);
+    pointer-events: none;
+    opacity: 0.045;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    transition: opacity 0.35s ease;
+  }
+
+  #battechno-landing .partner-card--ministry .partner-card__watermark {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120' fill='%23132d4a'%3E%3Cpath d='M50 8L88 24v28c0 22-16 42-38 52C28 94 12 74 12 52V24z'/%3E%3Cpath fill='none' stroke='%23c9a227' stroke-width='2.5' d='M35 58l10 10 20-22'/%3E%3C/svg%3E");
+  }
+
+  #battechno-landing .partner-card--university .partner-card__watermark {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 100' fill='%23132d4a'%3E%3Cpath d='M60 12L8 36v8l52 22 52-22v-8z'/%3E%3Cpath d='M24 48v28c0 10 16 20 36 24 20-4 36-14 36-24V48l-36 15z'/%3E%3Crect x='54' y='72' width='12' height='20' rx='2' fill='%23c9a227'/%3E%3C/svg%3E");
+  }
+
+  #battechno-landing .partner-card__glow {
+    position: absolute;
+    inset-inline: 15%;
+    top: 18%;
+    height: 5rem;
+    pointer-events: none;
+    border-radius: 50%;
+    filter: blur(28px);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+
+  #battechno-landing .partner-card--ministry .partner-card__glow {
+    background: radial-gradient(circle, rgba(201, 162, 39, 0.22), transparent 70%);
+  }
+
+  #battechno-landing .partner-card--university .partner-card__glow {
+    background: radial-gradient(circle, rgba(19, 45, 74, 0.12), transparent 70%);
+  }
+
+  #battechno-landing .partner-card:hover .partner-card__glow,
+  #battechno-landing .partner-card:focus-within .partner-card__glow {
+    opacity: 1;
+  }
+
+  #battechno-landing .partner-card:hover .partner-card__watermark,
+  #battechno-landing .partner-card:focus-within .partner-card__watermark {
+    opacity: 0.07;
+  }
+
+  #battechno-landing .partner-card__logo {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 6.5rem;
+    height: 6.5rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--color-border) 75%, var(--color-accent) 25%);
+    background: linear-gradient(165deg, #ffffff 0%, color-mix(in srgb, var(--color-accent-soft) 35%, white) 100%);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.95) inset,
+      0 10px 28px -12px rgba(19, 45, 74, 0.18);
+    padding: 0.8rem;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .partner-card__logo {
+      width: 7.25rem;
+      height: 7.25rem;
+      padding: 0.9rem;
+    }
+  }
+
+  #battechno-landing .partner-card__logo-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  #battechno-landing .partner-card__logo-img {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  #battechno-landing .partner-card__title {
+    margin: 1.1rem 0 0;
+    font-size: 1.0625rem;
+    font-weight: 800;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+    color: var(--color-heading);
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .partner-card__title {
+      font-size: 1.125rem;
+    }
+  }
+
+  #battechno-landing .partner-card__pill {
+    display: inline-flex;
+    margin-top: 0.55rem;
+    border-radius: 9999px;
+    padding: 0.28rem 0.75rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+
+  #battechno-landing .partner-card--ministry .partner-card__pill {
+    border: 1px solid color-mix(in srgb, var(--color-accent) 55%, var(--color-border) 45%);
+    background: color-mix(in srgb, var(--color-accent-soft) 88%, white);
+    color: color-mix(in srgb, var(--color-accent-hover) 75%, var(--color-primary) 25%);
+  }
+
+  #battechno-landing .partner-card--university .partner-card__pill {
+    border: 1px solid color-mix(in srgb, var(--color-primary) 22%, var(--color-border) 78%);
+    background: color-mix(in srgb, var(--color-surface-light) 90%, white);
+    color: var(--color-primary);
+  }
+
+  #battechno-landing .partner-card__desc {
+    margin: 0.85rem 0 0;
+    flex: 1;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .partner-card__desc {
+      font-size: 0.875rem;
+    }
+  }
+
+  /* ── Premium wavy footer ── */
+  #battechno-landing .landing-footer {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    margin-top: calc(var(--landing-section-y-compact) * -0.35);
+    padding-top: clamp(3.25rem, 7vw, 4.75rem);
+    padding-bottom: clamp(1.5rem, 3.5vw, 2.25rem);
+    background: linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--color-accent-soft) 48%, white) 0%,
+      color-mix(in srgb, var(--color-accent-soft) 28%, var(--color-bg)) 28%,
+      var(--color-bg) 72%,
+      color-mix(in srgb, var(--color-bg) 92%, var(--color-primary) 8%) 100%
+    );
+  }
+
+  #battechno-landing .landing-footer__decor {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  #battechno-landing .landing-footer__wave {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: 100% 100%;
+  }
+
+  #battechno-landing .landing-footer__wave--cream {
+    height: clamp(2.75rem, 6.5vw, 4.25rem);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 64' preserveAspectRatio='none'%3E%3Cpath fill='%23F3EAD4' d='M0,32 C180,8 360,52 540,28 C720,4 900,44 1080,22 C1260,0 1350,28 1440,18 L1440,64 L0,64 Z'/%3E%3C/svg%3E");
+  }
+
+  #battechno-landing .landing-footer__wave--gold {
+    height: clamp(3.25rem, 7.5vw, 4.75rem);
+    opacity: 0.42;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 64' preserveAspectRatio='none'%3E%3Cpath fill='%23C9A227' fill-opacity='0.22' d='M0,38 C220,14 440,50 660,30 C880,10 1100,46 1320,26 C1380,18 1410,34 1440,28 L1440,64 L0,64 Z'/%3E%3C/svg%3E");
+  }
+
+  #battechno-landing .landing-footer__wave-line {
+    position: absolute;
+    inset-inline: 8%;
+    top: clamp(1.5rem, 3.5vw, 2.25rem);
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    opacity: 0.45;
+  }
+
+  #battechno-landing .landing-footer__glow {
+    position: absolute;
+    inset-inline: -10%;
+    top: 12%;
+    height: 55%;
+    background:
+      radial-gradient(ellipse 42% 55% at 18% 30%, rgba(201, 162, 39, 0.1), transparent 68%),
+      radial-gradient(ellipse 38% 50% at 82% 40%, rgba(19, 45, 74, 0.06), transparent 70%);
+  }
+
+  #battechno-landing .landing-footer__dots {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 45%;
+    opacity: 0.35;
+    background-image: radial-gradient(circle, rgba(19, 45, 74, 0.07) 1px, transparent 1px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(180deg, transparent 0%, black 35%, black 100%);
+  }
+
+  #battechno-landing .landing-footer__watermark {
+    position: absolute;
+    inset-inline-end: 4%;
+    bottom: 8%;
+    width: min(12rem, 28vw);
+    height: min(12rem, 28vw);
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23132D4A' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+
+  #battechno-landing .landing-footer__inner {
+    position: relative;
+    z-index: 1;
+  }
+
+  #battechno-landing .landing-footer__grid {
+    display: grid;
+    gap: clamp(1.5rem, 3vw, 2rem);
+    align-items: start;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .landing-footer__grid {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: clamp(1.75rem, 3vw, 2.5rem);
+    }
+  }
+
+  #battechno-landing .landing-footer__brand {
+    text-align: center;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__brand {
+      text-align: start;
+      grid-column: span 2;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    #battechno-landing .landing-footer__brand {
+      grid-column: span 1;
+    }
+  }
+
+  #battechno-landing .landing-footer__brand img {
+    margin-inline: auto;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__brand img {
+      margin-inline: 0;
+    }
+  }
+
+  #battechno-landing .landing-footer__desc {
+    margin-top: 0.85rem;
+    max-width: 32rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__desc {
+      font-size: 0.9375rem;
+    }
+  }
+
+  #battechno-landing .landing-footer__tagline {
+    margin-top: 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-accent-hover) 70%, var(--color-text-muted) 30%);
+  }
+
+  #battechno-landing .landing-footer__col {
+    text-align: center;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__col {
+      text-align: start;
+    }
+  }
+
+  #battechno-landing .landing-footer__label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  #battechno-landing .landing-footer__links {
+    margin-top: 0.75rem;
+    display: grid;
+    gap: 0.55rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+
+  #battechno-landing .landing-footer__link {
+    transition: color 0.2s ease;
+  }
+
+  #battechno-landing a.landing-footer__link:hover {
+    color: var(--color-primary);
+  }
+
+  #battechno-landing .landing-footer__link--muted {
+    cursor: default;
+    color: var(--color-text-muted);
+  }
+
+  #battechno-landing .landing-footer__actions {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  #battechno-landing .landing-footer__btn {
+    width: 100%;
+    min-height: 2.75rem !important;
+    padding-inline: 1.25rem !important;
+    font-size: 0.875rem !important;
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__btn {
+      width: auto;
+      min-width: 10.5rem;
+    }
+  }
+
+  #battechno-landing .landing-footer__bottom {
+    margin-top: clamp(1.5rem, 3vw, 2rem);
+  }
+
+  #battechno-landing .landing-footer__divider {
+    display: block;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 22%,
+      color-mix(in srgb, var(--color-primary) 12%, transparent) 50%,
+      color-mix(in srgb, var(--color-accent) 35%, transparent) 78%,
+      transparent 100%
+    );
+  }
+
+  #battechno-landing .landing-footer__meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-top: 1rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  @media (min-width: 640px) {
+    #battechno-landing .landing-footer__meta {
+      flex-direction: row;
+    }
+  }
+
+  #battechno-landing .landing-footer__meta-brand {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #battechno-landing *,
+  #battechno-landing *::before,
+  #battechno-landing *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

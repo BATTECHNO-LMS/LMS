@@ -5,23 +5,30 @@
   "brand": "BATTECHNO-LMS",
   "brandSubtitle": "Micro-credentials & academic operations",
   "header": {
+    "navPortals": "Portals",
+    "navJourney": "Journey",
     "navCapabilities": "Capabilities",
     "navPartners": "Partners",
     "navPreview": "App preview",
     "explore": "Explore",
-    "login": "Login",
-    "register": "Register",
+    "login": "Log in",
+    "register": "Create student account",
+    "navHome": "Home",
+    "navAbout": "About us",
+    "navContact": "Contact us",
     "menuOpen": "Open menu",
     "menuClose": "Close menu"
   },
   "hero": {
     "mainTitle": "BATTECHNO-LMS",
-    "headline": "An integrated platform for micro-credentials and academic operations",
-    "title": "An integrated academic platform for micro-credentials and academic operations",
-    "description": "Run tracks, micro-credentials, attendance, assessments, quality, and accreditation in one secure, institution-ready workspace.",
-    "ctaRegister": "Register",
-    "ctaLogin": "Login",
-    "ctaExplore": "Explore platform",
+    "headline": "A unified platform for micro-credentials and academic operations",
+    "title": "A unified platform for micro-credentials and academic operations",
+    "description": "Run micro-credential programs from enrollment through certificate issuance — with integrated attendance, assessment, quality, reporting, and academic recognition.",
+    "ctaRegister": "Create student account",
+    "ctaLogin": "Enter platform",
+    "ctaExplore": "Explore portals",
+    "trustBadge": "Trusted by academic and training institutions",
+    "partnersLine": "Supported by a network of academic and institutional partners",
     "companyTitle": "About BATTECHNO",
     "companyLead": "An IT company established in 2017, working in information technology and freelancing.",
     "companyBody": "We deliver modern technical and educational solutions — from digital learning infrastructure to governance-ready academic workflows.",
@@ -30,6 +37,139 @@
       "microCreds": "Micro-credentials",
       "universities": "Universities",
       "cohorts": "Cohorts"
+    },
+    "liveStats": {
+      "aria": "Platform statistics",
+      "users": "Users",
+      "visits": "Visits",
+      "cohorts": "Cohorts",
+      "certificates": "Certificates"
+    },
+    "floating": {
+      "student": {
+        "title": "Student portal",
+        "subtitle": "Programs & grades"
+      },
+      "instructor": {
+        "title": "Instructor activity",
+        "subtitle": "Sessions & assessments"
+      },
+      "certificate": {
+        "title": "Accredited certificate",
+        "subtitle": "Digitally verifiable"
+      },
+      "attendance": {
+        "title": "Attendance tracking",
+        "subtitle": "Smart session logs"
+      },
+      "assessment": {
+        "title": "Assessment & submission",
+        "subtitle": "Rubrics & grades"
+      },
+      "analytics": {
+        "title": "Live reports",
+        "subtitle": "Academic analytics"
+      }
+    },
+    "cockpit": {
+      "bottomCta": "Start managing the platform",
+      "callouts": {
+        "certificates": "Verifiable digital certificates",
+        "grades": "Rubrics & grade dashboards",
+        "attendance": "Smart attendance tracking",
+        "governance": "Governance, quality & accreditation",
+        "analytics": "Real-time reports & analytics"
+      },
+      "capabilities": {
+        "academic": {
+          "title": "Academic management",
+          "desc": "Tracks, micro-credentials, cohorts, and sessions in one place."
+        },
+        "assessment": {
+          "title": "Integrated assessment",
+          "desc": "Rubrics, submissions, grades, and precise performance tracking."
+        },
+        "quality": {
+          "title": "Quality & accreditation",
+          "desc": "Evidence, QA reviews, corrective actions, and academic recognition."
+        },
+        "portals": {
+          "title": "Multi-portal access",
+          "desc": "Dedicated views for admin, instructor, student, and university reviewer."
+        }
+      },
+      "systemStatus": {
+        "eyebrow": "Live dashboard",
+        "title": "Academic system status",
+        "programs": "Active programs",
+        "programsValue": "Available",
+        "attendance": "Attendance",
+        "attendanceValue": "94%",
+        "certificates": "Certificates",
+        "certificatesValue": "Ready",
+        "quality": "Quality",
+        "qualityValue": "In review"
+      }
+    }
+  },
+  "portals": {
+    "eyebrow": "Portals",
+    "title": "Portals designed for every role",
+    "subtitle": "A dedicated experience for admins, instructors, students, and reviewers — within one integrated platform.",
+    "list": {
+      "admin": {
+        "title": "Admin portal",
+        "desc": "Full control over universities, users, programs, cohorts, permissions, reports, quality, and certificates."
+      },
+      "instructor": {
+        "title": "Instructor portal",
+        "desc": "Manage sessions, record attendance, track submissions, assess learners, and enter grades."
+      },
+      "student": {
+        "title": "Student portal",
+        "desc": "Follow programs and courses, attend sessions, submit assessments, view grades, and earn certificates."
+      },
+      "reviewer": {
+        "title": "University reviewer portal",
+        "desc": "Review enrollment and recognition requests, access evidence, and monitor certificates and reports."
+      }
+    }
+  },
+  "lifecycle": {
+    "eyebrow": "Lifecycle",
+    "title": "From program design to certificate issuance",
+    "subtitle": "An end-to-end academic journey covering every stage — from planning through verification and reporting.",
+    "steps": {
+      "design": "Design track and micro-credential",
+      "cohort": "Open a teaching cohort",
+      "enrollment": "Enroll students and approve requests",
+      "sessions": "Manage sessions and attendance",
+      "assessments": "Run assessments and submissions",
+      "certificates": "Finalize grades and issue certificates",
+      "verify": "Verify certificates and track reports"
+    }
+  },
+  "trust": {
+    "eyebrow": "Trust & security",
+    "title": "Trust, security, and accreditation",
+    "subtitle": "Institution-ready governance, traceability, and verifiable credentials.",
+    "list": {
+      "rbac": {
+        "title": "Role-based permissions",
+        "desc": "Each user sees only what their role allows — with clear separation between admin, instructor, student, and reviewer."
+      },
+      "audit": {
+        "title": "Documentation and traceability",
+        "desc": "Audit logs and reports help institutions track operations and decisions."
+      },
+      "certificates": {
+        "title": "Verifiable certificates",
+        "desc": "Issue digital certificates that can be verified via a public verification code."
+      },
+      "institutions": {
+        "title": "Institution-ready",
+        "desc": "Built for universities, partners, programs, quality assurance, and academic accreditation."
+      }
     }
   },
   "about": {
@@ -48,15 +188,15 @@
     "subtitle": "An interactive preview of platform screens — credentials, partners, and secure access."
   },
   "cta": {
-    "title": "Start your learning journey today",
-    "subtitle": "Join institutions that trust BATTECHNO-LMS for learning and accreditation.",
-    "primary": "Register",
-    "secondary": "Login"
+    "title": "Manage your learning journey professionally",
+    "subtitle": "Join BATTECHNO LMS to run programs, cohorts, assessments, quality, and certificates from one platform.",
+    "primary": "Enter platform",
+    "secondary": "Create student account"
   },
   "features": {
     "eyebrow": "Platform",
     "title": "Everything you need to run academic operations",
-    "subtitle": "Governance, quality, and recognition — with clarity for every role.",
+    "subtitle": "Integrated modules for delivery, governance, quality, accreditation, and analytics — with clarity for every role.",
     "list": {
       "usersRoles": {
         "title": "Users & permissions",
@@ -64,11 +204,11 @@
       },
       "universities": {
         "title": "University management",
-        "desc": "Institutional structure, programs, and academic partners in one admin surface."
+        "desc": "Institutional structure for universities, academic partners, and programs in one admin surface."
       },
       "tracks": {
         "title": "Program & track management",
-        "desc": "Design learning paths, requirements, and measurable outcomes for accreditation."
+        "desc": "Design learning paths, requirements, and measurable learning outcomes for accreditation."
       },
       "microCredentials": {
         "title": "Micro-credentials",
@@ -76,15 +216,15 @@
       },
       "gradesAssessments": {
         "title": "Assessments & grades",
-        "desc": "Rubrics, criteria, and gradebooks that reflect academic performance accurately."
+        "desc": "Rubrics, submissions, and gradebooks that reflect academic performance accurately."
       },
       "attendance": {
-        "title": "Attendance",
-        "desc": "Track sessions and presence to support learner commitment and quality."
+        "title": "Sessions & attendance",
+        "desc": "Track sessions and presence to support commitment and quality of engagement."
       },
       "qualityAccreditation": {
         "title": "Quality & accreditation",
-        "desc": "Evidence, KPIs, and QA workflows that support external review and recognition."
+        "desc": "Evidence, KPIs, QA reviews, and corrective actions that support external review and recognition."
       },
       "reportsAnalytics": {
         "title": "Reports & analytics",
@@ -109,8 +249,8 @@
     }
   },
   "partners": {
-    "sectionTitle": "Partners in success",
-    "sectionSubtitle": "We work with national and academic institutions to support digital education and micro-credentials.",
+    "sectionTitle": "Academic and institutional partners on the path to success",
+    "sectionSubtitle": "We work with national universities and institutions to support digital education, applied skills, and micro-credential programs.",
     "categoryMinistry": "Ministry",
     "categoryUniversity": "University",
     "title": "Partners",
@@ -143,14 +283,29 @@
     "navAccount": "Account",
     "home": {
       "greeting": "Welcome to",
+      "dashboardTitle": "Dashboard",
       "platform": "BATTECHNO-LMS",
-      "tagline": "Integrated learning platform",
+      "tagline": "Academic operations overview",
+      "activePrograms": "Active programs",
+      "program1": "Learning analytics",
+      "program2": "Academic quality management",
+      "statPrograms": "Active programs",
+      "statProgramsVal": "12",
       "statMicro": "Micro-credentials",
-      "statMicroVal": "48",
       "statUniv": "Universities",
-      "statUnivVal": "12",
       "statCohort": "Cohorts",
-      "statCohortVal": "36"
+      "statAttendance": "Attendance",
+      "statAssessments": "Assessments",
+      "statCerts": "Certificates",
+      "chipActive": "Active",
+      "chipComplete": "Complete",
+      "chipReview": "In review",
+      "rowAttendance": "Attendance this week",
+      "rowAttendanceVal": "{{count}} sessions",
+      "rowAssessments": "Open assessments",
+      "rowAssessmentsVal": "{{count}} active",
+      "rowCerts": "Issued certificates",
+      "rowCertsVal": "{{count}} issued"
     },
     "credentials": {
       "title": "Micro-credentials",
@@ -177,6 +332,7 @@
     }
   },
   "footer": {
+    "description": "BATTECHNO LMS is an academic platform for managing micro-credentials, educational programs, quality, accreditation, and reports for educational and training institutions.",
     "rights": "© {{year}} BATTECHNO. All rights reserved.",
     "contact": "Contact",
     "support": "Support",

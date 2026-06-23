@@ -2,37 +2,37 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { PARTNER_INSTITUTIONS } from './home.constants.js';
 import { PartnerCard } from './PartnerCard.jsx';
+import { LandingSection, LandingSectionContent } from './LandingSection.jsx';
+import {
+  useLandingMotion,
+  LandingSectionHeader,
+  MOTION_STAGGER,
+  VIEWPORT_CARD,
+} from './motion/index.js';
 
 export function PartnersSection() {
   const { t } = useTranslation('landing');
+  const { staggerContainer, staggerItem } = useLandingMotion();
 
   return (
-    <section id="partners" className="relative scroll-mt-20 border-t border-bat-border/70 bg-bat-bg py-20 sm:py-28">
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="mx-auto max-w-2xl text-center"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-bat-muted">{t('header.navPartners')}</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-bat-ink sm:text-[2rem] sm:leading-tight">
-            {t('partners.sectionTitle')}
-          </h2>
-          <p className="mt-4 text-base leading-relaxed text-bat-muted sm:text-lg">{t('partners.sectionSubtitle')}</p>
-        </motion.div>
+    <LandingSection variant="partners" id="partners" compact>
+      <LandingSectionContent>
+        <LandingSectionHeader
+          eyebrow={t('header.navPartners')}
+          title={t('partners.sectionTitle')}
+          subtitle={t('partners.sectionSubtitle')}
+          wide
+        />
 
-        <div className="mt-14 grid auto-rows-fr gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 lg:gap-7">
-          {PARTNER_INSTITUTIONS.map((p, i) => (
-            <motion.div
-              key={p.id}
-              className="flex h-full"
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-40px' }}
-              transition={{ duration: 0.4, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-            >
+        <motion.div
+          variants={staggerContainer(MOTION_STAGGER.normal, 0.1)}
+          initial="hidden"
+          whileInView="show"
+          viewport={VIEWPORT_CARD}
+          className="landing-after-header landing-grid landing-grid--loose auto-rows-fr sm:grid-cols-2 lg:grid-cols-3"
+        >
+          {PARTNER_INSTITUTIONS.map((p) => (
+            <motion.div key={p.id} variants={staggerItem(16)} className="flex h-full">
               <PartnerCard
                 initials={p.initials}
                 nameKey={p.nameKey}
@@ -42,8 +42,8 @@ export function PartnersSection() {
               />
             </motion.div>
           ))}
-        </div>
-      </div>
-    </section>
+        </motion.div>
+      </LandingSectionContent>
+    </LandingSection>
   );
 }

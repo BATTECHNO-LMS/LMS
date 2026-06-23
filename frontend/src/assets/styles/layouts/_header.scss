@@ -47,8 +47,9 @@
 }
 
 .app-header__logo-image {
-  height: 2.15rem;
+  height: 2.75rem;
   width: auto;
+  max-width: 11rem;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -545,7 +546,7 @@
 /** Very narrow phones: hide divider + page title to free space; tablet keeps title */
 @include respond(480px) {
   .app-header__logo-image {
-    height: 1.8rem;
+    height: 2.1rem;
   }
 
   .app-header__divider,

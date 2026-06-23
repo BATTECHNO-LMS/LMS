@@ -11,7 +11,10 @@ import {
   FiUser,
   FiChevronRight,
 } from 'react-icons/fi';
-import battechnoLogo from '../../assets/images/batman-logo.png';
+import { BrandLogo } from '../common/BrandLogo.jsx';
+import { PhoneHomeDashboard } from './PhoneHomeDashboard.jsx';
+import { PhoneDeviceFrame } from './PhoneDeviceFrame.jsx';
+import { useLandingMotion } from './motion/index.js';
 
 /** @typedef {'home' | 'credentials' | 'partners' | 'account'} PhoneScreen */
 
@@ -22,6 +25,7 @@ import battechnoLogo from '../../assets/images/batman-logo.png';
 export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
   const { t, i18n } = useTranslation('landing');
   const { dir } = useLocale();
+  const { reduced, transition } = useLandingMotion();
   const [activeScreen, setActiveScreen] = useState(/** @type {PhoneScreen} */ ('home'));
   const [now, setNow] = useState(() => new Date());
 
@@ -70,87 +74,45 @@ export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
 
   const screenBody = (
     <div
-      className="relative z-10 flex min-h-0 h-full w-full flex-1 flex-col overflow-hidden rounded-none bg-bat-bg text-bat-text shadow-inner"
+      className="relative flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-bat-bg text-bat-text"
       dir={dir}
     >
+      {/* Status bar — below Dynamic Island safe zone */}
       <div
-        className={`pointer-events-none absolute start-3 top-2.5 z-40 flex flex-col ${framed ? 'max-w-[38%]' : ''}`}
+        className={`pointer-events-none absolute start-3.5 z-40 flex flex-col ${
+          framed ? 'top-[2.55rem]' : 'top-2.5'
+        } ${framed ? 'max-w-[34%]' : ''}`}
         aria-hidden
       >
-        <span className="text-[11px] font-semibold tabular-nums leading-none tracking-tight text-bat-ink">
+        <span className="text-[10px] font-semibold tabular-nums leading-none tracking-tight text-bat-ink">
           {statusClock.time}
         </span>
-        <span className="mt-0.5 text-[9px] font-medium leading-tight text-bat-muted">{statusClock.date}</span>
+        <span className="mt-0.5 text-[8px] font-medium leading-tight text-bat-muted">{statusClock.date}</span>
       </div>
 
-      {framed ? (
-        <div
-          className="pointer-events-none absolute left-1/2 top-3 z-30 h-[1.35rem] w-[5.5rem] -translate-x-1/2 rounded-full bg-black shadow-md ring-1 ring-black/40"
-          aria-hidden
-        />
-      ) : null}
-
-      <header className="relative z-10 flex shrink-0 items-center justify-between border-b border-bat-border/90 bg-bat-surface/90 px-4 pb-2.5 pt-9 backdrop-blur-sm">
+      <header
+        className={`relative z-10 flex shrink-0 items-center justify-between border-b border-bat-border/90 bg-bat-surface/95 px-3 backdrop-blur-sm ${
+          framed ? 'pb-2 pt-[3.4rem]' : 'pb-2.5 pt-9'
+        }`}
+      >
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <img
-            src={battechnoLogo}
-            alt={t('brand')}
-            className="h-7 w-auto max-w-full object-contain object-start"
-            decoding="async"
-          />
-          <p className="truncate text-[10px] font-medium text-bat-muted">{t('phone.previewBadge')}</p>
+          <BrandLogo variant="phone" alt={t('brand')} />
+          <p className="truncate text-[9px] font-medium text-bat-muted">{t('phone.previewBadge')}</p>
         </div>
         <FiChevronRight className={`shrink-0 text-bat-muted ${dir === 'rtl' ? 'rotate-180' : ''}`} aria-hidden />
       </header>
 
-      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 pb-3 pt-2">
+      <div className="relative z-10 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 pb-2 pt-1">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeScreen}
-            initial={{ opacity: 0, x: dir === 'rtl' ? -8 : 8 }}
+            initial={reduced ? false : { opacity: 0, x: dir === 'rtl' ? -6 : 6 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir === 'rtl' ? 8 : -8 }}
-            transition={{ duration: 0.22 }}
-            className="space-y-3"
+            exit={reduced ? undefined : { opacity: 0, x: dir === 'rtl' ? 6 : -6 }}
+            transition={transition(0.22)}
+            className="space-y-2.5"
           >
-            {activeScreen === 'home' ? (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-[11px] font-semibold text-bat-muted">{t('phone.home.greeting')}</p>
-                  <p className="text-lg font-black leading-tight text-bat-ink">{t('phone.home.platform')}</p>
-                  <p className="mt-0.5 text-[11px] text-bat-text">{t('phone.home.tagline')}</p>
-                </div>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {[
-                    { l: 'phone.home.statMicro', v: 'phone.home.statMicroVal' },
-                    { l: 'phone.home.statUniv', v: 'phone.home.statUnivVal' },
-                    { l: 'phone.home.statCohort', v: 'phone.home.statCohortVal' },
-                  ].map(({ l, v }) => (
-                    <div
-                      key={l}
-                      className="rounded-xl border border-bat-border/80 bg-bat-surface px-1.5 py-2 text-center shadow-sm"
-                    >
-                      <p className="text-base font-bold tabular-nums text-bat-ink">{t(v)}</p>
-                      <p className="mt-0.5 text-[9px] font-semibold leading-tight text-bat-text">{t(l)}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <Link
-                    to="/register"
-                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl bg-bat-primary text-center text-[11px] font-semibold text-white shadow-sm"
-                  >
-                    {t('hero.ctaRegister')}
-                  </Link>
-                  <Link
-                    to="/login"
-                    className="flex min-h-[2.75rem] items-center justify-center rounded-xl border border-bat-accent bg-bat-accent-soft text-center text-[11px] font-bold text-bat-primary shadow-sm"
-                  >
-                    {t('hero.ctaLogin')}
-                  </Link>
-                </div>
-              </div>
-            ) : null}
+            {activeScreen === 'home' ? <PhoneHomeDashboard /> : null}
 
             {activeScreen === 'credentials' ? (
               <div className="space-y-2.5">
@@ -192,13 +154,13 @@ export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
                   {PARTNER_INSTITUTIONS.map((p) => (
                     <li
                       key={p.id}
-                      className="group/row flex items-center gap-2 rounded-xl border border-bat-border bg-bat-surface px-2.5 py-2 shadow-sm"
+                      className="flex items-center gap-2 rounded-xl border border-bat-border bg-bat-surface px-2.5 py-2 shadow-sm"
                     >
-                      <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-bat-border/90 bg-bat-bg">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-bat-border/90 bg-bat-bg">
                         <img
                           src={p.logoUrl}
                           alt={t(p.nameKey)}
-                          className="max-h-9 max-w-[2.35rem] object-contain"
+                          className="max-h-8 max-w-[2rem] object-contain"
                           loading="lazy"
                           decoding="async"
                         />
@@ -269,69 +231,43 @@ export function BattechnoPhoneApp({ variant = 'device', className = '' }) {
               key={id}
               type="button"
               onClick={() => setActiveScreen(id)}
-              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[9px] font-bold transition ${
+              className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg py-1.5 text-[9px] font-bold transition-colors ${
                 active ? 'text-bat-primary' : 'text-bat-muted hover:text-bat-primary'
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl ${
+                className={`flex h-7 w-7 items-center justify-center rounded-xl sm:h-8 sm:w-8 ${
                   active ? 'bg-bat-accent-soft ring-1 ring-bat-accent/50' : 'bg-transparent'
                 }`}
               >
-                <Icon size={17} aria-hidden />
+                <Icon size={16} aria-hidden />
               </span>
               <span className="truncate px-0.5 leading-tight">{t(labelKey)}</span>
             </button>
           );
         })}
       </nav>
+
+      {/* Home indicator */}
+      {framed ? (
+        <div className="pointer-events-none flex shrink-0 justify-center pb-1 pt-0.5" aria-hidden>
+          <span className="h-[3px] w-[26%] min-w-[3.5rem] max-w-[4.25rem] rounded-full bg-bat-ink/18" />
+        </div>
+      ) : null}
     </div>
   );
 
-  const deviceShell = framed ? (
-    <div
-      className={`relative mx-auto w-full max-w-[390px] ${className}`}
-      style={{ pointerEvents: 'auto' }}
-      dir="ltr"
-    >
-      <div
-        className="pointer-events-none absolute -start-1 top-[22%] z-20 h-9 w-[3px] rounded-s-sm bg-gradient-to-b from-zinc-800 to-black shadow-sm"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -start-1 top-[30%] z-20 h-14 w-[3px] rounded-s-sm bg-gradient-to-b from-zinc-800 to-black shadow-sm"
-        aria-hidden
-      />
-      <div
-        className="pointer-events-none absolute -end-1 top-[26%] z-20 h-20 w-[3px] rounded-e-sm bg-gradient-to-b from-zinc-800 to-black shadow-sm"
-        aria-hidden
-      />
+  if (framed) {
+    return (
+      <PhoneDeviceFrame className={className}>
+        {screenBody}
+      </PhoneDeviceFrame>
+    );
+  }
 
-      <div
-        className="relative mx-auto overflow-visible rounded-[2.85rem] bg-gradient-to-b from-zinc-800 via-neutral-900 to-black p-[3px] shadow-[0_28px_56px_-18px_rgba(0,0,0,0.45),0_12px_28px_-10px_rgba(0,0,0,0.35)] ring-1 ring-white/12"
-        style={{ pointerEvents: 'auto' }}
-      >
-        <div
-          className="relative flex aspect-[390/780] w-full max-h-[780px] flex-col overflow-hidden rounded-[calc(2.85rem-3px)] bg-bat-bg ring-1 ring-inset ring-black/30"
-          style={{ pointerEvents: 'auto' }}
-        >
-          {screenBody}
-        </div>
-      </div>
-    </div>
-  ) : (
-    <div
-      className={`mx-auto w-full max-w-[min(390px,calc(100vw-1.5rem))] ${className}`}
-      style={{ pointerEvents: 'auto' }}
-      dir="ltr"
-    >
-      <div className="relative flex max-h-[min(780px,88vh)] min-h-[520px] w-full flex-col overflow-hidden rounded-[2.65rem] border border-zinc-700/80 bg-gradient-to-b from-zinc-800 via-neutral-900 to-black p-[3px] shadow-xl shadow-black/40">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[calc(2.65rem-3px)] bg-bat-bg ring-1 ring-inset ring-black/35">
-          {screenBody}
-        </div>
-      </div>
-    </div>
+  return (
+    <PhoneDeviceFrame className={className}>
+      {screenBody}
+    </PhoneDeviceFrame>
   );
-
-  return deviceShell;
 }

@@ -58,6 +58,20 @@ async function activate(req, res, next) {
   }
 }
 
+async function activateAllPending(req, res, next) {
+  try {
+    const data = await usersService.activateAllPendingStudents({
+      university_id: req.validated.query.university_id,
+      user_ids: req.validated.body?.user_ids,
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+    });
+    return success(res, data, { message: 'Pending students activated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -65,4 +79,5 @@ module.exports = {
   update,
   patchStatus,
   activate,
+  activateAllPending,
 };

@@ -1,4 +1,5 @@
 ﻿const { z } = require('zod');
+const { DEFAULT_PAGE_SIZE, ADMIN_MAX_PAGE_SIZE } = require('../../utils/pagination');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid user id'),
@@ -9,7 +10,7 @@ const userStatusEnum = z.enum(['active', 'inactive', 'suspended']);
 const listUsersQuerySchema = z
   .object({
     page: z.coerce.number().int().min(1).default(1),
-    page_size: z.coerce.number().int().min(1).max(100).default(20),
+    page_size: z.coerce.number().int().min(1).max(ADMIN_MAX_PAGE_SIZE).default(DEFAULT_PAGE_SIZE),
     status: userStatusEnum.optional(),
     university_id: z.string().uuid().optional(),
     search: z.string().max(255).optional(),
@@ -78,10 +79,24 @@ const patchUserStatusBodySchema = z
   })
   .strict();
 
+const activatePendingQuerySchema = z
+  .object({
+    university_id: z.string().uuid().optional(),
+  })
+  .strict();
+
+const activatePendingBodySchema = z
+  .object({
+    user_ids: z.array(z.string().uuid()).max(500).optional(),
+  })
+  .strict();
+
 module.exports = {
   uuidParamSchema,
   listUsersQuerySchema,
   createUserBodySchema,
   updateUserBodySchema,
   patchUserStatusBodySchema,
+  activatePendingQuerySchema,
+  activatePendingBodySchema,
 };

@@ -183,6 +183,39 @@ async function updateUser(id, data, tx = prisma) {
   });
 }
 
+/** Inactive users with the student role, optionally scoped to a university. */
+async function findInactiveStudents({ studentRoleId, university_id }) {
+  const roleLinks = await prisma.user_roles.findMany({
+    where: { role_id: studentRoleId },
+    select: { user_id: true },
+  });
+  const studentUserIds = roleLinks.map((r) => r.user_id);
+  if (!studentUserIds.length) return [];
+
+  const base = {
+    id: { in: studentUserIds },
+    status: 'inactive',
+  };
+
+  if (!university_id) {
+    return prisma.users.findMany({
+      where: base,
+      select: { id: true, email: true, full_name: true },
+      orderBy: { created_at: 'asc' },
+    });
+  }
+
+  const memberIds = await findUserIdsLinkedToUniversity(university_id);
+  const scopeOr = [{ primary_university_id: university_id }];
+  if (memberIds.length) scopeOr.push({ id: { in: memberIds } });
+
+  return prisma.users.findMany({
+    where: { AND: [base, { OR: scopeOr }] },
+    select: { id: true, email: true, full_name: true },
+    orderBy: { created_at: 'asc' },
+  });
+}
+
 module.exports = {
   buildListWhere,
   countMany,
@@ -200,4 +233,5 @@ module.exports = {
   upsertUniversityUser,
   deleteAllUserRoles,
   updateUser,
+  findInactiveStudents,
 };

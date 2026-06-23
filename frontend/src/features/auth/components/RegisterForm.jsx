@@ -76,7 +76,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form className="auth-form auth-register__form" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form className="auth-form auth-form--register" onSubmit={handleSubmit(onSubmit)} noValidate>
       {formError ? <p className="auth-form__error">{formError}</p> : null}
 
       <FormInput
@@ -85,6 +85,7 @@ export function RegisterForm() {
         label={t('register.labels.fullName')}
         placeholder={t('register.placeholders.fullName')}
         error={errors.full_name?.message}
+        inputClassName="auth-form__input"
         {...register('full_name')}
       />
 
@@ -96,6 +97,7 @@ export function RegisterForm() {
           label={t('register.labels.email')}
           placeholder={t('register.placeholders.email')}
           error={errors.email?.message}
+          inputClassName="auth-form__input"
           {...register('email')}
           aria-describedby="register-email-helper"
         />
@@ -115,6 +117,7 @@ export function RegisterForm() {
             disabled={isSubmitting}
             options={universityOptions}
             loading={universitiesLoading}
+            controlClassName="auth-form__input"
             {...field}
           />
         )}
@@ -140,6 +143,7 @@ export function RegisterForm() {
         placeholder={t('register.placeholders.password')}
         error={errors.password?.message}
         passwordToggle
+        inputClassName="auth-form__input"
         {...register('password')}
       />
 
@@ -151,6 +155,7 @@ export function RegisterForm() {
         placeholder={t('register.placeholders.confirmPassword')}
         error={errors.confirm_password?.message}
         passwordToggle
+        inputClassName="auth-form__input"
         {...register('confirm_password')}
       />
 
@@ -161,16 +166,17 @@ export function RegisterForm() {
         label={t('register.labels.phone')}
         placeholder={t('register.placeholders.phone')}
         error={errors.phone?.message}
+        inputClassName="auth-form__input"
         {...register('phone')}
       />
 
-      <div className="auth-register__actions">
+      <div className="auth-form__actions auth-register__actions">
         <SubmitButton loading={isSubmitting}>{t('register.submit')}</SubmitButton>
       </div>
 
-      <p className="auth-register__login-row">
-        <span className="auth-register__login-text">{t('register.loginPrompt')}</span>{' '}
-        <Link className="auth-register__link" to="/login">
+      <p className="auth-form__sign-up-row auth-register__login-row">
+        <span>{t('register.loginPrompt')}</span>{' '}
+        <Link className="auth-form__sign-up-link auth-register__link" to="/login">
           {t('register.loginLink')}
         </Link>
       </p>

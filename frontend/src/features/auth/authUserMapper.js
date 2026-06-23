@@ -26,6 +26,11 @@ export function mapAuthUser(raw) {
   const role = raw.role ? String(raw.role) : pickPrimaryRole(roles);
   const isGlobal = Boolean(raw.isGlobal ?? role === ROLES.SUPER_ADMIN);
   const primaryUniversityId = raw.primary_university_id != null ? String(raw.primary_university_id) : null;
+  const uniRaw = raw.university ?? raw.primary_university;
+  const university =
+    uniRaw && typeof uniRaw === 'object' && uniRaw.name
+      ? { id: String(uniRaw.id ?? primaryUniversityId ?? ''), name: String(uniRaw.name) }
+      : null;
 
   const tenantId = isGlobal ? TENANT_SCOPE_ALL : primaryUniversityId;
 
@@ -39,6 +44,8 @@ export function mapAuthUser(raw) {
     roles,
     isGlobal,
     primary_university_id: primaryUniversityId,
+    primary_university: university,
+    university,
     tenantId,
     permissions: Array.isArray(raw.permissions) ? raw.permissions.map(String) : [],
     tenantCode: raw.tenantCode != null ? String(raw.tenantCode) : null,

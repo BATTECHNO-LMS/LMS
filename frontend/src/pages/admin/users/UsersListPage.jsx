@@ -20,7 +20,12 @@ import { roleLabelAr } from '../../../utils/labelsAr.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
 import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
-import { useUsers, mapUserListRow, useActivateUser } from '../../../features/users/index.js';
+import {
+  useUsers,
+  mapUserListRow,
+  useActivateUser,
+  useActivateAllPendingUsers,
+} from '../../../features/users/index.js';
 import { Users, UserCheck, UserX, UserPlus } from 'lucide-react';
 
 export function UsersListPage() {
@@ -34,6 +39,7 @@ export function UsersListPage() {
   const status = searchParams.get('status') || '';
   const [activationFeedback, setActivationFeedback] = useState('');
   const activateUser = useActivateUser();
+  const activateAllPending = useActivateAllPendingUsers();
 
   const setStatusParam = (value) => {
     const next = new URLSearchParams(searchParams);
@@ -43,7 +49,7 @@ export function UsersListPage() {
   };
 
   const listParams = useMemo(() => {
-    const params = { page: 1, page_size: 100 };
+    const params = { page: 1, page_size: 500 };
     if (status) params.status = status;
     if (scopeId && scopeId !== TENANT_SCOPE_ALL) params.university_id = scopeId;
     return params;
@@ -63,12 +69,48 @@ export function UsersListPage() {
     });
   }, [data, filterRows, scopeId, q, role]);
 
+  const pendingStudents = useMemo(
+    () =>
+      rows.filter(
+        (r) => r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student')
+      ),
+    [rows]
+  );
+
   const stats = {
     total: rows.length,
     active: rows.filter((r) => r.status === 'active').length,
     inactive: rows.filter((r) => r.status === 'inactive' || r.status === 'suspended').length,
     new: rows.filter((r) => r.lastLogin === '—').length,
   };
+
+  async function handleActivateAll() {
+    if (!pendingStudents.length) {
+      setActivationFeedback(t('list.activateAllNone'));
+      return;
+    }
+    const ok = window.confirm(t('list.activateAllConfirm', { count: pendingStudents.length }));
+    if (!ok) return;
+
+    setActivationFeedback('');
+    try {
+      const payload = {
+        user_ids: pendingStudents.map((r) => r.id),
+      };
+      if (scopeId && scopeId !== TENANT_SCOPE_ALL) payload.university_id = scopeId;
+      const result = await activateAllPending.mutateAsync(payload);
+      const activated = result?.activated ?? 0;
+      const total = result?.total_pending ?? pendingStudents.length;
+      const failed = result?.failed ?? 0;
+      if (failed > 0) {
+        setActivationFeedback(t('list.activateAllPartial', { activated, total, failed }));
+      } else {
+        setActivationFeedback(t('list.activateAllSuccess', { count: activated }));
+      }
+    } catch (e) {
+      setActivationFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+    }
+  }
 
   const emptyTitle =
     rows.length === 0
@@ -129,7 +171,22 @@ export function UsersListPage() {
         <StatCard label={t('stats.inactive')} value={String(stats.inactive)} icon={UserX} />
         <StatCard label={t('stats.newUsers')} value={String(stats.new)} icon={UserPlus} />
       </AdminStatsGrid>
-      <SectionCard title={<>{t('listTitle')}</>}>
+      <SectionCard
+        title={<>{t('listTitle')}</>}
+        actions={
+          pendingStudents.length > 0 ? (
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              disabled={activateAllPending.isPending || activateUser.isPending}
+              onClick={handleActivateAll}
+            >
+              {t('list.activateAll')}
+              {pendingStudents.length ? ` (${pendingStudents.length})` : ''}
+            </button>
+          ) : null
+        }
+      >
         {isLoading ? (
           <LoadingSpinner />
         ) : (

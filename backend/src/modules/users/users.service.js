@@ -1,5 +1,7 @@
 ﻿const { ApiError } = require('../../utils/apiError');
+const { env } = require('../../config/env');
 const { hashPassword } = require('../../utils/password');
+const { ensureUserLinkedToUniversityFromEmail } = require('../auth/universityEmailLink.service');
 const { prisma } = require('../../config/db');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
@@ -136,6 +138,10 @@ async function createUser(body) {
     return created;
   });
 
+  if (!body.primary_university_id) {
+    await ensureUserLinkedToUniversityFromEmail(user.id, body.email);
+  }
+
   return getUserById(user.id);
 }
 
@@ -222,9 +228,15 @@ async function activateUser(id, { actorUserId, ipAddress } = {}) {
     });
   }
 
+  if (!existing.primary_university_id && existing.email) {
+    await ensureUserLinkedToUniversityFromEmail(id, existing.email);
+  }
+
+  const refreshed = await usersRepository.findUserById(id);
+
   await recordAudit({
     userId: actorUserId ?? null,
-    universityId: existing.primary_university_id ?? null,
+    universityId: refreshed?.primary_university_id ?? existing.primary_university_id ?? null,
     actionType: 'USER_ACTIVATED',
     entityType: 'user',
     entityId: id,
@@ -236,6 +248,57 @@ async function activateUser(id, { actorUserId, ipAddress } = {}) {
   return getUserById(id);
 }
 
+async function activateAllPendingStudents({ university_id, user_ids, actorUserId, ipAddress } = {}) {
+  const studentRole = await usersRepository.findRolesByCodes([env.STUDENT_ROLE_CODE]);
+  if (!studentRole.length) {
+    throw new ApiError(500, `Student role "${env.STUDENT_ROLE_CODE}" is missing`);
+  }
+
+  let pending;
+  if (user_ids?.length) {
+    const links = await usersRepository.findRoleLinksForUsers(user_ids);
+    const studentUserIds = new Set(
+      links.filter((l) => l.role_id === studentRole[0].id).map((l) => l.user_id)
+    );
+    pending = await prisma.users.findMany({
+      where: {
+        id: { in: [...studentUserIds] },
+        status: 'inactive',
+      },
+      select: { id: true, email: true, full_name: true },
+      orderBy: { created_at: 'asc' },
+    });
+  } else {
+    pending = await usersRepository.findInactiveStudents({
+      studentRoleId: studentRole[0].id,
+      university_id: university_id || undefined,
+    });
+  }
+
+  let activated = 0;
+  const errors = [];
+
+  for (const row of pending) {
+    try {
+      await activateUser(row.id, { actorUserId, ipAddress });
+      activated += 1;
+    } catch (err) {
+      errors.push({
+        id: row.id,
+        email: row.email,
+        message: err.message || 'Activation failed',
+      });
+    }
+  }
+
+  return {
+    total_pending: pending.length,
+    activated,
+    failed: errors.length,
+    errors,
+  };
+}
+
 module.exports = {
   listUsers,
   getUserById,
@@ -243,4 +306,5 @@ module.exports = {
   updateUser,
   patchUserStatus,
   activateUser,
+  activateAllPendingStudents,
 };

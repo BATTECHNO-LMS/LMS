@@ -7,3 +7,4 @@ export * from './hooks/useCreateUser.js';
 export * from './hooks/useUpdateUser.js';
 export * from './hooks/useUpdateUserStatus.js';
 export * from './hooks/useActivateUser.js';
+export * from './hooks/useActivateAllPendingUsers.js';

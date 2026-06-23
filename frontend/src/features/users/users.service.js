@@ -51,3 +51,15 @@ export async function activateUserAccount(id) {
   const res = await apiClient.patch(`${endpoints.users}/${id}/activate`);
   return unwrapApiData(res);
 }
+
+/**
+ * Activate all inactive student accounts (optional university scope).
+ * @param {{ university_id?: string }} [params]
+ */
+export async function activateAllPendingUsers({ university_id, user_ids } = {}) {
+  const params = {};
+  if (university_id) params.university_id = university_id;
+  const body = user_ids?.length ? { user_ids } : {};
+  const res = await apiClient.post(`${endpoints.users}/activate-pending`, body, { params });
+  return unwrapApiData(res);
+}

@@ -36,5 +36,6 @@ router.use('/admin/courses', require('../modules/courses/adminCourses.routes'));
 router.use('/student/courses', require('../modules/courses/studentCourses.routes'));
 router.use('/admin/field-training', require('../modules/fieldTraining/adminFieldTraining.routes'));
 router.use('/student/field-training', require('../modules/fieldTraining/studentFieldTraining.routes'));
+router.use('/public', require('../modules/public/public.routes'));
 
 module.exports = router;

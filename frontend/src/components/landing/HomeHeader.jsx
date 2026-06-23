@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useLocale } from '../../features/locale/index.js';
-import battechnoLogo from '../../assets/images/batman-logo.png';
+import { LandingBrandLogo } from './LandingBrandLogo.jsx';
 
 /**
  * @param {{ variant?: 'default' | 'minimal' }} props
@@ -19,6 +19,20 @@ export function HomeHeader({ variant = 'default' }) {
 
   const centerLinks = (
     <>
+      <a
+        href="#portals"
+        className="rounded-xl px-4 py-2 text-sm font-semibold text-bat-text transition hover:bg-bat-accent-soft/80 hover:text-bat-primary"
+        onClick={close}
+      >
+        {t('header.navPortals')}
+      </a>
+      <a
+        href="#journey"
+        className="rounded-xl px-4 py-2 text-sm font-semibold text-bat-text transition hover:bg-bat-accent-soft/80 hover:text-bat-primary"
+        onClick={close}
+      >
+        {t('header.navJourney')}
+      </a>
       <a
         href="#capabilities"
         className="rounded-xl px-4 py-2 text-sm font-semibold text-bat-text transition hover:bg-bat-accent-soft/80 hover:text-bat-primary"
@@ -62,18 +76,13 @@ export function HomeHeader({ variant = 'default' }) {
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="sticky top-0 z-[60] border-b border-bat-border/80 bg-bat-bg/95 shadow-[0_4px_24px_-8px_rgba(19,45,74,0.08)] backdrop-blur-xl"
     >
-      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-8 lg:py-3.5">
+      <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-6 sm:py-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:items-center lg:gap-6 lg:px-8 lg:py-3">
         <Link
           to="/"
           className="flex min-w-0 items-center gap-3 lg:justify-self-start"
           onClick={close}
         >
-          <img
-            src={battechnoLogo}
-            alt={t('brand')}
-            className="h-9 w-auto max-h-10 max-w-[min(220px,55vw)] shrink-0 object-contain object-start sm:h-10"
-            decoding="async"
-          />
+          <LandingBrandLogo variant="header" alt={t('brand')} />
           {variant === 'default' ? (
             <span className="hidden min-w-0 truncate text-[11px] font-medium text-bat-muted sm:block sm:max-w-[12rem] sm:text-xs">
               {t('brandSubtitle')}

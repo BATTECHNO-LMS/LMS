@@ -21,7 +21,12 @@
   "list": {
     "pendingActivation": "Pending activation",
     "activateAccount": "Activate account",
-    "activateSuccess": "Account activated successfully."
+    "activateSuccess": "Account activated successfully.",
+    "activateAll": "Activate all",
+    "activateAllConfirm": "Activate {{count}} pending student account(s)?",
+    "activateAllSuccess": "{{count}} account(s) activated.",
+    "activateAllPartial": "Activated {{activated}} of {{total}}. {{failed}} failed.",
+    "activateAllNone": "No students waiting for activation."
   },
   "table": {
     "name": "Name",

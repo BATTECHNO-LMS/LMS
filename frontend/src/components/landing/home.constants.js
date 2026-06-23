@@ -25,7 +25,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.youthMinistry',
     category: 'ministry',
     initials: 'وش',
-    logoUrl: '/partners/youth-ministry.png',
+    logoUrl: '/partners/ministry-youth-transparent.png',
     descriptionKey: 'institutions.descriptions.youth',
   },
   {
@@ -33,7 +33,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.digitalEconomyMinistry',
     category: 'ministry',
     initials: 'رق',
-    logoUrl: '/partners/digital-economy.png',
+    logoUrl: '/partners/ministry-digital-economy-transparent.png',
     descriptionKey: 'institutions.descriptions.digital',
   },
   {
@@ -41,7 +41,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.tafilaTech',
     category: 'university',
     initials: 'طت',
-    logoUrl: '/partners/tafila-tech.png',
+    logoUrl: '/partners/tafila-university-transparent.png',
     descriptionKey: 'institutions.descriptions.ttu',
   },
   {
@@ -49,7 +49,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.mutah',
     category: 'university',
     initials: 'مؤ',
-    logoUrl: '/partners/mutah.png',
+    logoUrl: '/partners/mutah-university-transparent.png',
     descriptionKey: 'institutions.descriptions.mutah',
   },
   {
@@ -57,7 +57,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.zaytoonah',
     category: 'university',
     initials: 'ز',
-    logoUrl: '/partners/zaytoonah.png',
+    logoUrl: '/partners/al-zaytoonah-university-transparent.png',
     descriptionKey: 'institutions.descriptions.zay',
   },
   {
@@ -65,10 +65,27 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.yarmouk',
     category: 'university',
     initials: 'ير',
-    logoUrl: '/partners/yarmouk.png',
+    logoUrl: '/partners/yarmouk-university-transparent.png',
     descriptionKey: 'institutions.descriptions.yarmouk',
   },
 ];
 
 /** Home layout: narrow phones use simplified stack; tablet+ matches desktop (incl. hero phone). */
 export const MOBILE_BREAKPOINT = '(max-width: 767px)';
+
+/** Portal cards → landing.portals.list.<id> */
+export const PORTAL_KEYS = ['admin', 'instructor', 'student', 'reviewer'];
+
+/** Lifecycle timeline → landing.lifecycle.steps.<key> */
+export const LIFECYCLE_STEP_KEYS = [
+  'design',
+  'cohort',
+  'enrollment',
+  'sessions',
+  'assessments',
+  'certificates',
+  'verify',
+];
+
+/** Trust section → landing.trust.list.<key> */
+export const TRUST_KEYS = ['rbac', 'audit', 'certificates', 'institutions'];

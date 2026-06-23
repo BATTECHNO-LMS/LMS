@@ -19,6 +19,7 @@ export default {
           text: 'var(--color-text)',
           primary: 'var(--color-primary)',
           'primary-hover': 'var(--color-primary-hover)',
+          'primary-dark': 'var(--color-primary-dark)',
           'primary-light': 'var(--color-primary-light)',
           secondary: 'var(--color-secondary)',
           accent: 'var(--color-accent)',
@@ -26,6 +27,7 @@ export default {
           'accent-soft': 'var(--color-accent-soft)',
           'surface-header': 'var(--color-surface-header)',
           'surface-light': 'var(--color-surface-light)',
+          'surface-alt': 'var(--color-surface-alt)',
         },
       },
       boxShadow: {

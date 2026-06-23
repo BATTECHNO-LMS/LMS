@@ -2,6 +2,8 @@ const { z } = require('zod');
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+/** Admin bulk lists / selectors (e.g. users dropdown, full users table). */
+const ADMIN_MAX_PAGE_SIZE = 500;
 
 const paginationQueryShape = {
   page: z.coerce.number().int().min(1).optional(),
@@ -26,6 +28,7 @@ function normalizePagination(q) {
 module.exports = {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
+  ADMIN_MAX_PAGE_SIZE,
   paginationQueryShape,
   normalizePagination,
 };

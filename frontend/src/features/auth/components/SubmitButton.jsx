@@ -7,7 +7,7 @@ export function SubmitButton({ loading, disabled, children }) {
   return (
     <button
       type="submit"
-      className="btn btn--primary auth-register__submit"
+      className="btn btn--primary auth-form__submit auth-register__submit"
       disabled={disabled || loading}
     >
       {loading ? (

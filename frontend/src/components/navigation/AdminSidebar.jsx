@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/helpers.js';
-import brandLogo from '../../assets/images/batman-logo.png';
+import { BrandLogo } from '../../components/common/BrandLogo.jsx';
 import { SidebarSectionTitle } from './SidebarSectionTitle.jsx';
 
 export function AdminSidebar({
@@ -27,7 +27,7 @@ export function AdminSidebar({
       aria-label={t('sidebar.adminMenuAria')}
     >
       <div className="app-sidebar__brand">
-        <img src={brandLogo} alt={t('logo.alt')} className="app-sidebar__logo-image" />
+        <BrandLogo variant="sidebar" alt={t('logo.alt')} />
         <span className="app-sidebar__brand-text">{brand}</span>
         <button
           type="button"

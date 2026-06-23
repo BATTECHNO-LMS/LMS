@@ -21,7 +21,12 @@
   "list": {
     "pendingActivation": "بانتظار التفعيل",
     "activateAccount": "تفعيل الحساب",
-    "activateSuccess": "تم تفعيل الحساب بنجاح."
+    "activateSuccess": "تم تفعيل الحساب بنجاح.",
+    "activateAll": "تفعيل الكل",
+    "activateAllConfirm": "تفعيل {{count}} حساب طالب بانتظار التفعيل؟",
+    "activateAllSuccess": "تم تفعيل {{count}} حساب.",
+    "activateAllPartial": "تم تفعيل {{activated}} من {{total}}. فشل {{failed}}.",
+    "activateAllNone": "لا يوجد طلاب بانتظار التفعيل."
   },
   "table": {
     "name": "الاسم",

@@ -1,67 +1,77 @@
-import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { LandingBrandLogo } from './LandingBrandLogo.jsx';
+import { LandingCtaButton } from './motion/index.js';
 
 export function HomeFooter() {
   const { t } = useTranslation('landing');
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative border-t border-bat-border/90 bg-bat-surface pt-16 pb-12">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-bat-border/90"
-        aria-hidden
-      />
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <footer id="contact" className="landing-footer">
+      <div className="landing-footer__decor" aria-hidden>
+        <span className="landing-footer__wave landing-footer__wave--cream" />
+        <span className="landing-footer__wave landing-footer__wave--gold" />
+        <span className="landing-footer__wave-line" />
+        <span className="landing-footer__glow" />
+        <span className="landing-footer__dots" />
+        <span className="landing-footer__watermark" />
+      </div>
+
+      <div className="landing-container landing-footer__inner">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.4 }}
-          className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4"
+          transition={{ duration: 0.45 }}
+          className="landing-footer__grid"
         >
-          <div className="lg:col-span-2">
-            <p className="text-2xl font-extrabold tracking-tight text-bat-ink">{t('brand')}</p>
-            <p className="mt-2 max-w-md text-sm leading-relaxed text-bat-muted">{t('hero.companyLead')}</p>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-bat-muted">{t('footer.tagline')}</p>
+          <div className="landing-footer__brand">
+            <LandingBrandLogo
+              variant="footer"
+              alt={t('brand')}
+              className="!mb-0 !h-11 sm:!h-12 lg:!h-[3.25rem] lg:max-w-[280px]"
+            />
+            <p className="landing-footer__desc">{t('footer.description')}</p>
+            <p className="landing-footer__tagline">{t('footer.tagline')}</p>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-bat-muted">{t('footer.support')}</p>
-            <ul className="mt-4 space-y-3 text-sm text-bat-text">
+
+          <div className="landing-footer__col">
+            <p className="landing-footer__label">{t('footer.support')}</p>
+            <ul className="landing-footer__links">
               <li>
-                <a href="mailto:support@battechno.example" className="transition hover:text-bat-primary">
+                <a href="mailto:support@battechno.example" className="landing-footer__link">
                   {t('footer.contact')}
                 </a>
               </li>
               <li>
-                <span className="cursor-default text-bat-muted">{t('footer.privacy')}</span>
+                <span className="landing-footer__link landing-footer__link--muted">{t('footer.privacy')}</span>
               </li>
               <li>
-                <span className="cursor-default text-bat-muted">{t('footer.terms')}</span>
+                <span className="landing-footer__link landing-footer__link--muted">{t('footer.terms')}</span>
               </li>
             </ul>
           </div>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-bat-muted">{t('header.login')}</p>
-            <div className="mt-4 flex flex-col gap-3">
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center rounded-xl border border-bat-accent bg-bat-accent-soft px-4 py-3 text-sm font-semibold text-bat-primary shadow-sm transition hover:border-bat-accent-hover hover:bg-bat-accent"
-              >
+
+          <div className="landing-footer__col landing-footer__col--actions">
+            <p className="landing-footer__label">{t('header.login')}</p>
+            <div className="landing-footer__actions">
+              <LandingCtaButton to="/login" variant="secondary" className="landing-footer__btn">
                 {t('header.login')}
-              </Link>
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center rounded-xl bg-bat-primary px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-bat-primary-hover"
-              >
+              </LandingCtaButton>
+              <LandingCtaButton to="/register" variant="primary" className="landing-footer__btn">
                 {t('header.register')}
-              </Link>
+              </LandingCtaButton>
             </div>
           </div>
         </motion.div>
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-bat-border/90 pt-8 text-xs text-bat-muted sm:flex-row">
-          <p>{t('footer.rights', { year: String(year) })}</p>
-          <p className="font-medium text-bat-text">BATTECHNO · 2017</p>
+
+        <div className="landing-footer__bottom">
+          <span className="landing-footer__divider" aria-hidden />
+          <div className="landing-footer__meta">
+            <p>{t('footer.rights', { year: String(year) })}</p>
+            <p className="landing-footer__meta-brand">BATTECHNO · 2017</p>
+          </div>
         </div>
       </div>
     </footer>

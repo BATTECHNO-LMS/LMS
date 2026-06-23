@@ -2,7 +2,7 @@ import { cn } from '../../utils/helpers.js';
 import { useTranslation } from 'react-i18next';
 import { Menu } from 'lucide-react';
 import { useMediaQuery } from '../../hooks/useMediaQuery.js';
-import brandLogo from '../../assets/images/batman-logo.png';
+import { BrandLogo } from '../common/BrandLogo.jsx';
 import { NotificationBell } from '../navigation/NotificationBell.jsx';
 import { UserDropdown } from '../navigation/UserDropdown.jsx';
 import { LanguageSwitcher } from './LanguageSwitcher.jsx';
@@ -42,7 +42,7 @@ export function AppNavbar({
             <Menu size={22} strokeWidth={2} aria-hidden />
           </button>
         ) : null}
-        <img src={brandLogo} alt={t('logo.alt')} className="app-header__logo-image" />
+        <BrandLogo variant="app-header" alt={t('logo.alt')} />
         <span className="app-header__logo">{title}</span>
         <span className="app-header__divider" aria-hidden />
         <span className="app-header__page-title">{pageTitle}</span>
