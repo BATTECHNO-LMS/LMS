@@ -30,7 +30,18 @@
 }
 
 .auth-page--register.auth-page--split {
-  max-width: min(76rem, 100%);
+  max-width: min(80rem, 100%);
+}
+
+.layout--auth:has(.auth-page--register) {
+  align-items: flex-start;
+  padding-block: clamp(1.25rem, 3vh, 2.5rem);
+}
+
+@media (min-height: 52rem) {
+  .layout--auth:has(.auth-page--register) {
+    align-items: center;
+  }
 }
 
 /* ── Login ambient background ── */
@@ -431,20 +442,25 @@
   }
 
   .auth-split--register {
-    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
-    min-height: min(40rem, 88vh);
-    max-height: min(44rem, 92vh);
+    grid-template-columns: minmax(0, 1.222fr) minmax(0, 1fr);
+    min-height: min(36rem, auto);
   }
 
   .auth-split--register .auth-split__form {
     align-items: flex-start;
-    overflow-y: auto;
-    max-height: min(44rem, 92vh);
-    scrollbar-gutter: stable;
+    padding-block: clamp(1.5rem, 3vw, 2.25rem);
   }
 
-  .auth-split--register .auth-visual-panel__figure {
-    width: min(100%, 17rem);
+  .auth-split--register .auth-split__form-inner {
+    max-width: min(100%, 36rem);
+  }
+
+  @media (max-height: 52rem) {
+    .auth-split--register .auth-split__form {
+      overflow-y: auto;
+      max-height: calc(100vh - 3rem);
+      scrollbar-gutter: stable;
+    }
   }
 }
 
@@ -612,8 +628,54 @@
   margin-bottom: 1.15rem;
 }
 
-.auth-form--register .form-field {
+.auth-split__header--register {
+  margin-bottom: 1.25rem;
+}
+
+.auth-form--register .auth-form__fields-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .auth-form--register .auth-form__fields-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1.125rem;
+    row-gap: 1rem;
+  }
+}
+
+.auth-form--register .auth-form__fields-grid .form-field {
+  margin-bottom: 0;
+}
+
+.auth-form--register .auth-form__span-full {
+  margin-top: 0.25rem;
+}
+
+.auth-form--register .auth-register__actions {
+  margin-top: 1.25rem;
   margin-bottom: 1rem;
+}
+
+.auth-form--register .auth-register__login-row {
+  margin-top: 0;
+}
+
+@media (max-width: 767px) {
+  .auth-split--register .auth-split__logo {
+    height: 3.5rem !important;
+    margin-bottom: 1.15rem;
+  }
+
+  .auth-split__header--register {
+    margin-bottom: 1rem;
+  }
+
+  .auth-form--register .auth-form__fields-grid {
+    gap: 0.9rem;
+  }
 }
 
 .auth-form__input,

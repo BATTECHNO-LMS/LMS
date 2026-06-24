@@ -44,7 +44,7 @@ export function RegisterPage() {
             <div className="auth-split__form-inner">
               <BrandLogo variant="auth" alt={tCommon('logo.alt')} className="auth-split__logo" />
 
-              <header className="auth-split__header">
+              <header className="auth-split__header auth-split__header--register">
                 <h1 className="auth-split__title">{t('register.title')}</h1>
                 <p className="auth-split__subtitle">{t('register.description')}</p>
               </header>
@@ -57,7 +57,6 @@ export function RegisterPage() {
             illustration={registerIllustration}
             titleKey="register.panelTitle"
             subtitleKey="register.panelSubtitle"
-            compact
           />
         </div>
       </div>

@@ -31,7 +31,7 @@ $color-warning: #c27803;
 $color-danger: #c41e1e;
 $color-dark: #3a4450;
 
-$font-family-base: 'Roboto', 'Noto Sans Arabic', system-ui, sans-serif;
+$font-family-base: 'Tajawal', 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif;
 
 $radius-sm: 0.25rem;
 $radius-md: 0.375rem;
@@ -100,6 +100,7 @@ $z-dropdown: 200;
   --shadow-md: #{$shadow-md};
   --shadow-card-3d: #{$shadow-card-3d};
   --shadow-card-3d-hover: #{$shadow-card-3d-hover};
+  --font-family-base: #{$font-family-base};
   --gradient-card-face: linear-gradient(165deg, #ffffff 0%, #fafbfc 45%, #f4f6f8 100%);
   --radius-md: #{$radius-md};
   --sidebar-width: #{$sidebar-width};

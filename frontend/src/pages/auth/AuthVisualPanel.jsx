@@ -4,9 +4,9 @@ import { AUTH_MOTION_EASE } from './authMotion.js';
 
 /**
  * Shared illustration panel for auth split layouts.
- * @param {{ illustration: string, titleKey: string, subtitleKey: string, compact?: boolean }} props
+ * @param {{ illustration: string, titleKey: string, subtitleKey: string }} props
  */
-export function AuthVisualPanel({ illustration, titleKey, subtitleKey, compact = false }) {
+export function AuthVisualPanel({ illustration, titleKey, subtitleKey }) {
   const { t } = useTranslation('auth');
   const reduced = useReducedMotion();
 
@@ -19,11 +19,7 @@ export function AuthVisualPanel({ illustration, titleKey, subtitleKey, compact =
       };
 
   return (
-    <motion.aside
-      className={`auth-split__visual${compact ? ' auth-split__visual--compact' : ''}`}
-      {...motionProps}
-      aria-hidden
-    >
+    <motion.aside className="auth-split__visual" {...motionProps} aria-hidden>
       <div className="auth-visual-panel">
         <span className="auth-visual-panel__glow" aria-hidden />
         <figure className="auth-visual-panel__figure">

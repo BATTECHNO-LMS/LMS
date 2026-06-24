@@ -5,7 +5,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['system-ui', 'Segoe UI', 'Roboto', 'Noto Sans Arabic', 'sans-serif'],
+        sans: ['Tajawal', 'IBM Plex Sans Arabic', 'Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         /** Landing + marketing — mirrors :root tokens from `abstracts/_variables.scss` */

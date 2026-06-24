@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 #battechno-landing {
+  font-family: var(--font-family-base);
   -webkit-font-smoothing: antialiased;
   /* Homepage rhythm — section padding, grids, container width */
   --landing-section-y: clamp(2.5rem, 4.5vw, 4rem);
