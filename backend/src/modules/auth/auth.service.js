@@ -7,6 +7,8 @@ const authRepository = require('./auth.repository');
 const { ensureUserLinkedToUniversityFromEmail } = require('./universityEmailLink.service');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
+const { listActiveSpecialties, assertActiveSpecialty } = require('../specialties/specialties.service');
+const { issueEmailVerificationOtp, verifyEmailOtpForUser, resendEmailVerificationOtp } = require('./emailVerification.service');
 
 function isGlobalFromRoleRecords(roleRecords) {
   const code = (env.SUPER_ADMIN_ROLE_CODE || 'super_admin').toLowerCase();
@@ -66,6 +68,10 @@ async function register(validated) {
     );
   }
 
+  await assertActiveSpecialty(validated.specialty_id, {
+    invalidMessage: 'التخصص المحدد غير متاح.',
+  });
+
   const emailDomain = extractEmailDomain(validated.email);
   if (!emailDomain || !emailDomainMatchesAllowed(emailDomain, allowed)) {
     throw new ApiError(
@@ -95,6 +101,7 @@ async function register(validated) {
     password_hash,
     phone: validated.phone,
     university_id: validated.university_id,
+    specialty_id: validated.specialty_id,
     studentRoleId: studentRole.id,
   });
 
@@ -113,14 +120,12 @@ async function register(validated) {
     studentName: user.full_name,
   });
 
+  await issueEmailVerificationOtp(user);
+
   return {
+    requiresEmailVerification: true,
+    email: user.email,
     pending_approval: true,
-    user: {
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      status: user.status,
-    },
   };
 }
 
@@ -133,6 +138,15 @@ async function login(validated) {
   const ok = await comparePassword(validated.password, user.password_hash);
   if (!ok) {
     throw new ApiError(401, 'Invalid credentials');
+  }
+
+  if (!user.email_verified_at) {
+    throw new ApiError(
+      403,
+      'يرجى توثيق البريد الإلكتروني قبل تسجيل الدخول.',
+      null,
+      'EMAIL_NOT_VERIFIED'
+    );
   }
 
   if (user.status === 'inactive') {
@@ -179,4 +193,36 @@ async function universitiesForRegistration() {
   return { universities };
 }
 
-module.exports = { register, login, me, logout, universitiesForRegistration };
+async function specialtiesForRegistration() {
+  return listActiveSpecialties();
+}
+
+async function verifyEmailOtp(validated) {
+  const result = await verifyEmailOtpForUser(validated.email, validated.otp);
+  if (result.alreadyVerified) {
+    return {
+      emailVerified: true,
+      requiresAdminApproval: result.requiresAdminApproval,
+      alreadyVerified: true,
+    };
+  }
+  return {
+    emailVerified: true,
+    requiresAdminApproval: result.requiresAdminApproval,
+  };
+}
+
+async function resendEmailOtp(validated) {
+  return resendEmailVerificationOtp(validated.email);
+}
+
+module.exports = {
+  register,
+  login,
+  me,
+  logout,
+  universitiesForRegistration,
+  specialtiesForRegistration,
+  verifyEmailOtp,
+  resendEmailOtp,
+};

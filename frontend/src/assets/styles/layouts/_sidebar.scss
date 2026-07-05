@@ -8,7 +8,9 @@
   width: var(--sidebar-width);
   min-height: 100vh;
   z-index: $z-sidebar;
-  background: linear-gradient(180deg, $color-primary 0%, $color-secondary 100%);
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba($color-accent, 0.12), transparent 60%),
+    linear-gradient(180deg, $color-primary 0%, $color-secondary 100%);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -29,6 +31,7 @@
 }
 
 .app-sidebar__brand {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -36,6 +39,17 @@
   padding: 0 1rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
+
+  /** gold hairline accent under the brand block */
+  &::after {
+    content: '';
+    position: absolute;
+    inset-inline: 1rem;
+    bottom: -1px;
+    height: 2px;
+    background: linear-gradient(90deg, $color-accent, rgba($color-accent, 0));
+    border-radius: $radius-pill;
+  }
 }
 
 .app-sidebar__logo {

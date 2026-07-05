@@ -1,16 +1,20 @@
 ﻿const reportsService = require('./reports.service');
 const { success } = require('../../utils/apiResponse');
 const { recordAudit } = require('../../shared/services/audit.service');
-const { normalizeRoles } = require('../../utils/deliveryAccess');
+const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 
 function scopeFiltersForUser(query, user) {
-  const roles = normalizeRoles(user?.roles || []);
-  const isSystemWide = roles.includes('super_admin') || roles.includes('program_admin');
-  if (isSystemWide) return query;
-  if (user?.universityId) {
-    return { ...query, university_id: user.universityId };
+  if (isSystemWideAdmin(user)) {
+    return {
+      ...query,
+      university_id: resolveUniversityIdFilter(user, query.university_id),
+    };
   }
-  return query;
+  const scoped = resolveUniversityIdFilter(user, query.university_id);
+  if (scoped) {
+    return { ...query, university_id: scoped };
+  }
+  return { ...query, university_id: user?.universityId || undefined };
 }
 
 async function auditReportRead(req, reportType, summary) {

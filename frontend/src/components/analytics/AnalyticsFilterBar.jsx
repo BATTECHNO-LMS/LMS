@@ -8,7 +8,9 @@ export function AnalyticsFilterBar({
   onTimePreset,
   onRefresh,
   onExportPdf,
+  exportingPdf = false,
   onExportExcel,
+  exportingExcel = false,
   onExportPowerBi,
   universities = [],
   tracks = [],
@@ -120,11 +122,23 @@ export function AnalyticsFilterBar({
           ))}
         </div>
         <div className="analytics-filter-bar__exports">
-          <button type="button" className="btn btn--outline analytics-filter-bar__btn" onClick={onExportPdf}>
-            <FileDown size={16} aria-hidden /> {t('export.pdf')}
+          <button
+            type="button"
+            className="btn btn--outline analytics-filter-bar__btn"
+            onClick={onExportPdf}
+            disabled={exportingPdf}
+            aria-busy={exportingPdf}
+          >
+            <FileDown size={16} aria-hidden /> {exportingPdf ? t('export.exporting') : t('export.pdf')}
           </button>
-          <button type="button" className="btn btn--outline analytics-filter-bar__btn" onClick={onExportExcel}>
-            <FileSpreadsheet size={16} aria-hidden /> {t('export.excel')}
+          <button
+            type="button"
+            className="btn btn--outline analytics-filter-bar__btn"
+            onClick={onExportExcel}
+            disabled={exportingExcel}
+            aria-busy={exportingExcel}
+          >
+            <FileSpreadsheet size={16} aria-hidden /> {exportingExcel ? t('export.exportingExcel') : t('export.excel')}
           </button>
           <button type="button" className="btn btn--outline analytics-filter-bar__btn" onClick={onExportPowerBi}>
             <LayoutDashboard size={16} aria-hidden /> {t('export.exportPowerBi')}

@@ -2,7 +2,7 @@ import { cn } from '../../utils/helpers.js';
 import { useLocale } from '../../features/locale/index.js';
 import { translateText } from '../../utils/i18n.js';
 
-export function AdminPageHeader({ title, description, breadcrumb, className }) {
+export function AdminPageHeader({ title, description, breadcrumb, actions, className }) {
   const { locale } = useLocale();
   return (
     <header className={cn('admin-page-header', className)}>
@@ -13,6 +13,7 @@ export function AdminPageHeader({ title, description, breadcrumb, className }) {
           {typeof description === 'string' ? translateText(description, locale) : description}
         </p>
       ) : null}
+      {actions ? <div className="admin-page-header__actions">{actions}</div> : null}
     </header>
   );
 }

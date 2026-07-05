@@ -48,6 +48,8 @@
     "refresh": "تحديث",
     "emptySheet": "لا توجد بيانات",
     "failed": "فشل التصدير. حاول مرة أخرى.",
+    "exporting": "جارٍ إنشاء PDF…",
+    "exportingExcel": "جارٍ إنشاء Excel…",
     "powerBi": {
       "title": "Power BI — حزمة تحليلات LMS",
       "step1": "1) في Power BI Desktop: الصفحة الرئيسية > الحصول على البيانات > مصنف Excel، ثم افتح هذا الملف.",

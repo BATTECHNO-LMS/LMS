@@ -48,6 +48,8 @@
     "refresh": "Refresh",
     "emptySheet": "No data",
     "failed": "Export failed. Please try again.",
+    "exporting": "Generating PDF…",
+    "exportingExcel": "Generating Excel…",
     "powerBi": {
       "title": "Power BI — LMS analytics package",
       "step1": "1) In Power BI Desktop: Home > Get data > Excel workbook, then open this file.",

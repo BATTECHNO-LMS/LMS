@@ -18,5 +18,8 @@ router.get('/evidence', authenticate, superAdminOnly, validateRequest({ query: a
 router.get('/qa-integrity', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.qaIntegrity);
 router.get('/recognition', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.recognition);
 router.get('/certificates', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.certificates);
+router.get('/field-training', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.fieldTraining);
+router.get('/export/pdf', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.exportPdf);
+router.get('/export/excel', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.exportExcel);
 
 module.exports = router;

@@ -6,6 +6,7 @@ import { StudentLayout } from '../../layouts/StudentLayout.jsx';
 import { ReviewerLayout } from '../../layouts/ReviewerLayout.jsx';
 import { LoginPage } from '../../pages/auth/LoginPage.jsx';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
+import { VerifyEmailOtpPage } from '../../pages/auth/VerifyEmailOtpPage.jsx';
 import {
   AdminLoginPage,
   InstructorLoginPage,
@@ -161,6 +162,10 @@ export function AppRouter() {
 
       <Route path="/register" element={<AuthLayout />}>
         <Route index element={<RegisterPage />} />
+      </Route>
+
+      <Route path="/verify-email" element={<AuthLayout />}>
+        <Route index element={<VerifyEmailOtpPage />} />
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<CertificateVerifyPage />} />

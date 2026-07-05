@@ -153,6 +153,17 @@ const env = {
     process.env.ENROLLMENT_DECISION_ROLE_CODES,
     'super_admin,program_admin,academic_admin,university_reviewer'
   ),
+  /** Field training admin (opportunities, applications, tasks). */
+  FIELD_TRAINING_ADMIN_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.FIELD_TRAINING_ADMIN_ROLE_CODES,
+    'super_admin,university_admin'
+  ),
+  /** Resend API key for transactional email (set in .env only — never commit). */
+  RESEND_API_KEY: (process.env.RESEND_API_KEY || '').trim(),
+  RESEND_FROM_EMAIL: (process.env.RESEND_FROM_EMAIL || 'no-reply@lms.battechno.com').trim(),
+  EMAIL_OTP_EXPIRY_MINUTES: Number(process.env.EMAIL_OTP_EXPIRY_MINUTES) || 10,
+  EMAIL_OTP_RESEND_COOLDOWN_SECONDS: Number(process.env.EMAIL_OTP_RESEND_COOLDOWN_SECONDS) || 60,
+  EMAIL_OTP_MAX_ATTEMPTS: Number(process.env.EMAIL_OTP_MAX_ATTEMPTS) || 5,
 };
 
 module.exports = { env };

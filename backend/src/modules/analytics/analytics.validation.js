@@ -8,6 +8,7 @@ const analyticsQuerySchema = z
     cohort_id: z.string().uuid().optional(),
     from: z.string().max(40).optional(),
     to: z.string().max(40).optional(),
+    lang: z.enum(['ar', 'en']).optional(),
   })
   .strict()
   .transform((q) => {
@@ -28,6 +29,7 @@ const analyticsQuerySchema = z
       cohort_id: q.cohort_id,
       from: fromDate,
       to: toDate,
+      lang: q.lang,
     };
   });
 

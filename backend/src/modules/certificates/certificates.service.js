@@ -2,6 +2,7 @@
 const { ApiError } = require('../../utils/apiError');
 const { prisma } = require('../../config/db');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
+const { resolveUniversityIdFilter } = require('../../utils/universityScope');
 const repo = require('./certificates.repository');
 
 const STATUS_TRANSITIONS = {
@@ -34,9 +35,12 @@ async function buildCertificateListWhere(query, requester) {
   const roles = normalizeRoles(requester.roles);
   const and = [];
 
-  if (query.university_id) {
+  const scopedUniversityId = resolveUniversityIdFilter(requester, query.university_id);
+  const effectiveQuery = { ...query, university_id: scopedUniversityId };
+
+  if (effectiveQuery.university_id) {
     const cohortRows = await prisma.cohorts.findMany({
-      where: { university_id: query.university_id },
+      where: { university_id: effectiveQuery.university_id },
       select: { id: true },
     });
     const cids = cohortRows.map((c) => c.id);

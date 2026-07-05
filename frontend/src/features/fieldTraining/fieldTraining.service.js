@@ -10,6 +10,11 @@ export async function fetchAdminFieldTrainingList(params = {}) {
   return unwrapApiData(res);
 }
 
+export async function fetchAdminFieldTrainingStats(params = {}) {
+  const res = await apiClient.get(`${admin}/stats`, { params });
+  return unwrapApiData(res);
+}
+
 export async function fetchAdminFieldTraining(id) {
   const res = await apiClient.get(`${admin}/${id}`);
   return unwrapApiData(res);
@@ -103,4 +108,21 @@ export async function submitFieldTrainingTask(taskId, file) {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return unwrapApiData(res);
+}
+
+function parseDownloadFilename(disposition, fallback) {
+  const match = /filename="?([^"]+)"?/i.exec(disposition || '');
+  return match?.[1] ? decodeURIComponent(match[1]) : fallback;
+}
+
+export async function downloadFieldTrainingSubmission(submissionId, { asAdmin = false } = {}) {
+  const base = asAdmin ? admin : student;
+  const res = await apiClient.get(`${base}/submissions/${submissionId}/download`, {
+    responseType: 'blob',
+  });
+  const filename = parseDownloadFilename(
+    res.headers['content-disposition'],
+    `field-training-submission-${submissionId}`
+  );
+  return { blob: res.data, filename };
 }

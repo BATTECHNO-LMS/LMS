@@ -20,6 +20,8 @@
   "listTitle": "User list",
   "list": {
     "pendingActivation": "Pending activation",
+    "emailVerified": "Verified",
+    "emailNotVerified": "Not verified",
     "activateAccount": "Activate account",
     "activateSuccess": "Account activated successfully.",
     "activateAll": "Activate all",
@@ -31,6 +33,7 @@
   "table": {
     "name": "Name",
     "email": "Email",
+    "emailVerified": "Email verified",
     "role": "Role",
     "lastLogin": "Last login"
   },

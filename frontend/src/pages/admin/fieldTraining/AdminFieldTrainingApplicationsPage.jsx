@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Building2, ListChecks } from 'lucide-react';
+import { ArrowLeft, GraduationCap, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
@@ -13,11 +13,12 @@ import {
   applicationBadgeVariant,
   computeApplicationStats,
   formatFtDate,
+  getOpportunitySpecialtyLabel,
 } from '../../../features/fieldTraining/index.js';
 
 export function AdminFieldTrainingApplicationsPage() {
   const { id } = useParams();
-  const { t } = useTranslation('fieldTraining');
+  const { t, i18n } = useTranslation('fieldTraining');
   const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
   const { data, isLoading, isError, refetch } = useOpportunityApplications(id);
   const reviewMut = useReviewApplication(id);
@@ -55,8 +56,8 @@ export function AdminFieldTrainingApplicationsPage() {
       <header className="ft-detail-hero">
         <h1 className="ft-detail-hero__title">{opp?.title ?? t('applicationsTitle')}</h1>
         <p className="ft-detail-hero__org">
-          <Building2 size={16} style={{ display: 'inline', verticalAlign: 'middle' }} aria-hidden />{' '}
-          {opp?.organization_name ?? '—'}
+          <GraduationCap size={16} style={{ display: 'inline', verticalAlign: 'middle' }} aria-hidden />{' '}
+          {getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'))}
         </p>
         <div className="ft-kpi-grid" style={{ marginTop: '1rem' }}>
           <div className="ft-kpi-card">
@@ -104,6 +105,19 @@ export function AdminFieldTrainingApplicationsPage() {
               {t(`applicationStatus.${app.status}`)}
             </StatusBadge>
           </header>
+          <div className="ft-app-card__meta-grid">
+            <p className="ft-app-card__meta">
+              <strong>{t('table.studentUniversity')}:</strong> {app.student_university ?? '—'}
+            </p>
+            <p className="ft-app-card__meta">
+              <strong>{t('table.studentSpecialty')}:</strong>{' '}
+              {getOpportunitySpecialtyLabel(
+                { specialty: app.student_specialty },
+                i18n.language,
+                '—'
+              )}
+            </p>
+          </div>
           <p className="ft-app-card__meta">
             {t('table.appliedAt')}: {formatFtDate(app.created_at) ?? '—'}
           </p>

@@ -8,9 +8,10 @@ import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
 import {
   useStudentOpportunityTasks,
   useSubmitFieldTrainingTask,
+  downloadFieldTrainingSubmission,
+  saveFieldTrainingSubmissionBlob,
 } from '../../../../features/fieldTraining/index.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
-import { resolveUploadUrl } from '../../../../utils/uploadUrl.js';
 import { formatFtDate } from '../../../../features/fieldTraining/fieldTrainingUi.js';
 
 export function StudentFieldTrainingTasksPanel({ opportunityId }) {
@@ -21,6 +22,7 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
   const [pendingFile, setPendingFile] = useState({});
   const [replacingId, setReplacingId] = useState(null);
   const [error, setError] = useState('');
+  const [downloadError, setDownloadError] = useState('');
 
   const tasks = data?.tasks ?? [];
 
@@ -42,6 +44,16 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
     }
   }
 
+  async function handleDownload(submissionId) {
+    setDownloadError('');
+    try {
+      const file = await downloadFieldTrainingSubmission(submissionId, { asAdmin: false });
+      saveFieldTrainingSubmissionBlob(file);
+    } catch (err) {
+      setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
+    }
+  }
+
   if (isLoading) return <LoadingSpinner />;
 
   if (!tasks.length) {
@@ -59,6 +71,11 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
       {error ? (
         <p className="form-field__error" role="alert" style={{ marginBottom: '0.75rem' }}>
           {error}
+        </p>
+      ) : null}
+      {downloadError ? (
+        <p className="form-field__error" role="alert" style={{ marginBottom: '0.75rem' }}>
+          {downloadError}
         </p>
       ) : null}
       {tasks.map((task, index) => {
@@ -90,15 +107,15 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                 <span>
                   {t('tasks.file')}: {task.submission.file_name}
                 </span>
-                {resolveUploadUrl(task.submission.file_path || task.submission.file_url) ? (
-                  <a
-                    href={resolveUploadUrl(task.submission.file_path || task.submission.file_url)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn btn--sm btn--outline"
+                {task.submission?.id ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--sm"
+                    onClick={() => handleDownload(task.submission.id)}
                   >
-                    {t('tasks.open')}
-                  </a>
+                    {t('tasks.download')}
+                  </Button>
                 ) : null}
                 <Button
                   type="button"

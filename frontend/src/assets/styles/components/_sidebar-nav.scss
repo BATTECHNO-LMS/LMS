@@ -20,43 +20,61 @@
 }
 
 .sidebar-nav__section-title {
-  margin: 0.75rem 0.65rem 0.4rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.85rem 0.85rem 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.5);
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent);
+  }
 }
 
 .sidebar-nav__link {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.7rem;
   min-height: 2.75rem;
-  padding: 0.55rem 0.75rem;
+  padding: 0.55rem 0.8rem;
   border-radius: $radius-md;
-  color: rgba(255, 255, 255, 0.92);
+  color: rgba(255, 255, 255, 0.86);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none !important;
-  @include transition(background-color color, 0.15s);
+  @include transition(background-color color box-shadow, 0.15s);
 
+  /** Soft, readable hover — translucent cream wash with gold icon cue */
   &:hover,
   &:focus-visible {
-    background: $color-accent;
-    color: $color-primary !important;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
 
     .sidebar-nav__icon {
-      color: $color-primary !important;
-      stroke: $color-primary !important;
+      color: $color-accent !important;
+      stroke: $color-accent !important;
     }
   }
 }
 
-.sidebar-nav__link--active {
-  background: $color-accent;
+/** Active — strong gold highlight with depth + inline-start indicator */
+.sidebar-nav__link--active,
+.sidebar-nav__link--active:hover,
+.sidebar-nav__link--active:focus-visible {
+  background: linear-gradient(135deg, $color-accent 0%, $color-accent-hover 100%);
   color: $color-primary !important;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  font-weight: 700;
+  box-shadow:
+    0 4px 12px -4px rgba($color-accent, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 
   .sidebar-nav__icon {
     color: $color-primary !important;
@@ -66,7 +84,8 @@
 
 .sidebar-nav__icon {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.95);
+  color: rgba(255, 255, 255, 0.78);
+  @include transition(color, 0.15s);
 }
 
 .sidebar-nav__label {

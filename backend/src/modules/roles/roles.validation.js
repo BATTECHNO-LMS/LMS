@@ -1,4 +1,7 @@
-﻿/**
- * roles module â€” request validation schemas (e.g. express-validator / Joi).
- */
-module.exports = {};
+﻿const { z } = require('zod');
+
+const uuidParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+module.exports = { uuidParamSchema };

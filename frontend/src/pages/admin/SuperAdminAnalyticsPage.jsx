@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -62,6 +62,8 @@ function AnalyticsModuleHead({ title, to }) {
 
 export function SuperAdminAnalyticsPage() {
   const { t, i18n } = useTranslation('analytics');
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingExcel, setExportingExcel] = useState(false);
   const { filters, setFilter, setTimePreset, data, loading, isError, error, refresh } = useAnalytics();
   const { data: uniData } = useUniversities();
   const { data: trackData } = useTracks();
@@ -74,25 +76,32 @@ export function SuperAdminAnalyticsPage() {
     { staleTime: 30_000 }
   );
 
-  const onExportPdf = useCallback(() => {
-    if (!data) return;
+  const onExportPdf = useCallback(async () => {
+    if (!data || exportingPdf) return;
+    setExportingPdf(true);
     try {
-      exportAnalyticsPdf({ data, filters, t });
+      const lang = String(i18n.language || 'ar').toLowerCase().startsWith('en') ? 'en' : 'ar';
+      await exportAnalyticsPdf({ filters, lang });
     } catch (e) {
       console.error(e);
-      window.alert(t('export.failed'));
+      window.alert(getApiErrorMessage(e, t('export.failed')));
+    } finally {
+      setExportingPdf(false);
     }
-  }, [data, filters, t]);
+  }, [data, exportingPdf, filters, i18n.language, t]);
 
-  const onExportExcel = useCallback(() => {
-    if (!data) return;
+  const onExportExcel = useCallback(async () => {
+    if (!data || exportingExcel) return;
+    setExportingExcel(true);
     try {
-      exportAnalyticsExcel({ data, filters, t });
+      await exportAnalyticsExcel({ filters });
     } catch (e) {
       console.error(e);
-      window.alert(t('export.failed'));
+      window.alert(getApiErrorMessage(e, t('export.failed')));
+    } finally {
+      setExportingExcel(false);
     }
-  }, [data, filters, t]);
+  }, [data, exportingExcel, filters, t]);
 
   const onExportPowerBi = useCallback(() => {
     if (!data) return;
@@ -246,7 +255,9 @@ export function SuperAdminAnalyticsPage() {
         onTimePreset={setTimePreset}
         onRefresh={refresh}
         onExportPdf={onExportPdf}
+        exportingPdf={exportingPdf}
         onExportExcel={onExportExcel}
+        exportingExcel={exportingExcel}
         onExportPowerBi={onExportPowerBi}
         universities={uniData?.universities ?? []}
         tracks={trackData?.tracks ?? []}

@@ -520,6 +520,7 @@ model universities {
   created_at               DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
   university_email_domains university_email_domains[]
+  field_training_opportunities field_training_opportunities[]
 }
 
 model university_email_domains {
@@ -568,12 +569,54 @@ model users {
   phone                 String?     @db.VarChar(50)
   status                user_status @default(inactive)
   primary_university_id String?     @db.Uuid
+  specialty_id          String?     @db.Uuid
   activated_at          DateTime?   @db.Timestamptz(6)
+  email_verified_at     DateTime?   @db.Timestamptz(6)
   last_login_at         DateTime?   @db.Timestamptz(6)
   created_at            DateTime    @default(now()) @db.Timestamptz(6)
   updated_at            DateTime    @default(now()) @db.Timestamptz(6)
 
+  specialties               specialties?               @relation(fields: [specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  email_verification_otps   email_verification_otps[]
+
   @@index([primary_university_id], map: "idx_users_primary_university_id")
+  @@index([specialty_id], map: "idx_users_specialty_id")
+  @@index([email_verified_at], map: "idx_users_email_verified_at")
+}
+
+model email_verification_otps {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String    @db.Uuid
+  email          String    @db.VarChar(255)
+  code_hash      String
+  expires_at     DateTime  @db.Timestamptz(6)
+  used_at        DateTime? @db.Timestamptz(6)
+  attempts_count Int       @default(0)
+  last_sent_at   DateTime  @db.Timestamptz(6)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @db.Timestamptz(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_email_verification_otps_user_id")
+  @@index([email], map: "idx_email_verification_otps_email")
+  @@index([expires_at], map: "idx_email_verification_otps_expires_at")
+}
+
+/// Global academic specialties / majors — shared across all universities.
+model specialties {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name_ar       String           @db.VarChar(255)
+  name_en       String?          @db.VarChar(255)
+  code          String?          @unique @db.VarChar(50)
+  status        specialty_status @default(active)
+  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime         @default(now()) @db.Timestamptz(6)
+
+  users                        users[]
+  field_training_opportunities field_training_opportunities[]
+
+  @@index([status], map: "idx_specialties_status")
 }
 
 enum assessment_status {
@@ -832,6 +875,11 @@ enum university_status {
   archived
 }
 
+enum specialty_status {
+  active
+  inactive
+}
+
 enum user_status {
   active
   inactive
@@ -1052,7 +1100,9 @@ model field_training_opportunities {
   id                   String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title                String                            @db.VarChar(255)
   slug                 String                            @unique @db.VarChar(255)
-  organization_name    String                            @db.VarChar(255)
+  organization_name    String?                           @db.VarChar(255)
+  university_id        String?                           @db.Uuid
+  specialty_id         String?                           @db.Uuid
   location             String                            @db.VarChar(255)
   training_mode        field_training_mode
   short_description    String?
@@ -1069,12 +1119,16 @@ model field_training_opportunities {
   created_at           DateTime                          @default(now()) @db.Timestamptz(6)
   updated_at           DateTime                          @default(now()) @db.Timestamptz(6)
 
+  universities                universities?                 @relation(fields: [university_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  specialties                 specialties?                  @relation(fields: [specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   field_training_applications field_training_applications[]
   field_training_tasks        field_training_tasks[]
 
   @@index([status], map: "idx_field_training_opportunities_status")
   @@index([training_mode], map: "idx_field_training_opportunities_mode")
   @@index([created_by_id], map: "idx_field_training_opportunities_created_by")
+  @@index([university_id], map: "idx_field_training_opportunities_university")
+  @@index([specialty_id], map: "idx_field_training_opportunities_specialty")
 }
 
 model field_training_applications {

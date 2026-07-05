@@ -7,7 +7,9 @@ const adminFieldTrainingController = require('./adminFieldTraining.controller');
 const {
   uuidParamSchema,
   applicationIdParamSchema,
+  submissionIdParamSchema,
   listAdminQuerySchema,
+  listAdminStatsQuerySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,
   reviewApplicationBodySchema,
@@ -17,12 +19,20 @@ const {
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
-const superAdminOnly = authorizeRoles(env.SUPER_ADMIN_ROLE_CODE || 'super_admin');
+const fieldTrainingAdmin = authorizeRoles(...env.FIELD_TRAINING_ADMIN_ROLE_CODES);
+
+router.get(
+  '/stats',
+  authenticate,
+  fieldTrainingAdmin,
+  validateRequest({ query: listAdminStatsQuerySchema }),
+  adminFieldTrainingController.stats
+);
 
 router.patch(
   '/applications/:applicationId/status',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: applicationIdParamSchema, body: reviewApplicationBodySchema }),
   adminFieldTrainingController.reviewApplication
 );
@@ -30,7 +40,7 @@ router.patch(
 router.get(
   '/',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ query: listAdminQuerySchema }),
   adminFieldTrainingController.list
 );
@@ -38,15 +48,23 @@ router.get(
 router.post(
   '/',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ body: opportunityBodySchema }),
   adminFieldTrainingController.create
 );
 
 router.get(
+  '/submissions/:submissionId/download',
+  authenticate,
+  fieldTrainingAdmin,
+  validateRequest({ params: submissionIdParamSchema }),
+  adminFieldTrainingController.downloadSubmission
+);
+
+router.get(
   '/:id/applications',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listApplications
 );
@@ -54,7 +72,7 @@ router.get(
 router.get(
   '/:id/tasks',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listTasks
 );
@@ -62,7 +80,7 @@ router.get(
 router.post(
   '/:id/tasks',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema, body: taskBodySchema }),
   adminFieldTrainingController.createTask
 );
@@ -70,7 +88,7 @@ router.post(
 router.get(
   '/:id/submissions',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listSubmissions
 );
@@ -78,7 +96,7 @@ router.get(
 router.patch(
   '/tasks/:taskId',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: taskIdParamSchema, body: updateTaskBodySchema }),
   adminFieldTrainingController.updateTask
 );
@@ -86,7 +104,7 @@ router.patch(
 router.delete(
   '/tasks/:taskId',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: taskIdParamSchema }),
   adminFieldTrainingController.deleteTask
 );
@@ -94,7 +112,7 @@ router.delete(
 router.get(
   '/:id',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.getById
 );
@@ -102,7 +120,7 @@ router.get(
 router.patch(
   '/:id',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema, body: updateOpportunityBodySchema }),
   adminFieldTrainingController.update
 );
@@ -110,7 +128,7 @@ router.patch(
 router.post(
   '/:id/publish',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.publish
 );
@@ -118,7 +136,7 @@ router.post(
 router.post(
   '/:id/archive',
   authenticate,
-  superAdminOnly,
+  fieldTrainingAdmin,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.archive
 );

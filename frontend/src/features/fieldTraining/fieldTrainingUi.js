@@ -1,5 +1,20 @@
 /** Shared UI helpers for field training pages (no API logic). */
 
+export function getOpportunityUniversityLabel(opportunity, unspecifiedLabel = '—') {
+  if (opportunity?.university?.name) return opportunity.university.name;
+  const legacy = String(opportunity?.organization_name ?? '').trim();
+  if (legacy) return legacy;
+  return unspecifiedLabel;
+}
+
+export function getOpportunitySpecialtyLabel(opportunity, lang = 'ar', unspecifiedLabel = '—') {
+  const spec = opportunity?.specialty;
+  if (!spec) return unspecifiedLabel;
+  const useAr = lang === 'ar' || lang.startsWith('ar');
+  if (useAr) return spec.name_ar || spec.name_en || unspecifiedLabel;
+  return spec.name_en || spec.name_ar || unspecifiedLabel;
+}
+
 export function applicationBadgeVariant(status) {
   if (status === 'approved') return 'success';
   if (status === 'rejected') return 'danger';

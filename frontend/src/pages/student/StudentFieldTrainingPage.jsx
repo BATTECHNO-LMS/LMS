@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Briefcase,
-  Building2,
   Calendar,
   Clock,
+  GraduationCap,
   MapPin,
   Send,
   Users,
@@ -19,12 +19,15 @@ import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import {
   TRAINING_MODES,
   useStudentFieldTrainingList,
+  useMyFieldTrainingApplications,
+  useCancelFieldTrainingApplication,
   applicationBadgeVariant,
   canApplyToOpportunity,
   computeStudentListStats,
   filterOpportunitiesByTab,
   formatFtDate,
   truncateText,
+  getOpportunitySpecialtyLabel,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
@@ -37,7 +40,7 @@ function applicationStatusLabel(t, status) {
 }
 
 export function StudentFieldTrainingPage() {
-  const { t } = useTranslation('fieldTraining');
+  const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const [q, setQ] = useState('');
   const [trainingMode, setTrainingMode] = useState('');
@@ -52,7 +55,12 @@ export function StudentFieldTrainingPage() {
   }, [q, trainingMode]);
 
   const { data, isLoading, isError } = useStudentFieldTrainingList(params);
+  const { data: myAppsData, isLoading: myAppsLoading } = useMyFieldTrainingApplications();
+  const cancelMut = useCancelFieldTrainingApplication();
+  const myApplications = myAppsData?.applications ?? [];
   const allOpportunities = data?.opportunities ?? [];
+  const profileIncomplete = Boolean(data?.profile_incomplete);
+  const profileMessage = data?.message ?? '';
   const stats = useMemo(() => computeStudentListStats(allOpportunities), [allOpportunities]);
   const opportunities = useMemo(
     () => filterOpportunitiesByTab(allOpportunities, activeTab),
@@ -83,8 +91,10 @@ export function StudentFieldTrainingPage() {
   }
 
   const hasSearch = Boolean(q.trim()) || Boolean(trainingMode);
-  const showEmptyPublished = !isLoading && !isError && !allOpportunities.length;
-  const showEmptyFilter = !isLoading && !isError && allOpportunities.length > 0 && !opportunities.length;
+  const showProfileIncomplete = !isLoading && !isError && profileIncomplete;
+  const showEmptyPublished =
+    !isLoading && !isError && !profileIncomplete && !allOpportunities.length;
+  const showEmptyFilter = !isLoading && !isError && !profileIncomplete && allOpportunities.length > 0 && !opportunities.length;
 
   return (
     <PagePermissionGate permission={UI_PERMISSION.canViewFieldTraining}>
@@ -94,6 +104,11 @@ export function StudentFieldTrainingPage() {
             {t('student.title')}
           </h1>
           <p className="ft-hero__desc">{t('student.heroDescription')}</p>
+          {!profileIncomplete ? (
+            <p className="ft-hero__scope-info" role="status">
+              {t('student.scopeInfo')}
+            </p>
+          ) : null}
           <div className="ft-hero__stats">
             <div className="ft-stat-mini">
               <span className="ft-stat-mini__value">{stats.available}</span>
@@ -109,6 +124,51 @@ export function StudentFieldTrainingPage() {
             </div>
           </div>
         </section>
+
+        {myApplications.length > 0 ? (
+          <section className="ft-my-apps" aria-labelledby="ft-my-apps-title">
+            <h2 id="ft-my-apps-title" className="ft-my-apps__title">
+              {t('student.myApplicationsTitle')}
+            </h2>
+            {myAppsLoading ? <LoadingSpinner /> : (
+              <div className="ft-my-apps__list">
+                {myApplications.map((app) => (
+                  <article key={app.id} className="ft-my-apps__item">
+                    <div className="ft-my-apps__main">
+                      <h3 className="ft-my-apps__opp">{app.opportunity?.title ?? '—'}</h3>
+                      <p className="ft-my-apps__meta">
+                        {getOpportunityUniversityLabel(app.opportunity, '—')}
+                        {' · '}
+                        {formatFtDate(app.created_at) ?? '—'}
+                      </p>
+                      {app.admin_note ? (
+                        <p className="ft-my-apps__note">{app.admin_note}</p>
+                      ) : null}
+                    </div>
+                    <div className="ft-my-apps__actions">
+                      <StatusBadge variant={applicationBadgeVariant(app.status)}>
+                        {t(`applicationStatus.${app.status}`)}
+                      </StatusBadge>
+                      <Link to={`/student/field-training/${app.opportunity_id}`} className="btn btn--sm btn--outline">
+                        {t('student.viewOpportunity')}
+                      </Link>
+                      {app.status === 'pending' ? (
+                        <button
+                          type="button"
+                          className="btn btn--sm btn--outline"
+                          disabled={cancelMut.isPending}
+                          onClick={() => cancelMut.mutate(app.id)}
+                        >
+                          {t('student.cancelApplication')}
+                        </button>
+                      ) : null}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
 
         <section className="ft-filters-card" aria-label={t('student.filtersLabel')}>
           <div className="ft-filters-card__grid">
@@ -155,6 +215,14 @@ export function StudentFieldTrainingPage() {
           </p>
         ) : null}
 
+        {showProfileIncomplete ? (
+          <div className="ft-empty">
+            <Briefcase size={48} aria-hidden />
+            <h3>{t('student.profileIncompleteTitle')}</h3>
+            <p>{profileMessage || t('student.profileIncompleteDesc')}</p>
+          </div>
+        ) : null}
+
         {showEmptyPublished ? (
           <div className="ft-empty">
             <Briefcase size={48} aria-hidden />
@@ -198,8 +266,8 @@ export function StudentFieldTrainingPage() {
                   <div className="ft-opp-card__body">
                     <h2 className="ft-opp-card__title">{o.title}</h2>
                     <p className="ft-opp-card__org">
-                      <Building2 size={16} aria-hidden />
-                      {o.organization_name}
+                      <GraduationCap size={16} aria-hidden />
+                      {getOpportunitySpecialtyLabel(o, i18n.language, t('form.specialtyUnspecified'))}
                     </p>
 
                     {desc ? (

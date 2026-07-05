@@ -91,4 +91,22 @@ async function submitTask(req, res, next) {
   }
 }
 
-module.exports = { list, myApplications, getById, apply, cancel, listTasks, submitTask };
+async function downloadSubmission(req, res, next) {
+  const fs = require('fs');
+  try {
+    const { absPath, fileName, mimeType } = await fieldTrainingService.downloadSubmissionFile(
+      req.validated.params.submissionId,
+      req.user,
+      { asAdmin: false }
+    );
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    const stream = fs.createReadStream(absPath);
+    stream.on('error', (err) => next(err));
+    stream.pipe(res);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = { list, myApplications, getById, apply, cancel, listTasks, submitTask, downloadSubmission };

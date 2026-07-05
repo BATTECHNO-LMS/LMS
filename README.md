@@ -46,11 +46,18 @@ JWT_SECRET=your-local-dev-secret-at-least-32-chars
 CORS_ORIGINS=http://localhost:5173
 ```
 
-Run migrations and seed:
+Run migrations and real baseline seed:
 
 ```bash
 npm run prisma:migrate
-npm run seed
+npm run seed:real-baseline
+```
+
+To remove prior demo/test data (preview first, then confirm):
+
+```bash
+npm run cleanup:demo
+npm run cleanup:demo -- --confirm-clean-demo
 ```
 
 Start the API:
@@ -83,19 +90,25 @@ npm run dev
 
 App runs at `http://localhost:5173`. Vite proxies `/api` requests to the backend.
 
-### 3. Default seed accounts
+### 3. First-time setup (real baseline)
 
-After `npm run seed` in `backend/`, log in with password **`12345678`**:
+After `npm run seed:real-baseline`, the database contains:
 
-| Role | Email |
-|------|-------|
-| Super Admin | `superadmin@batuni.edu` |
-| Program Admin | `programadmin@batuni.edu` |
-| Academic Admin | `academicadmin@batuni.edu` |
-| QA Officer | `qaofficer@batuni.edu` |
-| Instructor | `instructor@batuni.edu` |
-| Student | `student1@batuni.edu` |
-| University Reviewer | `reviewer@batuni.edu` |
+- System roles (RBAC)
+- **جامعة مؤتة** (Mutah University) with active domain **`mutah.edu.jo`**
+- 10 global active specialties for registration and Field Training
+
+**No default login accounts are created.** Create the first Super Admin through the admin panel or a secure one-off script. Do **not** run `seed:demo` or `seed:analytics-demo` on production.
+
+Student self-registration accepts university emails ending with `@mutah.edu.jo` when domain validation is enabled.
+
+### Demo seeds (local/staging only)
+
+| Script | Purpose |
+|--------|---------|
+| `npm run seed:demo` | TTU demo curriculum (dev only) |
+| `npm run seed:analytics-demo` | Large synthetic analytics dataset (dev only) |
+| `npm run seed:auth` | Minimal auth smoke-test university (dev only) |
 
 ## Documentation
 
@@ -143,9 +156,12 @@ Additional frontend docs (Arabic):
 | Prisma migrate (dev) | `npm run prisma:migrate` |
 | Prisma migrate (prod) | `npm run prisma:deploy` |
 | Prisma Studio | `npm run prisma:studio` |
-| Seed roles + users | `npm run seed` |
-| Demo data | `npm run seed:demo` |
-| Minimum auth seed | `npm run seed:auth` |
+| Real baseline (Mutah + specialties) | `npm run seed` or `npm run seed:real-baseline` |
+| Remove demo/test data (dry-run) | `npm run cleanup:demo` |
+| Remove demo/test data (execute) | `npm run cleanup:demo -- --confirm-clean-demo` |
+| Demo curriculum (dev only) | `npm run seed:demo` |
+| Analytics demo dataset (dev only) | `npm run seed:analytics-demo` |
+| Minimum auth smoke test (dev only) | `npm run seed:auth` |
 
 ### Frontend (`frontend/`)
 

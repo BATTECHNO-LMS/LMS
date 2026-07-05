@@ -15,4 +15,17 @@ async function resolvePrimaryUniversityId(requester) {
   return u?.primary_university_id ?? null;
 }
 
-module.exports = { resolvePrimaryUniversityId };
+/**
+ * @param {{ userId: string }} requester
+ * @returns {Promise<string | null>}
+ */
+async function resolveStudentSpecialtyId(requester) {
+  if (!requester?.userId) return null;
+  const u = await prisma.users.findUnique({
+    where: { id: requester.userId },
+    select: { specialty_id: true },
+  });
+  return u?.specialty_id ?? null;
+}
+
+module.exports = { resolvePrimaryUniversityId, resolveStudentSpecialtyId };

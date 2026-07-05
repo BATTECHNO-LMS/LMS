@@ -10,6 +10,7 @@ const {
   listStudentQuerySchema,
   applyBodySchema,
   taskIdParamSchema,
+  submissionIdParamSchema,
 } = require('./fieldTraining.validation');
 const { handleTaskUpload } = require('./fieldTraining.upload');
 
@@ -37,6 +38,14 @@ router.get(
   studentOnly,
   validateRequest({ query: listStudentQuerySchema }),
   studentFieldTrainingController.list
+);
+
+router.get(
+  '/submissions/:submissionId/download',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: submissionIdParamSchema }),
+  studentFieldTrainingController.downloadSubmission
 );
 
 router.get(

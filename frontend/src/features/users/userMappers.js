@@ -22,6 +22,7 @@ export function mapUserListRow(u) {
     roles,
     status: String(u.status ?? ''),
     lastLogin: formatLastLogin(u.last_login_at),
+    emailVerified: Boolean(u.email_verified_at),
     primary_university_id: u.primary_university_id != null ? String(u.primary_university_id) : null,
     tenantId: u.primary_university_id != null ? String(u.primary_university_id) : null,
   };

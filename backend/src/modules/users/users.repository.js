@@ -7,6 +7,7 @@ const userPublicSelect = {
   phone: true,
   status: true,
   primary_university_id: true,
+  email_verified_at: true,
   last_login_at: true,
   created_at: true,
   updated_at: true,
@@ -67,6 +68,7 @@ async function findManyForList(where, skip, take) {
       phone: true,
       status: true,
       primary_university_id: true,
+      email_verified_at: true,
       last_login_at: true,
     },
   });

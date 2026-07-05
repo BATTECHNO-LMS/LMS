@@ -36,7 +36,7 @@
   margin: 0 auto 0.75rem;
   border-radius: 999px;
   background: rgba($color-warning, 0.15);
-  color: #8a5a00;
+  color: var(--color-warning-text);
 }
 
 .modal__title {

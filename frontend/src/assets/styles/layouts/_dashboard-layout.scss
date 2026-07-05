@@ -8,7 +8,11 @@
 .layout--dashboard {
   display: flex;
   min-height: 100vh;
-  background: var(--color-bg);
+  background:
+    radial-gradient(48rem 32rem at 100% -8%, rgba($color-accent, 0.06), transparent 60%),
+    radial-gradient(42rem 32rem at -8% 108%, rgba($color-primary, 0.05), transparent 55%),
+    var(--color-cream);
+  background-attachment: fixed;
   position: relative;
   max-width: 100%;
   overflow-x: clip;
@@ -27,7 +31,8 @@
 
 .layout-dashboard__content {
   flex: 1;
-  padding: 1.25rem 1.5rem;
+  padding-block: 1.5rem;
+  padding-inline: 2rem;
   width: 100%;
   min-width: 0;
   max-width: 100%;
@@ -41,7 +46,8 @@
 
 @include respond(1024px) {
   .layout-dashboard__content {
-    padding: 1rem;
+    padding-block: 1.25rem;
+    padding-inline: 1.25rem;
   }
 
   .layout-dashboard__backdrop {
@@ -49,7 +55,7 @@
     position: fixed;
     inset: 0;
     z-index: $z-sidebar-overlay;
-    background: rgba(15, 23, 42, 0.42);
+    background: rgba($color-secondary, 0.5);
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
@@ -64,5 +70,12 @@
 @media (min-width: 1025px) {
   .layout-dashboard__backdrop {
     display: none !important;
+  }
+}
+
+@include respond(640px) {
+  .layout-dashboard__content {
+    padding-block: 1rem;
+    padding-inline: 1rem;
   }
 }

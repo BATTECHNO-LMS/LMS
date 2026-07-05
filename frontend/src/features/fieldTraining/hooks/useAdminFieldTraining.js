@@ -4,6 +4,7 @@ import {
   createAdminFieldTraining,
   fetchAdminFieldTraining,
   fetchAdminFieldTrainingList,
+  fetchAdminFieldTrainingStats,
   fetchOpportunityApplications,
   publishAdminFieldTraining,
   reviewFieldTrainingApplication,
@@ -20,6 +21,14 @@ export function useAdminFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.adminList(params),
     queryFn: () => fetchAdminFieldTrainingList(params),
+    ...options,
+  });
+}
+
+export function useAdminFieldTrainingStats(params = {}, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.adminStats(params),
+    queryFn: () => fetchAdminFieldTrainingStats(params),
     ...options,
   });
 }

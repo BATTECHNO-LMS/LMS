@@ -1,5 +1,8 @@
 const analyticsService = require('./analytics.service');
+const analyticsPdfService = require('./analyticsPdf.service');
+const analyticsExcelExportService = require('./analyticsExcelExport.service');
 const { success } = require('../../utils/apiResponse');
+const { ApiError } = require('../../utils/apiError');
 
 async function overview(req, res, next) {
   try {
@@ -91,6 +94,49 @@ async function certificates(req, res, next) {
   }
 }
 
+async function fieldTraining(req, res, next) {
+  try {
+    const data = await analyticsService.getFieldTrainingAnalytics(req.validated.query);
+    return success(res, data, { message: 'Field training analytics retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function exportPdf(req, res, next) {
+  try {
+    const { buffer, filename } = await analyticsPdfService.generateAnalyticsPdf(
+      req.validated.query,
+      { userId: req.user?.userId },
+      req.validated.query.lang || 'ar'
+    );
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    return res.status(200).send(buffer);
+  } catch (e) {
+    if (e?.message?.includes('Could not find Chrome') || e?.message?.includes('Failed to launch')) {
+      return next(new ApiError(503, 'PDF export is temporarily unavailable on this server.'));
+    }
+    return next(e);
+  }
+}
+
+async function exportExcel(req, res, next) {
+  try {
+    const { buffer, filename } = await analyticsExcelExportService.generateAnalyticsExcel(
+      req.validated.query,
+      { userId: req.user?.userId }
+    );
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', buffer.length);
+    return res.status(200).send(buffer);
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   overview,
   universities,
@@ -102,4 +148,7 @@ module.exports = {
   qaIntegrity,
   recognition,
   certificates,
+  fieldTraining,
+  exportPdf,
+  exportExcel,
 };

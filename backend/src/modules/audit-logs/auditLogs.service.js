@@ -1,13 +1,14 @@
 ﻿const { ApiError } = require('../../utils/apiError');
 const { prisma } = require('../../config/db');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
+const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 const repo = require('./auditLogs.repository');
 
 function auditScopeWhere(requester) {
+  if (isSystemWideAdmin(requester)) return null;
   const roles = normalizeRoles(requester.roles);
-  if (roles.includes('super_admin') || roles.includes('program_admin')) return null;
   const uni = requester.universityId;
-  if (uni && roles.some((r) => ['university_admin', 'academic_admin'].includes(r))) {
+  if (uni && roles.some((r) => ['university_admin', 'academic_admin', 'qa_officer'].includes(r))) {
     return { university_id: uni };
   }
   return { id: { in: [] } };
@@ -18,8 +19,10 @@ async function buildListWhere(query, requester) {
   const and = [];
   if (scope && scope.id) return scope;
   if (scope && scope.university_id) and.push({ university_id: scope.university_id });
+
+  const scopedUniversityId = resolveUniversityIdFilter(requester, query.university_id);
+  if (scopedUniversityId) and.push({ university_id: scopedUniversityId });
   if (query.user_id) and.push({ user_id: query.user_id });
-  if (query.university_id) and.push({ university_id: query.university_id });
   if (query.action_type) and.push({ action_type: query.action_type });
   if (query.entity_type) and.push({ entity_type: query.entity_type });
   if (query.from || query.to) {

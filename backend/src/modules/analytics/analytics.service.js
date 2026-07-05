@@ -425,6 +425,10 @@ async function getCertificatesAnalytics(filters) {
   return { certificates: await repo.getCertificatesAnalytics(filters) };
 }
 
+async function getFieldTrainingAnalytics(filters) {
+  return { field_training: await repo.getFieldTrainingAnalytics(filters) };
+}
+
 module.exports = {
   getOverviewAnalytics,
   getUniversitiesAnalytics,
@@ -436,4 +440,5 @@ module.exports = {
   getQaIntegrityAnalytics,
   getRecognitionAnalytics,
   getCertificatesAnalytics,
+  getFieldTrainingAnalytics,
 };

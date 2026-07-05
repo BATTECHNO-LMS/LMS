@@ -26,20 +26,20 @@
 
 .status-badge--success {
   background: rgba($color-success, 0.12);
-  color: #3f6a0f;
+  color: var(--color-success-text);
 }
 
 .status-badge--info {
   background: rgba($color-info, 0.12);
-  color: #1f8a75;
+  color: var(--color-info-text);
 }
 
 .status-badge--warning {
   background: rgba($color-warning, 0.15);
-  color: #8a5a00;
+  color: var(--color-warning-text);
 }
 
 .status-badge--danger {
   background: rgba($color-danger, 0.12);
-  color: #c70f0f;
+  color: var(--color-danger-text);
 }

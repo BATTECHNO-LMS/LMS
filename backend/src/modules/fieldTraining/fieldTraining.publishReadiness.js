@@ -2,6 +2,8 @@ const { ApiError } = require('../../utils/apiError');
 
 const MSG = {
   title: 'العنوان مطلوب (3 أحرف على الأقل)',
+  university: 'يجب اختيار الجامعة المرتبطة بفرصة التدريب',
+  specialty: 'يجب اختيار التخصص المرتبط بفرصة التدريب',
   organization_name: 'اسم الجهة مطلوب',
   description: 'الوصف الكامل مطلوب (10 أحرف على الأقل)',
   location: 'الموقع مطلوب',
@@ -24,7 +26,7 @@ function collectPublishMissing(opportunity) {
   const title = String(opportunity.title || '').trim();
   if (title.length < 3) missing.push(MSG.title);
 
-  if (!String(opportunity.organization_name || '').trim()) missing.push(MSG.organization_name);
+  if (!opportunity.specialty_id) missing.push(MSG.specialty);
 
   const desc = String(opportunity.description || '').trim();
   if (desc.length < 10) missing.push(MSG.description);

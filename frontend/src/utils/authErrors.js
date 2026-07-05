@@ -3,11 +3,16 @@
  * @param {string} raw
  * @param {(key: string) => string} t — `t` from `useTranslation('auth')`
  */
-export function mapAuthErrorToLoginMessage(raw, t) {
+export function mapAuthErrorToLoginMessage(raw, t, err) {
+  const code = err?.response?.data?.code;
+  if (code === 'EMAIL_NOT_VERIFIED') return t('login.errors.emailNotVerified');
   const msg = String(raw || '').trim();
   if (!msg) return t('login.errors.generic');
   const lower = msg.toLowerCase();
   if (lower.includes('invalid credentials')) return t('login.errors.invalidCredentials');
+  if (lower.includes('توثيق البريد') || (lower.includes('email') && lower.includes('verif'))) {
+    return t('login.errors.emailNotVerified');
+  }
   if (lower.includes('not activated') || lower.includes('admin approval')) {
     return t('login.errors.accountPendingActivation');
   }

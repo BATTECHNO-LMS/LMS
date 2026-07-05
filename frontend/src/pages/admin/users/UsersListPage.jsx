@@ -197,6 +197,15 @@ export function UsersListPage() {
               { key: 'name', label: t('table.name') },
               { key: 'email', label: t('table.email') },
               {
+                key: 'emailVerified',
+                label: t('table.emailVerified'),
+                render: (r) => (
+                  <StatusBadge variant={r.emailVerified ? 'success' : 'warning'}>
+                    {r.emailVerified ? t('list.emailVerified') : t('list.emailNotVerified')}
+                  </StatusBadge>
+                ),
+              },
+              {
                 key: 'role',
                 label: t('table.role'),
                 render: (r) => roleLabelAr(r.role, locale),

@@ -6,6 +6,7 @@ const {
   studentHasActiveProgramEnrollment,
   isStudentRole,
 } = require('../../utils/deliveryAccess');
+const { resolveUniversityIdFilter } = require('../../utils/universityScope');
 const { prisma } = require('../../config/db');
 const cohortsRepository = require('./cohorts.repository');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
@@ -180,8 +181,10 @@ async function serializeCohortDetail(row) {
 }
 
 async function listCohorts(query, requester) {
+  const scopedUniversityId = resolveUniversityIdFilter(requester, query.university_id);
+  const scopedQuery = { ...query, university_id: scopedUniversityId };
   const scope = cohortListWhere(requester);
-  const where = buildListWhere(query, scope || undefined);
+  const where = buildListWhere(scopedQuery, scope || undefined);
   const [total, rows] = await Promise.all([
     cohortsRepository.count(where),
     cohortsRepository.findMany(where, { skip: query.skip, take: query.take }),

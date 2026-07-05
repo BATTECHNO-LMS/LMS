@@ -9,14 +9,29 @@
     },
     "read": "مقروء"
   },
-  "emptyTitle": "لا توجد إشعارات",
-  "emptyDescription": "لا توجد رسائل جديدة.",
+  "emptyTitle": "لا توجد إشعارات حالياً",
+  "emptyDescription": "ستظهر تحديثات النظام والتنبيهات المهمة هنا.",
   "markRead": "تعليم كمقروء",
   "markAllRead": "تعليم الكل كمقروء",
+  "viewDetails": "عرض التفاصيل",
   "unread": "غير مقروء",
   "type": "النوع",
   "all": "الكل",
   "allTypes": "كل الأنواع",
+  "summary": {
+    "total": "إجمالي الإشعارات",
+    "unread": "غير المقروءة",
+    "registration": "إشعارات التسجيل",
+    "system": "إشعارات النظام"
+  },
+  "filters": {
+    "all": "الكل",
+    "unread": "غير المقروءة",
+    "read": "المقروءة",
+    "registration": "التسجيل",
+    "system": "النظام",
+    "action": "يتطلب إجراء"
+  },
   "types": {
     "info": "معلومات",
     "warning": "تنبيه",

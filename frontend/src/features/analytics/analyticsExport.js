@@ -1,7 +1,5 @@
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
+import { downloadAnalyticsPdf, downloadAnalyticsExcel } from './analytics.service.js';
 const KPI_KEYS = [
   'universities',
   'microCredentials',
@@ -32,23 +30,6 @@ const KPI_I18N_PATH = {
   openIntegrityCases: 'kpi.openIntegrity',
   certificatesIssued: 'kpi.certificatesIssued',
   activeUsers: 'kpi.activeUsers',
-};
-
-/** English KPI names for PDF (Helvetica has limited Unicode). */
-const KPI_LABEL_EN = {
-  universities: 'Universities',
-  microCredentials: 'Micro-credentials',
-  activeCohorts: 'Active cohorts',
-  enrolledStudents: 'Enrolled students',
-  pendingEnrollments: 'Pending enrollments',
-  attendanceRatePct: 'Attendance rate %',
-  delayedAssessments: 'Delayed assessments',
-  missingEvidence: 'Missing evidence',
-  recognitionReady: 'Recognition ready',
-  openQaIssues: 'Open QA issues',
-  openIntegrityCases: 'Open integrity cases',
-  certificatesIssued: 'Certificates issued',
-  activeUsers: 'Active users',
 };
 
 function resolveApiBase() {
@@ -145,15 +126,13 @@ function appendPowerBiReadmeSheet(wb, filters, t) {
 }
 
 /**
- * @param {{ data: object; filters: object; t: (k: string, o?: object) => string }} params
+ * Download a server-rendered Excel analytics report (Arabic/RTL, multi-sheet).
+ * @param {{ filters: object }} params
  */
-export function exportAnalyticsExcel({ data, filters, t }) {
-  const wb = buildWorkbook(data, filters, t);
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `lms-analytics-${stamp}.xlsx`);
+export async function exportAnalyticsExcel({ filters }) {
+  const { blob, filename } = await downloadAnalyticsExcel(filters);
+  downloadBlob(blob, filename);
 }
-
 /**
  * Same tables as Excel + PowerBI sheet with import / API hints.
  * @param {{ data: object; filters: object; t: (k: string, o?: object) => string }} params
@@ -167,68 +146,10 @@ export function exportAnalyticsPowerBi({ data, filters, t }) {
 }
 
 /**
- * @param {{ data: object; filters: object; t: (k: string, o?: object) => string }} params
+ * Download a server-rendered PDF report (Arabic/RTL safe via Chromium).
+ * @param {{ filters: object; lang?: string }} params
  */
-export function exportAnalyticsPdf({ data, filters, t }) {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const kpis = data?.kpis ?? {};
-  const title = t('page.title');
-
-  doc.setFontSize(14);
-  const titleLines = doc.splitTextToSize(String(title), 180);
-  doc.text(titleLines, 14, 14);
-  const yAfterTitle = 14 + titleLines.length * 7;
-  doc.setFontSize(9);
-  doc.text(`${t('filters.timeRange')}: ${t(`filters.presets.${filters.timePreset || 'last30'}`)}`, 14, yAfterTitle + 2);
-  doc.text(`${t('filters.from')}: ${filters.from || '—'}  ${t('filters.to')}: ${filters.to || '—'}`, 14, yAfterTitle + 8);
-
-  const kpiBody = KPI_KEYS.map((key) => {
-    const label = KPI_LABEL_EN[key];
-    const val = key === 'attendanceRatePct' ? `${kpis[key] ?? 0}%` : String(kpis[key] ?? 0);
-    return [label, val];
-  });
-
-  autoTable(doc, {
-    startY: yAfterTitle + 14,
-    head: [['KPI', 'Value']],
-    body: kpiBody,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [106, 115, 250] },
-  });
-
-  const lastY = doc.lastAutoTable?.finalY ?? 50;
-  let nextY = lastY + 10;
-  if (nextY > 250) {
-    doc.addPage();
-    nextY = 16;
-  }
-  doc.setFontSize(11);
-  const uniTitleLines = doc.splitTextToSize(String(t('charts.universitiesOverview.title')), 180);
-  doc.text(uniTitleLines, 14, nextY);
-  nextY += uniTitleLines.length * 5 + 2;
-
-  const uniRows = (data?.universitiesOverview ?? []).slice(0, 25).map((u) => [
-    String(u.nameEn ?? u.nameAr ?? u.label ?? u.id ?? ''),
-    String(u.cohorts ?? ''),
-    String(u.students ?? ''),
-    String(u.recognitionRequests ?? ''),
-  ]);
-
-  autoTable(doc, {
-    startY: nextY,
-    head: [['University', 'Cohorts', 'Students', 'Recognition']],
-    body: uniRows.length ? uniRows : [['—', '0', '0', '0']],
-    styles: { fontSize: 7 },
-    headStyles: { fillColor: [106, 115, 250] },
-  });
-
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i += 1) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.text(`TECHNO LMS · ${new Date().toISOString().slice(0, 10)} · ${i}/${pageCount}`, 14, doc.internal.pageSize.height - 8);
-  }
-
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-  doc.save(`lms-analytics-${stamp}.pdf`);
+export async function exportAnalyticsPdf({ filters, lang = 'ar' }) {
+  const { blob, filename } = await downloadAnalyticsPdf(filters, lang);
+  downloadBlob(blob, filename);
 }

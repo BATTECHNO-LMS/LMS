@@ -13,6 +13,7 @@ const {
 const router = express.Router();
 
 const academicRead = authorizeRoles(...env.ACADEMIC_READ_ROLE_CODES);
+const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
 
 router.get(
   '/',
@@ -27,6 +28,7 @@ router.get('/:id', authenticate, academicRead, validateRequest({ params: uuidPar
 router.put(
   '/:id',
   authenticate,
+  studentOnly,
   validateRequest({ params: uuidParamSchema, body: updateSubmissionBodySchema }),
   submissionsController.update
 );

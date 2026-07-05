@@ -75,7 +75,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
         setServerError(t('login.errors.network'));
       } else {
         const raw = getApiErrorMessage(err, t('login.errors.generic'));
-        setServerError(mapAuthErrorToLoginMessage(raw, t));
+        setServerError(mapAuthErrorToLoginMessage(raw, t, err));
       }
     } finally {
       setSubmitting(false);

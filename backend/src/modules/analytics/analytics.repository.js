@@ -28,6 +28,8 @@ const RECOGNITION_STATUSES = [
   'needs_revision',
 ];
 
+const ENROLLMENT_STATUSES = ['pending', 'enrolled', 'withdrawn', 'cancelled', 'completed', 'rejected'];
+
 function inDateRange(field, filters) {
   if (!filters.from && !filters.to) return {};
   return {
@@ -546,6 +548,10 @@ async function getCertificatesAnalytics(filters) {
       select: { id: true, issued_at: true, cohort_id: true, micro_credential_id: true, status: true },
     });
     const issued = certs.filter((c) => c.status === 'issued');
+    const statusBreakdown = ['issued', 'revoked', 'superseded'].map((status) => ({
+      status,
+      count: certs.filter((c) => c.status === status).length,
+    }));
     const byMonth = new Map();
     for (const cert of issued) {
       const key = monthKeyFromDate(new Date(cert.issued_at));
@@ -590,9 +596,188 @@ async function getCertificatesAnalytics(filters) {
       byUniversity,
       byCredential,
       issuedCount: issued.length,
+      statusBreakdown,
     };
   } catch (e) {
     if (isMissingPrismaModelTableError(e, 'certificates')) return { ...EMPTY_CERTIFICATES_ANALYTICS };
+    throw e;
+  }
+}
+
+async function getEnrollmentStatusDistribution(filters) {
+  const scope = await resolveCohortScope(filters);
+  const scopedCohorts = cohortIdWhere(scope, filters);
+  const rows = await prisma.enrollments.groupBy({
+    by: ['enrollment_status'],
+    where: {
+      ...(scopedCohorts ? { cohort_id: scopedCohorts } : {}),
+      ...inDateRange('enrolled_at', filters),
+    },
+    _count: { _all: true },
+  });
+  const map = new Map(rows.map((r) => [r.enrollment_status, r._count._all]));
+  return ENROLLMENT_STATUSES.map((status) => ({
+    status,
+    count: map.get(status) || 0,
+  }));
+}
+
+async function getUniversitiesReportRows(filters) {
+  const scope = await resolveCohortScope(filters);
+  const overview = await getUniversitiesOverview(filters);
+  const certs = await getCertificatesAnalytics(filters);
+  const certByUni = new Map(certs.byUniversity.map((u) => [u.university_id, u.count]));
+
+  const allCohortIds = scope.cohorts.map((c) => c.id);
+  const sessions = allCohortIds.length
+    ? await prisma.sessions.findMany({
+        where: { cohort_id: { in: allCohortIds } },
+        select: { id: true, cohort_id: true },
+      })
+    : [];
+  const cohortToUni = new Map(scope.cohorts.map((c) => [c.id, c.university_id]));
+  const sessionIds = sessions.map((s) => s.id);
+  let records = [];
+  if (sessionIds.length) {
+    try {
+      records = await prisma.attendance_records.findMany({
+        where: { session_id: { in: sessionIds } },
+        select: { session_id: true, attendance_status: true },
+      });
+    } catch (e) {
+      if (!isMissingPrismaModelTableError(e, 'attendance_records')) throw e;
+    }
+  }
+  const sessionToCohort = new Map(sessions.map((s) => [s.id, s.cohort_id]));
+  const uniStats = new Map();
+  for (const rec of records) {
+    const cohortId = sessionToCohort.get(rec.session_id);
+    const uniId = cohortToUni.get(cohortId);
+    if (!uniId) continue;
+    if (!uniStats.has(uniId)) uniStats.set(uniId, { total: 0, attended: 0 });
+    const st = uniStats.get(uniId);
+    st.total += 1;
+    if (['present', 'late', 'excused'].includes(rec.attendance_status)) st.attended += 1;
+  }
+
+  return overview.map((u) => {
+    const st = uniStats.get(u.university_id);
+    const attendanceRatePct = st?.total ? Math.round((st.attended / st.total) * 10000) / 100 : null;
+    return {
+      ...u,
+      attendanceRatePct,
+      certificatesIssued: certByUni.get(u.university_id) || 0,
+    };
+  });
+}
+
+async function getFieldTrainingAnalytics(filters) {
+  const universityWhere = filters.university_id ? { university_id: filters.university_id } : {};
+  const dateWhere = inDateRange('created_at', filters);
+
+  try {
+    const [totalOpportunities, published, draft, archived, applications, tasks, taskSubmissions, byUniversityRows, byModeRows, appStatusRows] =
+      await Promise.all([
+        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere } }),
+        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'published' } }),
+        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'draft' } }),
+        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'archived' } }),
+        prisma.field_training_applications.count({
+          where: {
+            ...dateWhere,
+            ...(filters.university_id
+              ? { field_training_opportunities: { university_id: filters.university_id } }
+              : {}),
+          },
+        }),
+        prisma.field_training_tasks.count({
+          where: {
+            ...dateWhere,
+            ...(filters.university_id
+              ? { field_training_opportunities: { university_id: filters.university_id } }
+              : {}),
+          },
+        }),
+        prisma.field_training_task_submissions.count({
+          where: {
+            ...inDateRange('submitted_at', filters),
+            ...(filters.university_id
+              ? {
+                  field_training_applications: {
+                    field_training_opportunities: { university_id: filters.university_id },
+                  },
+                }
+              : {}),
+          },
+        }),
+        prisma.field_training_opportunities.groupBy({
+          by: ['university_id'],
+          where: { ...universityWhere, ...dateWhere, university_id: { not: null } },
+          _count: { _all: true },
+        }),
+        prisma.field_training_opportunities.groupBy({
+          by: ['training_mode'],
+          where: { ...universityWhere, ...dateWhere },
+          _count: { _all: true },
+        }),
+        prisma.field_training_applications.groupBy({
+          by: ['status'],
+          where: {
+            ...dateWhere,
+            ...(filters.university_id
+              ? { field_training_opportunities: { university_id: filters.university_id } }
+              : {}),
+          },
+          _count: { _all: true },
+        }),
+      ]);
+
+    const uniIds = byUniversityRows.map((r) => r.university_id).filter(Boolean);
+    const universities = uniIds.length
+      ? await prisma.universities.findMany({ where: { id: { in: uniIds } }, select: { id: true, name: true } })
+      : [];
+    const uniName = new Map(universities.map((u) => [u.id, u.name]));
+
+    const byUniversity = [];
+    for (const row of byUniversityRows) {
+      if (!row.university_id) continue;
+      const appCount = await prisma.field_training_applications.count({
+        where: {
+          ...dateWhere,
+          field_training_opportunities: { university_id: row.university_id },
+        },
+      });
+      byUniversity.push({
+        university_id: row.university_id,
+        name: uniName.get(row.university_id) || row.university_id,
+        opportunities: row._count._all,
+        applications: appCount,
+      });
+    }
+
+    return {
+      available: true,
+      totalOpportunities,
+      published,
+      draft,
+      archived,
+      applications,
+      tasks,
+      taskSubmissions,
+      byUniversity,
+      byTrainingMode: byModeRows.map((r) => ({
+        training_mode: r.training_mode,
+        count: r._count._all,
+      })),
+      applicationsByStatus: appStatusRows.map((r) => ({
+        status: r.status,
+        count: r._count._all,
+      })),
+    };
+  } catch (e) {
+    if (isMissingPrismaModelTableError(e, 'field_training_opportunities')) {
+      return { available: false, totalOpportunities: 0 };
+    }
     throw e;
   }
 }
@@ -608,6 +793,9 @@ module.exports = {
   getQaIntegrityOverview,
   getRecognitionFunnel,
   getCertificatesAnalytics,
+  getEnrollmentStatusDistribution,
+  getUniversitiesReportRows,
+  getFieldTrainingAnalytics,
   resolveCohortScope,
   hasScopedCohortFilter,
 };

@@ -22,17 +22,31 @@ const optionalDateSchema = z
   .optional()
   .nullable();
 
+const submissionIdParamSchema = z.object({
+  submissionId: z.string().uuid(),
+});
+
+const listAdminStatsQuerySchema = z.object({
+  search: z.string().optional(),
+  status: opportunityStatusSchema.optional(),
+  training_mode: trainingModeSchema.optional(),
+  specialty_id: z.string().uuid().optional(),
+  from: optionalDateSchema,
+  to: optionalDateSchema,
+});
+
 const listAdminQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(20),
   search: z.string().optional(),
   status: opportunityStatusSchema.optional(),
   training_mode: trainingModeSchema.optional(),
+  specialty_id: z.string().uuid().optional(),
 });
 
 const opportunityBodySchema = z.object({
   title: z.string().min(1).max(255),
-  organization_name: z.string().min(1).max(255),
+  specialty_id: z.string().uuid(),
   location: z.string().min(1).max(255),
   training_mode: trainingModeSchema,
   short_description: z.string().max(2000).optional().nullable(),
@@ -78,10 +92,12 @@ module.exports = {
   uuidParamSchema,
   opportunityIdParamSchema,
   applicationIdParamSchema,
+  submissionIdParamSchema,
   taskIdParamSchema,
   taskBodySchema,
   updateTaskBodySchema,
   listAdminQuerySchema,
+  listAdminStatsQuerySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,
   applyBodySchema,

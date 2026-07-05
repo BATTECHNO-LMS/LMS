@@ -1,5 +1,6 @@
 /**
- * Ensures `student` (+ optional `super_admin`) roles and a demo university with one email domain exist.
+ * DEV/STAGING ONLY — minimal auth smoke-test university.
+ * For real deployments use: npm run seed:real-baseline
  * Run: node scripts/seed-auth-minimum.js
  */
 const { prisma } = require('../src/config/db');
@@ -13,6 +14,9 @@ async function ensureRole(code, name, scope) {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run: seed-auth-minimum.js is for local/staging only.');
+  }
   await ensureRole('student', 'Student', 'university');
   await ensureRole('super_admin', 'Super Admin', 'global');
 

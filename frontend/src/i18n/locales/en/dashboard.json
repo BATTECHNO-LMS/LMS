@@ -3,11 +3,13 @@
     "title": "Admin dashboard",
     "description": "Operational overview for the selected university scope.",
     "statsHint": "Counts for the active university scope",
+    "statsMeta": "Live data",
     "stats": {
       "activeUsers": "Users (scope)",
       "universities": "Universities (scope)",
       "cohorts": "Cohorts (scope)",
       "assessments": "Assessments (scope)",
+      "pendingEnrollments": "Pending enrollments",
       "reports": "Ready reports",
       "activity": "Daily activity",
       "hint": "Based on latest sync"

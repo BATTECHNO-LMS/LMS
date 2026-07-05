@@ -70,65 +70,88 @@ export function AdminCourseComposer({
       </header>
 
       <form noValidate className="admin-course-composer__form admin-form-modal">
-        <div className="admin-course-composer__grid">
-          <FormInput
-            id="composer-title"
-            label={t('form.title')}
-            value={form.title}
-            onChange={(e) => setField('title', e.target.value)}
-            error={errors.title}
-          />
-          <FormInput
-            id="composer-category"
-            label={t('form.category')}
-            value={form.category}
-            onChange={(e) => setField('category', e.target.value)}
-          />
-          <FormTextarea
-            id="composer-short"
-            label={t('form.shortDescription')}
-            value={form.short_description}
-            onChange={(e) => setField('short_description', e.target.value)}
-            rows={2}
-          />
-          <FormTextarea
-            id="composer-desc"
-            label={t('form.description')}
-            value={form.description}
-            onChange={(e) => setField('description', e.target.value)}
-            rows={3}
-            error={errors.description}
-          />
-          <CourseCoverField value={form.cover_image_url} onChange={(v) => setField('cover_image_url', v)} />
-          <SelectField
-            id="composer-level"
-            label={t('form.level')}
-            value={form.level}
-            onChange={(e) => setField('level', e.target.value)}
-          >
-            {COURSE_LEVELS.map((l) => (
-              <option key={l.value} value={l.value}>{t(l.labelKey)}</option>
-            ))}
-          </SelectField>
-          <FormInput
-            id="composer-min"
-            label={t('form.estimatedMinutes')}
-            type="number"
-            min={0}
-            value={form.estimated_duration_minutes}
-            onChange={(e) => setField('estimated_duration_minutes', e.target.value)}
-          />
-          <CourseCohortsField
-            cohortIds={form.cohort_ids ?? []}
-            allStudents={form.all_students !== false}
-            onChange={({ cohortIds, allStudents }) => {
-              setForm((f) => ({
-                ...f,
-                cohort_ids: cohortIds,
-                all_students: allStudents,
-              }));
-            }}
-          />
+        <fieldset className="composer-section">
+          <legend className="composer-section__title">{t('composer.sectionInfo')}</legend>
+          <p className="composer-section__help">{t('composer.sectionInfoHelp')}</p>
+          <div className="composer-section__grid composer-section__grid--4">
+            <FormInput
+              id="composer-title"
+              label={t('form.title')}
+              value={form.title}
+              onChange={(e) => setField('title', e.target.value)}
+              error={errors.title}
+            />
+            <FormInput
+              id="composer-category"
+              label={t('form.category')}
+              value={form.category}
+              onChange={(e) => setField('category', e.target.value)}
+            />
+            <SelectField
+              id="composer-level"
+              label={t('form.level')}
+              value={form.level}
+              onChange={(e) => setField('level', e.target.value)}
+            >
+              {COURSE_LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>{t(l.labelKey)}</option>
+              ))}
+            </SelectField>
+            <FormInput
+              id="composer-min"
+              label={t('form.estimatedMinutes')}
+              type="number"
+              min={0}
+              value={form.estimated_duration_minutes}
+              onChange={(e) => setField('estimated_duration_minutes', e.target.value)}
+            />
+          </div>
+        </fieldset>
+
+        <fieldset className="composer-section">
+          <legend className="composer-section__title">{t('composer.sectionDescription')}</legend>
+          <p className="composer-section__help">{t('composer.sectionDescriptionHelp')}</p>
+          <div className="composer-section__grid composer-section__grid--2">
+            <FormTextarea
+              id="composer-short"
+              label={t('form.shortDescription')}
+              value={form.short_description}
+              onChange={(e) => setField('short_description', e.target.value)}
+              rows={3}
+            />
+            <FormTextarea
+              id="composer-desc"
+              label={t('form.description')}
+              value={form.description}
+              onChange={(e) => setField('description', e.target.value)}
+              rows={3}
+              error={errors.description}
+            />
+          </div>
+        </fieldset>
+
+        <div className="composer-section__row">
+          <fieldset className="composer-section">
+            <legend className="composer-section__title">{t('composer.sectionCover')}</legend>
+            <p className="composer-section__help">{t('composer.sectionCoverHelp')}</p>
+            <CourseCoverField value={form.cover_image_url} onChange={(v) => setField('cover_image_url', v)} />
+          </fieldset>
+
+          <fieldset className="composer-section">
+            <legend className="composer-section__title">{t('composer.sectionPublishing')}</legend>
+            <p className="composer-section__help">{t('composer.sectionPublishingHelp')}</p>
+            <CourseCohortsField
+              cohortIds={form.cohort_ids ?? []}
+              allStudents={form.all_students !== false}
+              onChange={({ cohortIds, allStudents }) => {
+                setForm((f) => ({
+                  ...f,
+                  cohort_ids: cohortIds,
+                  all_students: allStudents,
+                }));
+              }}
+            />
+          </fieldset>
         </div>
 
         <div className="admin-course-composer__actions">

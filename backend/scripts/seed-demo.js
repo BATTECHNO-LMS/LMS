@@ -378,6 +378,10 @@ async function printCounts() {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run: seed-demo.js is for local/staging only. Do not run on production.');
+  }
+  logStep('⚠️  DEV/STAGING ONLY — TTU demo curriculum seed');
   logStep('Starting demo seed (transactional cleanup + seed)…');
 
   const battechnoUniversityId = await findBattechnoUniversityId();

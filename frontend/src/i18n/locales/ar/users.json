@@ -20,6 +20,8 @@
   "listTitle": "قائمة المستخدمين",
   "list": {
     "pendingActivation": "بانتظار التفعيل",
+    "emailVerified": "موثّق",
+    "emailNotVerified": "غير موثّق",
     "activateAccount": "تفعيل الحساب",
     "activateSuccess": "تم تفعيل الحساب بنجاح.",
     "activateAll": "تفعيل الكل",
@@ -31,6 +33,7 @@
   "table": {
     "name": "الاسم",
     "email": "البريد الإلكتروني",
+    "emailVerified": "توثيق البريد",
     "role": "الدور",
     "lastLogin": "آخر دخول"
   },

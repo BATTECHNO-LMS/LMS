@@ -8,11 +8,14 @@ import { useQuery } from '@tanstack/react-query';
 import { FormInput } from '../../../components/forms/FormInput.jsx';
 import { createRegisterStudentSchema } from '../validation/registerStudentSchema.js';
 import { UniversitySelect } from './UniversitySelect.jsx';
+import { SpecialtySelect } from './SpecialtySelect.jsx';
 import { SubmitButton } from './SubmitButton.jsx';
 import { fetchRegisterUniversitiesCatalog } from '../auth.service.js';
 import { mapUniversitiesForSelect } from '../../../constants/universities.js';
+import { useSpecialties, getSpecialtyLabel } from '../../specialties/index.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { storageKeys, setStorageItem } from '../../../utils/storage.js';
 import { AUTH_MOTION_EASE } from '../../../pages/auth/authMotion.js';
 
 export function RegisterForm() {
@@ -50,9 +53,26 @@ export function RegisterForm() {
       password: '',
       confirm_password: '',
       university: '',
+      specialty: '',
       phone: '',
     },
   });
+
+  const {
+    data: specialtyRows = [],
+    isLoading: specialtiesLoading,
+    isError: specialtiesError,
+    error: specialtiesErr,
+  } = useSpecialties();
+
+  const specialtyOptions = useMemo(
+    () =>
+      specialtyRows.map((row) => ({
+        id: row.id,
+        label: getSpecialtyLabel(row, i18n.language),
+      })),
+    [specialtyRows, i18n.language]
+  );
 
   const fieldMotion = (delay) =>
     reduced
@@ -70,11 +90,18 @@ export function RegisterForm() {
       email: data.email.trim().toLowerCase(),
       password: data.password,
       university_id: data.university,
+      specialty_id: data.specialty,
       phone: data.phone?.trim() || undefined,
     };
 
     try {
       const result = await signUp(payload);
+      if (result?.requiresEmailVerification) {
+        const email = result.email || payload.email;
+        setStorageItem(storageKeys.pendingVerificationEmail, email);
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`, { replace: true });
+        return;
+      }
       if (result?.pendingApproval) {
         navigate('/login/student?registered=pending', { replace: true });
         return;
@@ -140,6 +167,25 @@ export function RegisterForm() {
           />
         </motion.div>
 
+        <motion.div {...fieldMotion(0.18)}>
+          <Controller
+            name="specialty"
+            control={control}
+            render={({ field }) => (
+              <SpecialtySelect
+                id="register-specialty"
+                label={t('register.labels.specialty')}
+                error={errors.specialty?.message}
+                disabled={isSubmitting}
+                options={specialtyOptions}
+                loading={specialtiesLoading}
+                controlClassName="auth-form__input"
+                {...field}
+              />
+            )}
+          />
+        </motion.div>
+
         <motion.div {...fieldMotion(0.2)}>
           <FormInput
             id="register-phone"
@@ -185,6 +231,12 @@ export function RegisterForm() {
       {universitiesError ? (
         <p className="auth-form__error auth-form__span-full" role="alert">
           {getApiErrorMessage(universitiesErr, t('register.submitFailed'))}
+        </p>
+      ) : null}
+
+      {specialtiesError ? (
+        <p className="auth-form__error auth-form__span-full" role="alert">
+          {getApiErrorMessage(specialtiesErr, t('register.submitFailed'))}
         </p>
       ) : null}
 

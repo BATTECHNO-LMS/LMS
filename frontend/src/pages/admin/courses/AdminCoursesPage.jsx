@@ -1,14 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  Pencil,
+  Plus,
+  Trash2,
+  BookOpen,
+  Tag,
+  Clock,
+  Users,
+  ListChecks,
+  Search,
+  X,
+  ChevronDown,
+  SlidersHorizontal,
+  Filter,
+  GraduationCap,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { AdminPageHeader, SearchInput, SectionCard } from '../../../components/admin/index.js';
+import { AdminPageHeader } from '../../../components/admin/index.js';
 import { Button } from '../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
-import { DataTable } from '../../../components/tables/DataTable.jsx';
+import { EmptyState } from '../../../components/common/EmptyState.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
+import { cn } from '../../../utils/helpers.js';
+import { resolveUploadUrl } from '../../../utils/uploadUrl.js';
 import {
   buildCourseBody,
   EMPTY_COURSE_FORM,
+  COURSE_LEVELS,
+  COURSE_STATUSES,
   courseRowToForm,
   useAdminCourses,
   useArchiveCourse,
@@ -36,6 +55,8 @@ export function AdminCoursesPage() {
   const [page, setPage] = useState(1);
   const [bannerError, setBannerError] = useState('');
   const [lessonsPopupOpen, setLessonsPopupOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -64,6 +85,33 @@ export function AdminCoursesPage() {
   const meta = data?.meta ?? {};
   const total = meta.total ?? rows.length;
   const totalPages = meta.total_pages ?? 1;
+
+  /** Category options derived from the loaded page (no extra API call). */
+  const categoryOptions = useMemo(() => {
+    const set = new Set();
+    rows.forEach((r) => {
+      const c = (r.category || '').trim();
+      if (c) set.add(c);
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, 'ar'));
+  }, [rows]);
+
+  /** Client-side status/category narrowing; search stays server-side. */
+  const visibleRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (statusFilter && r.status !== statusFilter) return false;
+        if (categoryFilter && (r.category || '').trim() !== categoryFilter) return false;
+        return true;
+      }),
+    [rows, statusFilter, categoryFilter]
+  );
+
+  const hasActiveFilters = Boolean(statusFilter || categoryFilter);
+  const clearAllFilters = () => {
+    setStatusFilter('');
+    setCategoryFilter('');
+  };
 
   const saving = createMut.isPending || updateMut.isPending || publishMut.isPending;
 
@@ -177,7 +225,42 @@ export function AdminCoursesPage() {
     archiveMut.mutate(row.id, { onSuccess: () => refetch() });
   }
 
+  function openLessonsFor(row) {
+    setEditingId(row.id);
+    setForm(courseRowToForm(row));
+    setBannerError('');
+    setLessonsPopupOpen(true);
+  }
+
+  async function publishRow(row) {
+    setBannerError('');
+    try {
+      await publishMut.mutateAsync(row.id);
+      refetch();
+    } catch (err) {
+      const msg = getApiErrorMessage(err, t('publishFailed'));
+      const missing = err?.response?.data?.details?.missing;
+      setBannerError(
+        Array.isArray(missing) && missing.length
+          ? `${msg}\n${missing.join('\n')}\n\n${t('publishHint')}`
+          : `${msg}\n\n${t('publishHint')}`
+      );
+    }
+  }
+
   const statusVariant = (s) => (s === 'published' ? 'success' : s === 'archived' ? 'muted' : 'warning');
+
+  const levelLabel = (lvl) => {
+    const found = COURSE_LEVELS.find((l) => l.value === lvl);
+    return found ? t(found.labelKey) : lvl;
+  };
+
+  const cohortsLabel = (r) => {
+    const list = r.cohorts ?? [];
+    if (!list.length) return t('table.cohortsAll');
+    if (list.length <= 2) return list.map((c) => c.title).join('، ');
+    return t('table.cohortsCount', { count: list.length });
+  };
 
   const toggleLabel =
     composerOpen && !editingId ? t('composer.hideAdd') : t('addCourse');
@@ -190,13 +273,16 @@ export function AdminCoursesPage() {
 
   return (
     <div className="page page--dashboard page--admin admin-courses-page">
-      <header className="admin-courses-page__top">
-        <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
-        <Button type="button" variant="primary" onClick={handleToggleComposer}>
-          <Plus size={18} aria-hidden />
-          {toggleLabel}
-        </Button>
-      </header>
+      <AdminPageHeader
+        title={<>{t('title')}</>}
+        description={<>{t('description')}</>}
+        actions={
+          <Button type="button" variant="primary" onClick={handleToggleComposer}>
+            <Plus size={18} aria-hidden />
+            {toggleLabel}
+          </Button>
+        }
+      />
 
       {bannerError ? (
         <p className="admin-courses-page__alert crud-muted" role="alert" style={{ whiteSpace: 'pre-wrap' }}>
@@ -224,146 +310,286 @@ export function AdminCoursesPage() {
         onPublish={editingId ? handleSaveChanges : handlePublishNew}
       />
 
-      <SectionCard
-        title={<>{t('listTitle')}</>}
-        className="admin-courses-table-card"
-        actions={
-          <div className="admin-courses-table-card__tools">
-            <span className="admin-courses-table-card__count">{listCounter}</span>
-            <SearchInput
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder={t('composer.searchPlaceholder')}
-              aria-label={tCommon('actions.search')}
-              className="admin-courses-table-card__search"
-            />
+      <section className="courses-toolbar" aria-label={t('toolbarTitle')}>
+        <header className="courses-toolbar__head">
+          <div className="courses-toolbar__head-text">
+            <span className="courses-toolbar__head-icon" aria-hidden>
+              <SlidersHorizontal size={18} />
+            </span>
+            <div>
+              <h2 className="courses-toolbar__title">{t('toolbarTitle')}</h2>
+              <p className="courses-toolbar__subtitle">{t('toolbarSubtitle')}</p>
+            </div>
           </div>
-        }
-      >
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <DataTable
-            className="admin-courses-data-table"
-            emptyTitle={isError ? tCommon('errors.generic') : t('composer.emptyList')}
-            emptyDescription={isError ? String(error?.message ?? '') : ''}
-            getRowClassName={(row) =>
-              row.id === editingId && composerOpen ? 'admin-courses-row--active' : undefined
-            }
-            columns={[
-              {
-                key: 'title',
-                label: t('table.title'),
-                mobileTitle: true,
-                render: (r) => (
-                  <button type="button" className="admin-courses-row__title-btn" onClick={() => openEdit(r)}>
-                    {r.title}
-                  </button>
-                ),
-              },
-              {
-                key: 'status',
-                label: t('table.status'),
-                render: (r) => (
-                  <StatusBadge variant={statusVariant(r.status)}>{t(`status.${r.status}`)}</StatusBadge>
-                ),
-              },
-              {
-                key: 'category',
-                label: t('table.category'),
-                render: (r) => r.category?.trim() || '—',
-              },
-              {
-                key: 'cohorts',
-                label: t('table.cohorts'),
-                render: (r) => {
-                  const list = r.cohorts ?? [];
-                  if (!list.length) return t('table.cohortsAll');
-                  if (list.length <= 2) return list.map((c) => c.title).join('، ');
-                  return t('table.cohortsCount', { count: list.length });
-                },
-              },
-              {
-                key: 'actions',
-                label: t('table.actions'),
-                render: (r) => (
-                  <div className="table-row-actions">
-                    <button
-                      type="button"
-                      className="btn btn--icon btn--ghost"
-                      title={t('edit')}
-                      onClick={() => openEdit(r)}
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    {r.status === 'draft' ? (
+          <span className="courses-toolbar__count">{listCounter}</span>
+        </header>
+
+        <div className="courses-toolbar__body">
+          <div className="courses-toolbar__field courses-toolbar__field--search">
+            <span className="courses-toolbar__label" id="courses-search-label">
+              {tCommon('actions.search')}
+            </span>
+            <div className="courses-search">
+              <Search className="courses-search__icon" size={18} aria-hidden />
+              <input
+                type="search"
+                className="courses-search__input"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder={t('composer.searchPlaceholder')}
+                aria-labelledby="courses-search-label"
+              />
+              {searchInput ? (
+                <button
+                  type="button"
+                  className="courses-search__clear"
+                  onClick={() => setSearchInput('')}
+                  aria-label={t('clearSearch')}
+                >
+                  <X size={16} aria-hidden />
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="courses-toolbar__field">
+            <span className="courses-toolbar__label" id="courses-status-label">
+              {t('filterStatus')}
+            </span>
+            <div className="courses-select">
+              <Filter className="courses-select__icon" size={16} aria-hidden />
+              <select
+                className="courses-select__control"
+                aria-labelledby="courses-status-label"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">{t('filterAllStatuses')}</option>
+                {COURSE_STATUSES.map((s) => (
+                  <option key={s.value} value={s.value}>{t(s.labelKey)}</option>
+                ))}
+              </select>
+              <ChevronDown className="courses-select__chevron" size={16} aria-hidden />
+            </div>
+          </div>
+
+          <div className="courses-toolbar__field">
+            <span className="courses-toolbar__label" id="courses-category-label">
+              {t('filterCategory')}
+            </span>
+            <div className="courses-select">
+              <Tag className="courses-select__icon" size={16} aria-hidden />
+              <select
+                className="courses-select__control"
+                aria-labelledby="courses-category-label"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="">{t('filterAllCategories')}</option>
+                {categoryOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown className="courses-select__chevron" size={16} aria-hidden />
+            </div>
+          </div>
+        </div>
+
+        {hasActiveFilters ? (
+          <div className="courses-toolbar__chips">
+            {statusFilter ? (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setStatusFilter('')}
+                aria-label={t('removeFilter')}
+              >
+                <span className="filter-chip__label">
+                  {t('filterStatus')}: {t(`status.${statusFilter}`)}
+                </span>
+                <X size={14} aria-hidden />
+              </button>
+            ) : null}
+            {categoryFilter ? (
+              <button
+                type="button"
+                className="filter-chip"
+                onClick={() => setCategoryFilter('')}
+                aria-label={t('removeFilter')}
+              >
+                <span className="filter-chip__label">
+                  {t('filterCategory')}: {categoryFilter}
+                </span>
+                <X size={14} aria-hidden />
+              </button>
+            ) : null}
+            <button type="button" className="filter-chip filter-chip--clear" onClick={clearAllFilters}>
+              {t('clearFilters')}
+            </button>
+          </div>
+        ) : null}
+      </section>
+
+      {isLoading ? (
+        <LoadingSpinner />
+      ) : visibleRows.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title={isError ? tCommon('errors.generic') : t('composer.emptyList')}
+          description={isError ? String(error?.message ?? '') : t('description')}
+          action={
+            !isError ? (
+              <Button type="button" variant="primary" onClick={startNewCourse}>
+                <Plus size={18} aria-hidden />
+                {t('composer.addCourse')}
+              </Button>
+            ) : null
+          }
+        />
+      ) : (
+        <>
+          <div className="course-cards-grid">
+            {visibleRows.map((r) => {
+              const cover = r.cover_image_url ? resolveUploadUrl(r.cover_image_url) : null;
+              const lessonsCount = r.lessons_count ?? null;
+              const isActive = r.id === editingId && composerOpen;
+              return (
+                <article key={r.id} className={cn('course-card', isActive && 'is-active')}>
+                  <div className={cn('course-card__cover', !cover && 'course-card__cover--placeholder')}>
+                    {cover ? (
+                      <img src={cover} alt="" className="course-card__cover-img" loading="lazy" />
+                    ) : (
+                      <div className="course-card__cover-fallback" aria-hidden>
+                        <BookOpen size={36} strokeWidth={1.5} />
+                      </div>
+                    )}
+                    <span className="course-card__cover-scrim" aria-hidden />
+                    <StatusBadge variant={statusVariant(r.status)} className="course-card__status">
+                      {t(`status.${r.status}`)}
+                    </StatusBadge>
+                    <span className="course-card__cover-chip">
+                      <GraduationCap size={13} aria-hidden /> {levelLabel(r.level)}
+                    </span>
+                  </div>
+
+                  <div className="course-card__body">
+                    <h3 className="course-card__title">
+                      <button type="button" className="admin-courses-row__title-btn" onClick={() => openEdit(r)}>
+                        {r.title}
+                      </button>
+                    </h3>
+                    <p className={cn('course-card__desc', !r.short_description && 'course-card__desc--empty')}>
+                      {r.short_description || t('cardNoDescription')}
+                    </p>
+
+                    <div className="course-card__info">
+                      {r.estimated_duration_minutes ? (
+                        <div className="course-card__info-item">
+                          <span className="course-card__info-icon" aria-hidden>
+                            <Clock size={15} />
+                          </span>
+                          <span className="course-card__info-text">
+                            {t('cardMinutes', { count: r.estimated_duration_minutes })}
+                          </span>
+                        </div>
+                      ) : null}
+                      {lessonsCount != null ? (
+                        <div className="course-card__info-item">
+                          <span className="course-card__info-icon" aria-hidden>
+                            <ListChecks size={15} />
+                          </span>
+                          <span className="course-card__info-text">
+                            {t('cardLessons', { count: lessonsCount })}
+                          </span>
+                        </div>
+                      ) : null}
+                      <div className="course-card__info-item">
+                        <span className="course-card__info-icon" aria-hidden>
+                          <Tag size={15} />
+                        </span>
+                        <span className="course-card__info-text">
+                          {r.category?.trim() || t('cardNoCategory')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="course-card__cohorts">
+                      <Users size={14} aria-hidden />
+                      <span>{cohortsLabel(r)}</span>
+                    </div>
+                  </div>
+
+                  <div className="course-card__actions">
+                    <div className="course-card__actions-main">
                       <button
                         type="button"
                         className="btn btn--sm btn--primary"
-                        disabled={publishMut.isPending}
-                        onClick={async () => {
-                          setBannerError('');
-                          try {
-                            await publishMut.mutateAsync(r.id);
-                            refetch();
-                          } catch (err) {
-                            const msg = getApiErrorMessage(err, t('publishFailed'));
-                            const missing = err?.response?.data?.details?.missing;
-                            setBannerError(
-                              Array.isArray(missing) && missing.length
-                                ? `${msg}\n${missing.join('\n')}\n\n${t('publishHint')}`
-                                : `${msg}\n\n${t('publishHint')}`
-                            );
-                          }
-                        }}
+                        onClick={() => openLessonsFor(r)}
                       >
-                        {t('publish')}
+                        <ListChecks size={15} aria-hidden /> {t('manageLessons')}
                       </button>
-                    ) : null}
-                    {r.status !== 'archived' ? (
                       <button
                         type="button"
-                        className="btn btn--sm btn--ghost admin-courses-row__archive"
-                        onClick={() => handleArchive(r)}
+                        className="btn btn--sm btn--outline"
+                        onClick={() => openEdit(r)}
                       >
-                        <Trash2 size={16} aria-hidden /> {t('archive')}
+                        <Pencil size={15} aria-hidden /> {t('edit')}
                       </button>
-                    ) : null}
+                    </div>
+                    <div className="course-card__actions-end">
+                      {r.status === 'draft' ? (
+                        <button
+                          type="button"
+                          className="btn btn--sm course-card__publish"
+                          disabled={publishMut.isPending}
+                          onClick={() => publishRow(r)}
+                        >
+                          {t('publish')}
+                        </button>
+                      ) : null}
+                      {r.status !== 'archived' ? (
+                        <button
+                          type="button"
+                          className="btn btn--icon btn--sm course-card__archive"
+                          title={t('archive')}
+                          aria-label={t('archive')}
+                          onClick={() => handleArchive(r)}
+                        >
+                          <Trash2 size={15} aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
-                ),
-              },
-            ]}
-            rows={rows}
-            footer={
-              totalPages > 1 ? (
-                <div className="admin-courses-pagination">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="btn--sm"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    {t('composer.prevPage')}
-                  </Button>
-                  <span className="crud-muted">
-                    {t('composer.pageOf', { page, total: totalPages })}
-                  </span>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="btn--sm"
-                    disabled={page >= totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    {t('composer.nextPage')}
-                  </Button>
-                </div>
-              ) : null
-            }
-          />
-        )}
-      </SectionCard>
+                </article>
+              );
+            })}
+          </div>
+
+          {totalPages > 1 ? (
+            <div className="admin-courses-pagination">
+              <Button
+                type="button"
+                variant="outline"
+                className="btn--sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                {t('composer.prevPage')}
+              </Button>
+              <span className="crud-muted">{t('composer.pageOf', { page, total: totalPages })}</span>
+              <Button
+                type="button"
+                variant="outline"
+                className="btn--sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                {t('composer.nextPage')}
+              </Button>
+            </div>
+          ) : null}
+        </>
+      )}
 
       <AdminCoursesLessonsPopup
         open={lessonsPopupOpen}

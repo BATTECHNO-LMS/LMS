@@ -1,5 +1,9 @@
 ﻿const { z } = require('zod');
 
+const universityIdParamSchema = z.object({
+  universityId: z.string().uuid('Invalid university'),
+});
+
 /**
  * Public student self-registration only — unknown keys rejected (.strict()).
  */
@@ -9,6 +13,7 @@ const registerSchema = z
     email: z.string().email('Invalid email').max(255),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     university_id: z.string().uuid('Invalid university'),
+    specialty_id: z.string().uuid('Invalid specialty'),
     phone: z.string().max(50).optional(),
   })
   .strict()
@@ -17,6 +22,7 @@ const registerSchema = z
     email: b.email.trim().toLowerCase(),
     password: b.password,
     university_id: b.university_id,
+    specialty_id: b.specialty_id,
     phone: b.phone?.trim() || undefined,
   }));
 
@@ -31,4 +37,32 @@ const loginSchema = z
     password: b.password,
   }));
 
-module.exports = { registerSchema, loginSchema };
+const verifyEmailOtpSchema = z
+  .object({
+    email: z.string().email('Invalid email').max(255),
+    otp: z
+      .string()
+      .regex(/^\d{6}$/, 'OTP must be 6 digits'),
+  })
+  .strict()
+  .transform((b) => ({
+    email: b.email.trim().toLowerCase(),
+    otp: b.otp.trim(),
+  }));
+
+const resendEmailOtpSchema = z
+  .object({
+    email: z.string().email('Invalid email').max(255),
+  })
+  .strict()
+  .transform((b) => ({
+    email: b.email.trim().toLowerCase(),
+  }));
+
+module.exports = {
+  registerSchema,
+  loginSchema,
+  universityIdParamSchema,
+  verifyEmailOtpSchema,
+  resendEmailOtpSchema,
+};

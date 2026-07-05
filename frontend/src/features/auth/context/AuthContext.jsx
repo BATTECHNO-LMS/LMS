@@ -141,6 +141,14 @@ export function AuthProvider({ children }) {
         setIsAuthReady(true);
         return { redirectTo: getDefaultDashboardPath(normalized) };
       }
+      if (data?.requiresEmailVerification) {
+        qc.invalidateQueries({ queryKey: ['users'] });
+        qc.invalidateQueries({ queryKey: ['universities'] });
+        return {
+          requiresEmailVerification: true,
+          email: data.email ?? payload.email,
+        };
+      }
       if (data?.pending_approval) {
         qc.invalidateQueries({ queryKey: ['users'] });
         qc.invalidateQueries({ queryKey: ['universities'] });

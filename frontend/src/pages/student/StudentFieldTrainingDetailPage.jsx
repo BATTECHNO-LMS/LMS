@@ -3,9 +3,9 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Briefcase,
-  Building2,
   Calendar,
   Clock,
+  GraduationCap,
   Lock,
   MapPin,
   Users,
@@ -22,6 +22,7 @@ import {
   useStudentFieldTraining,
   applicationBadgeVariant,
   formatFtDate,
+  getOpportunitySpecialtyLabel,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
@@ -62,7 +63,7 @@ function FactItem({ icon: Icon, label, value }) {
 export function StudentFieldTrainingDetailPage() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const { t } = useTranslation('fieldTraining');
+  const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const { data, isLoading, isError, refetch } = useStudentFieldTraining(id);
   const applyMut = useApplyFieldTraining();
@@ -136,7 +137,9 @@ export function StudentFieldTrainingDetailPage() {
           <div className="ft-detail-hero__top">
             <div>
               <h1 className="ft-detail-hero__title">{opp.title}</h1>
-              <p className="ft-detail-hero__org">{opp.organization_name}</p>
+              <p className="ft-detail-hero__org">
+                {getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'))}
+              </p>
               {appStatus ? (
                 <p style={{ marginTop: '0.5rem' }}>
                   <StatusBadge variant={applicationBadgeVariant(appStatus)}>
@@ -165,7 +168,11 @@ export function StudentFieldTrainingDetailPage() {
           </div>
 
           <div className="ft-facts-grid">
-            <FactItem icon={Building2} label={t('form.organization')} value={opp.organization_name} />
+            <FactItem
+              icon={GraduationCap}
+              label={t('form.specialty')}
+              value={getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'))}
+            />
             <FactItem icon={MapPin} label={t('form.location')} value={opp.location} />
             <FactItem
               icon={Briefcase}

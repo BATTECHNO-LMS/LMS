@@ -2,9 +2,26 @@
 const { env } = require('../../config/env');
 const { hashPassword } = require('../../utils/password');
 const { ensureUserLinkedToUniversityFromEmail } = require('../auth/universityEmailLink.service');
+const {
+  resolveUniversityIdFilter,
+  assertUniversityRecordAccess,
+  isSystemWideAdmin,
+} = require('../../utils/universityScope');
 const { prisma } = require('../../config/db');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
+
+async function assertUserAccessible(requester, user) {
+  if (isSystemWideAdmin(requester)) return;
+  const uni = resolveUniversityIdFilter(requester, null);
+  if (!uni) {
+    throw new ApiError(403, 'Forbidden');
+  }
+  if (user.primary_university_id && String(user.primary_university_id) === String(uni)) return;
+  const memberships = await usersRepository.findUniversityMembershipsForUser(user.id);
+  if (memberships.some((m) => String(m.university_id) === String(uni))) return;
+  throw new ApiError(403, 'Forbidden');
+}
 
 async function mapUsersWithRoles(userRows) {
   const ids = userRows.map((u) => u.id);
@@ -26,12 +43,19 @@ async function mapUsersWithRoles(userRows) {
   }));
 }
 
-async function listUsers(query) {
+async function listUsers(query, requester = {}) {
+  const scopedUniversityId = resolveUniversityIdFilter(requester, query.university_id);
   const where = await usersRepository.buildListWhere({
     status: query.status,
-    university_id: query.university_id,
+    university_id: scopedUniversityId,
     search: query.search,
   });
+  if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
+    return {
+      items: [],
+      meta: { page: query.page, page_size: query.page_size, total: 0, total_pages: 1 },
+    };
+  }
   const page = query.page;
   const page_size = query.page_size;
   const skip = (page - 1) * page_size;
@@ -55,11 +79,12 @@ async function listUsers(query) {
   };
 }
 
-async function getUserById(id) {
+async function getUserById(id, requester = {}) {
   const user = await usersRepository.findUserById(id);
   if (!user) {
     throw new ApiError(404, 'User not found');
   }
+  await assertUserAccessible(requester, user);
   const [withRoles] = await mapUsersWithRoles([user]);
   const primaryUniversity = withRoles.primary_university_id
     ? await usersRepository.findUniversityById(withRoles.primary_university_id)
@@ -85,7 +110,12 @@ async function getUserById(id) {
   };
 }
 
-async function createUser(body) {
+async function createUser(body, requester = {}) {
+  if (body.primary_university_id) {
+    assertUniversityRecordAccess(requester, body.primary_university_id);
+  } else if (!isSystemWideAdmin(requester)) {
+    throw new ApiError(403, 'University assignment is required');
+  }
   const existing = await usersRepository.findUserByEmail(body.email);
   if (existing) {
     throw new ApiError(409, 'Email already exists');
@@ -107,6 +137,7 @@ async function createUser(body) {
 
   const password_hash = await hashPassword(body.password);
   const status = body.status ?? 'active';
+  const now = new Date();
 
   const user = await prisma.$transaction(async (tx) => {
     const created = await usersRepository.createUser(
@@ -117,6 +148,8 @@ async function createUser(body) {
         phone: body.phone ?? null,
         status,
         primary_university_id: body.primary_university_id ?? null,
+        email_verified_at: status === 'active' ? now : null,
+        activated_at: status === 'active' ? now : null,
       },
       tx
     );
@@ -145,13 +178,15 @@ async function createUser(body) {
   return getUserById(user.id);
 }
 
-async function updateUser(id, body) {
+async function updateUser(id, body, requester = {}) {
   const existing = await usersRepository.findUserById(id);
   if (!existing) {
     throw new ApiError(404, 'User not found');
   }
+  await assertUserAccessible(requester, existing);
 
   if (body.primary_university_id) {
+    assertUniversityRecordAccess(requester, body.primary_university_id);
     const uni = await usersRepository.findUniversityById(body.primary_university_id);
     if (!uni) {
       throw new ApiError(404, 'Primary university not found');
@@ -191,25 +226,32 @@ async function updateUser(id, body) {
   return getUserById(id);
 }
 
-async function patchUserStatus(id, status) {
+async function patchUserStatus(id, status, requester = {}) {
   const existing = await usersRepository.findUserById(id);
   if (!existing) {
     throw new ApiError(404, 'User not found');
   }
+  await assertUserAccessible(requester, existing);
   await usersRepository.updateUser(id, { status, updated_at: new Date() });
   return getUserById(id);
 }
 
-async function activateUser(id, { actorUserId, ipAddress } = {}) {
+async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
   const existing = await usersRepository.findUserById(id);
   if (!existing) {
     throw new ApiError(404, 'User not found');
+  }
+  if (requester) {
+    await assertUserAccessible(requester, existing);
   }
   if (existing.status === 'suspended') {
     throw new ApiError(400, 'Suspended accounts cannot be activated via this endpoint');
   }
   if (existing.status === 'active') {
     return getUserById(id);
+  }
+  if (!existing.email_verified_at) {
+    throw new ApiError(400, 'لا يمكن تفعيل الحساب قبل توثيق البريد الإلكتروني.');
   }
   const now = new Date();
   try {
@@ -248,7 +290,14 @@ async function activateUser(id, { actorUserId, ipAddress } = {}) {
   return getUserById(id);
 }
 
-async function activateAllPendingStudents({ university_id, user_ids, actorUserId, ipAddress } = {}) {
+async function activateAllPendingStudents({
+  university_id,
+  user_ids,
+  actorUserId,
+  ipAddress,
+  requester = {},
+} = {}) {
+  const scopedUniversityId = resolveUniversityIdFilter(requester, university_id);
   const studentRole = await usersRepository.findRolesByCodes([env.STUDENT_ROLE_CODE]);
   if (!studentRole.length) {
     throw new ApiError(500, `Student role "${env.STUDENT_ROLE_CODE}" is missing`);
@@ -271,7 +320,7 @@ async function activateAllPendingStudents({ university_id, user_ids, actorUserId
   } else {
     pending = await usersRepository.findInactiveStudents({
       studentRoleId: studentRole[0].id,
-      university_id: university_id || undefined,
+      university_id: scopedUniversityId || undefined,
     });
   }
 
@@ -280,7 +329,7 @@ async function activateAllPendingStudents({ university_id, user_ids, actorUserId
 
   for (const row of pending) {
     try {
-      await activateUser(row.id, { actorUserId, ipAddress });
+      await activateUser(row.id, { actorUserId, ipAddress, requester });
       activated += 1;
     } catch (err) {
       errors.push({

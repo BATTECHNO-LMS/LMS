@@ -9,14 +9,29 @@
     },
     "read": "Read"
   },
-  "emptyTitle": "No notifications",
-  "emptyDescription": "You are all caught up.",
+  "emptyTitle": "No notifications yet",
+  "emptyDescription": "System updates and important alerts will appear here.",
   "markRead": "Mark as read",
   "markAllRead": "Mark all as read",
+  "viewDetails": "View details",
   "unread": "Unread",
   "type": "Type",
   "all": "All",
   "allTypes": "All types",
+  "summary": {
+    "total": "Total notifications",
+    "unread": "Unread",
+    "registration": "Registration alerts",
+    "system": "System alerts"
+  },
+  "filters": {
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read",
+    "registration": "Registration",
+    "system": "System",
+    "action": "Action required"
+  },
   "types": {
     "info": "Info",
     "warning": "Warning",

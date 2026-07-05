@@ -5,6 +5,7 @@ const router = express.Router();
 router.use('/users', require('../modules/users/users.routes'));
 router.use('/roles', require('../modules/roles/roles.routes'));
 router.use('/universities', require('../modules/universities/universities.routes'));
+router.use('/specialties', require('../modules/specialties/specialties.routes'));
 router.use('/tracks', require('../modules/tracks/tracks.routes'));
 router.use('/micro-credentials', require('../modules/micro-credentials/microCredentials.routes'));
 router.use('/learning-outcomes', require('../modules/learning-outcomes/learningOutcomes.routes'));
@@ -32,6 +33,8 @@ router.use('/notifications', require('../modules/notifications/notifications.rou
 router.use('/analytics', require('../modules/analytics/analytics.routes'));
 router.use('/reports', require('../modules/reports/reports.routes'));
 router.use('/audit-logs', require('../modules/audit-logs/auditLogs.routes'));
+router.use('/dashboard', require('../modules/dashboard/dashboard.routes'));
+router.use('/settings', require('../modules/settings/settings.routes'));
 router.use('/admin/courses', require('../modules/courses/adminCourses.routes'));
 router.use('/student/courses', require('../modules/courses/studentCourses.routes'));
 router.use('/admin/field-training', require('../modules/fieldTraining/adminFieldTraining.routes'));

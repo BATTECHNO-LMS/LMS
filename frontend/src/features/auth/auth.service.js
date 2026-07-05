@@ -28,6 +28,15 @@ export async function registerStudent(body) {
   if (token && typeof token === 'string') {
     return { data: { token } };
   }
+  if (payload?.requiresEmailVerification) {
+    return {
+      data: {
+        requiresEmailVerification: true,
+        email: payload.email ?? body.email,
+        pending_approval: payload.pending_approval ?? true,
+      },
+    };
+  }
   if (payload?.pending_approval) {
     return {
       data: {
@@ -37,6 +46,27 @@ export async function registerStudent(body) {
     };
   }
   throw new Error('Invalid registration response');
+}
+
+/**
+ * @param {string} email
+ * @param {string} otp
+ */
+export async function verifyEmailOtp(email, otp) {
+  const res = await apiClient.post(endpoints.auth.verifyEmailOtp, { email, otp });
+  return unwrapApiData(res);
+}
+
+/**
+ * @param {string} email
+ */
+export async function resendEmailOtp(email) {
+  const res = await apiClient.post(endpoints.auth.resendEmailOtp, { email });
+  const body = res?.data;
+  if (body && typeof body === 'object' && body.success === true) {
+    return { message: body.message ?? '' };
+  }
+  throw new Error('Invalid resend response');
 }
 
 export async function logout() {
