@@ -14,6 +14,7 @@ export function useStudentFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.studentList(params),
     queryFn: () => fetchStudentFieldTrainingList(params),
+    staleTime: 30_000,
     ...options,
   });
 }
@@ -23,6 +24,7 @@ export function useStudentFieldTraining(id, options = {}) {
     queryKey: fieldTrainingKeys.studentDetail(id),
     queryFn: () => fetchStudentFieldTraining(id),
     enabled: Boolean(id),
+    staleTime: 30_000,
     ...options,
   });
 }
@@ -31,6 +33,7 @@ export function useMyFieldTrainingApplications(options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.myApplications(),
     queryFn: fetchMyFieldTrainingApplications,
+    staleTime: 30_000,
     ...options,
   });
 }

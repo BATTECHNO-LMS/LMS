@@ -1,9 +1,11 @@
+import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../../layouts/AuthLayout.jsx';
 import { AdminLayout } from '../../layouts/AdminLayout.jsx';
 import { InstructorLayout } from '../../layouts/InstructorLayout.jsx';
 import { StudentLayout } from '../../layouts/StudentLayout.jsx';
 import { ReviewerLayout } from '../../layouts/ReviewerLayout.jsx';
+import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 import { LoginPage } from '../../pages/auth/LoginPage.jsx';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
 import { VerifyEmailOtpPage } from '../../pages/auth/VerifyEmailOtpPage.jsx';
@@ -13,124 +15,7 @@ import {
   StudentLoginPage,
   ReviewerLoginPage,
 } from '../../pages/auth/portalLogins.jsx';
-import { AdminDashboardPage } from '../../pages/admin/AdminDashboardPage.jsx';
-import { UsersListPage } from '../../pages/admin/users/UsersListPage.jsx';
-import { UserCreatePage } from '../../pages/admin/users/UserCreatePage.jsx';
-import { UserViewPage } from '../../pages/admin/users/UserViewPage.jsx';
-import { UserEditPage } from '../../pages/admin/users/UserEditPage.jsx';
-import { RolesPermissionsPage } from '../../pages/admin/RolesPermissionsPage.jsx';
-import { UniversitiesListPage } from '../../pages/admin/universities/UniversitiesListPage.jsx';
-import { UniversityCreatePage } from '../../pages/admin/universities/UniversityCreatePage.jsx';
-import { UniversityViewPage } from '../../pages/admin/universities/UniversityViewPage.jsx';
-import { UniversityEditPage } from '../../pages/admin/universities/UniversityEditPage.jsx';
-import { TracksListPage } from '../../pages/admin/tracks/TracksListPage.jsx';
-import { TrackCreatePage } from '../../pages/admin/tracks/TrackCreatePage.jsx';
-import { TrackViewPage } from '../../pages/admin/tracks/TrackViewPage.jsx';
-import { TrackEditPage } from '../../pages/admin/tracks/TrackEditPage.jsx';
-import { MicroCredentialsListPage } from '../../pages/admin/micro-credentials/MicroCredentialsListPage.jsx';
-import { MicroCredentialCreatePage } from '../../pages/admin/micro-credentials/MicroCredentialCreatePage.jsx';
-import { MicroCredentialViewPage } from '../../pages/admin/micro-credentials/MicroCredentialViewPage.jsx';
-import { MicroCredentialEditPage } from '../../pages/admin/micro-credentials/MicroCredentialEditPage.jsx';
-import { LearningOutcomesPage } from '../../pages/admin/LearningOutcomesPage.jsx';
-import { CohortsListPage } from '../../pages/admin/cohorts/CohortsListPage.jsx';
-import { CohortCreatePage } from '../../pages/admin/cohorts/CohortCreatePage.jsx';
-import { CohortViewPage } from '../../pages/admin/cohorts/CohortViewPage.jsx';
-import { CohortEditPage } from '../../pages/admin/cohorts/CohortEditPage.jsx';
-import { CohortSessionsListPage } from '../../pages/admin/cohorts/CohortSessionsListPage.jsx';
-import { SessionCreatePage } from '../../pages/admin/cohorts/SessionCreatePage.jsx';
-import { SessionViewPage } from '../../pages/admin/sessions/SessionViewPage.jsx';
-import { SessionEditPage } from '../../pages/admin/sessions/SessionEditPage.jsx';
-import { SessionAttendancePage } from '../../pages/admin/sessions/SessionAttendancePage.jsx';
-import { EnrollmentViewPage } from '../../pages/admin/enrollments/EnrollmentViewPage.jsx';
-import { PendingEnrollmentsPage } from '../../pages/admin/enrollments/PendingEnrollmentsPage.jsx';
-import { ContentManagementPage } from '../../pages/admin/ContentManagementPage.jsx';
-import { SessionsPage } from '../../pages/admin/SessionsPage.jsx';
-import { AttendancePage } from '../../pages/admin/AttendancePage.jsx';
-import { AssessmentsListPage } from '../../pages/admin/assessments/AssessmentsListPage.jsx';
-import { AssessmentCreatePage } from '../../pages/admin/assessments/AssessmentCreatePage.jsx';
-import { AssessmentViewPage } from '../../pages/admin/assessments/AssessmentViewPage.jsx';
-import { AssessmentEditPage } from '../../pages/admin/assessments/AssessmentEditPage.jsx';
-import { RubricsPage } from '../../pages/admin/RubricsPage.jsx';
-import { RubricCreatePage } from '../../pages/admin/rubrics/RubricCreatePage.jsx';
-import { RubricDetailPage } from '../../pages/admin/rubrics/RubricDetailPage.jsx';
-import { SubmissionsPage } from '../../pages/admin/SubmissionsPage.jsx';
-import { GradesPage } from '../../pages/admin/GradesPage.jsx';
-import { EvidencePage } from '../../pages/admin/EvidencePage.jsx';
-import { EvidenceCreatePage } from '../../pages/admin/evidence/EvidenceCreatePage.jsx';
-import { EvidenceEditPage } from '../../pages/admin/evidence/EvidenceEditPage.jsx';
-import { EvidenceViewPage } from '../../pages/admin/evidence/EvidenceViewPage.jsx';
-import { QAPage } from '../../pages/admin/QAPage.jsx';
-import { QAReviewsPage } from '../../pages/admin/QAReviewsPage.jsx';
-import { QAReviewCreatePage } from '../../pages/admin/qa-reviews/QAReviewCreatePage.jsx';
-import { QAReviewEditPage } from '../../pages/admin/qa-reviews/QAReviewEditPage.jsx';
-import { QAReviewViewPage } from '../../pages/admin/qa-reviews/QAReviewViewPage.jsx';
-import { CorrectiveActionsPage } from '../../pages/admin/CorrectiveActionsPage.jsx';
-import { CorrectiveActionCreatePage } from '../../pages/admin/corrective-actions/CorrectiveActionCreatePage.jsx';
-import { CorrectiveActionEditPage } from '../../pages/admin/corrective-actions/CorrectiveActionEditPage.jsx';
-import { CorrectiveActionViewPage } from '../../pages/admin/corrective-actions/CorrectiveActionViewPage.jsx';
-import { AtRiskStudentsPage } from '../../pages/admin/AtRiskStudentsPage.jsx';
-import { RiskCasesPage } from '../../pages/admin/RiskCasesPage.jsx';
-import { RiskCaseCreatePage } from '../../pages/admin/risk-cases/RiskCaseCreatePage.jsx';
-import { RiskCaseEditPage } from '../../pages/admin/risk-cases/RiskCaseEditPage.jsx';
-import { RiskCaseViewPage } from '../../pages/admin/risk-cases/RiskCaseViewPage.jsx';
-import { IntegrityCasesPage } from '../../pages/admin/IntegrityCasesPage.jsx';
-import { IntegrityCaseCreatePage } from '../../pages/admin/integrity-cases/IntegrityCaseCreatePage.jsx';
-import { IntegrityCaseEditPage } from '../../pages/admin/integrity-cases/IntegrityCaseEditPage.jsx';
-import { IntegrityCaseViewPage } from '../../pages/admin/integrity-cases/IntegrityCaseViewPage.jsx';
-import { RecognitionRequestsListPage } from '../../pages/admin/recognition-requests/RecognitionRequestsListPage.jsx';
-import { RecognitionRequestCreatePage } from '../../pages/admin/recognition-requests/RecognitionRequestCreatePage.jsx';
-import { RecognitionRequestViewPage } from '../../pages/admin/recognition-requests/RecognitionRequestViewPage.jsx';
-import { RecognitionRequestEditPage } from '../../pages/admin/recognition-requests/RecognitionRequestEditPage.jsx';
-import { CertificatesPage } from '../../pages/admin/CertificatesPage.jsx';
-import { CertificateIssuePage } from '../../pages/admin/certificates/CertificateIssuePage.jsx';
-import { CertificateDetailPage } from '../../pages/admin/certificates/CertificateDetailPage.jsx';
-import { ReportsPage } from '../../pages/admin/ReportsPage.jsx';
-import { AuditLogsPage } from '../../pages/admin/AuditLogsPage.jsx';
-import { AuditLogDetailsPage } from '../../pages/admin/AuditLogDetailsPage.jsx';
-import { SettingsPage } from '../../pages/admin/SettingsPage.jsx';
-import { SuperAdminAnalyticsRoute } from '../../pages/admin/SuperAdminAnalyticsRoute.jsx';
-import { SuperAdminCoursesRoute } from '../../pages/admin/courses/SuperAdminCoursesRoute.jsx';
-import { AdminCourseLessonsPage } from '../../pages/admin/courses/AdminCourseLessonsPage.jsx';
-import { SuperAdminFieldTrainingRoute } from '../../pages/admin/fieldTraining/SuperAdminFieldTrainingRoute.jsx';
-import { AdminFieldTrainingApplicationsPage } from '../../pages/admin/fieldTraining/AdminFieldTrainingApplicationsPage.jsx';
-import { AdminFieldTrainingTasksPage } from '../../pages/admin/fieldTraining/AdminFieldTrainingTasksPage.jsx';
-import { InstructorDashboardPage } from '../../pages/instructor/InstructorDashboardPage.jsx';
-import { MyCohortsPage } from '../../pages/instructor/MyCohortsPage.jsx';
-import { InstructorSessionsPage } from '../../pages/instructor/InstructorSessionsPage.jsx';
-import { InstructorAttendancePage } from '../../pages/instructor/InstructorAttendancePage.jsx';
-import { InstructorAssessmentsPage } from '../../pages/instructor/InstructorAssessmentsPage.jsx';
-import { InstructorSubmissionsPage } from '../../pages/instructor/InstructorSubmissionsPage.jsx';
-import { InstructorGradesPage } from '../../pages/instructor/InstructorGradesPage.jsx';
-import { InstructorEvidencePage } from '../../pages/instructor/InstructorEvidencePage.jsx';
-import { RiskStudentsPage } from '../../pages/instructor/RiskStudentsPage.jsx';
-import { InstructorAssessmentCreatePage } from '../../pages/instructor/InstructorAssessmentCreatePage.jsx';
-import { InstructorAssessmentEditPage } from '../../pages/instructor/InstructorAssessmentEditPage.jsx';
-import { StudentDashboardPage } from '../../pages/student/StudentDashboardPage.jsx';
-import { StudentCoursesPage } from '../../pages/student/StudentCoursesPage.jsx';
-import { StudentCourseDetailPage } from '../../pages/student/StudentCourseDetailPage.jsx';
-import { StudentFieldTrainingPage } from '../../pages/student/StudentFieldTrainingPage.jsx';
-import { StudentFieldTrainingDetailPage } from '../../pages/student/StudentFieldTrainingDetailPage.jsx';
-import { StudentEntryRedirect } from '../../pages/student/StudentEntryRedirect.jsx';
-import { AvailableCohortsPage } from '../../pages/student/AvailableCohortsPage.jsx';
-import { MyProgramsPage } from '../../pages/student/MyProgramsPage.jsx';
-import { StudentProgramDetailPage } from '../../pages/student/StudentProgramDetailPage.jsx';
-import { StudentSemesterSchedulePage } from '../../pages/student/StudentSemesterSchedulePage.jsx';
-import { ContentPage } from '../../pages/student/ContentPage.jsx';
-import { StudentSessionsPage } from '../../pages/student/StudentSessionsPage.jsx';
-import { StudentAttendancePage } from '../../pages/student/StudentAttendancePage.jsx';
-import { StudentAssessmentsPage } from '../../pages/student/StudentAssessmentsPage.jsx';
-import { StudentSubmissionsPage } from '../../pages/student/StudentSubmissionsPage.jsx';
-import { StudentGradesPage } from '../../pages/student/StudentGradesPage.jsx';
-import { CertificatePage } from '../../pages/student/CertificatePage.jsx';
-import { ReviewerDashboardPage } from '../../pages/reviewer/ReviewerDashboardPage.jsx';
-import { ReviewerRecognitionRequestsPage } from '../../pages/reviewer/ReviewerRecognitionRequestsPage.jsx';
-import { ReviewerEnrollmentRequestsPage } from '../../pages/reviewer/ReviewerEnrollmentRequestsPage.jsx';
-import { UniversityReportsPage } from '../../pages/reviewer/UniversityReportsPage.jsx';
-import { EvidenceViewerPage } from '../../pages/reviewer/EvidenceViewerPage.jsx';
-import { CertificatesReviewPage } from '../../pages/reviewer/CertificatesReviewPage.jsx';
-import { ModulePlaceholderPage } from '../../pages/common/ModulePlaceholderPage.jsx';
-import { NotificationsPage } from '../../pages/common/NotificationsPage.jsx';
-import { CertificateVerifyPage } from '../../pages/public/CertificateVerifyPage.jsx';
+import * as Pages from './lazyPages.js';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute.jsx';
 import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
 import { RootRedirect } from '../../components/common/RootRedirect.jsx';
@@ -149,6 +34,7 @@ function SubdomainLoginRedirect() {
 
 export function AppRouter() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       <Route path="/" element={<RootRedirect />} />
 
@@ -168,101 +54,109 @@ export function AppRouter() {
         <Route index element={<VerifyEmailOtpPage />} />
       </Route>
 
-      <Route path="/verify/certificate/:verificationCode" element={<CertificateVerifyPage />} />
+      <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={ADMIN_ROLE_SET} />}>
-            <Route path="dashboard" element={<AdminDashboardPage />} />
-            <Route path="analytics" element={<SuperAdminAnalyticsRoute />} />
-            <Route path="courses" element={<SuperAdminCoursesRoute />} />
+            <Route path="dashboard" element={<Pages.AdminDashboardPage />} />
+            <Route path="analytics" element={<Pages.SuperAdminAnalyticsRoute />} />
+            <Route path="courses" element={<Pages.SuperAdminCoursesRoute />} />
             <Route
               path="courses/:id/lessons"
               element={
-                <SuperAdminCoursesRoute>
-                  <AdminCourseLessonsPage />
-                </SuperAdminCoursesRoute>
+                <Pages.SuperAdminCoursesRoute>
+                  <Pages.AdminCourseLessonsPage />
+                </Pages.SuperAdminCoursesRoute>
               }
             />
-            <Route path="field-training" element={<SuperAdminFieldTrainingRoute />} />
+            <Route path="field-training" element={<Pages.SuperAdminFieldTrainingRoute />} />
             <Route
               path="field-training/:id/applications"
               element={
-                <SuperAdminFieldTrainingRoute>
-                  <AdminFieldTrainingApplicationsPage />
-                </SuperAdminFieldTrainingRoute>
+                <Pages.SuperAdminFieldTrainingRoute>
+                  <Pages.AdminFieldTrainingApplicationsPage />
+                </Pages.SuperAdminFieldTrainingRoute>
+              }
+            />
+            <Route
+              path="field-training/:id/manage"
+              element={
+                <Pages.SuperAdminFieldTrainingRoute>
+                  <Pages.AdminFieldTrainingManagePage />
+                </Pages.SuperAdminFieldTrainingRoute>
               }
             />
             <Route
               path="field-training/:id/tasks"
               element={
-                <SuperAdminFieldTrainingRoute>
-                  <AdminFieldTrainingTasksPage />
-                </SuperAdminFieldTrainingRoute>
+                <Pages.SuperAdminFieldTrainingRoute>
+                  <Pages.AdminFieldTrainingTasksPage />
+                </Pages.SuperAdminFieldTrainingRoute>
               }
             />
-            <Route path="users/create" element={<UserCreatePage />} />
-            <Route path="users/:id/edit" element={<UserEditPage />} />
-            <Route path="users/:id" element={<UserViewPage />} />
-            <Route path="users" element={<UsersListPage />} />
-            <Route path="roles-permissions" element={<RolesPermissionsPage />} />
-            <Route path="universities/create" element={<UniversityCreatePage />} />
-            <Route path="universities/:id/edit" element={<UniversityEditPage />} />
-            <Route path="universities/:id" element={<UniversityViewPage />} />
-            <Route path="universities" element={<UniversitiesListPage />} />
-            <Route path="tracks/create" element={<TrackCreatePage />} />
-            <Route path="tracks/:id/edit" element={<TrackEditPage />} />
-            <Route path="tracks/:id" element={<TrackViewPage />} />
-            <Route path="tracks" element={<TracksListPage />} />
-            <Route path="micro-credentials/create" element={<MicroCredentialCreatePage />} />
-            <Route path="micro-credentials/:id/edit" element={<MicroCredentialEditPage />} />
-            <Route path="micro-credentials/:id" element={<MicroCredentialViewPage />} />
-            <Route path="micro-credentials" element={<MicroCredentialsListPage />} />
-            <Route path="learning-outcomes" element={<LearningOutcomesPage />} />
-            <Route path="cohorts/create" element={<CohortCreatePage />} />
-            <Route path="cohorts/:id/sessions/create" element={<SessionCreatePage />} />
-            <Route path="cohorts/:id/sessions" element={<CohortSessionsListPage />} />
-            <Route path="cohorts/:id/edit" element={<CohortEditPage />} />
-            <Route path="cohorts/:id" element={<CohortViewPage />} />
-            <Route path="cohorts" element={<CohortsListPage />} />
-            <Route path="enrollments" element={<PendingEnrollmentsPage />} />
-            <Route path="enrollments/:id" element={<EnrollmentViewPage />} />
-            <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
-            <Route path="sessions/:sessionId/edit" element={<SessionEditPage />} />
-            <Route path="sessions/:sessionId" element={<SessionViewPage />} />
-            <Route path="content" element={<ContentManagementPage />} />
-            <Route path="sessions" element={<SessionsPage />} />
-            <Route path="attendance" element={<AttendancePage />} />
-            <Route path="assessments/create" element={<AssessmentCreatePage />} />
-            <Route path="assessments/:id/edit" element={<AssessmentEditPage />} />
-            <Route path="assessments/:id" element={<AssessmentViewPage />} />
-            <Route path="assessments" element={<AssessmentsListPage />} />
-            <Route path="rubrics/create" element={<RubricCreatePage />} />
-            <Route path="rubrics/:id" element={<RubricDetailPage />} />
-            <Route path="rubrics" element={<RubricsPage />} />
-            <Route path="submissions" element={<SubmissionsPage />} />
-            <Route path="grades" element={<GradesPage />} />
-            <Route path="evidence" element={<EvidencePage />} />
-            <Route path="qa" element={<QAPage />} />
-            <Route path="qa-reviews" element={<QAReviewsPage />} />
-            <Route path="corrective-actions" element={<CorrectiveActionsPage />} />
-            <Route path="at-risk-students" element={<AtRiskStudentsPage />} />
-            <Route path="risk-cases" element={<RiskCasesPage />} />
-            <Route path="integrity-cases" element={<IntegrityCasesPage />} />
-            <Route path="recognition-requests/create" element={<RecognitionRequestCreatePage />} />
-            <Route path="recognition-requests/:id/edit" element={<RecognitionRequestEditPage />} />
-            <Route path="recognition-requests/:id" element={<RecognitionRequestViewPage />} />
-            <Route path="recognition-requests" element={<RecognitionRequestsListPage />} />
-            <Route path="certificates/issue" element={<CertificateIssuePage />} />
-            <Route path="certificates/:id" element={<CertificateDetailPage />} />
-            <Route path="certificates" element={<CertificatesPage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="audit-logs/:id" element={<AuditLogDetailsPage />} />
-            <Route path="audit-logs" element={<AuditLogsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="*" element={<ModulePlaceholderPage />} />
+            <Route path="users/create" element={<Pages.UserCreatePage />} />
+            <Route path="users/:id/edit" element={<Pages.UserEditPage />} />
+            <Route path="users/:id" element={<Pages.UserViewPage />} />
+            <Route path="users" element={<Pages.UsersListPage />} />
+            <Route path="roles-permissions" element={<Pages.RolesPermissionsPage />} />
+            <Route path="universities/create" element={<Pages.UniversityCreatePage />} />
+            <Route path="universities/:id/edit" element={<Pages.UniversityEditPage />} />
+            <Route path="universities/:id" element={<Pages.UniversityViewPage />} />
+            <Route path="universities" element={<Pages.UniversitiesListPage />} />
+            <Route path="tracks/create" element={<Pages.TrackCreatePage />} />
+            <Route path="tracks/:id/edit" element={<Pages.TrackEditPage />} />
+            <Route path="tracks/:id" element={<Pages.TrackViewPage />} />
+            <Route path="tracks" element={<Pages.TracksListPage />} />
+            <Route path="micro-credentials/create" element={<Pages.MicroCredentialCreatePage />} />
+            <Route path="micro-credentials/:id/edit" element={<Pages.MicroCredentialEditPage />} />
+            <Route path="micro-credentials/:id" element={<Pages.MicroCredentialViewPage />} />
+            <Route path="micro-credentials" element={<Pages.MicroCredentialsListPage />} />
+            <Route path="learning-outcomes" element={<Pages.LearningOutcomesPage />} />
+            <Route path="cohorts/create" element={<Pages.CohortCreatePage />} />
+            <Route path="cohorts/:id/sessions/create" element={<Pages.SessionCreatePage />} />
+            <Route path="cohorts/:id/sessions" element={<Pages.CohortSessionsListPage />} />
+            <Route path="cohorts/:id/edit" element={<Pages.CohortEditPage />} />
+            <Route path="cohorts/:id" element={<Pages.CohortViewPage />} />
+            <Route path="cohorts" element={<Pages.CohortsListPage />} />
+            <Route path="enrollments" element={<Pages.PendingEnrollmentsPage />} />
+            <Route path="enrollments/:id" element={<Pages.EnrollmentViewPage />} />
+            <Route path="sessions/:sessionId/attendance" element={<Pages.SessionAttendancePage />} />
+            <Route path="sessions/:sessionId/edit" element={<Pages.SessionEditPage />} />
+            <Route path="sessions/:sessionId" element={<Pages.SessionViewPage />} />
+            <Route path="content" element={<Pages.ContentManagementPage />} />
+            <Route path="sessions" element={<Pages.SessionsPage />} />
+            <Route path="attendance" element={<Pages.AttendancePage />} />
+            <Route path="assessments/create" element={<Pages.AssessmentCreatePage />} />
+            <Route path="assessments/:id/edit" element={<Pages.AssessmentEditPage />} />
+            <Route path="assessments/:id" element={<Pages.AssessmentViewPage />} />
+            <Route path="assessments" element={<Pages.AssessmentsListPage />} />
+            <Route path="rubrics/create" element={<Pages.RubricCreatePage />} />
+            <Route path="rubrics/:id" element={<Pages.RubricDetailPage />} />
+            <Route path="rubrics" element={<Pages.RubricsPage />} />
+            <Route path="submissions" element={<Pages.SubmissionsPage />} />
+            <Route path="grades" element={<Pages.GradesPage />} />
+            <Route path="evidence" element={<Pages.EvidencePage />} />
+            <Route path="qa" element={<Pages.QAPage />} />
+            <Route path="qa-reviews" element={<Pages.QAReviewsPage />} />
+            <Route path="corrective-actions" element={<Pages.CorrectiveActionsPage />} />
+            <Route path="at-risk-students" element={<Pages.AtRiskStudentsPage />} />
+            <Route path="risk-cases" element={<Pages.RiskCasesPage />} />
+            <Route path="integrity-cases" element={<Pages.IntegrityCasesPage />} />
+            <Route path="recognition-requests/create" element={<Pages.RecognitionRequestCreatePage />} />
+            <Route path="recognition-requests/:id/edit" element={<Pages.RecognitionRequestEditPage />} />
+            <Route path="recognition-requests/:id" element={<Pages.RecognitionRequestViewPage />} />
+            <Route path="recognition-requests" element={<Pages.RecognitionRequestsListPage />} />
+            <Route path="certificates/issue" element={<Pages.CertificateIssuePage />} />
+            <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
+            <Route path="certificates" element={<Pages.CertificatesPage />} />
+            <Route path="notifications" element={<Pages.NotificationsPage />} />
+            <Route path="reports" element={<Pages.ReportsPage />} />
+            <Route path="audit-logs/:id" element={<Pages.AuditLogDetailsPage />} />
+            <Route path="audit-logs" element={<Pages.AuditLogsPage />} />
+            <Route path="settings" element={<Pages.SettingsPage />} />
+            <Route path="*" element={<Pages.ModulePlaceholderPage />} />
           </Route>
         </Route>
 
@@ -271,58 +165,62 @@ export function AppRouter() {
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.INSTRUCTOR]} />}>
             <Route path="at-risk-students" element={<Navigate to="/instructor/risk-students" replace />} />
             <Route element={<RoleShellPermissionOutlet />}>
-              <Route path="dashboard" element={<InstructorDashboardPage />} />
-              <Route path="cohorts/:id/sessions/create" element={<SessionCreatePage />} />
-              <Route path="cohorts/:id/sessions" element={<CohortSessionsListPage />} />
-              <Route path="cohorts/:id/edit" element={<CohortEditPage />} />
-              <Route path="cohorts/:id" element={<CohortViewPage />} />
-              <Route path="cohorts" element={<MyCohortsPage />} />
-              <Route path="sessions/:sessionId/attendance" element={<SessionAttendancePage />} />
-              <Route path="sessions/:sessionId/edit" element={<SessionEditPage />} />
-              <Route path="sessions/:sessionId" element={<SessionViewPage />} />
-              <Route path="enrollments/:id" element={<EnrollmentViewPage />} />
-              <Route path="sessions" element={<InstructorSessionsPage />} />
-              <Route path="attendance" element={<InstructorAttendancePage />} />
-              <Route path="assessments/create" element={<InstructorAssessmentCreatePage />} />
-              <Route path="assessments/:id/edit" element={<InstructorAssessmentEditPage />} />
-              <Route path="assessments/:id" element={<AssessmentViewPage />} />
-              <Route path="assessments" element={<InstructorAssessmentsPage />} />
-              <Route path="submissions" element={<InstructorSubmissionsPage />} />
-              <Route path="grades" element={<InstructorGradesPage />} />
-              <Route path="evidence/create" element={<EvidenceCreatePage />} />
-              <Route path="evidence/:id/edit" element={<EvidenceEditPage />} />
-              <Route path="evidence/:id" element={<EvidenceViewPage />} />
-              <Route path="evidence" element={<InstructorEvidencePage />} />
-              <Route path="risk-students" element={<RiskStudentsPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="*" element={<ModulePlaceholderPage />} />
+              <Route path="dashboard" element={<Pages.InstructorDashboardPage />} />
+              <Route path="cohorts/:id/sessions/create" element={<Pages.SessionCreatePage />} />
+              <Route path="cohorts/:id/sessions" element={<Pages.CohortSessionsListPage />} />
+              <Route path="cohorts/:id/edit" element={<Pages.CohortEditPage />} />
+              <Route path="cohorts/:id" element={<Pages.CohortViewPage />} />
+              <Route path="cohorts" element={<Pages.MyCohortsPage />} />
+              <Route path="sessions/:sessionId/attendance" element={<Pages.SessionAttendancePage />} />
+              <Route path="sessions/:sessionId/edit" element={<Pages.SessionEditPage />} />
+              <Route path="sessions/:sessionId" element={<Pages.SessionViewPage />} />
+              <Route path="enrollments/:id" element={<Pages.EnrollmentViewPage />} />
+              <Route path="sessions" element={<Pages.InstructorSessionsPage />} />
+              <Route path="attendance" element={<Pages.InstructorAttendancePage />} />
+              <Route path="assessments/create" element={<Pages.InstructorAssessmentCreatePage />} />
+              <Route path="assessments/:id/edit" element={<Pages.InstructorAssessmentEditPage />} />
+              <Route path="assessments/:id" element={<Pages.AssessmentViewPage />} />
+              <Route path="assessments" element={<Pages.InstructorAssessmentsPage />} />
+              <Route path="submissions" element={<Pages.InstructorSubmissionsPage />} />
+              <Route path="grades" element={<Pages.InstructorGradesPage />} />
+              <Route path="evidence/create" element={<Pages.EvidenceCreatePage />} />
+              <Route path="evidence/:id/edit" element={<Pages.EvidenceEditPage />} />
+              <Route path="evidence/:id" element={<Pages.EvidenceViewPage />} />
+              <Route path="evidence" element={<Pages.InstructorEvidencePage />} />
+              <Route path="risk-students" element={<Pages.RiskStudentsPage />} />
+              <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>
         </Route>
 
         <Route path="/student" element={<StudentLayout />}>
-          <Route index element={<StudentEntryRedirect />} />
+          <Route index element={<Pages.StudentEntryRedirect />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.STUDENT]} />}>
             <Route path="enrollments" element={<Navigate to="/student/programs" replace />} />
             <Route element={<RoleShellPermissionOutlet />}>
-              <Route path="dashboard" element={<StudentDashboardPage />} />
-              <Route path="courses" element={<StudentCoursesPage />} />
-              <Route path="courses/:id" element={<StudentCourseDetailPage />} />
-              <Route path="field-training" element={<StudentFieldTrainingPage />} />
-              <Route path="field-training/:id" element={<StudentFieldTrainingDetailPage />} />
-              <Route path="available-cohorts" element={<AvailableCohortsPage />} />
-              <Route path="semester-schedule" element={<StudentSemesterSchedulePage />} />
-              <Route path="programs/:id" element={<StudentProgramDetailPage />} />
-              <Route path="programs" element={<MyProgramsPage />} />
-              <Route path="content" element={<ContentPage />} />
-              <Route path="sessions" element={<StudentSessionsPage />} />
-              <Route path="attendance" element={<StudentAttendancePage />} />
-              <Route path="assessments" element={<StudentAssessmentsPage />} />
-              <Route path="submissions" element={<StudentSubmissionsPage />} />
-              <Route path="grades" element={<StudentGradesPage />} />
-              <Route path="certificate" element={<CertificatePage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="*" element={<ModulePlaceholderPage />} />
+              <Route path="dashboard" element={<Pages.StudentDashboardPage />} />
+              <Route path="courses" element={<Pages.StudentCoursesPage />} />
+              <Route path="courses/:id" element={<Pages.StudentCourseDetailPage />} />
+              <Route path="field-training" element={<Pages.StudentFieldTrainingPage />} />
+              <Route
+                path="field-training/:opportunityId/tasks/:taskId/self-evaluation"
+                element={<Pages.StudentFieldTrainingSelfEvaluationPage />}
+              />
+              <Route path="field-training/:id" element={<Pages.StudentFieldTrainingDetailPage />} />
+              <Route path="available-cohorts" element={<Pages.AvailableCohortsPage />} />
+              <Route path="semester-schedule" element={<Pages.StudentSemesterSchedulePage />} />
+              <Route path="programs/:id" element={<Pages.StudentProgramDetailPage />} />
+              <Route path="programs" element={<Pages.MyProgramsPage />} />
+              <Route path="content" element={<Pages.ContentPage />} />
+              <Route path="sessions" element={<Pages.StudentSessionsPage />} />
+              <Route path="attendance" element={<Pages.StudentAttendancePage />} />
+              <Route path="assessments" element={<Pages.StudentAssessmentsPage />} />
+              <Route path="submissions" element={<Pages.StudentSubmissionsPage />} />
+              <Route path="grades" element={<Pages.StudentGradesPage />} />
+              <Route path="certificate" element={<Pages.CertificatePage />} />
+              <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>
         </Route>
@@ -331,16 +229,16 @@ export function AppRouter() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.UNIVERSITY_REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
-              <Route path="dashboard" element={<ReviewerDashboardPage />} />
-              <Route path="enrollment-requests" element={<ReviewerEnrollmentRequestsPage />} />
-              <Route path="recognition-requests/:id" element={<RecognitionRequestViewPage />} />
-              <Route path="recognition-requests" element={<ReviewerRecognitionRequestsPage />} />
-              <Route path="university-reports" element={<UniversityReportsPage />} />
-              <Route path="evidence" element={<EvidenceViewerPage />} />
-              <Route path="certificates/:id" element={<CertificateDetailPage />} />
-              <Route path="certificates" element={<CertificatesReviewPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="*" element={<ModulePlaceholderPage />} />
+              <Route path="dashboard" element={<Pages.ReviewerDashboardPage />} />
+              <Route path="enrollment-requests" element={<Pages.ReviewerEnrollmentRequestsPage />} />
+              <Route path="recognition-requests/:id" element={<Pages.RecognitionRequestViewPage />} />
+              <Route path="recognition-requests" element={<Pages.ReviewerRecognitionRequestsPage />} />
+              <Route path="university-reports" element={<Pages.UniversityReportsPage />} />
+              <Route path="evidence" element={<Pages.EvidenceViewerPage />} />
+              <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
+              <Route path="certificates" element={<Pages.CertificatesReviewPage />} />
+              <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>
         </Route>
@@ -348,5 +246,6 @@ export function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }

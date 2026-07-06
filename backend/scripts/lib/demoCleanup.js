@@ -9,6 +9,7 @@ const {
   DEMO_COURSE_SLUG_PREFIX,
   DEMO_FT_SLUG_PREFIX,
 } = require('./baselineCatalog');
+const { TEST_ACCOUNTS_MARKER } = require('./testAccountsCatalog');
 
 function log(msg) {
   // eslint-disable-next-line no-console
@@ -17,7 +18,12 @@ function log(msg) {
 
 async function findProtectedUniversityIds() {
   const rows = await prisma.universities.findMany({
-    where: { notes: { contains: REAL_BASELINE_MARKER } },
+    where: {
+      OR: [
+        { notes: { contains: REAL_BASELINE_MARKER } },
+        { notes: { contains: TEST_ACCOUNTS_MARKER } },
+      ],
+    },
     select: { id: true, name: true },
   });
   return rows;

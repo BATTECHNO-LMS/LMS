@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ClipboardList } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Calendar, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../../components/common/LoadingSpinner.jsx';
@@ -58,7 +59,7 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
 
   if (!tasks.length) {
     return (
-      <div className="ft-panel-locked">
+      <div className="ft-panel-locked ft-panel-locked--premium">
         <ClipboardList size={40} aria-hidden />
         <h3>{t('tasks.studentEmptyTitle')}</h3>
         <p>{t('tasks.studentEmptyDesc')}</p>
@@ -67,14 +68,14 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
   }
 
   return (
-    <div>
+    <div className="ft-student-task-list">
       {error ? (
-        <p className="form-field__error" role="alert" style={{ marginBottom: '0.75rem' }}>
+        <p className="ft-student-task-list__error" role="alert">
           {error}
         </p>
       ) : null}
       {downloadError ? (
-        <p className="form-field__error" role="alert" style={{ marginBottom: '0.75rem' }}>
+        <p className="ft-student-task-list__error" role="alert">
           {downloadError}
         </p>
       ) : null}
@@ -82,76 +83,86 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
         const submitted = Boolean(task.submission);
         const showUpload = !submitted || replacingId === task.id;
         return (
-          <article key={task.id} className="ft-task-card">
-            <header className="ft-task-card__head">
-              <div>
-                <h3 className="ft-task-card__title">
-                  {index + 1}. {task.title}
-                </h3>
-                {task.description ? <p className="crud-muted">{task.description}</p> : null}
+          <article key={task.id} className="ft-task-item ft-student-task-item">
+            <div className="ft-task-item__index" aria-hidden>
+              {index + 1}
+            </div>
+            <div className="ft-task-item__body">
+              <header className="ft-task-item__head">
+                <h3 className="ft-task-item__title">{task.title}</h3>
+                {submitted ? (
+                  <StatusBadge variant="success">{t('tasks.submitted')}</StatusBadge>
+                ) : (
+                  <StatusBadge variant="warning">{t('tasks.pending')}</StatusBadge>
+                )}
+              </header>
+              {task.description ? <p className="ft-task-item__desc">{task.description}</p> : null}
+              <div className="ft-task-item__meta">
                 {task.due_date ? (
-                  <p className="crud-muted">
+                  <span className="ft-task-item__badge">
+                    <Calendar size={14} aria-hidden />
                     {t('tasks.dueDate')}: {formatFtDate(task.due_date)}
-                  </p>
+                  </span>
                 ) : null}
               </div>
-              {submitted ? (
-                <StatusBadge variant="success">{t('tasks.submitted')}</StatusBadge>
-              ) : (
-                <StatusBadge variant="warning">{t('tasks.pending')}</StatusBadge>
-              )}
-            </header>
 
-            {submitted && replacingId !== task.id ? (
-              <div className="ft-task-card__submitted">
-                <span>
-                  {t('tasks.file')}: {task.submission.file_name}
-                </span>
-                {task.submission?.id ? (
+              {submitted && replacingId !== task.id ? (
+                <div className="ft-task-card__submitted ft-student-task-item__submitted">
+                  <span>
+                    {t('tasks.file')}: {task.submission.file_name}
+                  </span>
+                  {task.submission?.id ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      onClick={() => handleDownload(task.submission.id)}
+                    >
+                      {t('tasks.download')}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="outline"
                     className="btn--sm"
-                    onClick={() => handleDownload(task.submission.id)}
+                    onClick={() => {
+                      setReplacingId(task.id);
+                      setPendingFile((p) => ({ ...p, [task.id]: null }));
+                    }}
                   >
-                    {t('tasks.download')}
+                    {t('tasks.replaceFile')}
                   </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="btn--sm"
-                  onClick={() => {
-                    setReplacingId(task.id);
-                    setPendingFile((p) => ({ ...p, [task.id]: null }));
-                  }}
-                >
-                  {t('tasks.replaceFile')}
-                </Button>
-              </div>
-            ) : null}
+                </div>
+              ) : null}
 
-            {showUpload ? (
-              <div className="ft-task-card__upload">
-                <FileDropzone
-                  disabled={submitMut.isPending}
-                  hint={t('tasks.dropzoneHint')}
-                  meta={t('tasks.dropzoneMeta')}
-                  accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
-                  currentFileName={pendingFile[task.id]?.name ?? task.submission?.file_name}
-                  onFile={(file) => setPendingFile((p) => ({ ...p, [task.id]: file }))}
-                />
-                <Button
-                  type="button"
-                  variant="primary"
-                  className="btn--sm"
-                  disabled={!pendingFile[task.id] || submitMut.isPending}
-                  onClick={() => handleSubmit(task.id)}
-                >
-                  {submitMut.isPending ? t('tasks.uploading') : t('tasks.submit')}
+              {showUpload && task.requires_ai_self_evaluation ? (
+                <Button as={Link} to={`/student/field-training/${opportunityId}/tasks/${task.id}/self-evaluation`} variant="primary">
+                  {t('tasks.selfEvalLink')}
                 </Button>
-              </div>
-            ) : null}
+              ) : null}
+
+              {showUpload && !task.requires_ai_self_evaluation ? (
+                <div className="ft-task-card__upload ft-student-task-item__upload">
+                  <FileDropzone
+                    disabled={submitMut.isPending}
+                    hint={t('tasks.dropzoneHint')}
+                    meta={t('tasks.dropzoneMeta')}
+                    accept="image/jpeg,image/png,image/webp,image/gif,application/pdf"
+                    currentFileName={pendingFile[task.id]?.name ?? task.submission?.file_name}
+                    onFile={(file) => setPendingFile((p) => ({ ...p, [task.id]: file }))}
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    className="btn--sm"
+                    disabled={!pendingFile[task.id] || submitMut.isPending}
+                    onClick={() => handleSubmit(task.id)}
+                  >
+                    {submitMut.isPending ? t('tasks.uploading') : t('tasks.submit')}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
           </article>
         );
       })}

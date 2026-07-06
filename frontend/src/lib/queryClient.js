@@ -4,6 +4,7 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000,
+      gcTime: 5 * 60 * 1000,
       retry: (failureCount, error) => {
         const status = error?.response?.status ?? error?.status;
         if (status >= 400 && status < 500 && status !== 408 && status !== 429) {

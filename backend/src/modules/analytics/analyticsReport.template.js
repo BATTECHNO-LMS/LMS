@@ -157,6 +157,10 @@ const COPY = {
     ftApplications: 'الطلبات',
     ftTasks: 'المهام',
     ftSubmissions: 'تسليمات المهام',
+    ftSessions: 'الجلسات',
+    ftAttendanceRate: 'نسبة الحضور',
+    ftCompletionLetters: 'كتب الإنهاء',
+    ftExpelled: 'مستبعدون',
     ftByUniversity: 'التوزيع حسب الجامعة',
     noData: '—',
     adequate: 'مستقر',
@@ -230,6 +234,10 @@ const COPY = {
     ftApplications: 'Applications',
     ftTasks: 'Tasks',
     ftSubmissions: 'Task submissions',
+    ftSessions: 'Sessions',
+    ftAttendanceRate: 'Attendance rate',
+    ftCompletionLetters: 'Completion letters',
+    ftExpelled: 'Expelled',
     ftByUniversity: 'By university',
     noData: '—',
     adequate: 'Stable',
@@ -844,6 +852,10 @@ function buildAnalyticsReportHtml(ctx) {
             <div class="mini-card"><strong>${escapeHtml(String(ft.applications ?? 0))}</strong><span>${escapeHtml(copy.ftApplications)}</span></div>
             <div class="mini-card"><strong>${escapeHtml(String(ft.tasks ?? 0))}</strong><span>${escapeHtml(copy.ftTasks)}</span></div>
             <div class="mini-card"><strong>${escapeHtml(String(ft.taskSubmissions ?? 0))}</strong><span>${escapeHtml(copy.ftSubmissions)}</span></div>
+            <div class="mini-card"><strong>${escapeHtml(String(ft.sessionsCount ?? 0))}</strong><span>${escapeHtml(copy.ftSessions)}</span></div>
+            <div class="mini-card"><strong>${escapeHtml(ft.attendanceRate != null ? `${ft.attendanceRate}%` : '—')}</strong><span>${escapeHtml(copy.ftAttendanceRate)}</span></div>
+            <div class="mini-card"><strong>${escapeHtml(String(ft.completionLettersIssued ?? 0))}</strong><span>${escapeHtml(copy.ftCompletionLetters)}</span></div>
+            <div class="mini-card"><strong>${escapeHtml(String(ft.expelledStudents ?? 0))}</strong><span>${escapeHtml(copy.ftExpelled)}</span></div>
           </div>
           <h3 style="margin:0 0 6px;font-size:12px;color:var(--navy);">${escapeHtml(copy.ftByUniversity)}</h3>
           ${renderTable(

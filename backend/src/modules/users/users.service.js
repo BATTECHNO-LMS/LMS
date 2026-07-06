@@ -175,7 +175,7 @@ async function createUser(body, requester = {}) {
     await ensureUserLinkedToUniversityFromEmail(user.id, body.email);
   }
 
-  return getUserById(user.id);
+  return getUserById(user.id, requester);
 }
 
 async function updateUser(id, body, requester = {}) {
@@ -223,7 +223,7 @@ async function updateUser(id, body, requester = {}) {
     }
   });
 
-  return getUserById(id);
+  return getUserById(id, requester);
 }
 
 async function patchUserStatus(id, status, requester = {}) {
@@ -233,7 +233,7 @@ async function patchUserStatus(id, status, requester = {}) {
   }
   await assertUserAccessible(requester, existing);
   await usersRepository.updateUser(id, { status, updated_at: new Date() });
-  return getUserById(id);
+  return getUserById(id, requester);
 }
 
 async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
@@ -248,7 +248,7 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
     throw new ApiError(400, 'Suspended accounts cannot be activated via this endpoint');
   }
   if (existing.status === 'active') {
-    return getUserById(id);
+    return getUserById(id, requester);
   }
   if (!existing.email_verified_at) {
     throw new ApiError(400, 'لا يمكن تفعيل الحساب قبل توثيق البريد الإلكتروني.');
@@ -287,7 +287,7 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
     ipAddress,
   });
 
-  return getUserById(id);
+  return getUserById(id, requester);
 }
 
 async function activateAllPendingStudents({

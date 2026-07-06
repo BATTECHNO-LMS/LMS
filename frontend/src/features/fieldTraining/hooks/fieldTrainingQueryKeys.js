@@ -9,4 +9,6 @@ export const fieldTrainingKeys = {
   myApplications: () => [...fieldTrainingKeys.all, 'student', 'myApplications'],
   tasks: (opportunityId, scope = 'admin') => [...fieldTrainingKeys.all, scope, 'tasks', opportunityId],
   submissions: (opportunityId) => [...fieldTrainingKeys.all, 'admin', 'submissions', opportunityId],
+  sessions: (opportunityId) => [...fieldTrainingKeys.all, 'sessions', opportunityId],
+  instructors: () => [...fieldTrainingKeys.all, 'instructors'],
 };

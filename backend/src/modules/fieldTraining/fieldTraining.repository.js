@@ -16,6 +16,22 @@ function formatDateOnly(d) {
   return dt.toISOString().slice(0, 10);
 }
 
+const opportunityListInclude = {
+  _count: { select: { field_training_applications: true } },
+  universities: {
+    select: { id: true, name: true },
+  },
+  specialties: {
+    select: {
+      id: true,
+      name_ar: true,
+      name_en: true,
+      code: true,
+      status: true,
+    },
+  },
+};
+
 const opportunityInclude = {
   _count: { select: { field_training_applications: true } },
   universities: {
@@ -51,6 +67,11 @@ function mapSpecialtySummary(specialty) {
   };
 }
 
+function formatSpecialtyLabel(specialty, fallback = 'غير محدد') {
+  if (!specialty) return fallback;
+  return specialty.name_ar || specialty.name_en || fallback;
+}
+
 function mapUniversitySummary(university) {
   if (!university) return null;
   return {
@@ -58,6 +79,35 @@ function mapUniversitySummary(university) {
     name: university.name,
     logoUrl: null,
     domains: (university.university_email_domains ?? []).map((d) => d.domain),
+  };
+}
+
+function mapApplicationRow(row) {
+  return {
+    id: row.id,
+    opportunity_id: row.opportunity_id,
+    student_id: row.student_id,
+    status: row.status,
+    training_status: row.training_status ?? 'none',
+    student_message: row.student_message,
+    admin_note: row.admin_note,
+    reviewed_by_id: row.reviewed_by_id,
+    reviewed_at: row.reviewed_at,
+    training_started_at: row.training_started_at ?? null,
+    pre_assessment_score: row.pre_assessment_score != null ? Number(row.pre_assessment_score) : null,
+    pre_assessment_level: row.pre_assessment_level ?? null,
+    post_assessment_score: row.post_assessment_score != null ? Number(row.post_assessment_score) : null,
+    attendance_percentage:
+      row.attendance_percentage != null ? Number(row.attendance_percentage) : null,
+    final_task_status: row.final_task_status ?? 'not_required',
+    completion_eligibility_status: row.completion_eligibility_status ?? 'pending',
+    eligibility_reason: row.eligibility_reason ?? null,
+    expelled_at: row.expelled_at ?? null,
+    expelled_by_id: row.expelled_by_id ?? null,
+    expulsion_reason: row.expulsion_reason ?? null,
+    completion_letter_issued_at: row.completion_letter_issued_at ?? null,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
@@ -70,6 +120,7 @@ function mapOpportunityRow(row, { applicationsCount } = {}) {
     university: mapUniversitySummary(row.universities),
     specialty_id: row.specialty_id ?? null,
     specialty: mapSpecialtySummary(row.specialties),
+    assigned_instructor_id: row.assigned_instructor_id ?? null,
     organization_name: row.organization_name,
     location: row.location,
     training_mode: row.training_mode,
@@ -81,27 +132,20 @@ function mapOpportunityRow(row, { applicationsCount } = {}) {
     start_date: formatDateOnly(row.start_date),
     end_date: formatDateOnly(row.end_date),
     application_deadline: formatDateOnly(row.application_deadline),
+    requires_pre_assessment: row.requires_pre_assessment ?? true,
+    requires_post_assessment: row.requires_post_assessment ?? true,
+    requires_final_task: row.requires_final_task ?? true,
+    minimum_attendance_percentage: row.minimum_attendance_percentage ?? null,
+    minimum_post_assessment_score:
+      row.minimum_post_assessment_score != null ? Number(row.minimum_post_assessment_score) : null,
+    completion_rules: row.completion_rules ?? null,
     status: row.status,
+    training_started_at: row.training_started_at ?? null,
     created_by_id: row.created_by_id,
     published_at: row.published_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
     applications_count: applicationsCount ?? row._count?.field_training_applications ?? 0,
-  };
-}
-
-function mapApplicationRow(row) {
-  return {
-    id: row.id,
-    opportunity_id: row.opportunity_id,
-    student_id: row.student_id,
-    status: row.status,
-    student_message: row.student_message,
-    admin_note: row.admin_note,
-    reviewed_by_id: row.reviewed_by_id,
-    reviewed_at: row.reviewed_at,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
   };
 }
 
@@ -112,7 +156,7 @@ async function findManyAdmin({ where, skip, take }) {
       skip,
       take,
       orderBy: { updated_at: 'desc' },
-      include: opportunityInclude,
+      include: opportunityListInclude,
     }),
     prisma.field_training_opportunities.count({ where }),
   ]);
@@ -131,16 +175,16 @@ async function findById(id) {
 
 async function findPublishedById(id) {
   return prisma.field_training_opportunities.findFirst({
-    where: { id, status: 'published' },
+    where: { id, status: { in: ['published', 'in_progress'] } },
     include: opportunityInclude,
   });
 }
 
 async function findPublishedMany({ where }) {
   return prisma.field_training_opportunities.findMany({
-    where: { ...where, status: 'published' },
+    where: { ...where, status: { in: ['published', 'in_progress'] } },
     orderBy: { published_at: 'desc' },
-    include: opportunityInclude,
+    include: opportunityListInclude,
   });
 }
 
@@ -275,6 +319,9 @@ function mapTaskRow(row) {
     description: row.description,
     sort_order: row.sort_order,
     due_date: formatDateOnly(row.due_date),
+    ai_self_evaluation_prompt: row.ai_self_evaluation_prompt ?? null,
+    requires_ai_self_evaluation: Boolean(row.requires_ai_self_evaluation),
+    is_final_task: Boolean(row.is_final_task),
     created_at: row.created_at,
     updated_at: row.updated_at,
     submission: row.field_training_task_submissions?.[0]
@@ -283,9 +330,9 @@ function mapTaskRow(row) {
   };
 }
 
-function mapSubmissionRow(row, { exposePublicUrl = false } = {}) {
+function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false } = {}) {
   const stored = row.file_path;
-  return {
+  const base = {
     id: row.id,
     task_id: row.task_id,
     application_id: row.application_id,
@@ -295,9 +342,28 @@ function mapSubmissionRow(row, { exposePublicUrl = false } = {}) {
     file_name: row.file_name,
     mime_type: row.mime_type,
     submitted_at: row.submitted_at,
+    is_late: Boolean(row.is_late),
+    review_status: row.review_status ?? 'pending',
+    instructor_feedback: row.instructor_feedback ?? null,
+    reviewed_by_id: row.reviewed_by_id ?? null,
+    reviewed_at: row.reviewed_at ?? null,
+    final_student_notes: row.final_student_notes ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+  if (exposeAiAudit) {
+    base.student_self_evaluation_input = row.student_self_evaluation_input ?? null;
+    base.ai_prompt_used = row.ai_prompt_used ?? null;
+    base.ai_model_provider = row.ai_model_provider ?? null;
+    base.ai_model_name = row.ai_model_name ?? null;
+    base.ai_raw_response = row.ai_raw_response ?? null;
+    base.ai_response_inserted_text = row.ai_response_inserted_text ?? null;
+  } else {
+    base.has_ai_self_evaluation = Boolean(
+      row.student_self_evaluation_input || row.ai_response_inserted_text
+    );
+  }
+  return base;
 }
 
 async function findTasksByOpportunity(opportunityId, { applicationId } = {}) {
@@ -319,7 +385,17 @@ async function findTasksByOpportunity(opportunityId, { applicationId } = {}) {
 async function findTaskById(taskId) {
   return prisma.field_training_tasks.findUnique({
     where: { id: taskId },
-    include: { field_training_opportunities: { select: { id: true, status: true, title: true } } },
+    include: {
+      field_training_opportunities: {
+        select: {
+          id: true,
+          status: true,
+          title: true,
+          university_id: true,
+          assigned_instructor_id: true,
+        },
+      },
+    },
   });
 }
 
@@ -558,8 +634,15 @@ async function findSubmissionById(submissionId) {
           id: true,
           title: true,
           opportunity_id: true,
+          is_final_task: true,
           field_training_opportunities: {
-            select: { id: true, title: true, university_id: true, status: true },
+            select: {
+              id: true,
+              title: true,
+              university_id: true,
+              status: true,
+              assigned_instructor_id: true,
+            },
           },
         },
       },
@@ -580,6 +663,346 @@ function resolveSubmissionAbsolutePath(relativePath) {
   return abs;
 }
 
+function mapSessionRow(row) {
+  return {
+    id: row.id,
+    opportunity_id: row.opportunity_id,
+    title: row.title,
+    description: row.description,
+    session_date: formatDateOnly(row.session_date),
+    start_time: row.start_time,
+    end_time: row.end_time,
+    zoom_link: row.zoom_link,
+    is_required: Boolean(row.is_required),
+    created_by_id: row.created_by_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    attendance: row.field_training_attendance?.[0]
+      ? mapAttendanceRow(row.field_training_attendance[0])
+      : null,
+  };
+}
+
+function mapAttendanceRow(row) {
+  return {
+    id: row.id,
+    session_id: row.session_id,
+    application_id: row.application_id,
+    student_id: row.student_id,
+    status: row.status,
+    note: row.note,
+    recorded_by_id: row.recorded_by_id,
+    recorded_at: row.recorded_at,
+  };
+}
+
+function mapAssessmentRow(row, { includeQuestions = false } = {}) {
+  const base = {
+    id: row.id,
+    opportunity_id: row.opportunity_id,
+    type: row.type,
+    title: row.title,
+    description: row.description,
+    passing_score: row.passing_score != null ? Number(row.passing_score) : null,
+    status: row.status,
+    created_by_id: row.created_by_id,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  };
+  if (includeQuestions && row.field_training_assessment_questions) {
+    base.questions = row.field_training_assessment_questions.map(mapAssessmentQuestionRow);
+  }
+  return base;
+}
+
+function mapAssessmentQuestionRow(row) {
+  return {
+    id: row.id,
+    assessment_id: row.assessment_id,
+    question_text: row.question_text,
+    question_type: row.question_type,
+    options: row.options,
+    points: row.points != null ? Number(row.points) : 1,
+    sort_order: row.sort_order,
+  };
+}
+
+function mapAssessmentQuestionRowAdmin(row) {
+  return {
+    ...mapAssessmentQuestionRow(row),
+    correct_answer: row.correct_answer,
+  };
+}
+
+async function findSessionsByOpportunity(opportunityId, { applicationId } = {}) {
+  const rows = await prisma.field_training_sessions.findMany({
+    where: { opportunity_id: opportunityId },
+    orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
+    include: applicationId
+      ? {
+          field_training_attendance: {
+            where: { application_id: applicationId },
+            take: 1,
+          },
+        }
+      : undefined,
+  });
+  return rows.map((r) => mapSessionRow(r));
+}
+
+async function findSessionById(sessionId) {
+  return prisma.field_training_sessions.findUnique({
+    where: { id: sessionId },
+    include: {
+      field_training_opportunities: { select: { id: true, assigned_instructor_id: true, university_id: true } },
+      _count: { select: { field_training_attendance: true } },
+    },
+  });
+}
+
+async function createSession(data) {
+  return prisma.field_training_sessions.create({ data });
+}
+
+async function updateSession(id, data) {
+  return prisma.field_training_sessions.update({ where: { id }, data });
+}
+
+async function deleteSession(id) {
+  return prisma.field_training_sessions.delete({ where: { id } });
+}
+
+async function upsertAttendanceRecords(sessionId, records, recordedById) {
+  const now = new Date();
+  const results = [];
+  for (const rec of records) {
+    const row = await prisma.field_training_attendance.upsert({
+      where: {
+        session_id_application_id: {
+          session_id: sessionId,
+          application_id: rec.applicationId,
+        },
+      },
+      create: {
+        session_id: sessionId,
+        application_id: rec.applicationId,
+        student_id: rec.studentId,
+        status: rec.status,
+        note: rec.note ?? null,
+        recorded_by_id: recordedById,
+        recorded_at: now,
+      },
+      update: {
+        status: rec.status,
+        note: rec.note ?? null,
+        recorded_by_id: recordedById,
+        recorded_at: now,
+      },
+    });
+    results.push(row);
+  }
+  return results;
+}
+
+async function findAssessmentByOpportunityAndType(opportunityId, type) {
+  return prisma.field_training_assessments.findUnique({
+    where: { opportunity_id_type: { opportunity_id: opportunityId, type } },
+    include: {
+      field_training_assessment_questions: { orderBy: { sort_order: 'asc' } },
+    },
+  });
+}
+
+async function findAssessmentById(id) {
+  return prisma.field_training_assessments.findUnique({
+    where: { id },
+    include: {
+      field_training_assessment_questions: { orderBy: { sort_order: 'asc' } },
+      field_training_opportunities: {
+        select: { id: true, assigned_instructor_id: true, university_id: true, requires_pre_assessment: true, requires_post_assessment: true },
+      },
+    },
+  });
+}
+
+async function upsertAssessment(data) {
+  return prisma.field_training_assessments.upsert({
+    where: { opportunity_id_type: { opportunity_id: data.opportunity_id, type: data.type } },
+    create: data,
+    update: {
+      title: data.title,
+      description: data.description,
+      passing_score: data.passing_score,
+      status: data.status,
+    },
+  });
+}
+
+async function replaceAssessmentQuestions(assessmentId, questions) {
+  await prisma.field_training_assessment_questions.deleteMany({ where: { assessment_id: assessmentId } });
+  if (!questions.length) return [];
+  await prisma.field_training_assessment_questions.createMany({
+    data: questions.map((q, i) => ({
+      assessment_id: assessmentId,
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.options ?? null,
+      correct_answer: q.correct_answer ?? null,
+      points: q.points ?? 1,
+      sort_order: q.sort_order ?? i,
+    })),
+  });
+  return prisma.field_training_assessment_questions.findMany({
+    where: { assessment_id: assessmentId },
+    orderBy: { sort_order: 'asc' },
+  });
+}
+
+async function findAssessmentAttempt(assessmentId, applicationId) {
+  return prisma.field_training_assessment_attempts.findUnique({
+    where: { assessment_id_application_id: { assessment_id: assessmentId, application_id: applicationId } },
+  });
+}
+
+async function upsertAssessmentAttempt(data) {
+  return prisma.field_training_assessment_attempts.upsert({
+    where: {
+      assessment_id_application_id: {
+        assessment_id: data.assessment_id,
+        application_id: data.application_id,
+      },
+    },
+    create: data,
+    update: {
+      answers: data.answers,
+      score: data.score,
+      max_score: data.max_score,
+      level: data.level,
+      submitted_at: data.submitted_at,
+    },
+  });
+}
+
+async function findActiveParticipants(opportunityId) {
+  return prisma.field_training_applications.findMany({
+    where: {
+      opportunity_id: opportunityId,
+      status: 'approved',
+      training_status: { not: 'expelled' },
+      expelled_at: null,
+    },
+  });
+}
+
+async function countApprovedReadyForTraining(opportunityId) {
+  return prisma.field_training_applications.count({
+    where: {
+      opportunity_id: opportunityId,
+      status: 'approved',
+      training_status: {
+        in: ['pre_assessment_completed', 'ready_for_training', 'in_training'],
+      },
+      expelled_at: null,
+    },
+  });
+}
+
+async function upsertSubmissionExtended({
+  taskId,
+  applicationId,
+  studentId,
+  filePath,
+  fileName,
+  mimeType,
+  extra = {},
+}) {
+  const relative = filePath.replace(/\\/g, '/');
+  return prisma.field_training_task_submissions.upsert({
+    where: {
+      task_id_application_id: { task_id: taskId, application_id: applicationId },
+    },
+    create: {
+      task_id: taskId,
+      application_id: applicationId,
+      student_id: studentId,
+      file_path: relative,
+      file_name: fileName,
+      mime_type: mimeType,
+      ...extra,
+    },
+    update: {
+      file_path: relative,
+      file_name: fileName,
+      mime_type: mimeType,
+      submitted_at: new Date(),
+      ...extra,
+    },
+  });
+}
+
+async function findCompletionLetterByApplication(applicationId) {
+  return prisma.field_training_completion_letters.findFirst({
+    where: { application_id: applicationId, status: 'issued' },
+  });
+}
+
+async function createCompletionLetter(data) {
+  return prisma.field_training_completion_letters.create({ data });
+}
+
+async function findInstructorsForSelect() {
+  const instructorRole = await prisma.roles.findFirst({ where: { code: 'instructor' } });
+  if (!instructorRole) return [];
+  const links = await prisma.user_roles.findMany({
+    where: { role_id: instructorRole.id },
+    select: { user_id: true },
+  });
+  const ids = [...new Set(links.map((l) => l.user_id))];
+  if (!ids.length) return [];
+  return prisma.users.findMany({
+    where: { id: { in: ids }, status: 'active' },
+    select: { id: true, full_name: true, email: true },
+    orderBy: { full_name: 'asc' },
+  });
+}
+
+async function findAssessmentsByOpportunity(opportunityId) {
+  const rows = await prisma.field_training_assessments.findMany({
+    where: { opportunity_id: opportunityId },
+    orderBy: { type: 'asc' },
+    include: {
+      _count: { select: { field_training_assessment_questions: true, field_training_assessment_attempts: true } },
+    },
+  });
+  return rows.map((r) => ({
+    ...mapAssessmentRow(r),
+    questions_count: r._count?.field_training_assessment_questions ?? 0,
+    attempts_count: r._count?.field_training_assessment_attempts ?? 0,
+  }));
+}
+
+async function findCompletionLetterById(id) {
+  return prisma.field_training_completion_letters.findUnique({ where: { id } });
+}
+
+async function findCompletionLetterByApplicationForStudent(applicationId, studentId) {
+  return prisma.field_training_completion_letters.findFirst({
+    where: { application_id: applicationId, student_id: studentId, status: 'issued' },
+  });
+}
+
+async function updateSubmissionReview(submissionId, { review_status, instructor_feedback, reviewed_by_id }) {
+  return prisma.field_training_task_submissions.update({
+    where: { id: submissionId },
+    data: {
+      review_status,
+      instructor_feedback: instructor_feedback ?? null,
+      reviewed_by_id,
+      reviewed_at: new Date(),
+    },
+  });
+}
+
 function submissionFileExists(relativePath) {
   try {
     const abs = resolveSubmissionAbsolutePath(relativePath);
@@ -593,6 +1016,7 @@ module.exports = {
   toDateOnly,
   mapUniversitySummary,
   mapSpecialtySummary,
+  formatSpecialtyLabel,
   mapOpportunityRow,
   mapApplicationRow,
   findManyAdmin,
@@ -625,6 +1049,33 @@ module.exports = {
   buildRelativeFilePath,
   getAdminAggregateStats,
   findSubmissionById,
+  updateSubmissionReview,
   resolveSubmissionAbsolutePath,
   submissionFileExists,
+  mapSessionRow,
+  mapAttendanceRow,
+  mapAssessmentRow,
+  mapAssessmentQuestionRow,
+  mapAssessmentQuestionRowAdmin,
+  findSessionsByOpportunity,
+  findSessionById,
+  createSession,
+  updateSession,
+  deleteSession,
+  upsertAttendanceRecords,
+  findAssessmentByOpportunityAndType,
+  findAssessmentById,
+  upsertAssessment,
+  replaceAssessmentQuestions,
+  findAssessmentAttempt,
+  upsertAssessmentAttempt,
+  findActiveParticipants,
+  countApprovedReadyForTraining,
+  upsertSubmissionExtended,
+  findCompletionLetterByApplication,
+  createCompletionLetter,
+  findInstructorsForSelect,
+  findAssessmentsByOpportunity,
+  findCompletionLetterById,
+  findCompletionLetterByApplicationForStudent,
 };

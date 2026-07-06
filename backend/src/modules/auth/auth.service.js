@@ -172,7 +172,7 @@ async function login(validated) {
 }
 
 async function me(userId) {
-  const user = await authRepository.findUserById(userId);
+  const user = await authRepository.findUserProfileById(userId);
   if (!user) {
     throw new ApiError(401, 'Unauthorized');
   }

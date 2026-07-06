@@ -674,69 +674,174 @@ async function getUniversitiesReportRows(filters) {
 async function getFieldTrainingAnalytics(filters) {
   const universityWhere = filters.university_id ? { university_id: filters.university_id } : {};
   const dateWhere = inDateRange('created_at', filters);
+  const appScope = {
+    ...dateWhere,
+    ...(filters.university_id
+      ? { field_training_opportunities: { university_id: filters.university_id } }
+      : {}),
+  };
+  const submissionScope = filters.university_id
+    ? {
+        field_training_applications: {
+          field_training_opportunities: { university_id: filters.university_id },
+        },
+      }
+    : {};
 
   try {
-    const [totalOpportunities, published, draft, archived, applications, tasks, taskSubmissions, byUniversityRows, byModeRows, appStatusRows] =
-      await Promise.all([
-        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere } }),
-        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'published' } }),
-        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'draft' } }),
-        prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'archived' } }),
-        prisma.field_training_applications.count({
-          where: {
-            ...dateWhere,
-            ...(filters.university_id
-              ? { field_training_opportunities: { university_id: filters.university_id } }
-              : {}),
-          },
-        }),
-        prisma.field_training_tasks.count({
-          where: {
-            ...dateWhere,
-            ...(filters.university_id
-              ? { field_training_opportunities: { university_id: filters.university_id } }
-              : {}),
-          },
-        }),
-        prisma.field_training_task_submissions.count({
-          where: {
-            ...inDateRange('submitted_at', filters),
-            ...(filters.university_id
-              ? {
-                  field_training_applications: {
-                    field_training_opportunities: { university_id: filters.university_id },
-                  },
-                }
-              : {}),
-          },
-        }),
-        prisma.field_training_opportunities.groupBy({
-          by: ['university_id'],
-          where: { ...universityWhere, ...dateWhere, university_id: { not: null } },
-          _count: { _all: true },
-        }),
-        prisma.field_training_opportunities.groupBy({
-          by: ['training_mode'],
-          where: { ...universityWhere, ...dateWhere },
-          _count: { _all: true },
-        }),
-        prisma.field_training_applications.groupBy({
-          by: ['status'],
-          where: {
-            ...dateWhere,
-            ...(filters.university_id
-              ? { field_training_opportunities: { university_id: filters.university_id } }
-              : {}),
-          },
-          _count: { _all: true },
-        }),
-      ]);
+    const [
+      totalOpportunities,
+      published,
+      draft,
+      archived,
+      inProgress,
+      applications,
+      tasks,
+      taskSubmissions,
+      byUniversityRows,
+      byModeRows,
+      bySpecialtyRows,
+      appStatusRows,
+      trainingStatusRows,
+      eligibilityRows,
+      sessionsCount,
+      attendanceAgg,
+      absentCount,
+      preAssessmentAgg,
+      postAssessmentAgg,
+      completionLetters,
+      expelledStudents,
+      approvedParticipants,
+    ] = await Promise.all([
+      prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere } }),
+      prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'published' } }),
+      prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'draft' } }),
+      prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'archived' } }),
+      prisma.field_training_opportunities.count({ where: { ...universityWhere, ...dateWhere, status: 'in_progress' } }),
+      prisma.field_training_applications.count({ where: appScope }),
+      prisma.field_training_tasks.count({
+        where: {
+          ...dateWhere,
+          ...(filters.university_id
+            ? { field_training_opportunities: { university_id: filters.university_id } }
+            : {}),
+        },
+      }),
+      prisma.field_training_task_submissions.count({
+        where: {
+          ...inDateRange('submitted_at', filters),
+          ...submissionScope,
+        },
+      }),
+      prisma.field_training_opportunities.groupBy({
+        by: ['university_id'],
+        where: { ...universityWhere, ...dateWhere, university_id: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.field_training_opportunities.groupBy({
+        by: ['training_mode'],
+        where: { ...universityWhere, ...dateWhere },
+        _count: { _all: true },
+      }),
+      prisma.field_training_opportunities.groupBy({
+        by: ['specialty_id'],
+        where: { ...universityWhere, ...dateWhere, specialty_id: { not: null } },
+        _count: { _all: true },
+      }),
+      prisma.field_training_applications.groupBy({
+        by: ['status'],
+        where: appScope,
+        _count: { _all: true },
+      }),
+      prisma.field_training_applications.groupBy({
+        by: ['training_status'],
+        where: { ...appScope, status: 'approved' },
+        _count: { _all: true },
+      }),
+      prisma.field_training_applications.groupBy({
+        by: ['completion_eligibility_status'],
+        where: { ...appScope, status: 'approved' },
+        _count: { _all: true },
+      }),
+      prisma.field_training_sessions.count({
+        where: {
+          ...inDateRange('created_at', filters),
+          ...(filters.university_id
+            ? { field_training_opportunities: { university_id: filters.university_id } }
+            : {}),
+        },
+      }),
+      prisma.field_training_attendance.groupBy({
+        by: ['status'],
+        where: {
+          ...inDateRange('created_at', filters),
+          ...(filters.university_id
+            ? {
+                field_training_sessions: {
+                  field_training_opportunities: { university_id: filters.university_id },
+                },
+              }
+            : {}),
+        },
+        _count: { _all: true },
+      }),
+      prisma.field_training_attendance.count({
+        where: {
+          status: 'absent',
+          ...inDateRange('created_at', filters),
+          ...(filters.university_id
+            ? {
+                field_training_sessions: {
+                  field_training_opportunities: { university_id: filters.university_id },
+                },
+              }
+            : {}),
+        },
+      }),
+      prisma.field_training_applications.aggregate({
+        where: { ...appScope, status: 'approved', pre_assessment_score: { not: null } },
+        _count: { _all: true },
+        _avg: { pre_assessment_score: true },
+      }),
+      prisma.field_training_applications.aggregate({
+        where: { ...appScope, status: 'approved', post_assessment_score: { not: null } },
+        _count: { _all: true },
+        _avg: { post_assessment_score: true },
+      }),
+      prisma.field_training_completion_letters.count({
+        where: {
+          status: 'issued',
+          ...inDateRange('issued_at', filters),
+          ...(filters.university_id
+            ? { field_training_opportunities: { university_id: filters.university_id } }
+            : {}),
+        },
+      }),
+      prisma.field_training_applications.count({
+        where: { ...appScope, training_status: 'expelled' },
+      }),
+      prisma.field_training_applications.count({
+        where: { ...appScope, status: 'approved', expelled_at: null },
+      }),
+    ]);
 
     const uniIds = byUniversityRows.map((r) => r.university_id).filter(Boolean);
-    const universities = uniIds.length
-      ? await prisma.universities.findMany({ where: { id: { in: uniIds } }, select: { id: true, name: true } })
-      : [];
+    const specialtyIds = bySpecialtyRows.map((r) => r.specialty_id).filter(Boolean);
+    const [universities, specialties] = await Promise.all([
+      uniIds.length
+        ? prisma.universities.findMany({ where: { id: { in: uniIds } }, select: { id: true, name: true } })
+        : [],
+      specialtyIds.length
+        ? prisma.specialties.findMany({
+            where: { id: { in: specialtyIds } },
+            select: { id: true, name_ar: true, name_en: true },
+          })
+        : [],
+    ]);
     const uniName = new Map(universities.map((u) => [u.id, u.name]));
+    const specialtyName = new Map(
+      specialties.map((s) => [s.id, s.name_ar || s.name_en || s.id])
+    );
 
     const byUniversity = [];
     for (const row of byUniversityRows) {
@@ -755,22 +860,101 @@ async function getFieldTrainingAnalytics(filters) {
       });
     }
 
+    const attendanceByStatus = Object.fromEntries(
+      attendanceAgg.map((r) => [r.status, r._count._all])
+    );
+    const attended =
+      (attendanceByStatus.present || 0) +
+      (attendanceByStatus.late || 0) +
+      (attendanceByStatus.excused || 0);
+    const totalAttendanceRecords = attendanceAgg.reduce((sum, r) => sum + r._count._all, 0);
+    const attendanceRate =
+      totalAttendanceRecords > 0 ? Math.round((attended / totalAttendanceRecords) * 1000) / 10 : null;
+
+    const preCompleted = preAssessmentAgg._count._all;
+    const postCompleted = postAssessmentAgg._count._all;
+    const requiresPreCount = await prisma.field_training_applications.count({
+      where: {
+        ...appScope,
+        status: 'approved',
+        field_training_opportunities: {
+          ...(filters.university_id ? { university_id: filters.university_id } : {}),
+          requires_pre_assessment: true,
+        },
+      },
+    });
+    const requiresPostCount = await prisma.field_training_applications.count({
+      where: {
+        ...appScope,
+        status: 'approved',
+        field_training_opportunities: {
+          ...(filters.university_id ? { university_id: filters.university_id } : {}),
+          requires_post_assessment: true,
+        },
+      },
+    });
+
+    const eligibilityMap = Object.fromEntries(
+      eligibilityRows.map((r) => [r.completion_eligibility_status || 'unknown', r._count._all])
+    );
+
     return {
       available: true,
       totalOpportunities,
       published,
       draft,
       archived,
+      inProgress,
       applications,
       tasks,
       taskSubmissions,
+      sessionsCount,
+      attendanceRate,
+      absentStudents: absentCount,
+      expelledStudents,
+      completionLettersIssued: completionLetters,
+      approvedParticipants,
+      preAssessmentCompleted: preCompleted,
+      preAssessmentCompletionRate:
+        requiresPreCount > 0 ? Math.round((preCompleted / requiresPreCount) * 1000) / 10 : null,
+      averagePreAssessmentScore:
+        preAssessmentAgg._avg.pre_assessment_score != null
+          ? Math.round(Number(preAssessmentAgg._avg.pre_assessment_score) * 10) / 10
+          : null,
+      postAssessmentCompleted: postCompleted,
+      postAssessmentCompletionRate:
+        requiresPostCount > 0 ? Math.round((postCompleted / requiresPostCount) * 1000) / 10 : null,
+      averagePostAssessmentScore:
+        postAssessmentAgg._avg.post_assessment_score != null
+          ? Math.round(Number(postAssessmentAgg._avg.post_assessment_score) * 10) / 10
+          : null,
+      taskSubmissionRate:
+        approvedParticipants > 0
+          ? Math.round((taskSubmissions / approvedParticipants) * 1000) / 10
+          : null,
+      eligibleParticipants: eligibilityMap.eligible || 0,
+      ineligibleParticipants: eligibilityMap.ineligible || 0,
+      needsReviewParticipants: eligibilityMap.needs_review || 0,
       byUniversity,
       byTrainingMode: byModeRows.map((r) => ({
         training_mode: r.training_mode,
         count: r._count._all,
       })),
+      opportunitiesBySpecialty: bySpecialtyRows.map((r) => ({
+        specialty_id: r.specialty_id,
+        name: specialtyName.get(r.specialty_id) || r.specialty_id,
+        count: r._count._all,
+      })),
       applicationsByStatus: appStatusRows.map((r) => ({
         status: r.status,
+        count: r._count._all,
+      })),
+      participantsByTrainingStatus: trainingStatusRows.map((r) => ({
+        training_status: r.training_status,
+        count: r._count._all,
+      })),
+      eligibilityBreakdown: eligibilityRows.map((r) => ({
+        status: r.completion_eligibility_status,
         count: r._count._all,
       })),
     };

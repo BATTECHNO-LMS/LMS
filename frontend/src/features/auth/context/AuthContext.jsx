@@ -84,6 +84,11 @@ export function AuthProvider({ children }) {
 
   const bootstrap = useCallback(async () => {
     const token = getStorageItem(storageKeys.authToken);
+    const cached = getStorageItem(storageKeys.authUser);
+    if (token && cached) {
+      const normalizedCached = normalizeUser(cached);
+      if (normalizedCached) setUser(normalizedCached);
+    }
     if (!token) {
       setUser(null);
       setIsAuthReady(true);

@@ -14,6 +14,7 @@ export function useUniversities(options = {}) {
   return useQuery({
     queryKey: universitiesKeys.list(),
     queryFn: fetchUniversitiesList,
+    staleTime: 5 * 60 * 1000,
     ...options,
   });
 }

@@ -60,7 +60,18 @@ async function start() {
       process.exit(1);
       return;
     }
-    throw err;
+    // eslint-disable-next-line no-console
+    console.error('HTTP server error:', err);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    // eslint-disable-next-line no-console
+    console.error('Unhandled promise rejection:', reason);
+  });
+
+  process.on('uncaughtException', (err) => {
+    // eslint-disable-next-line no-console
+    console.error('Uncaught exception:', err);
   });
 }
 

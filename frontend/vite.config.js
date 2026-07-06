@@ -14,9 +14,28 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:4000',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:4001',
         changeOrigin: true,
       },
     },
+  },
+  build: {
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('recharts')) return 'recharts';
+          if (id.includes('lucide-react')) return 'lucide';
+          if (id.includes('@tanstack')) return 'tanstack-query';
+          if (id.includes('react-router')) return 'react-router';
+          if (id.includes('i18next') || id.includes('react-i18next')) return 'i18n';
+          if (id.includes('react-dom') || /[/\\]react[/\\]/.test(id)) return 'react-vendor';
+        },
+      },
+    },
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
   },
 });

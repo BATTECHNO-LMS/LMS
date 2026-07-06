@@ -10,9 +10,12 @@ const {
   requireStudentSpecialtyId,
   scopeAdminListQuery,
   assertAdminOpportunityAccess,
+  assertManageOpportunityAccess,
+  manageOpportunityListWhere,
 } = require('./fieldTraining.access');
 const ftNotify = require('./fieldTraining.notifications');
 const repo = require('./fieldTraining.repository');
+const workflow = require('./fieldTraining.workflow');
 const { assertActiveSpecialty } = require('../specialties/specialties.service');
 const { prisma } = require('../../config/db');
 
@@ -57,15 +60,42 @@ function buildStudentWhere(query, studentSpecialtyId) {
   return { AND: and };
 }
 
+async function assertActiveInstructorUser(userId) {
+  if (!userId) return null;
+  const user = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { id: true, status: true },
+  });
+  if (!user || user.status !== 'active') {
+    throw new ApiError(400, 'المدرب المحدد غير متاح', null, 'FIELD_TRAINING_INVALID_INSTRUCTOR');
+  }
+  const instructorRole = await prisma.roles.findFirst({ where: { code: 'instructor' } });
+  if (!instructorRole) {
+    throw new ApiError(400, 'المستخدم المحدد ليس مدربًا', null, 'FIELD_TRAINING_INVALID_INSTRUCTOR');
+  }
+  const link = await prisma.user_roles.findFirst({
+    where: { user_id: userId, role_id: instructorRole.id },
+    select: { id: true },
+  });
+  if (!link) {
+    throw new ApiError(400, 'المستخدم المحدد ليس مدربًا', null, 'FIELD_TRAINING_INVALID_INSTRUCTOR');
+  }
+  return userId;
+}
+
 async function mapBodyToCreateData(body) {
   const specialty = await assertActiveSpecialty(body.specialty_id, {
     requiredMessage: 'يرجى اختيار التخصص المرتبط بفرصة التدريب.',
     invalidMessage: 'التخصص المحدد غير متاح.',
   });
+  const assignedInstructorId = body.assigned_instructor_id
+    ? await assertActiveInstructorUser(body.assigned_instructor_id)
+    : null;
   return {
     title: body.title.trim(),
     specialty_id: specialty.id,
     university_id: null,
+    assigned_instructor_id: assignedInstructorId,
     organization_name: body.organization_name?.trim() || null,
     location: body.location.trim(),
     training_mode: body.training_mode,
@@ -77,6 +107,12 @@ async function mapBodyToCreateData(body) {
     start_date: repo.toDateOnly(body.start_date),
     end_date: repo.toDateOnly(body.end_date),
     application_deadline: repo.toDateOnly(body.application_deadline),
+    requires_pre_assessment: body.requires_pre_assessment ?? true,
+    requires_post_assessment: body.requires_post_assessment ?? true,
+    requires_final_task: body.requires_final_task ?? true,
+    minimum_attendance_percentage: body.minimum_attendance_percentage ?? null,
+    minimum_post_assessment_score: body.minimum_post_assessment_score ?? null,
+    completion_rules: body.completion_rules ?? null,
     status: 'draft',
   };
 }
@@ -90,6 +126,11 @@ async function mapBodyToUpdateData(body) {
       invalidMessage: 'التخصص المحدد غير متاح.',
     });
     data.specialty_id = specialty.id;
+  }
+  if (body.assigned_instructor_id !== undefined) {
+    data.assigned_instructor_id = body.assigned_instructor_id
+      ? await assertActiveInstructorUser(body.assigned_instructor_id)
+      : null;
   }
   if (body.organization_name !== undefined) {
     data.organization_name = body.organization_name?.trim() || null;
@@ -106,6 +147,20 @@ async function mapBodyToUpdateData(body) {
   if (body.application_deadline !== undefined) {
     data.application_deadline = repo.toDateOnly(body.application_deadline);
   }
+  if (body.requires_pre_assessment !== undefined) {
+    data.requires_pre_assessment = body.requires_pre_assessment;
+  }
+  if (body.requires_post_assessment !== undefined) {
+    data.requires_post_assessment = body.requires_post_assessment;
+  }
+  if (body.requires_final_task !== undefined) data.requires_final_task = body.requires_final_task;
+  if (body.minimum_attendance_percentage !== undefined) {
+    data.minimum_attendance_percentage = body.minimum_attendance_percentage;
+  }
+  if (body.minimum_post_assessment_score !== undefined) {
+    data.minimum_post_assessment_score = body.minimum_post_assessment_score;
+  }
+  if (body.completion_rules !== undefined) data.completion_rules = body.completion_rules;
   return data;
 }
 
@@ -114,8 +169,14 @@ async function listAdminOpportunities(query, user) {
   const page = scopedQuery.page;
   const page_size = scopedQuery.page_size;
   const skip = (page - 1) * page_size;
+  const scopeWhere = manageOpportunityListWhere(user);
+  const baseWhere = buildAdminWhere(scopedQuery);
+  const where =
+    Object.keys(scopeWhere).length && Object.keys(baseWhere).length
+      ? { AND: [baseWhere, scopeWhere] }
+      : { ...baseWhere, ...scopeWhere };
   const { opportunities, total } = await repo.findManyAdmin({
-    where: buildAdminWhere(scopedQuery),
+    where,
     skip,
     take: page_size,
   });
@@ -131,11 +192,46 @@ async function getAdminStats(query, user) {
   return { stats };
 }
 
+const FIELD_TRAINING_READ_ERROR_MSG = 'تعذر تحميل بيانات التدريب الميداني.';
+
+function rethrowFieldTrainingReadError(err) {
+  if (err instanceof ApiError) throw err;
+  const msg = String(err?.message || '');
+  if (
+    err?.code === 'P2022' ||
+    msg.includes('does not exist in the current database') ||
+    (msg.includes('column') && msg.includes('does not exist'))
+  ) {
+    throw new ApiError(
+      503,
+      `${FIELD_TRAINING_READ_ERROR_MSG} يرجى تطبيق ترحيل قاعدة البيانات (prisma migrate deploy).`,
+      null,
+      'FIELD_TRAINING_SCHEMA_MISMATCH'
+    );
+  }
+  throw new ApiError(500, FIELD_TRAINING_READ_ERROR_MSG, null, 'FIELD_TRAINING_READ_ERROR');
+}
+
 async function getAdminOpportunityById(id, user) {
-  const row = await repo.findById(id);
-  if (!row) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, row);
-  return { opportunity: repo.mapOpportunityRow(row) };
+  try {
+    const row = await repo.findById(id);
+    if (!row) throw new ApiError(404, 'Opportunity not found');
+    assertAdminOpportunityAccess(user, row);
+
+    const opportunity = repo.mapOpportunityRow(row);
+    if (row.assigned_instructor_id) {
+      const [instructor] = await repo.findUsersByIds([row.assigned_instructor_id]);
+      opportunity.assigned_instructor = instructor
+        ? { id: instructor.id, full_name: instructor.full_name, email: instructor.email }
+        : null;
+    } else {
+      opportunity.assigned_instructor = null;
+    }
+
+    return { opportunity };
+  } catch (err) {
+    rethrowFieldTrainingReadError(err);
+  }
 }
 
 async function createAdminOpportunity(body, userId, user) {
@@ -212,21 +308,30 @@ async function archiveOpportunity(id, userId, user) {
 }
 
 async function listOpportunityApplications(opportunityId, user) {
-  const opp = await repo.findById(opportunityId);
-  if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, opp);
-  const apps = await repo.findApplicationsByOpportunity(opportunityId);
-  const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
-  const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
-  return {
-    applications: apps.map((a) => ({
-      ...repo.mapApplicationRow(a),
-      student_name: byId[a.student_id]?.full_name ?? null,
-      student_email: byId[a.student_id]?.email ?? null,
-      student_university: byId[a.student_id]?.university?.name ?? null,
-      student_specialty: byId[a.student_id]?.specialty ?? null,
-    })),
-  };
+  try {
+    const opp = await repo.findById(opportunityId);
+    if (!opp) throw new ApiError(404, 'Opportunity not found');
+    assertManageOpportunityAccess(user, opp);
+    const apps = await repo.findApplicationsByOpportunity(opportunityId);
+    const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
+    const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
+    return {
+      applications: apps.map((a) => {
+        const profile = byId[a.student_id];
+        const specialty = profile?.specialty ?? null;
+        return {
+          ...repo.mapApplicationRow(a),
+          student_name: profile?.full_name ?? 'طالب غير معروف',
+          student_email: profile?.email ?? null,
+          student_university: profile?.university?.name ?? 'الجامعة غير محددة',
+          student_specialty: specialty,
+          student_specialty_label: repo.formatSpecialtyLabel(specialty),
+        };
+      }),
+    };
+  } catch (err) {
+    rethrowFieldTrainingReadError(err);
+  }
 }
 
 async function reviewApplication(applicationId, body, reviewerId, user) {
@@ -234,7 +339,7 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, opp);
+  assertManageOpportunityAccess(user, opp);
   if (app.status !== 'pending') {
     throw new ApiError(400, 'Only pending applications can be reviewed');
   }
@@ -244,6 +349,12 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
     admin_note: body.admin_note ?? null,
     reviewed_by_id: reviewerId,
     reviewed_at: new Date(),
+    ...(body.status === 'approved'
+      ? {
+          ...workflow.resolveTrainingStatusOnApproval(opp),
+          final_task_status: opp.requires_final_task ? 'pending' : 'not_required',
+        }
+      : { training_status: 'none' }),
   });
 
   const actionType =
@@ -347,7 +458,13 @@ async function getStudentOpportunityById(id, studentId) {
       my_application_status: app?.status ?? null,
       my_application_id: app?.id ?? null,
       my_application_message: app?.student_message ?? null,
+      my_training_status: app?.training_status ?? null,
+      my_pre_assessment_level: app?.pre_assessment_level ?? null,
+      my_attendance_percentage:
+        app?.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      my_completion_eligibility_status: app?.completion_eligibility_status ?? null,
     },
+    application: app ? repo.mapApplicationRow(app) : null,
   };
 }
 
@@ -398,7 +515,8 @@ async function applyToOpportunity(opportunityId, body, studentId) {
   await ftNotify.notifyAdminsFieldTrainingApplicationSubmitted({
     opportunityId: opp.id,
     opportunityTitle: opp.title,
-    studentId,
+    universityId: opp.university_id,
+    studentName: (await repo.findStudentProfilesByIds([studentId]))[0]?.full_name,
   });
 
   return { application: repo.mapApplicationRow(application) };
@@ -417,22 +535,35 @@ async function cancelApplication(applicationId, studentId) {
   return { application: repo.mapApplicationRow(updated) };
 }
 
-async function assertApprovedApplication(opportunityId, studentId) {
+async function assertActiveParticipant(opportunityId, studentId, { requireTrainingAccess = false } = {}) {
   const app = await repo.findApplicationByOpportunityAndStudent(opportunityId, studentId);
   if (!app || app.status !== 'approved') {
-    throw new ApiError(403, 'يجب قبول طلبك أولًا للوصول إلى المهام');
+    throw new ApiError(403, 'يجب قبول طلبك أولًا للوصول إلى هذا المحتوى');
+  }
+  if (workflow.isExpelled(app)) {
+    throw new ApiError(403, 'تم استبعادك من التدريب');
+  }
+  if (requireTrainingAccess && !workflow.canAccessTrainingContent(app)) {
+    throw new ApiError(403, 'التدريب غير نشط بعد');
   }
   return app;
+}
+
+/** @deprecated use assertActiveParticipant */
+async function assertApprovedApplication(opportunityId, studentId) {
+  return assertActiveParticipant(opportunityId, studentId);
 }
 
 async function listOpportunityTasks(opportunityId, { studentId, user } = {}) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  if (user) assertAdminOpportunityAccess(user, opp);
+  if (user) assertManageOpportunityAccess(user, opp);
 
   let applicationId;
   if (studentId) {
-    const app = await assertApprovedApplication(opportunityId, studentId);
+    const app = await assertActiveParticipant(opportunityId, studentId, {
+      requireTrainingAccess: true,
+    });
     applicationId = app.id;
   }
 
@@ -443,7 +574,7 @@ async function listOpportunityTasks(opportunityId, { studentId, user } = {}) {
 async function createOpportunityTask(opportunityId, body, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, opp);
+  assertManageOpportunityAccess(user, opp);
 
   const count = await repo.countTasksByOpportunity(opportunityId);
   const task = await repo.createTask({
@@ -452,20 +583,36 @@ async function createOpportunityTask(opportunityId, body, user) {
     description: body.description ?? null,
     sort_order: body.sort_order ?? count,
     due_date: repo.toDateOnly(body.due_date),
+    ai_self_evaluation_prompt: body.ai_self_evaluation_prompt ?? null,
+    requires_ai_self_evaluation: body.requires_ai_self_evaluation ?? false,
+    is_final_task: body.is_final_task ?? false,
   });
+  await ftNotify.notifyApprovedStudentsNewTask({
+    opportunityId,
+    opportunityTitle: opp.title,
+    taskTitle: task.title,
+  });
+
   return { task: repo.mapTaskRow(task) };
 }
 
 async function updateOpportunityTask(taskId, body, user) {
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  assertAdminOpportunityAccess(user, task.field_training_opportunities);
+  assertManageOpportunityAccess(user, task.field_training_opportunities);
 
   const data = {};
   if (body.title != null) data.title = body.title.trim();
   if (body.description !== undefined) data.description = body.description;
   if (body.sort_order != null) data.sort_order = body.sort_order;
   if (body.due_date !== undefined) data.due_date = repo.toDateOnly(body.due_date);
+  if (body.ai_self_evaluation_prompt !== undefined) {
+    data.ai_self_evaluation_prompt = body.ai_self_evaluation_prompt;
+  }
+  if (body.requires_ai_self_evaluation !== undefined) {
+    data.requires_ai_self_evaluation = body.requires_ai_self_evaluation;
+  }
+  if (body.is_final_task !== undefined) data.is_final_task = body.is_final_task;
 
   const updated = await repo.updateTask(taskId, data);
   return { task: repo.mapTaskRow(updated) };
@@ -474,7 +621,7 @@ async function updateOpportunityTask(taskId, body, user) {
 async function deleteOpportunityTask(taskId, user) {
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  assertAdminOpportunityAccess(user, task.field_training_opportunities);
+  assertManageOpportunityAccess(user, task.field_training_opportunities);
   await repo.deleteTask(taskId);
   return { ok: true };
 }
@@ -482,7 +629,7 @@ async function deleteOpportunityTask(taskId, user) {
 async function listOpportunitySubmissions(opportunityId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, opp);
+  assertManageOpportunityAccess(user, opp);
   const submissions = await repo.findSubmissionsByOpportunity(opportunityId);
   const profiles = await repo.findStudentProfilesByIds([...new Set(submissions.map((s) => s.student_id))]);
   const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
@@ -504,7 +651,7 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
   if (!opp) throw new ApiError(404, 'Opportunity not found');
 
   if (asAdmin) {
-    assertAdminOpportunityAccess(user, opp);
+    assertManageOpportunityAccess(user, opp);
   } else {
     if (submission.student_id !== user.userId) {
       throw new ApiError(403, 'Forbidden');
@@ -523,32 +670,68 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
   };
 }
 
-async function submitTaskFile(taskId, file, studentId) {
+async function submitTaskFile(taskId, file, studentId, body = {}) {
   if (!file) throw new ApiError(400, 'الملف مطلوب');
 
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  if (task.field_training_opportunities?.status !== 'published') {
+  const oppStatus = task.field_training_opportunities?.status;
+  if (!['published', 'in_progress'].includes(oppStatus)) {
     throw new ApiError(400, 'الفرصة غير متاحة');
   }
 
-  const app = await assertApprovedApplication(task.opportunity_id, studentId);
-  const relative = repo.buildRelativeFilePath(taskId, path.basename(file.filename));
+  const app = await assertActiveParticipant(task.opportunity_id, studentId, {
+    requireTrainingAccess: true,
+  });
 
-  const submission = await repo.upsertSubmission({
+  if (task.requires_ai_self_evaluation) {
+    if (!body.student_self_evaluation_input?.trim()) {
+      throw new ApiError(400, 'التقييم الذاتي مطلوب قبل التسليم');
+    }
+    if (!body.ai_response_inserted_text?.trim()) {
+      throw new ApiError(400, 'يجب إجراء تحليل الذكاء الاصطناعي قبل التسليم');
+    }
+  }
+
+  const relative = repo.buildRelativeFilePath(taskId, path.basename(file.filename));
+  const dueDate = task.due_date ? new Date(task.due_date) : null;
+  const isLate = dueDate ? new Date() > dueDate : false;
+
+  const submission = await repo.upsertSubmissionExtended({
     taskId,
     applicationId: app.id,
     studentId,
     filePath: relative,
     fileName: file.originalname || file.filename,
     mimeType: file.mimetype,
+    extra: {
+      student_self_evaluation_input: body.student_self_evaluation_input ?? null,
+      ai_prompt_used: body.ai_prompt_used ?? null,
+      ai_model_provider: body.ai_model_provider ?? null,
+      ai_model_name: body.ai_model_name ?? null,
+      ai_raw_response: body.ai_raw_response ?? null,
+      ai_response_inserted_text: body.ai_response_inserted_text ?? null,
+      final_student_notes: body.final_student_notes ?? null,
+      is_late: isLate,
+      review_status: 'pending',
+    },
   });
 
-  await ftNotify.notifyAdminsFieldTrainingTaskSubmitted({
+  const appUpdate = { training_status: 'task_submitted' };
+  if (task.is_final_task) {
+    appUpdate.final_task_status = 'submitted';
+  }
+  await repo.updateApplication(app.id, appUpdate);
+
+  const opp = await repo.findById(task.opportunity_id);
+  const profiles = await repo.findStudentProfilesByIds([studentId]);
+  await ftNotify.notifyFieldTrainingTaskSubmitted({
     opportunityId: task.opportunity_id,
     opportunityTitle: task.field_training_opportunities?.title,
-    studentId,
+    universityId: opp?.university_id,
+    studentName: profiles[0]?.full_name,
     taskTitle: task.title,
+    instructorId: opp?.assigned_instructor_id,
   });
 
   return { submission: repo.mapSubmissionRow(submission) };
@@ -559,6 +742,47 @@ async function listStudentOpportunityTasks(opportunityId, studentId) {
   if (!published) throw new ApiError(404, 'Opportunity not found');
   await assertStudentCanAccessOpportunity(published, studentId);
   return listOpportunityTasks(opportunityId, { studentId });
+}
+
+async function reviewSubmission(submissionId, body, user) {
+  const submission = await repo.findSubmissionById(submissionId);
+  if (!submission) throw new ApiError(404, 'Submission not found');
+  const opp = submission.field_training_tasks?.field_training_opportunities;
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  assertManageOpportunityAccess(user, opp);
+
+  const updated = await repo.updateSubmissionReview(submissionId, {
+    review_status: body.review_status,
+    instructor_feedback: body.instructor_feedback,
+    reviewed_by_id: user.userId,
+  });
+
+  if (body.review_status === 'approved' && submission.field_training_tasks?.is_final_task) {
+    const app = await repo.findApplicationById(submission.application_id);
+    if (app) {
+      await repo.updateApplication(app.id, { final_task_status: 'approved' });
+      await workflow.persistEligibility(app.id);
+    }
+  }
+
+  const oppFull = await repo.findById(opp.id);
+  await ftNotify.notifyStudentTaskReviewed({
+    studentId: submission.student_id,
+    opportunityId: opp.id,
+    opportunityTitle: oppFull?.title || opp.title,
+    taskTitle: submission.field_training_tasks?.title,
+    reviewStatus: body.review_status,
+  });
+
+  await recordAudit({
+    userId: user.userId,
+    actionType: 'FIELD_TRAINING_SUBMISSION_REVIEWED',
+    entityType: 'field_training_task_submission',
+    entityId: submissionId,
+    newValues: { review_status: body.review_status },
+  });
+
+  return { submission: repo.mapSubmissionRow(updated) };
 }
 
 module.exports = {
@@ -584,4 +808,5 @@ module.exports = {
   downloadSubmissionFile,
   submitTaskFile,
   listStudentOpportunityTasks,
+  reviewSubmission,
 };

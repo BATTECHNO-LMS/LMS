@@ -1,22 +1,20 @@
 /**
  * Real baseline seed for production/staging use.
  *
- * Creates/updates:
+ * Creates/updates (idempotent — no deletes):
  * - System roles (RBAC)
- * - جامعة مؤتة / Mutah University
- * - Active email domain: mutah.edu.jo
+ * - 5 Jordanian universities + active email domains
  * - 10 global active specialties
  *
  * Does NOT create demo users. Create Super Admin manually after setup.
  *
- * Usage: node scripts/seed-real-baseline.js
+ * Usage: npm run seed:real-baseline
  */
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const { prisma } = require('../src/config/db');
 const { seedRealBaseline } = require('./lib/realBaseline');
-const { MUTAH_EMAIL_DOMAIN } = require('./lib/baselineCatalog');
 
 function log(msg) {
   // eslint-disable-next-line no-console
@@ -30,11 +28,12 @@ async function main() {
 
   const result = await seedRealBaseline();
 
-  log('Real baseline seed completed.');
-  log(`Roles ensured: ${result.roles}`);
-  log(`University: ${result.university.name} (${result.university.id})`);
-  log(`Email domain: ${MUTAH_EMAIL_DOMAIN}`);
-  log(`Specialties: ${result.specialties}`);
+  for (const uni of result.universities) {
+    log(`Upserted university: ${uni.name} / ${uni.domain}`);
+  }
+
+  log(`Specialties ensured: ${result.specialties}`);
+  log('Done.');
   log('');
   log('Next steps:');
   log('  1. Create Super Admin via admin panel or a one-off secure script.');

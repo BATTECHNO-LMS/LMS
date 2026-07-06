@@ -4,6 +4,7 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const adminFieldTrainingController = require('./adminFieldTraining.controller');
+const workflowController = require('./fieldTraining.workflow.controller');
 const {
   uuidParamSchema,
   applicationIdParamSchema,
@@ -16,15 +17,34 @@ const {
   taskIdParamSchema,
   taskBodySchema,
   updateTaskBodySchema,
+  sessionIdParamSchema,
+  sessionBodySchema,
+  updateSessionBodySchema,
+  saveAttendanceBodySchema,
+  assessmentTypeParamSchema,
+  assessmentIdParamSchema,
+  assessmentBodySchema,
+  createAssessmentBodySchema,
+  updateAssessmentBodySchema,
+  expelBodySchema,
+  reviewSubmissionBodySchema,
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
 const fieldTrainingAdmin = authorizeRoles(...env.FIELD_TRAINING_ADMIN_ROLE_CODES);
+const fieldTrainingManage = authorizeRoles(...env.FIELD_TRAINING_MANAGE_ROLE_CODES);
+
+router.get(
+  '/instructors',
+  authenticate,
+  fieldTrainingAdmin,
+  workflowController.listInstructors
+);
 
 router.get(
   '/stats',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ query: listAdminStatsQuerySchema }),
   adminFieldTrainingController.stats
 );
@@ -32,15 +52,39 @@ router.get(
 router.patch(
   '/applications/:applicationId/status',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: applicationIdParamSchema, body: reviewApplicationBodySchema }),
   adminFieldTrainingController.reviewApplication
+);
+
+router.post(
+  '/applications/:applicationId/expel',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: applicationIdParamSchema, body: expelBodySchema }),
+  workflowController.expelParticipant
+);
+
+router.post(
+  '/applications/:applicationId/issue-completion-letter',
+  authenticate,
+  fieldTrainingAdmin,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.issueCompletionLetter
+);
+
+router.get(
+  '/applications/:applicationId/progress',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.getApplicationProgress
 );
 
 router.get(
   '/',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ query: listAdminQuerySchema }),
   adminFieldTrainingController.list
 );
@@ -56,15 +100,135 @@ router.post(
 router.get(
   '/submissions/:submissionId/download',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: submissionIdParamSchema }),
   adminFieldTrainingController.downloadSubmission
+);
+
+router.patch(
+  '/submissions/:submissionId/review',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: submissionIdParamSchema, body: reviewSubmissionBodySchema }),
+  adminFieldTrainingController.reviewSubmission
+);
+
+router.post(
+  '/:id/start-training',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: uuidParamSchema }),
+  workflowController.startTraining
+);
+
+router.get(
+  '/:id/sessions',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: uuidParamSchema }),
+  workflowController.listSessions
+);
+
+router.post(
+  '/:id/sessions',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: uuidParamSchema, body: sessionBodySchema }),
+  workflowController.createSession
+);
+
+router.get(
+  '/sessions/:sessionId/participants',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.listSessionParticipants
+);
+
+router.get(
+  '/sessions/:sessionId/attendance',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.getSessionAttendance
+);
+
+router.post(
+  '/sessions/:sessionId/attendance',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: sessionIdParamSchema, body: saveAttendanceBodySchema }),
+  workflowController.saveAttendance
+);
+
+router.patch(
+  '/sessions/:sessionId',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: sessionIdParamSchema, body: updateSessionBodySchema }),
+  workflowController.updateSession
+);
+
+router.delete(
+  '/sessions/:sessionId',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.deleteSession
+);
+
+router.put(
+  '/:id/assessments/:type',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: assessmentTypeParamSchema, body: assessmentBodySchema }),
+  workflowController.upsertAssessment
+);
+
+router.get(
+  '/:id/assessments',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: uuidParamSchema }),
+  workflowController.listOpportunityAssessments
+);
+
+router.post(
+  '/:id/assessments',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: uuidParamSchema, body: createAssessmentBodySchema }),
+  workflowController.createOpportunityAssessment
+);
+
+router.patch(
+  '/assessments/:assessmentId',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: assessmentIdParamSchema, body: updateAssessmentBodySchema }),
+  workflowController.updateAssessment
+);
+
+router.post(
+  '/assessments/:assessmentId/publish',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: assessmentIdParamSchema }),
+  workflowController.publishAssessmentById
+);
+
+router.post(
+  '/:id/assessments/:type/publish',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: assessmentTypeParamSchema }),
+  workflowController.publishAssessment
 );
 
 router.get(
   '/:id/applications',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listApplications
 );
@@ -72,7 +236,7 @@ router.get(
 router.get(
   '/:id/tasks',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listTasks
 );
@@ -80,7 +244,7 @@ router.get(
 router.post(
   '/:id/tasks',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: uuidParamSchema, body: taskBodySchema }),
   adminFieldTrainingController.createTask
 );
@@ -88,7 +252,7 @@ router.post(
 router.get(
   '/:id/submissions',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listSubmissions
 );
@@ -96,7 +260,7 @@ router.get(
 router.patch(
   '/tasks/:taskId',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: taskIdParamSchema, body: updateTaskBodySchema }),
   adminFieldTrainingController.updateTask
 );
@@ -104,7 +268,7 @@ router.patch(
 router.delete(
   '/tasks/:taskId',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: taskIdParamSchema }),
   adminFieldTrainingController.deleteTask
 );
@@ -112,7 +276,7 @@ router.delete(
 router.get(
   '/:id',
   authenticate,
-  fieldTrainingAdmin,
+  fieldTrainingManage,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.getById
 );

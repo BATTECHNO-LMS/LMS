@@ -12,6 +12,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { SelectField } from '../../components/admin/SelectField.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
@@ -43,16 +44,17 @@ export function StudentFieldTrainingPage() {
   const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const [q, setQ] = useState('');
+  const debouncedQ = useDebouncedValue(q, 350);
   const [trainingMode, setTrainingMode] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
   const params = useMemo(() => {
     const p = {};
     if (trainingMode) p.training_mode = trainingMode;
-    const s = q.trim();
+    const s = debouncedQ.trim();
     if (s) p.search = s;
     return p;
-  }, [q, trainingMode]);
+  }, [debouncedQ, trainingMode]);
 
   const { data, isLoading, isError } = useStudentFieldTrainingList(params);
   const { data: myAppsData, isLoading: myAppsLoading } = useMyFieldTrainingApplications();
@@ -137,7 +139,7 @@ export function StudentFieldTrainingPage() {
                     <div className="ft-my-apps__main">
                       <h3 className="ft-my-apps__opp">{app.opportunity?.title ?? '—'}</h3>
                       <p className="ft-my-apps__meta">
-                        {getOpportunityUniversityLabel(app.opportunity, '—')}
+                        {getOpportunitySpecialtyLabel(app.opportunity, i18n.language, t('form.specialtyUnspecified'))}
                         {' · '}
                         {formatFtDate(app.created_at) ?? '—'}
                       </p>

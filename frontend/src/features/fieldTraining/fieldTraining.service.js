@@ -126,3 +126,152 @@ export async function downloadFieldTrainingSubmission(submissionId, { asAdmin = 
   );
   return { blob: res.data, filename };
 }
+
+export async function fetchFieldTrainingInstructors() {
+  const res = await apiClient.get(`${admin}/instructors`);
+  return unwrapApiData(res);
+}
+
+export async function startFieldTraining(opportunityId) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/start-training`);
+  return unwrapApiData(res);
+}
+
+export async function fetchOpportunitySessions(opportunityId, { asAdmin = true } = {}) {
+  const base = asAdmin ? admin : student;
+  const res = await apiClient.get(`${base}/${opportunityId}/sessions`);
+  return unwrapApiData(res);
+}
+
+export async function createOpportunitySession(opportunityId, body) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/sessions`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateOpportunitySession(sessionId, body) {
+  const res = await apiClient.patch(`${admin}/sessions/${sessionId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function deleteOpportunitySession(sessionId) {
+  const res = await apiClient.delete(`${admin}/sessions/${sessionId}`);
+  return unwrapApiData(res);
+}
+
+export async function saveSessionAttendance(sessionId, records) {
+  const res = await apiClient.post(`${admin}/sessions/${sessionId}/attendance`, { records });
+  return unwrapApiData(res);
+}
+
+export async function fetchSessionParticipants(sessionId) {
+  const res = await apiClient.get(`${admin}/sessions/${sessionId}/participants`);
+  return unwrapApiData(res);
+}
+
+export async function saveOpportunityAssessment(opportunityId, type, body) {
+  const res = await apiClient.put(`${admin}/${opportunityId}/assessments/${type}`, body);
+  return unwrapApiData(res);
+}
+
+export async function publishOpportunityAssessment(opportunityId, type) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/assessments/${type}/publish`);
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentAssessment(opportunityId, type) {
+  const res = await apiClient.get(`${student}/${opportunityId}/assessments/${type}`);
+  return unwrapApiData(res);
+}
+
+export async function submitStudentAssessment(opportunityId, type, answers) {
+  const res = await apiClient.post(`${student}/${opportunityId}/assessments/${type}/submit`, { answers });
+  return unwrapApiData(res);
+}
+
+export async function runTaskAiSelfEvaluate(taskId, studentInput) {
+  const res = await apiClient.post(`${student}/tasks/${taskId}/ai-self-evaluate`, { studentInput });
+  return unwrapApiData(res);
+}
+
+export async function expelFieldTrainingParticipant(applicationId, body) {
+  const res = await apiClient.post(`${admin}/applications/${applicationId}/expel`, body);
+  return unwrapApiData(res);
+}
+
+export async function issueCompletionLetter(applicationId) {
+  const res = await apiClient.post(`${admin}/applications/${applicationId}/issue-completion-letter`);
+  return unwrapApiData(res);
+}
+
+export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
+  const fd = new FormData();
+  fd.append('file', file);
+  Object.entries(meta).forEach(([k, v]) => {
+    if (v != null && v !== '') fd.append(k, String(v));
+  });
+  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapApiData(res);
+}
+
+export async function fetchApplicationProgress(applicationId) {
+  const res = await apiClient.get(`${admin}/applications/${applicationId}/progress`);
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentTrainingProgress(opportunityId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/progress`);
+  return unwrapApiData(res);
+}
+
+export async function fetchSessionAttendance(sessionId) {
+  const res = await apiClient.get(`${admin}/sessions/${sessionId}/attendance`);
+  return unwrapApiData(res);
+}
+
+export async function fetchOpportunityAssessments(opportunityId) {
+  const res = await apiClient.get(`${admin}/${opportunityId}/assessments`);
+  return unwrapApiData(res);
+}
+
+export async function createOpportunityAssessment(opportunityId, body) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/assessments`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateAssessment(assessmentId, body) {
+  const res = await apiClient.patch(`${admin}/assessments/${assessmentId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function publishAssessmentById(assessmentId) {
+  const res = await apiClient.post(`${admin}/assessments/${assessmentId}/publish`);
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentAssessments(opportunityId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/assessments`);
+  return unwrapApiData(res);
+}
+
+export async function submitAssessmentById(assessmentId, answers) {
+  const res = await apiClient.post(`${student}/assessments/${assessmentId}/submit`, { answers });
+  return unwrapApiData(res);
+}
+
+export async function reviewFieldTrainingSubmission(submissionId, body) {
+  const res = await apiClient.patch(`${admin}/submissions/${submissionId}/review`, body);
+  return unwrapApiData(res);
+}
+
+export async function downloadCompletionLetter(applicationId) {
+  const res = await apiClient.get(`${student}/completion-letters/${applicationId}/download`, {
+    responseType: 'blob',
+  });
+  const filename = parseDownloadFilename(
+    res.headers['content-disposition'],
+    `completion-letter-${applicationId}.pdf`
+  );
+  return { blob: res.data, filename };
+}

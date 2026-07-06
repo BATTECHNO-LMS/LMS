@@ -4,6 +4,7 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const studentFieldTrainingController = require('./studentFieldTraining.controller');
+const workflowController = require('./fieldTraining.workflow.controller');
 const {
   uuidParamSchema,
   applicationIdParamSchema,
@@ -11,8 +12,13 @@ const {
   applyBodySchema,
   taskIdParamSchema,
   submissionIdParamSchema,
+  assessmentTypeParamSchema,
+  assessmentIdParamSchema,
+  submitAssessmentBodySchema,
+  aiSelfEvalBodySchema,
 } = require('./fieldTraining.validation');
 const { handleTaskUpload } = require('./fieldTraining.upload');
+const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
 
 const router = express.Router();
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
@@ -46,6 +52,71 @@ router.get(
   studentOnly,
   validateRequest({ params: submissionIdParamSchema }),
   studentFieldTrainingController.downloadSubmission
+);
+
+router.post(
+  '/tasks/:taskId/ai-self-evaluate',
+  authenticate,
+  studentOnly,
+  aiSelfEvalLimiter,
+  validateRequest({ params: taskIdParamSchema, body: aiSelfEvalBodySchema }),
+  studentFieldTrainingController.aiSelfEvaluate
+);
+
+router.get(
+  '/completion-letters/:applicationId/download',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.downloadCompletionLetter
+);
+
+router.post(
+  '/assessments/:assessmentId/submit',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: assessmentIdParamSchema, body: submitAssessmentBodySchema }),
+  workflowController.submitAssessmentById
+);
+
+router.get(
+  '/:id/sessions',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema }),
+  studentFieldTrainingController.listSessions
+);
+
+router.get(
+  '/:id/progress',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema }),
+  workflowController.getStudentProgress
+);
+
+router.get(
+  '/:id/assessments',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema }),
+  workflowController.listStudentAssessments
+);
+
+router.get(
+  '/:id/assessments/:type',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: assessmentTypeParamSchema }),
+  studentFieldTrainingController.getAssessment
+);
+
+router.post(
+  '/:id/assessments/:type/submit',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: assessmentTypeParamSchema, body: submitAssessmentBodySchema }),
+  studentFieldTrainingController.submitAssessment
 );
 
 router.get(

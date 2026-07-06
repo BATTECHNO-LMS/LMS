@@ -180,6 +180,19 @@ async function downloadSubmission(req, res, next) {
   }
 }
 
+async function reviewSubmission(req, res, next) {
+  try {
+    const data = await fieldTrainingService.reviewSubmission(
+      req.validated.params.submissionId,
+      req.validated.body,
+      req.user
+    );
+    return success(res, data, { message: 'Submission reviewed' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   stats,
@@ -196,4 +209,5 @@ module.exports = {
   deleteTask,
   listSubmissions,
   downloadSubmission,
+  reviewSubmission,
 };

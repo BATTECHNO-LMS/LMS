@@ -95,12 +95,17 @@ App runs at `http://localhost:5173`. Vite proxies `/api` requests to the backend
 After `npm run seed:real-baseline`, the database contains:
 
 - System roles (RBAC)
-- **جامعة مؤتة** (Mutah University) with active domain **`mutah.edu.jo`**
+- **5 Jordanian universities** with active email domains:
+  - جامعة مؤتة (`mutah.edu.jo`)
+  - جامعة الطفيلة التقنية (`ttu.edu.jo`)
+  - جامعة الحسين التقنية (`htu.edu.jo`)
+  - جامعة الزيتونة الأردنية (`zuj.edu.jo`)
+  - جامعة اليرموك (`yu.edu.jo`)
 - 10 global active specialties for registration and Field Training
 
 **No default login accounts are created.** Create the first Super Admin through the admin panel or a secure one-off script. Do **not** run `seed:demo` or `seed:analytics-demo` on production.
 
-Student self-registration accepts university emails ending with `@mutah.edu.jo` when domain validation is enabled.
+Student self-registration accepts university emails for any active domain in `university_email_domains` (e.g. `@mutah.edu.jo`, `@ttu.edu.jo`, `@htu.edu.jo`, `@zuj.edu.jo`, `@yu.edu.jo`).
 
 ### Demo seeds (local/staging only)
 
@@ -157,11 +162,14 @@ Additional frontend docs (Arabic):
 | Prisma migrate (prod) | `npm run prisma:deploy` |
 | Prisma Studio | `npm run prisma:studio` |
 | Real baseline (Mutah + specialties) | `npm run seed` or `npm run seed:real-baseline` |
+| Dev/staging test accounts (all roles) | `npm run seed:test-accounts` |
 | Remove demo/test data (dry-run) | `npm run cleanup:demo` |
 | Remove demo/test data (execute) | `npm run cleanup:demo -- --confirm-clean-demo` |
 | Demo curriculum (dev only) | `npm run seed:demo` |
 | Analytics demo dataset (dev only) | `npm run seed:analytics-demo` |
 | Minimum auth smoke test (dev only) | `npm run seed:auth` |
+
+For local role testing, run `npm run seed:test-accounts` after the real baseline seed. Credentials are defined only in the dev seed script (not in production docs).
 
 ### Frontend (`frontend/`)
 

@@ -15,6 +15,22 @@
   "viewApplications": "الطلبات",
   "backToList": "رجوع للقائمة",
   "applicationsTitle": "طلبات الطلاب",
+  "applicationsSubtitle": "طلبات الطلاب لهذه الفرصة",
+  "applicationsCount": "{{count}} طلبات",
+  "applicationsSearchPlaceholder": "ابحث بالاسم أو البريد أو الجامعة أو التخصص",
+  "applicationsLoadErrorTitle": "تعذر تحميل طلبات الطلاب",
+  "applicationsFilteredEmptyTitle": "لا توجد طلبات مطابقة",
+  "applicationsFilteredEmptyDesc": "جرّب تغيير البحث أو فلتر الحالة.",
+  "approveApplication": "قبول الطلب",
+  "rejectApplication": "رفض الطلب",
+  "studentMessageTitle": "رسالة الطالب",
+  "adminNoteTitle": "ملاحظة الإدارة",
+  "noStudentMessage": "لا توجد رسالة مرفقة",
+  "missingStudentName": "طالب غير محدد",
+  "missingStudentEmail": "البريد غير متوفر",
+  "missingStudentUniversity": "الجامعة غير محددة",
+  "missingStudentSpecialty": "التخصص غير محدد",
+  "filterAllApplications": "الكل",
   "approve": "قبول",
   "reject": "رفض",
   "adminNote": "ملاحظة الأدمن",
@@ -52,6 +68,9 @@
     "pendingApplications": "قيد المراجعة",
     "approvedApplications": "مقبولة",
     "rejectedApplications": "مرفوضة",
+    "pendingApplicationsHint": "طلبات بانتظار قرار الإدارة",
+    "approvedApplicationsHint": "طلبات تم قبولها",
+    "rejectedApplicationsHint": "طلبات لم تُقبل",
     "tasksCount": "عدد المهام",
     "submissionsCount": "عدد التسليمات"
   },
@@ -63,6 +82,7 @@
   "status": {
     "draft": "مسودة",
     "published": "منشورة",
+    "in_progress": "قيد التنفيذ",
     "archived": "مؤرشفة"
   },
   "applicationStatus": {
@@ -124,7 +144,15 @@
     "sectionBasicHelp": "أدخل عنوان الفرصة، التخصص المرتبط، المكان، ونوع التدريب.",
     "sectionDescriptionHelp": "صف الفرصة للطلاب بوضوح مع المتطلبات والمميزات.",
     "sectionScheduleHelp": "حدّد عدد المقاعد ومواعيد التدريب وآخر موعد للتقديم.",
-    "modalSubtitle": "أدخل تفاصيل الفرصة، مواعيد التقديم، والمتطلبات للطلاب."
+    "modalSubtitle": "أدخل تفاصيل الفرصة، مواعيد التقديم، والمتطلبات للطلاب.",
+    "sectionWorkflow": "إعدادات سير العمل",
+    "assignedInstructor": "المدرب المسؤول",
+    "instructorPlaceholder": "اختر مدربًا (اختياري)",
+    "minAttendance": "الحد الأدنى للحضور %",
+    "minPostScore": "الحد الأدنى لدرجة التقييم البعدي",
+    "requiresPreAssessment": "يتطلب تقييمًا قبليًا",
+    "requiresPostAssessment": "يتطلب تقييمًا بعديًا",
+    "requiresFinalTask": "يتطلب مهمة نهائية"
   },
   "student": {
     "title": "التدريب الميداني",
@@ -185,7 +213,37 @@
       "accepted": "القبول وبدء التدريب",
       "tasks": "تنفيذ المهام"
     },
+    "journeyHelp": {
+      "view": "اطّلعت على تفاصيل الفرصة المناسبة لتخصصك",
+      "apply": "أرسل طلبك مع رسالة اختيارية للإدارة",
+      "review": "تنتظر الإدارة مراجعة طلبك واتخاذ القرار",
+      "accepted": "بعد القبول يمكنك البدء في التدريب الميداني",
+      "tasks": "نفّذ المهام المطلوبة وارفع تسليماتك"
+    },
+    "statusSummary": {
+      "notApplied": {
+        "title": "لم تقم بالتقديم بعد",
+        "text": "يمكنك تقديم طلبك لهذه الفرصة إذا كانت مناسبة لتخصصك."
+      },
+      "pending": {
+        "title": "طلبك قيد المراجعة",
+        "text": "تم إرسال طلبك للإدارة وسيتم إشعارك عند اتخاذ القرار."
+      },
+      "approved": {
+        "title": "تم قبول طلبك",
+        "text": "يمكنك الآن متابعة مهام التدريب وتسليم المطلوب."
+      },
+      "rejected": {
+        "title": "لم يتم قبول الطلب",
+        "text": "لم تُقبل في هذه الفرصة. راجع التفاصيل أو تواصل مع الإدارة للاستفسار."
+      },
+      "cancelled": {
+        "title": "تم إلغاء الطلب",
+        "text": "يمكنك التقديم مرة أخرى إذا كان النظام يسمح بذلك."
+      }
+    },
     "applicationRejected": "تم رفض طلبك. يمكنك مراجعة تفاصيل الفرصة أو التواصل مع الإدارة.",
+    "noContentFallback": "لا توجد تفاصيل متاحة",
     "sectionDescription": "وصف الفرصة",
     "sectionBenefits": "ماذا ستتعلم / المزايا",
     "tasksLockedTitle": "المهام ستظهر بعد قبول طلبك",
@@ -240,10 +298,82 @@
     "uploading": "جارٍ الرفع...",
     "replaceFile": "استبدال الملف",
     "dropzoneHint": "اسحب ملفًا أو صورة هنا، أو انقر للاختيار",
-    "dropzoneMeta": "صور · PDF — حتى 8 ميجابايت"
+    "dropzoneMeta": "صور · PDF — حتى 8 ميجابايت",
+    "notFound": "المهمة غير موجودة",
+    "selfEvalLink": "قيّم نفسك قبل التسليم"
   },
   "unauthorized": {
     "title": "غير مصرح",
     "description": "إدارة التدريب الميداني متاحة لمسؤول النظام فقط."
-  }
+  },
+  "trainingStatus": {
+    "none": "—",
+    "pre_assessment_pending": "تقييم قبلي مطلوب",
+    "pre_assessment_completed": "اكتمل التقييم القبلي",
+    "ready_for_training": "جاهز لبدء التدريب",
+    "in_training": "قيد التدريب",
+    "task_pending": "مهام معلقة",
+    "task_submitted": "تم تسليم المهام",
+    "post_assessment_pending": "تقييم بعدي مطلوب",
+    "post_assessment_completed": "اكتمل التقييم البعدي",
+    "eligible_for_completion": "مؤهل للإنهاء",
+    "completed": "مكتمل",
+    "failed": "غير مجتاز",
+    "expelled": "مستبعد"
+  },
+  "knowledgeLevel": {
+    "beginner": "مبتدئ",
+    "intermediate": "متوسط",
+    "advanced": "متقدم"
+  },
+  "eligibility": {
+    "pending": "قيد التقييم",
+    "eligible": "مؤهل",
+    "ineligible": "غير مؤهل",
+    "needs_review": "يحتاج مراجعة"
+  },
+  "progress": {
+    "preLevel": "المستوى القبلي",
+    "attendance": "الحضور",
+    "eligibility": "الأهلية"
+  },
+  "manageTraining": {
+    "link": "إدارة التدريب",
+    "title": "إدارة التدريب",
+    "startTraining": "بدء التدريب",
+    "approvedCount": "{{count}} مشارك معتمد",
+    "sessionsTitle": "الجلسات",
+    "sessionTitle": "عنوان الجلسة",
+    "sessionDate": "تاريخ الجلسة",
+    "startTime": "وقت البداية",
+    "endTime": "وقت النهاية",
+    "zoomLink": "رابط Zoom",
+    "addSession": "إضافة جلسة"
+  },
+  "expel": {
+    "action": "استبعاد الطالب من التدريب",
+    "title": "استبعاد من التدريب",
+    "reasonLabel": "سبب الاستبعاد",
+    "confirm": "تأكيد الاستبعاد"
+  },
+  "completionLetter": {
+    "issue": "إصدار كتاب الإنهاء"
+  },
+  "selfEval": {
+    "title": "قيّم نفسك قبل التسليم",
+    "instructorPrompt": "تعليمات المدرب",
+    "studentInputLabel": "اكتب ملخص ما أنجزته",
+    "runAi": "تحليل بواسطة الذكاء الاصطناعي",
+    "aiLoading": "جارٍ التحليل…",
+    "aiError": "تعذّر إجراء التحليل",
+    "aiNotConfigured": "خدمة الذكاء الاصطناعي غير مفعّلة. تواصل مع الإدارة.",
+    "aiResultLabel": "نتيجة التحليل (يمكنك تعديلها)",
+    "finalNotesLabel": "ملاحظاتك النهائية",
+    "fileLabel": "رفع ملف التسليم",
+    "fileRequired": "الملف مطلوب",
+    "submit": "تسليم المهمة",
+    "submitting": "جارٍ التسليم…",
+    "submitSuccess": "تم تسليم المهمة بنجاح"
+  },
+  "backToOpportunity": "العودة للفرصة"
 }

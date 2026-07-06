@@ -779,7 +779,8 @@ async function getFieldTrainingExportRows(filters, lookups) {
 
   const rows = [];
   for (const opp of opportunities) {
-    const [appCount, taskCount, subCount] = await Promise.all([
+    const [appCount, taskCount, subCount, sessionsCount, expelledCount, lettersCount, approvedCount] =
+      await Promise.all([
       prisma.field_training_applications.count({ where: { opportunity_id: opp.id, ...dateWhere } }),
       prisma.field_training_tasks.count({ where: { opportunity_id: opp.id } }),
       prisma.field_training_task_submissions.count({
@@ -788,7 +789,29 @@ async function getFieldTrainingExportRows(filters, lookups) {
           ...inDateRange('submitted_at', filters),
         },
       }),
+      prisma.field_training_sessions.count({ where: { opportunity_id: opp.id } }),
+      prisma.field_training_applications.count({
+        where: { opportunity_id: opp.id, training_status: 'expelled' },
+      }),
+      prisma.field_training_completion_letters.count({
+        where: { opportunity_id: opp.id, status: 'issued' },
+      }),
+      prisma.field_training_applications.count({
+        where: { opportunity_id: opp.id, status: 'approved', expelled_at: null },
+      }),
     ]);
+    const attendanceRecords = await prisma.field_training_attendance.findMany({
+      where: { field_training_sessions: { opportunity_id: opp.id } },
+      select: { status: true },
+    });
+    const attended = attendanceRecords.filter((a) =>
+      ['present', 'late', 'excused'].includes(a.status)
+    ).length;
+    const attendanceRate =
+      attendanceRecords.length > 0
+        ? Math.round((attended / attendanceRecords.length) * 1000) / 10
+        : null;
+
     rows.push({
       specialty:
         opp.specialties?.name_ar || opp.specialties?.name_en || 'غير محدد',
@@ -798,8 +821,13 @@ async function getFieldTrainingExportRows(filters, lookups) {
       location: opp.location,
       seatsLimit: opp.seats_limit,
       applicationsCount: appCount,
+      approvedParticipants: approvedCount,
       tasksCount: taskCount,
       submissionsCount: subCount,
+      sessionsCount,
+      attendanceRate,
+      expelledCount,
+      completionLettersCount: lettersCount,
       lastUpdated: fmtDateTime(opp.updated_at),
     });
   }

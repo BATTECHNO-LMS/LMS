@@ -25,8 +25,17 @@ export function applicationBadgeVariant(status) {
 
 export function opportunityStatusVariant(status) {
   if (status === 'published') return 'success';
+  if (status === 'in_progress') return 'info';
   if (status === 'archived') return 'muted';
   return 'warning';
+}
+
+export function trainingStatusVariant(status) {
+  if (status === 'completed' || status === 'eligible_for_completion') return 'success';
+  if (status === 'expelled' || status === 'failed') return 'danger';
+  if (status === 'pre_assessment_pending' || status === 'post_assessment_pending') return 'warning';
+  if (status === 'in_training' || status === 'task_submitted') return 'info';
+  return 'muted';
 }
 
 export function getApplicationTabKey(status) {
@@ -105,4 +114,22 @@ export function truncateText(text, max = 120) {
   if (!s) return '';
   if (s.length <= max) return s;
   return `${s.slice(0, max)}…`;
+}
+
+/** Initials for student avatar circles (Arabic/Latin names). */
+export function getStudentInitials(name) {
+  const s = String(name ?? '').trim();
+  if (!s) return '؟';
+  const parts = s.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ''}${parts[parts.length - 1][0] ?? ''}`.toUpperCase();
+  }
+  return s.slice(0, 2).toUpperCase();
+}
+
+/** Replace empty/dash placeholders with a human-readable fallback. */
+export function displayFieldValue(value, fallback) {
+  const s = String(value ?? '').trim();
+  if (!s || s === '—' || s === '-') return fallback;
+  return s;
 }

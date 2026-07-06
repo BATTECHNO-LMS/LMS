@@ -512,8 +512,13 @@ function addFieldTrainingSheet(wb, fieldTraining) {
       'المكان',
       'عدد المقاعد',
       'عدد الطلبات',
+      'المشاركون المعتمدون',
       'عدد المهام',
       'عدد التسليمات',
+      'عدد الجلسات',
+      'نسبة الحضور %',
+      'المستبعدون',
+      'كتب الإنهاء',
       'آخر تحديث',
     ],
     fieldTraining.rows.map((r) => [
@@ -524,11 +529,16 @@ function addFieldTrainingSheet(wb, fieldTraining) {
       r.location,
       r.seatsLimit ?? 'غير متوفر',
       r.applicationsCount,
+      r.approvedParticipants ?? 0,
       r.tasksCount,
       r.submissionsCount,
+      r.sessionsCount ?? 0,
+      r.attendanceRate != null ? r.attendanceRate : 'غير متوفر',
+      r.expelledCount ?? 0,
+      r.completionLettersCount ?? 0,
       r.lastUpdated,
     ]),
-    { numberCols: [6, 7, 8, 9] }
+    { numberCols: [6, 7, 8, 9, 10, 11, 13, 14] }
   );
 }
 

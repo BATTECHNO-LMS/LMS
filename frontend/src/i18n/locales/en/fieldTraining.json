@@ -15,6 +15,22 @@
   "viewApplications": "Applications",
   "backToList": "Back to list",
   "applicationsTitle": "Student applications",
+  "applicationsSubtitle": "Student applications for this opportunity",
+  "applicationsCount": "{{count}} applications",
+  "applicationsSearchPlaceholder": "Search by name, email, university, or specialty",
+  "applicationsLoadErrorTitle": "Could not load student applications",
+  "applicationsFilteredEmptyTitle": "No matching applications",
+  "applicationsFilteredEmptyDesc": "Try changing your search or status filter.",
+  "approveApplication": "Approve application",
+  "rejectApplication": "Reject application",
+  "studentMessageTitle": "Student message",
+  "adminNoteTitle": "Admin note",
+  "noStudentMessage": "No message attached",
+  "missingStudentName": "Unnamed student",
+  "missingStudentEmail": "Email not available",
+  "missingStudentUniversity": "University not specified",
+  "missingStudentSpecialty": "Specialty not specified",
+  "filterAllApplications": "All",
   "approve": "Approve",
   "reject": "Reject",
   "adminNote": "Admin note",
@@ -52,6 +68,9 @@
     "pendingApplications": "Pending review",
     "approvedApplications": "Approved",
     "rejectedApplications": "Rejected",
+    "pendingApplicationsHint": "Applications awaiting admin decision",
+    "approvedApplicationsHint": "Applications that were approved",
+    "rejectedApplicationsHint": "Applications that were rejected",
     "tasksCount": "Tasks",
     "submissionsCount": "Submissions"
   },
@@ -124,7 +143,15 @@
     "sectionBasicHelp": "Enter the opportunity title, linked specialty, location, and training type.",
     "sectionDescriptionHelp": "Describe the opportunity clearly for students, including requirements and benefits.",
     "sectionScheduleHelp": "Set seat capacity, training dates, and the application deadline.",
-    "modalSubtitle": "Enter opportunity details, application dates, and student requirements."
+    "modalSubtitle": "Enter opportunity details, application dates, and student requirements.",
+    "sectionWorkflow": "Workflow settings",
+    "assignedInstructor": "Assigned instructor",
+    "instructorPlaceholder": "Select instructor (optional)",
+    "minAttendance": "Minimum attendance %",
+    "minPostScore": "Minimum post-assessment score",
+    "requiresPreAssessment": "Requires pre-assessment",
+    "requiresPostAssessment": "Requires post-assessment",
+    "requiresFinalTask": "Requires final task"
   },
   "student": {
     "title": "Field training",
@@ -185,7 +212,37 @@
       "accepted": "Accepted & training",
       "tasks": "Complete tasks"
     },
+    "journeyHelp": {
+      "view": "You reviewed this opportunity for your specialty",
+      "apply": "Send your application with an optional message",
+      "review": "Administration is reviewing your application",
+      "accepted": "After approval you can begin field training",
+      "tasks": "Complete required tasks and upload submissions"
+    },
+    "statusSummary": {
+      "notApplied": {
+        "title": "Not applied yet",
+        "text": "You can submit an application if this opportunity matches your specialty."
+      },
+      "pending": {
+        "title": "Application under review",
+        "text": "Your application was sent to administration. You will be notified when a decision is made."
+      },
+      "approved": {
+        "title": "Application approved",
+        "text": "You can now follow training tasks and submit required work."
+      },
+      "rejected": {
+        "title": "Application not accepted",
+        "text": "You were not accepted for this opportunity. Review details or contact administration."
+      },
+      "cancelled": {
+        "title": "Application cancelled",
+        "text": "You may apply again if the system allows it."
+      }
+    },
     "applicationRejected": "Your application was rejected. Review the opportunity details or contact administration.",
+    "noContentFallback": "No details available",
     "sectionDescription": "Description",
     "sectionBenefits": "What you will learn / benefits",
     "tasksLockedTitle": "Tasks unlock after approval",
@@ -240,10 +297,82 @@
     "uploading": "Uploading...",
     "replaceFile": "Replace file",
     "dropzoneHint": "Drag a file or image here, or click to choose",
-    "dropzoneMeta": "Images · PDF — up to 8 MB"
+    "dropzoneMeta": "Images · PDF — up to 8 MB",
+    "notFound": "Task not found",
+    "selfEvalLink": "Self-evaluate before submit"
   },
   "unauthorized": {
     "title": "Unauthorized",
     "description": "Field training management is available to super admins only."
-  }
+  },
+  "trainingStatus": {
+    "none": "—",
+    "pre_assessment_pending": "Pre-assessment required",
+    "pre_assessment_completed": "Pre-assessment done",
+    "ready_for_training": "Ready to start",
+    "in_training": "In training",
+    "task_pending": "Tasks pending",
+    "task_submitted": "Tasks submitted",
+    "post_assessment_pending": "Post-assessment required",
+    "post_assessment_completed": "Post-assessment done",
+    "eligible_for_completion": "Eligible for completion",
+    "completed": "Completed",
+    "failed": "Failed",
+    "expelled": "Expelled"
+  },
+  "knowledgeLevel": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  },
+  "eligibility": {
+    "pending": "Pending",
+    "eligible": "Eligible",
+    "ineligible": "Ineligible",
+    "needs_review": "Needs review"
+  },
+  "progress": {
+    "preLevel": "Pre level",
+    "attendance": "Attendance",
+    "eligibility": "Eligibility"
+  },
+  "manageTraining": {
+    "link": "Manage training",
+    "title": "Manage training",
+    "startTraining": "Start training",
+    "approvedCount": "{{count}} approved participants",
+    "sessionsTitle": "Sessions",
+    "sessionTitle": "Session title",
+    "sessionDate": "Session date",
+    "startTime": "Start time",
+    "endTime": "End time",
+    "zoomLink": "Zoom link",
+    "addSession": "Add session"
+  },
+  "expel": {
+    "action": "Expel from training",
+    "title": "Expel participant",
+    "reasonLabel": "Reason",
+    "confirm": "Confirm expulsion"
+  },
+  "completionLetter": {
+    "issue": "Issue completion letter"
+  },
+  "selfEval": {
+    "title": "Self-evaluate before submit",
+    "instructorPrompt": "Instructor prompt",
+    "studentInputLabel": "Summarize what you accomplished",
+    "runAi": "Analyze with AI",
+    "aiLoading": "Analyzing…",
+    "aiError": "AI analysis failed",
+    "aiNotConfigured": "AI is not configured. Contact administration.",
+    "aiResultLabel": "AI result (you may edit)",
+    "finalNotesLabel": "Final notes",
+    "fileLabel": "Upload submission file",
+    "fileRequired": "File is required",
+    "submit": "Submit task",
+    "submitting": "Submitting…",
+    "submitSuccess": "Task submitted successfully"
+  },
+  "backToOpportunity": "Back to opportunity"
 }

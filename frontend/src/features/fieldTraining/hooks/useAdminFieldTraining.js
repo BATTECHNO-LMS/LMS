@@ -21,6 +21,7 @@ export function useAdminFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.adminList(params),
     queryFn: () => fetchAdminFieldTrainingList(params),
+    staleTime: 30_000,
     ...options,
   });
 }
@@ -29,6 +30,7 @@ export function useAdminFieldTrainingStats(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.adminStats(params),
     queryFn: () => fetchAdminFieldTrainingStats(params),
+    staleTime: 30_000,
     ...options,
   });
 }

@@ -1,4 +1,5 @@
 const fieldTrainingService = require('./fieldTraining.service');
+const workflowService = require('./fieldTraining.workflowService');
 const { ApiError } = require('../../utils/apiError');
 const { success, created } = require('../../utils/apiResponse');
 
@@ -72,12 +73,67 @@ async function listTasks(req, res, next) {
   }
 }
 
+async function listSessions(req, res, next) {
+  try {
+    const data = await workflowService.listSessions(req.validated.params.id, null, {
+      studentId: req.user.userId,
+    });
+    return success(res, data, { message: 'Sessions retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getAssessment(req, res, next) {
+  try {
+    const data = await workflowService.getStudentAssessment(
+      req.validated.params.id,
+      req.validated.params.type,
+      req.user.userId
+    );
+    return success(res, data, { message: 'Assessment retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function submitAssessment(req, res, next) {
+  try {
+    const data = await workflowService.submitAssessment(
+      req.validated.params.id,
+      req.validated.params.type,
+      req.validated.body.answers,
+      req.user.userId
+    );
+    return success(res, data, { message: 'Assessment submitted' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function aiSelfEvaluate(req, res, next) {
+  try {
+    const data = await workflowService.runTaskAiSelfEvaluate(
+      req.validated.params.taskId,
+      req.validated.body.studentInput,
+      req.user.userId
+    );
+    return success(res, data, { message: 'AI evaluation complete' });
+  } catch (e) {
+    if (e.code === 'AI_NOT_CONFIGURED') {
+      return next(new ApiError(503, e.message, null, 'AI_NOT_CONFIGURED'));
+    }
+    return next(e);
+  }
+}
+
 async function submitTask(req, res, next) {
   try {
     const data = await fieldTrainingService.submitTaskFile(
       req.validated.params.taskId,
       req.file,
-      req.user.userId
+      req.user.userId,
+      req.body || {}
     );
     return success(res, data, { message: 'Task submitted' });
   } catch (e) {
@@ -109,4 +165,17 @@ async function downloadSubmission(req, res, next) {
   }
 }
 
-module.exports = { list, myApplications, getById, apply, cancel, listTasks, submitTask, downloadSubmission };
+module.exports = {
+  list,
+  myApplications,
+  getById,
+  apply,
+  cancel,
+  listTasks,
+  listSessions,
+  getAssessment,
+  submitAssessment,
+  aiSelfEvaluate,
+  submitTask,
+  downloadSubmission,
+};

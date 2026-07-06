@@ -48,16 +48,11 @@ const COUNTS = {
   fieldOpportunities: 42,
 };
 
-const SPECIALTY_CATALOG = [
-  { name_ar: 'الأمن السيبراني', name_en: 'Cybersecurity', code: 'CYB' },
-  { name_ar: 'هندسة البرمجيات', name_en: 'Software Engineering', code: 'SWE' },
-  { name_ar: 'الذكاء الاصطناعي', name_en: 'Artificial Intelligence', code: 'AI' },
-  { name_ar: 'علم البيانات', name_en: 'Data Science', code: 'DS' },
-  { name_ar: 'علم الحاسوب', name_en: 'Computer Science', code: 'CS' },
-  { name_ar: 'تكنولوجيا المعلومات', name_en: 'Information Technology', code: 'IT' },
-  { name_ar: 'الشبكات', name_en: 'Networks', code: 'NET' },
-  { name_ar: 'نظم المعلومات الإدارية', name_en: 'Business Information Systems', code: 'BIS' },
-];
+const { SPECIALTY_CATALOG } = require('./lib/baselineCatalog');
+
+const SPECIALTY_CATALOG_DEMO = SPECIALTY_CATALOG.filter((s) =>
+  ['CYB', 'SWE', 'AI', 'DS', 'CS', 'IT', 'NET', 'MIS'].includes(s.code)
+);
 
 const STATS = {};
 
@@ -352,7 +347,7 @@ async function seedUniversities() {
 }
 
 async function seedSpecialties() {
-  const rows = SPECIALTY_CATALOG.map((spec) => ({
+  const rows = SPECIALTY_CATALOG_DEMO.map((spec) => ({
     id: uuid(),
     name_ar: spec.name_ar,
     name_en: spec.name_en,

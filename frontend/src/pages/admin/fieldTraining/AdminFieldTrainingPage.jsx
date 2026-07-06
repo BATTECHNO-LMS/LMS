@@ -42,10 +42,13 @@ import {
   usePublishFieldTraining,
   useUpdateFieldTraining,
   fetchAdminFieldTraining,
+  fetchFieldTrainingInstructors,
   opportunityStatusVariant,
   formatFtDate,
   getOpportunitySpecialtyLabel,
 } from '../../../features/fieldTraining/index.js';
+import { useQuery } from '@tanstack/react-query';
+import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { useSpecialties, getSpecialtyLabel } from '../../../features/specialties/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
@@ -54,6 +57,7 @@ const SEARCH_DEBOUNCE_MS = 350;
 const emptyForm = {
   title: '',
   specialty_id: '',
+  assigned_instructor_id: '',
   location: '',
   training_mode: 'onsite',
   short_description: '',
@@ -64,6 +68,11 @@ const emptyForm = {
   start_date: '',
   end_date: '',
   application_deadline: '',
+  requires_pre_assessment: true,
+  requires_post_assessment: true,
+  requires_final_task: true,
+  minimum_attendance_percentage: '',
+  minimum_post_assessment_score: '',
 };
 
 export function AdminFieldTrainingPage() {
@@ -110,6 +119,13 @@ export function AdminFieldTrainingPage() {
     isLoading: specialtiesLoading,
     isError: specialtiesError,
   } = useSpecialties();
+
+  const { data: instructorsData } = useQuery({
+    queryKey: fieldTrainingKeys.instructors(),
+    queryFn: fetchFieldTrainingInstructors,
+    staleTime: 60_000,
+  });
+  const instructorOptions = instructorsData?.instructors ?? [];
 
   const createMut = useCreateFieldTraining();
   const updateMut = useUpdateFieldTraining();
@@ -162,6 +178,14 @@ export function AdminFieldTrainingPage() {
       start_date: r.start_date ?? '',
       end_date: r.end_date ?? '',
       application_deadline: r.application_deadline ?? '',
+      assigned_instructor_id: r.assigned_instructor_id ?? '',
+      requires_pre_assessment: r.requires_pre_assessment ?? true,
+      requires_post_assessment: r.requires_post_assessment ?? true,
+      requires_final_task: r.requires_final_task ?? true,
+      minimum_attendance_percentage:
+        r.minimum_attendance_percentage != null ? String(r.minimum_attendance_percentage) : '',
+      minimum_post_assessment_score:
+        r.minimum_post_assessment_score != null ? String(r.minimum_post_assessment_score) : '',
     };
   }
 
@@ -199,6 +223,16 @@ export function AdminFieldTrainingPage() {
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       application_deadline: form.application_deadline || null,
+      assigned_instructor_id: form.assigned_instructor_id || null,
+      requires_pre_assessment: Boolean(form.requires_pre_assessment),
+      requires_post_assessment: Boolean(form.requires_post_assessment),
+      requires_final_task: Boolean(form.requires_final_task),
+      minimum_attendance_percentage: form.minimum_attendance_percentage
+        ? Number(form.minimum_attendance_percentage)
+        : null,
+      minimum_post_assessment_score: form.minimum_post_assessment_score
+        ? Number(form.minimum_post_assessment_score)
+        : null,
     };
   }
 
@@ -540,6 +574,9 @@ export function AdminFieldTrainingPage() {
 
               <div className="ft-admin-opp-card__actions">
                 <div className="ft-admin-opp-card__actions-main">
+                  <Link className="btn btn--sm btn--outline" to={`/admin/field-training/${r.id}/manage`}>
+                    {t('manageTraining.link')}
+                  </Link>
                   <Link className="btn btn--sm btn--primary" to={`/admin/field-training/${r.id}/tasks`}>
                     <ListChecks size={14} aria-hidden /> {t('tasks.manageTasks')}
                   </Link>
@@ -699,6 +736,86 @@ export function AdminFieldTrainingPage() {
                         <ChevronDown className="ft-modal-select__chevron" size={16} aria-hidden />
                       </div>
                     </div>
+                  </div>
+                </fieldset>
+
+                <fieldset className="ft-composer-section">
+                  <legend className="ft-composer-section__legend">
+                    <span className="ft-composer-section__title">{t('form.sectionWorkflow')}</span>
+                  </legend>
+                  <div className="ft-composer-section__grid ft-composer-section__grid--2">
+                    <div className="form-field">
+                      <label className="form-field__label" htmlFor="ft-instructor">
+                        {t('form.assignedInstructor')}
+                      </label>
+                      <select
+                        id="ft-instructor"
+                        className="ft-modal-select__control"
+                        value={form.assigned_instructor_id}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, assigned_instructor_id: e.target.value }))
+                        }
+                      >
+                        <option value="">{t('form.instructorPlaceholder')}</option>
+                        {instructorOptions.map((ins) => (
+                          <option key={ins.id} value={ins.id}>
+                            {ins.full_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <FormInput
+                      id="ft-min-att"
+                      type="number"
+                      min={0}
+                      max={100}
+                      label={t('form.minAttendance')}
+                      value={form.minimum_attendance_percentage}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, minimum_attendance_percentage: e.target.value }))
+                      }
+                    />
+                    <FormInput
+                      id="ft-min-post"
+                      type="number"
+                      min={0}
+                      max={100}
+                      label={t('form.minPostScore')}
+                      value={form.minimum_post_assessment_score}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, minimum_post_assessment_score: e.target.value }))
+                      }
+                    />
+                    <label className="form-field form-field--checkbox">
+                      <input
+                        type="checkbox"
+                        checked={form.requires_pre_assessment}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, requires_pre_assessment: e.target.checked }))
+                        }
+                      />
+                      {t('form.requiresPreAssessment')}
+                    </label>
+                    <label className="form-field form-field--checkbox">
+                      <input
+                        type="checkbox"
+                        checked={form.requires_post_assessment}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, requires_post_assessment: e.target.checked }))
+                        }
+                      />
+                      {t('form.requiresPostAssessment')}
+                    </label>
+                    <label className="form-field form-field--checkbox">
+                      <input
+                        type="checkbox"
+                        checked={form.requires_final_task}
+                        onChange={(e) =>
+                          setForm((f) => ({ ...f, requires_final_task: e.target.checked }))
+                        }
+                      />
+                      {t('form.requiresFinalTask')}
+                    </label>
                   </div>
                 </fieldset>
 

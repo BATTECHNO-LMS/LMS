@@ -61,7 +61,7 @@ const env = {
   /** Roles allowed to activate pending self-registered students (`PATCH /users/:id/activate`). */
   USER_ACTIVATE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.USER_ACTIVATE_ROLE_CODES,
-    'super_admin,program_admin,academic_admin'
+    'super_admin,program_admin,university_admin,academic_admin'
   ),
   /** Comma-separated `roles.code` values allowed to create/update universities. */
   UNIVERSITY_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
@@ -158,6 +158,23 @@ const env = {
     process.env.FIELD_TRAINING_ADMIN_ROLE_CODES,
     'super_admin,university_admin'
   ),
+  /** Field training instructor management (assigned opportunities only). */
+  FIELD_TRAINING_INSTRUCTOR_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.FIELD_TRAINING_INSTRUCTOR_ROLE_CODES,
+    'instructor'
+  ),
+  /** Roles allowed to manage field training (admin + assigned instructor). */
+  FIELD_TRAINING_MANAGE_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.FIELD_TRAINING_MANAGE_ROLE_CODES,
+    'super_admin,university_admin,instructor'
+  ),
+  /** AI self-evaluation provider (e.g. openai). Empty = disabled. */
+  AI_PROVIDER: (process.env.AI_PROVIDER || '').trim(),
+  OPENAI_API_KEY: (process.env.OPENAI_API_KEY || '').trim(),
+  AI_MODEL: (process.env.AI_MODEL || 'gpt-4o-mini').trim(),
+  FIELD_TRAINING_AI_RATE_LIMIT_MAX: Number(process.env.FIELD_TRAINING_AI_RATE_LIMIT_MAX) || 10,
+  FIELD_TRAINING_AI_RATE_LIMIT_WINDOW_MS:
+    Number(process.env.FIELD_TRAINING_AI_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   /** Resend API key for transactional email (set in .env only — never commit). */
   RESEND_API_KEY: (process.env.RESEND_API_KEY || '').trim(),
   RESEND_FROM_EMAIL: (process.env.RESEND_FROM_EMAIL || 'no-reply@lms.battechno.com').trim(),

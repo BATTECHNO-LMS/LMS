@@ -52,6 +52,25 @@ async function findUserById(id) {
   });
 }
 
+/** Profile fetch for /auth/me — excludes password_hash. */
+async function findUserProfileById(id) {
+  return prisma.users.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      phone: true,
+      status: true,
+      primary_university_id: true,
+      email_verified_at: true,
+      last_login_at: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
+}
+
 async function findRoleByCode(code) {
   return prisma.roles.findFirst({
     where: { code },
@@ -73,6 +92,7 @@ async function loadRolesAndPermissions(userId, tx = prisma) {
 
   const roleRecords = await tx.roles.findMany({
     where: { id: { in: roleIds } },
+    select: { id: true, code: true, name: true },
   });
 
   const rp = await tx.role_permissions.findMany({
@@ -169,6 +189,7 @@ module.exports = {
   findActiveEmailDomainsForUniversity,
   findUserByEmail,
   findUserById,
+  findUserProfileById,
   findRoleByCode,
   loadRolesAndPermissions,
   createStudentUser,
