@@ -69,4 +69,5 @@ module.exports = {
   isOtpExpired,
   isResendCooldownActive,
   resendCooldownRemainingSeconds,
+  getOtpPepper,
 };

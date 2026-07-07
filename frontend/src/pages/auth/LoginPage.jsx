@@ -166,6 +166,12 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
                 />
               </motion.div>
 
+              <motion.p {...fieldMotion(forcedRole ? 0.2 : 0.16)} className="auth-form__sign-up-row auth-form__forgot-row">
+                <Link className="auth-form__sign-up-link" to="/forgot-password">
+                  {t('login.forgot')}
+                </Link>
+              </motion.p>
+
               {serverError ? <p className="auth-form__error">{serverError}</p> : null}
 
               <motion.div {...fieldMotion(forcedRole ? 0.22 : 0.18)} className="auth-form__actions">

@@ -4,6 +4,8 @@ export const storageKeys = {
   authToken: `${PREFIX}auth_token`,
   authUser: `${PREFIX}auth_user`,
   pendingVerificationEmail: `${PREFIX}pending_verification_email`,
+  pendingPasswordResetEmail: `${PREFIX}pending_password_reset_email`,
+  passwordResetToken: `${PREFIX}password_reset_token`,
   locale: `${PREFIX}locale`,
   /** Active tenant scope for global (multi-tenant) users — frontend simulation only */
   tenantScope: `${PREFIX}tenant_scope`,

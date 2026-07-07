@@ -9,6 +9,7 @@ const { recordAudit } = require('../../utils/auditRecorder');
 const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
 const { listActiveSpecialties, assertActiveSpecialty } = require('../specialties/specialties.service');
 const { issueEmailVerificationOtp, verifyEmailOtpForUser, resendEmailVerificationOtp } = require('./emailVerification.service');
+const passwordResetService = require('./passwordReset.service');
 
 function isGlobalFromRoleRecords(roleRecords) {
   const code = (env.SUPER_ADMIN_ROLE_CODE || 'super_admin').toLowerCase();
@@ -216,6 +217,26 @@ async function resendEmailOtp(validated) {
   return resendEmailVerificationOtp(validated.email);
 }
 
+async function forgotPassword(validated) {
+  return passwordResetService.requestPasswordReset(validated.email);
+}
+
+async function verifyPasswordResetOtp(validated) {
+  return passwordResetService.verifyPasswordResetOtp(validated.email, validated.otp);
+}
+
+async function resendPasswordResetOtp(validated) {
+  return passwordResetService.resendPasswordResetOtp(validated.email);
+}
+
+async function resetPassword(validated) {
+  return passwordResetService.resetPasswordWithToken({
+    email: validated.email,
+    resetToken: validated.resetToken,
+    newPassword: validated.newPassword,
+  });
+}
+
 module.exports = {
   register,
   login,
@@ -225,4 +246,8 @@ module.exports = {
   specialtiesForRegistration,
   verifyEmailOtp,
   resendEmailOtp,
+  forgotPassword,
+  verifyPasswordResetOtp,
+  resendPasswordResetOtp,
+  resetPassword,
 };

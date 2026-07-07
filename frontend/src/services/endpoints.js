@@ -15,6 +15,10 @@ export const endpoints = {
     registerSpecialties: `${API_ROOT}/auth/register/specialties`,
     verifyEmailOtp: `${API_ROOT}/auth/verify-email-otp`,
     resendEmailOtp: `${API_ROOT}/auth/resend-email-otp`,
+    forgotPassword: `${API_ROOT}/auth/forgot-password`,
+    verifyPasswordResetOtp: `${API_ROOT}/auth/verify-password-reset-otp`,
+    resendPasswordResetOtp: `${API_ROOT}/auth/resend-password-reset-otp`,
+    resetPassword: `${API_ROOT}/auth/reset-password`,
     registerUniversitySpecialties: (universityId) =>
       `${API_ROOT}/auth/register/universities/${universityId}/specialties`,
     refresh: `${API_ROOT}/auth/refresh`,

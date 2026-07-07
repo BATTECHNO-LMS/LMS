@@ -69,6 +69,43 @@ export async function resendEmailOtp(email) {
   throw new Error('Invalid resend response');
 }
 
+export async function forgotPassword(email) {
+  const res = await apiClient.post(endpoints.auth.forgotPassword, { email });
+  const body = res?.data;
+  if (body && typeof body === 'object' && body.success === true) {
+    return { message: body.message ?? '' };
+  }
+  throw new Error('Invalid forgot password response');
+}
+
+export async function verifyPasswordResetOtp(email, otp) {
+  const res = await apiClient.post(endpoints.auth.verifyPasswordResetOtp, { email, otp });
+  return unwrapApiData(res);
+}
+
+export async function resendPasswordResetOtp(email) {
+  const res = await apiClient.post(endpoints.auth.resendPasswordResetOtp, { email });
+  const body = res?.data;
+  if (body && typeof body === 'object' && body.success === true) {
+    return { message: body.message ?? '' };
+  }
+  throw new Error('Invalid resend password reset response');
+}
+
+export async function resetPassword(email, resetToken, newPassword, confirmPassword) {
+  const res = await apiClient.post(endpoints.auth.resetPassword, {
+    email,
+    resetToken,
+    newPassword,
+    confirmPassword,
+  });
+  const body = res?.data;
+  if (body && typeof body === 'object' && body.success === true) {
+    return { message: body.message ?? '' };
+  }
+  throw new Error('Invalid reset password response');
+}
+
 export async function logout() {
   try {
     await apiClient.post(endpoints.auth.logout);

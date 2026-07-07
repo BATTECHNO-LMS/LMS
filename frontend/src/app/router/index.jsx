@@ -9,6 +9,9 @@ import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 import { LoginPage } from '../../pages/auth/LoginPage.jsx';
 import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
 import { VerifyEmailOtpPage } from '../../pages/auth/VerifyEmailOtpPage.jsx';
+import { ForgotPasswordPage } from '../../pages/auth/ForgotPasswordPage.jsx';
+import { VerifyPasswordResetOtpPage } from '../../pages/auth/VerifyPasswordResetOtpPage.jsx';
+import { NewPasswordPage } from '../../pages/auth/NewPasswordPage.jsx';
 import {
   AdminLoginPage,
   InstructorLoginPage,
@@ -52,6 +55,15 @@ export function AppRouter() {
 
       <Route path="/verify-email" element={<AuthLayout />}>
         <Route index element={<VerifyEmailOtpPage />} />
+      </Route>
+
+      <Route path="/forgot-password" element={<AuthLayout />}>
+        <Route index element={<ForgotPasswordPage />} />
+      </Route>
+
+      <Route path="/reset-password" element={<AuthLayout />}>
+        <Route path="verify" element={<VerifyPasswordResetOtpPage />} />
+        <Route path="new" element={<NewPasswordPage />} />
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
