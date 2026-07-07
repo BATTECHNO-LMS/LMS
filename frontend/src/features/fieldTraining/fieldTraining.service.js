@@ -1,6 +1,7 @@
 import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
+import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
 
 const admin = endpoints.adminFieldTraining;
 const student = endpoints.studentFieldTraining;
@@ -102,10 +103,40 @@ export async function fetchOpportunitySubmissions(opportunityId) {
 }
 
 export async function submitFieldTrainingTask(taskId, file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const record = await uploadFileToStorage(file, {
+    folder: 'training',
+    visibility: 'private',
+    accept: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'application/pdf',
+    ],
+    relatedEntityType: 'field_training_task',
+    relatedEntityId: taskId,
+  });
+  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, { fileId: record.id });
+  return unwrapApiData(res);
+}
+
+export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
+  const record = await uploadFileToStorage(file, {
+    folder: 'training',
+    visibility: 'private',
+    accept: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'application/pdf',
+    ],
+    relatedEntityType: 'field_training_task',
+    relatedEntityId: taskId,
+  });
+  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, {
+    fileId: record.id,
+    ...meta,
   });
   return unwrapApiData(res);
 }
@@ -200,18 +231,6 @@ export async function expelFieldTrainingParticipant(applicationId, body) {
 
 export async function issueCompletionLetter(applicationId) {
   const res = await apiClient.post(`${admin}/applications/${applicationId}/issue-completion-letter`);
-  return unwrapApiData(res);
-}
-
-export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
-  const fd = new FormData();
-  fd.append('file', file);
-  Object.entries(meta).forEach(([k, v]) => {
-    if (v != null && v !== '') fd.append(k, String(v));
-  });
-  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
   return unwrapApiData(res);
 }
 

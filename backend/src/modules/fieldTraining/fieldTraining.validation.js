@@ -164,6 +164,7 @@ const aiSelfEvalBodySchema = z.object({
 });
 
 const taskSubmitFieldsSchema = z.object({
+  fileId: z.string().uuid().optional(),
   student_self_evaluation_input: z.string().max(20000).optional().nullable(),
   ai_prompt_used: z.string().max(20000).optional().nullable(),
   ai_model_provider: z.string().max(80).optional().nullable(),

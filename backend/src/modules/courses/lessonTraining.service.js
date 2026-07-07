@@ -1,6 +1,7 @@
 const path = require('path');
 const { ApiError } = require('../../utils/apiError');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
+const filesService = require('../files/files.service');
 const repo = require('./lessonTraining.repository');
 const coursesRepo = require('./courses.repository');
 
@@ -151,7 +152,7 @@ async function startTraining(courseId, lessonId, studentId) {
   return { config, workflow: mapWorkflow(wf, config) };
 }
 
-async function submitFile(courseId, lessonId, studentId, file) {
+async function submitFile(courseId, lessonId, studentId, file, body = {}, user = { userId: studentId }) {
   const lesson = await repo.findLessonInCourse(lessonId, courseId);
   if (!lesson) throw new ApiError(404, 'Lesson not found');
 
@@ -160,14 +161,21 @@ async function submitFile(courseId, lessonId, studentId, file) {
     throw new ApiError(400, 'ابدأ التدريب أولاً');
   }
 
-  const relativePath = path
-    .join('lesson-training', lessonId, file.filename)
-    .replace(/\\/g, '/');
+  const resolved = await filesService.resolveUploadInput(
+    {
+      file,
+      fileId: body.fileId,
+      localPathBuilder: (f) =>
+        path.join('lesson-training', lessonId, f.filename).replace(/\\/g, '/'),
+    },
+    user
+  );
+  if (!resolved) throw new ApiError(400, 'الملف مطلوب');
 
   wf = await repo.upsertWorkflow(lessonId, studentId, courseId, {
-    submission_file_path: relativePath,
-    submission_file_name: file.originalname,
-    submission_size_bytes: file.size,
+    submission_file_path: resolved.filePath,
+    submission_file_name: resolved.fileName,
+    submission_size_bytes: resolved.size,
     submitted_at: new Date(),
     upload_score: null,
   });

@@ -40,6 +40,8 @@ router.use('/student/courses', require('../modules/courses/studentCourses.routes
 router.use('/admin/field-training', require('../modules/fieldTraining/adminFieldTraining.routes'));
 router.use('/instructor/field-training', require('../modules/fieldTraining/instructorFieldTraining.routes'));
 router.use('/student/field-training', require('../modules/fieldTraining/studentFieldTraining.routes'));
+router.use('/files', require('../modules/files/files.routes'));
+router.use('/ai', require('../modules/ai/ai.routes'));
 router.use('/public', require('../modules/public/public.routes'));
 
 module.exports = router;

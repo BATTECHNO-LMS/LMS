@@ -5,6 +5,8 @@ const { recordAudit } = require('../../utils/auditRecorder');
 const { uniqueSlugFromTitle } = require('./fieldTraining.slug');
 const { assertPublishReady } = require('./fieldTraining.publishReadiness');
 const { resolveStudentSpecialtyId } = require('../../utils/studentScope');
+const { getStorageBackend, getProvider } = require('../../shared/storage/storageProvider');
+const filesService = require('../files/files.service');
 const {
   NO_SPECIALTY_MSG,
   requireStudentSpecialtyId,
@@ -660,6 +662,19 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
     await assertStudentCanAccessOpportunity(opp, user.userId);
   }
 
+  if (!submission.file_path) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  if (getStorageBackend() === 'r2' && String(submission.file_path).startsWith('uploads/')) {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: submission.file_path });
+    return {
+      redirectUrl: signed.url,
+      fileName: submission.file_name,
+      mimeType: submission.mime_type || 'application/octet-stream',
+    };
+  }
+
   if (!repo.submissionFileExists(submission.file_path)) {
     throw new ApiError(404, 'File not found');
   }
@@ -671,8 +686,16 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
   };
 }
 
-async function submitTaskFile(taskId, file, studentId, body = {}) {
-  if (!file) throw new ApiError(400, 'الملف مطلوب');
+async function submitTaskFile(taskId, file, studentId, body = {}, user = { userId: studentId }) {
+  const resolved = await filesService.resolveUploadInput(
+    {
+      file,
+      fileId: body.fileId,
+      localPathBuilder: (f) => repo.buildRelativeFilePath(taskId, path.basename(f.filename)),
+    },
+    user
+  );
+  if (!resolved) throw new ApiError(400, 'الملف مطلوب');
 
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
@@ -694,7 +717,7 @@ async function submitTaskFile(taskId, file, studentId, body = {}) {
     }
   }
 
-  const relative = repo.buildRelativeFilePath(taskId, path.basename(file.filename));
+  const relative = resolved.filePath;
   const dueDate = task.due_date ? new Date(task.due_date) : null;
   const isLate = dueDate ? new Date() > dueDate : false;
 
@@ -703,8 +726,8 @@ async function submitTaskFile(taskId, file, studentId, body = {}) {
     applicationId: app.id,
     studentId,
     filePath: relative,
-    fileName: file.originalname || file.filename,
-    mimeType: file.mimetype,
+    fileName: resolved.fileName,
+    mimeType: resolved.mimeType,
     extra: {
       student_self_evaluation_input: body.student_self_evaluation_input ?? null,
       ai_prompt_used: body.ai_prompt_used ?? null,

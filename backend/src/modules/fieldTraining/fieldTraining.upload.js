@@ -41,6 +41,10 @@ const uploadTaskFile = multer({
 }).single('file');
 
 function handleTaskUpload(req, res, next) {
+  const ct = String(req.headers['content-type'] || '');
+  if (!ct.includes('multipart/form-data')) {
+    return next();
+  }
   uploadTaskFile(req, res, (err) => {
     if (!err) return next();
     if (err.code === 'LIMIT_FILE_SIZE') {

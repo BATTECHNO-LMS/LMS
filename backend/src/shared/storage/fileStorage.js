@@ -1,28 +1,36 @@
 const path = require('path');
 const { env } = require('../../config/env');
+const { getStorageBackend } = require('./storageProvider');
 
 /**
- * File storage abstraction. Today: local disk + optional CDN/public base URL.
- * For S3: set STORAGE_BACKEND=s3 and implement upload in a future adapter — callers should store `storage_key` in DB and resolve URLs here.
+ * File storage abstraction. Supports local disk and Cloudflare R2 (S3-compatible).
+ * Callers store `storage_key` in DB and resolve URLs here.
  */
-const STORAGE_BACKEND = env.STORAGE_BACKEND || 'local';
+const STORAGE_BACKEND = getStorageBackend();
 
 /**
  * Build a browser-accessible URL for a stored object key or legacy relative path.
- * @param {string | null | undefined} fileUrlOrKey Path under UPLOAD_DIR, full URL, or S3 key
+ * @param {string | null | undefined} fileUrlOrKey Path under UPLOAD_DIR, full URL, storage key, or S3 key
  * @returns {string | null}
  */
 function resolvePublicUrl(fileUrlOrKey) {
   if (fileUrlOrKey == null || fileUrlOrKey === '') return null;
   const s = String(fileUrlOrKey).trim();
   if (s.startsWith('http://') || s.startsWith('https://')) return s;
+
+  if (STORAGE_BACKEND === 'r2' && env.R2_PUBLIC_BASE_URL) {
+    const key = s.replace(/^\/+/, '').replace(/^uploads\//, '');
+    return `${env.R2_PUBLIC_BASE_URL.replace(/\/$/, '')}/${key}`;
+  }
+
   if (STORAGE_BACKEND === 's3' && env.S3_PUBLIC_BASE_URL) {
     const key = s.replace(/^\/+/, '');
     return `${env.S3_PUBLIC_BASE_URL.replace(/\/$/, '')}/${key}`;
   }
-  const clean = s.replace(/^\/+/, '');
+
+  const clean = s.replace(/^\/+/, '').replace(/^uploads\//, '');
   const base = (env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
-  return `${base}/uploads/${clean}`;
+  return base ? `${base}/uploads/${clean}` : `/uploads/${clean}`;
 }
 
 /**

@@ -1,0 +1,21 @@
+{
+  "dropzoneHint": "Drag a file here or click to choose",
+  "uploading": "Uploading… {{percent}}%",
+  "success": "“{{name}}” uploaded successfully",
+  "errors": {
+    "invalidType": "File type is not supported",
+    "tooLarge": "File exceeds the maximum size ({{max}})",
+    "uploadFailed": "Upload failed. Please try again",
+    "confirmFailed": "Could not confirm upload. Please retry",
+    "expiredUrl": "Upload link expired. Please retry",
+    "cors": "Could not reach storage service (CORS)",
+    "storage": "Storage service is currently unavailable",
+    "rateLimit": "Rate limit exceeded. Please try again later",
+    "unauthorized": "Not authorized to upload this file"
+  },
+  "ai": {
+    "unavailable": "Could not connect to the AI service",
+    "retryLater": "Please try again later",
+    "rateLimit": "Rate limit exceeded temporarily"
+  }
+}
