@@ -157,9 +157,9 @@
     "title": "Field training",
     "description": "Browse published field training opportunities and submit your application.",
     "heroDescription": "Explore opportunities for your university and specialty, apply, and complete tasks after approval.",
-    "scopeInfo": "You only see field training opportunities linked to your specialty.",
+    "scopeInfo": "You only see field training opportunities linked to your specialty, regardless of university.",
     "profileIncompleteTitle": "Complete your specialty profile",
-    "profileIncompleteDesc": "Please complete your specialty details to view matching field training opportunities.",
+    "profileIncompleteDesc": "Field training opportunities cannot be shown until your specialty is set on your account.",
     "statAvailable": "Available opportunities",
     "statPending": "Pending applications",
     "statApproved": "Approved trainings",
@@ -239,6 +239,10 @@
       "cancelled": {
         "title": "Application cancelled",
         "text": "You may apply again if the system allows it."
+      },
+      "expelled": {
+        "title": "Expelled from training",
+        "text": "Your participation in this training was stopped by administration."
       }
     },
     "applicationRejected": "Your application was rejected. Review the opportunity details or contact administration.",
@@ -299,7 +303,17 @@
     "dropzoneHint": "Drag a file or image here, or click to choose",
     "dropzoneMeta": "Images · PDF — up to 8 MB",
     "notFound": "Task not found",
-    "selfEvalLink": "Self-evaluate before submit"
+    "selfEvalLink": "Self-evaluate before submit",
+    "finalTaskBadge": "Final",
+    "aiBadge": "AI self-eval",
+    "reviewStatus": "Review status",
+    "reviewStatuses": {
+      "pending": "Pending review",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "needs_revision": "Needs revision"
+    },
+    "instructorFeedback": "Instructor feedback"
   },
   "unauthorized": {
     "title": "Unauthorized",
@@ -334,7 +348,16 @@
   "progress": {
     "preLevel": "Pre level",
     "attendance": "Attendance",
-    "eligibility": "Eligibility"
+    "eligibility": "Eligibility",
+    "postScore": "Post score",
+    "task": "Final task",
+    "letterIssued": "Letter issued"
+  },
+  "attendanceStatus": {
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "excused": "Excused"
   },
   "manageTraining": {
     "link": "Manage training",
@@ -362,17 +385,113 @@
     "title": "Self-evaluate before submit",
     "instructorPrompt": "Instructor prompt",
     "studentInputLabel": "Summarize what you accomplished",
+    "studentInputPlaceholder": "Explain what you implemented, files you prepared, and any important notes before submission.",
     "runAi": "Analyze with AI",
-    "aiLoading": "Analyzing…",
+    "aiLoading": "Analyzing your response…",
     "aiError": "AI analysis failed",
-    "aiNotConfigured": "AI is not configured. Contact administration.",
-    "aiResultLabel": "AI result (you may edit)",
-    "finalNotesLabel": "Final notes",
+    "aiNotConfigured": "AI analysis is not enabled right now.",
+    "aiRequired": "Run AI analysis before submitting this task.",
+    "aiResultLabel": "Self-evaluation result",
+    "aiResultPlaceholder": "AI result will appear here after analysis.",
+    "finalNotesLabel": "Final notes (optional)",
     "fileLabel": "Upload submission file",
     "fileRequired": "File is required",
     "submit": "Submit task",
     "submitting": "Submitting…",
     "submitSuccess": "Task submitted successfully"
   },
-  "backToOpportunity": "Back to opportunity"
+  "backToOpportunity": "Back to opportunity",
+  "studentTraining": {
+    "hubLabel": "Training progress",
+    "tabsLabel": "Training sections",
+    "viewHistory": "View history",
+    "backToTasks": "Back to tasks",
+    "submittedAt": "Submitted on",
+    "nextAction": "Next action",
+    "loadError": "Could not load data. Please try again.",
+    "workflowTitle": "Training journey",
+    "expelledTitle": "Expelled from training",
+    "expelledText": "Your participation in this training was stopped by administration.",
+    "expelledReason": "Reason: {{reason}}",
+    "tasksBlocked": "Tasks and submissions are disabled after expulsion.",
+    "tasksLocked": "Tasks appear after training starts and prior requirements are met.",
+    "sessionsLocked": "Sessions appear after training starts.",
+    "attendanceLocked": "Attendance summary appears after training starts and sessions are recorded.",
+    "assessmentsLocked": "Assessments are available after your application is approved.",
+    "completionLocked": "Completion letter appears after requirements are met.",
+    "noSessions": "No sessions scheduled yet.",
+    "noTasks": "No required tasks at this time.",
+    "joinSession": "Join session",
+    "noZoomLink": "Session link not added yet",
+    "attendanceNotRecorded": "Not recorded yet",
+    "tabs": {
+      "overview": "Overview",
+      "sessions": "Sessions",
+      "attendance": "Attendance",
+      "tasks": "Tasks",
+      "assessments": "Assessments",
+      "completion": "Completion letter"
+    },
+    "workflowSteps": {
+      "application_submitted": "Application submitted",
+      "application_reviewed": "Admin approval",
+      "pre_assessment": "Pre-assessment",
+      "training_started": "Training started",
+      "sessions": "Sessions & attendance",
+      "tasks": "Tasks & submission",
+      "post_assessment": "Post-assessment",
+      "completion_letter": "Completion letter"
+    },
+    "kpi": {
+      "preScore": "Pre-assessment score",
+      "postScore": "Post-assessment score",
+      "tasksSubmitted": "Tasks submitted",
+      "notYet": "Not completed yet",
+      "attendanceHint": "Required session attendance rate",
+      "tasksHint": "Of total required tasks"
+    },
+    "sessions": {
+      "required": "Required",
+      "optional": "Optional"
+    },
+    "attendance": {
+      "totalSessions": "Sessions",
+      "present": "Present",
+      "absent": "Absent",
+      "minRequired": "Minimum required: {{min}}%",
+      "eligible": "You meet the attendance requirement.",
+      "notEligible": "Attendance is below the required minimum."
+    },
+    "assessment": {
+      "preTitle": "Pre-assessment",
+      "preDesc": "This assessment measures knowledge before training begins.",
+      "postTitle": "Post-assessment",
+      "postDesc": "This assessment measures learning after training ends.",
+      "startPre": "Start pre-assessment",
+      "startPost": "Start post-assessment",
+      "completed": "Completed",
+      "available": "Available now",
+      "locked": "Locked",
+      "notPublished": "Assessment not published by administration yet.",
+      "noneRequired": "This training does not require pre/post assessments.",
+      "notReady": "Assessment is not ready yet.",
+      "score": "Score",
+      "success": "Assessment submitted successfully.",
+      "done": "Done",
+      "submit": "Submit answers",
+      "submitting": "Submitting…",
+      "true": "True",
+      "false": "False"
+    },
+    "completion": {
+      "title": "Completion letter",
+      "issued": "Your completion letter has been issued.",
+      "issuedAt": "Issued on",
+      "download": "Download completion letter",
+      "downloading": "Downloading…",
+      "downloadError": "Could not download letter",
+      "awaitingIssue": "You are eligible — awaiting letter issuance by administration.",
+      "pending": "Your completion letter will be issued after requirements are met and reviewed."
+    }
+  }
 }

@@ -13,3 +13,5 @@ export function saveFieldTrainingSubmissionBlob({ blob, filename }) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export const saveCompletionLetterBlob = saveFieldTrainingSubmissionBlob;

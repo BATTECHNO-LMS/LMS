@@ -407,6 +407,7 @@ async function listStudentOpportunities(query, studentId) {
         ...repo.mapOpportunityRow(row),
         my_application_status: app?.status ?? null,
         my_application_id: app?.id ?? null,
+        my_training_status: app?.training_status ?? null,
       };
     })
   );

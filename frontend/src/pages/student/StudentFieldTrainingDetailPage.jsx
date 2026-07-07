@@ -5,17 +5,11 @@ import {
   Award,
   Briefcase,
   Calendar,
-  CheckCircle2,
-  ClipboardList,
   Clock,
-  Eye,
   FileText,
   GraduationCap,
   ListChecks,
-  Lock,
   MapPin,
-  Search,
-  Send,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -28,40 +22,38 @@ import {
   useApplyFieldTraining,
   useCancelFieldTrainingApplication,
   useStudentFieldTraining,
+  useStudentTrainingProgress,
   applicationBadgeVariant,
   formatFtDate,
   getOpportunitySpecialtyLabel,
+  trainingStatusVariant,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
-import { StudentFieldTrainingTasksPanel } from '../admin/fieldTraining/components/StudentFieldTrainingTasksPanel.jsx';
+import { StudentTrainingTabNav } from './fieldTraining/components/StudentTrainingTabNav.jsx';
+import { StudentExpelledBanner } from './fieldTraining/components/StudentExpelledBanner.jsx';
+import { StudentOverviewTab } from './fieldTraining/components/StudentOverviewTab.jsx';
+import { StudentSessionsTab } from './fieldTraining/components/StudentSessionsTab.jsx';
+import { StudentAttendanceTab } from './fieldTraining/components/StudentAttendanceTab.jsx';
+import { StudentTasksTab } from './fieldTraining/components/StudentTasksTab.jsx';
+import { StudentAssessmentsTab } from './fieldTraining/components/StudentAssessmentsTab.jsx';
+import { StudentCompletionTab } from './fieldTraining/components/StudentCompletionTab.jsx';
 
-const TIMELINE_STEPS = [
-  { key: 'view', icon: Eye },
-  { key: 'apply', icon: Send },
-  { key: 'review', icon: Search },
-  { key: 'accepted', icon: CheckCircle2 },
-  { key: 'tasks', icon: ClipboardList },
-];
+const ACTIVE_TRAINING = new Set([
+  'pre_assessment_completed',
+  'ready_for_training',
+  'in_training',
+  'task_pending',
+  'task_submitted',
+  'post_assessment_pending',
+  'post_assessment_completed',
+  'eligible_for_completion',
+  'completed',
+]);
 
-function getTimelineState(appStatus) {
-  if (!appStatus || appStatus === 'cancelled') {
-    return { activeIndex: 0, rejected: false, cancelled: appStatus === 'cancelled' };
-  }
-  if (appStatus === 'pending') {
-    return { activeIndex: 2, rejected: false, cancelled: false };
-  }
-  if (appStatus === 'rejected') {
-    return { activeIndex: 2, rejected: true, cancelled: false };
-  }
-  if (appStatus === 'approved') {
-    return { activeIndex: 4, rejected: false, cancelled: false };
-  }
-  return { activeIndex: 0, rejected: false, cancelled: false };
-}
-
-function getStatusSummaryKey(appStatus) {
+function getStatusSummaryKey(appStatus, expelled) {
+  if (expelled) return 'expelled';
   if (!appStatus) return 'notApplied';
   if (appStatus === 'cancelled') return 'cancelled';
   return appStatus;
@@ -120,10 +112,13 @@ function ApplicationStatusCard({
   t,
   canApply,
   canCancel,
-  isApproved,
+  showTrainingCta,
+  onTrainingCta,
   onApply,
   onCancel,
   cancelPending,
+  application,
+  trainingStatus,
 }) {
   const summary = t(`student.statusSummary.${statusKey}`, { returnObjects: true });
 
@@ -139,6 +134,19 @@ function ApplicationStatusCard({
         </h2>
       </header>
       <p className="ft-app-status-card__text">{summary.text}</p>
+      {application?.created_at ? (
+        <p className="ft-app-status-card__meta">
+          {t('studentTraining.submittedAt')}: {formatFtDate(application.created_at)}
+        </p>
+      ) : null}
+      {application?.admin_note ? (
+        <p className="ft-app-status-card__note">{application.admin_note}</p>
+      ) : null}
+      {trainingStatus && trainingStatus !== 'none' ? (
+        <StatusBadge variant={trainingStatusVariant(trainingStatus)}>
+          {t(`trainingStatus.${trainingStatus}`, trainingStatus)}
+        </StatusBadge>
+      ) : null}
       <div className="ft-app-status-card__actions">
         {canApply ? (
           <Button type="button" variant="primary" className="ft-app-status-card__btn" onClick={onApply}>
@@ -156,10 +164,10 @@ function ApplicationStatusCard({
             {t('student.cancelApplication')}
           </Button>
         ) : null}
-        {isApproved ? (
-          <a href="#ft-tasks" className="btn btn--primary ft-app-status-card__btn">
-            {t('student.goToTasks')}
-          </a>
+        {showTrainingCta ? (
+          <Button type="button" variant="primary" className="ft-app-status-card__btn" onClick={onTrainingCta}>
+            {t('student.continueTraining')}
+          </Button>
         ) : null}
       </div>
     </aside>
@@ -168,7 +176,7 @@ function ApplicationStatusCard({
 
 export function StudentFieldTrainingDetailPage() {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const { data, isLoading, isError, refetch } = useStudentFieldTraining(id);
@@ -179,14 +187,34 @@ export function StudentFieldTrainingDetailPage() {
   const [formError, setFormError] = useState('');
 
   const opp = data?.opportunity;
+  const application = data?.application;
   const appStatus = opp?.my_application_status;
-  const appId = opp?.my_application_id;
-  const canApply = !appStatus || appStatus === 'cancelled';
+  const appId = opp?.my_application_id ?? application?.id;
+  const trainingStatus = application?.training_status ?? opp?.my_training_status ?? 'none';
+  const expelled =
+    trainingStatus === 'expelled' || Boolean(application?.expelled_at);
+  const isApprovedParticipant = appStatus === 'approved';
+  const isApproved = isApprovedParticipant && !expelled;
+  const canApply = !expelled && (!appStatus || appStatus === 'cancelled');
   const canCancel = appStatus === 'pending' && appId;
-  const isApproved = appStatus === 'approved';
-  const statusKey = getStatusSummaryKey(appStatus);
+  const canTrainingContent =
+    isApproved && ACTIVE_TRAINING.has(trainingStatus);
+  const statusKey = getStatusSummaryKey(appStatus, expelled);
 
-  const timeline = useMemo(() => getTimelineState(appStatus), [appStatus]);
+  const activeTab = searchParams.get('tab') || 'overview';
+  const setActiveTab = (tab) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    });
+  };
+
+  const { data: progressData } = useStudentTrainingProgress(id, {
+    enabled: Boolean(id && appStatus === 'approved'),
+  });
+  const progress = progressData ?? null;
+
   const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'));
   const modeLabel = TRAINING_MODES.find((m) => m.value === opp?.training_mode)?.labelKey;
   const heroSubtitle =
@@ -219,6 +247,72 @@ export function StudentFieldTrainingDetailPage() {
     await cancelMut.mutateAsync(appId);
     refetch();
   }
+
+  const tabContent = useMemo(() => {
+    if (!isApproved && expelled) return null;
+    switch (activeTab) {
+      case 'sessions':
+        return (
+          <StudentSessionsTab opportunityId={id} enabled={canTrainingContent} />
+        );
+      case 'attendance':
+        return (
+          <StudentAttendanceTab
+            opportunityId={id}
+            progress={progress}
+            opp={opp}
+            enabled={canTrainingContent}
+          />
+        );
+      case 'tasks':
+        return (
+          <StudentTasksTab
+            opportunityId={id}
+            enabled={canTrainingContent}
+            expelled={expelled}
+          />
+        );
+      case 'assessments':
+        return (
+          <StudentAssessmentsTab
+            opportunityId={id}
+            enabled={appStatus === 'approved' && !expelled}
+            opp={opp}
+          />
+        );
+      case 'completion':
+        return (
+          <StudentCompletionTab
+            applicationId={appId}
+            progress={progress}
+            application={application}
+            enabled={appStatus === 'approved' && !expelled}
+          />
+        );
+      case 'overview':
+      default:
+        return (
+          <StudentOverviewTab
+            progress={progress}
+            application={application}
+            opp={opp}
+            expelled={expelled}
+            rejected={appStatus === 'rejected'}
+          />
+        );
+    }
+  }, [
+    activeTab,
+    id,
+    isApproved,
+    expelled,
+    canTrainingContent,
+    progress,
+    opp,
+    appId,
+    application,
+    appStatus,
+  ]);
 
   if (isLoading) {
     return (
@@ -264,6 +358,10 @@ export function StudentFieldTrainingDetailPage() {
             <span>{t('student.backToList')}</span>
           </Link>
 
+          {expelled ? (
+            <StudentExpelledBanner reason={application?.expulsion_reason} />
+          ) : null}
+
           <section className="ft-student-hero" aria-labelledby="ft-opp-title">
             <div className="ft-student-hero__pattern" aria-hidden />
             <div className="ft-student-hero__accent" aria-hidden />
@@ -278,12 +376,19 @@ export function StudentFieldTrainingDetailPage() {
                     {specialtyLabel}
                   </span>
                   {appStatus ? (
-                    <StatusBadge variant={applicationBadgeVariant(appStatus)}>
-                      {t(`applicationStatus.${appStatus}`)}
+                    <StatusBadge variant={applicationBadgeVariant(expelled ? 'rejected' : appStatus)}>
+                      {expelled
+                        ? t('trainingStatus.expelled')
+                        : t(`applicationStatus.${appStatus}`)}
                     </StatusBadge>
                   ) : (
                     <StatusBadge variant="muted">{t('student.statusNotApplied')}</StatusBadge>
                   )}
+                  {isApprovedParticipant && trainingStatus !== 'none' ? (
+                    <StatusBadge variant={trainingStatusVariant(trainingStatus)}>
+                      {t(`trainingStatus.${trainingStatus}`, trainingStatus)}
+                    </StatusBadge>
+                  ) : null}
                 </div>
                 <h1 id="ft-opp-title" className="ft-student-hero__title">
                   {opp.title}
@@ -306,12 +411,15 @@ export function StudentFieldTrainingDetailPage() {
                       {t('student.cancelApplication')}
                     </Button>
                   ) : null}
-                  {isApproved ? (
-                    <a href="#ft-tasks" className="btn btn--primary">
-                      {t('student.goToTasks')}
-                    </a>
+                  {isApprovedParticipant ? (
+                    <Button type="button" variant="primary" onClick={() => setActiveTab('overview')}>
+                      {expelled ? t('studentTraining.viewHistory') : t('student.continueTraining')}
+                    </Button>
                   ) : null}
-                  {!canApply && !canCancel && !isApproved && appStatus === 'rejected' ? (
+                  {appStatus === 'pending' ? (
+                    <span className="ft-student-hero__notice">{t('student.statusSummary.pending.title')}</span>
+                  ) : null}
+                  {appStatus === 'rejected' ? (
                     <span className="ft-student-hero__notice">{t('student.applicationRejected')}</span>
                   ) : null}
                 </div>
@@ -321,12 +429,12 @@ export function StudentFieldTrainingDetailPage() {
 
           <div className="ft-info-grid" role="list">
             <DetailInfoCard icon={GraduationCap} label={t('form.specialty')} value={specialtyLabel} />
-            <DetailInfoCard icon={MapPin} label={t('form.location')} value={opp.location} />
             <DetailInfoCard
               icon={Briefcase}
               label={t('form.mode')}
               value={modeLabel ? t(modeLabel) : opp.training_mode}
             />
+            <DetailInfoCard icon={MapPin} label={t('form.location')} value={opp.location} />
             <DetailInfoCard icon={Calendar} label={t('student.startDate')} value={formatFtDate(opp.start_date)} />
             <DetailInfoCard icon={Calendar} label={t('student.endDate')} value={formatFtDate(opp.end_date)} />
             <DetailInfoCard
@@ -341,115 +449,58 @@ export function StudentFieldTrainingDetailPage() {
             />
           </div>
 
-          <section className="ft-journey" aria-labelledby="ft-journey-title">
-            <header className="ft-journey__header">
-              <h2 id="ft-journey-title" className="ft-journey__title">
-                {t('student.journeyTitle')}
-              </h2>
-              {timeline.cancelled ? (
-                <p className="ft-journey__banner ft-journey__banner--muted">{t('student.statusSummary.cancelled.text')}</p>
-              ) : null}
-              {timeline.rejected ? (
-                <p className="ft-journey__banner ft-journey__banner--danger" role="status">
-                  {t('student.applicationRejected')}
-                </p>
-              ) : null}
-            </header>
-            <ol className="ft-journey__track">
-              {TIMELINE_STEPS.map((step, index) => {
-                const StepIcon = step.icon;
-                let state = 'upcoming';
-                if (index < timeline.activeIndex) state = 'completed';
-                else if (index === timeline.activeIndex && !timeline.rejected) state = 'current';
-                else if (timeline.rejected && index === 2) state = 'rejected';
-                else if (timeline.rejected && index < 2) state = 'completed';
-
-                return (
-                  <li
-                    key={step.key}
-                    className={`ft-journey__step ft-journey__step--${state}`}
-                    aria-current={state === 'current' ? 'step' : undefined}
-                  >
-                    <div className="ft-journey__connector" aria-hidden />
-                    <div className="ft-journey__dot">
-                      {state === 'completed' ? (
-                        <CheckCircle2 size={16} aria-hidden />
-                      ) : (
-                        <StepIcon size={16} aria-hidden />
-                      )}
-                    </div>
-                    <div className="ft-journey__text">
-                      <span className="ft-journey__step-title">{t(`student.journey.${step.key}`)}</span>
-                      <span className="ft-journey__step-help">{t(`student.journeyHelp.${step.key}`)}</span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          </section>
-
-          <div className="ft-student-detail__layout">
-            <div className="ft-student-detail__main">
-              <ContentSection
-                icon={FileText}
-                title={t('student.sectionDescription')}
-                emptyFallback={t('student.noContentFallback')}
-              >
-                {opp.description}
-              </ContentSection>
-              <ContentSection
-                icon={ListChecks}
-                title={t('form.requirements')}
-                emptyFallback={t('student.noContentFallback')}
-              >
-                {opp.requirements}
-              </ContentSection>
-            </div>
-            <div className="ft-student-detail__aside">
-              <ApplicationStatusCard
-                statusKey={statusKey}
-                t={t}
-                canApply={canApply}
-                canCancel={canCancel}
-                isApproved={isApproved}
-                onApply={() => setModalOpen(true)}
-                onCancel={handleCancel}
-                cancelPending={cancelMut.isPending}
+          {isApprovedParticipant ? (
+            <section className="ft-student-hub" aria-label={t('studentTraining.hubLabel')}>
+              <StudentTrainingTabNav
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+                disabledTabs={
+                  expelled ? ['sessions', 'attendance', 'tasks', 'assessments', 'completion'] : []
+                }
               />
-              <ContentSection
-                icon={Award}
-                title={t('student.sectionBenefits')}
-                emptyFallback={t('student.noContentFallback')}
-              >
-                {opp.benefits}
-              </ContentSection>
+              <div className="ft-student-hub__panel">{tabContent}</div>
+            </section>
+          ) : (
+            <div className="ft-student-detail__layout">
+              <div className="ft-student-detail__main">
+                <ContentSection
+                  icon={FileText}
+                  title={t('student.sectionDescription')}
+                  emptyFallback={t('student.noContentFallback')}
+                >
+                  {opp.description}
+                </ContentSection>
+                <ContentSection
+                  icon={ListChecks}
+                  title={t('form.requirements')}
+                  emptyFallback={t('student.noContentFallback')}
+                >
+                  {opp.requirements}
+                </ContentSection>
+              </div>
+              <div className="ft-student-detail__aside">
+                <ApplicationStatusCard
+                  statusKey={statusKey}
+                  t={t}
+                  canApply={canApply}
+                  canCancel={canCancel}
+                  showTrainingCta={false}
+                  application={application}
+                  trainingStatus={trainingStatus}
+                  onApply={() => setModalOpen(true)}
+                  onCancel={handleCancel}
+                  cancelPending={cancelMut.isPending}
+                />
+                <ContentSection
+                  icon={Award}
+                  title={t('student.sectionBenefits')}
+                  emptyFallback={t('student.noContentFallback')}
+                >
+                  {opp.benefits}
+                </ContentSection>
+              </div>
             </div>
-          </div>
-
-          <section id="ft-tasks" className="ft-student-tasks" aria-labelledby="ft-tasks-title">
-            <header className="ft-student-tasks__head">
-              <div className="ft-student-tasks__icon-wrap" aria-hidden>
-                <ClipboardList size={20} />
-              </div>
-              <div>
-                <h2 id="ft-tasks-title" className="ft-student-tasks__title">
-                  {t('tasks.studentTitle')}
-                </h2>
-                <p className="ft-student-tasks__subtitle">
-                  {isApproved ? t('tasks.listHelp') : t('student.tasksLockedDesc')}
-                </p>
-              </div>
-            </header>
-            {isApproved ? (
-              <StudentFieldTrainingTasksPanel opportunityId={id} />
-            ) : (
-              <div className="ft-panel-locked ft-panel-locked--premium">
-                <Lock size={40} aria-hidden />
-                <h3>{t('student.tasksLockedTitle')}</h3>
-                <p>{t('student.tasksLockedDesc')}</p>
-              </div>
-            )}
-          </section>
+          )}
         </div>
 
         {modalOpen ? (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Calendar, ClipboardList } from 'lucide-react';
+import { Calendar, ClipboardList, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../../components/common/LoadingSpinner.jsx';
@@ -18,7 +18,7 @@ import { formatFtDate } from '../../../../features/fieldTraining/fieldTrainingUi
 export function StudentFieldTrainingTasksPanel({ opportunityId }) {
   const { t } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
-  const { data, isLoading, refetch } = useStudentOpportunityTasks(opportunityId);
+  const { data, isLoading, isError, refetch } = useStudentOpportunityTasks(opportunityId);
   const submitMut = useSubmitFieldTrainingTask(opportunityId);
   const [pendingFile, setPendingFile] = useState({});
   const [replacingId, setReplacingId] = useState(null);
@@ -56,13 +56,16 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
   }
 
   if (isLoading) return <LoadingSpinner />;
+  if (isError) {
+    return <p className="form-field__error">{t('studentTraining.loadError')}</p>;
+  }
 
   if (!tasks.length) {
     return (
       <div className="ft-panel-locked ft-panel-locked--premium">
         <ClipboardList size={40} aria-hidden />
         <h3>{t('tasks.studentEmptyTitle')}</h3>
-        <p>{t('tasks.studentEmptyDesc')}</p>
+        <p>{t('studentTraining.noTasks')}</p>
       </div>
     );
   }
@@ -82,6 +85,8 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
       {tasks.map((task, index) => {
         const submitted = Boolean(task.submission);
         const showUpload = !submitted || replacingId === task.id;
+        const reviewStatus = task.submission?.review_status;
+
         return (
           <article key={task.id} className="ft-task-item ft-student-task-item">
             <div className="ft-task-item__index" aria-hidden>
@@ -90,11 +95,21 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
             <div className="ft-task-item__body">
               <header className="ft-task-item__head">
                 <h3 className="ft-task-item__title">{task.title}</h3>
-                {submitted ? (
-                  <StatusBadge variant="success">{t('tasks.submitted')}</StatusBadge>
-                ) : (
-                  <StatusBadge variant="warning">{t('tasks.pending')}</StatusBadge>
-                )}
+                <div className="ft-task-item__badges">
+                  {task.is_final_task ? (
+                    <StatusBadge variant="warning">{t('tasks.finalTaskBadge')}</StatusBadge>
+                  ) : null}
+                  {task.requires_ai_self_evaluation ? (
+                    <StatusBadge variant="info">
+                      <Sparkles size={12} aria-hidden /> {t('tasks.aiBadge')}
+                    </StatusBadge>
+                  ) : null}
+                  {submitted ? (
+                    <StatusBadge variant="success">{t('tasks.submitted')}</StatusBadge>
+                  ) : (
+                    <StatusBadge variant="warning">{t('tasks.pending')}</StatusBadge>
+                  )}
+                </div>
               </header>
               {task.description ? <p className="ft-task-item__desc">{task.description}</p> : null}
               <div className="ft-task-item__meta">
@@ -105,6 +120,19 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                   </span>
                 ) : null}
               </div>
+
+              {submitted && reviewStatus ? (
+                <p className="ft-task-item__review">
+                  {t('tasks.reviewStatus')}:{' '}
+                  {t(`tasks.reviewStatuses.${reviewStatus}`, reviewStatus)}
+                </p>
+              ) : null}
+              {submitted && task.submission?.instructor_feedback ? (
+                <div className="ft-task-item__feedback">
+                  <strong>{t('tasks.instructorFeedback')}</strong>
+                  <p>{task.submission.instructor_feedback}</p>
+                </div>
+              ) : null}
 
               {submitted && replacingId !== task.id ? (
                 <div className="ft-task-card__submitted ft-student-task-item__submitted">
@@ -136,7 +164,11 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
               ) : null}
 
               {showUpload && task.requires_ai_self_evaluation ? (
-                <Button as={Link} to={`/student/field-training/${opportunityId}/tasks/${task.id}/self-evaluation`} variant="primary">
+                <Button
+                  as={Link}
+                  to={`/student/field-training/${opportunityId}/tasks/${task.id}/self-evaluation`}
+                  variant="primary"
+                >
                   {t('tasks.selfEvalLink')}
                 </Button>
               ) : null}

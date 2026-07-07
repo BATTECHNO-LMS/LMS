@@ -104,6 +104,7 @@
     "student": "الطالب",
     "email": "البريد",
     "appliedAt": "تاريخ التقديم",
+    "reviewedAt": "تاريخ المراجعة",
     "message": "رسالة الطالب",
     "studentUniversity": "جامعة الطالب",
     "studentSpecialty": "تخصص الطالب"
@@ -148,6 +149,7 @@
     "sectionWorkflow": "إعدادات سير العمل",
     "assignedInstructor": "المدرب المسؤول",
     "instructorPlaceholder": "اختر مدربًا (اختياري)",
+    "noInstructors": "لا يوجد مدربون متاحون حاليًا",
     "minAttendance": "الحد الأدنى للحضور %",
     "minPostScore": "الحد الأدنى لدرجة التقييم البعدي",
     "requiresPreAssessment": "يتطلب تقييمًا قبليًا",
@@ -158,9 +160,9 @@
     "title": "التدريب الميداني",
     "description": "استكشف فرص التدريب الميداني المنشورة وقدّم طلبك.",
     "heroDescription": "استكشف فرص التدريب المتاحة لجامعتك وتخصصك، قدّم طلبك، وتابع مهامك بعد القبول.",
-    "scopeInfo": "تظهر لك فرص التدريب المرتبطة بتخصصك فقط.",
+    "scopeInfo": "تظهر لك فرص التدريب المرتبطة بتخصصك فقط، بغض النظر عن الجامعة.",
     "profileIncompleteTitle": "يرجى استكمال بيانات التخصص",
-    "profileIncompleteDesc": "يرجى استكمال بيانات التخصص لعرض فرص التدريب المناسبة.",
+    "profileIncompleteDesc": "لا يمكن عرض فرص التدريب المناسبة قبل تحديد تخصصك في الحساب.",
     "statAvailable": "الفرص المتاحة",
     "statPending": "طلباتي قيد المراجعة",
     "statApproved": "التدريبات المقبولة",
@@ -240,6 +242,10 @@
       "cancelled": {
         "title": "تم إلغاء الطلب",
         "text": "يمكنك التقديم مرة أخرى إذا كان النظام يسمح بذلك."
+      },
+      "expelled": {
+        "title": "تم استبعادك من التدريب",
+        "text": "تم إيقاف مشاركتك في هذا التدريب من قبل الإدارة."
       }
     },
     "applicationRejected": "تم رفض طلبك. يمكنك مراجعة تفاصيل الفرصة أو التواصل مع الإدارة.",
@@ -300,7 +306,31 @@
     "dropzoneHint": "اسحب ملفًا أو صورة هنا، أو انقر للاختيار",
     "dropzoneMeta": "صور · PDF — حتى 8 ميجابايت",
     "notFound": "المهمة غير موجودة",
-    "selfEvalLink": "قيّم نفسك قبل التسليم"
+    "selfEvalLink": "قيّم نفسك قبل التسليم",
+    "finalTask": "مهمة نهائية",
+    "requiresAi": "تتطلب تقييمًا ذاتيًا بالذكاء الاصطناعي",
+    "aiPrompt": "برومبت التقييم الذاتي",
+    "aiPromptHelp": "هذا النص سيتم استخدامه لتوجيه نموذج الذكاء الاصطناعي عند تقييم إجابة الطالب قبل التسليم.",
+    "finalTaskBadge": "نهائية",
+    "aiBadge": "ذكاء اصطناعي",
+    "timing": "التوقيت",
+    "late": "متأخر",
+    "onTime": "في الوقت",
+    "reviewStatus": "حالة المراجعة",
+    "review": "مراجعة",
+    "reviewStatuses": {
+      "pending": "قيد المراجعة",
+      "approved": "معتمد",
+      "rejected": "مرفوض",
+      "needs_revision": "يحتاج تعديل"
+    },
+    "reviewModalTitle": "مراجعة التسليم",
+    "aiStudentInput": "تقييم الطالب الذاتي",
+    "aiPromptUsed": "البرومبت المستخدم",
+    "aiResponse": "رد الذكاء الاصطناعي",
+    "finalNotes": "ملاحظات الطالب النهائية",
+    "instructorFeedback": "ملاحظات المدرب",
+    "saveReview": "حفظ المراجعة"
   },
   "unauthorized": {
     "title": "غير مصرح",
@@ -335,7 +365,10 @@
   "progress": {
     "preLevel": "المستوى القبلي",
     "attendance": "الحضور",
-    "eligibility": "الأهلية"
+    "eligibility": "الأهلية",
+    "postScore": "درجة التقييم البعدي",
+    "task": "المهمة النهائية",
+    "letterIssued": "صدر كتاب الإنهاء"
   },
   "manageTraining": {
     "link": "إدارة التدريب",
@@ -348,8 +381,101 @@
     "startTime": "وقت البداية",
     "endTime": "وقت النهاية",
     "zoomLink": "رابط Zoom",
-    "addSession": "إضافة جلسة"
+    "addSession": "إضافة جلسة",
+    "sessionDescription": "وصف الجلسة"
   },
+  "manageHub": {
+    "tabsLabel": "أقسام إدارة التدريب",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "applications": "المشاركون",
+      "pre_assessment": "التقييم القبلي",
+      "sessions": "الجلسات",
+      "attendance": "الحضور",
+      "tasks": "المهام",
+      "submissions": "التسليمات",
+      "post_assessment": "التقييم البعدي",
+      "completion": "كتب الإنهاء"
+    },
+    "kpi": {
+      "applications": "الطلبات",
+      "applicationsHint": "إجمالي الطلبات المقدمة",
+      "approved": "المعتمدون",
+      "approvedHint": "مشاركون معتمدون",
+      "sessions": "الجلسات",
+      "sessionsHint": "جلسات مجدولة",
+      "submissions": "التسليمات",
+      "submissionsHint": "ملفات مُسلّمة",
+      "avgAttendance": "متوسط الحضور",
+      "avgAttendanceHint": "للمشاركين المعتمدين",
+      "letters": "كتب الإنهاء",
+      "lettersHint": "صادرة للمشاركين"
+    },
+    "startConfirmTitle": "تأكيد بدء التدريب",
+    "startConfirmBody": "سيتم نقل {{count}} مشارك جاهز إلى مرحلة التدريب الفعلي.",
+    "sessionRequired": "جلسة إلزامية",
+    "requiredSession": "إلزامية",
+    "optionalSession": "اختيارية",
+    "sessionDescription": "وصف الجلسة",
+    "recordAttendance": "تسجيل الحضور",
+    "noSessions": "لا توجد جلسات بعد.",
+    "selectSession": "اختر الجلسة",
+    "selectSessionPlaceholder": "— اختر جلسة —",
+    "pickSessionForAttendance": "اختر جلسة لتسجيل الحضور.",
+    "attendanceNote": "ملاحظة (اختياري)",
+    "saveAttendance": "حفظ الحضور",
+    "attendanceSaved": "تم حفظ الحضور بنجاح.",
+    "noParticipantsForAttendance": "لا يوجد مشاركون معتمدون لهذه الجلسة.",
+    "applicationsDesc": "إدارة طلبات المشاركة والموافقة والاستبعاد.",
+    "tasksDesc": "إنشاء المهام ومراجعة التسليمات.",
+    "submissionsDesc": "عرض ومراجعة ملفات الطلاب.",
+    "openTab": {
+      "applications": "فتح صفحة المشاركين",
+      "tasks": "فتح إدارة المهام",
+      "submissions": "فتح التسليمات"
+    },
+    "eligibleParticipants": "مؤهلون لكتاب الإنهاء",
+    "noEligible": "لا يوجد مشاركون مؤهلون حالياً.",
+    "issuedLetters": "كتب صادرة",
+    "noLetters": "لم يُصدر أي كتاب بعد.",
+    "assessment": {
+      "pre": { "title": "التقييم القبلي" },
+      "post": { "title": "التقييم البعدي" },
+      "title": "عنوان التقييم",
+      "description": "الوصف",
+      "passingScore": "درجة النجاح",
+      "questions": "الأسئلة",
+      "questionText": "نص السؤال",
+      "mc": "اختيار من متعدد",
+      "tf": "صح / خطأ",
+      "short": "إجابة قصيرة",
+      "options": "الخيارات (مفصولة بفاصلة)",
+      "correctAnswer": "الإجابة الصحيحة",
+      "addQuestion": "إضافة سؤال",
+      "publish": "نشر التقييم",
+      "results": "نتائج المحاولات"
+    }
+  },
+  "attendanceStatus": {
+    "present": "حاضر",
+    "absent": "غائب",
+    "late": "متأخر",
+    "excused": "معذور"
+  },
+  "assessmentStatus": {
+    "draft": "مسودة",
+    "published": "منشور",
+    "closed": "مغلق"
+  },
+  "finalTaskStatus": {
+    "not_required": "غير مطلوبة",
+    "pending": "قيد الانتظار",
+    "submitted": "مُسلّمة",
+    "approved": "معتمدة",
+    "rejected": "مرفوضة"
+  },
+  "viewProgress": "عرض التقدم",
+  "loading": "جارٍ التحميل…",
   "expel": {
     "action": "استبعاد الطالب من التدريب",
     "title": "استبعاد من التدريب",
@@ -373,7 +499,103 @@
     "fileRequired": "الملف مطلوب",
     "submit": "تسليم المهمة",
     "submitting": "جارٍ التسليم…",
-    "submitSuccess": "تم تسليم المهمة بنجاح"
+    "submitSuccess": "تم تسليم المهمة بنجاح",
+    "aiRequired": "يجب تشغيل التحليل بالذكاء الاصطناعي قبل التسليم.",
+    "studentInputPlaceholder": "اشرح ما قمت بتنفيذه، الملفات التي أعددتها، وأي ملاحظات مهمة قبل التسليم.",
+    "aiResultPlaceholder": "ستظهر نتيجة التحليل هنا بعد التشغيل."
   },
-  "backToOpportunity": "العودة للفرصة"
+  "backToOpportunity": "العودة للفرصة",
+  "studentTraining": {
+    "hubLabel": "متابعة التدريب",
+    "tabsLabel": "أقسام التدريب",
+    "viewHistory": "عرض السجل",
+    "backToTasks": "العودة للمهام",
+    "submittedAt": "تاريخ التقديم",
+    "nextAction": "الإجراء التالي",
+    "loadError": "تعذّر تحميل البيانات. حاول مرة أخرى.",
+    "workflowTitle": "رحلة التدريب",
+    "expelledTitle": "تم استبعادك من التدريب",
+    "expelledText": "تم إيقاف مشاركتك في هذا التدريب من قبل الإدارة.",
+    "expelledReason": "سبب الاستبعاد: {{reason}}",
+    "tasksBlocked": "لا يمكنك تنفيذ مهام أو تسليمات بعد الاستبعاد.",
+    "tasksLocked": "ستظهر المهام بعد بدء التدريب وإكمال المتطلبات السابقة.",
+    "sessionsLocked": "ستظهر الجلسات بعد بدء التدريب.",
+    "attendanceLocked": "سيظهر ملخص الحضور بعد بدء التدريب وتسجيل الجلسات.",
+    "assessmentsLocked": "التقييمات متاحة بعد قبول طلبك.",
+    "completionLocked": "كتاب الإنهاء يظهر بعد اكتمال المتطلبات.",
+    "noSessions": "لا توجد جلسات مجدولة حاليًا.",
+    "noTasks": "لا توجد مهام مطلوبة حاليًا.",
+    "joinSession": "الدخول إلى الجلسة",
+    "noZoomLink": "لم يتم إضافة رابط الجلسة بعد",
+    "attendanceNotRecorded": "لم يتم التسجيل بعد",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "sessions": "الجلسات",
+      "attendance": "الحضور",
+      "tasks": "المهام",
+      "assessments": "التقييمات",
+      "completion": "كتاب الإنهاء"
+    },
+    "workflowSteps": {
+      "application_submitted": "تقديم الطلب",
+      "application_reviewed": "موافقة الإدارة",
+      "pre_assessment": "الامتحان القبلي",
+      "training_started": "بدء التدريب",
+      "sessions": "الجلسات والحضور",
+      "tasks": "المهام والتسليم",
+      "post_assessment": "الامتحان البعدي",
+      "completion_letter": "كتاب إنهاء التدريب"
+    },
+    "kpi": {
+      "preScore": "نتيجة الامتحان القبلي",
+      "postScore": "نتيجة الامتحان البعدي",
+      "tasksSubmitted": "المهام المسلّمة",
+      "notYet": "لم يُكتمل بعد",
+      "attendanceHint": "نسبة الحضور في الجلسات الإلزامية",
+      "tasksHint": "من إجمالي المهام المطلوبة"
+    },
+    "sessions": {
+      "required": "إلزامية",
+      "optional": "اختيارية"
+    },
+    "attendance": {
+      "totalSessions": "عدد الجلسات",
+      "present": "عدد الحضور",
+      "absent": "عدد الغياب",
+      "minRequired": "الحد الأدنى المطلوب: {{min}}%",
+      "eligible": "أنت مؤهل من ناحية الحضور.",
+      "notEligible": "نسبة الحضور أقل من الحد المطلوب."
+    },
+    "assessment": {
+      "preTitle": "الامتحان القبلي",
+      "preDesc": "يهدف هذا الامتحان إلى تحديد مستوى المعرفة قبل بدء التدريب.",
+      "postTitle": "الامتحان البعدي",
+      "postDesc": "يقيس هذا الامتحان مستوى الاستفادة بعد انتهاء التدريب.",
+      "startPre": "بدء الامتحان القبلي",
+      "startPost": "بدء الامتحان البعدي",
+      "completed": "مكتمل",
+      "available": "متاح الآن",
+      "locked": "غير متاح",
+      "notPublished": "لم يُنشر التقييم بعد من الإدارة.",
+      "noneRequired": "لا يتطلب هذا التدريب تقييمات قبلية أو بعدية.",
+      "notReady": "التقييم غير جاهز بعد.",
+      "score": "الدرجة",
+      "success": "تم إرسال الامتحان بنجاح.",
+      "done": "تم",
+      "submit": "تسليم الإجابات",
+      "submitting": "جارٍ التسليم…",
+      "true": "صحيح",
+      "false": "خطأ"
+    },
+    "completion": {
+      "title": "كتاب إنهاء التدريب",
+      "issued": "تم إصدار كتاب إنهاء التدريب الخاص بك.",
+      "issuedAt": "تاريخ الإصدار",
+      "download": "تحميل كتاب إنهاء التدريب",
+      "downloading": "جارٍ التحميل…",
+      "downloadError": "تعذّر تحميل الكتاب",
+      "awaitingIssue": "أنت مؤهل — بانتظار إصدار الكتاب من الإدارة.",
+      "pending": "سيتم إصدار كتاب إنهاء التدريب بعد اكتمال المتطلبات ومراجعة الإدارة."
+    }
+  }
 }

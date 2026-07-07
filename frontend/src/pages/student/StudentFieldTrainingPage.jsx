@@ -29,6 +29,7 @@ import {
   formatFtDate,
   truncateText,
   getOpportunitySpecialtyLabel,
+  trainingStatusVariant,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
@@ -84,7 +85,11 @@ export function StudentFieldTrainingPage() {
       };
     }
     if (st === 'approved') {
-      return { label: t('student.continueTraining'), variant: 'primary', to: `/student/field-training/${opp.id}` };
+      return {
+        label: t('student.continueTraining'),
+        variant: 'primary',
+        to: `/student/field-training/${opp.id}?tab=overview`,
+      };
     }
     if (st === 'pending') {
       return { label: t('student.trackApplication'), variant: 'primary', to: `/student/field-training/${opp.id}` };
@@ -263,6 +268,11 @@ export function StudentFieldTrainingPage() {
                     >
                       {applicationStatusLabel(t, appStatus)}
                     </StatusBadge>
+                    {appStatus === 'approved' && o.my_training_status && o.my_training_status !== 'none' ? (
+                      <StatusBadge variant={trainingStatusVariant(o.my_training_status)}>
+                        {t(`trainingStatus.${o.my_training_status}`, o.my_training_status)}
+                      </StatusBadge>
+                    ) : null}
                   </header>
 
                   <div className="ft-opp-card__body">

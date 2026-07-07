@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/common/Button.jsx';
 import { FormTextarea } from '../../components/forms/FormTextarea.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
@@ -10,13 +11,14 @@ import {
   runTaskAiSelfEvaluate,
   submitFieldTrainingTaskWithMeta,
 } from '../../features/fieldTraining/fieldTraining.service.js';
-import { useQuery, useMutation } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { formatFtDate } from '../../features/fieldTraining/fieldTrainingUi.js';
 
 export function StudentFieldTrainingSelfEvaluationPage() {
   const { opportunityId, taskId } = useParams();
   const { t } = useTranslation('fieldTraining');
+  const qc = useQueryClient();
   const [studentInput, setStudentInput] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [aiMeta, setAiMeta] = useState(null);
@@ -32,6 +34,7 @@ export function StudentFieldTrainingSelfEvaluationPage() {
   });
 
   const task = (data?.tasks ?? []).find((x) => x.id === taskId);
+  const requiresAi = Boolean(task?.requires_ai_self_evaluation);
 
   const aiMut = useMutation({
     mutationFn: () => runTaskAiSelfEvaluate(taskId, studentInput),
@@ -64,6 +67,9 @@ export function StudentFieldTrainingSelfEvaluationPage() {
     onSuccess: () => {
       setSuccess(true);
       setError('');
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.tasks(opportunityId, 'student') });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentProgress(opportunityId) });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentDetail(opportunityId) });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -82,27 +88,41 @@ export function StudentFieldTrainingSelfEvaluationPage() {
 
   return (
     <div className="page page--student ft-page ft-self-eval">
-      <Link to={`/student/field-training/${opportunityId}`} className="ft-detail-back">
+      <Link
+        to={`/student/field-training/${opportunityId}?tab=tasks`}
+        className="ft-detail-back"
+      >
         <ArrowLeft size={18} aria-hidden /> {t('backToOpportunity')}
       </Link>
 
       <header className="ft-self-eval__hero">
         <h1>{t('selfEval.title')}</h1>
-        <p className="ft-self-eval__task-title">{task.title}</p>
-        {task.description ? <p className="ft-self-eval__desc">{task.description}</p> : null}
-        {task.ai_self_evaluation_prompt ? (
-          <div className="ft-self-eval__prompt">
-            <strong>{t('selfEval.instructorPrompt')}</strong>
-            <p>{task.ai_self_evaluation_prompt}</p>
-          </div>
-        ) : null}
+        <article className="ft-content-card ft-self-eval__summary">
+          <h2 className="ft-self-eval__task-title">{task.title}</h2>
+          {task.description ? <p className="ft-self-eval__desc">{task.description}</p> : null}
+          {task.due_date ? (
+            <p className="ft-self-eval__meta">
+              {t('tasks.dueDate')}: {formatFtDate(task.due_date)}
+            </p>
+          ) : null}
+          {task.ai_self_evaluation_prompt ? (
+            <div className="ft-self-eval__prompt">
+              <strong>{t('selfEval.instructorPrompt')}</strong>
+              <p>{task.ai_self_evaluation_prompt}</p>
+            </div>
+          ) : null}
+        </article>
       </header>
 
       {success ? (
         <div className="ft-empty ft-empty--premium" role="status">
           <h3>{t('selfEval.submitSuccess')}</h3>
-          <Button as={Link} to={`/student/field-training/${opportunityId}`} variant="primary">
-            {t('backToOpportunity')}
+          <Button
+            as={Link}
+            to={`/student/field-training/${opportunityId}?tab=tasks`}
+            variant="primary"
+          >
+            {t('studentTraining.backToTasks')}
           </Button>
         </div>
       ) : (
@@ -114,11 +134,16 @@ export function StudentFieldTrainingSelfEvaluationPage() {
               setError(t('selfEval.fileRequired'));
               return;
             }
+            if (requiresAi && !aiResponse.trim()) {
+              setError(t('selfEval.aiRequired'));
+              return;
+            }
             submitMut.mutate();
           }}
         >
           <FormTextarea
             label={t('selfEval.studentInputLabel')}
+            placeholder={t('selfEval.studentInputPlaceholder')}
             value={studentInput}
             onChange={(e) => setStudentInput(e.target.value)}
             rows={5}
@@ -139,7 +164,7 @@ export function StudentFieldTrainingSelfEvaluationPage() {
             value={aiResponse}
             onChange={(e) => setAiResponse(e.target.value)}
             rows={6}
-            readOnly={!aiResponse}
+            placeholder={requiresAi ? t('selfEval.aiResultPlaceholder') : ''}
           />
 
           <FormTextarea
@@ -152,6 +177,11 @@ export function StudentFieldTrainingSelfEvaluationPage() {
           <label className="form-field">
             <span className="form-field__label">{t('selfEval.fileLabel')}</span>
             <input type="file" accept=".pdf,image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            {file ? (
+              <span className="ft-self-eval__file-meta">
+                {file.name} ({Math.round(file.size / 1024)} KB)
+              </span>
+            ) : null}
           </label>
 
           {error ? (

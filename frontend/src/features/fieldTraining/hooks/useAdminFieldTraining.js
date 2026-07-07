@@ -14,6 +14,10 @@ import {
   updateOpportunityTask,
   deleteOpportunityTask,
   fetchOpportunitySubmissions,
+  fetchOpportunitySessions,
+  fetchOpportunityAssessments,
+  fetchSessionAttendance,
+  fetchApplicationProgress,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
 
@@ -132,6 +136,42 @@ export function useOpportunitySubmissions(opportunityId, options = {}) {
     queryKey: fieldTrainingKeys.submissions(opportunityId),
     queryFn: () => fetchOpportunitySubmissions(opportunityId),
     enabled: Boolean(opportunityId),
+    ...options,
+  });
+}
+
+export function useOpportunitySessions(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.sessions(opportunityId),
+    queryFn: () => fetchOpportunitySessions(opportunityId),
+    enabled: Boolean(opportunityId),
+    ...options,
+  });
+}
+
+export function useOpportunityAssessments(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.assessments(opportunityId),
+    queryFn: () => fetchOpportunityAssessments(opportunityId),
+    enabled: Boolean(opportunityId),
+    ...options,
+  });
+}
+
+export function useSessionAttendance(sessionId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.sessionAttendance(sessionId),
+    queryFn: () => fetchSessionAttendance(sessionId),
+    enabled: Boolean(sessionId),
+    ...options,
+  });
+}
+
+export function useApplicationProgress(applicationId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.applicationProgress(applicationId),
+    queryFn: () => fetchApplicationProgress(applicationId),
+    enabled: Boolean(applicationId),
     ...options,
   });
 }

@@ -1,172 +1,150 @@
-import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, Play, Users, Video } from 'lucide-react';
+import { useMemo } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '../../../components/common/Button.jsx';
-import { FormInput } from '../../../components/forms/FormInput.jsx';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import {
   useAdminFieldTraining,
   useOpportunityApplications,
-  fetchOpportunitySessions,
-  createOpportunitySession,
-  startFieldTraining,
+  useOpportunitySubmissions,
+  useOpportunitySessions,
+  issueCompletionLetter,
   getOpportunitySpecialtyLabel,
 } from '../../../features/fieldTraining/index.js';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
-import { getApiErrorMessage } from '../../../services/apiHelpers.js';
-
-const emptySession = {
-  title: '',
-  session_date: '',
-  start_time: '09:00',
-  end_time: '11:00',
-  zoom_link: '',
-  is_required: true,
-};
+import { ManageTabNav } from './components/manage/ManageTabNav.jsx';
+import { ManageOverviewTab } from './components/manage/ManageOverviewTab.jsx';
+import { ManageSessionsTab } from './components/manage/ManageSessionsTab.jsx';
+import { ManageAttendanceTab } from './components/manage/ManageAttendanceTab.jsx';
+import { ManageAssessmentsTab } from './components/manage/ManageAssessmentsTab.jsx';
+import { ManageCompletionTab, ManageLinkTab } from './components/manage/ManageLinkTab.jsx';
 
 export function AdminFieldTrainingManagePage() {
   const { id } = useParams();
   const { t, i18n } = useTranslation('fieldTraining');
+  const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
+
+  const activeTab = searchParams.get('tab') || 'overview';
+  const attendanceSessionId = searchParams.get('session') || '';
+
   const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
   const { data: appsData } = useOpportunityApplications(id);
-  const [sessionForm, setSessionForm] = useState(emptySession);
-  const [error, setError] = useState('');
+  const { data: sessionsData } = useOpportunitySessions(id);
+  const { data: subsData } = useOpportunitySubmissions(id);
 
   const opp = oppData?.opportunity;
-  const approvedCount = (appsData?.applications ?? []).filter((a) => a.status === 'approved').length;
+  const applications = appsData?.applications ?? [];
+  const sessions = sessionsData?.sessions ?? [];
+  const submissions = subsData?.submissions ?? [];
 
-  const { data: sessionsData, isLoading: sessionsLoading } = useQuery({
-    queryKey: fieldTrainingKeys.sessions(id),
-    queryFn: () => fetchOpportunitySessions(id),
-    enabled: Boolean(id),
+  const issueMut = useMutation({
+    mutationFn: (applicationId) => issueCompletionLetter(applicationId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(id) }),
   });
 
-  const startMut = useMutation({
-    mutationFn: () => startFieldTraining(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminDetail(id) }),
-  });
+  function setTab(tab, extra = {}) {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', tab);
+    if (extra.session) next.set('session', extra.session);
+    else if (tab !== 'attendance') next.delete('session');
+    setSearchParams(next, { replace: true });
+  }
 
-  const createSessionMut = useMutation({
-    mutationFn: (body) => createOpportunitySession(id, body),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: fieldTrainingKeys.sessions(id) });
-      setSessionForm(emptySession);
-    },
-  });
+  const tabContent = useMemo(() => {
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <ManageOverviewTab
+            opportunityId={id}
+            opp={opp}
+            applications={applications}
+            sessions={sessions}
+            submissions={submissions}
+          />
+        );
+      case 'applications':
+        return (
+          <ManageLinkTab
+            opportunityId={id}
+            tabKey="applications"
+            title={t('applicationsTitle')}
+            description={t('manageHub.applicationsDesc')}
+            to={`/admin/field-training/${id}/applications`}
+          />
+        );
+      case 'pre_assessment':
+        return <ManageAssessmentsTab opportunityId={id} type="pre" />;
+      case 'sessions':
+        return (
+          <ManageSessionsTab
+            opportunityId={id}
+            onOpenAttendance={(sessionId) => setTab('attendance', { session: sessionId })}
+          />
+        );
+      case 'attendance':
+        return (
+          <ManageAttendanceTab
+            opportunityId={id}
+            preselectedSessionId={attendanceSessionId}
+            onSessionChange={(sessionId) => setTab('attendance', { session: sessionId })}
+          />
+        );
+      case 'tasks':
+        return (
+          <ManageLinkTab
+            opportunityId={id}
+            tabKey="tasks"
+            title={t('tasks.adminTitle')}
+            description={t('manageHub.tasksDesc')}
+            to={`/admin/field-training/${id}/tasks`}
+          />
+        );
+      case 'submissions':
+        return (
+          <ManageLinkTab
+            opportunityId={id}
+            tabKey="submissions"
+            title={t('tasks.submissionsTitle')}
+            description={t('manageHub.submissionsDesc')}
+            to={`/admin/field-training/${id}/tasks`}
+          />
+        );
+      case 'post_assessment':
+        return <ManageAssessmentsTab opportunityId={id} type="post" />;
+      case 'completion':
+        return (
+          <ManageCompletionTab
+            applications={applications}
+            onIssueLetter={(appId) => issueMut.mutate(appId)}
+            issuePending={issueMut.isPending}
+          />
+        );
+      default:
+        return null;
+    }
+  }, [activeTab, id, opp, applications, sessions, submissions, attendanceSessionId, t, issueMut.isPending]);
 
   if (oppLoading) return <LoadingSpinner />;
 
   return (
-    <div className="page page--admin ft-page">
-      <header className="ft-detail-hero ft-detail-hero--compact">
-        <Link to={`/admin/field-training`} className="ft-detail-back">
+    <div className="page page--admin ft-page ft-manage-hub">
+      <header className="ft-manage-hub__header">
+        <Link to="/admin/field-training" className="ft-detail-back">
           <ArrowLeft size={18} aria-hidden /> {t('backToList')}
         </Link>
-        <h1 className="ft-detail-hero__title">{t('manageTraining.title')}</h1>
-        <p className="ft-detail-hero__subtitle">
+        <h1 className="ft-manage-hub__title">{t('manageTraining.title')}</h1>
+        <p className="ft-manage-hub__subtitle">
           {opp?.title} · {getOpportunitySpecialtyLabel(opp, i18n.language)}
-        </p>
-        <div className="ft-detail-hero__actions">
-          <Button
-            type="button"
-            variant="primary"
-            disabled={startMut.isPending || opp?.status === 'in_progress'}
-            onClick={() => startMut.mutate()}
-          >
-            <Play size={16} aria-hidden /> {t('manageTraining.startTraining')}
-          </Button>
-          <Button as={Link} to={`/admin/field-training/${id}/applications`} variant="outline">
-            <Users size={16} aria-hidden /> {t('viewApplications')}
-          </Button>
-          <Button as={Link} to={`/admin/field-training/${id}/tasks`} variant="outline">
-            {t('tasks.adminTitle')}
-          </Button>
-        </div>
-        <p className="ft-detail-hero__meta">
-          {t('manageTraining.approvedCount', { count: approvedCount })} ·{' '}
-          {t(`status.${opp?.status || 'draft'}`)}
         </p>
       </header>
 
-      <section className="ft-composer-section">
-        <h2 className="ft-composer-section__title">
-          <Video size={18} aria-hidden /> {t('manageTraining.sessionsTitle')}
-        </h2>
-        <form
-          className="ft-composer-section__grid ft-composer-section__grid--2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            setError('');
-            createSessionMut.mutate(
-              {
-                ...sessionForm,
-                zoom_link: sessionForm.zoom_link || null,
-              },
-              { onError: (err) => setError(getApiErrorMessage(err)) }
-            );
-          }}
-        >
-          <FormInput
-            label={t('manageTraining.sessionTitle')}
-            value={sessionForm.title}
-            onChange={(e) => setSessionForm((f) => ({ ...f, title: e.target.value }))}
-          />
-          <FormInput
-            label={t('manageTraining.sessionDate')}
-            type="date"
-            value={sessionForm.session_date}
-            onChange={(e) => setSessionForm((f) => ({ ...f, session_date: e.target.value }))}
-          />
-          <FormInput
-            label={t('manageTraining.startTime')}
-            value={sessionForm.start_time}
-            onChange={(e) => setSessionForm((f) => ({ ...f, start_time: e.target.value }))}
-          />
-          <FormInput
-            label={t('manageTraining.endTime')}
-            value={sessionForm.end_time}
-            onChange={(e) => setSessionForm((f) => ({ ...f, end_time: e.target.value }))}
-          />
-          <FormInput
-            label={t('manageTraining.zoomLink')}
-            value={sessionForm.zoom_link}
-            onChange={(e) => setSessionForm((f) => ({ ...f, zoom_link: e.target.value }))}
-          />
-          {error ? <p className="form-field__error">{error}</p> : null}
-          <div>
-            <Button type="submit" variant="primary" disabled={createSessionMut.isPending}>
-              {t('manageTraining.addSession')}
-            </Button>
-          </div>
-        </form>
+      <ManageTabNav activeTab={activeTab} onTabChange={(tab) => setTab(tab)} />
 
-        {sessionsLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <ul className="ft-session-list">
-            {(sessionsData?.sessions ?? []).map((s) => (
-              <li key={s.id} className="ft-session-list__item">
-                <Calendar size={16} aria-hidden />
-                <strong>{s.title}</strong>
-                <span>
-                  {s.session_date} {s.start_time}–{s.end_time}
-                </span>
-                {s.zoom_link ? (
-                  <a href={s.zoom_link} target="_blank" rel="noreferrer" className="ft-session-list__zoom">
-                    Zoom
-                  </a>
-                ) : null}
-                {s.attendance?.status ? (
-                  <span className="ft-session-list__att">{s.attendance.status}</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="ft-manage-hub__content" role="tabpanel">
+        {tabContent}
+      </div>
     </div>
   );
 }

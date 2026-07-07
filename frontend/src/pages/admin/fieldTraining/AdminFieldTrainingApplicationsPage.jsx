@@ -30,6 +30,7 @@ import {
   opportunityStatusVariant,
   expelFieldTrainingParticipant,
   issueCompletionLetter,
+  useApplicationProgress,
 } from '../../../features/fieldTraining/index.js';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
@@ -77,6 +78,7 @@ function ApplicationReviewCard({
   onReject,
   onExpel,
   onIssueLetter,
+  onViewProgress,
   reviewPending,
   actionPending,
 }) {
@@ -126,6 +128,11 @@ function ApplicationReviewCard({
           <Clock size={14} aria-hidden />
           {t('table.appliedAt')}: {formatFtDate(app.created_at) ?? t('student.dateNotSet')}
         </p>
+        {app.reviewed_at ? (
+          <p className="ft-review-card__date">
+            {t('table.reviewedAt')}: {formatFtDate(app.reviewed_at)}
+          </p>
+        ) : null}
         {app.student_message ? (
           <div className="ft-review-card__quote">
             <span className="ft-review-card__quote-title">{t('studentMessageTitle')}</span>
@@ -153,6 +160,26 @@ function ApplicationReviewCard({
             {app.attendance_percentage != null ? (
               <span className="ft-review-card__tag">
                 {t('progress.attendance')}: {app.attendance_percentage}%
+              </span>
+            ) : null}
+            {app.post_assessment_score != null ? (
+              <span className="ft-review-card__tag">
+                {t('progress.postScore')}: {app.post_assessment_score}%
+              </span>
+            ) : null}
+            {app.final_task_status && app.final_task_status !== 'not_required' ? (
+              <span className="ft-review-card__tag">
+                {t('progress.task')}: {t(`finalTaskStatus.${app.final_task_status}`)}
+              </span>
+            ) : null}
+            {app.completion_letter_issued_at ? (
+              <span className="ft-review-card__tag ft-review-card__tag--success">
+                {t('progress.letterIssued')}
+              </span>
+            ) : null}
+            {app.training_status === 'expelled' ? (
+              <span className="ft-review-card__tag ft-review-card__tag--danger">
+                {t('trainingStatus.expelled')}
               </span>
             ) : null}
             {app.completion_eligibility_status ? (
@@ -195,6 +222,9 @@ function ApplicationReviewCard({
             </StatusBadge>
             {app.status === 'approved' && app.training_status !== 'expelled' ? (
               <>
+                <Button type="button" variant="outline" onClick={() => onViewProgress(app)}>
+                  {t('viewProgress')}
+                </Button>
                 <Button
                   type="button"
                   variant="outline"
@@ -234,7 +264,7 @@ export function AdminFieldTrainingApplicationsPage() {
   const [expelReason, setExpelReason] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [search, setSearch] = useState('');
+  const [progressModal, setProgressModal] = useState(null);
 
   const applications = data?.applications ?? [];
   const opp = oppData?.opportunity;
@@ -324,6 +354,9 @@ export function AdminFieldTrainingApplicationsPage() {
               <Link className="btn btn--outline btn--sm" to="/admin/field-training">
                 <ArrowLeft size={16} aria-hidden />
                 {t('backToList')}
+              </Link>
+              <Link className="btn btn--outline btn--sm" to={`/admin/field-training/${id}/manage`}>
+                {t('manageTraining.link')}
               </Link>
               <Link className="btn btn--primary btn--sm" to={`/admin/field-training/${id}/tasks`}>
                 <ListChecks size={16} aria-hidden />
@@ -448,6 +481,7 @@ export function AdminFieldTrainingApplicationsPage() {
                   setExpelReason('');
                 }}
                 onIssueLetter={(applicationId) => issueMut.mutate(applicationId)}
+                onViewProgress={(appRow) => setProgressModal(appRow)}
                 actionPending={actionPending}
               />
             ))}
@@ -532,6 +566,56 @@ export function AdminFieldTrainingApplicationsPage() {
           </div>
         </div>
       ) : null}
+
+      {progressModal ? (
+        <ProgressModal app={progressModal} onClose={() => setProgressModal(null)} />
+      ) : null}
+    </div>
+  );
+}
+
+function ProgressModal({ app, onClose }) {
+  const { t } = useTranslation('fieldTraining');
+  const { data, isLoading } = useApplicationProgress(app.id);
+
+  return (
+    <div className="ft-modal-backdrop" onClick={onClose} role="presentation">
+      <div className="ft-modal ft-modal--wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <header className="ft-modal__header">
+          <h2 className="ft-modal__title">{t('viewProgress')}</h2>
+          <p className="ft-modal__subtitle">{app.student_name}</p>
+        </header>
+        <div className="ft-modal__body">
+          {isLoading ? <p>{t('loading')}</p> : null}
+          {data?.progress?.steps?.map((step) => (
+            <div key={step.key} className="ft-progress-step">
+              <strong>{t(`progressSteps.${step.key}`, step.key)}</strong>
+              <span>{t(`stepStatus.${step.status}`, step.status)}</span>
+            </div>
+          ))}
+          {data?.progress?.metrics ? (
+            <div className="ft-eligibility-card">
+              <h3>{t('progress.eligibility')}</h3>
+              <p>
+                {t(`eligibility.${data.progress.metrics.completion_eligibility_status || 'pending'}`)}
+              </p>
+              <ul>
+                <li>
+                  {t('progress.attendance')}: {data.progress.metrics.attendance_percentage ?? '—'}%
+                </li>
+                <li>
+                  {t('progress.postScore')}: {data.progress.metrics.post_assessment_score ?? '—'}
+                </li>
+              </ul>
+            </div>
+          ) : null}
+        </div>
+        <footer className="ft-modal__footer">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t('cancel')}
+          </Button>
+        </footer>
+      </div>
     </div>
   );
 }

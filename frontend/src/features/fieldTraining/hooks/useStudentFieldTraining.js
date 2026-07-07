@@ -7,6 +7,12 @@ import {
   fetchStudentFieldTrainingList,
   fetchOpportunityTasks,
   submitFieldTrainingTask,
+  fetchStudentTrainingProgress,
+  fetchOpportunitySessions,
+  fetchStudentAssessments,
+  fetchStudentAssessment,
+  submitStudentAssessment,
+  downloadCompletionLetter,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
 
@@ -76,6 +82,37 @@ export function useSubmitFieldTrainingTask(opportunityId) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.tasks(opportunityId, 'student') });
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentDetail(opportunityId) });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentProgress(opportunityId) });
     },
+  });
+}
+
+export function useStudentTrainingProgress(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.studentProgress(opportunityId),
+    queryFn: () => fetchStudentTrainingProgress(opportunityId),
+    enabled: Boolean(opportunityId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+export function useStudentFieldTrainingSessions(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.studentSessions(opportunityId),
+    queryFn: () => fetchOpportunitySessions(opportunityId, { asAdmin: false }),
+    enabled: Boolean(opportunityId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+export function useStudentFieldTrainingAssessments(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.studentAssessments(opportunityId),
+    queryFn: () => fetchStudentAssessments(opportunityId),
+    enabled: Boolean(opportunityId),
+    staleTime: 30_000,
+    ...options,
   });
 }

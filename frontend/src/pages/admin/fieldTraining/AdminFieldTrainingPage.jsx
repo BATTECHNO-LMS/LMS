@@ -71,8 +71,8 @@ const emptyForm = {
   requires_pre_assessment: true,
   requires_post_assessment: true,
   requires_final_task: true,
-  minimum_attendance_percentage: '',
-  minimum_post_assessment_score: '',
+  minimum_attendance_percentage: '80',
+  minimum_post_assessment_score: '60',
 };
 
 export function AdminFieldTrainingPage() {
@@ -763,6 +763,9 @@ export function AdminFieldTrainingPage() {
                           </option>
                         ))}
                       </select>
+                      {!instructorsData?.instructors?.length ? (
+                        <p className="form-field__hint form-field__hint--warn">{t('form.noInstructors')}</p>
+                      ) : null}
                     </div>
                     <FormInput
                       id="ft-min-att"

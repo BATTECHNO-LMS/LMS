@@ -33,7 +33,10 @@ import {
   getOpportunityUniversityLabel,
   downloadFieldTrainingSubmission,
   saveFieldTrainingSubmissionBlob,
+  reviewFieldTrainingSubmission,
 } from '../../../features/fieldTraining/index.js';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
 function isPastDue(dateStr) {
@@ -55,16 +58,35 @@ export function AdminFieldTrainingTasksPage() {
   const { data: tasksData, isLoading, isError, error, refetch } = useOpportunityTasks(id);
   const { data: subsData } = useOpportunitySubmissions(id);
   const mut = useOpportunityTaskMutations(id);
+  const qc = useQueryClient();
+
+  const reviewMut = useMutation({
+    mutationFn: ({ submissionId, body }) => reviewFieldTrainingSubmission(submissionId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(id) });
+      setReviewModal(null);
+      setReviewFeedback('');
+    },
+  });
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [isFinalTask, setIsFinalTask] = useState(false);
+  const [requiresAi, setRequiresAi] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
   const [formError, setFormError] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
+  const [editIsFinalTask, setEditIsFinalTask] = useState(false);
+  const [editRequiresAi, setEditRequiresAi] = useState(false);
+  const [editAiPrompt, setEditAiPrompt] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [reviewModal, setReviewModal] = useState(null);
+  const [reviewFeedback, setReviewFeedback] = useState('');
+  const [reviewStatus, setReviewStatus] = useState('approved');
 
   const tasks = tasksData?.tasks ?? [];
   const submissions = subsData?.submissions ?? [];
@@ -103,10 +125,16 @@ export function AdminFieldTrainingTasksPage() {
         title: title.trim(),
         description: description.trim() || null,
         due_date: dueDate || null,
+        is_final_task: isFinalTask,
+        requires_ai_self_evaluation: requiresAi,
+        ai_self_evaluation_prompt: requiresAi ? aiPrompt.trim() || null : null,
       });
       setTitle('');
       setDescription('');
       setDueDate('');
+      setIsFinalTask(false);
+      setRequiresAi(false);
+      setAiPrompt('');
       refetch();
     } catch (err) {
       setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
@@ -118,6 +146,9 @@ export function AdminFieldTrainingTasksPage() {
     setEditTitle(task.title || '');
     setEditDescription(task.description || '');
     setEditDueDate(task.due_date ? String(task.due_date).slice(0, 10) : '');
+    setEditIsFinalTask(Boolean(task.is_final_task));
+    setEditRequiresAi(Boolean(task.requires_ai_self_evaluation));
+    setEditAiPrompt(task.ai_self_evaluation_prompt || '');
     setFormError('');
   }
 
@@ -131,6 +162,9 @@ export function AdminFieldTrainingTasksPage() {
           title: editTitle.trim(),
           description: editDescription.trim() || null,
           due_date: editDueDate || null,
+          is_final_task: editIsFinalTask,
+          requires_ai_self_evaluation: editRequiresAi,
+          ai_self_evaluation_prompt: editRequiresAi ? editAiPrompt.trim() || null : null,
         },
       });
       setEditingTaskId(null);
@@ -257,6 +291,26 @@ export function AdminFieldTrainingTasksPage() {
               rows={4}
             />
 
+            <label className="form-field form-field--checkbox">
+              <input type="checkbox" checked={isFinalTask} onChange={(e) => setIsFinalTask(e.target.checked)} />
+              <span>{t('tasks.finalTask')}</span>
+            </label>
+            <label className="form-field form-field--checkbox">
+              <input type="checkbox" checked={requiresAi} onChange={(e) => setRequiresAi(e.target.checked)} />
+              <span>{t('tasks.requiresAi')}</span>
+            </label>
+            {requiresAi ? (
+              <>
+                <FormTextarea
+                  label={t('tasks.aiPrompt')}
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  rows={4}
+                />
+                <p className="form-field__hint">{t('tasks.aiPromptHelp')}</p>
+              </>
+            ) : null}
+
             <footer className="ft-tasks-form-card__actions">
               <Button type="submit" variant="primary" disabled={mut.create.isPending || !title.trim()}>
                 <Plus size={16} aria-hidden />
@@ -359,6 +413,30 @@ export function AdminFieldTrainingTasksPage() {
                               value={editDueDate}
                               onChange={(e) => setEditDueDate(e.target.value)}
                             />
+                            <label className="form-field form-field--checkbox">
+                              <input
+                                type="checkbox"
+                                checked={editIsFinalTask}
+                                onChange={(e) => setEditIsFinalTask(e.target.checked)}
+                              />
+                              <span>{t('tasks.finalTask')}</span>
+                            </label>
+                            <label className="form-field form-field--checkbox">
+                              <input
+                                type="checkbox"
+                                checked={editRequiresAi}
+                                onChange={(e) => setEditRequiresAi(e.target.checked)}
+                              />
+                              <span>{t('tasks.requiresAi')}</span>
+                            </label>
+                            {editRequiresAi ? (
+                              <FormTextarea
+                                label={t('tasks.aiPrompt')}
+                                value={editAiPrompt}
+                                onChange={(e) => setEditAiPrompt(e.target.value)}
+                                rows={3}
+                              />
+                            ) : null}
                             <div className="ft-task-edit__actions">
                               <Button type="submit" variant="primary" className="btn--sm" disabled={mut.update.isPending}>
                                 {t('save')}
@@ -391,6 +469,16 @@ export function AdminFieldTrainingTasksPage() {
                             <Upload size={14} aria-hidden />
                             {t('tasks.submissionCount', { count: submissionCount })}
                           </span>
+                          {task.is_final_task ? (
+                            <span className="ft-task-item__badge ft-task-item__badge--final">
+                              {t('tasks.finalTaskBadge')}
+                            </span>
+                          ) : null}
+                          {task.requires_ai_self_evaluation ? (
+                            <span className="ft-task-item__badge ft-task-item__badge--ai">
+                              {t('tasks.aiBadge')}
+                            </span>
+                          ) : null}
                           <span
                             className={cn(
                               'ft-task-item__badge',
@@ -439,12 +527,17 @@ export function AdminFieldTrainingTasksPage() {
               columns={[
                 { key: 'student', label: t('table.student'), render: (r) => r.student_name ?? '—' },
                 { key: 'task', label: t('tasks.taskTitle'), render: (r) => r.task_title ?? '—' },
-                { key: 'file', label: t('tasks.file'), render: (r) => r.file_name ?? '—' },
                 {
-                  key: 'mime',
-                  label: t('tasks.fileType'),
-                  render: (r) => r.mime_type ?? '—',
+                  key: 'timing',
+                  label: t('tasks.timing'),
+                  render: (r) => (r.is_late ? t('tasks.late') : t('tasks.onTime')),
                 },
+                {
+                  key: 'review',
+                  label: t('tasks.reviewStatus'),
+                  render: (r) => t(`tasks.reviewStatuses.${r.review_status || 'pending'}`),
+                },
+                { key: 'file', label: t('tasks.file'), render: (r) => r.file_name ?? '—' },
                 {
                   key: 'link',
                   label: t('tasks.viewFile'),
@@ -460,6 +553,24 @@ export function AdminFieldTrainingTasksPage() {
                   ),
                 },
                 {
+                  key: 'reviewAction',
+                  label: t('tasks.review'),
+                  render: (r) => (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      onClick={() => {
+                        setReviewModal(r);
+                        setReviewFeedback(r.instructor_feedback || '');
+                        setReviewStatus(r.review_status === 'rejected' ? 'rejected' : 'approved');
+                      }}
+                    >
+                      {t('tasks.review')}
+                    </Button>
+                  ),
+                },
+                {
                   key: 'at',
                   label: t('tasks.submittedAt'),
                   render: (r) =>
@@ -471,6 +582,82 @@ export function AdminFieldTrainingTasksPage() {
           </div>
         )}
       </section>
+
+      {reviewModal ? (
+        <div className="ft-modal-backdrop" onClick={() => setReviewModal(null)} role="presentation">
+          <div className="ft-modal ft-modal--wide" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <header className="ft-modal__header">
+              <h2 className="ft-modal__title">{t('tasks.reviewModalTitle')}</h2>
+              <p className="ft-modal__subtitle">
+                {reviewModal.student_name} — {reviewModal.task_title}
+              </p>
+            </header>
+            <div className="ft-modal__body">
+              {reviewModal.student_self_evaluation_input ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.aiStudentInput')}</strong>
+                  <p>{reviewModal.student_self_evaluation_input}</p>
+                </div>
+              ) : null}
+              {reviewModal.ai_prompt_used ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.aiPromptUsed')}</strong>
+                  <p>{reviewModal.ai_prompt_used}</p>
+                </div>
+              ) : null}
+              {reviewModal.ai_response_inserted_text || reviewModal.ai_raw_response ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.aiResponse')}</strong>
+                  <p>{reviewModal.ai_response_inserted_text || reviewModal.ai_raw_response}</p>
+                </div>
+              ) : null}
+              {reviewModal.final_student_notes ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.finalNotes')}</strong>
+                  <p>{reviewModal.final_student_notes}</p>
+                </div>
+              ) : null}
+              <label className="form-field__label">{t('tasks.reviewStatus')}</label>
+              <select
+                className="ft-modal-select__control"
+                value={reviewStatus}
+                onChange={(e) => setReviewStatus(e.target.value)}
+              >
+                <option value="approved">{t('tasks.reviewStatuses.approved')}</option>
+                <option value="rejected">{t('tasks.reviewStatuses.rejected')}</option>
+                <option value="needs_revision">{t('tasks.reviewStatuses.needs_revision')}</option>
+              </select>
+              <FormTextarea
+                label={t('tasks.instructorFeedback')}
+                value={reviewFeedback}
+                onChange={(e) => setReviewFeedback(e.target.value)}
+                rows={4}
+              />
+            </div>
+            <footer className="ft-modal__footer">
+              <Button type="button" variant="outline" onClick={() => setReviewModal(null)}>
+                {t('cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={reviewMut.isPending}
+                onClick={() =>
+                  reviewMut.mutate({
+                    submissionId: reviewModal.id,
+                    body: {
+                      review_status: reviewStatus,
+                      instructor_feedback: reviewFeedback.trim() || null,
+                    },
+                  })
+                }
+              >
+                {reviewMut.isPending ? t('saving') : t('tasks.saveReview')}
+              </Button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

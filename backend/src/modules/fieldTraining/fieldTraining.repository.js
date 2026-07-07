@@ -427,7 +427,7 @@ async function findSubmissionsByOpportunity(opportunityId) {
     },
   });
   return rows.map((r) => ({
-    ...mapSubmissionRow(r),
+    ...mapSubmissionRow(r, { exposeAiAudit: true }),
     task_title: r.field_training_tasks?.title ?? null,
     application_id: r.application_id,
   }));

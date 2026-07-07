@@ -3251,3 +3251,355 @@
 .ft-detail-skeleton--review-card {
   height: 8.5rem;
 }
+
+.ft-manage-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ft-manage-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  background: var(--color-card);
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-lg;
+}
+
+.ft-manage-tabs__tab {
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.9rem;
+  border-radius: $radius-md;
+  font-family: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+
+  &--active {
+    background: rgba($color-primary, 0.1);
+    color: $color-primary;
+    font-weight: 600;
+  }
+}
+
+.ft-manage-hub__content {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-xl;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+}
+
+.ft-session-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-lg;
+  background: var(--color-surface-muted);
+}
+
+.ft-attendance-row {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--color-border-tinted);
+}
+
+.ft-modal--wide {
+  max-width: 42rem;
+}
+
+// —— Student training hub ——
+.ft-student-hub {
+  margin-top: 1.5rem;
+}
+
+.ft-student-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.35rem;
+  border-radius: $radius-xl;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border-tinted);
+}
+
+.ft-student-tabs__tab {
+  flex: 1 1 auto;
+  min-width: 7rem;
+  padding: 0.55rem 0.85rem;
+  border: none;
+  border-radius: $radius-lg;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover:not(:disabled) {
+    color: var(--color-text);
+    background: rgba($color-primary, 0.06);
+  }
+
+  &--active {
+    background: var(--color-card);
+    color: $color-primary;
+    font-weight: 600;
+    box-shadow: $shadow-sm;
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.ft-student-hub__panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-xl;
+  padding: 1.25rem;
+  box-shadow: $shadow-sm;
+}
+
+.ft-expelled-banner {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1rem;
+  border-radius: $radius-xl;
+  border: 1px solid rgba($color-danger, 0.25);
+  background: linear-gradient(135deg, rgba($color-danger, 0.08), rgba($color-danger, 0.02));
+  color: var(--color-text);
+
+  svg {
+    color: $color-danger;
+    flex-shrink: 0;
+  }
+}
+
+.ft-expelled-banner__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: $color-danger;
+}
+
+.ft-expelled-banner__text,
+.ft-expelled-banner__reason {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+}
+
+.ft-workflow-timeline {
+  margin-top: 1.25rem;
+}
+
+.ft-workflow-timeline__title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  color: $color-primary;
+}
+
+.ft-workflow-timeline__track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.ft-workflow-timeline__step {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1 1 10rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-surface-muted);
+  font-size: 0.82rem;
+
+  &--completed {
+    border-color: rgba($color-success, 0.35);
+    background: rgba($color-success, 0.06);
+    color: darken($color-success, 8%);
+  }
+
+  &--current {
+    border-color: rgba($color-accent, 0.45);
+    background: rgba($color-accent, 0.1);
+    font-weight: 600;
+  }
+
+  &--failed {
+    border-color: rgba($color-danger, 0.35);
+    background: rgba($color-danger, 0.06);
+    color: $color-danger;
+  }
+
+  &--locked {
+    opacity: 0.55;
+  }
+}
+
+.ft-workflow-timeline__icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.ft-next-action-card {
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: $radius-lg;
+  border: 1px solid rgba($color-accent, 0.35);
+  background: rgba($color-accent, 0.08);
+
+  p {
+    margin: 0.35rem 0 0;
+    color: var(--color-text-muted);
+  }
+}
+
+.ft-student-sessions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ft-student-session-card {
+  padding: 1rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-lg;
+  background: var(--color-surface-muted);
+}
+
+.ft-student-session-card__main {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.ft-student-session-card__desc {
+  margin: 0.35rem 0 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.ft-student-session-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+
+.ft-student-session-card__actions {
+  margin-top: 0.75rem;
+}
+
+.ft-student-session-card__muted {
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.ft-attendance-eligibility {
+  margin-top: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: $radius-lg;
+  font-size: 0.92rem;
+
+  &--ok {
+    border: 1px solid rgba($color-success, 0.3);
+    background: rgba($color-success, 0.08);
+    color: darken($color-success, 10%);
+  }
+
+  &--warn {
+    border: 1px solid rgba($color-warning, 0.35);
+    background: rgba($color-warning, 0.08);
+    color: darken($color-warning, 12%);
+  }
+}
+
+.ft-assessment-card {
+  padding: 1.1rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-lg;
+  background: var(--color-card);
+  margin-bottom: 1rem;
+
+  &--muted {
+    opacity: 0.85;
+  }
+}
+
+.ft-assessment-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ft-completion-letter-card {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: $radius-xl;
+  border: 1px solid rgba($color-accent, 0.3);
+  background: linear-gradient(135deg, rgba($color-accent, 0.1), transparent);
+}
+
+.ft-completion-letter-card__icon {
+  color: $color-accent;
+}
+
+.ft-eligibility-reasons {
+  margin: 0.75rem 0 0;
+  padding-inline-start: 1.25rem;
+  color: var(--color-text-muted);
+}
+
+.ft-task-item__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ft-task-item__review,
+.ft-task-item__feedback {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.ft-self-eval__summary {
+  margin-top: 1rem;
+}
+
+.ft-self-eval__file-meta {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
