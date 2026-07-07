@@ -34,10 +34,19 @@ const env = {
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'uploads',
   /** Public API base (no trailing slash), e.g. https://api.example.com — used for absolute file URLs */
   PUBLIC_BASE_URL: (process.env.PUBLIC_BASE_URL || '').replace(/\/$/, ''),
-  /** local | s3 — object URLs resolved in shared/storage/fileStorage */
-  STORAGE_BACKEND: process.env.STORAGE_BACKEND || 'local',
+  /** local | r2 | s3 — object storage backend */
+  STORAGE_BACKEND: (process.env.STORAGE_BACKEND || 'local').trim().toLowerCase(),
   /** When STORAGE_BACKEND=s3, public bucket/CDN origin for keys */
   S3_PUBLIC_BASE_URL: (process.env.S3_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
+  /** Cloudflare R2 (S3-compatible) */
+  R2_ACCOUNT_ID: (process.env.R2_ACCOUNT_ID || '').trim(),
+  R2_ACCESS_KEY_ID: (process.env.R2_ACCESS_KEY_ID || '').trim(),
+  R2_SECRET_ACCESS_KEY: (process.env.R2_SECRET_ACCESS_KEY || '').trim(),
+  R2_BUCKET_NAME: (process.env.R2_BUCKET_NAME || 'lms-uploads').trim(),
+  R2_ENDPOINT: (process.env.R2_ENDPOINT || '').trim(),
+  R2_REGION: (process.env.R2_REGION || 'auto').trim(),
+  /** Optional public CDN origin for public R2 objects */
+  R2_PUBLIC_BASE_URL: (process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
   /** Comma-separated browser origins allowed for CORS (required in production) */
   CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS || ''),
   /** YouTube Data API v3 key — enables fetching unlisted playlists (public RSS is not enough). */
@@ -168,10 +177,16 @@ const env = {
     process.env.FIELD_TRAINING_MANAGE_ROLE_CODES,
     'super_admin,university_admin,instructor'
   ),
-  /** AI self-evaluation provider (e.g. openai). Empty = disabled. */
-  AI_PROVIDER: (process.env.AI_PROVIDER || '').trim(),
+  /** AI provider (openai | gemini). Empty = disabled. */
+  AI_PROVIDER: (process.env.AI_PROVIDER || '').trim().toLowerCase(),
   OPENAI_API_KEY: (process.env.OPENAI_API_KEY || '').trim(),
-  AI_MODEL: (process.env.AI_MODEL || 'gpt-4o-mini').trim(),
+  GEMINI_API_KEY: (process.env.GEMINI_API_KEY || '').trim(),
+  AI_MODEL: (process.env.AI_MODEL || '').trim(),
+  AI_RATE_LIMIT_MAX: Number(process.env.AI_RATE_LIMIT_MAX) || 20,
+  AI_RATE_LIMIT_WINDOW_MS: Number(process.env.AI_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  FILE_UPLOAD_RATE_LIMIT_MAX: Number(process.env.FILE_UPLOAD_RATE_LIMIT_MAX) || 30,
+  FILE_UPLOAD_RATE_LIMIT_WINDOW_MS:
+    Number(process.env.FILE_UPLOAD_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   FIELD_TRAINING_AI_RATE_LIMIT_MAX: Number(process.env.FIELD_TRAINING_AI_RATE_LIMIT_MAX) || 10,
   FIELD_TRAINING_AI_RATE_LIMIT_WINDOW_MS:
     Number(process.env.FIELD_TRAINING_AI_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,

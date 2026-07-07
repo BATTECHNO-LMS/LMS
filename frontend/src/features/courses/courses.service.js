@@ -1,6 +1,8 @@
 import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
+import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
+import { storedValueFromFileRecord } from '../../utils/uploadUrl.js';
 
 const admin = endpoints.adminCourses;
 const student = endpoints.studentCourses;
@@ -16,11 +18,30 @@ export async function fetchAdminCourse(id) {
 }
 
 export async function uploadCourseCoverImage(file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const res = await apiClient.post(`${admin}/cover`, fd, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const record = await uploadFileToStorage(file, {
+    folder: 'logos',
+    visibility: 'public',
+    accept: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
   });
+  return {
+    url: storedValueFromFileRecord(record),
+    path: record.storageKey,
+    fileId: record.id,
+  };
+}
+
+export async function uploadLessonSubmission(courseId, lessonId, file) {
+  const record = await uploadFileToStorage(file, {
+    folder: 'training',
+    visibility: 'private',
+    accept: ['application/pdf'],
+    relatedEntityType: 'lesson_training',
+    relatedEntityId: lessonId,
+  });
+  const res = await apiClient.post(
+    `${student}/${courseId}/lessons/${lessonId}/training/submission`,
+    { fileId: record.id }
+  );
   return unwrapApiData(res);
 }
 
@@ -121,17 +142,6 @@ export async function fetchLessonTraining(courseId, lessonId) {
 
 export async function startLessonTraining(courseId, lessonId) {
   const res = await apiClient.post(`${student}/${courseId}/lessons/${lessonId}/training/start`);
-  return unwrapApiData(res);
-}
-
-export async function uploadLessonSubmission(courseId, lessonId, file) {
-  const fd = new FormData();
-  fd.append('file', file);
-  const res = await apiClient.post(
-    `${student}/${courseId}/lessons/${lessonId}/training/submission`,
-    fd,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
-  );
   return unwrapApiData(res);
 }
 

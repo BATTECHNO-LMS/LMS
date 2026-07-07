@@ -75,6 +75,8 @@ import arCourses from './locales/ar/courses.json';
 import enCourses from './locales/en/courses.json';
 import arFieldTraining from './locales/ar/fieldTraining.json';
 import enFieldTraining from './locales/en/fieldTraining.json';
+import arUploads from './locales/ar/uploads.json';
+import enUploads from './locales/en/uploads.json';
 
 export const I18N_NAMESPACES = [
   'common',
@@ -111,6 +113,7 @@ export const I18N_NAMESPACES = [
   'landing',
   'courses',
   'fieldTraining',
+  'uploads',
 ];
 
 const resources = {
@@ -149,6 +152,7 @@ const resources = {
     landing: arLanding,
     courses: arCourses,
     fieldTraining: arFieldTraining,
+    uploads: arUploads,
   },
   en: {
     common: enCommon,
@@ -185,6 +189,7 @@ const resources = {
     rubrics: enRubrics,
     courses: enCourses,
     fieldTraining: enFieldTraining,
+    uploads: enUploads,
   },
 };
 

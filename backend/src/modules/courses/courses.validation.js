@@ -128,6 +128,10 @@ const submitLessonAnswersBodySchema = z.object({
     .max(50),
 });
 
+const submitLessonFileBodySchema = z.object({
+  fileId: z.string().uuid().optional(),
+});
+
 module.exports = {
   uuidParamSchema,
   courseIdParamSchema,
@@ -145,4 +149,5 @@ module.exports = {
   listStudentCoursesQuerySchema,
   upsertLessonTrainingBodySchema,
   submitLessonAnswersBodySchema,
+  submitLessonFileBodySchema,
 };

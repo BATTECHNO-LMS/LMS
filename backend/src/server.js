@@ -11,6 +11,19 @@ function assertProductionConfig() {
   if (!env.JWT_SECRET || env.JWT_SECRET.length < env.JWT_SECRET_MIN_LENGTH) {
     errors.push(`JWT_SECRET must be at least ${env.JWT_SECRET_MIN_LENGTH} characters in production`);
   }
+  if (env.STORAGE_BACKEND === 'r2') {
+    const { getRequiredR2Config } = require('./shared/storage/providers/r2.provider');
+    const missing = getRequiredR2Config();
+    if (missing.length) errors.push(`R2 storage missing env: ${missing.join(', ')}`);
+  }
+  if (env.AI_PROVIDER) {
+    if (env.AI_PROVIDER === 'gemini' && !env.GEMINI_API_KEY) {
+      errors.push('GEMINI_API_KEY is required when AI_PROVIDER=gemini');
+    }
+    if (env.AI_PROVIDER === 'openai' && !env.OPENAI_API_KEY) {
+      errors.push('OPENAI_API_KEY is required when AI_PROVIDER=openai');
+    }
+  }
   if (errors.length) {
     // eslint-disable-next-line no-console
     console.error('Invalid production configuration:\n', errors.join('\n'));
@@ -18,8 +31,25 @@ function assertProductionConfig() {
   }
 }
 
+function warnDevStorageAiConfig() {
+  if (env.NODE_ENV === 'production') return;
+  if (env.STORAGE_BACKEND === 'r2') {
+    const { getRequiredR2Config } = require('./shared/storage/providers/r2.provider');
+    const missing = getRequiredR2Config();
+    if (missing.length) {
+      // eslint-disable-next-line no-console
+      console.warn(`[storage] R2 enabled but missing: ${missing.join(', ')}`);
+    }
+  }
+  if (env.AI_PROVIDER === 'gemini' && !env.GEMINI_API_KEY) {
+    // eslint-disable-next-line no-console
+    console.warn('[ai] AI_PROVIDER=gemini but GEMINI_API_KEY is not set — AI disabled');
+  }
+}
+
 async function start() {
   assertProductionConfig();
+  warnDevStorageAiConfig();
   if (!env.DATABASE_URL) {
     // eslint-disable-next-line no-console
     console.warn('DATABASE_URL is not set; starting without a database connection.');

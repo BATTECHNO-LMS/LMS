@@ -129,11 +129,13 @@ async function aiSelfEvaluate(req, res, next) {
 
 async function submitTask(req, res, next) {
   try {
+    const body = req.body || {};
     const data = await fieldTrainingService.submitTaskFile(
       req.validated.params.taskId,
       req.file,
       req.user.userId,
-      req.body || {}
+      body,
+      req.user
     );
     return success(res, data, { message: 'Task submitted' });
   } catch (e) {
@@ -150,14 +152,17 @@ async function submitTask(req, res, next) {
 async function downloadSubmission(req, res, next) {
   const fs = require('fs');
   try {
-    const { absPath, fileName, mimeType } = await fieldTrainingService.downloadSubmissionFile(
+    const result = await fieldTrainingService.downloadSubmissionFile(
       req.validated.params.submissionId,
       req.user,
       { asAdmin: false }
     );
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    const stream = fs.createReadStream(absPath);
+    if (result.redirectUrl) {
+      return res.redirect(result.redirectUrl);
+    }
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.fileName)}"`);
+    const stream = fs.createReadStream(result.absPath);
     stream.on('error', (err) => next(err));
     stream.pipe(res);
   } catch (e) {

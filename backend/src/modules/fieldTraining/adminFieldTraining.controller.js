@@ -165,14 +165,17 @@ async function listSubmissions(req, res, next) {
 
 async function downloadSubmission(req, res, next) {
   try {
-    const { absPath, fileName, mimeType } = await fieldTrainingService.downloadSubmissionFile(
+    const result = await fieldTrainingService.downloadSubmissionFile(
       req.validated.params.submissionId,
       req.user,
       { asAdmin: true }
     );
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
-    const stream = fs.createReadStream(absPath);
+    if (result.redirectUrl) {
+      return res.redirect(result.redirectUrl);
+    }
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.fileName)}"`);
+    const stream = fs.createReadStream(result.absPath);
     stream.on('error', (err) => next(err));
     stream.pipe(res);
   } catch (e) {

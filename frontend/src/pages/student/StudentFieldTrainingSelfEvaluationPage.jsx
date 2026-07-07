@@ -17,6 +17,7 @@ import { getApiErrorMessage } from '../../services/apiHelpers.js';
 export function StudentFieldTrainingSelfEvaluationPage() {
   const { opportunityId, taskId } = useParams();
   const { t } = useTranslation('fieldTraining');
+  const { t: tUpload } = useTranslation('uploads');
   const [studentInput, setStudentInput] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [aiMeta, setAiMeta] = useState(null);
@@ -44,6 +45,10 @@ export function StudentFieldTrainingSelfEvaluationPage() {
       const code = err?.response?.data?.code;
       if (code === 'AI_NOT_CONFIGURED') {
         setError(t('selfEval.aiNotConfigured'));
+      } else if (code === 'AI_RATE_LIMIT') {
+        setError(tUpload('ai.rateLimit'));
+      } else if (code === 'AI_PROVIDER_ERROR' || code === 'AI_MODEL_UNSUPPORTED') {
+        setError(tUpload('ai.unavailable'));
       } else {
         setError(getApiErrorMessage(err, t('selfEval.aiError')));
       }

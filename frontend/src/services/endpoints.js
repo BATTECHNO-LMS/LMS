@@ -58,6 +58,18 @@ export const endpoints = {
   adminFieldTraining: `${API_V}/admin/field-training`,
   instructorFieldTraining: `${API_V}/instructor/field-training`,
   studentFieldTraining: `${API_V}/student/field-training`,
+  files: {
+    presignUpload: `${API_V}/files/presign-upload`,
+    confirmUpload: `${API_V}/files/confirm-upload`,
+    downloadUrl: (id) => `${API_V}/files/${id}/download-url`,
+    delete: (id) => `${API_V}/files/${id}`,
+    health: `${API_V}/files/health/storage`,
+  },
+  ai: {
+    generate: `${API_V}/ai/generate`,
+    status: `${API_V}/ai/status`,
+    test: `${API_V}/ai/test`,
+  },
   public: {
     landingStats: `${API_V}/public/landing-stats`,
   },

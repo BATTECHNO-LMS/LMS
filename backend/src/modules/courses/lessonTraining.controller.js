@@ -32,13 +32,14 @@ async function start(req, res, next) {
 
 async function uploadSubmission(req, res, next) {
   try {
-    if (!req.file) throw new ApiError(400, 'الملف مطلوب');
     const { courseId, lessonId } = req.validated.params;
     const data = await lessonTrainingService.submitFile(
       courseId,
       lessonId,
       req.user.userId,
-      req.file
+      req.file,
+      req.body || {},
+      req.user
     );
     return success(res, data);
   } catch (e) {

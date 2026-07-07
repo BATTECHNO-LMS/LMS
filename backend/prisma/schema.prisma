@@ -1450,3 +1450,31 @@ model field_training_completion_letters {
   @@index([opportunity_id], map: "idx_field_training_completion_letters_opportunity")
   @@index([status], map: "idx_field_training_completion_letters_status")
 }
+
+enum file_visibility {
+  public
+  private
+}
+
+model files {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String?         @db.Uuid
+  created_by_id       String?         @db.Uuid
+  related_entity_type String?         @db.VarChar(100)
+  related_entity_id   String?         @db.Uuid
+  original_name       String          @db.VarChar(500)
+  storage_key         String          @unique @db.VarChar(1024)
+  bucket              String          @db.VarChar(255)
+  mime_type           String          @db.VarChar(255)
+  size                BigInt
+  visibility          file_visibility @default(private)
+  url                 String?         @db.VarChar(2048)
+  created_at          DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime        @default(now()) @db.Timestamptz(6)
+  deleted_at          DateTime?       @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_files_user_id")
+  @@index([created_by_id], map: "idx_files_created_by_id")
+  @@index([related_entity_type, related_entity_id], map: "idx_files_related_entity")
+  @@index([deleted_at], map: "idx_files_deleted_at")
+}
