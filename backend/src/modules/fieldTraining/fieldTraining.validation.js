@@ -160,7 +160,7 @@ const expelBodySchema = z.object({
 });
 
 const aiSelfEvalBodySchema = z.object({
-  studentInput: z.string().min(1).max(20000),
+  studentInput: z.string().trim().min(20).max(20000),
 });
 
 const taskSubmitFieldsSchema = z.object({

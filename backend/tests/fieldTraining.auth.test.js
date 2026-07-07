@@ -8,6 +8,18 @@ test('GET /api/v1/admin/field-training/stats requires authentication', async () 
   assert.strictEqual(res.status, 401);
 });
 
+test('GET /api/v1/admin/field-training/submissions/:id/download-url requires authentication', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const res = await request(app).get(`/api/v1/admin/field-training/submissions/${id}/download-url`);
+  assert.strictEqual(res.status, 401);
+});
+
+test('GET /api/v1/student/field-training/submissions/:id/download-url requires authentication', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const res = await request(app).get(`/api/v1/student/field-training/submissions/${id}/download-url`);
+  assert.strictEqual(res.status, 401);
+});
+
 test('GET /api/v1/admin/field-training/submissions/:id/download requires authentication', async () => {
   const id = '00000000-0000-4000-8000-000000000001';
   const res = await request(app).get(`/api/v1/admin/field-training/submissions/${id}/download`);

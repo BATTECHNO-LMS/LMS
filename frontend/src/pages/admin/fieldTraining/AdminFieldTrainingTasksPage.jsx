@@ -178,7 +178,7 @@ export function AdminFieldTrainingTasksPage() {
     setDownloadError('');
     try {
       const file = await downloadFieldTrainingSubmission(submissionId, { asAdmin: true });
-      saveFieldTrainingSubmissionBlob(file);
+      if (file) saveFieldTrainingSubmissionBlob(file);
     } catch (err) {
       setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
     }

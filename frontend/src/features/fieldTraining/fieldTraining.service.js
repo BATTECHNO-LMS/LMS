@@ -2,6 +2,7 @@ import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
 import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
+import { openRemoteDownloadUrl } from './fieldTrainingDownload.js';
 
 const admin = endpoints.adminFieldTraining;
 const student = endpoints.studentFieldTraining;
@@ -146,8 +147,22 @@ function parseDownloadFilename(disposition, fallback) {
   return match?.[1] ? decodeURIComponent(match[1]) : fallback;
 }
 
+/**
+ * Download a field training submission.
+ * R2 files: fetches a presigned URL from the API, then opens it in a new tab.
+ * Local files: streams via authenticated request and returns a blob for saving.
+ * @returns {Promise<{ blob: Blob; filename: string } | null>}
+ */
 export async function downloadFieldTrainingSubmission(submissionId, { asAdmin = false } = {}) {
   const base = asAdmin ? admin : student;
+  const metaRes = await apiClient.get(`${base}/submissions/${submissionId}/download-url`);
+  const meta = unwrapApiData(metaRes);
+
+  if (meta?.url) {
+    openRemoteDownloadUrl(meta.url);
+    return null;
+  }
+
   const res = await apiClient.get(`${base}/submissions/${submissionId}/download`, {
     responseType: 'blob',
   });

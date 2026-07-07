@@ -47,6 +47,14 @@ router.get(
 );
 
 router.get(
+  '/submissions/:submissionId/download-url',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: submissionIdParamSchema }),
+  studentFieldTrainingController.getSubmissionDownloadUrl
+);
+
+router.get(
   '/submissions/:submissionId/download',
   authenticate,
   studentOnly,

@@ -98,6 +98,14 @@ router.post(
 );
 
 router.get(
+  '/submissions/:submissionId/download-url',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: submissionIdParamSchema }),
+  adminFieldTrainingController.getSubmissionDownloadUrl
+);
+
+router.get(
   '/submissions/:submissionId/download',
   authenticate,
   fieldTrainingManage,

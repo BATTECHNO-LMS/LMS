@@ -647,7 +647,7 @@ async function listOpportunitySubmissions(opportunityId, user) {
   };
 }
 
-async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = {}) {
+async function assertSubmissionDownloadAccess(submissionId, user, { asAdmin = false } = {}) {
   const submission = await repo.findSubmissionById(submissionId);
   if (!submission) throw new ApiError(404, 'Submission not found');
   const opp = submission.field_training_tasks?.field_training_opportunities;
@@ -665,6 +665,30 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
   if (!submission.file_path) {
     throw new ApiError(404, 'File not found');
   }
+
+  return submission;
+}
+
+async function getSubmissionDownloadUrl(submissionId, user, { asAdmin = false } = {}) {
+  const submission = await assertSubmissionDownloadAccess(submissionId, user, { asAdmin });
+
+  if (getStorageBackend() === 'r2' && String(submission.file_path).startsWith('uploads/')) {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: submission.file_path });
+    return {
+      url: signed.url,
+      expiresIn: signed.expiresIn,
+    };
+  }
+
+  if (!repo.submissionFileExists(submission.file_path)) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  return { delivery: 'stream' };
+}
+
+async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = {}) {
+  const submission = await assertSubmissionDownloadAccess(submissionId, user, { asAdmin });
 
   if (getStorageBackend() === 'r2' && String(submission.file_path).startsWith('uploads/')) {
     const signed = await getProvider().createPresignedGetUrl({ storageKey: submission.file_path });
@@ -829,6 +853,7 @@ module.exports = {
   updateOpportunityTask,
   deleteOpportunityTask,
   listOpportunitySubmissions,
+  getSubmissionDownloadUrl,
   downloadSubmissionFile,
   submitTaskFile,
   listStudentOpportunityTasks,

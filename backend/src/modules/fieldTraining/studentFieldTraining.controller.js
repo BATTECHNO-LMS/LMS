@@ -149,6 +149,19 @@ async function submitTask(req, res, next) {
   }
 }
 
+async function getSubmissionDownloadUrl(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getSubmissionDownloadUrl(
+      req.validated.params.submissionId,
+      req.user,
+      { asAdmin: false }
+    );
+    return success(res, data, { message: 'Download URL generated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function downloadSubmission(req, res, next) {
   const fs = require('fs');
   try {
@@ -182,5 +195,6 @@ module.exports = {
   submitAssessment,
   aiSelfEvaluate,
   submitTask,
+  getSubmissionDownloadUrl,
   downloadSubmission,
 };

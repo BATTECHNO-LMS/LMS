@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Calendar, ClipboardList, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../components/common/Button.jsx';
@@ -18,12 +18,21 @@ import { formatFtDate } from '../../../../features/fieldTraining/fieldTrainingUi
 export function StudentFieldTrainingTasksPanel({ opportunityId }) {
   const { t } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
+  const location = useLocation();
   const { data, isLoading, isError, refetch } = useStudentOpportunityTasks(opportunityId);
   const submitMut = useSubmitFieldTrainingTask(opportunityId);
   const [pendingFile, setPendingFile] = useState({});
   const [replacingId, setReplacingId] = useState(null);
   const [error, setError] = useState('');
   const [downloadError, setDownloadError] = useState('');
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.taskSubmitted) {
+      setSubmitSuccess(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state?.taskSubmitted]);
 
   const tasks = data?.tasks ?? [];
 
@@ -49,7 +58,7 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
     setDownloadError('');
     try {
       const file = await downloadFieldTrainingSubmission(submissionId, { asAdmin: false });
-      saveFieldTrainingSubmissionBlob(file);
+      if (file) saveFieldTrainingSubmissionBlob(file);
     } catch (err) {
       setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
     }
@@ -72,6 +81,11 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
 
   return (
     <div className="ft-student-task-list">
+      {submitSuccess ? (
+        <p className="ft-student-task-list__success" role="status">
+          {t('selfEval.submitSuccess')}
+        </p>
+      ) : null}
       {error ? (
         <p className="ft-student-task-list__error" role="alert">
           {error}
@@ -164,13 +178,12 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
               ) : null}
 
               {showUpload && task.requires_ai_self_evaluation ? (
-                <Button
-                  as={Link}
+                <Link
+                  className="btn btn--primary"
                   to={`/student/field-training/${opportunityId}/tasks/${task.id}/self-evaluation`}
-                  variant="primary"
                 >
                   {t('tasks.selfEvalLink')}
-                </Button>
+                </Link>
               ) : null}
 
               {showUpload && !task.requires_ai_self_evaluation ? (

@@ -20,7 +20,9 @@
     "seed:demo": "node scripts/seed-demo.js",
     "seed:analytics-demo": "node scripts/seed-analytics-demo.js",
     "seed:auth": "node scripts/seed-auth-minimum.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "r2:health": "node scripts/r2-health-check.js",
+    "r2:setup-cors": "node scripts/r2-setup-cors.js"
   },
   "engines": {
     "node": ">=18"

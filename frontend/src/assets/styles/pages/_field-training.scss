@@ -1,3 +1,4 @@
+@use 'sass:color';
 @use '../abstracts/variables' as *;
 @use '../abstracts/mixins' as *;
 
@@ -2686,6 +2687,16 @@
   border-radius: $radius-lg;
 }
 
+.ft-student-task-list__success {
+  margin: 0 0 0.5rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: $radius-lg;
+  border: 1px solid rgba($color-success, 0.35);
+  background: rgba($color-success, 0.08);
+  color: color.adjust($color-success, $lightness: -12%);
+  font-size: 0.92rem;
+}
+
 .ft-student-task-item {
   margin: 0;
 }
@@ -3439,7 +3450,7 @@
   &--completed {
     border-color: rgba($color-success, 0.35);
     background: rgba($color-success, 0.06);
-    color: darken($color-success, 8%);
+    color: color.adjust($color-success, $lightness: -8%);
   }
 
   &--current {
@@ -3530,13 +3541,13 @@
   &--ok {
     border: 1px solid rgba($color-success, 0.3);
     background: rgba($color-success, 0.08);
-    color: darken($color-success, 10%);
+    color: color.adjust($color-success, $lightness: -10%);
   }
 
   &--warn {
     border: 1px solid rgba($color-warning, 0.35);
     background: rgba($color-warning, 0.08);
-    color: darken($color-warning, 12%);
+    color: color.adjust($color-warning, $lightness: -12%);
   }
 }
 
@@ -3593,8 +3604,106 @@
   color: var(--color-text-muted);
 }
 
-.ft-self-eval__summary {
+.ft-self-eval {
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+.ft-self-eval__hero {
+  margin-bottom: 0.5rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text);
+  }
+}
+
+.ft-self-eval__card {
+  margin-bottom: 1rem;
+}
+
+.ft-self-eval__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.ft-self-eval__section-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.ft-self-eval__task-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.ft-self-eval__desc {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.65;
+}
+
+.ft-self-eval__meta {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.ft-self-eval__prompt {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: $radius-lg;
+  border: 1px solid rgba($color-accent, 0.25);
+  background: rgba($color-accent, 0.06);
+
+  strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.9rem;
+  }
+
+  p {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+}
+
+.ft-self-eval__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ft-self-eval__hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.ft-self-eval__upload {
   margin-top: 1rem;
+}
+
+.ft-self-eval__error {
+  margin-top: 0.5rem;
+}
+
+.ft-self-eval__actions {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ft-self-eval__summary {
+  margin-top: 0.5rem;
 }
 
 .ft-self-eval__file-meta {

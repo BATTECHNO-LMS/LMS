@@ -527,6 +527,9 @@ async function runTaskAiSelfEvaluate(taskId, studentInput, studentId) {
   if (!task.requires_ai_self_evaluation) {
     throw new ApiError(400, 'هذه المهمة لا تتطلب تقييمًا ذاتيًا بالذكاء الاصطناعي');
   }
+  if (!task.ai_self_evaluation_prompt?.trim()) {
+    throw new ApiError(400, 'لم يتم إعداد برومبت التقييم لهذه المهمة', null, 'AI_PROMPT_NOT_CONFIGURED');
+  }
 
   const opp = await prisma.field_training_opportunities.findUnique({
     where: { id: task.opportunity_id },

@@ -163,6 +163,19 @@ async function listSubmissions(req, res, next) {
   }
 }
 
+async function getSubmissionDownloadUrl(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getSubmissionDownloadUrl(
+      req.validated.params.submissionId,
+      req.user,
+      { asAdmin: true }
+    );
+    return success(res, data, { message: 'Download URL generated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function downloadSubmission(req, res, next) {
   try {
     const result = await fieldTrainingService.downloadSubmissionFile(
@@ -211,6 +224,7 @@ module.exports = {
   updateTask,
   deleteTask,
   listSubmissions,
+  getSubmissionDownloadUrl,
   downloadSubmission,
   reviewSubmission,
 };
