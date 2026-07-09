@@ -15,10 +15,18 @@ import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 
 const ATTENDANCE_STATUSES = ['present', 'absent', 'late', 'excused'];
 
-export function ManageAttendanceTab({ opportunityId, preselectedSessionId, onSessionChange }) {
+export function ManageAttendanceTab({
+  opportunityId,
+  preselectedSessionId,
+  onSessionChange,
+  apiScope = 'admin',
+}) {
+  const isInstructor = apiScope === 'instructor';
   const { t, i18n } = useTranslation('fieldTraining');
   const qc = useQueryClient();
-  const { data: sessionsData, isLoading: sessionsLoading } = useOpportunitySessions(opportunityId);
+  const { data: sessionsData, isLoading: sessionsLoading } = useOpportunitySessions(opportunityId, {
+    scope: apiScope,
+  });
   const [sessionId, setSessionId] = useState(preselectedSessionId || '');
   const [records, setRecords] = useState({});
   const [noteByApp, setNoteByApp] = useState({});
@@ -33,11 +41,12 @@ export function ManageAttendanceTab({ opportunityId, preselectedSessionId, onSes
 
   const { data: attendanceData, isLoading: attLoading } = useSessionAttendance(sessionId, {
     enabled: Boolean(sessionId),
+    scope: apiScope,
   });
 
   const { data: participantsData, isLoading: partLoading } = useQuery({
     queryKey: fieldTrainingKeys.sessionParticipants(sessionId),
-    queryFn: () => fetchSessionParticipants(sessionId),
+    queryFn: () => fetchSessionParticipants(sessionId, { asInstructor: isInstructor }),
     enabled: Boolean(sessionId),
   });
 
@@ -64,7 +73,8 @@ export function ManageAttendanceTab({ opportunityId, preselectedSessionId, onSes
           application_id,
           status,
           note: noteByApp[application_id] || null,
-        }))
+        })),
+        { asInstructor: isInstructor }
       ),
     onSuccess: () => {
       setSuccess(t('manageHub.attendanceSaved'));

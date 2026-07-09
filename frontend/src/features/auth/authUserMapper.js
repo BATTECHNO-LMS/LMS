@@ -32,6 +32,17 @@ export function mapAuthUser(raw) {
       ? { id: String(uniRaw.id ?? primaryUniversityId ?? ''), name: String(uniRaw.name) }
       : null;
 
+  const specialtyRaw = raw.specialty ?? raw.university_specialty ?? raw.canonical_specialty;
+  const specialty =
+    specialtyRaw && typeof specialtyRaw === 'object'
+      ? {
+          id: String(specialtyRaw.id ?? ''),
+          name_ar: specialtyRaw.name_ar != null ? String(specialtyRaw.name_ar) : undefined,
+          name_en: specialtyRaw.name_en != null ? String(specialtyRaw.name_en) : undefined,
+          code: specialtyRaw.code != null ? String(specialtyRaw.code) : undefined,
+        }
+      : null;
+
   const tenantId = isGlobal ? TENANT_SCOPE_ALL : primaryUniversityId;
 
   return {
@@ -46,6 +57,10 @@ export function mapAuthUser(raw) {
     primary_university_id: primaryUniversityId,
     primary_university: university,
     university,
+    specialty_id: raw.specialty_id != null ? String(raw.specialty_id) : null,
+    university_specialty_id:
+      raw.university_specialty_id != null ? String(raw.university_specialty_id) : null,
+    specialty,
     tenantId,
     permissions: Array.isArray(raw.permissions) ? raw.permissions.map(String) : [],
     tenantCode: raw.tenantCode != null ? String(raw.tenantCode) : null,

@@ -10,7 +10,7 @@ export function ProtectedRoute() {
   const { isAuthenticated, isAuthReady } = useAuth();
   const location = useLocation();
 
-  if (!isAuthReady) {
+  if (!isAuthReady && !isAuthenticated) {
     return <LoadingSpinner />;
   }
 

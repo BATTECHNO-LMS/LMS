@@ -10,8 +10,10 @@ import {
   useStudentOpportunityTasks,
   useSubmitFieldTrainingTask,
   downloadFieldTrainingSubmission,
+  downloadTaskInstructionFile,
   saveFieldTrainingSubmissionBlob,
 } from '../../../../features/fieldTraining/index.js';
+import { StudentTaskInstructionSection } from '../../../student/fieldTraining/components/StudentTaskInstructionSection.jsx';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../../features/fieldTraining/fieldTrainingUi.js';
 
@@ -51,6 +53,16 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
       refetch();
     } catch (err) {
       setError(getApiErrorMessage(err, tCommon('errors.generic')));
+    }
+  }
+
+  async function handleDownloadInstruction(taskId) {
+    setDownloadError('');
+    try {
+      const file = await downloadTaskInstructionFile(taskId, { asAdmin: false });
+      if (file) saveFieldTrainingSubmissionBlob(file);
+    } catch (err) {
+      setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
     }
   }
 
@@ -126,6 +138,12 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                 </div>
               </header>
               {task.description ? <p className="ft-task-item__desc">{task.description}</p> : null}
+
+              <StudentTaskInstructionSection
+                task={task}
+                onDownload={() => handleDownloadInstruction(task.id)}
+              />
+
               <div className="ft-task-item__meta">
                 {task.due_date ? (
                   <span className="ft-task-item__badge">

@@ -86,6 +86,7 @@ async function listApplications(req, res, next) {
   try {
     const data = await fieldTrainingService.listOpportunityApplications(
       req.validated.params.id,
+      req.validated.query ?? {},
       req.user
     );
     return success(res, data, { message: 'Applications retrieved' });
@@ -209,9 +210,52 @@ async function reviewSubmission(req, res, next) {
   }
 }
 
+async function getTaskInstructionDownloadUrl(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getTaskInstructionDownloadUrl(
+      req.validated.params.taskId,
+      req.user,
+      { asAdmin: true }
+    );
+    return success(res, data, { message: 'Instruction download URL generated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function downloadTaskInstruction(req, res, next) {
+  try {
+    const result = await fieldTrainingService.downloadTaskInstructionFile(
+      req.validated.params.taskId,
+      req.user,
+      { asAdmin: true }
+    );
+    if (result.redirectUrl) {
+      return res.redirect(result.redirectUrl);
+    }
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.fileName)}"`);
+    const stream = fs.createReadStream(result.absPath);
+    stream.on('error', (err) => next(err));
+    stream.pipe(res);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function eligibilityCatalog(_req, res, next) {
+  try {
+    const data = await fieldTrainingService.getEligibilityCatalog();
+    return success(res, data, { message: 'Eligibility catalog retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   stats,
+  eligibilityCatalog,
   getById,
   create,
   update,
@@ -226,5 +270,7 @@ module.exports = {
   listSubmissions,
   getSubmissionDownloadUrl,
   downloadSubmission,
+  getTaskInstructionDownloadUrl,
+  downloadTaskInstruction,
   reviewSubmission,
 };

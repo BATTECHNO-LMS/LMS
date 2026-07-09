@@ -182,6 +182,10 @@
     "reports": "تقارير محدّثة",
     "evidence": "أدلة مرفوعة",
     "alerts": "تنبيهات",
+    "fieldTrainingApplicants": "متقدمو التدريب الميداني",
+    "fieldTrainingInTraining": "قيد التدريب الميداني",
+    "fieldTrainingHint": "طلاب جامعتك فقط",
+    "fieldTrainingPortal": "فتح بوابة التدريب الميداني",
     "latest": "آخر التحديثات",
     "table": {
       "time": "التاريخ",

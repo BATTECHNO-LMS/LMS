@@ -33,9 +33,12 @@ import {
   getOpportunityUniversityLabel,
   downloadFieldTrainingSubmission,
   saveFieldTrainingSubmissionBlob,
+  downloadTaskInstructionFile,
   reviewFieldTrainingSubmission,
+  fetchInstructorFieldTraining,
 } from '../../../features/fieldTraining/index.js';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { TaskInstructionFileField } from './components/TaskInstructionFileField.jsx';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
@@ -47,23 +50,32 @@ function isPastDue(dateStr) {
   return due < today;
 }
 
-export function AdminFieldTrainingTasksPage() {
+export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const { id } = useParams();
+  const isInstructor = apiScope === 'instructor';
   const { t } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const formRef = useRef(null);
   const titleInputRef = useRef(null);
 
-  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
-  const { data: tasksData, isLoading, isError, error, refetch } = useOpportunityTasks(id);
-  const { data: subsData } = useOpportunitySubmissions(id);
-  const mut = useOpportunityTaskMutations(id);
+  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id, {
+    enabled: !isInstructor,
+  });
+  const { data: instructorOppData, isLoading: instructorOppLoading } = useQuery({
+    queryKey: fieldTrainingKeys.instructorDetail(id),
+    queryFn: () => fetchInstructorFieldTraining(id),
+    enabled: isInstructor && Boolean(id),
+  });
+  const { data: tasksData, isLoading, isError, error, refetch } = useOpportunityTasks(id, { scope: apiScope });
+  const { data: subsData } = useOpportunitySubmissions(id, { scope: apiScope });
+  const mut = useOpportunityTaskMutations(id, apiScope);
   const qc = useQueryClient();
 
   const reviewMut = useMutation({
-    mutationFn: ({ submissionId, body }) => reviewFieldTrainingSubmission(submissionId, body),
+    mutationFn: ({ submissionId, body }) =>
+      reviewFieldTrainingSubmission(submissionId, body, { asInstructor: isInstructor }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(id) });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(id, apiScope) });
       setReviewModal(null);
       setReviewFeedback('');
     },
@@ -75,6 +87,8 @@ export function AdminFieldTrainingTasksPage() {
   const [isFinalTask, setIsFinalTask] = useState(false);
   const [requiresAi, setRequiresAi] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
+  const [instructionFileId, setInstructionFileId] = useState(null);
+  const [removeInstructionFile, setRemoveInstructionFile] = useState(false);
   const [formError, setFormError] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -83,6 +97,8 @@ export function AdminFieldTrainingTasksPage() {
   const [editIsFinalTask, setEditIsFinalTask] = useState(false);
   const [editRequiresAi, setEditRequiresAi] = useState(false);
   const [editAiPrompt, setEditAiPrompt] = useState('');
+  const [editInstructionFileId, setEditInstructionFileId] = useState(null);
+  const [editRemoveInstructionFile, setEditRemoveInstructionFile] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const [reviewModal, setReviewModal] = useState(null);
   const [reviewFeedback, setReviewFeedback] = useState('');
@@ -90,7 +106,9 @@ export function AdminFieldTrainingTasksPage() {
 
   const tasks = tasksData?.tasks ?? [];
   const submissions = subsData?.submissions ?? [];
-  const opp = oppData?.opportunity;
+  const opp = isInstructor ? instructorOppData?.opportunity : oppData?.opportunity;
+  const oppBusy = isInstructor ? instructorOppLoading : oppLoading;
+  const listBase = isInstructor ? '/instructor/field-training' : '/admin/field-training';
 
   const submissionCountByTask = useMemo(() => {
     const map = {};
@@ -121,20 +139,24 @@ export function AdminFieldTrainingTasksPage() {
     setFormError('');
     if (!title.trim()) return;
     try {
-      await mut.create.mutateAsync({
+      const body = {
         title: title.trim(),
         description: description.trim() || null,
         due_date: dueDate || null,
         is_final_task: isFinalTask,
         requires_ai_self_evaluation: requiresAi,
         ai_self_evaluation_prompt: requiresAi ? aiPrompt.trim() || null : null,
-      });
+      };
+      if (instructionFileId) body.instruction_file_id = instructionFileId;
+      await mut.create.mutateAsync(body);
       setTitle('');
       setDescription('');
       setDueDate('');
       setIsFinalTask(false);
       setRequiresAi(false);
       setAiPrompt('');
+      setInstructionFileId(null);
+      setRemoveInstructionFile(false);
       refetch();
     } catch (err) {
       setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
@@ -149,23 +171,41 @@ export function AdminFieldTrainingTasksPage() {
     setEditIsFinalTask(Boolean(task.is_final_task));
     setEditRequiresAi(Boolean(task.requires_ai_self_evaluation));
     setEditAiPrompt(task.ai_self_evaluation_prompt || '');
+    setEditInstructionFileId(null);
+    setEditRemoveInstructionFile(false);
     setFormError('');
+  }
+
+  async function handleDownloadInstruction(taskId) {
+    setDownloadError('');
+    try {
+      const file = await downloadTaskInstructionFile(taskId, {
+        asAdmin: !isInstructor,
+        asInstructor: isInstructor,
+      });
+      if (file) saveFieldTrainingSubmissionBlob(file);
+    } catch (err) {
+      setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
+    }
   }
 
   async function saveEditTask(e) {
     e.preventDefault();
     if (!editingTaskId || !editTitle.trim()) return;
     try {
+      const body = {
+        title: editTitle.trim(),
+        description: editDescription.trim() || null,
+        due_date: editDueDate || null,
+        is_final_task: editIsFinalTask,
+        requires_ai_self_evaluation: editRequiresAi,
+        ai_self_evaluation_prompt: editRequiresAi ? editAiPrompt.trim() || null : null,
+      };
+      if (editInstructionFileId) body.instruction_file_id = editInstructionFileId;
+      if (editRemoveInstructionFile) body.remove_instruction_file = true;
       await mut.update.mutateAsync({
         taskId: editingTaskId,
-        body: {
-          title: editTitle.trim(),
-          description: editDescription.trim() || null,
-          due_date: editDueDate || null,
-          is_final_task: editIsFinalTask,
-          requires_ai_self_evaluation: editRequiresAi,
-          ai_self_evaluation_prompt: editRequiresAi ? editAiPrompt.trim() || null : null,
-        },
+        body,
       });
       setEditingTaskId(null);
       refetch();
@@ -177,7 +217,10 @@ export function AdminFieldTrainingTasksPage() {
   async function handleDownloadSubmission(submissionId) {
     setDownloadError('');
     try {
-      const file = await downloadFieldTrainingSubmission(submissionId, { asAdmin: true });
+      const file = await downloadFieldTrainingSubmission(submissionId, {
+        asAdmin: !isInstructor,
+        asInstructor: isInstructor,
+      });
       if (file) saveFieldTrainingSubmissionBlob(file);
     } catch (err) {
       setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
@@ -205,10 +248,16 @@ export function AdminFieldTrainingTasksPage() {
         </div>
 
         <div className="ft-tasks-page__nav">
-          <Link className="btn btn--outline btn--sm" to={`/admin/field-training/${id}/applications`}>
-            <ArrowLeft size={16} aria-hidden /> {t('tasks.backToApplications')}
-          </Link>
-          <Link className="btn btn--ghost btn--sm" to="/admin/field-training">
+          {!isInstructor ? (
+            <Link className="btn btn--outline btn--sm" to={`${listBase}/${id}/applications`}>
+              <ArrowLeft size={16} aria-hidden /> {t('tasks.backToApplications')}
+            </Link>
+          ) : (
+            <Link className="btn btn--outline btn--sm" to={`${listBase}/${id}/manage`}>
+              <ArrowLeft size={16} aria-hidden /> {t('manageHub.backToManage')}
+            </Link>
+          )}
+          <Link className="btn btn--ghost btn--sm" to={listBase}>
             <ArrowLeft size={16} aria-hidden /> {t('backToList')}
           </Link>
         </div>
@@ -217,28 +266,28 @@ export function AdminFieldTrainingTasksPage() {
       <AdminStatsGrid>
         <StatCard
           label={t('adminKpi.tasksCount')}
-          value={oppLoading || isLoading ? '—' : tasks.length}
+          value={oppBusy || isLoading ? '—' : tasks.length}
           hint={t('tasks.kpiTasksHint')}
           meta={t('adminKpi.liveData')}
           icon={ListChecks}
         />
         <StatCard
           label={t('adminKpi.submissionsCount')}
-          value={oppLoading || isLoading ? '—' : submissions.length}
+          value={oppBusy || isLoading ? '—' : submissions.length}
           hint={t('tasks.kpiSubmissionsHint')}
           meta={t('adminKpi.liveData')}
           icon={Upload}
         />
         <StatCard
           label={t('tasks.kpiTasksWithSubmissions')}
-          value={oppLoading || isLoading ? '—' : tasksWithSubmissions}
+          value={oppBusy || isLoading ? '—' : tasksWithSubmissions}
           hint={t('tasks.kpiTasksWithSubmissionsHint')}
           meta={t('adminKpi.liveData')}
           icon={CheckCircle2}
         />
         <StatCard
           label={t('tasks.kpiTasksAwaiting')}
-          value={oppLoading || isLoading ? '—' : tasksAwaitingSubmissions}
+          value={oppBusy || isLoading ? '—' : tasksAwaitingSubmissions}
           hint={t('tasks.kpiTasksAwaitingHint')}
           meta={t('adminKpi.liveData')}
           icon={Clock}
@@ -310,6 +359,18 @@ export function AdminFieldTrainingTasksPage() {
                 <p className="form-field__hint">{t('tasks.aiPromptHelp')}</p>
               </>
             ) : null}
+
+            <TaskInstructionFileField
+              onUploaded={(fileId) => {
+                setInstructionFileId(fileId);
+                setRemoveInstructionFile(false);
+              }}
+              onRemove={() => {
+                setInstructionFileId(null);
+                setRemoveInstructionFile(false);
+              }}
+              disabled={mut.create.isPending}
+            />
 
             <footer className="ft-tasks-form-card__actions">
               <Button type="submit" variant="primary" disabled={mut.create.isPending || !title.trim()}>
@@ -437,6 +498,27 @@ export function AdminFieldTrainingTasksPage() {
                                 rows={3}
                               />
                             ) : null}
+                            <TaskInstructionFileField
+                              existing={
+                                !editRemoveInstructionFile && task.has_instruction_file
+                                  ? { name: task.instruction_file_name, size: task.instruction_file_size }
+                                  : null
+                              }
+                              onUploaded={(fileId) => {
+                                setEditInstructionFileId(fileId);
+                                setEditRemoveInstructionFile(false);
+                              }}
+                              onRemove={() => {
+                                setEditInstructionFileId(null);
+                                setEditRemoveInstructionFile(true);
+                              }}
+                              onDownloadExisting={
+                                task.has_instruction_file && !editRemoveInstructionFile
+                                  ? () => handleDownloadInstruction(task.id)
+                                  : undefined
+                              }
+                              disabled={mut.update.isPending}
+                            />
                             <div className="ft-task-edit__actions">
                               <Button type="submit" variant="primary" className="btn--sm" disabled={mut.update.isPending}>
                                 {t('save')}
@@ -477,6 +559,11 @@ export function AdminFieldTrainingTasksPage() {
                           {task.requires_ai_self_evaluation ? (
                             <span className="ft-task-item__badge ft-task-item__badge--ai">
                               {t('tasks.aiBadge')}
+                            </span>
+                          ) : null}
+                          {task.has_instruction_file ? (
+                            <span className="ft-task-item__badge ft-task-item__badge--instruction">
+                              {t('tasks.instructionFileBadge')}
                             </span>
                           ) : null}
                           <span
@@ -605,10 +692,24 @@ export function AdminFieldTrainingTasksPage() {
                   <p>{reviewModal.ai_prompt_used}</p>
                 </div>
               ) : null}
-              {reviewModal.ai_response_inserted_text || reviewModal.ai_raw_response ? (
+              {reviewModal.ai_model_provider || reviewModal.ai_model_name ? (
                 <div className="ft-review-block">
-                  <strong>{t('tasks.aiResponse')}</strong>
-                  <p>{reviewModal.ai_response_inserted_text || reviewModal.ai_raw_response}</p>
+                  <strong>{t('tasks.aiModel')}</strong>
+                  <p>
+                    {[reviewModal.ai_model_provider, reviewModal.ai_model_name].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              ) : null}
+              {reviewModal.ai_raw_response ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.aiRawResponse')}</strong>
+                  <p>{reviewModal.ai_raw_response}</p>
+                </div>
+              ) : null}
+              {reviewModal.ai_response_inserted_text ? (
+                <div className="ft-review-block">
+                  <strong>{t('tasks.aiResponseInserted')}</strong>
+                  <p>{reviewModal.ai_response_inserted_text}</p>
                 </div>
               ) : null}
               {reviewModal.final_student_notes ? (

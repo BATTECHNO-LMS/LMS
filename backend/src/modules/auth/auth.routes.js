@@ -1,8 +1,9 @@
 ﻿const express = require('express');
-const { validateBody } = require('../../middlewares/validate.middleware');
+const { validateBody, validateRequest } = require('../../middlewares/validate.middleware');
 const { authMiddleware } = require('../../middlewares/auth.middleware');
 const {
   registerSchema,
+  universityIdParamSchema,
   loginSchema,
   verifyEmailOtpSchema,
   resendEmailOtpSchema,
@@ -17,6 +18,11 @@ const router = express.Router();
 
 router.get('/register/universities', authController.registrationUniversities);
 router.get('/register/specialties', authController.registrationSpecialties);
+router.get(
+  '/register/universities/:universityId/specialties',
+  validateRequest({ params: universityIdParamSchema }),
+  authController.registrationUniversitySpecialties
+);
 router.post('/register', validateBody(registerSchema), authController.register);
 router.post('/verify-email-otp', validateBody(verifyEmailOtpSchema), authController.verifyEmailOtp);
 router.post('/resend-email-otp', validateBody(resendEmailOtpSchema), authController.resendEmailOtp);

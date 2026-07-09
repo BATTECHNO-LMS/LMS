@@ -53,6 +53,17 @@ async function registrationSpecialties(_req, res, next) {
   }
 }
 
+async function registrationUniversitySpecialties(req, res, next) {
+  try {
+    const specialties = await authService.universitySpecialtiesForRegistration(
+      req.validated.params.universityId
+    );
+    return success(res, specialties, { message: 'University specialties retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function verifyEmailOtp(req, res, next) {
   try {
     const data = await authService.verifyEmailOtp(req.validated);
@@ -117,6 +128,7 @@ module.exports = {
   logout,
   registrationUniversities,
   registrationSpecialties,
+  registrationUniversitySpecialties,
   verifyEmailOtp,
   resendEmailOtp,
   forgotPassword,

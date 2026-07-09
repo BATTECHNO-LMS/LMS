@@ -69,7 +69,7 @@ export function NotificationsPage() {
 
   const params = useMemo(() => {
     const preset = FILTERS.find((f) => f.id === active);
-    const payload = {};
+    const payload = { page: 1, page_size: 100 };
     if (active === 'unread') payload.is_read = false;
     if (active === 'read') payload.is_read = true;
     if (preset?.type) payload.type = preset.type;
@@ -77,8 +77,11 @@ export function NotificationsPage() {
   }, [active]);
 
   const { data, isLoading, isError, error } = useNotifications(params, { staleTime: 15_000 });
-  /** Unfiltered query powers the summary counts (deduped with the list when "all" is active). */
-  const { data: allData, isLoading: summaryLoading } = useNotifications({}, { staleTime: 15_000 });
+  const needsSeparateSummary = active !== 'all';
+  const { data: allData, isLoading: summaryLoading } = useNotifications(
+    { page: 1, page_size: 100 },
+    { staleTime: 15_000, enabled: needsSeparateSummary }
+  );
 
   const markOne = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
@@ -97,16 +100,16 @@ export function NotificationsPage() {
   }, [data, locale]);
 
   const summary = useMemo(() => {
-    const list = allData?.notifications ?? [];
+    const list = (needsSeparateSummary ? allData : data)?.notifications ?? [];
     return {
       total: list.length,
       unread: list.filter((n) => !n.is_read).length,
       registration: list.filter((n) => isRegistrationNotification(n)).length,
       system: list.filter((n) => n.type === 'system').length,
     };
-  }, [allData]);
+  }, [needsSeparateSummary, allData, data]);
 
-  const summaryValue = (n) => (summaryLoading ? '—' : String(n));
+  const summaryValue = (n) => ((needsSeparateSummary ? summaryLoading : isLoading) ? '—' : String(n));
 
   return (
     <div className="page page--dashboard page--admin">

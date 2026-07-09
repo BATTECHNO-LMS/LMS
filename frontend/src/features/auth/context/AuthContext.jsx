@@ -85,15 +85,23 @@ export function AuthProvider({ children }) {
   const bootstrap = useCallback(async () => {
     const token = getStorageItem(storageKeys.authToken);
     const cached = getStorageItem(storageKeys.authUser);
-    if (token && cached) {
-      const normalizedCached = normalizeUser(cached);
-      if (normalizedCached) setUser(normalizedCached);
+    const normalizedCached = token && cached ? normalizeUser(cached) : null;
+
+    if (normalizedCached) {
+      setUser(normalizedCached);
+      setIsAuthReady(true);
     }
+
     if (!token) {
       setUser(null);
       setIsAuthReady(true);
       return;
     }
+
+    if (!normalizedCached) {
+      setIsAuthReady(false);
+    }
+
     try {
       const { data } = await fetchCurrentUser();
       const normalized = normalizeUser(data?.user);
@@ -104,7 +112,7 @@ export function AuthProvider({ children }) {
         clearSession();
       }
     } catch {
-      clearSession();
+      if (!normalizedCached) clearSession();
     } finally {
       setIsAuthReady(true);
     }

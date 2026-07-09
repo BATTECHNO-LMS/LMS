@@ -66,6 +66,7 @@ const INSTRUCTOR = {
   [P.canPublishFeedback]: true,
   [P.canViewSubmissionsTeaching]: true,
   [P.canViewGradesTeaching]: true,
+  [P.canViewFieldTraining]: true,
   [P.canUploadEvidence]: true,
   [P.canManageRiskStudents]: true,
   [P.canViewRecognitionRequests]: false,
@@ -151,6 +152,7 @@ const ROUTE_RULES = [
   [/^\/student\/certificate(\/|$)/, P.canViewCertificates],
   [/^\/student\/dashboard\/?$/, P.canViewDashboard],
 
+  [/^\/instructor\/field-training(\/|$)/, P.canViewFieldTraining],
   [/^\/instructor\/risk-students(\/|$)/, P.canManageRiskStudents],
   [/^\/instructor\/evidence(\/|$)/, P.canUploadEvidence],
   [/^\/instructor\/grades(\/|$)/, P.canViewGradesTeaching],

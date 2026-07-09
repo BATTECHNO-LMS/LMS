@@ -13,6 +13,7 @@
       "analytics": "الإحصائيات والتحليلات",
       "courses": "إدارة الكورسات",
       "fieldTraining": "إدارة التدريب الميداني",
+      "fieldTrainingReports": "تقارير التدريب الميداني",
       "users": "المستخدمون",
       "roles": "الأدوار والصلاحيات",
       "settings": "الإعدادات",
@@ -53,6 +54,7 @@
     "grades": "الدرجات",
     "evidence": "الأدلة",
     "riskStudents": "الطلبة المتعثرون",
+    "fieldTraining": "التدريب الميداني",
     "notifications": "الإشعارات"
   },
   "student": {
@@ -75,6 +77,7 @@
     "home": "الرئيسية",
     "recognition": "طلبات الاعتراف الأكاديمي",
     "universityReports": "تقارير الجامعة",
+    "fieldTraining": "التدريب الميداني",
     "evidence": "الأدلة والمرفقات",
     "certificates": "الشهادات المرتبطة",
     "enrollmentRequests": "طلبات التسجيل",

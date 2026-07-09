@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { FileBadge, BarChart3, FolderOpen, Bell } from 'lucide-react';
+import { FileBadge, BarChart3, FolderOpen, Bell, Briefcase } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -11,6 +12,7 @@ import { useTenant } from '../../features/tenant/index.js';
 import { useRecognitionRequests } from '../../features/recognition/index.js';
 import { useEvidence } from '../../features/evidence/index.js';
 import { useReport } from '../../features/reports/index.js';
+import { useFieldTrainingDashboard } from '../../features/fieldTrainingReports/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 export function ReviewerDashboardPage() {
@@ -31,10 +33,21 @@ export function ReviewerDashboardPage() {
     isError: reportsError,
     error: reportsErrorObj,
   } = useReport('universities', universityParam, { staleTime: 30_000 });
+  const {
+    data: ftDashboard,
+    isLoading: ftLoading,
+    isError: ftError,
+    error: ftErrorObj,
+  } = useFieldTrainingDashboard(universityParam, {
+    enabled: Boolean(universityParam.university_id),
+    staleTime: 30_000,
+    mode: 'academic',
+  });
 
   const recognition = recognitionPayload?.recognition_requests ?? [];
   const reports = reportsPayload?.rows ?? [];
   const evidence = evidencePayload?.evidence ?? [];
+  const ftSummary = ftDashboard?.summary ?? {};
 
   const pendingReview = useMemo(
     () => recognition.filter((r) => r.status === 'submitted' || r.status === 'under_review').length,
@@ -51,12 +64,14 @@ export function ReviewerDashboardPage() {
       })),
     [recognition]
   );
-  const loading = recognitionLoading || reportsLoading || evidenceLoading;
+  const loading = recognitionLoading || reportsLoading || evidenceLoading || ftLoading;
   const loadError = recognitionError
     ? getApiErrorMessage(recognitionErrorObj, tCommon('errors.generic'))
     : reportsError
       ? getApiErrorMessage(reportsErrorObj, tCommon('errors.generic'))
-      : '';
+      : ftError
+        ? getApiErrorMessage(ftErrorObj, tCommon('errors.generic'))
+        : '';
 
   return (
     <div className="page page--dashboard page--reviewer">
@@ -84,7 +99,24 @@ export function ReviewerDashboardPage() {
           icon={FolderOpen}
         />
         <StatCard label={t('reviewer.alerts')} value="—" hint={t('reviewer.statsHint')} icon={Bell} />
+        <StatCard
+          label={t('reviewer.fieldTrainingApplicants')}
+          value={String(ftSummary.total_applicants ?? 0)}
+          hint={t('reviewer.fieldTrainingHint')}
+          icon={Briefcase}
+        />
+        <StatCard
+          label={t('reviewer.fieldTrainingInTraining')}
+          value={String(ftSummary.in_training_students ?? 0)}
+          hint={t('reviewer.fieldTrainingHint')}
+          icon={Briefcase}
+        />
       </AdminStatsGrid>
+      {universityParam.university_id ? (
+        <p className="crud-muted">
+          <Link to="/reviewer/field-training">{t('reviewer.fieldTrainingPortal')}</Link>
+        </p>
+      ) : null}
       <SectionCard title={<>{t('reviewer.latest')}</>}>
         {loading ? <LoadingSpinner /> : null}
         {loadError ? <p className="crud-muted">{loadError}</p> : null}

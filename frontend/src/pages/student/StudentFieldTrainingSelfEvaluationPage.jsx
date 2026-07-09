@@ -13,10 +13,13 @@ import {
   fetchStudentFieldTraining,
   runTaskAiSelfEvaluate,
   submitFieldTrainingTaskWithMeta,
+  downloadTaskInstructionFile,
 } from '../../features/fieldTraining/fieldTraining.service.js';
+import { saveFieldTrainingSubmissionBlob } from '../../features/fieldTraining/fieldTrainingDownload.js';
 import { fieldTrainingKeys } from '../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { formatFtDate } from '../../features/fieldTraining/fieldTrainingUi.js';
+import { StudentTaskInstructionSection } from './fieldTraining/components/StudentTaskInstructionSection.jsx';
 
 const MIN_INPUT_LENGTH = 20;
 
@@ -32,6 +35,7 @@ export function StudentFieldTrainingSelfEvaluationPage() {
   const [finalNotes, setFinalNotes] = useState('');
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  const [downloadError, setDownloadError] = useState('');
 
   const tasksBackUrl = `/student/field-training/${opportunityId}?tab=tasks`;
 
@@ -89,6 +93,7 @@ export function StudentFieldTrainingSelfEvaluationPage() {
         ai_raw_response: aiMeta?.ai_response,
         ai_response_inserted_text: aiResponse.trim(),
         final_student_notes: finalNotes.trim() || null,
+        ai_evaluated_at: aiMeta?.evaluated_at ?? new Date().toISOString(),
       }),
     onSuccess: () => {
       setError('');
@@ -99,6 +104,16 @@ export function StudentFieldTrainingSelfEvaluationPage() {
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
+
+  async function handleDownloadInstruction() {
+    setDownloadError('');
+    try {
+      const file = await downloadTaskInstructionFile(taskId, { asAdmin: false });
+      if (file) saveFieldTrainingSubmissionBlob(file);
+    } catch (err) {
+      setDownloadError(getApiErrorMessage(err));
+    }
+  }
 
   if (isLoading) {
     return (
@@ -196,6 +211,24 @@ export function StudentFieldTrainingSelfEvaluationPage() {
               <p>{task.submission.instructor_feedback}</p>
             </div>
           ) : null}
+          {task.submission?.student_self_evaluation_input ? (
+            <div className="ft-self-eval__prompt">
+              <strong>{t('tasks.aiStudentInput')}</strong>
+              <p>{task.submission.student_self_evaluation_input}</p>
+            </div>
+          ) : null}
+          {task.submission?.ai_response_inserted_text ? (
+            <div className="ft-self-eval__prompt">
+              <strong>{t('tasks.aiResponse')}</strong>
+              <p>{task.submission.ai_response_inserted_text}</p>
+            </div>
+          ) : null}
+          {task.submission?.final_student_notes ? (
+            <div className="ft-self-eval__prompt">
+              <strong>{t('tasks.finalNotes')}</strong>
+              <p>{task.submission.final_student_notes}</p>
+            </div>
+          ) : null}
           <Link className="btn btn--primary" to={tasksBackUrl}>
             {t('selfEval.viewSubmission')}
           </Link>
@@ -232,6 +265,15 @@ export function StudentFieldTrainingSelfEvaluationPage() {
           {t('tasks.dueDate')}:{' '}
           {task.due_date ? formatFtDate(task.due_date) : t('selfEval.noDueDate')}
         </p>
+      </article>
+
+      <article className="ft-content-card ft-self-eval__card">
+        <StudentTaskInstructionSection task={task} onDownload={handleDownloadInstruction} />
+        {downloadError ? (
+          <p className="form-field__error" role="alert">
+            {downloadError}
+          </p>
+        ) : null}
       </article>
 
       <article className="ft-content-card ft-self-eval__card">

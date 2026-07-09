@@ -19,7 +19,7 @@ export async function login(credentials) {
 
 /**
  * Student self-registration (backend validates email domain per university).
- * @param {{ full_name: string, email: string, password: string, university_id: string, phone?: string }} body
+ * @param {{ full_name: string, email: string, password: string, university_id: string, university_specialty_id: string, phone?: string }} body
  */
 export async function registerStudent(body) {
   const res = await apiClient.post(endpoints.auth.register, body);
@@ -136,4 +136,17 @@ export async function fetchRegisterUniversitiesCatalog() {
     throw new Error('Invalid universities catalog response');
   }
   return list;
+}
+
+/**
+ * Active university-specific specialties for registration (no JWT).
+ * @param {string} universityId
+ */
+export async function fetchRegisterUniversitySpecialties(universityId) {
+  const res = await apiClient.get(endpoints.auth.registerUniversitySpecialties(universityId));
+  const payload = unwrapApiData(res);
+  if (!Array.isArray(payload)) {
+    throw new Error('Invalid university specialties catalog response');
+  }
+  return payload;
 }

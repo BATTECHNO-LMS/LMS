@@ -165,7 +165,7 @@ const env = {
   /** Field training admin (opportunities, applications, tasks). */
   FIELD_TRAINING_ADMIN_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.FIELD_TRAINING_ADMIN_ROLE_CODES,
-    'super_admin,university_admin'
+    'super_admin,university_admin,academic_admin,university_reviewer'
   ),
   /** Field training instructor management (assigned opportunities only). */
   FIELD_TRAINING_INSTRUCTOR_ROLE_CODES: parseRoleCodesWithFallback(
@@ -175,7 +175,7 @@ const env = {
   /** Roles allowed to manage field training (admin + assigned instructor). */
   FIELD_TRAINING_MANAGE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.FIELD_TRAINING_MANAGE_ROLE_CODES,
-    'super_admin,university_admin,instructor'
+    'super_admin,university_admin,academic_admin,university_reviewer,instructor'
   ),
   /** AI provider (openai | gemini). Empty = disabled. */
   AI_PROVIDER: (process.env.AI_PROVIDER || '').trim().toLowerCase(),

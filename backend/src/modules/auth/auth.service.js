@@ -8,6 +8,7 @@ const { ensureUserLinkedToUniversityFromEmail } = require('./universityEmailLink
 const { recordAudit } = require('../../utils/auditRecorder');
 const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
 const { listActiveSpecialties, assertActiveSpecialty } = require('../specialties/specialties.service');
+const universitySpecialtiesService = require('../universitySpecialties/universitySpecialties.service');
 const { issueEmailVerificationOtp, verifyEmailOtpForUser, resendEmailVerificationOtp } = require('./emailVerification.service');
 const passwordResetService = require('./passwordReset.service');
 
@@ -37,6 +38,37 @@ async function toLoginUser(user, roleRecords, permissionCodes, isGlobal) {
     university = row ? { id: row.id, name: row.name } : null;
   }
 
+  const universitySpecialty = user.university_specialty
+    ? {
+        id: user.university_specialty.id,
+        name_ar: user.university_specialty.name_ar,
+        name_en: user.university_specialty.name_en,
+        code: user.university_specialty.code,
+        canonical_specialty_id: user.university_specialty.specialty_id,
+      }
+    : null;
+
+  const canonicalSpecialty = user.specialties
+    ? {
+        id: user.specialties.id,
+        name_ar: user.specialties.name_ar,
+        name_en: user.specialties.name_en,
+        code: user.specialties.code,
+      }
+    : null;
+
+  const specialty =
+    universitySpecialty ??
+    (canonicalSpecialty
+      ? {
+          id: canonicalSpecialty.id,
+          name_ar: canonicalSpecialty.name_ar,
+          name_en: canonicalSpecialty.name_en,
+          code: canonicalSpecialty.code,
+          canonical_specialty_id: canonicalSpecialty.id,
+        }
+      : null);
+
   return {
     id: user.id,
     full_name: user.full_name,
@@ -46,6 +78,11 @@ async function toLoginUser(user, roleRecords, permissionCodes, isGlobal) {
     primary_university_id: primaryUniversityId,
     primary_university: university,
     university,
+    university_specialty_id: user.university_specialty_id ?? null,
+    specialty_id: user.specialty_id ?? null,
+    specialty,
+    university_specialty: universitySpecialty,
+    canonical_specialty: canonicalSpecialty,
     roles: roleRecords.map((r) => r.code),
     permissions: permissionCodes,
     isGlobal,
@@ -69,9 +106,17 @@ async function register(validated) {
     );
   }
 
-  await assertActiveSpecialty(validated.specialty_id, {
-    invalidMessage: 'التخصص المحدد غير متاح.',
-  });
+  const universitySpecialty = await universitySpecialtiesService.assertActiveUniversitySpecialtyForUniversity(
+    validated.university_id,
+    validated.university_specialty_id
+  );
+
+  let canonicalSpecialtyId = universitySpecialty.specialty_id ?? null;
+  if (canonicalSpecialtyId) {
+    await assertActiveSpecialty(canonicalSpecialtyId, {
+      invalidMessage: 'التخصص المحدد غير متاح.',
+    });
+  }
 
   const emailDomain = extractEmailDomain(validated.email);
   if (!emailDomain || !emailDomainMatchesAllowed(emailDomain, allowed)) {
@@ -102,7 +147,8 @@ async function register(validated) {
     password_hash,
     phone: validated.phone,
     university_id: validated.university_id,
-    specialty_id: validated.specialty_id,
+    university_specialty_id: validated.university_specialty_id,
+    specialty_id: canonicalSpecialtyId,
     studentRoleId: studentRole.id,
   });
 
@@ -159,7 +205,8 @@ async function login(validated) {
 
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);
   const isGlobal = isGlobalFromRoleRecords(roleRecords);
-  const profile = await toLoginUser(user, roleRecords, permissionCodes, isGlobal);
+  const profileUser = await authRepository.findUserProfileById(user.id);
+  const profile = await toLoginUser(profileUser ?? user, roleRecords, permissionCodes, isGlobal);
   const token = signToken(
     buildTokenPayload(user.id, roleRecords, profile.primary_university_id)
   );
@@ -196,6 +243,10 @@ async function universitiesForRegistration() {
 
 async function specialtiesForRegistration() {
   return listActiveSpecialties();
+}
+
+async function universitySpecialtiesForRegistration(universityId) {
+  return universitySpecialtiesService.listActiveForUniversity(universityId);
 }
 
 async function verifyEmailOtp(validated) {
@@ -244,6 +295,7 @@ module.exports = {
   logout,
   universitiesForRegistration,
   specialtiesForRegistration,
+  universitySpecialtiesForRegistration,
   verifyEmailOtp,
   resendEmailOtp,
   forgotPassword,

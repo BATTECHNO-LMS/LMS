@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchUniversitiesList } from '../universities.service.js';
+import { STALE } from '../../../lib/queryDefaults.js';
 
 export const universitiesKeys = {
   all: ['universities'],
@@ -14,7 +15,7 @@ export function useUniversities(options = {}) {
   return useQuery({
     queryKey: universitiesKeys.list(),
     queryFn: fetchUniversitiesList,
-    staleTime: 5 * 60 * 1000,
+    staleTime: STALE.universities,
     ...options,
   });
 }

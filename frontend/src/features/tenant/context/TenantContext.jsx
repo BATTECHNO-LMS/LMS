@@ -6,6 +6,7 @@ import { TENANT_SCOPE_ALL, getTenantName } from '../../../constants/tenants.js';
 import { getStorageItem, setStorageItem, storageKeys } from '../../../utils/storage.js';
 import { isAllTenantsSelected } from '../../../utils/tenant.js';
 import { fetchUniversitiesList } from '../../universities/universities.service.js';
+import { universitiesKeys } from '../../universities/hooks/useUniversities.js';
 
 export const TenantContext = createContext(null);
 
@@ -37,10 +38,10 @@ export function TenantProvider({ children }) {
   });
 
   const { data: uniPayload } = useQuery({
-    queryKey: ['tenant-universities-catalog'],
+    queryKey: universitiesKeys.list(),
     queryFn: fetchUniversitiesList,
     enabled: Boolean(user?.isGlobal),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000,
     retry: false,
   });
 

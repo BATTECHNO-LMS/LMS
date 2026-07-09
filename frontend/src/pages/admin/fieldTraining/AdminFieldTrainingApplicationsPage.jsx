@@ -31,10 +31,12 @@ import {
   expelFieldTrainingParticipant,
   issueCompletionLetter,
   useApplicationProgress,
+  fetchFieldTrainingEligibilityCatalog,
 } from '../../../features/fieldTraining/index.js';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js';
 
 const FILTER_TABS = ['all', 'pending', 'approved', 'rejected'];
 
@@ -85,11 +87,14 @@ function ApplicationReviewCard({
   const studentName = displayFieldValue(app.student_name, t('missingStudentName'));
   const studentEmail = displayFieldValue(app.student_email, t('missingStudentEmail'));
   const studentUniversity = displayFieldValue(app.student_university, t('missingStudentUniversity'));
-  const studentSpecialty = getOpportunitySpecialtyLabel(
-    { specialty: app.student_specialty },
-    i18n.language,
+  const studentProgram = displayFieldValue(
+    app.student_university_specialty_label ||
+      getOpportunitySpecialtyLabel({ specialty: app.student_university_specialty }, i18n.language, ''),
     t('missingStudentSpecialty')
   );
+  const canonicalProgram = app.student_canonical_specialty_label
+    ? displayFieldValue(app.student_canonical_specialty_label, '')
+    : null;
   const isPending = app.status === 'pending';
   const statusTone = app.status === 'cancelled' ? 'muted' : app.status;
 
@@ -117,8 +122,16 @@ function ApplicationReviewCard({
             </span>
             <span className="ft-review-card__tag">
               <Briefcase size={13} aria-hidden />
-              {studentSpecialty}
+              {studentProgram}
             </span>
+            {canonicalProgram ? (
+              <span className="ft-review-card__tag ft-review-card__tag--muted">
+                {t('applications.canonicalSpecialty')}: {canonicalProgram}
+              </span>
+            ) : null}
+            {app.opportunity_title ? (
+              <span className="ft-review-card__tag">{app.opportunity_title}</span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -256,39 +269,52 @@ export function AdminFieldTrainingApplicationsPage() {
   const { id } = useParams();
   const { t, i18n } = useTranslation('fieldTraining');
   const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
-  const { data, isLoading, isError, refetch } = useOpportunityApplications(id);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
+  const [activeTab, setActiveTab] = useState('all');
+  const [universityFilter, setUniversityFilter] = useState('');
+  const [specialtyFilter, setSpecialtyFilter] = useState('');
+  const [trainingStatusFilter, setTrainingStatusFilter] = useState('');
+
+  const listParams = useMemo(() => {
+    const params = {};
+    if (activeTab !== 'all') params.status = activeTab;
+    if (universityFilter) params.university_id = universityFilter;
+    if (specialtyFilter) params.university_specialty_id = specialtyFilter;
+    if (trainingStatusFilter) params.training_status = trainingStatusFilter;
+    if (debouncedSearch.trim()) params.search = debouncedSearch.trim();
+    return params;
+  }, [activeTab, universityFilter, specialtyFilter, trainingStatusFilter, debouncedSearch]);
+
+  const { data, isLoading, isFetching, isError, refetch } = useOpportunityApplications(id, listParams);
+  const { data: catalogPayload } = useQuery({
+    queryKey: ['fieldTraining', 'eligibilityCatalog'],
+    queryFn: async () => {
+      const payload = await fetchFieldTrainingEligibilityCatalog();
+      return payload?.universities ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const reviewMut = useReviewApplication(id);
   const qc = useQueryClient();
   const [reviewModal, setReviewModal] = useState(null);
   const [expelModal, setExpelModal] = useState(null);
   const [expelReason, setExpelReason] = useState('');
   const [adminNote, setAdminNote] = useState('');
-  const [activeTab, setActiveTab] = useState('all');
   const [progressModal, setProgressModal] = useState(null);
 
   const applications = data?.applications ?? [];
   const opp = oppData?.opportunity;
   const stats = useMemo(() => computeApplicationStats(applications), [applications]);
   const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'));
+  const catalog = catalogPayload ?? [];
+  const specialtyOptions = useMemo(() => {
+    if (!universityFilter) return [];
+    const university = catalog.find((item) => item.id === universityFilter);
+    return university?.specialties ?? [];
+  }, [catalog, universityFilter]);
 
-  const filteredApplications = useMemo(() => {
-    let list = applications;
-    if (activeTab !== 'all') {
-      list = list.filter((a) => a.status === activeTab);
-    }
-    const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter((a) => {
-      const spec = getOpportunitySpecialtyLabel(
-        { specialty: a.student_specialty },
-        i18n.language,
-        ''
-      );
-      return [a.student_name, a.student_email, a.student_university, spec].some((field) =>
-        String(field ?? '').toLowerCase().includes(q)
-      );
-    });
-  }, [applications, activeTab, search, i18n.language]);
+  const filteredApplications = applications;
 
   async function confirmReview() {
     if (!reviewModal) return;
@@ -318,7 +344,7 @@ export function AdminFieldTrainingApplicationsPage() {
 
   const actionPending = expelMut.isPending || issueMut.isPending;
 
-  if (oppLoading || isLoading) {
+  if ((oppLoading && !oppData) || (isLoading && !data)) {
     return (
       <div className="page page--dashboard page--admin ft-page">
         <ApplicationsPageSkeleton />
@@ -428,6 +454,64 @@ export function AdminFieldTrainingApplicationsPage() {
                 {tab === 'all' ? t('filterAllApplications') : t(`applicationStatus.${tab}`)}
               </button>
             ))}
+          </div>
+          <div className="ft-apps-filters">
+            <label className="ft-apps-filter">
+              <span>{t('applications.filterUniversity')}</span>
+              <select
+                value={universityFilter}
+                onChange={(e) => {
+                  setUniversityFilter(e.target.value);
+                  setSpecialtyFilter('');
+                }}
+              >
+                <option value="">{t('filterAll')}</option>
+                {catalog.map((university) => (
+                  <option key={university.id} value={university.id}>
+                    {university.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ft-apps-filter">
+              <span>{t('applications.filterUniversitySpecialty')}</span>
+              <select
+                value={specialtyFilter}
+                onChange={(e) => setSpecialtyFilter(e.target.value)}
+                disabled={!universityFilter}
+              >
+                <option value="">{t('filterAll')}</option>
+                {specialtyOptions.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {i18n.language.startsWith('ar')
+                      ? program.nameAr || program.nameEn
+                      : program.nameEn || program.nameAr}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="ft-apps-filter">
+              <span>{t('applications.filterTrainingStatus')}</span>
+              <select
+                value={trainingStatusFilter}
+                onChange={(e) => setTrainingStatusFilter(e.target.value)}
+              >
+                <option value="">{t('filterAll')}</option>
+                {[
+                  'none',
+                  'pre_assessment_pending',
+                  'ready_for_training',
+                  'pre_assessment_completed',
+                  'in_training',
+                  'completed',
+                  'expelled',
+                ].map((status) => (
+                  <option key={status} value={status}>
+                    {t(`trainingStatus.${status}`, status)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </section>
 

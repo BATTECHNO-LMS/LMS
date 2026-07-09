@@ -13,6 +13,7 @@
       "analytics": "Analytics & statistics",
       "courses": "Course management",
       "fieldTraining": "Field training management",
+      "fieldTrainingReports": "Field training reports",
       "users": "Users",
       "roles": "Roles and permissions",
       "settings": "Settings",
@@ -53,6 +54,7 @@
     "grades": "Grades",
     "evidence": "Evidence",
     "riskStudents": "At-risk students",
+    "fieldTraining": "Field training",
     "notifications": "Notifications"
   },
   "student": {
@@ -75,6 +77,7 @@
     "home": "Home",
     "recognition": "Recognition requests",
     "universityReports": "University reports",
+    "fieldTraining": "Field training",
     "evidence": "Evidence and attachments",
     "certificates": "Linked certificates",
     "enrollmentRequests": "Enrollment requests",

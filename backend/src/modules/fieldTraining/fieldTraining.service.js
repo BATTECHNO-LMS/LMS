@@ -4,20 +4,28 @@ const { ApiError } = require('../../utils/apiError');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { uniqueSlugFromTitle } = require('./fieldTraining.slug');
 const { assertPublishReady } = require('./fieldTraining.publishReadiness');
-const { resolveStudentSpecialtyId } = require('../../utils/studentScope');
+const { resolveStudentFieldTrainingScope } = require('../../utils/studentScope');
 const { getStorageBackend, getProvider } = require('../../shared/storage/storageProvider');
 const filesService = require('../files/files.service');
 const {
-  NO_SPECIALTY_MSG,
-  requireStudentSpecialtyId,
+  NO_UNIVERSITY_MSG,
+  NO_UNIVERSITY_SPECIALTY_MSG,
+  NOT_ELIGIBLE_MSG,
+  requireStudentFieldTrainingScope,
   scopeAdminListQuery,
   assertAdminOpportunityAccess,
   assertManageOpportunityAccess,
+  assertApplicationStudentAccess,
+  resolveApplicationStudentUniversityId,
   manageOpportunityListWhere,
+  isSystemWideAdmin,
+  isUniversityScopedFieldTrainingUser,
 } = require('./fieldTraining.access');
+const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
+const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
 const { assertActiveSpecialty } = require('../specialties/specialties.service');
 const { prisma } = require('../../config/db');
 
@@ -42,8 +50,18 @@ function buildAdminWhere(query) {
   return where;
 }
 
-function buildStudentWhere(query, studentSpecialtyId) {
-  const and = [{ specialty_id: studentSpecialtyId }];
+function buildStudentWhere(query, studentUniversityId, studentUniversitySpecialtyId) {
+  const and = [
+    {
+      field_training_opportunity_eligibility: {
+        some: {
+          is_active: true,
+          university_id: studentUniversityId,
+          university_specialty_id: studentUniversitySpecialtyId,
+        },
+      },
+    },
+  ];
   if (query.training_mode) and.push({ training_mode: query.training_mode });
   if (query.search) {
     const s = query.search.trim();
@@ -87,9 +105,10 @@ async function assertActiveInstructorUser(userId) {
 
 async function mapBodyToCreateData(body) {
   const specialty = await assertActiveSpecialty(body.specialty_id, {
-    requiredMessage: 'يرجى اختيار التخصص المرتبط بفرصة التدريب.',
-    invalidMessage: 'التخصص المحدد غير متاح.',
+    requiredMessage: 'يرجى اختيار المسار التدريبي الرئيسي.',
+    invalidMessage: 'المسار التدريبي المحدد غير متاح.',
   });
+  await ftEligibility.validateEligibilityRows(body.eligibility);
   const assignedInstructorId = body.assigned_instructor_id
     ? await assertActiveInstructorUser(body.assigned_instructor_id)
     : null;
@@ -124,8 +143,8 @@ async function mapBodyToUpdateData(body) {
   if (body.title != null) data.title = body.title.trim();
   if (body.specialty_id != null) {
     const specialty = await assertActiveSpecialty(body.specialty_id, {
-      requiredMessage: 'يرجى اختيار التخصص المرتبط بفرصة التدريب.',
-      invalidMessage: 'التخصص المحدد غير متاح.',
+      requiredMessage: 'يرجى اختيار المسار التدريبي الرئيسي.',
+      invalidMessage: 'المسار التدريبي المحدد غير متاح.',
     });
     data.specialty_id = specialty.id;
   }
@@ -182,9 +201,71 @@ async function listAdminOpportunities(query, user) {
     skip,
     take: page_size,
   });
+  const eligibilityCounts = await ftEligibility.countActiveByOpportunityIds(
+    opportunities.map((row) => row.id)
+  );
+  const eligibilitySummaries = await ftEligibility.summarizeEligibilityByOpportunityIds(
+    opportunities.map((row) => row.id)
+  );
+  const applicationCounts = await repo.aggregateApplicationCountsForOpportunities(
+    opportunities.map((row) => row.id),
+    {
+      studentUniversityId: user?.universityId && !isSystemWideAdmin(user) ? user.universityId : undefined,
+    }
+  );
+  const instructorIds = [
+    ...new Set(opportunities.map((row) => row.assigned_instructor_id).filter(Boolean)),
+  ];
+  const instructors = instructorIds.length ? await repo.findUsersByIds(instructorIds) : [];
+  const instructorById = Object.fromEntries(instructors.map((instructor) => [instructor.id, instructor]));
+
   return {
-    opportunities,
+    opportunities: opportunities.map((row) =>
+      attachListDisplayMeta(repo.mapOpportunityRow(row, { compact: true }), {
+        eligibilityCounts,
+        eligibilitySummaries,
+        applicationCounts: applicationCounts[row.id] ?? { by_university: [], by_university_specialty: {}, total: 0 },
+        instructor: row.assigned_instructor_id
+          ? instructorById[row.assigned_instructor_id] ?? null
+          : null,
+      })
+    ),
     meta: { page, page_size, total, total_pages: Math.max(1, Math.ceil(total / page_size)) },
+  };
+}
+
+function attachListDisplayMeta(
+  opportunity,
+  { eligibilityCounts = {}, eligibilitySummaries = {}, applicationCounts = null, instructor = null } = {}
+) {
+  const summary = eligibilitySummaries[opportunity.id] ?? {
+    beneficiary_university_count: 0,
+    eligible_specialty_count: 0,
+  };
+  const activeEligibilityCount = eligibilityCounts[opportunity.id] ?? 0;
+  return {
+    ...opportunity,
+    active_eligibility_count: activeEligibilityCount,
+    beneficiary_university_count: summary.beneficiary_university_count,
+    eligible_specialty_count: summary.eligible_specialty_count,
+    applications_by_university: applicationCounts?.by_university ?? [],
+    needs_eligibility_setup: activeEligibilityCount < 1,
+    eligibility_setup_message:
+      activeEligibilityCount < 1 ? ftEligibility.ELIGIBILITY_SETUP_MSG : null,
+    assigned_instructor: instructor
+      ? { id: instructor.id, full_name: instructor.full_name, email: instructor.email }
+      : null,
+  };
+}
+
+function attachEligibilityMeta(opportunity, eligibilityCounts = {}) {
+  const activeEligibilityCount = eligibilityCounts[opportunity.id] ?? 0;
+  return {
+    ...opportunity,
+    active_eligibility_count: activeEligibilityCount,
+    needs_eligibility_setup: activeEligibilityCount < 1,
+    eligibility_setup_message:
+      activeEligibilityCount < 1 ? ftEligibility.ELIGIBILITY_SETUP_MSG : null,
   };
 }
 
@@ -218,9 +299,27 @@ async function getAdminOpportunityById(id, user) {
   try {
     const row = await repo.findById(id);
     if (!row) throw new ApiError(404, 'Opportunity not found');
-    assertAdminOpportunityAccess(user, row);
+    await assertAdminOpportunityAccess(user, row);
 
-    const opportunity = repo.mapOpportunityRow(row);
+    const studentUniversityId =
+      user?.universityId && !isSystemWideAdmin(user) ? user.universityId : undefined;
+    const eligibility = await ftEligibility.findActiveByOpportunityId(id);
+    const applicationCounts = await repo.aggregateApplicationCounts(id, { studentUniversityId });
+    const opportunity = attachListDisplayMeta(repo.mapOpportunityRow(row), {
+      eligibilityCounts: { [id]: eligibility.length },
+      eligibilitySummaries: {
+        [id]: {
+          beneficiary_university_count: new Set(eligibility.map((row) => row.university_id)).size,
+          eligible_specialty_count: eligibility.length,
+        },
+      },
+      applicationCounts,
+    });
+    opportunity.eligibility = eligibility;
+    opportunity.eligibility_grouped = ftEligibility.groupEligibilityByUniversity(
+      eligibility,
+      applicationCounts.by_university_specialty
+    );
     if (row.assigned_instructor_id) {
       const [instructor] = await repo.findUsersByIds([row.assigned_instructor_id]);
       opportunity.assigned_instructor = instructor
@@ -238,11 +337,22 @@ async function getAdminOpportunityById(id, user) {
 
 async function createAdminOpportunity(body, userId, user) {
   const slug = await uniqueSlugFromTitle(body.title, (s) => repo.slugExists(s));
-  const opportunity = await repo.createOpportunity({
+  const createData = {
     ...(await mapBodyToCreateData(body)),
     slug,
     created_by_id: userId,
+  };
+  const eligibilityRows = await ftEligibility.validateEligibilityRows(body.eligibility);
+
+  const opportunity = await prisma.$transaction(async (tx) => {
+    const created = await tx.field_training_opportunities.create({
+      data: createData,
+      include: repo.opportunityInclude,
+    });
+    await ftEligibility.syncOpportunityEligibility(created.id, eligibilityRows, tx);
+    return created;
   });
+
   await recordAudit({
     userId,
     actionType: 'FIELD_TRAINING_OPPORTUNITY_CREATED',
@@ -250,20 +360,37 @@ async function createAdminOpportunity(body, userId, user) {
     entityId: opportunity.id,
     newValues: { title: opportunity.title, status: opportunity.status },
   });
-  return { opportunity: repo.mapOpportunityRow(opportunity) };
+  const mapped = repo.mapOpportunityRow(opportunity);
+  mapped.eligibility = await ftEligibility.findActiveByOpportunityId(opportunity.id);
+  return { opportunity: mapped };
 }
 
 async function updateAdminOpportunity(id, body, userId, user) {
   const existing = await repo.findById(id);
   if (!existing) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, existing);
+  await assertAdminOpportunityAccess(user, existing);
 
   const data = await mapBodyToUpdateData(body);
   if (data.title && data.title !== existing.title) {
     data.slug = await uniqueSlugFromTitle(data.title, (s) => repo.slugExists(s, id));
   }
 
-  const opportunity = await repo.updateOpportunity(id, data);
+  const eligibilityRows = body.eligibility
+    ? await ftEligibility.validateEligibilityRows(body.eligibility)
+    : null;
+
+  const opportunity = await prisma.$transaction(async (tx) => {
+    const updated = await tx.field_training_opportunities.update({
+      where: { id },
+      data,
+      include: repo.opportunityInclude,
+    });
+    if (eligibilityRows) {
+      await ftEligibility.syncOpportunityEligibility(id, eligibilityRows, tx);
+    }
+    return updated;
+  });
+
   await recordAudit({
     userId,
     actionType: 'FIELD_TRAINING_OPPORTUNITY_UPDATED',
@@ -272,14 +399,17 @@ async function updateAdminOpportunity(id, body, userId, user) {
     oldValues: { title: existing.title },
     newValues: data,
   });
-  return { opportunity: repo.mapOpportunityRow(opportunity) };
+  const mapped = repo.mapOpportunityRow(opportunity);
+  mapped.eligibility = await ftEligibility.findActiveByOpportunityId(id);
+  return { opportunity: mapped };
 }
 
 async function publishOpportunity(id, userId, user) {
   const existing = await repo.findById(id);
   if (!existing) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, existing);
-  assertPublishReady(existing);
+  await assertAdminOpportunityAccess(user, existing);
+  const activeEligibilityCount = await ftEligibility.countActiveEligibility(id);
+  assertPublishReady(existing, { activeEligibilityCount });
   const opportunity = await repo.updateOpportunity(id, {
     status: 'published',
     published_at: new Date(),
@@ -297,7 +427,7 @@ async function publishOpportunity(id, userId, user) {
 async function archiveOpportunity(id, userId, user) {
   const existing = await repo.findById(id);
   if (!existing) throw new ApiError(404, 'Opportunity not found');
-  assertAdminOpportunityAccess(user, existing);
+  await assertAdminOpportunityAccess(user, existing);
   const opportunity = await repo.updateOpportunity(id, { status: 'archived' });
   await recordAudit({
     userId,
@@ -309,28 +439,96 @@ async function archiveOpportunity(id, userId, user) {
   return { opportunity: repo.mapOpportunityRow(opportunity) };
 }
 
-async function listOpportunityApplications(opportunityId, user) {
+function buildApplicationProgressSummary(app) {
+  const parts = [];
+  if (app.training_status && app.training_status !== 'none') {
+    parts.push(`training:${app.training_status}`);
+  }
+  if (app.pre_assessment_level) parts.push(`pre:${app.pre_assessment_level}`);
+  if (app.attendance_percentage != null) parts.push(`attendance:${app.attendance_percentage}`);
+  if (app.post_assessment_score != null) parts.push(`post:${app.post_assessment_score}`);
+  if (app.final_task_status && app.final_task_status !== 'not_required') {
+    parts.push(`task:${app.final_task_status}`);
+  }
+  if (app.completion_eligibility_status) parts.push(`eligibility:${app.completion_eligibility_status}`);
+  return {
+    training_status: app.training_status ?? null,
+    pre_assessment_level: app.pre_assessment_level ?? null,
+    attendance_percentage:
+      app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+    post_assessment_score:
+      app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
+    final_task_status: app.final_task_status ?? null,
+    completion_eligibility_status: app.completion_eligibility_status ?? null,
+    summary_key: parts.join('|') || null,
+  };
+}
+
+function mapApplicationAdminRow(app, profile, opportunity) {
+  const universitySpecialty = profile?.university_specialty ?? null;
+  const displaySpecialty = profile?.specialty ?? null;
+  return {
+    ...repo.mapApplicationRow(app),
+    opportunity_title: opportunity?.title ?? null,
+    opportunity_training_track: repo.mapSpecialtySummary(opportunity?.specialties) ?? null,
+    student_name: profile?.full_name ?? 'طالب غير معروف',
+    student_email: profile?.email ?? null,
+    student_university: profile?.university?.name ?? 'الجامعة غير محددة',
+    student_primary_university_id: profile?.primary_university_id ?? null,
+    student_university_specialty_id: profile?.university_specialty_id ?? universitySpecialty?.id ?? null,
+    student_university_specialty: universitySpecialty,
+    student_university_specialty_label: universitySpecialty
+      ? repo.formatSpecialtyLabel(universitySpecialty)
+      : null,
+    student_canonical_specialty: profile?.canonical_specialty ?? null,
+    student_canonical_specialty_label: profile?.canonical_specialty
+      ? repo.formatSpecialtyLabel(profile.canonical_specialty)
+      : null,
+    student_specialty: displaySpecialty,
+    student_specialty_label: repo.formatSpecialtyLabel(displaySpecialty),
+    progress_summary: buildApplicationProgressSummary(app),
+  };
+}
+
+async function listOpportunityApplications(opportunityId, query = {}, user) {
   try {
     const opp = await repo.findById(opportunityId);
     if (!opp) throw new ApiError(404, 'Opportunity not found');
-    assertManageOpportunityAccess(user, opp);
-    const apps = await repo.findApplicationsByOpportunity(opportunityId);
+    await assertManageOpportunityAccess(user, opp);
+
+    const studentUniversityId = resolveApplicationStudentUniversityId(user, query.university_id);
+    const apps = await repo.findApplicationsByOpportunity(opportunityId, {
+      status: query.status,
+      training_status: query.training_status,
+      university_id: query.university_id,
+      university_specialty_id: query.university_specialty_id,
+      studentUniversityId,
+    });
+
     const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
-    const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
-    return {
-      applications: apps.map((a) => {
-        const profile = byId[a.student_id];
-        const specialty = profile?.specialty ?? null;
-        return {
-          ...repo.mapApplicationRow(a),
-          student_name: profile?.full_name ?? 'طالب غير معروف',
-          student_email: profile?.email ?? null,
-          student_university: profile?.university?.name ?? 'الجامعة غير محددة',
-          student_specialty: specialty,
-          student_specialty_label: repo.formatSpecialtyLabel(specialty),
-        };
-      }),
-    };
+    const byId = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
+
+    let applications = apps.map((app) => mapApplicationAdminRow(app, byId[app.student_id], opp));
+
+    if (query.specialty_id && opp.specialty_id !== query.specialty_id) {
+      applications = [];
+    } else if (query.search) {
+      const q = String(query.search).trim().toLowerCase();
+      if (q) {
+        applications = applications.filter((app) =>
+          [
+            app.student_name,
+            app.student_email,
+            app.student_university,
+            app.student_university_specialty_label,
+            app.student_canonical_specialty_label,
+            app.opportunity_title,
+          ].some((field) => String(field ?? '').toLowerCase().includes(q))
+        );
+      }
+    }
+
+    return { applications };
   } catch (err) {
     rethrowFieldTrainingReadError(err);
   }
@@ -341,7 +539,8 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
   if (app.status !== 'pending') {
     throw new ApiError(400, 'Only pending applications can be reviewed');
   }
@@ -390,29 +589,37 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
 }
 
 async function listStudentOpportunities(query, studentId) {
-  const studentSpecialtyId = await resolveStudentSpecialtyId({ userId: studentId });
-  if (!studentSpecialtyId) {
+  const scope = await resolveStudentFieldTrainingScope({ userId: studentId });
+  if (!scope.universityId) {
     return {
       opportunities: [],
-      message: NO_SPECIALTY_MSG,
+      message: NO_UNIVERSITY_MSG,
+      profile_incomplete: true,
+    };
+  }
+  if (!scope.universitySpecialtyId) {
+    return {
+      opportunities: [],
+      message: NO_UNIVERSITY_SPECIALTY_MSG,
       profile_incomplete: true,
     };
   }
 
   const rows = await repo.findPublishedMany({
-    where: buildStudentWhere(query, studentSpecialtyId),
+    where: buildStudentWhere(query, scope.universityId, scope.universitySpecialtyId),
   });
-  const opportunities = await Promise.all(
-    rows.map(async (row) => {
-      const app = await repo.findApplicationByOpportunityAndStudent(row.id, studentId);
-      return {
-        ...repo.mapOpportunityRow(row),
-        my_application_status: app?.status ?? null,
-        my_application_id: app?.id ?? null,
-        my_training_status: app?.training_status ?? null,
-      };
-    })
-  );
+  const oppIds = rows.map((row) => row.id);
+  const myApps = await repo.findApplicationsByOpportunityIdsForStudent(oppIds, studentId);
+  const appByOpp = Object.fromEntries(myApps.map((app) => [app.opportunity_id, app]));
+  const opportunities = rows.map((row) => {
+    const app = appByOpp[row.id];
+    return {
+      ...repo.mapOpportunityRow(row, { compact: true }),
+      my_application_status: app?.status ?? null,
+      my_application_id: app?.id ?? null,
+      my_training_status: app?.training_status ?? null,
+    };
+  });
   return { opportunities };
 }
 
@@ -441,12 +648,14 @@ async function listMyApplications(studentId) {
 }
 
 async function assertStudentCanAccessOpportunity(opportunity, studentId) {
-  const studentSpecialtyId = await requireStudentSpecialtyId(studentId);
-  if (!opportunity?.specialty_id) {
-    throw new ApiError(404, 'Opportunity not found');
-  }
-  if (String(opportunity.specialty_id) !== String(studentSpecialtyId)) {
-    throw new ApiError(404, 'Opportunity not found');
+  const scope = await requireStudentFieldTrainingScope(studentId);
+  const eligible = await ftEligibility.isStudentEligible(
+    opportunity.id,
+    scope.universityId,
+    scope.universitySpecialtyId
+  );
+  if (!eligible) {
+    throw new ApiError(403, NOT_ELIGIBLE_MSG, null, 'FIELD_TRAINING_NOT_ELIGIBLE');
   }
 }
 
@@ -488,6 +697,24 @@ async function applyToOpportunity(opportunityId, body, studentId) {
     }
   }
 
+  const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
+  const eligibilityRows = await ftEligibility.findActiveByOpportunityId(opportunityId);
+  const eligibilityMatch = eligibilityRows.find(
+    (row) =>
+      String(row.university_id) === String(studentProfile?.primary_university_id) &&
+      String(row.university_specialty_id) === String(studentProfile?.university_specialty_id)
+  );
+  if (eligibilityMatch?.seats_limit != null) {
+    const approvedForSlot = await repo.countApprovedApplicationsForEligibility(
+      opportunityId,
+      studentProfile.primary_university_id,
+      studentProfile.university_specialty_id
+    );
+    if (approvedForSlot >= eligibilityMatch.seats_limit) {
+      throw new ApiError(400, 'لا توجد مقاعد متاحة لتخصص جامعتك في هذه الفرصة');
+    }
+  }
+
   if (opp.application_deadline) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
@@ -518,8 +745,8 @@ async function applyToOpportunity(opportunityId, body, studentId) {
   await ftNotify.notifyAdminsFieldTrainingApplicationSubmitted({
     opportunityId: opp.id,
     opportunityTitle: opp.title,
-    universityId: opp.university_id,
-    studentName: (await repo.findStudentProfilesByIds([studentId]))[0]?.full_name,
+    universityId: studentProfile?.primary_university_id ?? null,
+    studentName: studentProfile?.full_name,
   });
 
   return { application: repo.mapApplicationRow(application) };
@@ -560,7 +787,7 @@ async function assertApprovedApplication(opportunityId, studentId) {
 async function listOpportunityTasks(opportunityId, { studentId, user } = {}) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  if (user) assertManageOpportunityAccess(user, opp);
+  if (user) await assertManageOpportunityAccess(user, opp);
 
   let applicationId;
   if (studentId) {
@@ -570,14 +797,112 @@ async function listOpportunityTasks(opportunityId, { studentId, user } = {}) {
     applicationId = app.id;
   }
 
-  const tasks = await repo.findTasksByOpportunity(opportunityId, { applicationId });
+  const tasks = await repo.findTasksByOpportunity(opportunityId, {
+    applicationId,
+    exposeStudentSubmissionAudit: Boolean(applicationId),
+  });
   return { tasks };
+}
+
+async function resolveInstructionFileInput(fileId, user) {
+  if (!fileId) return null;
+  const resolved = await filesService.resolveUploadInput({ fileId }, user);
+  if (!resolved) throw new ApiError(400, 'ملف التعليمات غير صالح');
+  if (resolved.mimeType && !INSTRUCTION_MIME.has(resolved.mimeType)) {
+    throw new ApiError(400, 'نوع ملف التعليمات غير مدعوم');
+  }
+  if (resolved.size && resolved.size > INSTRUCTION_MAX_BYTES) {
+    throw new ApiError(400, 'حجم ملف التعليمات كبير جداً');
+  }
+  return resolved;
+}
+
+function instructionFileDataFromResolved(resolved, userId) {
+  return {
+    instruction_file_path: resolved.filePath,
+    instruction_file_name: resolved.fileName,
+    instruction_file_mime_type: resolved.mimeType,
+    instruction_file_size: resolved.size ?? null,
+    instruction_file_uploaded_at: new Date(),
+    instruction_file_uploaded_by_id: userId,
+  };
+}
+
+function clearInstructionFileData() {
+  return {
+    instruction_file_path: null,
+    instruction_file_name: null,
+    instruction_file_mime_type: null,
+    instruction_file_size: null,
+    instruction_file_uploaded_at: null,
+    instruction_file_uploaded_by_id: null,
+  };
+}
+
+async function assertTaskInstructionDownloadAccess(taskId, user, { asAdmin = false, asAcademic = false } = {}) {
+  const task = await repo.findTaskById(taskId);
+  if (!task) throw new ApiError(404, 'Task not found');
+  const opp = task.field_training_opportunities;
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  if (!task.instruction_file_path) throw new ApiError(404, 'Instruction file not found');
+
+  if (asAdmin) {
+    await assertManageOpportunityAccess(user, opp);
+  } else if (asAcademic) {
+    if (!user?.universityId) throw new ApiError(403, 'Forbidden');
+    const allowed = await repo.opportunityHasApprovedStudentFromUniversity(opp.id, user.universityId);
+    if (!allowed) throw new ApiError(403, 'Forbidden');
+  } else {
+    await assertActiveParticipant(opp.id, user.userId, { requireTrainingAccess: true });
+  }
+
+  return task;
+}
+
+async function getTaskInstructionDownloadUrl(taskId, user, options = {}) {
+  const task = await assertTaskInstructionDownloadAccess(taskId, user, options);
+  const stored = task.instruction_file_path;
+
+  if (getStorageBackend() === 'r2' && String(stored).startsWith('uploads/')) {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: stored });
+    return { url: signed.url, expiresIn: signed.expiresIn, file_name: task.instruction_file_name };
+  }
+
+  if (!repo.submissionFileExists(stored)) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  return { delivery: 'stream', file_name: task.instruction_file_name };
+}
+
+async function downloadTaskInstructionFile(taskId, user, options = {}) {
+  const task = await assertTaskInstructionDownloadAccess(taskId, user, options);
+  const stored = task.instruction_file_path;
+
+  if (getStorageBackend() === 'r2' && String(stored).startsWith('uploads/')) {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: stored });
+    return {
+      redirectUrl: signed.url,
+      fileName: task.instruction_file_name,
+      mimeType: task.instruction_file_mime_type || 'application/octet-stream',
+    };
+  }
+
+  if (!repo.submissionFileExists(stored)) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  return {
+    absPath: repo.resolveSubmissionAbsolutePath(stored),
+    fileName: task.instruction_file_name,
+    mimeType: task.instruction_file_mime_type || 'application/octet-stream',
+  };
 }
 
 async function createOpportunityTask(opportunityId, body, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const count = await repo.countTasksByOpportunity(opportunityId);
   const task = await repo.createTask({
@@ -590,19 +915,26 @@ async function createOpportunityTask(opportunityId, body, user) {
     requires_ai_self_evaluation: body.requires_ai_self_evaluation ?? false,
     is_final_task: body.is_final_task ?? false,
   });
+
+  let taskRow = task;
+  if (body.instruction_file_id) {
+    const resolved = await resolveInstructionFileInput(body.instruction_file_id, user);
+    const fileData = instructionFileDataFromResolved(resolved, user.userId);
+    taskRow = await repo.updateTask(task.id, fileData);
+  }
   await ftNotify.notifyApprovedStudentsNewTask({
     opportunityId,
     opportunityTitle: opp.title,
-    taskTitle: task.title,
+    taskTitle: taskRow.title,
   });
 
-  return { task: repo.mapTaskRow(task) };
+  return { task: repo.mapTaskRow(taskRow) };
 }
 
 async function updateOpportunityTask(taskId, body, user) {
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  assertManageOpportunityAccess(user, task.field_training_opportunities);
+  await assertManageOpportunityAccess(user, task.field_training_opportunities);
 
   const data = {};
   if (body.title != null) data.title = body.title.trim();
@@ -616,6 +948,13 @@ async function updateOpportunityTask(taskId, body, user) {
     data.requires_ai_self_evaluation = body.requires_ai_self_evaluation;
   }
   if (body.is_final_task !== undefined) data.is_final_task = body.is_final_task;
+  if (body.remove_instruction_file) {
+    Object.assign(data, clearInstructionFileData());
+  }
+  if (body.instruction_file_id) {
+    const resolved = await resolveInstructionFileInput(body.instruction_file_id, user);
+    Object.assign(data, instructionFileDataFromResolved(resolved, user.userId));
+  }
 
   const updated = await repo.updateTask(taskId, data);
   return { task: repo.mapTaskRow(updated) };
@@ -624,7 +963,7 @@ async function updateOpportunityTask(taskId, body, user) {
 async function deleteOpportunityTask(taskId, user) {
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  assertManageOpportunityAccess(user, task.field_training_opportunities);
+  await assertManageOpportunityAccess(user, task.field_training_opportunities);
   await repo.deleteTask(taskId);
   return { ok: true };
 }
@@ -632,12 +971,20 @@ async function deleteOpportunityTask(taskId, user) {
 async function listOpportunitySubmissions(opportunityId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
   const submissions = await repo.findSubmissionsByOpportunity(opportunityId);
   const profiles = await repo.findStudentProfilesByIds([...new Set(submissions.map((s) => s.student_id))]);
   const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
+  const scopedSubmissions =
+    isUniversityScopedFieldTrainingUser(user) && user?.universityId
+      ? submissions.filter(
+          (submission) =>
+            String(byId[submission.student_id]?.primary_university_id ?? '') ===
+            String(user.universityId)
+        )
+      : submissions;
   return {
-    submissions: submissions.map((s) => ({
+    submissions: scopedSubmissions.map((s) => ({
       ...s,
       student_name: byId[s.student_id]?.full_name ?? null,
       student_email: byId[s.student_id]?.email ?? null,
@@ -654,7 +1001,8 @@ async function assertSubmissionDownloadAccess(submissionId, user, { asAdmin = fa
   if (!opp) throw new ApiError(404, 'Opportunity not found');
 
   if (asAdmin) {
-    assertManageOpportunityAccess(user, opp);
+    await assertManageOpportunityAccess(user, opp);
+    await assertApplicationStudentAccess(user, submission.student_id);
   } else {
     if (submission.student_id !== user.userId) {
       throw new ApiError(403, 'Forbidden');
@@ -760,6 +1108,11 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
       ai_raw_response: body.ai_raw_response ?? null,
       ai_response_inserted_text: body.ai_response_inserted_text ?? null,
       final_student_notes: body.final_student_notes ?? null,
+      ai_evaluated_at: body.ai_evaluated_at
+        ? new Date(body.ai_evaluated_at)
+        : body.ai_raw_response
+          ? new Date()
+          : null,
       is_late: isLate,
       review_status: 'pending',
     },
@@ -776,7 +1129,7 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
   await ftNotify.notifyFieldTrainingTaskSubmitted({
     opportunityId: task.opportunity_id,
     opportunityTitle: task.field_training_opportunities?.title,
-    universityId: opp?.university_id,
+    universityId: profiles[0]?.primary_university_id ?? null,
     studentName: profiles[0]?.full_name,
     taskTitle: task.title,
     instructorId: opp?.assigned_instructor_id,
@@ -797,7 +1150,7 @@ async function reviewSubmission(submissionId, body, user) {
   if (!submission) throw new ApiError(404, 'Submission not found');
   const opp = submission.field_training_tasks?.field_training_opportunities;
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const updated = await repo.updateSubmissionReview(submissionId, {
     review_status: body.review_status,
@@ -833,7 +1186,13 @@ async function reviewSubmission(submissionId, body, user) {
   return { submission: repo.mapSubmissionRow(updated) };
 }
 
+async function getEligibilityCatalog() {
+  const universities = await ftEligibility.findEligibilityCatalog();
+  return { universities };
+}
+
 module.exports = {
+  getEligibilityCatalog,
   listAdminOpportunities,
   getAdminStats,
   getAdminOpportunityById,
@@ -855,6 +1214,8 @@ module.exports = {
   listOpportunitySubmissions,
   getSubmissionDownloadUrl,
   downloadSubmissionFile,
+  getTaskInstructionDownloadUrl,
+  downloadTaskInstructionFile,
   submitTaskFile,
   listStudentOpportunityTasks,
   reviewSubmission,

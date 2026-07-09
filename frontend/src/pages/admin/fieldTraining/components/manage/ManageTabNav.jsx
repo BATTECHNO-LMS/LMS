@@ -12,12 +12,13 @@ export const MANAGE_TABS = [
   'completion',
 ];
 
-export function ManageTabNav({ activeTab, onTabChange }) {
+export function ManageTabNav({ activeTab, onTabChange, hiddenTabs = [] }) {
   const { t } = useTranslation('fieldTraining');
+  const tabs = MANAGE_TABS.filter((tab) => !hiddenTabs.includes(tab));
 
   return (
     <nav className="ft-manage-tabs" role="tablist" aria-label={t('manageHub.tabsLabel')}>
-      {MANAGE_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab}
           type="button"

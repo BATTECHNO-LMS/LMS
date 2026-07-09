@@ -63,10 +63,21 @@ async function findUserProfileById(id) {
       phone: true,
       status: true,
       primary_university_id: true,
-      email_verified_at: true,
-      last_login_at: true,
-      created_at: true,
-      updated_at: true,
+      university_specialty_id: true,
+      specialty_id: true,
+      specialties: {
+        select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+      },
+      university_specialty: {
+        select: {
+          id: true,
+          name_ar: true,
+          name_en: true,
+          code: true,
+          status: true,
+          specialty_id: true,
+        },
+      },
     },
   });
 }
@@ -113,7 +124,19 @@ async function loadRolesAndPermissions(userId, tx = prisma) {
   };
 }
 
-async function createStudentUserTx(tx, { full_name, email, password_hash, phone, university_id, specialty_id, studentRoleId }) {
+async function createStudentUserTx(
+  tx,
+  {
+    full_name,
+    email,
+    password_hash,
+    phone,
+    university_id,
+    university_specialty_id,
+    specialty_id,
+    studentRoleId,
+  }
+) {
   const user = await tx.users.create({
     data: {
       full_name,
@@ -122,6 +145,7 @@ async function createStudentUserTx(tx, { full_name, email, password_hash, phone,
       phone: phone ?? null,
       status: 'inactive',
       primary_university_id: university_id,
+      university_specialty_id: university_specialty_id ?? null,
       specialty_id: specialty_id ?? null,
       email_verified_at: null,
     },

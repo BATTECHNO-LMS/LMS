@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import {
   useAdminFieldTraining,
@@ -11,6 +11,7 @@ import {
   useOpportunitySessions,
   issueCompletionLetter,
   getOpportunitySpecialtyLabel,
+  fetchInstructorFieldTraining,
 } from '../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { ManageTabNav } from './components/manage/ManageTabNav.jsx';
@@ -20,21 +21,46 @@ import { ManageAttendanceTab } from './components/manage/ManageAttendanceTab.jsx
 import { ManageAssessmentsTab } from './components/manage/ManageAssessmentsTab.jsx';
 import { ManageCompletionTab, ManageLinkTab } from './components/manage/ManageLinkTab.jsx';
 
-export function AdminFieldTrainingManagePage() {
+export function AdminFieldTrainingManagePage({ apiScope = 'admin' } = {}) {
   const { id } = useParams();
+  const isInstructor = apiScope === 'instructor';
+  const listBase = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t, i18n } = useTranslation('fieldTraining');
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
 
   const activeTab = searchParams.get('tab') || 'overview';
   const attendanceSessionId = searchParams.get('session') || '';
+  const hiddenTabs = isInstructor ? ['applications', 'completion'] : [];
 
-  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
-  const { data: appsData } = useOpportunityApplications(id);
-  const { data: sessionsData } = useOpportunitySessions(id);
-  const { data: subsData } = useOpportunitySubmissions(id);
+  const needsApplications = ['overview', 'completion', 'attendance'].includes(activeTab);
+  const needsSessions = ['sessions', 'attendance'].includes(activeTab);
+  const needsSubmissions = ['completion', 'assessments'].includes(activeTab);
 
-  const opp = oppData?.opportunity;
+  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id, {
+    enabled: !isInstructor && Boolean(id),
+  });
+  const { data: instructorOppData, isLoading: instructorOppLoading } = useQuery({
+    queryKey: fieldTrainingKeys.instructorDetail(id),
+    queryFn: () => fetchInstructorFieldTraining(id),
+    enabled: isInstructor && Boolean(id),
+  });
+  const { data: appsData } = useOpportunityApplications(
+    id,
+    {},
+    { enabled: Boolean(id) && needsApplications, scope: apiScope }
+  );
+  const { data: sessionsData } = useOpportunitySessions(id, {
+    enabled: Boolean(id) && needsSessions,
+    scope: apiScope,
+  });
+  const { data: subsData } = useOpportunitySubmissions(id, {
+    enabled: Boolean(id) && needsSubmissions,
+    scope: apiScope,
+  });
+
+  const opp = isInstructor ? instructorOppData?.opportunity : oppData?.opportunity;
+  const oppBusy = isInstructor ? instructorOppLoading : oppLoading;
   const applications = appsData?.applications ?? [];
   const sessions = sessionsData?.sessions ?? [];
   const submissions = subsData?.submissions ?? [];
@@ -62,6 +88,7 @@ export function AdminFieldTrainingManagePage() {
             applications={applications}
             sessions={sessions}
             submissions={submissions}
+            apiScope={apiScope}
           />
         );
       case 'applications':
@@ -71,15 +98,16 @@ export function AdminFieldTrainingManagePage() {
             tabKey="applications"
             title={t('applicationsTitle')}
             description={t('manageHub.applicationsDesc')}
-            to={`/admin/field-training/${id}/applications`}
+            to={`${listBase}/${id}/applications`}
           />
         );
       case 'pre_assessment':
-        return <ManageAssessmentsTab opportunityId={id} type="pre" />;
+        return <ManageAssessmentsTab opportunityId={id} type="pre" apiScope={apiScope} />;
       case 'sessions':
         return (
           <ManageSessionsTab
             opportunityId={id}
+            apiScope={apiScope}
             onOpenAttendance={(sessionId) => setTab('attendance', { session: sessionId })}
           />
         );
@@ -87,6 +115,7 @@ export function AdminFieldTrainingManagePage() {
         return (
           <ManageAttendanceTab
             opportunityId={id}
+            apiScope={apiScope}
             preselectedSessionId={attendanceSessionId}
             onSessionChange={(sessionId) => setTab('attendance', { session: sessionId })}
           />
@@ -98,7 +127,7 @@ export function AdminFieldTrainingManagePage() {
             tabKey="tasks"
             title={t('tasks.adminTitle')}
             description={t('manageHub.tasksDesc')}
-            to={`/admin/field-training/${id}/tasks`}
+            to={`${listBase}/${id}/tasks`}
           />
         );
       case 'submissions':
@@ -108,11 +137,11 @@ export function AdminFieldTrainingManagePage() {
             tabKey="submissions"
             title={t('tasks.submissionsTitle')}
             description={t('manageHub.submissionsDesc')}
-            to={`/admin/field-training/${id}/tasks`}
+            to={`${listBase}/${id}/tasks`}
           />
         );
       case 'post_assessment':
-        return <ManageAssessmentsTab opportunityId={id} type="post" />;
+        return <ManageAssessmentsTab opportunityId={id} type="post" apiScope={apiScope} />;
       case 'completion':
         return (
           <ManageCompletionTab
@@ -124,14 +153,26 @@ export function AdminFieldTrainingManagePage() {
       default:
         return null;
     }
-  }, [activeTab, id, opp, applications, sessions, submissions, attendanceSessionId, t, issueMut.isPending]);
+  }, [
+    activeTab,
+    id,
+    opp,
+    applications,
+    sessions,
+    submissions,
+    attendanceSessionId,
+    t,
+    issueMut.isPending,
+    apiScope,
+    listBase,
+  ]);
 
-  if (oppLoading) return <LoadingSpinner />;
+  if (oppBusy) return <LoadingSpinner />;
 
   return (
     <div className="page page--admin ft-page ft-manage-hub">
       <header className="ft-manage-hub__header">
-        <Link to="/admin/field-training" className="ft-detail-back">
+        <Link to={listBase} className="ft-detail-back">
           <ArrowLeft size={18} aria-hidden /> {t('backToList')}
         </Link>
         <h1 className="ft-manage-hub__title">{t('manageTraining.title')}</h1>
@@ -140,7 +181,7 @@ export function AdminFieldTrainingManagePage() {
         </p>
       </header>
 
-      <ManageTabNav activeTab={activeTab} onTabChange={(tab) => setTab(tab)} />
+      <ManageTabNav activeTab={activeTab} onTabChange={(tab) => setTab(tab)} hiddenTabs={hiddenTabs} />
 
       <div className="ft-manage-hub__content" role="tabpanel">
         {tabContent}

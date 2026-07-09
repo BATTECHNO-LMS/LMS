@@ -12,7 +12,7 @@ import { SpecialtySelect } from './SpecialtySelect.jsx';
 import { SubmitButton } from './SubmitButton.jsx';
 import { fetchRegisterUniversitiesCatalog } from '../auth.service.js';
 import { mapUniversitiesForSelect } from '../../../constants/universities.js';
-import { useSpecialties, getSpecialtyLabel } from '../../specialties/index.js';
+import { useUniversitySpecialties, getUniversitySpecialtyLabel } from '../../specialties/index.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { storageKeys, setStorageItem } from '../../../utils/storage.js';
@@ -44,6 +44,8 @@ export function RegisterForm() {
     register,
     handleSubmit,
     control,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -58,18 +60,20 @@ export function RegisterForm() {
     },
   });
 
+  const selectedUniversityId = watch('university');
+
   const {
     data: specialtyRows = [],
     isLoading: specialtiesLoading,
     isError: specialtiesError,
     error: specialtiesErr,
-  } = useSpecialties();
+  } = useUniversitySpecialties(selectedUniversityId || null);
 
   const specialtyOptions = useMemo(
     () =>
       specialtyRows.map((row) => ({
         id: row.id,
-        label: getSpecialtyLabel(row, i18n.language),
+        label: getUniversitySpecialtyLabel(row, i18n.language),
       })),
     [specialtyRows, i18n.language]
   );
@@ -83,6 +87,11 @@ export function RegisterForm() {
           transition: { duration: 0.4, delay, ease: AUTH_MOTION_EASE },
         };
 
+  function handleUniversityChange(fieldOnChange, event) {
+    fieldOnChange(event);
+    setValue('specialty', '', { shouldValidate: false, shouldDirty: true });
+  }
+
   async function onSubmit(data) {
     setFormError('');
     const payload = {
@@ -90,7 +99,7 @@ export function RegisterForm() {
       email: data.email.trim().toLowerCase(),
       password: data.password,
       university_id: data.university,
-      specialty_id: data.specialty,
+      university_specialty_id: data.specialty,
       phone: data.phone?.trim() || undefined,
     };
 
@@ -162,6 +171,7 @@ export function RegisterForm() {
                 loading={universitiesLoading}
                 controlClassName="auth-form__input"
                 {...field}
+                onChange={(event) => handleUniversityChange(field.onChange, event)}
               />
             )}
           />
@@ -176,9 +186,15 @@ export function RegisterForm() {
                 id="register-specialty"
                 label={t('register.labels.specialty')}
                 error={errors.specialty?.message}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !selectedUniversityId}
                 options={specialtyOptions}
-                loading={specialtiesLoading}
+                loading={Boolean(selectedUniversityId) && specialtiesLoading}
+                placeholder={
+                  selectedUniversityId
+                    ? t('register.specialtyPlaceholder')
+                    : t('register.specialtySelectUniversityFirst')
+                }
+                emptyLabel={t('register.specialtiesEmpty')}
                 controlClassName="auth-form__input"
                 {...field}
               />
@@ -234,7 +250,7 @@ export function RegisterForm() {
         </p>
       ) : null}
 
-      {specialtiesError ? (
+      {selectedUniversityId && specialtiesError ? (
         <p className="auth-form__error auth-form__span-full" role="alert">
           {getApiErrorMessage(specialtiesErr, t('register.submitFailed'))}
         </p>

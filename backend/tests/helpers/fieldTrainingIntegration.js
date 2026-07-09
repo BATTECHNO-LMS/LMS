@@ -20,6 +20,7 @@ async function fieldTrainingMigrationsApplied() {
   try {
     await prisma.$queryRaw`SELECT assigned_instructor_id FROM field_training_opportunities LIMIT 0`;
     await prisma.$queryRaw`SELECT training_status FROM field_training_applications LIMIT 0`;
+    await prisma.$queryRaw`SELECT university_specialty_id FROM field_training_opportunity_eligibility LIMIT 0`;
     return true;
   } catch {
     return false;
@@ -38,6 +39,30 @@ async function ensureIntegrationFixtures() {
 
   if (!admin || !instructor || !student || !specialty) {
     throw new Error('Integration fixtures incomplete — run seed:test-accounts');
+  }
+
+  const universitySpecialty = student.university_specialty_id
+    ? await prisma.university_specialties.findUnique({
+        where: { id: student.university_specialty_id },
+      })
+    : await prisma.university_specialties.findFirst({
+        where: {
+          university_id: student.primary_university_id,
+          specialty_id: specialty.id,
+          status: 'active',
+        },
+      });
+
+  if (!universitySpecialty) {
+    throw new Error('Integration fixtures missing BATUNI university specialty');
+  }
+
+  if (!student.university_specialty_id) {
+    await prisma.users.update({
+      where: { id: student.id },
+      data: { university_specialty_id: universitySpecialty.id },
+    });
+    student.university_specialty_id = universitySpecialty.id;
   }
 
   const roleLinks = await prisma.user_roles.findMany({
@@ -62,6 +87,7 @@ async function ensureIntegrationFixtures() {
     instructor: { ...instructor, roleCodes: rolesByUser.get(instructor.id) || [] },
     student: { ...student, roleCodes: rolesByUser.get(student.id) || [] },
     specialty,
+    universitySpecialty,
     universityId: admin.primary_university_id,
   };
 }

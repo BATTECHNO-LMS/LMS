@@ -53,6 +53,22 @@ router.get(
   adminFieldTrainingController.downloadSubmission
 );
 
+router.get(
+  '/tasks/:taskId/instruction-file/download-url',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: taskIdParamSchema }),
+  adminFieldTrainingController.getTaskInstructionDownloadUrl
+);
+
+router.get(
+  '/tasks/:taskId/instruction-file/download',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: taskIdParamSchema }),
+  adminFieldTrainingController.downloadTaskInstruction
+);
+
 router.patch(
   '/submissions/:submissionId/review',
   authenticate,

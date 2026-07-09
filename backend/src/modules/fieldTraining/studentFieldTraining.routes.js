@@ -62,6 +62,22 @@ router.get(
   studentFieldTrainingController.downloadSubmission
 );
 
+router.get(
+  '/tasks/:taskId/instruction-file/download-url',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: taskIdParamSchema }),
+  studentFieldTrainingController.getTaskInstructionDownloadUrl
+);
+
+router.get(
+  '/tasks/:taskId/instruction-file/download',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: taskIdParamSchema }),
+  studentFieldTrainingController.downloadTaskInstruction
+);
+
 router.post(
   '/tasks/:taskId/ai-self-evaluate',
   authenticate,

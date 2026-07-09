@@ -6,7 +6,7 @@ const { ApiError } = require('../../utils/apiError');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { env } = require('../../config/env');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
-const { assertManageOpportunityAccess } = require('./fieldTraining.access');
+const { assertManageOpportunityAccess, assertApplicationStudentAccess } = require('./fieldTraining.access');
 const ftNotify = require('./fieldTraining.notifications');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
@@ -62,7 +62,7 @@ async function assertPreAssessmentSatisfied(opportunityId) {
 async function startTraining(opportunityId, userId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
   if (!['published', 'in_progress'].includes(opp.status)) {
     throw new ApiError(400, 'يجب نشر الفرصة قبل بدء التدريب');
   }
@@ -124,7 +124,7 @@ async function listSessions(opportunityId, user, { studentId } = {}) {
     }
     applicationId = app.id;
   } else {
-    assertManageOpportunityAccess(user, opp);
+    await assertManageOpportunityAccess(user, opp);
   }
 
   const sessions = await repo.findSessionsByOpportunity(opportunityId, { applicationId });
@@ -134,7 +134,7 @@ async function listSessions(opportunityId, user, { studentId } = {}) {
 async function createSession(opportunityId, body, userId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const row = await repo.createSession({
     opportunity_id: opportunityId,
@@ -162,7 +162,7 @@ async function createSession(opportunityId, body, userId, user) {
 async function updateSession(sessionId, body, user) {
   const session = await repo.findSessionById(sessionId);
   if (!session) throw new ApiError(404, 'Session not found');
-  assertManageOpportunityAccess(user, session.field_training_opportunities);
+  await assertManageOpportunityAccess(user, session.field_training_opportunities);
 
   const data = {};
   if (body.title != null) data.title = body.title.trim();
@@ -188,7 +188,7 @@ async function updateSession(sessionId, body, user) {
 async function deleteSession(sessionId, user) {
   const session = await repo.findSessionById(sessionId);
   if (!session) throw new ApiError(404, 'Session not found');
-  assertManageOpportunityAccess(user, session.field_training_opportunities);
+  await assertManageOpportunityAccess(user, session.field_training_opportunities);
   if (session._count?.field_training_attendance > 0) {
     throw new ApiError(400, 'لا يمكن حذف جلسة تم تسجيل حضورها');
   }
@@ -200,7 +200,7 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
   const session = await repo.findSessionById(sessionId);
   if (!session) throw new ApiError(404, 'Session not found');
   const opp = session.field_training_opportunities;
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const activeApps = await repo.findActiveParticipants(opp.id);
   const activeById = new Map(activeApps.map((a) => [a.id, a]));
@@ -242,7 +242,7 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
         await ftNotify.notifyStaffAttendanceRisk({
           opportunityId: opp.id,
           opportunityTitle: oppFull?.title,
-          universityId: oppFull?.university_id,
+          universityId: profiles[0]?.primary_university_id ?? null,
           instructorId: oppFull?.assigned_instructor_id,
           studentName: profiles[0]?.full_name,
           attendancePercentage: Math.round(pct),
@@ -258,7 +258,7 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
 async function getSessionParticipants(sessionId, user) {
   const session = await repo.findSessionById(sessionId);
   if (!session) throw new ApiError(404, 'Session not found');
-  assertManageOpportunityAccess(user, session.field_training_opportunities);
+  await assertManageOpportunityAccess(user, session.field_training_opportunities);
 
   const apps = await repo.findActiveParticipants(session.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds(apps.map((a) => a.student_id));
@@ -281,7 +281,7 @@ async function getSessionParticipants(sessionId, user) {
 async function upsertAssessment(opportunityId, type, body, userId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const assessment = await repo.upsertAssessment({
     opportunity_id: opportunityId,
@@ -309,7 +309,7 @@ async function upsertAssessment(opportunityId, type, body, userId, user) {
 async function publishAssessment(opportunityId, type, userId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
 
   const assessment = await repo.findAssessmentByOpportunityAndType(opportunityId, type);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
@@ -438,30 +438,32 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
   if (type === 'post') {
     const eligibility = await workflow.persistEligibility(app.id);
     const oppRow = await repo.findById(opportunityId);
+    const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
     await ftNotify.notifyStaffPostAssessmentCompleted({
       opportunityId,
       opportunityTitle: oppRow?.title,
-      universityId: oppRow?.university_id,
+      universityId: studentProfile?.primary_university_id ?? null,
       instructorId: oppRow?.assigned_instructor_id,
-      studentName: (await repo.findStudentProfilesByIds([studentId]))[0]?.full_name,
+      studentName: studentProfile?.full_name,
     });
     if (eligibility.outcome === 'eligible') {
       await ftNotify.notifyStaffEligibilityReady({
         opportunityId,
         opportunityTitle: oppRow?.title,
-        universityId: oppRow?.university_id,
+        universityId: studentProfile?.primary_university_id ?? null,
         instructorId: oppRow?.assigned_instructor_id,
-        studentName: (await repo.findStudentProfilesByIds([studentId]))[0]?.full_name,
+        studentName: studentProfile?.full_name,
       });
     }
   } else {
     const oppRow = await repo.findById(opportunityId);
+    const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
     await ftNotify.notifyStaffPreAssessmentCompleted({
       opportunityId,
       opportunityTitle: oppRow?.title,
-      universityId: oppRow?.university_id,
+      universityId: studentProfile?.primary_university_id ?? null,
       instructorId: oppRow?.assigned_instructor_id,
-      studentName: (await repo.findStudentProfilesByIds([studentId]))[0]?.full_name,
+      studentName: studentProfile?.full_name,
       level,
     });
   }
@@ -481,7 +483,8 @@ async function expelParticipant(applicationId, body, userId, user) {
   const app = await repo.findApplicationById(applicationId);
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
 
   if (workflow.isExpelled(app)) {
     throw new ApiError(400, 'الطالب مستبعد مسبقًا');
@@ -596,7 +599,8 @@ async function issueCompletionLetter(applicationId, userId, user) {
   const app = await repo.findApplicationById(applicationId);
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
 
   if (workflow.isExpelled(app)) {
     throw new ApiError(400, 'لا يمكن إصدار كتاب لطالب مستبعد');
@@ -702,7 +706,8 @@ async function getApplicationProgress(applicationId, user) {
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
 
   const [sessionsCount, tasksCount, tasksSubmitted] = await Promise.all([
     prisma.field_training_sessions.count({ where: { opportunity_id: opp.id } }),
@@ -757,7 +762,7 @@ async function getSessionAttendance(sessionId, user) {
 async function listOpportunityAssessments(opportunityId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  assertManageOpportunityAccess(user, opp);
+  await assertManageOpportunityAccess(user, opp);
   const assessments = await repo.findAssessmentsByOpportunity(opportunityId);
   return { assessments };
 }
@@ -769,7 +774,7 @@ async function createOpportunityAssessment(opportunityId, body, userId, user) {
 async function updateAssessmentById(assessmentId, body, user) {
   const assessment = await repo.findAssessmentById(assessmentId);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
-  assertManageOpportunityAccess(user, assessment.field_training_opportunities);
+  await assertManageOpportunityAccess(user, assessment.field_training_opportunities);
 
   const data = {};
   if (body.title != null) data.title = body.title.trim();
@@ -796,7 +801,7 @@ async function updateAssessmentById(assessmentId, body, user) {
 async function publishAssessmentById(assessmentId, userId, user) {
   const assessment = await repo.findAssessmentById(assessmentId);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
-  assertManageOpportunityAccess(user, assessment.field_training_opportunities);
+  await assertManageOpportunityAccess(user, assessment.field_training_opportunities);
   if (!assessment.field_training_assessment_questions?.length) {
     throw new ApiError(400, 'أضف أسئلة قبل النشر');
   }

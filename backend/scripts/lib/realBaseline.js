@@ -3,6 +3,8 @@ const {
   REAL_UNIVERSITIES,
   REQUIRED_ROLES,
   SPECIALTY_CATALOG,
+  UNIVERSITY_SPECIALTY_CATALOG,
+  DEACTIVATE_UNIVERSITY_SPECIALTY_RULES,
   buildUniversityNotes,
 } = require('./baselineCatalog');
 const { mergeDuplicateSpecialties } = require('./specialtyMerge');
@@ -126,6 +128,86 @@ async function ensureSpecialties() {
   return byCode;
 }
 
+async function ensureUniversitySpecialties(specialtyByCode) {
+  let count = 0;
+  for (const spec of UNIVERSITY_SPECIALTY_CATALOG) {
+    const university = await findUniversityByDomain(spec.universityDomain);
+    if (!university) continue;
+
+    for (const program of spec.programs) {
+      const canonical = program.canonicalCode
+        ? specialtyByCode.get(program.canonicalCode)
+        : null;
+      const existing = await prisma.university_specialties.findFirst({
+        where: {
+          university_id: university.id,
+          code: program.code,
+        },
+      });
+
+      const data = {
+        university_id: university.id,
+        specialty_id: canonical?.id ?? null,
+        name_ar: program.name_ar,
+        name_en: program.name_en,
+        code: program.code,
+        college_name_ar: spec.collegeNameAr,
+        college_name_en: spec.collegeNameEn,
+        status: 'active',
+        updated_at: new Date(),
+      };
+
+      if (existing) {
+        await prisma.university_specialties.update({
+          where: { id: existing.id },
+          data,
+        });
+      } else {
+        await prisma.university_specialties.create({ data });
+      }
+      count += 1;
+    }
+  }
+  return count;
+}
+
+async function deactivateExcludedUniversitySpecialties() {
+  let count = 0;
+  for (const rule of DEACTIVATE_UNIVERSITY_SPECIALTY_RULES) {
+    const university = await findUniversityByDomain(rule.universityDomain);
+    if (!university) continue;
+
+    const orFilters = [];
+    if (rule.codes?.length) {
+      orFilters.push({ code: { in: rule.codes } });
+    }
+    if (rule.nameArIncludes?.length) {
+      for (const fragment of rule.nameArIncludes) {
+        orFilters.push({ name_ar: { contains: fragment } });
+      }
+    }
+    if (!orFilters.length) continue;
+
+    const rows = await prisma.university_specialties.findMany({
+      where: {
+        university_id: university.id,
+        status: 'active',
+        OR: orFilters,
+      },
+      select: { id: true },
+    });
+
+    for (const row of rows) {
+      await prisma.university_specialties.update({
+        where: { id: row.id },
+        data: { status: 'inactive', updated_at: new Date() },
+      });
+      count += 1;
+    }
+  }
+  return count;
+}
+
 /**
  * Idempotent real baseline: system roles, Jordanian universities + domains, global specialties.
  * Does NOT create users or delete any data.
@@ -134,6 +216,8 @@ async function seedRealBaseline() {
   const roles = await ensureRoles();
   const universities = await ensureBaselineUniversities();
   const specialties = await ensureSpecialties();
+  const universitySpecialties = await ensureUniversitySpecialties(specialties);
+  const deactivatedUniversitySpecialties = await deactivateExcludedUniversitySpecialties();
 
   return {
     roles: roles.length,
@@ -143,6 +227,8 @@ async function seedRealBaseline() {
       domain,
     })),
     specialties: specialties.size,
+    universitySpecialties,
+    deactivatedUniversitySpecialties,
   };
 }
 
@@ -153,4 +239,6 @@ module.exports = {
   ensureBaselineUniversities,
   ensureEmailDomain,
   ensureSpecialties,
+  ensureUniversitySpecialties,
+  deactivateExcludedUniversitySpecialties,
 };

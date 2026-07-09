@@ -12,10 +12,13 @@ import {
   getOpportunitySpecialtyLabel,
   opportunityStatusVariant,
 } from '../../../../../features/fieldTraining/index.js';
+import { BeneficiaryUniversitiesSection } from '../BeneficiaryUniversitiesSection.jsx';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 
-export function ManageOverviewTab({ opportunityId, opp, applications, sessions, submissions }) {
+export function ManageOverviewTab({ opportunityId, opp, applications, sessions, submissions, apiScope = 'admin' }) {
+  const isInstructor = apiScope === 'instructor';
+  const basePath = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t, i18n } = useTranslation('fieldTraining');
   const qc = useQueryClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -44,7 +47,7 @@ export function ManageOverviewTab({ opportunityId, opp, applications, sessions, 
   );
 
   const startMut = useMutation({
-    mutationFn: () => startFieldTraining(opportunityId),
+    mutationFn: () => startFieldTraining(opportunityId, { asInstructor: isInstructor }),
     onSuccess: () => {
       setConfirmOpen(false);
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminDetail(opportunityId) });
@@ -116,6 +119,8 @@ export function ManageOverviewTab({ opportunityId, opp, applications, sessions, 
         />
       </AdminStatsGrid>
 
+      <BeneficiaryUniversitiesSection grouped={opp?.eligibility_grouped} />
+
       <div className="ft-manage-actions">
         <Button
           type="button"
@@ -128,10 +133,12 @@ export function ManageOverviewTab({ opportunityId, opp, applications, sessions, 
         >
           <Play size={16} aria-hidden /> {t('manageTraining.startTraining')}
         </Button>
-        <Button as={Link} to={`/admin/field-training/${opportunityId}/applications`} variant="outline">
-          {t('viewApplications')}
-        </Button>
-        <Button as={Link} to={`/admin/field-training/${opportunityId}/tasks`} variant="outline">
+        {!isInstructor ? (
+          <Button as={Link} to={`${basePath}/${opportunityId}/applications`} variant="outline">
+            {t('viewApplications')}
+          </Button>
+        ) : null}
+        <Button as={Link} to={`${basePath}/${opportunityId}/tasks`} variant="outline">
           {t('tasks.manageTasks')}
         </Button>
       </div>

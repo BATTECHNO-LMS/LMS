@@ -1,6 +1,15 @@
 const { prisma } = require('../../config/db');
 const { extractEmailDomain, emailDomainMatchesAllowed } = require('../../utils/emailDomain');
 
+function domainSuffixCandidates(emailDomain) {
+  const parts = emailDomain.split('.').filter(Boolean);
+  const suffixes = new Set([emailDomain]);
+  for (let i = 1; i < parts.length; i += 1) {
+    suffixes.add(parts.slice(i).join('.'));
+  }
+  return [...suffixes];
+}
+
 /**
  * Resolve active university from an email address using university_email_domains.
  * @param {string} email
@@ -10,8 +19,13 @@ async function resolveUniversityFromEmail(email) {
   const emailDomain = extractEmailDomain(email);
   if (!emailDomain) return null;
 
+  const candidates = domainSuffixCandidates(emailDomain);
   const rows = await prisma.university_email_domains.findMany({
-    where: { is_active: true, universities: { status: 'active' } },
+    where: {
+      is_active: true,
+      domain: { in: candidates },
+      universities: { status: 'active' },
+    },
     select: {
       domain: true,
       university_id: true,

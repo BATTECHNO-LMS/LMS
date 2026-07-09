@@ -43,10 +43,12 @@ import {
   useUpdateFieldTraining,
   fetchAdminFieldTraining,
   fetchFieldTrainingInstructors,
+  fetchFieldTrainingEligibilityCatalog,
   opportunityStatusVariant,
   formatFtDate,
   getOpportunitySpecialtyLabel,
 } from '../../../features/fieldTraining/index.js';
+import { FieldTrainingEligibilityPicker } from './components/FieldTrainingEligibilityPicker.jsx';
 import { useQuery } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { useSpecialties, getSpecialtyLabel } from '../../../features/specialties/index.js';
@@ -73,6 +75,7 @@ const emptyForm = {
   requires_final_task: true,
   minimum_attendance_percentage: '80',
   minimum_post_assessment_score: '60',
+  eligibility: [],
 };
 
 export function AdminFieldTrainingPage() {
@@ -87,7 +90,9 @@ export function AdminFieldTrainingPage() {
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState('');
+  const [formErrors, setFormErrors] = useState({});
   const [publishError, setPublishError] = useState('');
+  const [editingNeedsEligibility, setEditingNeedsEligibility] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(q.trim()), SEARCH_DEBOUNCE_MS);
@@ -145,10 +150,24 @@ export function AdminFieldTrainingPage() {
     };
   }, [statsData]);
 
-  const saving = createMut.isPending || updateMut.isPending;
+  const isSubmitting = createMut.isPending || updateMut.isPending;
   const hasActiveFilters = Boolean(status || trainingMode || specialtyFilter);
   const isFilteredView = hasActiveFilters || Boolean(debouncedQ);
   const canSubmitOpportunity = Boolean(form.specialty_id) && !specialtiesLoading && !specialtiesError;
+
+  const {
+    data: eligibilityCatalog = [],
+    isLoading: eligibilityCatalogLoading,
+    isError: eligibilityCatalogError,
+  } = useQuery({
+    queryKey: ['fieldTraining', 'eligibilityCatalog'],
+    queryFn: async () => {
+      const payload = await fetchFieldTrainingEligibilityCatalog();
+      return payload?.universities ?? [];
+    },
+    enabled: modalOpen,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const specialtyOptions = useMemo(
     () =>
@@ -186,24 +205,37 @@ export function AdminFieldTrainingPage() {
         r.minimum_attendance_percentage != null ? String(r.minimum_attendance_percentage) : '',
       minimum_post_assessment_score:
         r.minimum_post_assessment_score != null ? String(r.minimum_post_assessment_score) : '',
+      eligibility: Array.isArray(r.eligibility)
+        ? r.eligibility.map((item) => ({
+            university_id: item.university_id,
+            university_specialty_id: item.university_specialty_id,
+          }))
+        : [],
     };
   }
 
   function openCreate() {
     setEditingId(null);
+    setEditingNeedsEligibility(false);
     setForm({ ...emptyForm });
     setFormError('');
+    setFormErrors({});
     setModalOpen(true);
   }
 
   async function openEdit(row) {
     setEditingId(row.id);
+    setEditingNeedsEligibility(Boolean(row.needs_eligibility_setup));
     setFormError('');
+    setFormErrors({});
     setModalOpen(true);
     setForm(formFromRow(row));
     try {
       const detail = await fetchAdminFieldTraining(row.id);
-      if (detail?.opportunity) setForm(formFromRow(detail.opportunity));
+      if (detail?.opportunity) {
+        setForm(formFromRow(detail.opportunity));
+        setEditingNeedsEligibility(Boolean(detail.opportunity.needs_eligibility_setup));
+      }
     } catch {
       /* keep list row */
     }
@@ -233,20 +265,55 @@ export function AdminFieldTrainingPage() {
       minimum_post_assessment_score: form.minimum_post_assessment_score
         ? Number(form.minimum_post_assessment_score)
         : null,
+      eligibility: form.eligibility,
     };
   }
 
   async function saveForm(e) {
     e.preventDefault();
     setFormError('');
+    const errors = {};
+
+    if (!form.title.trim()) {
+      errors.title = t('form.titleRequired');
+    }
     if (!form.specialty_id) {
-      setFormError(t('form.specialtyRequired'));
+      errors.specialty = t('form.trainingTrackRequired');
+    }
+
+    const uniqueUniversities = new Set(form.eligibility.map((row) => row.university_id));
+    if (!uniqueUniversities.size) {
+      errors.eligibility = t('form.universityEligibilityRequired');
+    } else if (!form.eligibility.length) {
+      errors.eligibility = t('form.eligibilitySpecialtyRequired');
+    }
+
+    if (form.minimum_attendance_percentage !== '') {
+      const attendance = Number(form.minimum_attendance_percentage);
+      if (Number.isNaN(attendance) || attendance < 0 || attendance > 100) {
+        errors.attendance = t('form.attendanceRange');
+      }
+    }
+
+    if (form.minimum_post_assessment_score !== '') {
+      const postScore = Number(form.minimum_post_assessment_score);
+      if (Number.isNaN(postScore) || postScore < 0 || postScore > 100) {
+        errors.postScore = t('form.postScoreRange');
+      }
+    }
+
+    setFormErrors(errors);
+    if (Object.keys(errors).length) {
+      setFormError(errors[Object.keys(errors)[0]]);
       return;
     }
+
     try {
       const body = buildBody();
       if (editingId) await updateMut.mutateAsync({ id: editingId, body });
       else await createMut.mutateAsync(body);
+      setEditingNeedsEligibility(false);
+      setFormErrors({});
       setModalOpen(false);
       refetch();
     } catch (err) {
@@ -534,10 +601,30 @@ export function AdminFieldTrainingPage() {
                 </h3>
                 <p className="ft-admin-opp-card__org">
                   <GraduationCap size={14} aria-hidden />{' '}
+                  {t('form.trainingTrack')}:{' '}
                   {getOpportunitySpecialtyLabel(r, i18n.language, t('form.specialtyUnspecified'))}
                 </p>
+                <p className="ft-admin-opp-card__org">
+                  {t('detail.beneficiaryUniversitiesCount', {
+                    count: r.beneficiary_university_count ?? 0,
+                  })}
+                  {' · '}
+                  {t('detail.eligibleProgramsCount', {
+                    count: r.eligible_specialty_count ?? 0,
+                  })}
+                </p>
+                {r.assigned_instructor?.full_name ? (
+                  <p className="ft-admin-opp-card__org">
+                    {t('form.assignedInstructor')}: {r.assigned_instructor.full_name}
+                  </p>
+                ) : null}
                 {r.short_description ? (
                   <p className="ft-admin-opp-card__desc">{r.short_description}</p>
+                ) : null}
+                {r.needs_eligibility_setup ? (
+                  <p className="ft-admin-opp-card__eligibility-warning" role="status">
+                    {r.eligibility_setup_message || t('form.eligibilitySetupRequired')}
+                  </p>
                 ) : null}
 
                 <div className="ft-admin-opp-card__info">
@@ -559,6 +646,36 @@ export function AdminFieldTrainingPage() {
                     </span>
                     <span>
                       {t('table.seats')}: {r.seats_limit != null ? r.seats_limit : '—'}
+                    </span>
+                  </div>
+                  <div className="ft-admin-opp-card__info-item">
+                    <span className="ft-admin-opp-card__info-icon" aria-hidden>
+                      <Calendar size={14} />
+                    </span>
+                    <span>
+                      {t('form.startDate')}: {formatFtDate(r.start_date) ?? '—'}
+                      {' · '}
+                      {t('form.endDate')}: {formatFtDate(r.end_date) ?? '—'}
+                    </span>
+                  </div>
+                  {r.applications_by_university?.length ? (
+                    <div className="ft-admin-opp-card__info-item ft-admin-opp-card__info-item--full">
+                      <span className="ft-admin-opp-card__info-icon" aria-hidden>
+                        <Users size={14} />
+                      </span>
+                      <span>
+                        {r.applications_by_university
+                          .map((row) => `${row.name ?? '—'}: ${row.count}`)
+                          .join(' · ')}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="ft-admin-opp-card__info-item">
+                    <span className="ft-admin-opp-card__info-icon" aria-hidden>
+                      <Calendar size={14} />
+                    </span>
+                    <span>
+                      {t('form.applicationDeadline')}: {formatFtDate(r.application_deadline) ?? '—'}
                     </span>
                   </div>
                   <div className="ft-admin-opp-card__info-item">
@@ -645,6 +762,11 @@ export function AdminFieldTrainingPage() {
 
             <form onSubmit={saveForm} noValidate className="ft-modal__form">
               <div className="ft-modal__body">
+                {editingNeedsEligibility ? (
+                  <p className="ft-modal__eligibility-warning" role="status">
+                    {t('form.eligibilitySetupRequired')}
+                  </p>
+                ) : null}
                 {formError ? (
                   <p className="ft-modal__error" role="alert">
                     {formError}
@@ -659,31 +781,41 @@ export function AdminFieldTrainingPage() {
                     <span className="ft-composer-section__title">{t('form.sectionBasic')}</span>
                   </legend>
                   <p className="ft-composer-section__help">{t('form.sectionBasicHelp')}</p>
+                  {formErrors.title ? (
+                    <p className="ft-composer-section__error" role="alert">{formErrors.title}</p>
+                  ) : null}
                   <div className="ft-composer-section__grid ft-composer-section__grid--2">
                     <FormInput
                       id="ft-title"
                       label={t('form.title')}
                       value={form.title}
-                      onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, title: e.target.value }));
+                        if (formErrors.title) setFormErrors((prev) => ({ ...prev, title: undefined }));
+                      }}
+                      aria-invalid={Boolean(formErrors.title)}
                     />
                     <div className="form-field">
                       <label className="form-field__label" htmlFor="ft-specialty">
-                        {t('form.specialtyLinked')}
+                        {t('form.trainingTrack')}
                       </label>
-                      <p className="ft-composer-section__field-help">{t('form.specialtyHelp')}</p>
+                      <p className="ft-composer-section__field-help">{t('form.trainingTrackHelp')}</p>
                       <div className="ft-modal-select">
                         <GraduationCap className="ft-modal-select__icon" size={16} aria-hidden />
                         <select
                           id="ft-specialty"
                           className="ft-modal-select__control"
                           value={form.specialty_id}
-                          onChange={(e) => setForm((f) => ({ ...f, specialty_id: e.target.value }))}
+                          onChange={(e) => {
+                            setForm((f) => ({ ...f, specialty_id: e.target.value }));
+                            if (formErrors.specialty) setFormErrors((prev) => ({ ...prev, specialty: undefined }));
+                          }}
                           disabled={
                             specialtiesLoading
                             || specialtiesError
                             || !specialtyOptions.length
                           }
-                          aria-invalid={!form.specialty_id && Boolean(formError)}
+                          aria-invalid={Boolean(formErrors.specialty)}
                         >
                           <option value="">
                             {specialtiesLoading
@@ -698,6 +830,9 @@ export function AdminFieldTrainingPage() {
                         </select>
                         <ChevronDown className="ft-modal-select__chevron" size={16} aria-hidden />
                       </div>
+                      {formErrors.specialty ? (
+                        <p className="form-field__error" role="alert">{formErrors.specialty}</p>
+                      ) : null}
                       {specialtiesError ? (
                         <p className="form-field__error" role="alert">
                           {t('form.specialtiesLoadError')}
@@ -736,129 +871,135 @@ export function AdminFieldTrainingPage() {
                         <ChevronDown className="ft-modal-select__chevron" size={16} aria-hidden />
                       </div>
                     </div>
-                  </div>
-                </fieldset>
-
-                <fieldset className="ft-composer-section">
-                  <legend className="ft-composer-section__legend">
-                    <span className="ft-composer-section__title">{t('form.sectionWorkflow')}</span>
-                  </legend>
-                  <div className="ft-composer-section__grid ft-composer-section__grid--2">
                     <div className="form-field">
                       <label className="form-field__label" htmlFor="ft-instructor">
                         {t('form.assignedInstructor')}
                       </label>
-                      <select
-                        id="ft-instructor"
-                        className="ft-modal-select__control"
-                        value={form.assigned_instructor_id}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, assigned_instructor_id: e.target.value }))
-                        }
-                      >
-                        <option value="">{t('form.instructorPlaceholder')}</option>
-                        {instructorOptions.map((ins) => (
-                          <option key={ins.id} value={ins.id}>
-                            {ins.full_name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="ft-modal-select">
+                        <Users className="ft-modal-select__icon" size={16} aria-hidden />
+                        <select
+                          id="ft-instructor"
+                          className="ft-modal-select__control"
+                          value={form.assigned_instructor_id}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, assigned_instructor_id: e.target.value }))
+                          }
+                          disabled={isSubmitting}
+                        >
+                          <option value="">{t('form.instructorPlaceholder')}</option>
+                          {instructorOptions.map((ins) => (
+                            <option key={ins.id} value={ins.id}>
+                              {ins.full_name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="ft-modal-select__chevron" size={16} aria-hidden />
+                      </div>
                       {!instructorsData?.instructors?.length ? (
                         <p className="form-field__hint form-field__hint--warn">{t('form.noInstructors')}</p>
                       ) : null}
                     </div>
-                    <FormInput
-                      id="ft-min-att"
-                      type="number"
-                      min={0}
-                      max={100}
-                      label={t('form.minAttendance')}
-                      value={form.minimum_attendance_percentage}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, minimum_attendance_percentage: e.target.value }))
-                      }
-                    />
-                    <FormInput
-                      id="ft-min-post"
-                      type="number"
-                      min={0}
-                      max={100}
-                      label={t('form.minPostScore')}
-                      value={form.minimum_post_assessment_score}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, minimum_post_assessment_score: e.target.value }))
-                      }
-                    />
-                    <label className="form-field form-field--checkbox">
-                      <input
-                        type="checkbox"
-                        checked={form.requires_pre_assessment}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, requires_pre_assessment: e.target.checked }))
-                        }
-                      />
-                      {t('form.requiresPreAssessment')}
-                    </label>
-                    <label className="form-field form-field--checkbox">
-                      <input
-                        type="checkbox"
-                        checked={form.requires_post_assessment}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, requires_post_assessment: e.target.checked }))
-                        }
-                      />
-                      {t('form.requiresPostAssessment')}
-                    </label>
-                    <label className="form-field form-field--checkbox">
-                      <input
-                        type="checkbox"
-                        checked={form.requires_final_task}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, requires_final_task: e.target.checked }))
-                        }
-                      />
-                      {t('form.requiresFinalTask')}
-                    </label>
                   </div>
                 </fieldset>
 
                 <fieldset className="ft-composer-section">
                   <legend className="ft-composer-section__legend">
                     <span className="ft-composer-section__icon" aria-hidden>
-                      <FileText size={18} />
+                      <GraduationCap size={18} />
                     </span>
-                    <span className="ft-composer-section__title">{t('form.sectionDescription')}</span>
+                    <span className="ft-composer-section__title">{t('form.eligibilitySection')}</span>
                   </legend>
-                  <p className="ft-composer-section__help">{t('form.sectionDescriptionHelp')}</p>
-                  <div className="ft-composer-section__grid ft-composer-section__grid--full">
-                    <FormTextarea
-                      id="ft-short"
-                      label={t('form.shortDescription')}
-                      value={form.short_description}
-                      onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))}
-                      rows={2}
-                    />
-                    <FormTextarea
-                      id="ft-desc"
-                      label={t('form.description')}
-                      value={form.description}
-                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                      rows={4}
-                    />
-                    <FormTextarea
-                      id="ft-req"
-                      label={t('form.requirements')}
-                      value={form.requirements}
-                      onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))}
-                      rows={3}
-                    />
-                    <FormTextarea
-                      id="ft-ben"
-                      label={t('form.benefits')}
-                      value={form.benefits}
-                      onChange={(e) => setForm((f) => ({ ...f, benefits: e.target.value }))}
-                      rows={3}
-                    />
+                  <p className="ft-composer-section__help">{t('form.eligibilityHelp')}</p>
+                  {formErrors.eligibility ? (
+                    <p className="ft-composer-section__error" role="alert">{formErrors.eligibility}</p>
+                  ) : null}
+                  <FieldTrainingEligibilityPicker
+                    catalog={eligibilityCatalog}
+                    value={form.eligibility}
+                    onChange={(eligibility) => {
+                      setForm((f) => ({ ...f, eligibility }));
+                      if (formErrors.eligibility) setFormErrors((prev) => ({ ...prev, eligibility: undefined }));
+                    }}
+                    loading={eligibilityCatalogLoading}
+                    error={eligibilityCatalogError}
+                    disabled={isSubmitting}
+                  />
+                </fieldset>
+
+                <fieldset className="ft-composer-section ft-composer-section--workflow">
+                  <legend className="ft-composer-section__legend">
+                    <span className="ft-composer-section__icon" aria-hidden>
+                      <SlidersHorizontal size={18} />
+                    </span>
+                    <span className="ft-composer-section__title">{t('form.sectionWorkflow')}</span>
+                  </legend>
+                  <p className="ft-composer-section__help">{t('form.sectionWorkflowHelp')}</p>
+                  <div className="ft-workflow-grid">
+                    <div className="ft-workflow-toggles">
+                      <label className="ft-workflow-toggle">
+                        <input
+                          type="checkbox"
+                          checked={form.requires_pre_assessment}
+                          disabled={isSubmitting}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, requires_pre_assessment: e.target.checked }))
+                          }
+                        />
+                        <span>{t('form.requiresPreAssessment')}</span>
+                      </label>
+                      <label className="ft-workflow-toggle">
+                        <input
+                          type="checkbox"
+                          checked={form.requires_post_assessment}
+                          disabled={isSubmitting}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, requires_post_assessment: e.target.checked }))
+                          }
+                        />
+                        <span>{t('form.requiresPostAssessment')}</span>
+                      </label>
+                      <label className="ft-workflow-toggle">
+                        <input
+                          type="checkbox"
+                          checked={form.requires_final_task}
+                          disabled={isSubmitting}
+                          onChange={(e) =>
+                            setForm((f) => ({ ...f, requires_final_task: e.target.checked }))
+                          }
+                        />
+                        <span>{t('form.requiresFinalTask')}</span>
+                      </label>
+                    </div>
+                    <div className="ft-workflow-numbers">
+                      <FormInput
+                        id="ft-min-att"
+                        type="number"
+                        min={0}
+                        max={100}
+                        label={t('form.minAttendance')}
+                        value={form.minimum_attendance_percentage}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, minimum_attendance_percentage: e.target.value }));
+                          if (formErrors.attendance) setFormErrors((prev) => ({ ...prev, attendance: undefined }));
+                        }}
+                        error={formErrors.attendance}
+                        aria-invalid={Boolean(formErrors.attendance)}
+                      />
+                      <FormInput
+                        id="ft-min-post"
+                        type="number"
+                        min={0}
+                        max={100}
+                        label={t('form.minPostScore')}
+                        value={form.minimum_post_assessment_score}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, minimum_post_assessment_score: e.target.value }));
+                          if (formErrors.postScore) setFormErrors((prev) => ({ ...prev, postScore: undefined }));
+                        }}
+                        error={formErrors.postScore}
+                        aria-invalid={Boolean(formErrors.postScore)}
+                      />
+                    </div>
                   </div>
                 </fieldset>
 
@@ -902,19 +1043,59 @@ export function AdminFieldTrainingPage() {
                     />
                   </div>
                 </fieldset>
+
+                <fieldset className="ft-composer-section">
+                  <legend className="ft-composer-section__legend">
+                    <span className="ft-composer-section__icon" aria-hidden>
+                      <FileText size={18} />
+                    </span>
+                    <span className="ft-composer-section__title">{t('form.sectionDescription')}</span>
+                  </legend>
+                  <p className="ft-composer-section__help">{t('form.sectionDescriptionHelp')}</p>
+                  <div className="ft-composer-section__grid ft-composer-section__grid--full">
+                    <FormTextarea
+                      id="ft-short"
+                      label={t('form.shortDescription')}
+                      value={form.short_description}
+                      onChange={(e) => setForm((f) => ({ ...f, short_description: e.target.value }))}
+                      rows={2}
+                    />
+                    <FormTextarea
+                      id="ft-desc"
+                      label={t('form.description')}
+                      value={form.description}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                      rows={4}
+                    />
+                    <FormTextarea
+                      id="ft-req"
+                      label={t('form.requirements')}
+                      value={form.requirements}
+                      onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))}
+                      rows={3}
+                    />
+                    <FormTextarea
+                      id="ft-ben"
+                      label={t('form.benefits')}
+                      value={form.benefits}
+                      onChange={(e) => setForm((f) => ({ ...f, benefits: e.target.value }))}
+                      rows={3}
+                    />
+                  </div>
+                </fieldset>
               </div>
 
               <footer className="ft-modal__footer">
-                <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>
+                <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={isSubmitting}>
                   {t('cancel')}
                 </Button>
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={saving || !canSubmitOpportunity}
+                  disabled={isSubmitting || !canSubmitOpportunity}
                   className="ft-modal__submit"
                 >
-                  {saving ? t('saving') : t('save')}
+                  {isSubmitting ? t('saving') : t('save')}
                 </Button>
               </footer>
             </form>

@@ -35,6 +35,25 @@ const listAdminStatsQuerySchema = z.object({
   to: optionalDateSchema,
 });
 
+const listApplicationsQuerySchema = z.object({
+  status: applicationStatusSchema.optional(),
+  training_status: z
+    .enum([
+      'none',
+      'pre_assessment_pending',
+      'ready_for_training',
+      'pre_assessment_completed',
+      'in_training',
+      'completed',
+      'expelled',
+    ])
+    .optional(),
+  university_id: z.string().uuid().optional(),
+  university_specialty_id: z.string().uuid().optional(),
+  specialty_id: z.string().uuid().optional(),
+  search: z.string().optional(),
+});
+
 const listAdminQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(20),
@@ -44,9 +63,17 @@ const listAdminQuerySchema = z.object({
   specialty_id: z.string().uuid().optional(),
 });
 
+const eligibilityItemSchema = z.object({
+  university_id: z.string().uuid(),
+  university_specialty_id: z.string().uuid(),
+  seats_limit: z.coerce.number().int().min(1).max(10000).optional().nullable(),
+  is_active: z.coerce.boolean().optional(),
+});
+
 const opportunityBodySchema = z.object({
   title: z.string().min(1).max(255),
   specialty_id: z.string().uuid(),
+  eligibility: z.array(eligibilityItemSchema).min(1),
   assigned_instructor_id: z.string().uuid().optional().nullable(),
   location: z.string().min(1).max(255),
   training_mode: trainingModeSchema,
@@ -66,7 +93,9 @@ const opportunityBodySchema = z.object({
   completion_rules: z.record(z.unknown()).optional().nullable(),
 });
 
-const updateOpportunityBodySchema = opportunityBodySchema.partial();
+const updateOpportunityBodySchema = opportunityBodySchema.partial().extend({
+  eligibility: z.array(eligibilityItemSchema).min(1).optional(),
+});
 
 const applyBodySchema = z.object({
   student_message: z.string().max(5000).optional().nullable(),
@@ -94,6 +123,8 @@ const taskBodySchema = z.object({
   ai_self_evaluation_prompt: z.string().max(20000).optional().nullable(),
   requires_ai_self_evaluation: z.coerce.boolean().optional(),
   is_final_task: z.coerce.boolean().optional(),
+  instruction_file_id: z.string().uuid().optional().nullable(),
+  remove_instruction_file: z.coerce.boolean().optional(),
 });
 
 const updateTaskBodySchema = taskBodySchema.partial();
@@ -102,15 +133,44 @@ const sessionIdParamSchema = z.object({
   sessionId: z.string().uuid(),
 });
 
-const timeSchema = z.string().regex(/^\d{2}:\d{2}$/);
+function normalizeTimeValue(value) {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return trimmed;
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+function normalizeOptionalUrl(value) {
+  if (value == null || value === '') return null;
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
+const timeSchema = z.preprocess(
+  (value) => normalizeTimeValue(value),
+  z.string().regex(/^\d{2}:\d{2}$/, { message: 'Time must be in HH:MM format' })
+);
+
+const sessionDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Session date must be YYYY-MM-DD' });
+
+const zoomLinkSchema = z.preprocess(
+  (value) => normalizeOptionalUrl(value),
+  z.union([z.string().url({ message: 'Invalid zoom link URL' }).max(2000), z.null()]).optional()
+);
 
 const sessionBodySchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(10000).optional().nullable(),
-  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  session_date: sessionDateSchema,
   start_time: timeSchema,
   end_time: timeSchema,
-  zoom_link: z.string().url().max(2000).optional().nullable(),
+  zoom_link: zoomLinkSchema,
   is_required: z.coerce.boolean().optional(),
 });
 
@@ -172,6 +232,7 @@ const taskSubmitFieldsSchema = z.object({
   ai_raw_response: z.string().max(100000).optional().nullable(),
   ai_response_inserted_text: z.string().max(100000).optional().nullable(),
   final_student_notes: z.string().max(10000).optional().nullable(),
+  ai_evaluated_at: z.string().datetime().optional().nullable(),
 });
 
 const assessmentIdParamSchema = z.object({
@@ -212,6 +273,7 @@ module.exports = {
   aiSelfEvalBodySchema,
   taskSubmitFieldsSchema,
   listAdminQuerySchema,
+  listApplicationsQuerySchema,
   listAdminStatsQuerySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,

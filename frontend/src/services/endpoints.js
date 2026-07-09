@@ -60,6 +60,8 @@ export const endpoints = {
   adminCourses: `${API_V}/admin/courses`,
   studentCourses: `${API_V}/student/courses`,
   adminFieldTraining: `${API_V}/admin/field-training`,
+  academicFieldTraining: `${API_V}/academic/field-training`,
+  analytics: `${API_V}/analytics`,
   instructorFieldTraining: `${API_V}/instructor/field-training`,
   studentFieldTraining: `${API_V}/student/field-training`,
   files: {

@@ -15,12 +15,14 @@ import {
   downloadCompletionLetter,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
+import { STALE, keepPreviousListData } from '../../../lib/queryDefaults.js';
 
 export function useStudentFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.studentList(params),
     queryFn: () => fetchStudentFieldTrainingList(params),
-    staleTime: 30_000,
+    staleTime: STALE.fieldTraining,
+    placeholderData: keepPreviousListData,
     ...options,
   });
 }

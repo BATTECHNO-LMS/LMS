@@ -182,6 +182,10 @@
     "reports": "Updated reports",
     "evidence": "Uploaded evidence",
     "alerts": "Alerts",
+    "fieldTrainingApplicants": "Field training applicants",
+    "fieldTrainingInTraining": "In field training",
+    "fieldTrainingHint": "Your university only",
+    "fieldTrainingPortal": "Open field training portal",
     "latest": "Latest updates",
     "table": {
       "time": "Created",

@@ -59,6 +59,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
       entry('/admin/courses', 'admin.items.courses', BookMarked, [S]),
       entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, U]),
+      entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, U, A, Q]),
       entry('/admin/users', 'admin.items.users', Users, [S, P, U]),
       entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
       entry('/admin/settings', 'admin.items.settings', Settings, [S]),

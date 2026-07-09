@@ -1,4 +1,5 @@
 const repo = require('./analytics.repository');
+const ftAnalyticsRepo = require('../fieldTraining/fieldTrainingAnalytics.repository');
 const { prisma } = require('../../config/db');
 const { isMissingPrismaModelTableError } = require('./prismaMissingTable.js');
 
@@ -426,7 +427,23 @@ async function getCertificatesAnalytics(filters) {
 }
 
 async function getFieldTrainingAnalytics(filters) {
-  return { field_training: await repo.getFieldTrainingAnalytics(filters) };
+  const eligibilityMetrics = await ftAnalyticsRepo.getMetrics(filters);
+  if (filters.university_id) {
+    return {
+      field_training: {
+        ...eligibilityMetrics,
+        eligibility_metrics: eligibilityMetrics,
+      },
+    };
+  }
+  const legacy = await repo.getFieldTrainingAnalytics(filters);
+  return {
+    field_training: {
+      ...legacy,
+      ...eligibilityMetrics,
+      eligibility_metrics: eligibilityMetrics,
+    },
+  };
 }
 
 module.exports = {

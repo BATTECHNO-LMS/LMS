@@ -2,10 +2,21 @@ import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
 import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
-import { openRemoteDownloadUrl } from './fieldTrainingDownload.js';
+import { openRemoteDownloadUrl, saveFieldTrainingSubmissionBlob } from './fieldTrainingDownload.js';
 
 const admin = endpoints.adminFieldTraining;
 const student = endpoints.studentFieldTraining;
+const instructor = endpoints.instructorFieldTraining;
+const academic = endpoints.academicFieldTraining;
+
+function manageApiBase({ asInstructor = false } = {}) {
+  return asInstructor ? instructor : admin;
+}
+
+export async function fetchFieldTrainingEligibilityCatalog() {
+  const res = await apiClient.get(`${admin}/eligibility-catalog`);
+  return unwrapApiData(res);
+}
 
 export async function fetchAdminFieldTrainingList(params = {}) {
   const res = await apiClient.get(admin, { params });
@@ -42,8 +53,9 @@ export async function archiveAdminFieldTraining(id) {
   return unwrapApiData(res);
 }
 
-export async function fetchOpportunityApplications(opportunityId) {
-  const res = await apiClient.get(`${admin}/${opportunityId}/applications`);
+export async function fetchOpportunityApplications(opportunityId, params = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/applications`, { params });
   return unwrapApiData(res);
 }
 
@@ -77,29 +89,43 @@ export async function cancelFieldTrainingApplication(applicationId) {
   return unwrapApiData(res);
 }
 
-export async function fetchOpportunityTasks(opportunityId, { asAdmin = false } = {}) {
-  const base = asAdmin ? admin : student;
+export async function fetchOpportunityTasks(opportunityId, { asAdmin = false, asInstructor = false } = {}) {
+  const base = asInstructor ? instructor : asAdmin ? admin : student;
   const res = await apiClient.get(`${base}/${opportunityId}/tasks`);
   return unwrapApiData(res);
 }
 
-export async function createOpportunityTask(opportunityId, body) {
-  const res = await apiClient.post(`${admin}/${opportunityId}/tasks`, body);
+export async function createOpportunityTask(opportunityId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/tasks`, body);
   return unwrapApiData(res);
 }
 
-export async function updateOpportunityTask(taskId, body) {
-  const res = await apiClient.patch(`${admin}/tasks/${taskId}`, body);
+export async function updateOpportunityTask(taskId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/tasks/${taskId}`, body);
   return unwrapApiData(res);
 }
 
-export async function deleteOpportunityTask(taskId) {
-  const res = await apiClient.delete(`${admin}/tasks/${taskId}`);
+export async function deleteOpportunityTask(taskId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.delete(`${base}/tasks/${taskId}`);
   return unwrapApiData(res);
 }
 
-export async function fetchOpportunitySubmissions(opportunityId) {
-  const res = await apiClient.get(`${admin}/${opportunityId}/submissions`);
+export async function fetchOpportunitySubmissions(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/submissions`);
+  return unwrapApiData(res);
+}
+
+export async function fetchInstructorFieldTrainingList(params = {}) {
+  const res = await apiClient.get(instructor, { params });
+  return unwrapApiData(res);
+}
+
+export async function fetchInstructorFieldTraining(id) {
+  const res = await apiClient.get(`${instructor}/${id}`);
   return unwrapApiData(res);
 }
 
@@ -153,8 +179,11 @@ function parseDownloadFilename(disposition, fallback) {
  * Local files: streams via authenticated request and returns a blob for saving.
  * @returns {Promise<{ blob: Blob; filename: string } | null>}
  */
-export async function downloadFieldTrainingSubmission(submissionId, { asAdmin = false } = {}) {
-  const base = asAdmin ? admin : student;
+export async function downloadFieldTrainingSubmission(
+  submissionId,
+  { asAdmin = false, asInstructor = false } = {}
+) {
+  const base = asInstructor ? instructor : asAdmin ? admin : student;
   const metaRes = await apiClient.get(`${base}/submissions/${submissionId}/download-url`);
   const meta = unwrapApiData(metaRes);
 
@@ -173,54 +202,91 @@ export async function downloadFieldTrainingSubmission(submissionId, { asAdmin = 
   return { blob: res.data, filename };
 }
 
+export async function downloadTaskInstructionFile(
+  taskId,
+  { asAdmin = false, asInstructor = false, asAcademic = false } = {}
+) {
+  const base = asAcademic ? academic : asInstructor ? instructor : asAdmin ? admin : student;
+  const metaRes = await apiClient.get(`${base}/tasks/${taskId}/instruction-file/download-url`);
+  const meta = unwrapApiData(metaRes);
+
+  if (meta?.url) {
+    openRemoteDownloadUrl(meta.url);
+    return null;
+  }
+
+  const res = await apiClient.get(`${base}/tasks/${taskId}/instruction-file/download`, {
+    responseType: 'blob',
+  });
+  const filename = parseDownloadFilename(
+    res.headers['content-disposition'],
+    meta?.file_name || `task-instruction-${taskId}`
+  );
+  return { blob: res.data, filename };
+}
+
+export async function reviewFieldTrainingSubmission(submissionId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/submissions/${submissionId}/review`, body);
+  return unwrapApiData(res);
+}
+
 export async function fetchFieldTrainingInstructors() {
   const res = await apiClient.get(`${admin}/instructors`);
   return unwrapApiData(res);
 }
 
-export async function startFieldTraining(opportunityId) {
-  const res = await apiClient.post(`${admin}/${opportunityId}/start-training`);
+export async function startFieldTraining(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/start-training`);
   return unwrapApiData(res);
 }
 
-export async function fetchOpportunitySessions(opportunityId, { asAdmin = true } = {}) {
-  const base = asAdmin ? admin : student;
+export async function fetchOpportunitySessions(opportunityId, { asAdmin = true, asInstructor = false } = {}) {
+  const base = asInstructor ? instructor : asAdmin ? admin : student;
   const res = await apiClient.get(`${base}/${opportunityId}/sessions`);
   return unwrapApiData(res);
 }
 
-export async function createOpportunitySession(opportunityId, body) {
-  const res = await apiClient.post(`${admin}/${opportunityId}/sessions`, body);
+export async function createOpportunitySession(opportunityId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/sessions`, body);
   return unwrapApiData(res);
 }
 
-export async function updateOpportunitySession(sessionId, body) {
-  const res = await apiClient.patch(`${admin}/sessions/${sessionId}`, body);
+export async function updateOpportunitySession(sessionId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/sessions/${sessionId}`, body);
   return unwrapApiData(res);
 }
 
-export async function deleteOpportunitySession(sessionId) {
-  const res = await apiClient.delete(`${admin}/sessions/${sessionId}`);
+export async function deleteOpportunitySession(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.delete(`${base}/sessions/${sessionId}`);
   return unwrapApiData(res);
 }
 
-export async function saveSessionAttendance(sessionId, records) {
-  const res = await apiClient.post(`${admin}/sessions/${sessionId}/attendance`, { records });
+export async function saveSessionAttendance(sessionId, records, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance`, { records });
   return unwrapApiData(res);
 }
 
-export async function fetchSessionParticipants(sessionId) {
-  const res = await apiClient.get(`${admin}/sessions/${sessionId}/participants`);
+export async function fetchSessionParticipants(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/sessions/${sessionId}/participants`);
   return unwrapApiData(res);
 }
 
-export async function saveOpportunityAssessment(opportunityId, type, body) {
-  const res = await apiClient.put(`${admin}/${opportunityId}/assessments/${type}`, body);
+export async function saveOpportunityAssessment(opportunityId, type, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.put(`${base}/${opportunityId}/assessments/${type}`, body);
   return unwrapApiData(res);
 }
 
-export async function publishOpportunityAssessment(opportunityId, type) {
-  const res = await apiClient.post(`${admin}/${opportunityId}/assessments/${type}/publish`);
+export async function publishOpportunityAssessment(opportunityId, type, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/assessments/${type}/publish`);
   return unwrapApiData(res);
 }
 
@@ -239,8 +305,9 @@ export async function runTaskAiSelfEvaluate(taskId, studentInput) {
   return unwrapApiData(res);
 }
 
-export async function expelFieldTrainingParticipant(applicationId, body) {
-  const res = await apiClient.post(`${admin}/applications/${applicationId}/expel`, body);
+export async function expelFieldTrainingParticipant(applicationId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/applications/${applicationId}/expel`, body);
   return unwrapApiData(res);
 }
 
@@ -249,8 +316,9 @@ export async function issueCompletionLetter(applicationId) {
   return unwrapApiData(res);
 }
 
-export async function fetchApplicationProgress(applicationId) {
-  const res = await apiClient.get(`${admin}/applications/${applicationId}/progress`);
+export async function fetchApplicationProgress(applicationId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/applications/${applicationId}/progress`);
   return unwrapApiData(res);
 }
 
@@ -259,28 +327,33 @@ export async function fetchStudentTrainingProgress(opportunityId) {
   return unwrapApiData(res);
 }
 
-export async function fetchSessionAttendance(sessionId) {
-  const res = await apiClient.get(`${admin}/sessions/${sessionId}/attendance`);
+export async function fetchSessionAttendance(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/sessions/${sessionId}/attendance`);
   return unwrapApiData(res);
 }
 
-export async function fetchOpportunityAssessments(opportunityId) {
-  const res = await apiClient.get(`${admin}/${opportunityId}/assessments`);
+export async function fetchOpportunityAssessments(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/assessments`);
   return unwrapApiData(res);
 }
 
-export async function createOpportunityAssessment(opportunityId, body) {
-  const res = await apiClient.post(`${admin}/${opportunityId}/assessments`, body);
+export async function createOpportunityAssessment(opportunityId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/assessments`, body);
   return unwrapApiData(res);
 }
 
-export async function updateAssessment(assessmentId, body) {
-  const res = await apiClient.patch(`${admin}/assessments/${assessmentId}`, body);
+export async function updateAssessment(assessmentId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/assessments/${assessmentId}`, body);
   return unwrapApiData(res);
 }
 
-export async function publishAssessmentById(assessmentId) {
-  const res = await apiClient.post(`${admin}/assessments/${assessmentId}/publish`);
+export async function publishAssessmentById(assessmentId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/assessments/${assessmentId}/publish`);
   return unwrapApiData(res);
 }
 
@@ -291,11 +364,6 @@ export async function fetchStudentAssessments(opportunityId) {
 
 export async function submitAssessmentById(assessmentId, answers) {
   const res = await apiClient.post(`${student}/assessments/${assessmentId}/submit`, { answers });
-  return unwrapApiData(res);
-}
-
-export async function reviewFieldTrainingSubmission(submissionId, body) {
-  const res = await apiClient.patch(`${admin}/submissions/${submissionId}/review`, body);
   return unwrapApiData(res);
 }
 

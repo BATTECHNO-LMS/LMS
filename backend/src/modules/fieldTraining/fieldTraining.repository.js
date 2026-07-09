@@ -111,8 +111,8 @@ function mapApplicationRow(row) {
   };
 }
 
-function mapOpportunityRow(row, { applicationsCount } = {}) {
-  return {
+function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
+  const mapped = {
     id: row.id,
     title: row.title,
     slug: row.slug,
@@ -147,6 +147,9 @@ function mapOpportunityRow(row, { applicationsCount } = {}) {
     updated_at: row.updated_at,
     applications_count: applicationsCount ?? row._count?.field_training_applications ?? 0,
   };
+  if (!compact) return mapped;
+  const { description, requirements, benefits, completion_rules, ...listRow } = mapped;
+  return listRow;
 }
 
 async function findManyAdmin({ where, skip, take }) {
@@ -226,10 +229,155 @@ async function findApplicationById(id) {
   return prisma.field_training_applications.findUnique({ where: { id } });
 }
 
-async function findApplicationsByOpportunity(opportunityId) {
+async function findApplicationsByOpportunity(opportunityId, filters = {}) {
+  const { status, training_status, university_id, university_specialty_id, studentUniversityId } =
+    filters;
+  let studentIds;
+  if (university_id || university_specialty_id || studentUniversityId) {
+    const userWhere = {};
+    if (studentUniversityId) userWhere.primary_university_id = studentUniversityId;
+    if (university_id) userWhere.primary_university_id = university_id;
+    if (university_specialty_id) userWhere.university_specialty_id = university_specialty_id;
+    const users = await prisma.users.findMany({ where: userWhere, select: { id: true } });
+    studentIds = users.map((user) => user.id);
+    if (!studentIds.length) return [];
+  }
+
+  const where = { opportunity_id: opportunityId };
+  if (status) where.status = status;
+  if (training_status) where.training_status = training_status;
+  if (studentIds) where.student_id = { in: studentIds };
+
   return prisma.field_training_applications.findMany({
-    where: { opportunity_id: opportunityId },
+    where,
     orderBy: { created_at: 'desc' },
+  });
+}
+
+async function aggregateApplicationCounts(opportunityId, { studentUniversityId } = {}) {
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId },
+    select: { student_id: true },
+  });
+  if (!apps.length) {
+    return { by_university: [], by_university_specialty: {}, total: 0 };
+  }
+
+  const studentWhere = { id: { in: [...new Set(apps.map((app) => app.student_id))] } };
+  if (studentUniversityId) studentWhere.primary_university_id = studentUniversityId;
+
+  const students = await prisma.users.findMany({
+    where: studentWhere,
+    select: { id: true, primary_university_id: true, university_specialty_id: true },
+  });
+  const studentById = Object.fromEntries(students.map((student) => [student.id, student]));
+  const byUniversity = new Map();
+  const byUniversitySpecialty = {};
+
+  for (const app of apps) {
+    const student = studentById[app.student_id];
+    if (!student) continue;
+    if (student.primary_university_id) {
+      byUniversity.set(
+        student.primary_university_id,
+        (byUniversity.get(student.primary_university_id) || 0) + 1
+      );
+    }
+    if (student.university_specialty_id) {
+      byUniversitySpecialty[student.university_specialty_id] =
+        (byUniversitySpecialty[student.university_specialty_id] || 0) + 1;
+    }
+  }
+
+  const universityIds = [...byUniversity.keys()];
+  const universities = universityIds.length
+    ? await prisma.universities.findMany({
+        where: { id: { in: universityIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const universityById = Object.fromEntries(universities.map((university) => [university.id, university]));
+
+  return {
+    by_university: [...byUniversity.entries()].map(([university_id, count]) => ({
+      university_id,
+      name: universityById[university_id]?.name ?? null,
+      count,
+    })),
+    by_university_specialty: byUniversitySpecialty,
+    total: Object.values(studentById).length
+      ? apps.filter((app) => studentById[app.student_id]).length
+      : 0,
+  };
+}
+
+async function aggregateApplicationCountsForOpportunities(opportunityIds = [], { studentUniversityId } = {}) {
+  const ids = [...new Set(opportunityIds.filter(Boolean))];
+  const empty = Object.fromEntries(ids.map((id) => [id, { by_university: [], by_university_specialty: {}, total: 0 }]));
+  if (!ids.length) return empty;
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: { in: ids } },
+    select: { opportunity_id: true, student_id: true },
+  });
+  if (!apps.length) return empty;
+
+  const studentWhere = { id: { in: [...new Set(apps.map((app) => app.student_id))] } };
+  if (studentUniversityId) studentWhere.primary_university_id = studentUniversityId;
+
+  const students = await prisma.users.findMany({
+    where: studentWhere,
+    select: { id: true, primary_university_id: true, university_specialty_id: true },
+  });
+  const studentById = Object.fromEntries(students.map((student) => [student.id, student]));
+
+  const universityIds = new Set();
+  const result = { ...empty };
+
+  for (const app of apps) {
+    const student = studentById[app.student_id];
+    if (!student) continue;
+    const bucket =
+      result[app.opportunity_id] ?? (result[app.opportunity_id] = { by_university: [], by_university_specialty: {}, total: 0 });
+    bucket.total += 1;
+    if (student.primary_university_id) {
+      universityIds.add(student.primary_university_id);
+      const existing = bucket._uniMap ?? (bucket._uniMap = new Map());
+      existing.set(student.primary_university_id, (existing.get(student.primary_university_id) || 0) + 1);
+    }
+    if (student.university_specialty_id) {
+      bucket.by_university_specialty[student.university_specialty_id] =
+        (bucket.by_university_specialty[student.university_specialty_id] || 0) + 1;
+    }
+  }
+
+  const universities = universityIds.size
+    ? await prisma.universities.findMany({
+        where: { id: { in: [...universityIds] } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const universityById = Object.fromEntries(universities.map((university) => [university.id, university]));
+
+  for (const id of ids) {
+    const bucket = result[id];
+    if (!bucket?._uniMap) continue;
+    bucket.by_university = [...bucket._uniMap.entries()].map(([university_id, count]) => ({
+      university_id,
+      name: universityById[university_id]?.name ?? null,
+      count,
+    }));
+    delete bucket._uniMap;
+  }
+
+  return result;
+}
+
+async function findApplicationsByOpportunityIdsForStudent(opportunityIds, studentId) {
+  if (!opportunityIds.length) return [];
+  return prisma.field_training_applications.findMany({
+    where: { student_id: studentId, opportunity_id: { in: opportunityIds } },
+    select: { id: true, opportunity_id: true, status: true, training_status: true },
   });
 }
 
@@ -280,10 +428,23 @@ async function findStudentProfilesByIds(ids) {
       id: true,
       full_name: true,
       email: true,
+      phone: true,
+      status: true,
       primary_university_id: true,
+      university_specialty_id: true,
       specialty_id: true,
       specialties: {
         select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+      },
+      university_specialty: {
+        select: {
+          id: true,
+          name_ar: true,
+          name_en: true,
+          code: true,
+          status: true,
+          specialty_id: true,
+        },
       },
     },
   });
@@ -295,14 +456,40 @@ async function findStudentProfilesByIds(ids) {
       })
     : [];
   const uniById = Object.fromEntries(universities.map((u) => [u.id, u]));
-  return users.map((u) => ({
-    id: u.id,
-    full_name: u.full_name,
-    email: u.email,
-    primary_university_id: u.primary_university_id,
-    university: u.primary_university_id ? uniById[u.primary_university_id] ?? null : null,
-    specialty: mapSpecialtySummary(u.specialties),
-  }));
+  return users.map((u) => {
+    const displaySpecialty = u.university_specialty
+      ? {
+          id: u.university_specialty.id,
+          name_ar: u.university_specialty.name_ar,
+          name_en: u.university_specialty.name_en,
+          code: u.university_specialty.code,
+          status: u.university_specialty.status,
+          canonical_specialty_id: u.university_specialty.specialty_id,
+        }
+      : mapSpecialtySummary(u.specialties);
+
+    return {
+      id: u.id,
+      full_name: u.full_name,
+      email: u.email,
+      phone: u.phone ?? null,
+      status: u.status ?? null,
+      primary_university_id: u.primary_university_id,
+      university: u.primary_university_id ? uniById[u.primary_university_id] ?? null : null,
+      specialty: displaySpecialty,
+      canonical_specialty: mapSpecialtySummary(u.specialties),
+      university_specialty: u.university_specialty
+        ? {
+            id: u.university_specialty.id,
+            name_ar: u.university_specialty.name_ar,
+            name_en: u.university_specialty.name_en,
+            code: u.university_specialty.code,
+            status: u.university_specialty.status,
+            canonical_specialty_id: u.university_specialty.specialty_id,
+          }
+        : null,
+    };
+  });
 }
 
 async function countApprovedApplications(opportunityId) {
@@ -311,7 +498,46 @@ async function countApprovedApplications(opportunityId) {
   });
 }
 
-function mapTaskRow(row) {
+async function countApprovedApplicationsForEligibility(
+  opportunityId,
+  universityId,
+  universitySpecialtyId
+) {
+  if (!universityId || !universitySpecialtyId) return 0;
+  const students = await prisma.users.findMany({
+    where: {
+      primary_university_id: universityId,
+      university_specialty_id: universitySpecialtyId,
+    },
+    select: { id: true },
+  });
+  const studentIds = students.map((s) => s.id);
+  if (!studentIds.length) return 0;
+  return prisma.field_training_applications.count({
+    where: {
+      opportunity_id: opportunityId,
+      status: 'approved',
+      student_id: { in: studentIds },
+    },
+  });
+}
+
+async function opportunityHasApprovedStudentFromUniversity(opportunityId, universityId) {
+  if (!universityId) return false;
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId, status: 'approved' },
+    select: { student_id: true },
+  });
+  if (!apps.length) return false;
+  const studentIds = [...new Set(apps.map((a) => a.student_id))];
+  const count = await prisma.users.count({
+    where: { id: { in: studentIds }, primary_university_id: universityId },
+  });
+  return count > 0;
+}
+
+function mapTaskRow(row, { exposeStudentSubmissionAudit = false } = {}) {
+  const hasInstruction = Boolean(row.instruction_file_path);
   return {
     id: row.id,
     opportunity_id: row.opportunity_id,
@@ -322,15 +548,22 @@ function mapTaskRow(row) {
     ai_self_evaluation_prompt: row.ai_self_evaluation_prompt ?? null,
     requires_ai_self_evaluation: Boolean(row.requires_ai_self_evaluation),
     is_final_task: Boolean(row.is_final_task),
+    has_instruction_file: hasInstruction,
+    instruction_file_name: hasInstruction ? row.instruction_file_name : null,
+    instruction_file_mime_type: hasInstruction ? row.instruction_file_mime_type : null,
+    instruction_file_size: hasInstruction ? row.instruction_file_size : null,
+    instruction_file_uploaded_at: hasInstruction ? row.instruction_file_uploaded_at : null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     submission: row.field_training_task_submissions?.[0]
-      ? mapSubmissionRow(row.field_training_task_submissions[0])
+      ? mapSubmissionRow(row.field_training_task_submissions[0], {
+          exposeStudentOwnAudit: exposeStudentSubmissionAudit,
+        })
       : null,
   };
 }
 
-function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false } = {}) {
+function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false, exposeStudentOwnAudit = false } = {}) {
   const stored = row.file_path;
   const base = {
     id: row.id,
@@ -358,6 +591,15 @@ function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false 
     base.ai_model_name = row.ai_model_name ?? null;
     base.ai_raw_response = row.ai_raw_response ?? null;
     base.ai_response_inserted_text = row.ai_response_inserted_text ?? null;
+    base.ai_evaluated_at = row.ai_evaluated_at ?? null;
+  } else if (exposeStudentOwnAudit) {
+    base.student_self_evaluation_input = row.student_self_evaluation_input ?? null;
+    base.ai_response_inserted_text = row.ai_response_inserted_text ?? null;
+    base.final_student_notes = row.final_student_notes ?? null;
+    base.ai_evaluated_at = row.ai_evaluated_at ?? null;
+    base.has_ai_self_evaluation = Boolean(
+      row.student_self_evaluation_input || row.ai_response_inserted_text
+    );
   } else {
     base.has_ai_self_evaluation = Boolean(
       row.student_self_evaluation_input || row.ai_response_inserted_text
@@ -366,7 +608,7 @@ function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false 
   return base;
 }
 
-async function findTasksByOpportunity(opportunityId, { applicationId } = {}) {
+async function findTasksByOpportunity(opportunityId, { applicationId, exposeStudentSubmissionAudit = false } = {}) {
   const rows = await prisma.field_training_tasks.findMany({
     where: { opportunity_id: opportunityId },
     orderBy: { sort_order: 'asc' },
@@ -379,7 +621,7 @@ async function findTasksByOpportunity(opportunityId, { applicationId } = {}) {
         }
       : undefined,
   });
-  return rows.map((r) => mapTaskRow(r));
+  return rows.map((r) => mapTaskRow(r, { exposeStudentSubmissionAudit }));
 }
 
 async function findTaskById(taskId) {
@@ -482,8 +724,12 @@ function buildStatsWhere(filters = {}) {
   const where = {};
   if (filters.status) where.status = filters.status;
   if (filters.training_mode) where.training_mode = filters.training_mode;
-  if (filters.university_id) where.university_id = filters.university_id;
   if (filters.specialty_id) where.specialty_id = filters.specialty_id;
+  if (filters.university_id) {
+    where.field_training_opportunity_eligibility = {
+      some: { university_id: filters.university_id, is_active: true },
+    };
+  }
   if (filters.search) {
     const s = filters.search.trim();
     if (s) {
@@ -505,6 +751,32 @@ async function getAdminAggregateStats(filters = {}) {
   const taskDateWhere = inDateRange('created_at', filters);
   const subDateWhere = inDateRange('submitted_at', filters);
 
+  const studentIds = filters.university_id
+    ? (
+        await prisma.users.findMany({
+          where: { primary_university_id: filters.university_id },
+          select: { id: true },
+        })
+      ).map((row) => row.id)
+    : null;
+  const appUniversityWhere =
+    studentIds !== null
+      ? {
+          student_id: studentIds.length
+            ? { in: studentIds }
+            : { in: ['00000000-0000-0000-0000-000000000000'] },
+        }
+      : {};
+  const oppUniversityWhere = filters.university_id
+    ? {
+        field_training_opportunities: {
+          field_training_opportunity_eligibility: {
+            some: { university_id: filters.university_id, is_active: true },
+          },
+        },
+      }
+    : {};
+
   const [
     totalOpportunities,
     publishedOpportunities,
@@ -516,7 +788,7 @@ async function getAdminAggregateStats(filters = {}) {
     rejectedApplications,
     totalTasks,
     totalSubmissions,
-    byUniversityRows,
+    eligibilityRows,
     byModeRows,
   ] = await Promise.all([
     prisma.field_training_opportunities.count({ where: { ...oppWhere, ...oppDateWhere } }),
@@ -532,44 +804,34 @@ async function getAdminAggregateStats(filters = {}) {
     prisma.field_training_applications.count({
       where: {
         ...appDateWhere,
-        ...(filters.university_id
-          ? { field_training_opportunities: { university_id: filters.university_id } }
-          : {}),
+        ...appUniversityWhere,
       },
     }),
     prisma.field_training_applications.count({
       where: {
         status: 'pending',
         ...appDateWhere,
-        ...(filters.university_id
-          ? { field_training_opportunities: { university_id: filters.university_id } }
-          : {}),
+        ...appUniversityWhere,
       },
     }),
     prisma.field_training_applications.count({
       where: {
         status: 'approved',
         ...appDateWhere,
-        ...(filters.university_id
-          ? { field_training_opportunities: { university_id: filters.university_id } }
-          : {}),
+        ...appUniversityWhere,
       },
     }),
     prisma.field_training_applications.count({
       where: {
         status: 'rejected',
         ...appDateWhere,
-        ...(filters.university_id
-          ? { field_training_opportunities: { university_id: filters.university_id } }
-          : {}),
+        ...appUniversityWhere,
       },
     }),
     prisma.field_training_tasks.count({
       where: {
         ...taskDateWhere,
-        ...(filters.university_id
-          ? { field_training_opportunities: { university_id: filters.university_id } }
-          : {}),
+        ...oppUniversityWhere,
       },
     }),
     prisma.field_training_task_submissions.count({
@@ -578,16 +840,22 @@ async function getAdminAggregateStats(filters = {}) {
         ...(filters.university_id
           ? {
               field_training_tasks: {
-                field_training_opportunities: { university_id: filters.university_id },
+                field_training_opportunities: {
+                  field_training_opportunity_eligibility: {
+                    some: { university_id: filters.university_id, is_active: true },
+                  },
+                },
               },
             }
           : {}),
       },
     }),
-    prisma.field_training_opportunities.groupBy({
-      by: ['university_id'],
-      where: { ...oppWhere, ...oppDateWhere, university_id: { not: null } },
-      _count: { _all: true },
+    prisma.field_training_opportunity_eligibility.findMany({
+      where: {
+        is_active: true,
+        ...(filters.university_id ? { university_id: filters.university_id } : {}),
+      },
+      select: { university_id: true, opportunity_id: true },
     }),
     prisma.field_training_opportunities.groupBy({
       by: ['training_mode'],
@@ -596,7 +864,12 @@ async function getAdminAggregateStats(filters = {}) {
     }),
   ]);
 
-  const uniIds = byUniversityRows.map((r) => r.university_id).filter(Boolean);
+  const byUniversityMap = new Map();
+  for (const row of eligibilityRows) {
+    if (!byUniversityMap.has(row.university_id)) byUniversityMap.set(row.university_id, new Set());
+    byUniversityMap.get(row.university_id).add(row.opportunity_id);
+  }
+  const uniIds = [...byUniversityMap.keys()];
   const universities = uniIds.length
     ? await prisma.universities.findMany({ where: { id: { in: uniIds } }, select: { id: true, name: true } })
     : [];
@@ -613,10 +886,10 @@ async function getAdminAggregateStats(filters = {}) {
     rejectedApplications,
     totalTasks,
     totalSubmissions,
-    byUniversity: byUniversityRows.map((r) => ({
-      university_id: r.university_id,
-      name: uniName.get(r.university_id) || r.university_id,
-      count: r._count._all,
+    byUniversity: [...byUniversityMap.entries()].map(([university_id, opportunityIds]) => ({
+      university_id,
+      name: uniName.get(university_id) || university_id,
+      count: opportunityIds.size,
     })),
     byTrainingMode: byModeRows.map((r) => ({
       training_mode: r.training_mode,
@@ -1014,6 +1287,8 @@ function submissionFileExists(relativePath) {
 
 module.exports = {
   toDateOnly,
+  opportunityInclude,
+  opportunityListInclude,
   mapUniversitySummary,
   mapSpecialtySummary,
   formatSpecialtyLabel,
@@ -1029,12 +1304,17 @@ module.exports = {
   findApplicationByOpportunityAndStudent,
   findApplicationById,
   findApplicationsByOpportunity,
+  aggregateApplicationCounts,
+  aggregateApplicationCountsForOpportunities,
+  findApplicationsByOpportunityIdsForStudent,
   findApplicationsByStudent,
   createApplication,
   updateApplication,
   findUsersByIds,
   findStudentProfilesByIds,
   countApprovedApplications,
+  countApprovedApplicationsForEligibility,
+  opportunityHasApprovedStudentFromUniversity,
   mapTaskRow,
   mapSubmissionRow,
   findTasksByOpportunity,

@@ -8,6 +8,8 @@ import { useMarkNotificationRead } from '../../features/notifications/hooks/useM
 import { getNotificationsPathForUser } from '../../utils/notificationsPath.js';
 import { getNotificationLink } from '../../utils/notificationDeepLink.js';
 
+const BELL_PARAMS = { page: 1, page_size: 8 };
+
 export function NotificationBell({ className }) {
   const { t } = useTranslation('notifications');
   const { t: tCommon } = useTranslation('common');
@@ -16,7 +18,10 @@ export function NotificationBell({ className }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
 
-  const { data, isLoading } = useNotifications({}, { staleTime: 20_000, enabled: Boolean(user) });
+  const { data, isLoading } = useNotifications(BELL_PARAMS, {
+    staleTime: 30_000,
+    enabled: Boolean(user),
+  });
   const markRead = useMarkNotificationRead();
 
   const notifications = data?.notifications ?? [];

@@ -11,6 +11,7 @@ const {
   submissionIdParamSchema,
   listAdminQuerySchema,
   listAdminStatsQuerySchema,
+  listApplicationsQuerySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,
   reviewApplicationBodySchema,
@@ -33,6 +34,15 @@ const {
 const router = express.Router();
 const fieldTrainingAdmin = authorizeRoles(...env.FIELD_TRAINING_ADMIN_ROLE_CODES);
 const fieldTrainingManage = authorizeRoles(...env.FIELD_TRAINING_MANAGE_ROLE_CODES);
+
+router.use('/reports', require('./adminFieldTrainingReports.routes'));
+
+router.get(
+  '/eligibility-catalog',
+  authenticate,
+  fieldTrainingAdmin,
+  adminFieldTrainingController.eligibilityCatalog
+);
 
 router.get(
   '/instructors',
@@ -111,6 +121,22 @@ router.get(
   fieldTrainingManage,
   validateRequest({ params: submissionIdParamSchema }),
   adminFieldTrainingController.downloadSubmission
+);
+
+router.get(
+  '/tasks/:taskId/instruction-file/download-url',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: taskIdParamSchema }),
+  adminFieldTrainingController.getTaskInstructionDownloadUrl
+);
+
+router.get(
+  '/tasks/:taskId/instruction-file/download',
+  authenticate,
+  fieldTrainingManage,
+  validateRequest({ params: taskIdParamSchema }),
+  adminFieldTrainingController.downloadTaskInstruction
 );
 
 router.patch(
@@ -237,7 +263,7 @@ router.get(
   '/:id/applications',
   authenticate,
   fieldTrainingManage,
-  validateRequest({ params: uuidParamSchema }),
+  validateRequest({ params: uuidParamSchema, query: listApplicationsQuerySchema }),
   adminFieldTrainingController.listApplications
 );
 

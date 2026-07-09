@@ -62,6 +62,37 @@ async function ensureBatuniUniversity() {
   return { university, domain };
 }
 
+async function ensureBatuniUniversitySpecialty(universityId, specialtyId) {
+  if (!specialtyId) return null;
+  const existing = await prisma.university_specialties.findFirst({
+    where: { university_id: universityId, code: 'CYBERSECURITY' },
+  });
+  if (existing) {
+    return prisma.university_specialties.update({
+      where: { id: existing.id },
+      data: {
+        specialty_id: specialtyId,
+        name_ar: 'الأمن السيبراني',
+        name_en: 'Cybersecurity',
+        status: 'active',
+        updated_at: new Date(),
+      },
+    });
+  }
+  return prisma.university_specialties.create({
+    data: {
+      university_id: universityId,
+      specialty_id: specialtyId,
+      name_ar: 'الأمن السيبراني',
+      name_en: 'Cybersecurity',
+      code: 'CYBERSECURITY',
+      college_name_ar: 'كلية تكنولوجيا المعلومات',
+      college_name_en: 'College of Information Technology',
+      status: 'active',
+    },
+  });
+}
+
 async function ensureTestUser({
   email,
   full_name,
@@ -69,6 +100,7 @@ async function ensureTestUser({
   passwordHash,
   universityId,
   specialtyId,
+  universitySpecialtyId,
   roleByCode,
 }) {
   const role = roleByCode.get(roleCode);
@@ -87,6 +119,7 @@ async function ensureTestUser({
       status: 'active',
       primary_university_id: universityId,
       specialty_id: specialtyId,
+      university_specialty_id: universitySpecialtyId ?? null,
       email_verified_at: now,
       activated_at: now,
       updated_at: now,
@@ -98,6 +131,7 @@ async function ensureTestUser({
       status: 'active',
       primary_university_id: universityId,
       specialty_id: specialtyId,
+      university_specialty_id: universitySpecialtyId ?? null,
       email_verified_at: now,
       activated_at: now,
     },
@@ -153,6 +187,10 @@ async function seedTestAccounts({ log = console.log } = {}) {
 
   const specialtiesByCode = await ensureSpecialties();
   const { university, domain } = await ensureBatuniUniversity();
+  const cysSpecialty = specialtiesByCode.get('CYB');
+  const batuniUniversitySpecialty = cysSpecialty
+    ? await ensureBatuniUniversitySpecialty(university.id, cysSpecialty.id)
+    : null;
   log(`Upserted university: ${university.name} / ${domain}`);
   log(`Upserted domain: ${domain}`);
 
@@ -172,6 +210,8 @@ async function seedTestAccounts({ log = console.log } = {}) {
       passwordHash,
       universityId: university.id,
       specialtyId,
+      universitySpecialtyId:
+        account.role === 'student' ? batuniUniversitySpecialty?.id ?? null : null,
       roleByCode,
     });
 

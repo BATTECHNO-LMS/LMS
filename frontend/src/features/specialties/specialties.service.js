@@ -24,3 +24,15 @@ export function getSpecialtyLabel(specialty, lang = 'ar', fallback = '—') {
   if (useAr) return specialty.name_ar || specialty.name_en || fallback;
   return specialty.name_en || specialty.name_ar || fallback;
 }
+
+/**
+ * @param {{ id: string, nameAr: string, nameEn?: string | null }} specialty
+ * @param {string} [lang]
+ * @param {string} [fallback]
+ */
+export function getUniversitySpecialtyLabel(specialty, lang = 'ar', fallback = '—') {
+  if (!specialty) return fallback;
+  const useAr = lang === 'ar' || lang.startsWith('ar');
+  if (useAr) return specialty.nameAr || specialty.nameEn || fallback;
+  return specialty.nameEn || specialty.nameAr || fallback;
+}

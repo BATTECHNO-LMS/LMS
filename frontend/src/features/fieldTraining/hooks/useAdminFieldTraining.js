@@ -20,12 +20,14 @@ import {
   fetchApplicationProgress,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
+import { STALE, keepPreviousListData } from '../../../lib/queryDefaults.js';
 
 export function useAdminFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.adminList(params),
     queryFn: () => fetchAdminFieldTrainingList(params),
-    staleTime: 30_000,
+    staleTime: STALE.fieldTraining,
+    placeholderData: keepPreviousListData,
     ...options,
   });
 }
@@ -34,7 +36,7 @@ export function useAdminFieldTrainingStats(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.adminStats(params),
     queryFn: () => fetchAdminFieldTrainingStats(params),
-    staleTime: 30_000,
+    staleTime: STALE.fieldTraining,
     ...options,
   });
 }
@@ -44,15 +46,20 @@ export function useAdminFieldTraining(id, options = {}) {
     queryKey: fieldTrainingKeys.adminDetail(id),
     queryFn: () => fetchAdminFieldTraining(id),
     enabled: Boolean(id),
+    staleTime: STALE.fieldTraining,
     ...options,
   });
 }
 
-export function useOpportunityApplications(opportunityId, options = {}) {
+export function useOpportunityApplications(opportunityId, params = {}, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
-    queryKey: fieldTrainingKeys.adminApplications(opportunityId),
-    queryFn: () => fetchOpportunityApplications(opportunityId),
+    queryKey: fieldTrainingKeys.adminApplications(opportunityId, params),
+    queryFn: () =>
+      fetchOpportunityApplications(opportunityId, params, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId),
+    staleTime: STALE.fieldTraining,
+    placeholderData: keepPreviousListData,
     ...options,
   });
 }
@@ -101,76 +108,90 @@ export function useReviewApplication(opportunityId) {
 }
 
 export function useOpportunityTasks(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
-    queryKey: fieldTrainingKeys.tasks(opportunityId, 'admin'),
-    queryFn: () => fetchOpportunityTasks(opportunityId, { asAdmin: true }),
+    queryKey: fieldTrainingKeys.tasks(opportunityId, scope),
+    queryFn: () => fetchOpportunityTasks(opportunityId, {
+      asAdmin: scope === 'admin',
+      asInstructor: scope === 'instructor',
+    }),
     enabled: Boolean(opportunityId),
     ...options,
   });
 }
 
-export function useOpportunityTaskMutations(opportunityId) {
+export function useOpportunityTaskMutations(opportunityId, scope = 'admin') {
   const qc = useQueryClient();
+  const asInstructor = scope === 'instructor';
   const invalidate = () => {
-    qc.invalidateQueries({ queryKey: fieldTrainingKeys.tasks(opportunityId, 'admin') });
-    qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(opportunityId) });
+    qc.invalidateQueries({ queryKey: fieldTrainingKeys.tasks(opportunityId, scope) });
+    qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(opportunityId, scope) });
   };
   return {
     create: useMutation({
-      mutationFn: (body) => createOpportunityTask(opportunityId, body),
+      mutationFn: (body) => createOpportunityTask(opportunityId, body, { asInstructor }),
       onSuccess: invalidate,
     }),
     update: useMutation({
-      mutationFn: ({ taskId, body }) => updateOpportunityTask(taskId, body),
+      mutationFn: ({ taskId, body }) => updateOpportunityTask(taskId, body, { asInstructor }),
       onSuccess: invalidate,
     }),
     remove: useMutation({
-      mutationFn: (taskId) => deleteOpportunityTask(taskId),
+      mutationFn: (taskId) => deleteOpportunityTask(taskId, { asInstructor }),
       onSuccess: invalidate,
     }),
   };
 }
 
 export function useOpportunitySubmissions(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
-    queryKey: fieldTrainingKeys.submissions(opportunityId),
-    queryFn: () => fetchOpportunitySubmissions(opportunityId),
+    queryKey: fieldTrainingKeys.submissions(opportunityId, scope),
+    queryFn: () => fetchOpportunitySubmissions(opportunityId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId),
     ...options,
   });
 }
 
 export function useOpportunitySessions(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
-    queryKey: fieldTrainingKeys.sessions(opportunityId),
-    queryFn: () => fetchOpportunitySessions(opportunityId),
+    queryKey: fieldTrainingKeys.sessions(opportunityId, scope),
+    queryFn: () =>
+      fetchOpportunitySessions(opportunityId, {
+        asAdmin: scope === 'admin',
+        asInstructor: scope === 'instructor',
+      }),
     enabled: Boolean(opportunityId),
     ...options,
   });
 }
 
 export function useOpportunityAssessments(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
-    queryKey: fieldTrainingKeys.assessments(opportunityId),
-    queryFn: () => fetchOpportunityAssessments(opportunityId),
+    queryKey: fieldTrainingKeys.assessments(opportunityId, scope),
+    queryFn: () => fetchOpportunityAssessments(opportunityId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId),
     ...options,
   });
 }
 
 export function useSessionAttendance(sessionId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
     queryKey: fieldTrainingKeys.sessionAttendance(sessionId),
-    queryFn: () => fetchSessionAttendance(sessionId),
+    queryFn: () => fetchSessionAttendance(sessionId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(sessionId),
     ...options,
   });
 }
 
 export function useApplicationProgress(applicationId, options = {}) {
+  const scope = options.scope ?? 'admin';
   return useQuery({
     queryKey: fieldTrainingKeys.applicationProgress(applicationId),
-    queryFn: () => fetchApplicationProgress(applicationId),
+    queryFn: () => fetchApplicationProgress(applicationId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(applicationId),
     ...options,
   });

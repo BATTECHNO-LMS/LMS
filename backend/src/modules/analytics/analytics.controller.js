@@ -1,4 +1,6 @@
 const analyticsService = require('./analytics.service');
+const ftAnalyticsRepo = require('../fieldTraining/fieldTrainingAnalytics.repository');
+const { isSystemWideAdmin, resolveUniversityIdFilter } = require('../../utils/universityScope');
 const analyticsPdfService = require('./analyticsPdf.service');
 const analyticsExcelExportService = require('./analyticsExcelExport.service');
 const { success } = require('../../utils/apiResponse');
@@ -96,7 +98,13 @@ async function certificates(req, res, next) {
 
 async function fieldTraining(req, res, next) {
   try {
-    const data = await analyticsService.getFieldTrainingAnalytics(req.validated.query);
+    let query = req.validated.query;
+    if (!isSystemWideAdmin(req.user)) {
+      const scoped = resolveUniversityIdFilter(req.user, query.university_id);
+      if (scoped) query = { ...query, university_id: scoped };
+      else if (req.user?.universityId) query = { ...query, university_id: req.user.universityId };
+    }
+    const data = await analyticsService.getFieldTrainingAnalytics(query);
     return success(res, data, { message: 'Field training analytics retrieved' });
   } catch (e) {
     return next(e);

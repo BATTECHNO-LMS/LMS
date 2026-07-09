@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
-const { NO_UNIVERSITY_MSG, NO_SPECIALTY_MSG } = require('../src/modules/fieldTraining/fieldTraining.access');
+const { NO_UNIVERSITY_MSG, NO_UNIVERSITY_SPECIALTY_MSG, NO_SPECIALTY_MSG } = require('../src/modules/fieldTraining/fieldTraining.access');
 const { collectPublishMissing, MSG } = require('../src/modules/fieldTraining/fieldTraining.publishReadiness');
 
 test('student university scope error message is defined in Arabic', () => {
@@ -11,7 +11,11 @@ test('student specialty scope error message is defined in Arabic', () => {
   assert.match(NO_SPECIALTY_MSG, /التخصص/);
 });
 
-test('publish readiness requires specialty_id', () => {
+test('student university specialty scope error message is defined in Arabic', () => {
+  assert.match(NO_UNIVERSITY_SPECIALTY_MSG, /التخصص/);
+});
+
+test('publish readiness requires specialty_id and eligibility', () => {
   const missing = collectPublishMissing({
     status: 'draft',
     title: 'Valid title here',
@@ -22,10 +26,29 @@ test('publish readiness requires specialty_id', () => {
     training_mode: 'onsite',
     application_deadline: null,
     start_date: null,
-      specialty_id: null,
-    });
+    specialty_id: null,
+  });
   assert.ok(missing.includes(MSG.specialty));
+  assert.ok(missing.includes(MSG.eligibility));
+  assert.ok(MSG.eligibility.includes('لا يمكن نشر الفرصة'));
   assert.ok(!missing.includes(MSG.university));
+});
+
+test('publish readiness passes with training track and eligibility', () => {
+  const missing = collectPublishMissing(
+    {
+      status: 'draft',
+      title: 'Valid title here',
+      description: 'Long enough description for publish readiness.',
+      location: 'Amman',
+      training_mode: 'onsite',
+      application_deadline: null,
+      start_date: null,
+      specialty_id: '00000000-0000-4000-8000-000000000099',
+    },
+    { activeEligibilityCount: 2 }
+  );
+  assert.strictEqual(missing.length, 0);
 });
 
 test('resolveSubmissionAbsolutePath rejects path traversal', () => {

@@ -13,7 +13,7 @@ const registerSchema = z
     email: z.string().email('Invalid email').max(255),
     password: z.string().min(6, 'Password must be at least 6 characters'),
     university_id: z.string().uuid('Invalid university'),
-    specialty_id: z.string().uuid('Invalid specialty'),
+    university_specialty_id: z.string().uuid('Invalid university specialty'),
     phone: z.string().max(50).optional(),
   })
   .strict()
@@ -22,7 +22,7 @@ const registerSchema = z
     email: b.email.trim().toLowerCase(),
     password: b.password,
     university_id: b.university_id,
-    specialty_id: b.specialty_id,
+    university_specialty_id: b.university_specialty_id,
     phone: b.phone?.trim() || undefined,
   }));
 

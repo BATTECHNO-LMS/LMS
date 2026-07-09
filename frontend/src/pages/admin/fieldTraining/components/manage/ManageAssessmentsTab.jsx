@@ -23,10 +23,11 @@ const emptyQuestion = {
   points: 1,
 };
 
-export function ManageAssessmentsTab({ opportunityId, type }) {
+export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }) {
+  const isInstructor = apiScope === 'instructor';
   const { t } = useTranslation('fieldTraining');
   const qc = useQueryClient();
-  const { data, isLoading } = useOpportunityAssessments(opportunityId);
+  const { data, isLoading } = useOpportunityAssessments(opportunityId, { scope: apiScope });
   const [error, setError] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -57,7 +58,7 @@ export function ManageAssessmentsTab({ opportunityId, type }) {
   }, [assessment?.id]);
 
   const invalidate = () =>
-    qc.invalidateQueries({ queryKey: fieldTrainingKeys.assessments(opportunityId) });
+    qc.invalidateQueries({ queryKey: fieldTrainingKeys.assessments(opportunityId, apiScope) });
 
   const saveMut = useMutation({
     mutationFn: async () => {
@@ -77,16 +78,16 @@ export function ManageAssessmentsTab({ opportunityId, type }) {
           })),
       };
       if (assessment?.id) {
-        return updateAssessment(assessment.id, body);
+        return updateAssessment(assessment.id, body, { asInstructor: isInstructor });
       }
-      return createOpportunityAssessment(opportunityId, { ...body, type });
+      return createOpportunityAssessment(opportunityId, { ...body, type }, { asInstructor: isInstructor });
     },
     onSuccess: invalidate,
     onError: (err) => setError(getApiErrorMessage(err)),
   });
 
   const publishMut = useMutation({
-    mutationFn: () => publishAssessmentById(assessment.id),
+    mutationFn: () => publishAssessmentById(assessment.id, { asInstructor: isInstructor }),
     onSuccess: invalidate,
     onError: (err) => setError(getApiErrorMessage(err)),
   });

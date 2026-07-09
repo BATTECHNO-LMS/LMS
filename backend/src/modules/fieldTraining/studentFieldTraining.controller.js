@@ -183,6 +183,40 @@ async function downloadSubmission(req, res, next) {
   }
 }
 
+async function getTaskInstructionDownloadUrl(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getTaskInstructionDownloadUrl(
+      req.validated.params.taskId,
+      req.user,
+      { asAdmin: false }
+    );
+    return success(res, data, { message: 'Instruction download URL generated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function downloadTaskInstruction(req, res, next) {
+  const fs = require('fs');
+  try {
+    const result = await fieldTrainingService.downloadTaskInstructionFile(
+      req.validated.params.taskId,
+      req.user,
+      { asAdmin: false }
+    );
+    if (result.redirectUrl) {
+      return res.redirect(result.redirectUrl);
+    }
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.fileName)}"`);
+    const stream = fs.createReadStream(result.absPath);
+    stream.on('error', (err) => next(err));
+    stream.pipe(res);
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   myApplications,
@@ -197,4 +231,6 @@ module.exports = {
   submitTask,
   getSubmissionDownloadUrl,
   downloadSubmission,
+  getTaskInstructionDownloadUrl,
+  downloadTaskInstruction,
 };

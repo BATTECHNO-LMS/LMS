@@ -8,7 +8,7 @@ const {
 async function findFieldTrainingAdminUserIds(universityId) {
   const superIds = await userIdsByRoleCodes([env.SUPER_ADMIN_ROLE_CODE || 'super_admin']);
   const uniAdminIds = universityId
-    ? await userIdsByRoleCodes(['university_admin'], { universityId })
+    ? await userIdsByRoleCodes(['university_admin', 'academic_admin'], { universityId })
     : [];
   return [...new Set([...superIds, ...uniAdminIds])];
 }
@@ -95,12 +95,16 @@ async function notifyFieldTrainingTaskSubmitted(params) {
 
   let created = 0;
   for (const userId of userIds) {
+    const isInstructor = instructorId && String(userId) === String(instructorId);
+    const actionUrl = isInstructor
+      ? `/instructor/field-training/${opportunityId}/tasks`
+      : `/admin/field-training/${opportunityId}/tasks`;
     const row = await createNotificationForUser({
       userId,
-      title: 'تسليم مهمة تدريب ميداني',
-      body: `${studentName || 'طالب'} سلّم مهمة "${taskTitle || ''}" للفرصة "${opportunityTitle || ''}".`,
+      title: 'تسليم مهمة جديد',
+      body: `قام الطالب ${studentName || 'طالب'} بتسليم مهمة ${taskTitle || ''}.`,
       type: 'info',
-      actionUrl: `/admin/field-training/${opportunityId}/tasks`,
+      actionUrl,
     });
     if (row) created += 1;
   }
@@ -183,6 +187,16 @@ async function staffUserIdsForOpportunity(universityId, instructorId) {
   return [...userIds];
 }
 
+function staffActionUrl(userId, instructorId, opportunityId, adminPath) {
+  if (instructorId && String(userId) === String(instructorId)) {
+    if (adminPath.includes('/applications')) {
+      return `/instructor/field-training/${opportunityId}/manage`;
+    }
+    return adminPath.replace('/admin/field-training/', '/instructor/field-training/');
+  }
+  return adminPath;
+}
+
 async function notifyStudentsSessionUpdated(params) {
   const { studentIds, opportunityId, opportunityTitle, sessionTitle } = params;
   let created = 0;
@@ -242,7 +256,12 @@ async function notifyStaffPreAssessmentCompleted(params) {
       title: 'إكمال التقييم القبلي',
       body: `${studentName || 'طالب'} أكمل التقييم القبلي لفرصة "${opportunityTitle || ''}"${level ? ` — المستوى: ${level}` : ''}.`,
       type: 'info',
-      actionUrl: `/admin/field-training/${opportunityId}/applications`,
+      actionUrl: staffActionUrl(
+        userId,
+        instructorId,
+        opportunityId,
+        `/admin/field-training/${opportunityId}/applications`
+      ),
     });
     if (row) created += 1;
   }
@@ -259,7 +278,12 @@ async function notifyStaffPostAssessmentCompleted(params) {
       title: 'إكمال التقييم البعدي',
       body: `${studentName || 'طالب'} أكمل التقييم البعدي لفرصة "${opportunityTitle || ''}".`,
       type: 'info',
-      actionUrl: `/admin/field-training/${opportunityId}/applications`,
+      actionUrl: staffActionUrl(
+        userId,
+        instructorId,
+        opportunityId,
+        `/admin/field-training/${opportunityId}/applications`
+      ),
     });
     if (row) created += 1;
   }
@@ -276,7 +300,12 @@ async function notifyStaffEligibilityReady(params) {
       title: 'جاهز لإصدار كتاب الإنهاء',
       body: `${studentName || 'طالب'} أصبح مؤهلاً لإصدار كتاب الإنهاء لفرصة "${opportunityTitle || ''}".`,
       type: 'action_required',
-      actionUrl: `/admin/field-training/${opportunityId}/applications`,
+      actionUrl: staffActionUrl(
+        userId,
+        instructorId,
+        opportunityId,
+        `/admin/field-training/${opportunityId}/applications`
+      ),
     });
     if (row) created += 1;
   }
@@ -293,7 +322,12 @@ async function notifyStaffAttendanceRisk(params) {
       title: 'تنبيه حضور التدريب الميداني',
       body: `حضور ${studentName || 'طالب'} في فرصة "${opportunityTitle || ''}" ${attendancePercentage}% (الحد الأدنى ${minimumRequired}%).`,
       type: 'warning',
-      actionUrl: `/admin/field-training/${opportunityId}/manage`,
+      actionUrl: staffActionUrl(
+        userId,
+        instructorId,
+        opportunityId,
+        `/admin/field-training/${opportunityId}/manage`
+      ),
     });
     if (row) created += 1;
   }

@@ -108,6 +108,16 @@ export function AppRouter() {
                 </Pages.SuperAdminFieldTrainingRoute>
               }
             />
+            <Route path="field-training/reports" element={<Pages.AdminFieldTrainingReportsHubPage />} />
+            <Route path="field-training/reports/global" element={<Pages.AdminFieldTrainingGlobalReportPage />} />
+            <Route path="field-training/reports/university" element={<Pages.AdminFieldTrainingUniversityReportPage />} />
+            <Route path="field-training/reports/students" element={<Pages.AdminFieldTrainingApplicationsReportPage />} />
+            <Route
+              path="field-training/reports/student/:applicationId"
+              element={<Pages.AdminFieldTrainingStudentReportPage />}
+            />
+            <Route path="field-training-reports" element={<Navigate to="/admin/field-training/reports" replace />} />
+            <Route path="field-training-reports/*" element={<Navigate to="/admin/field-training/reports" replace />} />
             <Route path="users/create" element={<Pages.UserCreatePage />} />
             <Route path="users/:id/edit" element={<Pages.UserEditPage />} />
             <Route path="users/:id" element={<Pages.UserViewPage />} />
@@ -200,6 +210,9 @@ export function AppRouter() {
               <Route path="evidence/:id" element={<Pages.EvidenceViewPage />} />
               <Route path="evidence" element={<Pages.InstructorEvidencePage />} />
               <Route path="risk-students" element={<Pages.RiskStudentsPage />} />
+              <Route path="field-training" element={<Pages.InstructorFieldTrainingPage />} />
+              <Route path="field-training/:id/manage" element={<Pages.InstructorFieldTrainingManagePage />} />
+              <Route path="field-training/:id/tasks" element={<Pages.InstructorFieldTrainingTasksPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
               <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
@@ -237,6 +250,21 @@ export function AppRouter() {
           </Route>
         </Route>
 
+        <Route path="/academic" element={<AdminLayout />}>
+          <Route index element={<Navigate to="field-training/reports" replace />} />
+          <Route element={<RoleBasedRoute allowedRoles={[ROLES.ACADEMIC_ADMIN, ROLES.QA_OFFICER, ROLES.UNIVERSITY_REVIEWER]} />}>
+            <Route element={<RoleShellPermissionOutlet />}>
+              <Route path="field-training/reports" element={<Pages.AcademicFieldTrainingReportsHubPage />} />
+              <Route path="field-training/reports/university" element={<Pages.AcademicFieldTrainingUniversityReportPage />} />
+              <Route path="field-training/students" element={<Pages.AcademicFieldTrainingStudentsPage />} />
+              <Route
+                path="field-training/reports/student/:applicationId"
+                element={<Pages.AcademicFieldTrainingStudentReportPage />}
+              />
+            </Route>
+          </Route>
+        </Route>
+
         <Route path="/reviewer" element={<ReviewerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.UNIVERSITY_REVIEWER]} />}>
@@ -246,6 +274,8 @@ export function AppRouter() {
               <Route path="recognition-requests/:id" element={<Pages.RecognitionRequestViewPage />} />
               <Route path="recognition-requests" element={<Pages.ReviewerRecognitionRequestsPage />} />
               <Route path="university-reports" element={<Pages.UniversityReportsPage />} />
+              <Route path="field-training" element={<Navigate to="/academic/field-training/reports" replace />} />
+              <Route path="field-training/*" element={<Navigate to="/academic/field-training/reports" replace />} />
               <Route path="evidence" element={<Pages.EvidenceViewerPage />} />
               <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
               <Route path="certificates" element={<Pages.CertificatesReviewPage />} />

@@ -33,6 +33,10 @@ async function main() {
   }
 
   log(`Specialties ensured: ${result.specialties}`);
+  log(`University specialties ensured: ${result.universitySpecialties}`);
+  if (result.deactivatedUniversitySpecialties) {
+    log(`University specialties deactivated: ${result.deactivatedUniversitySpecialties}`);
+  }
   log('Done.');
   log('');
   log('Next steps:');

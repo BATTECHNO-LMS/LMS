@@ -16,6 +16,21 @@ import {
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 
+function normalizeTimeValue(value) {
+  if (!value) return '';
+  const str = String(value).trim();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+  if (!match) return str;
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
+}
+
+function normalizeZoomLink(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return null;
+  if (!/^https?:\/\//i.test(trimmed)) return `https://${trimmed}`;
+  return trimmed;
+}
+
 const emptySession = {
   title: '',
   description: '',
@@ -26,20 +41,22 @@ const emptySession = {
   is_required: true,
 };
 
-export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
+export function ManageSessionsTab({ opportunityId, onOpenAttendance, apiScope = 'admin' }) {
+  const isInstructor = apiScope === 'instructor';
   const { t } = useTranslation('fieldTraining');
   const qc = useQueryClient();
-  const { data, isLoading } = useOpportunitySessions(opportunityId);
+  const { data, isLoading } = useOpportunitySessions(opportunityId, { scope: apiScope });
   const [form, setForm] = useState(emptySession);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
 
   const sessions = data?.sessions ?? [];
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.sessions(opportunityId) });
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: fieldTrainingKeys.sessions(opportunityId, apiScope) });
 
   const createMut = useMutation({
-    mutationFn: (body) => createOpportunitySession(opportunityId, body),
+    mutationFn: (body) => createOpportunitySession(opportunityId, body, { asInstructor: isInstructor }),
     onSuccess: () => {
       invalidate();
       setForm(emptySession);
@@ -48,7 +65,8 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
   });
 
   const updateMut = useMutation({
-    mutationFn: ({ sessionId, body }) => updateOpportunitySession(sessionId, body),
+    mutationFn: ({ sessionId, body }) =>
+      updateOpportunitySession(sessionId, body, { asInstructor: isInstructor }),
     onSuccess: () => {
       invalidate();
       setEditingId(null);
@@ -58,7 +76,7 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (sessionId) => deleteOpportunitySession(sessionId),
+    mutationFn: (sessionId) => deleteOpportunitySession(sessionId, { asInstructor: isInstructor }),
     onSuccess: invalidate,
     onError: (err) => setError(getApiErrorMessage(err)),
   });
@@ -69,8 +87,8 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
       title: session.title ?? '',
       description: session.description ?? '',
       session_date: session.session_date ? String(session.session_date).slice(0, 10) : '',
-      start_time: session.start_time ?? '09:00',
-      end_time: session.end_time ?? '11:00',
+      start_time: normalizeTimeValue(session.start_time ?? '09:00'),
+      end_time: normalizeTimeValue(session.end_time ?? '11:00'),
       zoom_link: session.zoom_link ?? '',
       is_required: session.is_required !== false,
     });
@@ -79,10 +97,28 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
   function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    const session_date = form.session_date?.trim();
+    if (!session_date) {
+      setError(t('manageTraining.sessionDateRequired', { defaultValue: 'Session date is required' }));
+      return;
+    }
+
+    const start_time = normalizeTimeValue(form.start_time);
+    const end_time = normalizeTimeValue(form.end_time);
+    if (!/^\d{2}:\d{2}$/.test(start_time) || !/^\d{2}:\d{2}$/.test(end_time)) {
+      setError(t('manageTraining.timeInvalid', { defaultValue: 'Enter valid start and end times (HH:MM)' }));
+      return;
+    }
+
     const body = {
-      ...form,
-      zoom_link: form.zoom_link || null,
-      description: form.description || null,
+      title: form.title.trim(),
+      description: form.description?.trim() || null,
+      session_date,
+      start_time,
+      end_time,
+      zoom_link: normalizeZoomLink(form.zoom_link),
+      is_required: form.is_required,
     };
     if (editingId) {
       updateMut.mutate({ sessionId: editingId, body });
@@ -113,12 +149,14 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance }) {
         />
         <FormInput
           label={t('manageTraining.startTime')}
+          type="time"
           value={form.start_time}
           onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))}
           required
         />
         <FormInput
           label={t('manageTraining.endTime')}
+          type="time"
           value={form.end_time}
           onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
           required

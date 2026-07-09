@@ -105,7 +105,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     if (!dbReady || !migrationsReady || !fixtures) {
       return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
     }
-    const { admin, instructor, student, specialty } = fixtures;
+    const { admin, instructor, student, specialty, universitySpecialty } = fixtures;
     const title = `FT Integration ${Date.now()}`;
 
     const createOpp = await request(app)
@@ -114,6 +114,12 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
       .send({
         title,
         specialty_id: specialty.id,
+        eligibility: [
+          {
+            university_id: student.primary_university_id,
+            university_specialty_id: universitySpecialty.id,
+          },
+        ],
         assigned_instructor_id: instructor.id,
         location: 'عمان',
         training_mode: 'hybrid',
@@ -357,17 +363,238 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     assert.strictEqual(res.status, 403);
   });
 
+  test('field training reports: university dashboard and student report', async (t) => {
+    if (!dbReady || !migrationsReady || !fixtures || !ctx.applicationId) {
+      return t.skip('DATABASE_URL unavailable, migrations missing, or workflow incomplete');
+    }
+    const { admin, student } = fixtures;
+    const uniId = student.primary_university_id;
+
+    const dashRes = await request(app)
+      .get('/api/v1/reports/field-training/dashboard')
+      .query({ university_id: uniId })
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(dashRes.status, 200);
+    assert.ok(dashRes.body.data.summary);
+    assert.strictEqual(dashRes.body.data.university_id, uniId);
+
+    const uniRes = await request(app)
+      .get('/api/v1/reports/field-training/university')
+      .query({ university_id: uniId })
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(uniRes.status, 200);
+    assert.strictEqual(uniRes.body.data.report_title, 'تقرير الجامعة للتدريب الميداني');
+
+    const studentRes = await request(app)
+      .get(`/api/v1/reports/field-training/applications/${ctx.applicationId}`)
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(studentRes.status, 200);
+    assert.strictEqual(studentRes.body.data.report_title, 'تقرير الطالب التفصيلي للتدريب الميداني');
+    assert.ok(studentRes.body.data.student);
+    assert.ok(Array.isArray(studentRes.body.data.timeline));
+  });
+
+  test('field training reports: global, admin routes, and academic scoping', async (t) => {
+    if (!dbReady || !migrationsReady || !fixtures || !ctx.applicationId) {
+      return t.skip('DATABASE_URL unavailable, migrations missing, or workflow incomplete');
+    }
+    const { admin, instructor, student } = fixtures;
+    const uniId = student.primary_university_id;
+
+    const globalRes = await request(app)
+      .get('/api/v1/admin/field-training/reports/global')
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(globalRes.status, 200);
+    assert.strictEqual(globalRes.body.data.report_title, 'التقرير الشامل للتدريب الميداني');
+    assert.ok(globalRes.body.data.summary);
+    assert.ok(Array.isArray(globalRes.body.data.university_comparison));
+
+    const globalExcel = await request(app)
+      .get('/api/v1/admin/field-training/reports/global/export/excel')
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(globalExcel.status, 200);
+    assert.ok(globalExcel.headers['content-type']?.includes('spreadsheet'));
+
+    const forbiddenGlobal = await request(app)
+      .get('/api/v1/admin/field-training/reports/global')
+      .set('Authorization', bearerForUser(instructor));
+    assert.strictEqual(forbiddenGlobal.status, 403);
+
+    const adminUniRes = await request(app)
+      .get('/api/v1/admin/field-training/reports/university')
+      .query({ university_id: uniId })
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(adminUniRes.status, 200);
+    assert.strictEqual(adminUniRes.body.data.report_title, 'تقرير الجامعة للتدريب الميداني');
+
+    const adminStudentRes = await request(app)
+      .get(`/api/v1/admin/field-training/reports/students/${ctx.applicationId}`)
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(adminStudentRes.status, 200);
+
+    const reviewer = await prisma.users.findUnique({ where: { email: 'reviewer@batuni.edu' } });
+    if (!reviewer) return t.skip('reviewer@batuni.edu missing from seed');
+    const reviewerRoles = await prisma.user_roles.findMany({ where: { user_id: reviewer.id } });
+    const roleRows = reviewerRoles.length
+      ? await prisma.roles.findMany({ where: { id: { in: reviewerRoles.map((r) => r.role_id) } } })
+      : [];
+    const reviewerUser = {
+      ...reviewer,
+      roleCodes: roleRows.map((r) => r.code),
+    };
+
+    const academicUniRes = await request(app)
+      .get('/api/v1/academic/field-training/reports/university')
+      .set('Authorization', bearerForUser(reviewerUser));
+    assert.strictEqual(academicUniRes.status, 200);
+    assert.strictEqual(academicUniRes.body.data.university?.id, reviewer.primary_university_id);
+
+    const crossUniRes = await request(app)
+      .get('/api/v1/academic/field-training/reports/university')
+      .query({ university_id: '00000000-0000-0000-0000-000000000001' })
+      .set('Authorization', bearerForUser(reviewerUser));
+    assert.strictEqual(crossUniRes.status, 403);
+
+    const analyticsRes = await request(app)
+      .get('/api/v1/analytics/field-training')
+      .set('Authorization', bearerForUser(admin));
+    assert.strictEqual(analyticsRes.status, 200);
+    assert.ok(analyticsRes.body.data.field_training?.eligibility_metrics);
+  });
+
+  test('student visibility, apply guards, and report access control', async (t) => {
+    if (!dbReady || !migrationsReady || !fixtures) {
+      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+    }
+    const { admin, student, specialty, universitySpecialty } = fixtures;
+
+    const createRes = await request(app)
+      .post('/api/v1/admin/field-training')
+      .set('Authorization', bearerForUser(admin))
+      .send({
+        title: `FT Eligibility Guard ${Date.now()}`,
+        specialty_id: specialty.id,
+        eligibility: [
+          {
+            university_id: student.primary_university_id,
+            university_specialty_id: universitySpecialty.id,
+          },
+        ],
+        location: 'عمان',
+        training_mode: 'remote',
+        description: 'فرصة لاختبار أهلية الطالب والتقارير.',
+      });
+    assert.strictEqual(createRes.status, 201);
+    const eligibleOppId = createRes.body.data.opportunity.id;
+
+    const otherSpecialty = await prisma.university_specialties.findFirst({
+      where: {
+        university_id: student.primary_university_id,
+        status: 'active',
+        NOT: { id: universitySpecialty.id },
+      },
+    });
+
+    let restrictedOppId = null;
+    if (otherSpecialty) {
+      const restrictedRes = await request(app)
+        .post('/api/v1/admin/field-training')
+        .set('Authorization', bearerForUser(admin))
+        .send({
+          title: `FT Other Specialty ${Date.now()}`,
+          specialty_id: specialty.id,
+          eligibility: [
+            {
+              university_id: student.primary_university_id,
+              university_specialty_id: otherSpecialty.id,
+            },
+          ],
+          location: 'عمان',
+          training_mode: 'remote',
+          description: 'فرصة لتخصص مختلف في نفس الجامعة.',
+        });
+      assert.strictEqual(restrictedRes.status, 201);
+      restrictedOppId = restrictedRes.body.data.opportunity.id;
+      await request(app)
+        .post(`/api/v1/admin/field-training/${restrictedOppId}/publish`)
+        .set('Authorization', bearerForUser(admin));
+    }
+
+    await request(app)
+      .post(`/api/v1/admin/field-training/${eligibleOppId}/publish`)
+      .set('Authorization', bearerForUser(admin));
+
+    const listRes = await request(app)
+      .get('/api/v1/student/field-training')
+      .set('Authorization', bearerForUser(student));
+    assert.strictEqual(listRes.status, 200);
+    const listedIds = (listRes.body.data.opportunities || []).map((row) => row.id);
+    assert.ok(listedIds.includes(eligibleOppId));
+    if (restrictedOppId) {
+      assert.ok(!listedIds.includes(restrictedOppId));
+      const detailForbidden = await request(app)
+        .get(`/api/v1/student/field-training/${restrictedOppId}`)
+        .set('Authorization', bearerForUser(student));
+      assert.strictEqual(detailForbidden.status, 403);
+      const applyForbidden = await request(app)
+        .post(`/api/v1/student/field-training/${restrictedOppId}/apply`)
+        .set('Authorization', bearerForUser(student))
+        .send({ student_message: 'محاولة غير مصرح بها' });
+      assert.strictEqual(applyForbidden.status, 403);
+    }
+
+    const dashboardForbidden = await request(app)
+      .get('/api/v1/admin/field-training/reports')
+      .query({ university_id: student.primary_university_id })
+      .set('Authorization', bearerForUser(student));
+    assert.strictEqual(dashboardForbidden.status, 403);
+
+    const incompleteStudent = await prisma.users.create({
+      data: {
+        email: `ft-incomplete-${Date.now()}@batuni.edu`,
+        full_name: 'Incomplete Student',
+        password_hash: 'x',
+        status: 'active',
+        primary_university_id: student.primary_university_id,
+        university_specialty_id: null,
+      },
+    });
+    const studentRole = await prisma.roles.findFirst({ where: { code: 'student' } });
+    await prisma.user_roles.create({ data: { user_id: incompleteStudent.id, role_id: studentRole.id } });
+    const incompleteUser = { ...incompleteStudent, roleCodes: ['student'] };
+
+    try {
+      const incompleteList = await request(app)
+        .get('/api/v1/student/field-training')
+        .set('Authorization', bearerForUser(incompleteUser));
+      assert.strictEqual(incompleteList.status, 200);
+      assert.strictEqual(incompleteList.body.data.profile_incomplete, true);
+      assert.strictEqual((incompleteList.body.data.opportunities || []).length, 0);
+    } finally {
+      await prisma.user_roles.deleteMany({ where: { user_id: incompleteStudent.id } });
+      await prisma.users.delete({ where: { id: incompleteStudent.id } });
+      if (restrictedOppId) await cleanupOpportunity(restrictedOppId);
+      await cleanupOpportunity(eligibleOppId);
+    }
+  });
+
   test('instructor cannot manage unassigned training opportunity', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
       return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
     }
-    const { instructor, specialty, admin } = fixtures;
+    const { instructor, specialty, admin, student, universitySpecialty } = fixtures;
     const createRes = await request(app)
       .post('/api/v1/admin/field-training')
       .set('Authorization', bearerForUser(admin))
       .send({
         title: `FT Unassigned ${Date.now()}`,
         specialty_id: specialty.id,
+        eligibility: [
+          {
+            university_id: student.primary_university_id,
+            university_specialty_id: universitySpecialty.id,
+          },
+        ],
         location: 'عمان',
         training_mode: 'remote',
         description: 'فرصة بدون مدرب معين للاختبار الأمني.',

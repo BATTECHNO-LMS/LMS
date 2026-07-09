@@ -5,12 +5,21 @@ const multer = require('multer');
 const { env } = require('../../config/env');
 
 const MAX_BYTES = 8 * 1024 * 1024;
+const INSTRUCTION_MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MIME = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
   'application/pdf',
+]);
+
+const INSTRUCTION_MIME = new Set([
+  ...ALLOWED_MIME,
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ]);
 
 const storage = multer.diskStorage({
@@ -57,4 +66,10 @@ function handleTaskUpload(req, res, next) {
   });
 }
 
-module.exports = { handleTaskUpload, MAX_BYTES, ALLOWED_MIME };
+module.exports = {
+  handleTaskUpload,
+  MAX_BYTES,
+  INSTRUCTION_MAX_BYTES,
+  ALLOWED_MIME,
+  INSTRUCTION_MIME,
+};

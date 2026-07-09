@@ -1,0 +1,171 @@
+{
+  "hub": {
+    "title": "Field training — university dashboard",
+    "description": "Stats, applications, and reports for your university only.",
+    "applicationsLink": "University applications",
+    "globalReportLink": "Global comprehensive report",
+    "universityReportLink": "University report",
+    "recentApplications": "Recent applications",
+    "noApplications": "No applications yet"
+  },
+  "applications": {
+    "title": "University field training applications",
+    "description": "All applications from students at your university.",
+    "tableTitle": "Student table"
+  },
+  "global": {
+    "title": "Global comprehensive field training report",
+    "description": "Overview of all universities, opportunities, students, and comparisons.",
+    "universityComparison": "University comparison",
+    "specialtyComparison": "Specialty comparison",
+    "forbiddenTitle": "Access denied",
+    "forbiddenDescription": "The global report is available to system administrators only."
+  },
+  "filters": {
+    "university": "University",
+    "allUniversities": "All universities",
+    "universityLocked": "Report is limited to your university.",
+    "status": "Application status",
+    "allStatuses": "All statuses",
+    "from": "From date",
+    "to": "To date"
+  },
+  "universityReport": {
+    "title": "University field training report",
+    "description": "Summary metrics, specialty breakdown, and student table.",
+    "bySpecialty": "Breakdown by specialty",
+    "studentsTable": "Student table"
+  },
+  "studentReport": {
+    "title": "Detailed student field training report",
+    "description": "Comprehensive report of the student's field training journey."
+  },
+  "metrics": {
+    "universities": "Universities",
+    "eligibleOpportunities": "Eligible opportunities",
+    "totalApplicants": "Total applicants",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "expelled": "Expelled",
+    "inTraining": "In training",
+    "completed": "Completed",
+    "completionLetters": "Completion letters",
+    "averageAttendance": "Average attendance",
+    "averagePreAssessment": "Avg. pre-assessment",
+    "averagePostAssessment": "Avg. post-assessment",
+    "taskSubmissionRate": "Task submission rate"
+  },
+  "sections": {
+    "student": "Student information",
+    "opportunity": "Opportunity",
+    "application": "Application",
+    "preAssessment": "Pre-assessment",
+    "attendance": "Sessions & attendance",
+    "tasks": "Tasks & submissions",
+    "postAssessment": "Post-assessment",
+    "eligibility": "Completion eligibility",
+    "completionLetter": "Completion letter",
+    "timeline": "Activity timeline"
+  },
+  "student": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "university": "University",
+    "universitySpecialty": "University specialty",
+    "canonicalSpecialty": "Canonical track",
+    "accountStatus": "Account status"
+  },
+  "opportunity": {
+    "title": "Opportunity title",
+    "track": "Training track",
+    "instructor": "Instructor",
+    "dates": "Training dates",
+    "mode": "Mode",
+    "location": "Location"
+  },
+  "application": {
+    "submittedAt": "Submitted at",
+    "status": "Application status",
+    "trainingStatus": "Training status",
+    "adminNote": "Admin note",
+    "expulsionReason": "Expulsion reason"
+  },
+  "assessment": {
+    "score": "Score",
+    "level": "Level",
+    "submittedAt": "Submitted at",
+    "passed": "Passed"
+  },
+  "attendance": {
+    "totalSessions": "Total sessions",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "excused": "Excused",
+    "percentage": "Attendance %",
+    "eligibility": "Attendance eligibility"
+  },
+  "eligibility": {
+    "status": "Status",
+    "attendanceRule": "Attendance rule",
+    "taskRule": "Task rule",
+    "postAssessmentRule": "Post-assessment rule"
+  },
+  "letter": {
+    "issued": "Issued",
+    "number": "Letter number",
+    "issuedAt": "Issue date",
+    "verificationCode": "Verification code",
+    "download": "Download letter"
+  },
+  "table": {
+    "student": "Student",
+    "university": "University",
+    "specialty": "Specialty",
+    "opportunity": "Opportunity",
+    "applicationStatus": "Application status",
+    "trainingStatus": "Training status",
+    "attendance": "Attendance %",
+    "preAssessment": "Pre-assessment",
+    "postAssessment": "Post-assessment",
+    "finalTask": "Final task",
+    "eligibility": "Eligibility",
+    "completionLetter": "Completion letter",
+    "actions": "Actions",
+    "applicants": "Applicants",
+    "accepted": "Accepted",
+    "attendanceAvg": "Avg. attendance",
+    "taskCompletionRate": "Task completion rate",
+    "postAssessmentAvg": "Avg. post-assessment",
+    "completed": "Completed",
+    "session": "Session",
+    "date": "Date",
+    "attendanceStatus": "Attendance status",
+    "notes": "Notes",
+    "task": "Task",
+    "dueDate": "Due date",
+    "reviewStatus": "Review status",
+    "submittedAt": "Submitted at",
+    "late": "Late",
+    "instructorFeedback": "Instructor feedback",
+    "instructionFile": "Instruction file",
+    "instructionFileName": "Instruction file name",
+    "solutionFile": "Solution file",
+    "solutionFileName": "Solution file name",
+    "aiSelfEval": "AI self-evaluation",
+    "aiStudentInput": "Student self-evaluation input",
+    "aiResponse": "AI response",
+    "finalNotes": "Final student notes",
+    "event": "Event"
+  },
+  "export": {
+    "pdf": "Export PDF",
+    "excel": "Export Excel"
+  },
+  "common": {
+    "backToHub": "Back to hub",
+    "yes": "Yes",
+    "no": "No"
+  }
+}

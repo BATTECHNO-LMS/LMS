@@ -1,9 +1,11 @@
 const { ApiError } = require('../../utils/apiError');
+const { ELIGIBILITY_PUBLISH_REQUIRED_MSG } = require('./fieldTraining.eligibility');
 
 const MSG = {
   title: 'العنوان مطلوب (3 أحرف على الأقل)',
   university: 'يجب اختيار الجامعة المرتبطة بفرصة التدريب',
-  specialty: 'يجب اختيار التخصص المرتبط بفرصة التدريب',
+  specialty: 'يجب اختيار المسار التدريبي الرئيسي (للتقارير)',
+  eligibility: ELIGIBILITY_PUBLISH_REQUIRED_MSG,
   organization_name: 'اسم الجهة مطلوب',
   description: 'الوصف الكامل مطلوب (10 أحرف على الأقل)',
   location: 'الموقع مطلوب',
@@ -13,9 +15,10 @@ const MSG = {
 };
 
 /**
- * @param {{ status: string, title: string, organization_name: string, description: string | null, location: string, training_mode: string, application_deadline: Date | null, start_date: Date | null }} opportunity
+ * @param {{ status: string, title: string, organization_name: string, description: string | null, location: string, training_mode: string, application_deadline: Date | null, start_date: Date | null, specialty_id: string | null }} opportunity
+ * @param {{ activeEligibilityCount?: number }} [context]
  */
-function collectPublishMissing(opportunity) {
+function collectPublishMissing(opportunity, context = {}) {
   const missing = [];
 
   if (opportunity.status === 'archived') {
@@ -27,6 +30,9 @@ function collectPublishMissing(opportunity) {
   if (title.length < 3) missing.push(MSG.title);
 
   if (!opportunity.specialty_id) missing.push(MSG.specialty);
+
+  const activeEligibilityCount = context.activeEligibilityCount ?? 0;
+  if (activeEligibilityCount < 1) missing.push(MSG.eligibility);
 
   const desc = String(opportunity.description || '').trim();
   if (desc.length < 10) missing.push(MSG.description);
@@ -46,9 +52,10 @@ function collectPublishMissing(opportunity) {
 
 /**
  * @param {Parameters<typeof collectPublishMissing>[0]} opportunity
+ * @param {Parameters<typeof collectPublishMissing>[1]} [context]
  */
-function assertPublishReady(opportunity) {
-  const missing = collectPublishMissing(opportunity);
+function assertPublishReady(opportunity, context) {
+  const missing = collectPublishMissing(opportunity, context);
   if (missing.length) {
     throw new ApiError(
       400,

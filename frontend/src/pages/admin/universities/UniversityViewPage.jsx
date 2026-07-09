@@ -75,6 +75,13 @@ export function UniversityViewPage() {
             <dd>{row.partnership_state ?? '—'}</dd>
           </div>
         </dl>
+        <p className="crud-muted" style={{ marginTop: '1rem' }}>
+          {tr(
+            isArabic,
+            'TODO: إدارة تخصصات الجامعة (عرض/إضافة/تعديل/تعطيل وربط التخصص القياسي) ستُضاف لاحقًا من هذه الصفحة.',
+            'TODO: University specialty management (view/add/edit/deactivate and canonical mapping) will be added here later.'
+          )}
+        </p>
         <div className="crud-view-actions">
           <Link className="btn btn--outline" to="/admin/universities">
             {tr(isArabic, 'رجوع للقائمة', 'Back to list')}

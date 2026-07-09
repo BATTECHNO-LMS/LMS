@@ -6,8 +6,12 @@ const { env } = require('../../config/env');
 const reportsController = require('./reports.controller');
 const { reportsQuerySchema, reportTypeParamSchema } = require('./reports.validation');
 
+const fieldTrainingReportRoutes = require('../fieldTraining/fieldTrainingReport.routes');
+
 const router = express.Router();
 const reportRead = authorizeRoles(...env.REPORT_READ_ROLE_CODES);
+
+router.use('/field-training', fieldTrainingReportRoutes);
 
 router.get('/universities', authenticate, reportRead, validateRequest({ query: reportsQuerySchema }), reportsController.universities);
 router.get('/cohorts', authenticate, reportRead, validateRequest({ query: reportsQuerySchema }), reportsController.cohorts);

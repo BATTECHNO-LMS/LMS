@@ -52,6 +52,7 @@ export const NAV_BY_ROLE = {
     navItem('/instructor/grades', 'grades', BarChart3, P.canViewGradesTeaching),
     navItem('/instructor/evidence', 'evidence', FolderOpen, P.canUploadEvidence),
     navItem('/instructor/risk-students', 'riskStudents', AlertTriangle, P.canManageRiskStudents),
+    navItem('/instructor/field-training', 'fieldTraining', Briefcase),
     navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
@@ -77,6 +78,7 @@ export const NAV_BY_ROLE = {
     navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),
     navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),
     navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
+    navItem('/academic/field-training/reports', 'fieldTraining', Briefcase, P.canViewUniversityReports),
     navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),
     navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
     navItem('/reviewer/notifications', 'notifications', Bell, P.canViewNotifications),

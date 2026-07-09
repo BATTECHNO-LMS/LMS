@@ -1,0 +1,170 @@
+{
+  "hub": {
+    "title": "التدريب الميداني — لوحة الجامعة",
+    "description": "إحصائيات وطلبات وتقارير التدريب الميداني لجامعتك فقط.",
+    "applicationsLink": "طلبات الجامعة",
+    "globalReportLink": "التقرير الشامل",
+    "universityReportLink": "تقرير الجامعة",
+    "recentApplications": "أحدث الطلبات",
+    "noApplications": "لا توجد طلبات مسجلة"
+  },
+  "applications": {
+    "title": "طلبات التدريب الميداني للجامعة",
+    "description": "جميع طلبات الطلاب المسجلين في جامعتك.",
+    "tableTitle": "جدول الطلاب"
+  },
+  "global": {
+    "title": "التقرير الشامل للتدريب الميداني",
+    "description": "نظرة شاملة على جميع الجامعات والفرص والطلاب والمقارنات.",
+    "universityComparison": "مقارنة الجامعات",
+    "specialtyComparison": "مقارنة التخصصات",
+    "forbiddenTitle": "غير مصرح",
+    "forbiddenDescription": "التقرير الشامل متاح لمدير النظام فقط."
+  },
+  "filters": {
+    "university": "الجامعة",
+    "allUniversities": "جميع الجامعات",
+    "universityLocked": "التقرير مقيد بجامعتك فقط.",
+    "status": "حالة الطلب",
+    "allStatuses": "جميع الحالات",
+    "from": "من تاريخ",
+    "to": "إلى تاريخ"
+  },
+  "universityReport": {
+    "title": "تقرير الجامعة للتدريب الميداني",
+    "description": "ملخص مؤشرات الأداء والتفصيل حسب التخصص وجدول الطلاب.",
+    "bySpecialty": "التفصيل حسب التخصص",
+    "studentsTable": "جدول الطلاب"
+  },
+  "studentReport": {
+    "title": "تقرير الطالب التفصيلي للتدريب الميداني",
+    "description": "تقرير شامل لمسار الطالب في التدريب الميداني."
+  },
+  "metrics": {
+    "universities": "الجامعات",
+    "eligibleOpportunities": "فرص مؤهلة",
+    "totalApplicants": "إجمالي المتقدمين",
+    "rejected": "مرفوضون",
+    "expelled": "مستبعدون",
+    "inTraining": "قيد التدريب",
+    "completed": "مكتملون",
+    "completionLetters": "كتب إنهاء",
+    "averageAttendance": "متوسط الحضور",
+    "averagePreAssessment": "متوسط التقييم القبلي",
+    "averagePostAssessment": "متوسط التقييم البعدي",
+    "taskSubmissionRate": "معدل تسليم المهام"
+  },
+  "sections": {
+    "student": "بيانات الطالب",
+    "opportunity": "بيانات الفرصة",
+    "application": "بيانات الطلب",
+    "preAssessment": "التقييم القبلي",
+    "attendance": "الجلسات والحضور",
+    "tasks": "المهام والتسليمات",
+    "postAssessment": "التقييم البعدي",
+    "eligibility": "أهلية الإنهاء",
+    "completionLetter": "كتاب الإنهاء",
+    "timeline": "السجل الزمني"
+  },
+  "student": {
+    "name": "الاسم",
+    "email": "البريد الإلكتروني",
+    "phone": "الهاتف",
+    "university": "الجامعة",
+    "universitySpecialty": "التخصص الجامعي",
+    "canonicalSpecialty": "المسار المعياري",
+    "accountStatus": "حالة الحساب"
+  },
+  "opportunity": {
+    "title": "عنوان الفرصة",
+    "track": "المسار التدريبي",
+    "instructor": "المدرب",
+    "dates": "تواريخ التدريب",
+    "mode": "النمط",
+    "location": "الموقع"
+  },
+  "application": {
+    "submittedAt": "تاريخ التقديم",
+    "status": "حالة الطلب",
+    "trainingStatus": "حالة التدريب",
+    "adminNote": "ملاحظة الإدارة",
+    "expulsionReason": "سبب الاستبعاد"
+  },
+  "assessment": {
+    "score": "الدرجة",
+    "level": "المستوى",
+    "submittedAt": "تاريخ الإرسال",
+    "passed": "النجاح"
+  },
+  "attendance": {
+    "totalSessions": "إجمالي الجلسات",
+    "present": "حاضر",
+    "absent": "غائب",
+    "late": "متأخر",
+    "excused": "معذور",
+    "percentage": "نسبة الحضور",
+    "eligibility": "أهلية الحضور"
+  },
+  "eligibility": {
+    "status": "الحالة",
+    "attendanceRule": "قاعدة الحضور",
+    "taskRule": "قاعدة المهام",
+    "postAssessmentRule": "قاعدة التقييم البعدي"
+  },
+  "letter": {
+    "issued": "صادر",
+    "number": "رقم الكتاب",
+    "issuedAt": "تاريخ الإصدار",
+    "verificationCode": "رمز التحقق",
+    "download": "تحميل الكتاب"
+  },
+  "table": {
+    "student": "الطالب",
+    "university": "الجامعة",
+    "specialty": "التخصص",
+    "opportunity": "الفرصة",
+    "applicationStatus": "حالة الطلب",
+    "trainingStatus": "حالة التدريب",
+    "attendance": "الحضور %",
+    "preAssessment": "التقييم القبلي",
+    "postAssessment": "التقييم البعدي",
+    "finalTask": "المهمة النهائية",
+    "eligibility": "الأهلية",
+    "completionLetter": "كتاب الإنهاء",
+    "actions": "إجراءات",
+    "applicants": "المتقدمون",
+    "accepted": "المقبولون",
+    "attendanceAvg": "متوسط الحضور",
+    "taskCompletionRate": "معدل إكمال المهام",
+    "postAssessmentAvg": "متوسط التقييم البعدي",
+    "completed": "المكتملون",
+    "session": "الجلسة",
+    "date": "التاريخ",
+    "attendanceStatus": "حالة الحضور",
+    "notes": "ملاحظات",
+    "task": "المهمة",
+    "dueDate": "موعد التسليم",
+    "reviewStatus": "حالة المراجعة",
+    "submittedAt": "تاريخ التسليم",
+    "late": "متأخر",
+    "instructorFeedback": "ملاحظات المدرب",
+    "instructionFile": "ملف تعليمات",
+    "instructionFileName": "اسم ملف التعليمات",
+    "solutionFile": "ملف الحل",
+    "solutionFileName": "اسم ملف الحل",
+    "aiSelfEval": "تقييم ذاتي بالذكاء الاصطناعي",
+    "aiStudentInput": "مدخل التقييم الذاتي",
+    "aiResponse": "رد الذكاء الاصطناعي",
+    "finalNotes": "ملاحظات الطالب النهائية",
+    "event": "الحدث"
+  },
+  "export": {
+    "pdf": "تصدير PDF",
+    "excel": "تصدير Excel"
+  },
+  "common": {
+    "backToHub": "العودة للوحة",
+    "yes": "نعم",
+    "no": "لا"
+  }
+}
