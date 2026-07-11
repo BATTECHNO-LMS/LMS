@@ -26,6 +26,7 @@ import {
   applicationBadgeVariant,
   formatFtDate,
   getOpportunitySpecialtyLabel,
+  getOpportunityUniversityLabel,
   trainingStatusVariant,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
@@ -39,6 +40,7 @@ import { StudentAttendanceTab } from './fieldTraining/components/StudentAttendan
 import { StudentTasksTab } from './fieldTraining/components/StudentTasksTab.jsx';
 import { StudentAssessmentsTab } from './fieldTraining/components/StudentAssessmentsTab.jsx';
 import { StudentCompletionTab } from './fieldTraining/components/StudentCompletionTab.jsx';
+import { StudentEligibilityTab } from './fieldTraining/components/StudentEligibilityTab.jsx';
 
 const ACTIVE_TRAINING = new Set([
   'pre_assessment_completed',
@@ -59,8 +61,29 @@ function getStatusSummaryKey(appStatus, expelled) {
   return appStatus;
 }
 
-function DetailInfoCard({ icon: Icon, label, value }) {
-  const display = value ?? '—';
+function resolveContinueTab(progress, trainingStatus) {
+  const code = String(progress?.next_action?.code || progress?.next_action?.key || '');
+  if (
+    code.includes('pre_assessment') ||
+    trainingStatus === 'pre_assessment_pending'
+  ) {
+    return 'assessments';
+  }
+  if (code.includes('post_assessment') || trainingStatus === 'post_assessment_pending') {
+    return 'assessments';
+  }
+  if (code.includes('task') || trainingStatus === 'task_pending') return 'tasks';
+  if (code.includes('session') || code.includes('attendance')) return 'sessions';
+  if (code.includes('eligibility') || trainingStatus === 'eligible_for_completion') {
+    return 'eligibility';
+  }
+  if (code.includes('completion') || trainingStatus === 'completed') return 'completion';
+  if (ACTIVE_TRAINING.has(trainingStatus)) return 'overview';
+  return 'overview';
+}
+
+function DetailInfoCard({ icon: Icon, label, value, emptyLabel }) {
+  const display = value || emptyLabel;
   return (
     <div className="ft-info-card">
       <div className="ft-info-card__icon-wrap" aria-hidden>
@@ -179,12 +202,13 @@ export function StudentFieldTrainingDetailPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
-  const { data, isLoading, isError, refetch } = useStudentFieldTraining(id);
+  const { data, isLoading, isError, error, refetch } = useStudentFieldTraining(id);
   const applyMut = useApplyFieldTraining();
   const cancelMut = useCancelFieldTrainingApplication();
   const [modalOpen, setModalOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [formError, setFormError] = useState('');
+  const [applySuccess, setApplySuccess] = useState(false);
 
   const opp = data?.opportunity;
   const application = data?.application;
@@ -200,12 +224,17 @@ export function StudentFieldTrainingDetailPage() {
   const canTrainingContent =
     isApproved && ACTIVE_TRAINING.has(trainingStatus);
   const statusKey = getStatusSummaryKey(appStatus, expelled);
+  const isForbidden =
+    isError &&
+    (error?.response?.status === 403 ||
+      error?.response?.data?.code === 'FIELD_TRAINING_NOT_ELIGIBLE');
 
   const activeTab = searchParams.get('tab') || 'overview';
   const setActiveTab = (tab) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       next.set('tab', tab);
+      next.delete('apply');
       return next;
     });
   };
@@ -213,10 +242,21 @@ export function StudentFieldTrainingDetailPage() {
   const { data: progressData } = useStudentTrainingProgress(id, {
     enabled: Boolean(id && appStatus === 'approved'),
   });
-  const progress = progressData ?? null;
+  // API returns { progress, completion_letter_id } — unwrap nested progress object.
+  const progress = progressData?.progress ?? null;
 
-  const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'));
+  const specialtyLabel =
+    opp?.student_matching_university_specialty_label ||
+    getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'));
+  const universityLabel =
+    opp?.student_matching_university?.name ||
+    getOpportunityUniversityLabel(opp, t('notAvailable'));
+  const instructorLabel = opp?.assigned_instructor?.full_name || null;
   const modeLabel = TRAINING_MODES.find((m) => m.value === opp?.training_mode)?.labelKey;
+  const trackLabel =
+    getOpportunitySpecialtyLabel(opp, i18n.language, null) ||
+    opp?.organization_name ||
+    t('notAvailable');
   const heroSubtitle =
     String(opp?.short_description ?? '').trim() ||
     String(opp?.description ?? '').trim().slice(0, 160) ||
@@ -236,9 +276,17 @@ export function StudentFieldTrainingDetailPage() {
       await applyMut.mutateAsync({ id, body: { student_message: message.trim() || null } });
       setModalOpen(false);
       setMessage('');
+      setApplySuccess(true);
       refetch();
     } catch (err) {
-      setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
+      const code = err?.response?.data?.code;
+      if (err?.response?.status === 409) {
+        setFormError(t('student.applyDuplicate'));
+      } else if (code === 'FIELD_TRAINING_NOT_ELIGIBLE' || err?.response?.status === 403) {
+        setFormError(t('student.notEligibleTitle'));
+      } else {
+        setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
+      }
     }
   }
 
@@ -248,8 +296,15 @@ export function StudentFieldTrainingDetailPage() {
     refetch();
   }
 
+  function handleContinueTraining() {
+    if (expelled) {
+      setActiveTab('overview');
+      return;
+    }
+    setActiveTab(resolveContinueTab(progress, trainingStatus));
+  }
+
   const tabContent = useMemo(() => {
-    if (!isApproved && expelled) return null;
     switch (activeTab) {
       case 'sessions':
         return (
@@ -261,7 +316,7 @@ export function StudentFieldTrainingDetailPage() {
             opportunityId={id}
             progress={progress}
             opp={opp}
-            enabled={canTrainingContent}
+            enabled={canTrainingContent || expelled}
           />
         );
       case 'tasks':
@@ -278,6 +333,16 @@ export function StudentFieldTrainingDetailPage() {
             opportunityId={id}
             enabled={appStatus === 'approved' && !expelled}
             opp={opp}
+          />
+        );
+      case 'eligibility':
+        return (
+          <StudentEligibilityTab
+            progress={progress}
+            application={application}
+            opp={opp}
+            enabled={appStatus === 'approved'}
+            expelled={expelled}
           />
         );
       case 'completion':
@@ -304,7 +369,6 @@ export function StudentFieldTrainingDetailPage() {
   }, [
     activeTab,
     id,
-    isApproved,
     expelled,
     canTrainingContent,
     progress,
@@ -319,6 +383,31 @@ export function StudentFieldTrainingDetailPage() {
       <PagePermissionGate permission={UI_PERMISSION.canViewFieldTraining}>
         <div className="page page--dashboard page--student ft-page">
           <DetailPageSkeleton />
+        </div>
+      </PagePermissionGate>
+    );
+  }
+
+  if (isForbidden) {
+    return (
+      <PagePermissionGate permission={UI_PERMISSION.canViewFieldTraining}>
+        <div className="page page--dashboard page--student ft-page">
+          <div className="ft-student-detail">
+            <Link className="ft-student-detail__back" to="/student/field-training">
+              <ArrowLeft size={16} aria-hidden />
+              <span>{t('student.backToList')}</span>
+            </Link>
+            <div className="ft-detail-error" role="alert">
+              <div className="ft-detail-error__icon-wrap" aria-hidden>
+                <Briefcase size={28} />
+              </div>
+              <h2 className="ft-detail-error__title">{t('student.notEligibleTitle')}</h2>
+              <p className="ft-detail-error__text">{t('student.notEligibleDesc')}</p>
+              <Link className="btn btn--primary" to="/student/field-training">
+                {t('student.backToList')}
+              </Link>
+            </div>
+          </div>
         </div>
       </PagePermissionGate>
     );
@@ -412,12 +501,12 @@ export function StudentFieldTrainingDetailPage() {
                     </Button>
                   ) : null}
                   {isApprovedParticipant ? (
-                    <Button type="button" variant="primary" onClick={() => setActiveTab('overview')}>
+                    <Button type="button" variant="primary" onClick={handleContinueTraining}>
                       {expelled ? t('studentTraining.viewHistory') : t('student.continueTraining')}
                     </Button>
                   ) : null}
                   {appStatus === 'pending' ? (
-                    <span className="ft-student-hero__notice">{t('student.statusSummary.pending.title')}</span>
+                    <span className="ft-student-hero__notice">{t('student.pendingReview')}</span>
                   ) : null}
                   {appStatus === 'rejected' ? (
                     <span className="ft-student-hero__notice">{t('student.applicationRejected')}</span>
@@ -427,25 +516,72 @@ export function StudentFieldTrainingDetailPage() {
             </div>
           </section>
 
+          {applySuccess ? (
+            <p className="ft-student-task-list__success" role="status">
+              {t('student.applySuccess')}
+            </p>
+          ) : null}
+
           <div className="ft-info-grid" role="list">
-            <DetailInfoCard icon={GraduationCap} label={t('form.specialty')} value={specialtyLabel} />
+            <DetailInfoCard
+              icon={GraduationCap}
+              label={t('student.matchingUniversity')}
+              value={universityLabel}
+              emptyLabel={t('notAvailable')}
+            />
+            <DetailInfoCard
+              icon={GraduationCap}
+              label={t('student.matchingSpecialty')}
+              value={specialtyLabel}
+              emptyLabel={t('notAvailable')}
+            />
+            <DetailInfoCard
+              icon={Briefcase}
+              label={t('student.mainTrack')}
+              value={trackLabel}
+              emptyLabel={t('notAvailable')}
+            />
             <DetailInfoCard
               icon={Briefcase}
               label={t('form.mode')}
               value={modeLabel ? t(modeLabel) : opp.training_mode}
+              emptyLabel={t('notAvailable')}
             />
-            <DetailInfoCard icon={MapPin} label={t('form.location')} value={opp.location} />
-            <DetailInfoCard icon={Calendar} label={t('student.startDate')} value={formatFtDate(opp.start_date)} />
-            <DetailInfoCard icon={Calendar} label={t('student.endDate')} value={formatFtDate(opp.end_date)} />
+            <DetailInfoCard
+              icon={MapPin}
+              label={t('form.location')}
+              value={opp.location}
+              emptyLabel={t('notAvailable')}
+            />
+            <DetailInfoCard
+              icon={Users}
+              label={t('student.assignedInstructor')}
+              value={instructorLabel}
+              emptyLabel={t('notAvailable')}
+            />
+            <DetailInfoCard
+              icon={Calendar}
+              label={t('student.startDate')}
+              value={formatFtDate(opp.start_date)}
+              emptyLabel={t('notAvailable')}
+            />
+            <DetailInfoCard
+              icon={Calendar}
+              label={t('student.endDate')}
+              value={formatFtDate(opp.end_date)}
+              emptyLabel={t('notAvailable')}
+            />
             <DetailInfoCard
               icon={Clock}
               label={t('student.deadline')}
-              value={formatFtDate(opp.application_deadline) ?? t('student.dateNotSet')}
+              value={formatFtDate(opp.application_deadline)}
+              emptyLabel={t('student.dateNotSet')}
             />
             <DetailInfoCard
               icon={Users}
               label={t('student.seats')}
-              value={opp.seats_limit != null ? String(opp.seats_limit) : t('student.dateNotSet')}
+              value={opp.seats_limit != null ? String(opp.seats_limit) : null}
+              emptyLabel={t('student.dateNotSet')}
             />
           </div>
 
@@ -455,7 +591,7 @@ export function StudentFieldTrainingDetailPage() {
                 activeTab={activeTab}
                 onTabChange={setActiveTab}
                 disabledTabs={
-                  expelled ? ['sessions', 'attendance', 'tasks', 'assessments', 'completion'] : []
+                  expelled ? ['sessions', 'tasks', 'assessments', 'completion'] : []
                 }
               />
               <div className="ft-student-hub__panel">{tabContent}</div>

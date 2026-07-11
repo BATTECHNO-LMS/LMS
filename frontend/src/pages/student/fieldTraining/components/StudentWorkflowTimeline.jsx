@@ -9,6 +9,7 @@ const STEP_KEYS = [
   'sessions',
   'tasks',
   'post_assessment',
+  'eligibility',
   'completion_letter',
 ];
 

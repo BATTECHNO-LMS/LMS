@@ -6,7 +6,10 @@ const {
 } = require('../../shared/services/notification.service');
 
 async function findFieldTrainingAdminUserIds(universityId) {
-  const superIds = await userIdsByRoleCodes([env.SUPER_ADMIN_ROLE_CODE || 'super_admin']);
+  const superIds = await userIdsByRoleCodes([
+    env.SUPER_ADMIN_ROLE_CODE || 'super_admin',
+    'program_admin',
+  ]);
   const uniAdminIds = universityId
     ? await userIdsByRoleCodes(['university_admin', 'academic_admin'], { universityId })
     : [];
@@ -39,7 +42,7 @@ async function notifyStudentFieldTrainingApplicationApproved(params) {
     title: 'تم قبول طلب التدريب الميداني',
     body: `تمت الموافقة على طلبك للفرصة "${opportunityTitle || ''}". تابع الخطوات التالية في صفحة التدريب.`,
     type: 'success',
-    actionUrl: `/student/field-training/${opportunityId}`,
+    actionUrl: `/student/field-training/${opportunityId}?tab=overview`,
   });
 }
 
@@ -50,7 +53,7 @@ async function notifyStudentFieldTrainingApplicationRejected(params) {
     title: 'تم رفض طلب التدريب الميداني',
     body: `تم رفض طلبك للفرصة "${opportunityTitle || ''}". راجع الملاحظات الإدارية للتفاصيل.`,
     type: 'warning',
-    actionUrl: `/student/field-training/${opportunityId}`,
+    actionUrl: `/student/field-training/${opportunityId}?tab=overview`,
   });
 }
 
@@ -74,7 +77,7 @@ async function notifyApprovedStudentsNewTask(params) {
       title: 'مهمة تدريب ميداني جديدة',
       body: `تمت إضافة مهمة "${taskTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
       type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=tasks`,
     });
     if (row) created += 1;
   }
@@ -120,7 +123,7 @@ async function notifyStudentsTrainingStarted(params) {
       title: 'بدء التدريب الميداني',
       body: `بدأ التدريب لفرصة "${opportunityTitle || ''}".`,
       type: 'success',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=overview`,
     });
     if (row) created += 1;
   }
@@ -136,7 +139,7 @@ async function notifyStudentsNewSession(params) {
       title: 'جلسة تدريب جديدة',
       body: `تمت جدولة جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
       type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
     });
     if (row) created += 1;
   }
@@ -152,7 +155,7 @@ async function notifyStudentsMarkedAbsent(params) {
       title: 'تسجيل غياب',
       body: `تم تسجيل غيابك عن جلسة "${sessionTitle || ''}" في فرصة "${opportunityTitle || ''}".`,
       type: 'warning',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=attendance`,
     });
     if (row) created += 1;
   }
@@ -166,7 +169,7 @@ async function notifyStudentExpelled(params) {
     title: 'استبعاد من التدريب الميداني',
     body: `تم استبعادك من فرصة "${opportunityTitle || ''}".${reason ? ` السبب: ${reason}` : ''}`,
     type: 'warning',
-    actionUrl: `/student/field-training/${opportunityId}`,
+    actionUrl: `/student/field-training/${opportunityId}?tab=overview`,
   });
 }
 
@@ -177,7 +180,7 @@ async function notifyStudentCompletionLetter(params) {
     title: 'إصدار كتاب إنهاء التدريب',
     body: `تم إصدار كتاب إنهاء التدريب لفرصة "${opportunityTitle || ''}".`,
     type: 'success',
-    actionUrl: `/student/field-training/${opportunityId}`,
+    actionUrl: `/student/field-training/${opportunityId}?tab=completion`,
   });
 }
 
@@ -206,7 +209,7 @@ async function notifyStudentsSessionUpdated(params) {
       title: 'تحديث جلسة تدريب',
       body: `تم تحديث جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
       type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
     });
     if (row) created += 1;
   }
@@ -226,7 +229,7 @@ async function notifyStudentTaskReviewed(params) {
     title: 'مراجعة مهمة التدريب الميداني',
     body: `تمت مراجعة مهمة "${taskTitle || ''}" لفرصة "${opportunityTitle || ''}" — الحالة: ${statusLabel}.`,
     type: reviewStatus === 'approved' ? 'success' : 'warning',
-    actionUrl: `/student/field-training/${opportunityId}`,
+    actionUrl: `/student/field-training/${opportunityId}?tab=tasks`,
   });
 }
 
@@ -239,7 +242,7 @@ async function notifyStudentsPostAssessmentAvailable(params) {
       title: 'التقييم البعدي متاح',
       body: `التقييم البعدي متاح الآن لفرصة "${opportunityTitle || ''}".`,
       type: 'action_required',
-      actionUrl: `/student/field-training/${opportunityId}`,
+      actionUrl: `/student/field-training/${opportunityId}?tab=assessments`,
     });
     if (row) created += 1;
   }
@@ -312,6 +315,19 @@ async function notifyStaffEligibilityReady(params) {
   return { created_count: created };
 }
 
+async function notifyStudentEligibilityUpdated(params) {
+  const { studentId, opportunityId, opportunityTitle, eligible } = params;
+  return createNotificationForUser({
+    userId: studentId,
+    title: eligible ? 'أصبحت مؤهلاً لإنهاء التدريب' : 'تحديث حالة الأهلية',
+    body: eligible
+      ? `أصبحت مؤهلاً لإنهاء التدريب لفرصة "${opportunityTitle || ''}". راجع تبويب الأهلية.`
+      : `تم تحديث حالة أهليتك لفرصة "${opportunityTitle || ''}". راجع تبويب الأهلية.`,
+    type: eligible ? 'success' : 'info',
+    actionUrl: `/student/field-training/${opportunityId}?tab=eligibility`,
+  });
+}
+
 async function notifyStaffAttendanceRisk(params) {
   const { opportunityId, opportunityTitle, universityId, instructorId, studentName, attendancePercentage, minimumRequired } = params;
   const userIds = await staffUserIdsForOpportunity(universityId, instructorId);
@@ -328,6 +344,45 @@ async function notifyStaffAttendanceRisk(params) {
         opportunityId,
         `/admin/field-training/${opportunityId}/manage`
       ),
+    });
+    if (row) created += 1;
+  }
+  return { created_count: created };
+}
+
+async function notifyInstructorAssigned(params) {
+  const { instructorId, opportunityId, opportunityTitle } = params;
+  if (!instructorId) return null;
+  return createNotificationForUser({
+    userId: instructorId,
+    title: 'تم إسناد تدريب ميداني إليك',
+    body: `تم تعيينك كمدرب مسؤول عن فرصة "${opportunityTitle || ''}".`,
+    type: 'action_required',
+    actionUrl: `/instructor/field-training/${opportunityId}/manage`,
+  });
+}
+
+async function notifyAdminsExpulsionRequested(params) {
+  const {
+    opportunityId,
+    opportunityTitle,
+    universityId,
+    studentName,
+    reason,
+    instructorName,
+    applicationId,
+  } = params;
+  const userIds = await findFieldTrainingAdminUserIds(universityId);
+  if (!userIds.length) return { created_count: 0 };
+
+  let created = 0;
+  for (const userId of userIds) {
+    const row = await createNotificationForUser({
+      userId,
+      title: 'طلب استبعاد طالب من التدريب الميداني',
+      body: `طلب المدرب ${instructorName || ''} استبعاد الطالب ${studentName || ''} من فرصة "${opportunityTitle || ''}". السبب: ${reason || ''}`.trim(),
+      type: 'action_required',
+      actionUrl: `/admin/field-training/${opportunityId}/applications`,
     });
     if (row) created += 1;
   }
@@ -351,5 +406,8 @@ module.exports = {
   notifyStaffPreAssessmentCompleted,
   notifyStaffPostAssessmentCompleted,
   notifyStaffEligibilityReady,
+  notifyStudentEligibilityUpdated,
   notifyStaffAttendanceRisk,
+  notifyInstructorAssigned,
+  notifyAdminsExpulsionRequested,
 };

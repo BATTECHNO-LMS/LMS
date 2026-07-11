@@ -21,11 +21,17 @@ async function findUserIdsLinkedToUniversity(universityId) {
   return rows.map((r) => r.user_id);
 }
 
-async function buildListWhere({ status, university_id, search }) {
+async function buildListWhere({ status, university_id, search, email_verified }) {
   const parts = [];
 
   if (status) {
     parts.push({ status });
+  }
+
+  if (email_verified === true) {
+    parts.push({ email_verified_at: { not: null } });
+  } else if (email_verified === false) {
+    parts.push({ email_verified_at: null });
   }
 
   if (search) {

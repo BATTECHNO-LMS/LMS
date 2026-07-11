@@ -130,12 +130,18 @@ async function callGemini({ systemPrompt, userInput, model }) {
 }
 
 /**
- * @param {{ systemPrompt?: string, userInput: string, provider?: string, model?: string }} params
+ * @param {{ systemPrompt?: string, userInput: string, provider?: string, model?: string, maxInputLen?: number }} params
  */
-async function generateText({ systemPrompt, userInput, provider: providerOverride, model: modelOverride }) {
+async function generateText({
+  systemPrompt,
+  userInput,
+  provider: providerOverride,
+  model: modelOverride,
+  maxInputLen = 20000,
+}) {
   const provider = (providerOverride || env.AI_PROVIDER || '').trim().toLowerCase();
-  const safeInput = sanitizeAiText(userInput);
-  const safePrompt = sanitizeAiText(systemPrompt, 10000);
+  const safeInput = sanitizeAiText(userInput, maxInputLen);
+  const safePrompt = sanitizeAiText(systemPrompt, 20000);
 
   if (!safeInput) {
     throw new ApiError(400, 'النص المطلوب معالجته مطلوب', null, 'AI_INPUT_REQUIRED');

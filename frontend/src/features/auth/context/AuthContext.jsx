@@ -134,10 +134,10 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(
     async ({ email, password }) => {
+      // Drop prior-role caches so admin FT queries do not refetch under a student/instructor token.
+      qc.clear();
       const { data } = await loginRequest({ email, password });
       const normalized = await persistTokenAndHydrate(data.token);
-      qc.invalidateQueries({ queryKey: ['users'] });
-      qc.invalidateQueries({ queryKey: ['universities'] });
       setIsAuthReady(true);
       return { redirectTo: getDefaultDashboardPath(normalized) };
     },

@@ -9,31 +9,52 @@
     "instructor": "مدرّس",
     "student": "طالب",
     "admin": "إداري",
-    "qaOfficer": "مسؤول جودة"
+    "qaOfficer": "مسؤول جودة",
+    "emailVerification": "حالة توثيق البريد",
+    "emailVerificationAll": "الكل"
   },
   "stats": {
     "total": "إجمالي المستخدمين",
-    "active": "المستخدمون النشطون",
+    "active": "الحسابات المفعلة",
     "inactive": "المستخدمون الموقوفون",
-    "newUsers": "مستخدمون جدد"
+    "newUsers": "مستخدمون جدد",
+    "emailVerified": "الحسابات الموثقة",
+    "emailUnverified": "الحسابات غير الموثقة",
+    "pendingActivation": "بانتظار التفعيل"
   },
   "listTitle": "قائمة المستخدمين",
   "list": {
     "pendingActivation": "بانتظار التفعيل",
-    "emailVerified": "موثّق",
-    "emailNotVerified": "غير موثّق",
+    "emailVerified": "موثق البريد",
+    "emailNotVerified": "غير موثق",
+    "accountActive": "مفعل",
+    "accountInactive": "غير مفعل",
+    "accountSuspended": "معطل",
     "activateAccount": "تفعيل الحساب",
     "activateSuccess": "تم تفعيل الحساب بنجاح.",
+    "activateRequiresEmail": "يجب توثيق البريد قبل تفعيل الحساب.",
     "activateAll": "تفعيل الكل",
     "activateAllConfirm": "تفعيل {{count}} حساب طالب بانتظار التفعيل؟",
     "activateAllSuccess": "تم تفعيل {{count}} حساب.",
     "activateAllPartial": "تم تفعيل {{activated}} من {{total}}. فشل {{failed}}.",
-    "activateAllNone": "لا يوجد طلاب بانتظار التفعيل."
+    "activateAllNone": "لا يوجد طلاب بانتظار التفعيل.",
+    "verifyEmail": "توثيق البريد",
+    "verifyEmailSuccess": "تم توثيق البريد الإلكتروني بنجاح.",
+    "verifyEmailConfirmTitle": "توثيق البريد الإلكتروني",
+    "verifyEmailConfirmText": "هل أنت متأكد من توثيق بريد هذا المستخدم يدويًا؟ لن يتم تفعيل الحساب تلقائيًا.",
+    "verifyEmailConfirm": "تأكيد التوثيق",
+    "alreadyVerified": "موثق مسبقًا",
+    "verifyAll": "توثيق الكل",
+    "verifyAllConfirmTitle": "توثيق جميع الحسابات غير الموثقة",
+    "verifyAllConfirmText": "سيتم توثيق البريد الإلكتروني لجميع الحسابات غير الموثقة ضمن النطاق الحالي ({{count}} حساب). لن يتم تفعيل الحسابات تلقائيًا.",
+    "verifyAllConfirm": "تأكيد توثيق الكل",
+    "verifyAllSuccess": "تم توثيق {{count}} حسابًا بنجاح."
   },
   "table": {
     "name": "الاسم",
     "email": "البريد الإلكتروني",
     "emailVerified": "توثيق البريد",
+    "accountStatus": "حالة الحساب",
     "role": "الدور",
     "lastLogin": "آخر دخول"
   },

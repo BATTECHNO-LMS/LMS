@@ -10,6 +10,7 @@ import {
   ListChecks,
   Pencil,
   Plus,
+  ShieldOff,
   Trash2,
   Upload,
 } from 'lucide-react';
@@ -61,10 +62,11 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id, {
     enabled: !isInstructor,
   });
-  const { data: instructorOppData, isLoading: instructorOppLoading } = useQuery({
+  const { data: instructorOppData, isLoading: instructorOppLoading, isError: instructorOppError, error: instructorOppErr } = useQuery({
     queryKey: fieldTrainingKeys.instructorDetail(id),
     queryFn: () => fetchInstructorFieldTraining(id),
     enabled: isInstructor && Boolean(id),
+    retry: (count, err) => err?.response?.status !== 403 && count < 2,
   });
   const { data: tasksData, isLoading, isError, error, refetch } = useOpportunityTasks(id, { scope: apiScope });
   const { data: subsData } = useOpportunitySubmissions(id, { scope: apiScope });
@@ -89,6 +91,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [aiPrompt, setAiPrompt] = useState('');
   const [instructionFileId, setInstructionFileId] = useState(null);
   const [removeInstructionFile, setRemoveInstructionFile] = useState(false);
+  const [instructionUploading, setInstructionUploading] = useState(false);
   const [formError, setFormError] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
@@ -99,6 +102,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [editAiPrompt, setEditAiPrompt] = useState('');
   const [editInstructionFileId, setEditInstructionFileId] = useState(null);
   const [editRemoveInstructionFile, setEditRemoveInstructionFile] = useState(false);
+  const [editInstructionUploading, setEditInstructionUploading] = useState(false);
   const [downloadError, setDownloadError] = useState('');
   const [reviewModal, setReviewModal] = useState(null);
   const [reviewFeedback, setReviewFeedback] = useState('');
@@ -137,7 +141,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   async function handleAdd(e) {
     e.preventDefault();
     setFormError('');
-    if (!title.trim()) return;
+    if (!title.trim() || mut.create.isPending || instructionUploading) return;
     try {
       const body = {
         title: title.trim(),
@@ -191,7 +195,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
 
   async function saveEditTask(e) {
     e.preventDefault();
-    if (!editingTaskId || !editTitle.trim()) return;
+    if (!editingTaskId || !editTitle.trim() || mut.update.isPending || editInstructionUploading) return;
     try {
       const body = {
         title: editTitle.trim(),
@@ -208,6 +212,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         body,
       });
       setEditingTaskId(null);
+      setEditInstructionUploading(false);
       refetch();
     } catch (err) {
       setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
@@ -225,6 +230,23 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
     } catch (err) {
       setDownloadError(getApiErrorMessage(err, tCommon('errors.generic')));
     }
+  }
+
+  if (isInstructor && instructorOppError && instructorOppErr?.response?.status === 403) {
+    return (
+      <div className="page page--dashboard page--admin ft-page">
+        <EmptyState
+          icon={ShieldOff}
+          title={t('instructor.forbiddenTitle')}
+          description={t('instructor.forbiddenDescription')}
+          action={
+            <Link className="btn btn--outline" to={listBase}>
+              <ArrowLeft size={16} aria-hidden /> {t('backToList')}
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   return (
@@ -361,6 +383,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
             ) : null}
 
             <TaskInstructionFileField
+              opportunityId={id}
               onUploaded={(fileId) => {
                 setInstructionFileId(fileId);
                 setRemoveInstructionFile(false);
@@ -369,13 +392,22 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                 setInstructionFileId(null);
                 setRemoveInstructionFile(false);
               }}
+              onUploadingChange={setInstructionUploading}
               disabled={mut.create.isPending}
             />
 
             <footer className="ft-tasks-form-card__actions">
-              <Button type="submit" variant="primary" disabled={mut.create.isPending || !title.trim()}>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={mut.create.isPending || instructionUploading || !title.trim()}
+              >
                 <Plus size={16} aria-hidden />
-                {mut.create.isPending ? t('tasks.addingTask') : t('tasks.addTask')}
+                {mut.create.isPending
+                  ? t('tasks.addingTask')
+                  : instructionUploading
+                    ? t('tasks.uploadingInstruction')
+                    : t('tasks.addTask')}
               </Button>
             </footer>
           </form>
@@ -499,6 +531,8 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                               />
                             ) : null}
                             <TaskInstructionFileField
+                              opportunityId={id}
+                              taskId={task.id}
                               existing={
                                 !editRemoveInstructionFile && task.has_instruction_file
                                   ? { name: task.instruction_file_name, size: task.instruction_file_size }
@@ -517,11 +551,21 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                                   ? () => handleDownloadInstruction(task.id)
                                   : undefined
                               }
+                              onUploadingChange={setEditInstructionUploading}
                               disabled={mut.update.isPending}
                             />
                             <div className="ft-task-edit__actions">
-                              <Button type="submit" variant="primary" className="btn--sm" disabled={mut.update.isPending}>
-                                {t('save')}
+                              <Button
+                                type="submit"
+                                variant="primary"
+                                className="btn--sm"
+                                disabled={mut.update.isPending || editInstructionUploading}
+                              >
+                                {mut.update.isPending
+                                  ? t('saving')
+                                  : editInstructionUploading
+                                    ? t('tasks.uploadingInstruction')
+                                    : t('save')}
                               </Button>
                               <Button type="button" variant="outline" className="btn--sm" onClick={() => setEditingTaskId(null)}>
                                 {tCommon('actions.cancel')}
@@ -684,6 +728,27 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                 <div className="ft-review-block">
                   <strong>{t('tasks.aiStudentInput')}</strong>
                   <p>{reviewModal.student_self_evaluation_input}</p>
+                </div>
+              ) : null}
+              {reviewModal.project_url ? (
+                <div className="ft-review-block">
+                  <strong>{t('selfEval.projectUrl')}</strong>
+                  <p>
+                    <a href={reviewModal.project_url} target="_blank" rel="noreferrer">
+                      {reviewModal.project_url}
+                    </a>
+                  </p>
+                </div>
+              ) : null}
+              {(reviewModal.file_extraction_status || reviewModal.url_extraction_status) ? (
+                <div className="ft-review-block">
+                  <strong>{t('selfEval.extractionStatus')}</strong>
+                  <p>
+                    {t('selfEval.fileExtraction')}: {reviewModal.file_extraction_status || '—'}
+                    {' · '}
+                    {t('selfEval.urlExtraction')}: {reviewModal.url_extraction_status || '—'}
+                  </p>
+                  {reviewModal.extraction_errors ? <p>{reviewModal.extraction_errors}</p> : null}
                 </div>
               ) : null}
               {reviewModal.ai_prompt_used ? (

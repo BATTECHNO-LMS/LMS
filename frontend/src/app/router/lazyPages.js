@@ -300,6 +300,30 @@ export const InstructorFieldTrainingManagePage = lazyNamed(
   () => import('../../pages/instructor/InstructorFieldTrainingManagePage.jsx'),
   'InstructorFieldTrainingManagePage'
 );
+export const InstructorFieldTrainingParticipantsPage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingParticipantsPage.jsx'),
+  'InstructorFieldTrainingParticipantsPage'
+);
+export const InstructorFieldTrainingSessionsPage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingDeepLinks.jsx'),
+  'InstructorFieldTrainingSessionsPage'
+);
+export const InstructorFieldTrainingAttendancePage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingDeepLinks.jsx'),
+  'InstructorFieldTrainingAttendancePage'
+);
+export const InstructorFieldTrainingSubmissionsPage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingDeepLinks.jsx'),
+  'InstructorFieldTrainingSubmissionsPage'
+);
+export const InstructorFieldTrainingResultsPage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingDeepLinks.jsx'),
+  'InstructorFieldTrainingResultsPage'
+);
+export const InstructorFieldTrainingEligibilityPage = lazyNamed(
+  () => import('../../pages/instructor/InstructorFieldTrainingDeepLinks.jsx'),
+  'InstructorFieldTrainingEligibilityPage'
+);
 
 // —— Student ——
 export const StudentDashboardPage = lazyNamed(
@@ -321,6 +345,10 @@ export const StudentFieldTrainingPage = lazyNamed(
 export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'
+);
+export const StudentFieldTrainingProgressRedirect = lazyNamed(
+  () => import('../../pages/student/StudentFieldTrainingProgressRedirect.jsx'),
+  'StudentFieldTrainingProgressRedirect'
 );
 export const StudentEntryRedirect = lazyNamed(
   () => import('../../pages/student/StudentEntryRedirect.jsx'),

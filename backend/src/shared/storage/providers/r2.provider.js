@@ -119,6 +119,20 @@ async function checkHealth() {
   }
 }
 
+async function getObjectBuffer(storageKey) {
+  const key = assertSafeStorageKey(storageKey);
+  const res = await getClient().send(
+    new GetObjectCommand({ Bucket: getBucket(), Key: key })
+  );
+  const stream = res.Body;
+  if (!stream) throw new Error('Empty object body');
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 module.exports = {
   getRequiredR2Config,
   assertR2Configured,
@@ -128,4 +142,5 @@ module.exports = {
   createPresignedPutUrl,
   createPresignedGetUrl,
   checkHealth,
+  getObjectBuffer,
 };

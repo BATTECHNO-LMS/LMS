@@ -32,6 +32,8 @@ import {
   issueCompletionLetter,
   useApplicationProgress,
   fetchFieldTrainingEligibilityCatalog,
+  fetchInstructorFieldTraining,
+  requestFieldTrainingExpulsion,
 } from '../../../features/fieldTraining/index.js';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
@@ -72,7 +74,7 @@ function KpiStatCard({ icon: Icon, value, label, hint, tone }) {
   );
 }
 
-function ApplicationReviewCard({
+export function ApplicationReviewCard({
   app,
   t,
   i18n,
@@ -83,6 +85,8 @@ function ApplicationReviewCard({
   onViewProgress,
   reviewPending,
   actionPending,
+  readOnly = false,
+  requestExpulsionMode = false,
 }) {
   const studentName = displayFieldValue(app.student_name, t('missingStudentName'));
   const studentEmail = displayFieldValue(app.student_email, t('missingStudentEmail'));
@@ -205,7 +209,7 @@ function ApplicationReviewCard({
       </div>
 
       <div className="ft-review-card__actions">
-        {isPending ? (
+        {isPending && !readOnly ? (
           <>
             <Button
               type="button"
@@ -244,9 +248,9 @@ function ApplicationReviewCard({
                   disabled={actionPending}
                   onClick={() => onExpel(app)}
                 >
-                  {t('expel.action')}
+                  {requestExpulsionMode ? t('expel.requestAction') : t('expel.action')}
                 </Button>
-                {app.completion_eligibility_status === 'eligible' ? (
+                {!readOnly && app.completion_eligibility_status === 'eligible' ? (
                   <Button
                     type="button"
                     variant="primary"
@@ -265,13 +269,22 @@ function ApplicationReviewCard({
   );
 }
 
-export function AdminFieldTrainingApplicationsPage() {
+export function AdminFieldTrainingApplicationsPage({ apiScope = 'admin' } = {}) {
   const { id } = useParams();
+  const isInstructor = apiScope === 'instructor';
+  const listBase = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t, i18n } = useTranslation('fieldTraining');
-  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id);
+  const { data: oppData, isLoading: oppLoading } = useAdminFieldTraining(id, {
+    enabled: !isInstructor,
+  });
+  const { data: instructorOppData, isLoading: instructorOppLoading } = useQuery({
+    queryKey: fieldTrainingKeys.instructorDetail(id),
+    queryFn: () => fetchInstructorFieldTraining(id),
+    enabled: isInstructor && Boolean(id),
+  });
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(isInstructor ? 'approved' : 'all');
   const [universityFilter, setUniversityFilter] = useState('');
   const [specialtyFilter, setSpecialtyFilter] = useState('');
   const [trainingStatusFilter, setTrainingStatusFilter] = useState('');
@@ -286,7 +299,9 @@ export function AdminFieldTrainingApplicationsPage() {
     return params;
   }, [activeTab, universityFilter, specialtyFilter, trainingStatusFilter, debouncedSearch]);
 
-  const { data, isLoading, isFetching, isError, refetch } = useOpportunityApplications(id, listParams);
+  const { data, isLoading, isFetching, isError, refetch } = useOpportunityApplications(id, listParams, {
+    scope: apiScope,
+  });
   const { data: catalogPayload } = useQuery({
     queryKey: ['fieldTraining', 'eligibilityCatalog'],
     queryFn: async () => {
@@ -294,6 +309,7 @@ export function AdminFieldTrainingApplicationsPage() {
       return payload?.universities ?? [];
     },
     staleTime: 5 * 60 * 1000,
+    enabled: !isInstructor,
   });
   const reviewMut = useReviewApplication(id);
   const qc = useQueryClient();
@@ -304,7 +320,8 @@ export function AdminFieldTrainingApplicationsPage() {
   const [progressModal, setProgressModal] = useState(null);
 
   const applications = data?.applications ?? [];
-  const opp = oppData?.opportunity;
+  const opp = isInstructor ? instructorOppData?.opportunity : oppData?.opportunity;
+  const oppBusy = isInstructor ? instructorOppLoading : oppLoading;
   const stats = useMemo(() => computeApplicationStats(applications), [applications]);
   const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language, t('form.specialtyUnspecified'));
   const catalog = catalogPayload ?? [];
@@ -317,7 +334,7 @@ export function AdminFieldTrainingApplicationsPage() {
   const filteredApplications = applications;
 
   async function confirmReview() {
-    if (!reviewModal) return;
+    if (!reviewModal || isInstructor) return;
     await reviewMut.mutateAsync({
       applicationId: reviewModal.applicationId,
       body: { status: reviewModal.status, admin_note: adminNote.trim() || null },
@@ -329,11 +346,14 @@ export function AdminFieldTrainingApplicationsPage() {
 
   const expelMut = useMutation({
     mutationFn: ({ applicationId, reason }) =>
-      expelFieldTrainingParticipant(applicationId, { reason, notifyStudent: true }),
+      isInstructor
+        ? requestFieldTrainingExpulsion(applicationId, { reason }, { asInstructor: true })
+        : expelFieldTrainingParticipant(applicationId, { reason, notifyStudent: true }),
     onSuccess: () => {
       setExpelModal(null);
       setExpelReason('');
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(id) });
+      refetch();
     },
   });
 
@@ -344,7 +364,7 @@ export function AdminFieldTrainingApplicationsPage() {
 
   const actionPending = expelMut.isPending || issueMut.isPending;
 
-  if ((oppLoading && !oppData) || (isLoading && !data)) {
+  if ((oppBusy && !opp) || (isLoading && !data)) {
     return (
       <div className="page page--dashboard page--admin ft-page">
         <ApplicationsPageSkeleton />
@@ -360,7 +380,9 @@ export function AdminFieldTrainingApplicationsPage() {
           <div className="ft-apps-hero__accent" aria-hidden />
           <div className="ft-apps-hero__inner">
             <div className="ft-apps-hero__content">
-              <p className="ft-apps-hero__eyebrow">{t('applicationsSubtitle')}</p>
+              <p className="ft-apps-hero__eyebrow">
+                {isInstructor ? t('instructor.participantsSubtitle') : t('applicationsSubtitle')}
+              </p>
               <div className="ft-apps-hero__title-row">
                 <h1 id="ft-apps-hero-title" className="ft-apps-hero__title">
                   {opp?.title ?? t('applicationsTitle')}
@@ -377,14 +399,14 @@ export function AdminFieldTrainingApplicationsPage() {
               </p>
             </div>
             <div className="ft-apps-hero__actions">
-              <Link className="btn btn--outline btn--sm" to="/admin/field-training">
+              <Link className="btn btn--outline btn--sm" to={listBase}>
                 <ArrowLeft size={16} aria-hidden />
                 {t('backToList')}
               </Link>
-              <Link className="btn btn--outline btn--sm" to={`/admin/field-training/${id}/manage`}>
+              <Link className="btn btn--outline btn--sm" to={`${listBase}/${id}/manage`}>
                 {t('manageTraining.link')}
               </Link>
-              <Link className="btn btn--primary btn--sm" to={`/admin/field-training/${id}/tasks`}>
+              <Link className="btn btn--primary btn--sm" to={`${listBase}/${id}/tasks`}>
                 <ListChecks size={16} aria-hidden />
                 {t('tasks.manageTasks')}
               </Link>
@@ -552,6 +574,8 @@ export function AdminFieldTrainingApplicationsPage() {
                 t={t}
                 i18n={i18n}
                 reviewPending={reviewMut.isPending}
+                readOnly={isInstructor}
+                requestExpulsionMode={isInstructor}
                 onApprove={(applicationId) => {
                   setReviewModal({ applicationId, status: 'approved' });
                   setAdminNote('');
@@ -621,10 +645,15 @@ export function AdminFieldTrainingApplicationsPage() {
         <div className="ft-modal-backdrop" onClick={() => setExpelModal(null)} role="presentation">
           <div className="ft-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <header className="ft-modal__header">
-              <h2 className="ft-modal__title">{t('expel.title')}</h2>
+              <h2 className="ft-modal__title">
+                {isInstructor ? t('expel.requestTitle') : t('expel.title')}
+              </h2>
               <p className="ft-modal__subtitle">{expelModal.student_name}</p>
             </header>
             <div className="ft-modal__body">
+              {isInstructor ? (
+                <p className="ft-modal__warning">{t('expel.requestWarning')}</p>
+              ) : null}
               <FormTextarea
                 label={t('expel.reasonLabel')}
                 value={expelReason}
@@ -644,7 +673,7 @@ export function AdminFieldTrainingApplicationsPage() {
                   expelMut.mutate({ applicationId: expelModal.id, reason: expelReason.trim() })
                 }
               >
-                {t('expel.confirm')}
+                {isInstructor ? t('expel.requestConfirm') : t('expel.confirm')}
               </Button>
             </footer>
           </div>
@@ -652,15 +681,19 @@ export function AdminFieldTrainingApplicationsPage() {
       ) : null}
 
       {progressModal ? (
-        <ProgressModal app={progressModal} onClose={() => setProgressModal(null)} />
+        <ProgressModal
+          app={progressModal}
+          onClose={() => setProgressModal(null)}
+          apiScope={apiScope}
+        />
       ) : null}
     </div>
   );
 }
 
-function ProgressModal({ app, onClose }) {
+export function ProgressModal({ app, onClose, apiScope = 'admin' }) {
   const { t } = useTranslation('fieldTraining');
-  const { data, isLoading } = useApplicationProgress(app.id);
+  const { data, isLoading } = useApplicationProgress(app.id, { scope: apiScope });
 
   return (
     <div className="ft-modal-backdrop" onClick={onClose} role="presentation">

@@ -154,7 +154,11 @@
     "solutionFileName": "اسم ملف الحل",
     "aiSelfEval": "تقييم ذاتي بالذكاء الاصطناعي",
     "aiStudentInput": "مدخل التقييم الذاتي",
+    "aiPromptUsed": "البرومبت المستخدم",
     "aiResponse": "رد الذكاء الاصطناعي",
+    "projectUrl": "رابط المشروع",
+    "fileExtraction": "استخراج الملف",
+    "urlExtraction": "استخراج الرابط",
     "finalNotes": "ملاحظات الطالب النهائية",
     "event": "الحدث"
   },

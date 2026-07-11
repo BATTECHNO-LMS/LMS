@@ -9,8 +9,10 @@ export function ConfirmDeleteModal({
   message = 'هل أنت متأكد من حذف هذا السجل؟ لا يمكن التراجع عن هذا الإجراء.',
   confirmLabel = 'حذف',
   cancelLabel = 'إلغاء',
+  confirmVariant = 'danger',
   onConfirm,
   onClose,
+  busy = false,
 }) {
   const { locale } = useLocale();
   if (!open) return null;
@@ -32,10 +34,10 @@ export function ConfirmDeleteModal({
         </h2>
         <p className="modal__message">{translateText(message, locale)}</p>
         <div className="modal__actions">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {translateText(cancelLabel, locale)}
           </Button>
-          <Button type="button" variant="danger" onClick={onConfirm}>
+          <Button type="button" variant={confirmVariant} onClick={onConfirm} disabled={busy}>
             {translateText(confirmLabel, locale)}
           </Button>
         </div>

@@ -14,6 +14,7 @@
       "courses": "إدارة الكورسات",
       "fieldTraining": "إدارة التدريب الميداني",
       "fieldTrainingReports": "تقارير التدريب الميداني",
+      "fieldTrainingStudents": "متابعة طلاب التدريب الميداني",
       "users": "المستخدمون",
       "roles": "الأدوار والصلاحيات",
       "settings": "الإعدادات",
@@ -55,6 +56,11 @@
     "evidence": "الأدلة",
     "riskStudents": "الطلبة المتعثرون",
     "fieldTraining": "التدريب الميداني",
+    "fieldTrainingAssigned": "تدريباتي المسندة",
+    "fieldTrainingSessions": "الجلسات والحضور",
+    "fieldTrainingTasks": "المهام والتسليمات",
+    "fieldTrainingResults": "نتائج الطلاب",
+    "fieldTrainingEligibility": "الأهلية والمتابعة",
     "notifications": "الإشعارات"
   },
   "student": {

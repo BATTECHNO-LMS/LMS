@@ -24,6 +24,17 @@ export function unwrapApiData(res) {
  */
 export function getApiErrorMessage(err, fallback = 'Request failed') {
   if (!err?.response) {
+    const code = err?.code || err?.cause?.code;
+    const msg = typeof err?.message === 'string' ? err.message : '';
+    if (
+      code === 'ERR_NETWORK' ||
+      code === 'ECONNREFUSED' ||
+      code === 'ECONNABORTED' ||
+      msg.includes('Network Error') ||
+      msg.includes('ECONNREFUSED')
+    ) {
+      return 'تعذر الاتصال بالخادم. تأكد من تشغيل الـ Backend على المنفذ الصحيح ثم أعد المحاولة.';
+    }
     return fallback;
   }
   const body = err?.response?.data;

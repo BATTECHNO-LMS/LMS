@@ -18,6 +18,7 @@ import {
   fetchOpportunityAssessments,
   fetchSessionAttendance,
   fetchApplicationProgress,
+  fetchOpportunityEligibility,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
 import { STALE, keepPreviousListData } from '../../../lib/queryDefaults.js';
@@ -193,6 +194,17 @@ export function useApplicationProgress(applicationId, options = {}) {
     queryKey: fieldTrainingKeys.applicationProgress(applicationId),
     queryFn: () => fetchApplicationProgress(applicationId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(applicationId),
+    ...options,
+  });
+}
+
+export function useOpportunityEligibility(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
+  return useQuery({
+    queryKey: fieldTrainingKeys.eligibility(opportunityId, scope),
+    queryFn: () =>
+      fetchOpportunityEligibility(opportunityId, { asInstructor: scope === 'instructor' }),
+    enabled: Boolean(opportunityId) && (options.enabled ?? true),
     ...options,
   });
 }

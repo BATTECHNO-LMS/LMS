@@ -54,12 +54,49 @@ export async function activateUserAccount(id) {
 
 /**
  * Activate all inactive student accounts (optional university scope).
- * @param {{ university_id?: string }} [params]
+ * @param {{ university_id?: string, user_ids?: string[] }} [params]
  */
 export async function activateAllPendingUsers({ university_id, user_ids } = {}) {
   const params = {};
   if (university_id) params.university_id = university_id;
   const body = user_ids?.length ? { user_ids } : {};
-  const res = await apiClient.post(`${endpoints.users}/activate-pending`, body, { params });
+  const res = await apiClient.post(`${endpoints.users}/activate-pending`, body, {
+    params,
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
+/**
+ * Manually verify a single user's email (does not activate the account).
+ * @param {string} id
+ */
+export async function verifyUserEmail(id) {
+  const res = await apiClient.post(`${endpoints.users}/${id}/verify-email`);
+  return unwrapApiData(res);
+}
+
+/**
+ * Bulk-verify emails for unverified users in current admin scope/filters.
+ * @param {{ university_id?: string, status?: string, user_ids?: string[] }} [params]
+ */
+export async function verifyAllUserEmails({ university_id, status, user_ids } = {}) {
+  const params = {};
+  if (university_id) params.university_id = university_id;
+  if (status) params.status = status;
+  const body = user_ids?.length ? { user_ids } : {};
+  const res = await apiClient.post(`${endpoints.users}/verify-all-emails`, body, {
+    params,
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
+/**
+ * Verify selected user emails only.
+ * @param {string[]} userIds
+ */
+export async function bulkVerifyUserEmails(userIds) {
+  const res = await apiClient.post(`${endpoints.users}/bulk-verify-emails`, { userIds });
   return unwrapApiData(res);
 }

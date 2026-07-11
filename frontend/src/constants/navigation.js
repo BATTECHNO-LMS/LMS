@@ -17,6 +17,9 @@ import {
   Bell,
   Library,
   Table2,
+  Users,
+  ListChecks,
+  ClipboardList,
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
 import { UI_PERMISSION } from './permissions.js';
@@ -53,6 +56,11 @@ export const NAV_BY_ROLE = {
     navItem('/instructor/evidence', 'evidence', FolderOpen, P.canUploadEvidence),
     navItem('/instructor/risk-students', 'riskStudents', AlertTriangle, P.canManageRiskStudents),
     navItem('/instructor/field-training', 'fieldTraining', Briefcase),
+    navItem('/instructor/field-training', 'fieldTrainingAssigned', Users),
+    navItem('/instructor/field-training?section=sessions', 'fieldTrainingSessions', CalendarDays),
+    navItem('/instructor/field-training?section=tasks', 'fieldTrainingTasks', ListChecks),
+    navItem('/instructor/field-training?section=results', 'fieldTrainingResults', ClipboardList),
+    navItem('/instructor/field-training?section=eligibility', 'fieldTrainingEligibility', Award),
     navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 

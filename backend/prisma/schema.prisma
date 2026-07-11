@@ -1352,6 +1352,9 @@ enum field_training_question_type {
   multiple_choice
   true_false
   short_answer
+  short_text
+  long_text
+  multi_select
 }
 
 enum field_training_task_review_status {
@@ -1404,9 +1407,16 @@ model field_training_task_submissions {
   ai_response_inserted_text String?
   final_student_notes String?
   ai_evaluated_at DateTime? @db.Timestamptz(6)
-  file_path      String   @db.VarChar(500)
-  file_name      String   @db.VarChar(255)
+  file_path      String?  @db.VarChar(500)
+  file_name      String?  @db.VarChar(255)
   mime_type      String?  @db.VarChar(120)
+  project_url    String?
+  analysis_file_id String? @db.Uuid
+  file_extraction_status String? @db.VarChar(40)
+  file_extracted_text String?
+  url_extraction_status String? @db.VarChar(40)
+  url_extracted_text String?
+  extraction_errors String?
   submitted_at   DateTime @default(now()) @db.Timestamptz(6)
   is_late        Boolean  @default(false)
   review_status  field_training_task_review_status @default(pending)
@@ -1497,6 +1507,7 @@ model field_training_assessment_questions {
   options        Json?
   correct_answer Json?
   points         Decimal  @default(1) @db.Decimal(6, 2)
+  is_required    Boolean  @default(true)
   sort_order     Int      @default(0)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
   updated_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -1512,6 +1523,7 @@ model field_training_assessment_attempts {
   application_id String   @db.Uuid
   student_id     String   @db.Uuid
   answers        Json?
+  grading_details Json?
   score          Decimal? @db.Decimal(6, 2)
   max_score      Decimal? @db.Decimal(6, 2)
   level          field_training_knowledge_level?

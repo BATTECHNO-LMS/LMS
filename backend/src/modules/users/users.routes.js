@@ -12,6 +12,9 @@ const {
   patchUserStatusBodySchema,
   activatePendingQuerySchema,
   activatePendingBodySchema,
+  verifyAllEmailsQuerySchema,
+  verifyAllEmailsBodySchema,
+  bulkVerifyEmailsBodySchema,
 } = require('./users.validation');
 
 const router = express.Router();
@@ -34,6 +37,22 @@ router.post(
   userActivate,
   validateRequest({ query: activatePendingQuerySchema, body: activatePendingBodySchema }),
   usersController.activateAllPending
+);
+
+router.post(
+  '/verify-all-emails',
+  authenticate,
+  userActivate,
+  validateRequest({ query: verifyAllEmailsQuerySchema, body: verifyAllEmailsBodySchema }),
+  usersController.verifyAllEmails
+);
+
+router.post(
+  '/bulk-verify-emails',
+  authenticate,
+  userActivate,
+  validateRequest({ body: bulkVerifyEmailsBodySchema }),
+  usersController.bulkVerifyEmails
 );
 
 router.get(
@@ -74,6 +93,14 @@ router.patch(
   userActivate,
   validateRequest({ params: uuidParamSchema }),
   usersController.activate
+);
+
+router.post(
+  '/:id/verify-email',
+  authenticate,
+  userActivate,
+  validateRequest({ params: uuidParamSchema }),
+  usersController.verifyEmail
 );
 
 module.exports = router;

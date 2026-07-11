@@ -16,6 +16,7 @@ const {
   assessmentIdParamSchema,
   submitAssessmentBodySchema,
   aiSelfEvalBodySchema,
+  taskSubmitFieldsSchema,
 } = require('./fieldTraining.validation');
 const { handleTaskUpload } = require('./fieldTraining.upload');
 const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
@@ -155,7 +156,7 @@ router.post(
   '/tasks/:taskId/submit',
   authenticate,
   studentOnly,
-  validateRequest({ params: taskIdParamSchema }),
+  validateRequest({ params: taskIdParamSchema, body: taskSubmitFieldsSchema }),
   handleTaskUpload,
   studentFieldTrainingController.submitTask
 );

@@ -115,8 +115,8 @@ async function aiSelfEvaluate(req, res, next) {
   try {
     const data = await workflowService.runTaskAiSelfEvaluate(
       req.validated.params.taskId,
-      req.validated.body.studentInput,
-      req.user.userId
+      req.validated.body,
+      req.user
     );
     return success(res, data, { message: 'AI evaluation complete' });
   } catch (e) {

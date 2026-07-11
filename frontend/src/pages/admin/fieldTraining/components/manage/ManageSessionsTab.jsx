@@ -5,7 +5,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../../../../components/common/Button.jsx';
 import { FormInput } from '../../../../../components/forms/FormInput.jsx';
 import { FormTextarea } from '../../../../../components/forms/FormTextarea.jsx';
-import { LoadingSpinner } from '../../../../../components/common/LoadingSpinner.jsx';
 import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
 import {
   createOpportunitySession,
@@ -15,6 +14,7 @@ import {
 } from '../../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
+import { ManageTabEmpty, ManageTabSkeleton } from './ManageTabStates.jsx';
 
 function normalizeTimeValue(value) {
   if (!value) return '';
@@ -127,13 +127,20 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance, apiScope = 
     }
   }
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) return <ManageTabSkeleton rows={3} />;
 
   return (
     <div className="ft-manage-panel">
-      <h2 className="ft-manage-panel__title">{t('manageTraining.sessionsTitle')}</h2>
+      <header className="ft-manage-panel__head">
+        <div>
+          <h2 className="ft-manage-panel__title">{t('manageTraining.sessionsTitle')}</h2>
+          <p className="ft-manage-panel__desc">{t('manageHub.sessionsDesc')}</p>
+        </div>
+      </header>
 
-      <form className="ft-composer-section__grid ft-composer-section__grid--2" onSubmit={handleSubmit}>
+      {error ? <p className="form-field__error">{error}</p> : null}
+
+      <form className="ft-manage-form ft-manage-form--session" onSubmit={handleSubmit}>
         <FormInput
           label={t('manageTraining.sessionTitle')}
           value={form.title}
@@ -195,53 +202,53 @@ export function ManageSessionsTab({ opportunityId, onOpenAttendance, apiScope = 
         </div>
       </form>
 
-      <ul className="ft-session-list ft-session-list--cards">
-        {sessions.map((s) => (
-          <li key={s.id} className="ft-session-card">
-            <div className="ft-session-card__main">
-              <Calendar size={18} aria-hidden />
-              <div>
-                <strong>{s.title}</strong>
-                <p>
-                  {s.session_date} · {s.start_time}–{s.end_time}
-                </p>
-                {s.description ? <p className="ft-session-card__desc">{s.description}</p> : null}
+      {!sessions.length ? (
+        <ManageTabEmpty icon={Calendar} title={t('manageHub.noSessions')} />
+      ) : (
+        <ul className="ft-session-list ft-session-list--cards">
+          {sessions.map((s) => (
+            <li key={s.id} className="ft-session-card">
+              <div className="ft-session-card__main">
+                <Calendar size={18} aria-hidden />
+                <div>
+                  <strong>{s.title}</strong>
+                  <p>
+                    {s.session_date} · {s.start_time}–{s.end_time}
+                  </p>
+                  {s.description ? <p className="ft-session-card__desc">{s.description}</p> : null}
+                </div>
               </div>
-            </div>
-            <div className="ft-session-card__badges">
-              <StatusBadge variant={s.is_required ? 'warning' : 'muted'}>
-                {s.is_required ? t('manageHub.requiredSession') : t('manageHub.optionalSession')}
-              </StatusBadge>
-              {s.attendance_summary ? (
-                <span className="ft-session-card__summary">{s.attendance_summary}</span>
-              ) : null}
-            </div>
-            <div className="ft-session-card__actions">
-              {s.zoom_link ? (
-                <a href={s.zoom_link} target="_blank" rel="noreferrer" className="btn btn--outline btn--sm">
-                  <Video size={14} aria-hidden /> Zoom
-                </a>
-              ) : null}
-              <Button type="button" variant="outline" className="btn--sm" onClick={() => onOpenAttendance(s.id)}>
-                <Users size={14} aria-hidden /> {t('manageHub.recordAttendance')}
-              </Button>
-              <button type="button" className="btn btn--icon btn--sm" onClick={() => startEdit(s)} aria-label={t('tasks.edit')}>
-                <Pencil size={16} />
-              </button>
-              <button
-                type="button"
-                className="btn btn--icon btn--sm"
-                onClick={() => deleteMut.mutate(s.id)}
-                disabled={deleteMut.isPending}
-                aria-label={t('tasks.delete')}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      {!sessions.length ? <p className="ft-manage-empty">{t('manageHub.noSessions')}</p> : null}
+              <div className="ft-session-card__badges">
+                <StatusBadge variant={s.is_required ? 'warning' : 'muted'}>
+                  {s.is_required ? t('manageHub.requiredSession') : t('manageHub.optionalSession')}
+                </StatusBadge>
+              </div>
+              <div className="ft-session-card__actions">
+                {s.zoom_link ? (
+                  <a href={s.zoom_link} target="_blank" rel="noreferrer" className="btn btn--outline btn--sm">
+                    <Video size={14} aria-hidden /> Zoom
+                  </a>
+                ) : null}
+                <Button type="button" variant="outline" className="btn--sm" onClick={() => onOpenAttendance(s.id)}>
+                  <Users size={14} aria-hidden /> {t('manageHub.recordAttendance')}
+                </Button>
+                <button type="button" className="btn btn--icon btn--sm" onClick={() => startEdit(s)} aria-label={t('edit')}>
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--icon btn--sm"
+                  onClick={() => deleteMut.mutate(s.id)}
+                  disabled={deleteMut.isPending}
+                  aria-label={t('tasks.delete')}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

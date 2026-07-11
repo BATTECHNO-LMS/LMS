@@ -55,6 +55,11 @@ async function checkHealth() {
   }
 }
 
+async function getObjectBuffer(storageKey) {
+  const abs = getAbsolutePath(storageKey);
+  return fs.promises.readFile(abs);
+}
+
 module.exports = {
   objectExists,
   headObject,
@@ -63,4 +68,5 @@ module.exports = {
   createPresignedGetUrl,
   checkHealth,
   getAbsolutePath,
+  getObjectBuffer,
 };

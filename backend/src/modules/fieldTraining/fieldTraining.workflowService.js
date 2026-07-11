@@ -12,31 +12,11 @@ const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const aiService = require('./fieldTraining.ai.service');
 const progressBuilder = require('./fieldTraining.progress');
-
-function gradeAnswers(questions, answers) {
-  let score = 0;
-  let max = 0;
-  for (const q of questions) {
-    const pts = Number(q.points) || 1;
-    max += pts;
-    const given = answers?.[q.id];
-    if (given == null) continue;
-    const correct = q.correct_answer;
-    if (q.question_type === 'short_answer') {
-      if (
-        correct != null &&
-        String(given).trim().toLowerCase() === String(correct).trim().toLowerCase()
-      ) {
-        score += pts;
-      }
-      continue;
-    }
-    if (JSON.stringify(given) === JSON.stringify(correct)) {
-      score += pts;
-    }
-  }
-  return { score, max };
-}
+const {
+  gradeAnswers,
+  prepareQuestionForStorage,
+  validateAssessmentQuestions,
+} = require('./fieldTraining.assessmentQuestions');
 
 async function assertPreAssessmentSatisfied(opportunityId) {
   const opp = await repo.findById(opportunityId);
@@ -283,18 +263,30 @@ async function upsertAssessment(opportunityId, type, body, userId, user) {
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
 
+  const status = body.status === 'published' ? 'published' : body.status ?? 'draft';
+  if (status === 'published') {
+    const validation = validateAssessmentQuestions(body.questions || []);
+    if (typeof validation === 'string') {
+      throw new ApiError(400, validation);
+    }
+    if (body.passing_score != null && Number(body.passing_score) > 100) {
+      throw new ApiError(400, 'علامة النجاح لا يمكن أن تتجاوز 100.');
+    }
+  }
+
   const assessment = await repo.upsertAssessment({
     opportunity_id: opportunityId,
     type,
     title: body.title.trim(),
     description: body.description ?? null,
     passing_score: body.passing_score ?? null,
-    status: body.status ?? 'draft',
+    status,
     created_by_id: userId,
   });
 
-  if (body.questions?.length) {
-    await repo.replaceAssessmentQuestions(assessment.id, body.questions);
+  if (Array.isArray(body.questions)) {
+    const prepared = body.questions.map((q, i) => prepareQuestionForStorage(q, i));
+    await repo.replaceAssessmentQuestions(assessment.id, prepared);
   }
 
   const full = await repo.findAssessmentById(assessment.id);
@@ -313,8 +305,23 @@ async function publishAssessment(opportunityId, type, userId, user) {
 
   const assessment = await repo.findAssessmentByOpportunityAndType(opportunityId, type);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
-  if (!assessment.field_training_assessment_questions?.length) {
-    throw new ApiError(400, 'أضف أسئلة قبل النشر');
+
+  const questions = assessment.field_training_assessment_questions || [];
+  const validation = validateAssessmentQuestions(
+    questions.map((q) => ({
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      points: q.points,
+      is_required: q.is_required,
+    }))
+  );
+  if (typeof validation === 'string') {
+    throw new ApiError(400, validation);
+  }
+  if (assessment.passing_score != null && Number(assessment.passing_score) > 100) {
+    throw new ApiError(400, 'علامة النجاح لا يمكن أن تتجاوز 100.');
   }
 
   await prisma.field_training_assessments.update({
@@ -407,8 +414,11 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
     throw new ApiError(409, 'تم تسليم التقييم مسبقًا');
   }
 
-  const { score, max } = gradeAnswers(assessment.field_training_assessment_questions, answers);
-  const level = workflow.scoreToLevel(score, max);
+  const { scorePoints, maxPoints, scorePercent, questionResults } = gradeAnswers(
+    assessment.field_training_assessment_questions,
+    answers
+  );
+  const level = workflow.scoreToLevel(scorePercent, 100);
   const now = new Date();
 
   const attempt = await repo.upsertAssessmentAttempt({
@@ -416,20 +426,21 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
     application_id: app.id,
     student_id: studentId,
     answers,
-    score,
-    max_score: max,
+    grading_details: questionResults,
+    score: scorePercent,
+    max_score: 100,
     level,
     submitted_at: now,
   });
 
   const appUpdate = {};
   if (type === 'pre') {
-    appUpdate.pre_assessment_score = score;
+    appUpdate.pre_assessment_score = scorePercent;
     appUpdate.pre_assessment_level = level;
     appUpdate.training_status =
       opp.status === 'in_progress' ? 'in_training' : 'pre_assessment_completed';
   } else {
-    appUpdate.post_assessment_score = score;
+    appUpdate.post_assessment_score = scorePercent;
     appUpdate.training_status = 'post_assessment_completed';
   }
 
@@ -454,6 +465,12 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
         instructorId: oppRow?.assigned_instructor_id,
         studentName: studentProfile?.full_name,
       });
+      await ftNotify.notifyStudentEligibilityUpdated({
+        studentId,
+        opportunityId,
+        opportunityTitle: oppRow?.title,
+        eligible: true,
+      });
     }
   } else {
     const oppRow = await repo.findById(opportunityId);
@@ -471,10 +488,14 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
   return {
     attempt: {
       id: attempt.id,
-      score: Number(score),
-      max_score: Number(max),
+      score: scorePercent,
+      max_score: 100,
+      score_points: scorePoints,
+      max_points: maxPoints,
       level,
       submitted_at: now,
+      grading_details: questionResults,
+      has_pending_manual: questionResults.some((r) => r.gradingStatus === 'pending_manual'),
     },
   };
 }
@@ -524,7 +545,62 @@ async function expelParticipant(applicationId, body, userId, user) {
   return { application: repo.mapApplicationRow(await repo.findApplicationById(applicationId)) };
 }
 
-async function runTaskAiSelfEvaluate(taskId, studentInput, studentId) {
+async function requestExpulsion(applicationId, body, userId, user) {
+  const app = await repo.findApplicationById(applicationId);
+  if (!app) throw new ApiError(404, 'Application not found');
+  const opp = await repo.findById(app.opportunity_id);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  if (app.status !== 'approved') {
+    throw new ApiError(400, 'يمكن طلب استبعاد المشاركين المعتمدين فقط');
+  }
+  if (workflow.isExpelled(app)) {
+    throw new ApiError(400, 'الطالب مستبعد مسبقًا');
+  }
+
+  const reason = body.reason?.trim();
+  if (!reason) throw new ApiError(400, 'سبب الاستبعاد مطلوب');
+
+  const [instructor] = await repo.findUsersByIds([userId]);
+  const [student] = await repo.findStudentProfilesByIds([app.student_id]);
+
+  const notePrefix = `[طلب استبعاد من المدرب ${new Date().toISOString().slice(0, 10)}] ${reason}`;
+  const existingNote = app.admin_note?.trim();
+  await repo.updateApplication(applicationId, {
+    admin_note: existingNote ? `${existingNote}\n${notePrefix}` : notePrefix,
+  });
+
+  await recordAudit({
+    userId,
+    actionType: 'FIELD_TRAINING_EXPULSION_REQUESTED',
+    entityType: 'field_training_application',
+    entityId: applicationId,
+    newValues: { reason },
+  });
+
+  await ftNotify.notifyAdminsExpulsionRequested({
+    opportunityId: opp.id,
+    opportunityTitle: opp.title,
+    universityId: student?.primary_university_id || opp.university_id,
+    studentName: student?.full_name,
+    reason,
+    instructorName: instructor?.full_name,
+    applicationId,
+  });
+
+  return {
+    application: repo.mapApplicationRow(await repo.findApplicationById(applicationId)),
+    message: 'تم إرسال طلب الاستبعاد إلى الإدارة',
+  };
+}
+
+async function runTaskAiSelfEvaluate(taskId, body, user) {
+  const studentId = user.userId;
+  const studentDescription = String(body.studentDescription || body.studentInput || '').trim();
+  const uploadedFileId = body.uploadedFileId || null;
+  const projectUrl = body.projectUrl?.trim() || null;
+
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
   if (!task.requires_ai_self_evaluation) {
@@ -534,9 +610,6 @@ async function runTaskAiSelfEvaluate(taskId, studentInput, studentId) {
     throw new ApiError(400, 'لم يتم إعداد برومبت التقييم لهذه المهمة', null, 'AI_PROMPT_NOT_CONFIGURED');
   }
 
-  const opp = await prisma.field_training_opportunities.findUnique({
-    where: { id: task.opportunity_id },
-  });
   const app = await repo.findApplicationByOpportunityAndStudent(task.opportunity_id, studentId);
   if (!app || app.status !== 'approved' || workflow.isExpelled(app)) {
     throw new ApiError(403, 'غير مصرح');
@@ -545,17 +618,101 @@ async function runTaskAiSelfEvaluate(taskId, studentInput, studentId) {
     throw new ApiError(403, 'التدريب غير نشط بعد');
   }
 
+  if (!uploadedFileId && !projectUrl) {
+    throw new ApiError(400, 'أرفق ملفًا أو أدخل رابطًا عامًا للعمل مع الوصف');
+  }
+
+  const contentExtract = require('./fieldTraining.contentExtract');
+  const urlFetch = require('./fieldTraining.urlFetch');
+  const filesService = require('../files/files.service');
+
+  let fileExtraction = { status: 'skipped', text: null, error: null };
+  let fileMeta = { fileName: null, mimeType: null, fileId: null };
+
+  if (uploadedFileId) {
+    const record = await filesService.getFileByIdForUser(uploadedFileId, user);
+    fileMeta = {
+      fileName: record.originalName,
+      mimeType: record.mimeType,
+      fileId: record.id,
+    };
+    fileExtraction = await contentExtract.extractTextFromStorageKey({
+      storageKey: record.storageKey,
+      mimeType: record.mimeType,
+      fileName: record.originalName,
+    });
+  }
+
+  let urlExtraction = { status: 'skipped', text: null, error: null };
+  if (projectUrl) {
+    if (!urlFetch.isValidHttpUrlShape(projectUrl)) {
+      throw new ApiError(400, 'الرابط يجب أن يكون عامًا ومتاحًا.', null, 'URL_INVALID');
+    }
+    urlExtraction = await urlFetch.fetchAndExtractPublicUrl(projectUrl);
+  }
+
+  const fileReadable = fileExtraction.status === 'ok' || fileExtraction.status === 'partial';
+  const urlReadable = urlExtraction.status === 'ok';
+  if (!fileReadable && !urlReadable) {
+    const msg =
+      urlExtraction.error ||
+      fileExtraction.error ||
+      'تعذر تحليل المحتوى حاليًا. يرجى المحاولة مرة أخرى.';
+    throw new ApiError(400, msg, {
+      file_extraction_status: fileExtraction.status,
+      url_extraction_status: urlExtraction.status,
+    }, 'CONTENT_UNREADABLE');
+  }
+
+  if (!aiService.isAiConfigured()) {
+    throw new ApiError(
+      503,
+      'خدمة التحليل بالذكاء الاصطناعي غير مفعلة حاليًا.',
+      null,
+      'AI_NOT_CONFIGURED'
+    );
+  }
+
   const result = await aiService.runSelfEvaluationAi({
     systemPrompt: task.ai_self_evaluation_prompt,
-    studentInput: studentInput.trim(),
+    taskTitle: task.title,
+    taskDescription: task.description,
+    taskRequirements: task.description,
+    studentDescription,
+    fileContent: fileExtraction.text,
+    fileStatus: fileExtraction.status,
+    fileName: fileMeta.fileName,
+    urlContent: urlExtraction.text,
+    urlStatus: urlExtraction.status,
+    projectUrl,
   });
+
+  const extractionErrors = [fileExtraction.error, urlExtraction.error].filter(Boolean).join(' | ') || null;
 
   return {
     ai_response: result.text,
     ai_model_provider: result.provider,
     ai_model_name: result.model,
-    ai_prompt_used: task.ai_self_evaluation_prompt,
+    ai_prompt_used: result.promptUsed || task.ai_self_evaluation_prompt,
     evaluated_at: new Date().toISOString(),
+    student_description: studentDescription,
+    project_url: projectUrl,
+    analysis_file_id: fileMeta.fileId,
+    analysis_file_name: fileMeta.fileName,
+    analysis_file_mime_type: fileMeta.mimeType,
+    file_extraction_status: fileExtraction.status,
+    file_extracted_text: fileExtraction.text,
+    url_extraction_status: urlExtraction.status,
+    url_extracted_text: urlExtraction.text,
+    extraction_errors: extractionErrors,
+    warnings: [
+      fileExtraction.status !== 'ok' && fileExtraction.status !== 'skipped'
+        ? fileExtraction.error || `ملف: ${fileExtraction.status}`
+        : null,
+      urlExtraction.status !== 'ok' && urlExtraction.status !== 'skipped'
+        ? urlExtraction.error || `رابط: ${urlExtraction.status}`
+        : null,
+    ].filter(Boolean),
   };
 }
 
@@ -709,20 +866,302 @@ async function getApplicationProgress(applicationId, user) {
   await assertManageOpportunityAccess(user, opp);
   await assertApplicationStudentAccess(user, app.student_id);
 
-  const [sessionsCount, tasksCount, tasksSubmitted] = await Promise.all([
-    prisma.field_training_sessions.count({ where: { opportunity_id: opp.id } }),
-    prisma.field_training_tasks.count({ where: { opportunity_id: opp.id } }),
-    prisma.field_training_task_submissions.count({ where: { application_id: app.id } }),
+  const [sessions, tasks, submissions, attendanceRows, attempts, letter, profiles, assessments] =
+    await Promise.all([
+    prisma.field_training_sessions.findMany({
+      where: { opportunity_id: opp.id },
+      orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        session_date: true,
+        start_time: true,
+        end_time: true,
+        is_required: true,
+      },
+    }),
+    prisma.field_training_tasks.findMany({
+      where: { opportunity_id: opp.id },
+      orderBy: { created_at: 'asc' },
+      select: { id: true, title: true, due_date: true, is_final_task: true },
+    }),
+    prisma.field_training_task_submissions.findMany({
+      where: { application_id: app.id },
+      include: {
+        field_training_tasks: { select: { id: true, title: true, is_final_task: true } },
+      },
+      orderBy: { submitted_at: 'desc' },
+    }),
+    prisma.field_training_attendance.findMany({
+      where: { application_id: app.id },
+      select: {
+        id: true,
+        session_id: true,
+        status: true,
+        note: true,
+        recorded_at: true,
+      },
+    }),
+    prisma.field_training_assessment_attempts.findMany({
+      where: { application_id: app.id },
+      include: {
+        field_training_assessments: { select: { id: true, type: true, title: true } },
+      },
+    }),
+    repo.findCompletionLetterByApplication(app.id),
+    repo.findStudentProfilesByIds([app.student_id]),
+    prisma.field_training_assessments.findMany({
+      where: { opportunity_id: opp.id },
+      select: { type: true, status: true },
+    }),
   ]);
 
-  const profiles = await repo.findStudentProfilesByIds([app.student_id]);
+  const attendanceBySession = Object.fromEntries(attendanceRows.map((r) => [r.session_id, r]));
+  const attendanceRecords = sessions.map((session) => {
+    const row = attendanceBySession[session.id];
+    return {
+      session_id: session.id,
+      session_title: session.title,
+      session_date: session.session_date
+        ? new Date(session.session_date).toISOString().slice(0, 10)
+        : null,
+      is_required: session.is_required !== false,
+      status: row?.status ?? null,
+      note: row?.note ?? null,
+      recorded_at: row?.recorded_at ?? null,
+    };
+  });
+
+  const attendanceCounts = attendanceRecords.reduce(
+    (acc, row) => {
+      if (!row.status) return acc;
+      if (row.status === 'present') acc.present += 1;
+      else if (row.status === 'absent') acc.absent += 1;
+      else if (row.status === 'late') acc.late += 1;
+      else if (row.status === 'excused') acc.excused += 1;
+      return acc;
+    },
+    { present: 0, absent: 0, late: 0, excused: 0 }
+  );
+
+  const submissionByTask = Object.fromEntries(submissions.map((s) => [s.task_id, s]));
+  const taskRows = tasks.map((task) => {
+    const sub = submissionByTask[task.id];
+    const aiText = sub?.ai_response_inserted_text || sub?.ai_raw_response || null;
+    return {
+      task_id: task.id,
+      task_title: task.title,
+      is_final_task: Boolean(task.is_final_task),
+      due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : null,
+      submission_id: sub?.id ?? null,
+      review_status: sub?.review_status ?? (sub ? 'pending' : 'not_submitted'),
+      submitted_at: sub?.submitted_at ?? null,
+      instructor_feedback: sub?.instructor_feedback ?? null,
+      ai_summary: aiText ? String(aiText).slice(0, 280) : null,
+      student_input: sub?.student_self_evaluation_input ?? null,
+      is_late: Boolean(sub?.is_late),
+    };
+  });
+
+  const pendingReviews = submissions.filter((s) => (s.review_status || 'pending') === 'pending').length;
+
+  const findAttempt = (type) =>
+    attempts.find((a) => a.field_training_assessments?.type === type) || null;
+
+  const mapAttempt = (attempt) =>
+    attempt
+      ? {
+          attempt_id: attempt.id,
+          assessment_id: attempt.assessment_id,
+          score: attempt.score != null ? Number(attempt.score) : null,
+          max_score: attempt.max_score != null ? Number(attempt.max_score) : null,
+          level: attempt.level ?? null,
+          submitted_at: attempt.submitted_at ?? null,
+        }
+      : null;
+
+  const preAttempt = mapAttempt(findAttempt('pre'));
+  const postAttempt = mapAttempt(findAttempt('post'));
+
+  const requiredSessions = sessions.filter((s) => s.is_required !== false);
+  const requiredIds = new Set(requiredSessions.map((s) => s.id));
+  const sessionsAttended = attendanceRows.filter(
+    (r) =>
+      requiredIds.has(r.session_id) && ['present', 'late', 'excused'].includes(r.status)
+  ).length;
+
+  const progress = progressBuilder.buildParticipantProgress(app, opp, {
+    sessionsCount: sessions.length,
+    requiredSessionsCount: requiredSessions.length,
+    sessionsAttended,
+    attendanceRecordsCount: attendanceRows.length,
+    tasksCount: tasks.length,
+    tasksSubmitted: submissions.length,
+    preAssessmentPublished: assessments.some((a) => a.type === 'pre' && a.status === 'published'),
+    postAssessmentPublished: assessments.some((a) => a.type === 'post' && a.status === 'published'),
+  });
+
+  progress.metrics = {
+    ...progress.metrics,
+    present_count: attendanceCounts.present,
+    absent_count: attendanceCounts.absent,
+    late_count: attendanceCounts.late,
+    excused_count: attendanceCounts.excused,
+    pending_reviews: pendingReviews,
+    sessions_attended: attendanceCounts.present + attendanceCounts.late,
+  };
+
+  const profile = profiles[0] || null;
+
   return {
-    progress: progressBuilder.buildParticipantProgress(app, opp, {
-      sessionsCount,
-      tasksCount,
-      tasksSubmitted,
-    }),
-    student_name: profiles[0]?.full_name ?? null,
+    progress,
+    student_name: profile?.full_name ?? null,
+    student: {
+      id: app.student_id,
+      full_name: profile?.full_name ?? null,
+      email: profile?.email ?? null,
+      phone: profile?.phone ?? null,
+      university: profile?.university?.name ?? null,
+      specialty_label: profile?.university_specialty
+        ? repo.formatSpecialtyLabel(profile.university_specialty)
+        : repo.formatSpecialtyLabel(profile?.specialty),
+    },
+    attendance: {
+      records: attendanceRecords,
+      counts: attendanceCounts,
+    },
+    tasks: taskRows,
+    assessments: {
+      pre: preAttempt,
+      post: postAttempt,
+    },
+    completion_letter: letter
+      ? {
+          id: letter.id,
+          letter_no: letter.letter_no,
+          issued_at: letter.issued_at ?? app.completion_letter_issued_at,
+          has_pdf: Boolean(letter.pdf_url),
+        }
+      : null,
+  };
+}
+
+async function recalculateEligibility(applicationId, user) {
+  const app = await repo.findApplicationById(applicationId);
+  if (!app) throw new ApiError(404, 'Application not found');
+  const opp = await repo.findById(app.opportunity_id);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  if (workflow.isExpelled(app)) {
+    throw new ApiError(400, 'لا يمكن إعادة حساب أهلية طالب مستبعد');
+  }
+  if (app.status !== 'approved') {
+    throw new ApiError(400, 'إعادة حساب الأهلية متاحة للمشاركين المقبولين فقط');
+  }
+
+  const result = await workflow.persistEligibility(applicationId);
+  const updated = await repo.findApplicationById(applicationId);
+  return {
+    eligibility: result,
+    application: repo.mapApplicationRow(updated),
+  };
+}
+
+async function gradeAssessmentAttempt(attemptId, body, user) {
+  const attempt = await repo.findAssessmentAttemptById(attemptId);
+  if (!attempt) throw new ApiError(404, 'Attempt not found');
+  const assessment = attempt.field_training_assessments;
+  const opp = assessment?.field_training_opportunities;
+  if (!assessment || !opp) throw new ApiError(404, 'Assessment not found');
+  await assertManageOpportunityAccess(user, opp);
+
+  const app = attempt.field_training_applications;
+  if (!app) throw new ApiError(404, 'Application not found');
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  const grades = Array.isArray(body?.grades) ? body.grades : [];
+  if (!grades.length) throw new ApiError(400, 'أضف درجات الأسئلة المطلوب تصحيحها يدويًا');
+
+  const gradeByQuestion = Object.fromEntries(
+    grades.map((g) => [String(g.question_id), Number(g.awarded_points)])
+  );
+  const questions = assessment.field_training_assessment_questions || [];
+  const existingDetails = Array.isArray(attempt.grading_details) ? attempt.grading_details : [];
+  const detailByQuestion = Object.fromEntries(
+    existingDetails.map((row) => [String(row.questionId), row])
+  );
+
+  let scorePoints = 0;
+  let maxPoints = 0;
+  const questionResults = questions.map((q) => {
+    const points = Number(q.points) > 0 ? Number(q.points) : 1;
+    maxPoints += points;
+    const prev = detailByQuestion[q.id] || {
+      questionId: q.id,
+      awardedPoints: 0,
+      maxPoints: points,
+      gradingStatus: 'pending_manual',
+    };
+
+    if (Object.prototype.hasOwnProperty.call(gradeByQuestion, q.id)) {
+      const awarded = Math.max(0, Math.min(points, Number(gradeByQuestion[q.id]) || 0));
+      scorePoints += awarded;
+      return {
+        questionId: q.id,
+        awardedPoints: awarded,
+        maxPoints: points,
+        gradingStatus: 'manually_graded',
+      };
+    }
+
+    const awarded = Number(prev.awardedPoints) || 0;
+    scorePoints += awarded;
+    return {
+      questionId: q.id,
+      awardedPoints: awarded,
+      maxPoints: points,
+      gradingStatus: prev.gradingStatus || 'auto_graded',
+    };
+  });
+
+  if (questionResults.some((r) => r.gradingStatus === 'pending_manual')) {
+    throw new ApiError(400, 'ما زالت هناك أسئلة بانتظار التصحيح اليدوي');
+  }
+
+  const scorePercent = maxPoints > 0 ? Math.round((scorePoints / maxPoints) * 10000) / 100 : 0;
+  const level = workflow.scoreToLevel(scorePercent, 100);
+
+  const updatedAttempt = await repo.updateAssessmentAttempt(attemptId, {
+    grading_details: questionResults,
+    score: scorePercent,
+    max_score: 100,
+    level,
+  });
+
+  const appUpdate = {};
+  if (assessment.type === 'pre') {
+    appUpdate.pre_assessment_score = scorePercent;
+    appUpdate.pre_assessment_level = level;
+  } else if (assessment.type === 'post') {
+    appUpdate.post_assessment_score = scorePercent;
+  }
+  if (Object.keys(appUpdate).length) {
+    await repo.updateApplication(app.id, appUpdate);
+  }
+  if (assessment.type === 'post') {
+    await workflow.persistEligibility(app.id);
+  }
+
+  return {
+    attempt: {
+      id: updatedAttempt.id,
+      score: scorePercent,
+      level,
+      grading_details: questionResults,
+      has_pending_manual: false,
+    },
   };
 }
 
@@ -737,19 +1176,59 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
     };
   }
 
-  const [sessionsCount, tasksCount, tasksSubmitted] = await Promise.all([
+  // Scope strictly to this student's application — never aggregate other students.
+  const [
+    sessionsCount,
+    requiredSessions,
+    tasksCount,
+    tasksSubmitted,
+    attendanceRecordsCount,
+    assessments,
+  ] = await Promise.all([
     prisma.field_training_sessions.count({ where: { opportunity_id: opp.id } }),
+    prisma.field_training_sessions.findMany({
+      where: { opportunity_id: opp.id, is_required: true },
+      select: { id: true },
+    }),
     prisma.field_training_tasks.count({ where: { opportunity_id: opp.id } }),
     prisma.field_training_task_submissions.count({ where: { application_id: app.id } }),
+    prisma.field_training_attendance.count({ where: { application_id: app.id } }),
+    prisma.field_training_assessments.findMany({
+      where: { opportunity_id: opp.id },
+      select: { type: true, status: true },
+    }),
   ]);
+
+  const requiredSessionIds = requiredSessions.map((s) => s.id);
+  const sessionsAttended = requiredSessionIds.length
+    ? await prisma.field_training_attendance.count({
+        where: {
+          application_id: app.id,
+          session_id: { in: requiredSessionIds },
+          status: { in: ['present', 'late', 'excused'] },
+        },
+      })
+    : 0;
+
+  const preAssessmentPublished = assessments.some(
+    (a) => a.type === 'pre' && a.status === 'published'
+  );
+  const postAssessmentPublished = assessments.some(
+    (a) => a.type === 'post' && a.status === 'published'
+  );
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(app.id, studentId);
 
   return {
     progress: progressBuilder.buildParticipantProgress(app, opp, {
       sessionsCount,
+      requiredSessionsCount: requiredSessions.length,
+      sessionsAttended,
+      attendanceRecordsCount,
       tasksCount,
       tasksSubmitted,
+      preAssessmentPublished,
+      postAssessmentPublished,
     }),
     completion_letter_id: letter?.id ?? null,
   };
@@ -776,6 +1255,23 @@ async function updateAssessmentById(assessmentId, body, user) {
   if (!assessment) throw new ApiError(404, 'Assessment not found');
   await assertManageOpportunityAccess(user, assessment.field_training_opportunities);
 
+  if (body.status === 'published' || (body.questions && assessment.status === 'published')) {
+    const questions = body.questions?.length
+      ? body.questions
+      : (assessment.field_training_assessment_questions || []).map((q) => ({
+          question_text: q.question_text,
+          question_type: q.question_type,
+          options: q.options,
+          correct_answer: q.correct_answer,
+          points: q.points,
+          is_required: q.is_required,
+        }));
+    const validation = validateAssessmentQuestions(questions);
+    if (typeof validation === 'string') {
+      throw new ApiError(400, validation);
+    }
+  }
+
   const data = {};
   if (body.title != null) data.title = body.title.trim();
   if (body.description !== undefined) data.description = body.description;
@@ -785,8 +1281,9 @@ async function updateAssessmentById(assessmentId, body, user) {
   if (Object.keys(data).length) {
     await prisma.field_training_assessments.update({ where: { id: assessmentId }, data });
   }
-  if (body.questions?.length) {
-    await repo.replaceAssessmentQuestions(assessmentId, body.questions);
+  if (Array.isArray(body.questions)) {
+    const prepared = body.questions.map((q, i) => prepareQuestionForStorage(q, i));
+    await repo.replaceAssessmentQuestions(assessmentId, prepared);
   }
 
   const full = await repo.findAssessmentById(assessmentId);
@@ -802,8 +1299,20 @@ async function publishAssessmentById(assessmentId, userId, user) {
   const assessment = await repo.findAssessmentById(assessmentId);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
   await assertManageOpportunityAccess(user, assessment.field_training_opportunities);
-  if (!assessment.field_training_assessment_questions?.length) {
-    throw new ApiError(400, 'أضف أسئلة قبل النشر');
+
+  const questions = assessment.field_training_assessment_questions || [];
+  const validation = validateAssessmentQuestions(
+    questions.map((q) => ({
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      points: q.points,
+      is_required: q.is_required,
+    }))
+  );
+  if (typeof validation === 'string') {
+    throw new ApiError(400, validation);
   }
 
   await prisma.field_training_assessments.update({
@@ -894,6 +1403,28 @@ async function downloadCompletionLetter(applicationId, studentId) {
   };
 }
 
+async function downloadCompletionLetterAsManager(applicationId, user) {
+  const app = await repo.findApplicationById(applicationId);
+  if (!app) throw new ApiError(404, 'Application not found');
+  const opp = await repo.findById(app.opportunity_id);
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  const letter = await repo.findCompletionLetterByApplication(applicationId);
+  if (!letter?.pdf_url) throw new ApiError(404, 'Completion letter not found');
+
+  const absPath = repo.resolveSubmissionAbsolutePath(letter.pdf_url);
+  if (!repo.submissionFileExists(letter.pdf_url)) {
+    throw new ApiError(404, 'File not found');
+  }
+
+  return {
+    absPath,
+    fileName: `${letter.letter_no}.pdf`,
+    mimeType: 'application/pdf',
+  };
+}
+
 module.exports = {
   startTraining,
   listSessions,
@@ -914,10 +1445,14 @@ module.exports = {
   submitAssessment,
   submitAssessmentById,
   getApplicationProgress,
+  recalculateEligibility,
+  gradeAssessmentAttempt,
   getStudentOpportunityProgress,
   expelParticipant,
+  requestExpulsion,
   runTaskAiSelfEvaluate,
   issueCompletionLetter,
   downloadCompletionLetter,
+  downloadCompletionLetterAsManager,
   listInstructors,
 };

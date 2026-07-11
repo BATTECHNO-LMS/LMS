@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { StatCard } from '../../../../components/common/StatCard.jsx';
 import { AdminStatsGrid } from '../../../../components/admin/AdminStatsGrid.jsx';
 import { useStudentFieldTrainingSessions } from '../../../../features/fieldTraining/index.js';
-import { Calendar, CheckCircle2, XCircle, Percent } from 'lucide-react';
+import { Calendar, CheckCircle2, XCircle, Percent, Clock, Shield } from 'lucide-react';
 
 export function StudentAttendanceTab({ opportunityId, progress, opp, enabled }) {
   const { t } = useTranslation('fieldTraining');
@@ -15,12 +15,16 @@ export function StudentAttendanceTab({ opportunityId, progress, opp, enabled }) 
   const counts = useMemo(() => {
     let present = 0;
     let absent = 0;
+    let late = 0;
+    let excused = 0;
     requiredSessions.forEach((s) => {
       const st = s.attendance?.status;
-      if (st === 'present' || st === 'late' || st === 'excused') present += 1;
+      if (st === 'present') present += 1;
       else if (st === 'absent') absent += 1;
+      else if (st === 'late') late += 1;
+      else if (st === 'excused') excused += 1;
     });
-    return { total: requiredSessions.length, present, absent };
+    return { total: requiredSessions.length, present, absent, late, excused };
   }, [requiredSessions]);
 
   const pct = progress?.metrics?.attendance_percentage;
@@ -50,8 +54,18 @@ export function StudentAttendanceTab({ opportunityId, progress, opp, enabled }) 
           icon={XCircle}
         />
         <StatCard
+          label={t('studentTraining.attendance.late')}
+          value={counts.late}
+          icon={Clock}
+        />
+        <StatCard
+          label={t('studentTraining.attendance.excused')}
+          value={counts.excused}
+          icon={Shield}
+        />
+        <StatCard
           label={t('progress.attendance')}
-          value={pct != null ? `${pct}%` : '—'}
+          value={pct != null ? `${pct}%` : t('notAvailable')}
           hint={t('studentTraining.attendance.minRequired', { min: minPct })}
           icon={Percent}
         />

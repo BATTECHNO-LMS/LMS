@@ -12,7 +12,9 @@ function toDateOnly(value) {
 
 function formatDateOnly(d) {
   if (!d) return null;
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   const dt = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(dt.getTime())) return null;
   return dt.toISOString().slice(0, 10);
 }
 
@@ -74,6 +76,15 @@ function formatSpecialtyLabel(specialty, fallback = 'غير محدد') {
 
 function mapUniversitySummary(university) {
   if (!university) return null;
+  // Already-mapped API shape
+  if (Array.isArray(university.domains) && university.university_email_domains == null) {
+    return {
+      id: university.id,
+      name: university.name,
+      logoUrl: university.logoUrl ?? null,
+      domains: university.domains,
+    };
+  }
   return {
     id: university.id,
     name: university.name,
@@ -112,14 +123,18 @@ function mapApplicationRow(row) {
 }
 
 function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
+  // Accept Prisma include shape (`specialties` / `universities`) or an already-mapped API row
+  // (`specialty` / `university`) so list endpoints never wipe nested summaries on remapping.
+  const specialtySource = row.specialties ?? row.specialty ?? null;
+  const universitySource = row.universities ?? row.university ?? null;
   const mapped = {
     id: row.id,
     title: row.title,
     slug: row.slug,
     university_id: row.university_id ?? null,
-    university: mapUniversitySummary(row.universities),
-    specialty_id: row.specialty_id ?? null,
-    specialty: mapSpecialtySummary(row.specialties),
+    university: mapUniversitySummary(universitySource),
+    specialty_id: row.specialty_id ?? specialtySource?.id ?? null,
+    specialty: mapSpecialtySummary(specialtySource),
     assigned_instructor_id: row.assigned_instructor_id ?? null,
     organization_name: row.organization_name,
     location: row.location,
@@ -145,7 +160,11 @@ function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
     published_at: row.published_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
-    applications_count: applicationsCount ?? row._count?.field_training_applications ?? 0,
+    applications_count:
+      applicationsCount ??
+      row._count?.field_training_applications ??
+      row.applications_count ??
+      0,
   };
   if (!compact) return mapped;
   const { description, requirements, benefits, completion_rules, ...listRow } = mapped;
@@ -163,8 +182,9 @@ async function findManyAdmin({ where, skip, take }) {
     }),
     prisma.field_training_opportunities.count({ where }),
   ]);
+  // Return raw Prisma rows — callers map once (avoids double-map wiping specialty/university).
   return {
-    opportunities: rows.map((r) => mapOpportunityRow(r)),
+    opportunities: rows,
     total,
   };
 }
@@ -565,15 +585,17 @@ function mapTaskRow(row, { exposeStudentSubmissionAudit = false } = {}) {
 
 function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false, exposeStudentOwnAudit = false } = {}) {
   const stored = row.file_path;
+  const hasFile = Boolean(stored);
   const base = {
     id: row.id,
     task_id: row.task_id,
     application_id: row.application_id,
     student_id: row.student_id,
-    file_path: stored,
-    file_url: exposePublicUrl ? resolvePublicUrl(stored) : null,
-    file_name: row.file_name,
-    mime_type: row.mime_type,
+    has_file: hasFile,
+    file_url: exposePublicUrl && hasFile ? resolvePublicUrl(stored) : null,
+    file_name: hasFile ? row.file_name : null,
+    mime_type: hasFile ? row.mime_type : null,
+    project_url: row.project_url ?? null,
     submitted_at: row.submitted_at,
     is_late: Boolean(row.is_late),
     review_status: row.review_status ?? 'pending',
@@ -592,11 +614,21 @@ function mapSubmissionRow(row, { exposePublicUrl = false, exposeAiAudit = false,
     base.ai_raw_response = row.ai_raw_response ?? null;
     base.ai_response_inserted_text = row.ai_response_inserted_text ?? null;
     base.ai_evaluated_at = row.ai_evaluated_at ?? null;
+    base.analysis_file_id = row.analysis_file_id ?? null;
+    base.file_extraction_status = row.file_extraction_status ?? null;
+    base.file_extracted_text = row.file_extracted_text ?? null;
+    base.url_extraction_status = row.url_extraction_status ?? null;
+    base.url_extracted_text = row.url_extracted_text ?? null;
+    base.extraction_errors = row.extraction_errors ?? null;
   } else if (exposeStudentOwnAudit) {
     base.student_self_evaluation_input = row.student_self_evaluation_input ?? null;
     base.ai_response_inserted_text = row.ai_response_inserted_text ?? null;
     base.final_student_notes = row.final_student_notes ?? null;
     base.ai_evaluated_at = row.ai_evaluated_at ?? null;
+    base.project_url = row.project_url ?? null;
+    base.file_extraction_status = row.file_extraction_status ?? null;
+    base.url_extraction_status = row.url_extraction_status ?? null;
+    base.extraction_errors = row.extraction_errors ?? null;
     base.has_ai_self_evaluation = Boolean(
       row.student_self_evaluation_input || row.ai_response_inserted_text
     );
@@ -725,6 +757,9 @@ function buildStatsWhere(filters = {}) {
   if (filters.status) where.status = filters.status;
   if (filters.training_mode) where.training_mode = filters.training_mode;
   if (filters.specialty_id) where.specialty_id = filters.specialty_id;
+  if (filters.assigned_instructor_id) {
+    where.assigned_instructor_id = filters.assigned_instructor_id;
+  }
   if (filters.university_id) {
     where.field_training_opportunity_eligibility = {
       some: { university_id: filters.university_id, is_active: true },
@@ -989,13 +1024,15 @@ function mapAssessmentRow(row, { includeQuestions = false } = {}) {
 }
 
 function mapAssessmentQuestionRow(row) {
+  const type = row.question_type === 'short_answer' ? 'short_text' : row.question_type;
   return {
     id: row.id,
     assessment_id: row.assessment_id,
     question_text: row.question_text,
-    question_type: row.question_type,
+    question_type: type,
     options: row.options,
     points: row.points != null ? Number(row.points) : 1,
+    is_required: row.is_required !== false,
     sort_order: row.sort_order,
   };
 }
@@ -1122,6 +1159,7 @@ async function replaceAssessmentQuestions(assessmentId, questions) {
       options: q.options ?? null,
       correct_answer: q.correct_answer ?? null,
       points: q.points ?? 1,
+      is_required: q.is_required !== false,
       sort_order: q.sort_order ?? i,
     })),
   });
@@ -1148,11 +1186,34 @@ async function upsertAssessmentAttempt(data) {
     create: data,
     update: {
       answers: data.answers,
+      grading_details: data.grading_details ?? undefined,
       score: data.score,
       max_score: data.max_score,
       level: data.level,
       submitted_at: data.submitted_at,
     },
+  });
+}
+
+async function findAssessmentAttemptById(attemptId) {
+  return prisma.field_training_assessment_attempts.findUnique({
+    where: { id: attemptId },
+    include: {
+      field_training_assessments: {
+        include: {
+          field_training_assessment_questions: { orderBy: { sort_order: 'asc' } },
+          field_training_opportunities: true,
+        },
+      },
+      field_training_applications: true,
+    },
+  });
+}
+
+async function updateAssessmentAttempt(attemptId, data) {
+  return prisma.field_training_assessment_attempts.update({
+    where: { id: attemptId },
+    data,
   });
 }
 
@@ -1189,7 +1250,19 @@ async function upsertSubmissionExtended({
   mimeType,
   extra = {},
 }) {
-  const relative = filePath.replace(/\\/g, '/');
+  const relative = filePath ? String(filePath).replace(/\\/g, '/') : null;
+  const fileData = relative
+    ? {
+        file_path: relative,
+        file_name: fileName || 'file',
+        mime_type: mimeType ?? null,
+      }
+    : {
+        file_path: null,
+        file_name: null,
+        mime_type: null,
+      };
+
   return prisma.field_training_task_submissions.upsert({
     where: {
       task_id_application_id: { task_id: taskId, application_id: applicationId },
@@ -1198,15 +1271,11 @@ async function upsertSubmissionExtended({
       task_id: taskId,
       application_id: applicationId,
       student_id: studentId,
-      file_path: relative,
-      file_name: fileName,
-      mime_type: mimeType,
+      ...fileData,
       ...extra,
     },
     update: {
-      file_path: relative,
-      file_name: fileName,
-      mime_type: mimeType,
+      ...fileData,
       submitted_at: new Date(),
       ...extra,
     },
@@ -1244,14 +1313,194 @@ async function findAssessmentsByOpportunity(opportunityId) {
     where: { opportunity_id: opportunityId },
     orderBy: { type: 'asc' },
     include: {
+      field_training_assessment_questions: {
+        orderBy: { sort_order: 'asc' },
+      },
       _count: { select: { field_training_assessment_questions: true, field_training_assessment_attempts: true } },
+      field_training_assessment_attempts: {
+        orderBy: { submitted_at: 'desc' },
+        include: {
+          field_training_applications: {
+            select: {
+              id: true,
+              student_id: true,
+              status: true,
+              training_status: true,
+              post_assessment_score: true,
+              completion_eligibility_status: true,
+            },
+          },
+        },
+      },
     },
   });
+
+  const studentIds = [
+    ...new Set(
+      rows.flatMap((r) =>
+        (r.field_training_assessment_attempts || [])
+          .map((a) => a.field_training_applications?.student_id)
+          .filter(Boolean)
+      )
+    ),
+  ];
+  const profiles = studentIds.length ? await findStudentProfilesByIds(studentIds) : [];
+  const profileById = Object.fromEntries(profiles.map((p) => [p.id, p]));
+
   return rows.map((r) => ({
     ...mapAssessmentRow(r),
+    questions: (r.field_training_assessment_questions || []).map(mapAssessmentQuestionRowAdmin),
     questions_count: r._count?.field_training_assessment_questions ?? 0,
     attempts_count: r._count?.field_training_assessment_attempts ?? 0,
+    total_points: (r.field_training_assessment_questions || []).reduce(
+      (sum, q) => sum + (q.points != null ? Number(q.points) : 1),
+      0
+    ),
+    attempts: (r.field_training_assessment_attempts || []).map((attempt) => {
+      const app = attempt.field_training_applications;
+      const profile = app?.student_id ? profileById[app.student_id] : null;
+      return {
+        id: attempt.id,
+        application_id: attempt.application_id,
+        student_id: app?.student_id ?? null,
+        student_name: profile?.full_name ?? null,
+        student_university: profile?.university?.name ?? null,
+        student_university_specialty_label: formatSpecialtyLabel(profile?.university_specialty || profile?.specialty, null),
+        score: attempt.score != null ? Number(attempt.score) : null,
+        level: attempt.level ?? null,
+        submitted_at: attempt.submitted_at,
+        training_status: app?.training_status ?? null,
+        completion_eligibility_status: app?.completion_eligibility_status ?? null,
+        grading_details: attempt.grading_details ?? null,
+        answers: attempt.answers ?? null,
+        has_pending_manual: Array.isArray(attempt.grading_details)
+          ? attempt.grading_details.some((row) => row?.gradingStatus === 'pending_manual')
+          : false,
+      };
+    }),
   }));
+}
+
+/**
+ * Operational KPIs for instructor/admin opportunity list cards.
+ */
+async function aggregateInstructorListStats(opportunityIds = []) {
+  const ids = [...new Set(opportunityIds.filter(Boolean))];
+  const empty = Object.fromEntries(
+    ids.map((id) => [
+      id,
+      {
+        participants_count: 0,
+        sessions_count: 0,
+        pending_submissions_count: 0,
+        average_attendance: null,
+        next_session: null,
+        eligible_count: 0,
+        at_risk_count: 0,
+      },
+    ])
+  );
+  if (!ids.length) return empty;
+
+  const now = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+  const [apps, sessionGroups, pendingSubs, upcomingSessions] = await Promise.all([
+    prisma.field_training_applications.findMany({
+      where: { opportunity_id: { in: ids }, status: 'approved' },
+      select: {
+        opportunity_id: true,
+        attendance_percentage: true,
+        training_status: true,
+        completion_eligibility_status: true,
+      },
+    }),
+    prisma.field_training_sessions.groupBy({
+      by: ['opportunity_id'],
+      where: { opportunity_id: { in: ids } },
+      _count: { _all: true },
+    }),
+    prisma.field_training_task_submissions.findMany({
+      where: {
+        review_status: 'pending',
+        field_training_tasks: { opportunity_id: { in: ids } },
+      },
+      select: {
+        id: true,
+        field_training_tasks: { select: { opportunity_id: true } },
+      },
+    }),
+    prisma.field_training_sessions.findMany({
+      where: {
+        opportunity_id: { in: ids },
+        session_date: { gte: today },
+      },
+      orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
+      select: {
+        id: true,
+        opportunity_id: true,
+        title: true,
+        session_date: true,
+        start_time: true,
+        end_time: true,
+        zoom_link: true,
+      },
+    }),
+  ]);
+
+  for (const g of sessionGroups) {
+    if (empty[g.opportunity_id]) empty[g.opportunity_id].sessions_count = g._count._all;
+  }
+
+  for (const sub of pendingSubs) {
+    const oppId = sub.field_training_tasks?.opportunity_id;
+    if (oppId && empty[oppId]) empty[oppId].pending_submissions_count += 1;
+  }
+
+  const attendanceBuckets = Object.fromEntries(ids.map((id) => [id, []]));
+  for (const app of apps) {
+    const bucket = empty[app.opportunity_id];
+    if (!bucket) continue;
+    bucket.participants_count += 1;
+    if (app.completion_eligibility_status === 'eligible') bucket.eligible_count += 1;
+    if (
+      app.training_status === 'failed' ||
+      app.completion_eligibility_status === 'ineligible' ||
+      app.training_status === 'expelled'
+    ) {
+      bucket.at_risk_count += 1;
+    }
+    if (app.attendance_percentage != null) {
+      attendanceBuckets[app.opportunity_id].push(Number(app.attendance_percentage));
+    }
+  }
+
+  for (const id of ids) {
+    const values = attendanceBuckets[id];
+    if (values?.length) {
+      empty[id].average_attendance = Math.round(
+        values.reduce((sum, n) => sum + n, 0) / values.length
+      );
+    }
+  }
+
+  const nextByOpp = {};
+  for (const session of upcomingSessions) {
+    if (nextByOpp[session.opportunity_id]) continue;
+    nextByOpp[session.opportunity_id] = {
+      id: session.id,
+      title: session.title,
+      session_date: formatDateOnly(session.session_date),
+      start_time: session.start_time,
+      end_time: session.end_time,
+      has_zoom_link: Boolean(session.zoom_link),
+    };
+  }
+  for (const id of ids) {
+    empty[id].next_session = nextByOpp[id] ?? null;
+  }
+
+  return empty;
 }
 
 async function findCompletionLetterById(id) {
@@ -1306,6 +1555,7 @@ module.exports = {
   findApplicationsByOpportunity,
   aggregateApplicationCounts,
   aggregateApplicationCountsForOpportunities,
+  aggregateInstructorListStats,
   findApplicationsByOpportunityIdsForStudent,
   findApplicationsByStudent,
   createApplication,
@@ -1348,7 +1598,9 @@ module.exports = {
   upsertAssessment,
   replaceAssessmentQuestions,
   findAssessmentAttempt,
+  findAssessmentAttemptById,
   upsertAssessmentAttempt,
+  updateAssessmentAttempt,
   findActiveParticipants,
   countApprovedReadyForTraining,
   upsertSubmissionExtended,

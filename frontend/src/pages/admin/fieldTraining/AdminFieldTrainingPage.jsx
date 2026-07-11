@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Archive,
   Briefcase,
@@ -53,6 +53,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { useSpecialties, getSpecialtyLabel } from '../../../features/specialties/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { useAuth } from '../../../features/auth/index.js';
+import { userHasFieldTrainingAdminRole } from './fieldTrainingAdminAccess.js';
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -81,6 +83,9 @@ const emptyForm = {
 export function AdminFieldTrainingPage() {
   const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
+  const { user } = useAuth();
+  const canLoadAdminFt = userHasFieldTrainingAdminRole(user);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState('');
   const [debouncedQ, setDebouncedQ] = useState('');
   const [status, setStatus] = useState('');
@@ -117,8 +122,12 @@ export function AdminFieldTrainingPage() {
     return p;
   }, [debouncedQ, status, trainingMode, specialtyFilter]);
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useAdminFieldTrainingList(listParams);
-  const { data: statsData, isLoading: statsLoading } = useAdminFieldTrainingStats(statsParams);
+  const { data, isLoading, isError, error, refetch, isFetching } = useAdminFieldTrainingList(listParams, {
+    enabled: canLoadAdminFt,
+  });
+  const { data: statsData, isLoading: statsLoading } = useAdminFieldTrainingStats(statsParams, {
+    enabled: canLoadAdminFt,
+  });
   const {
     data: specialtyRows = [],
     isLoading: specialtiesLoading,
@@ -129,6 +138,7 @@ export function AdminFieldTrainingPage() {
     queryKey: fieldTrainingKeys.instructors(),
     queryFn: fetchFieldTrainingInstructors,
     staleTime: 60_000,
+    enabled: canLoadAdminFt,
   });
   const instructorOptions = instructorsData?.instructors ?? [];
 
@@ -240,6 +250,18 @@ export function AdminFieldTrainingPage() {
       /* keep list row */
     }
   }
+
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (!editId || !rows.length || modalOpen) return;
+    const row = rows.find((r) => r.id === editId);
+    if (!row) return;
+    openEdit(row);
+    const next = new URLSearchParams(searchParams);
+    next.delete('edit');
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- open once when list + query ready
+  }, [rows, searchParams, modalOpen, setSearchParams]);
 
   function buildBody() {
     return {

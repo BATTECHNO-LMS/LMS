@@ -14,15 +14,27 @@ const listUsersQuerySchema = z
     status: userStatusEnum.optional(),
     university_id: z.string().uuid().optional(),
     search: z.string().max(255).optional(),
+    email_verified: z
+      .union([z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0'), z.boolean()])
+      .optional(),
   })
   .strict()
-  .transform((q) => ({
-    page: q.page,
-    page_size: q.page_size,
-    status: q.status,
-    university_id: q.university_id,
-    search: q.search?.trim() || undefined,
-  }));
+  .transform((q) => {
+    let emailVerified;
+    if (q.email_verified === true || q.email_verified === 'true' || q.email_verified === '1') {
+      emailVerified = true;
+    } else if (q.email_verified === false || q.email_verified === 'false' || q.email_verified === '0') {
+      emailVerified = false;
+    }
+    return {
+      page: q.page,
+      page_size: q.page_size,
+      status: q.status,
+      university_id: q.university_id,
+      search: q.search?.trim() || undefined,
+      email_verified: emailVerified,
+    };
+  });
 
 const createUserBodySchema = z
   .object({
@@ -91,6 +103,25 @@ const activatePendingBodySchema = z
   })
   .strict();
 
+const verifyAllEmailsQuerySchema = z
+  .object({
+    university_id: z.string().uuid().optional(),
+    status: userStatusEnum.optional(),
+  })
+  .strict();
+
+const verifyAllEmailsBodySchema = z
+  .object({
+    user_ids: z.array(z.string().uuid()).max(1000).optional(),
+  })
+  .strict();
+
+const bulkVerifyEmailsBodySchema = z
+  .object({
+    userIds: z.array(z.string().uuid()).min(1).max(500),
+  })
+  .strict();
+
 module.exports = {
   uuidParamSchema,
   listUsersQuerySchema,
@@ -99,4 +130,7 @@ module.exports = {
   patchUserStatusBodySchema,
   activatePendingQuerySchema,
   activatePendingBodySchema,
+  verifyAllEmailsQuerySchema,
+  verifyAllEmailsBodySchema,
+  bulkVerifyEmailsBodySchema,
 };

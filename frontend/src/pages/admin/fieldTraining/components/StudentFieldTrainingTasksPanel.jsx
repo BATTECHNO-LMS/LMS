@@ -157,12 +157,37 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                 <p className="ft-task-item__review">
                   {t('tasks.reviewStatus')}:{' '}
                   {t(`tasks.reviewStatuses.${reviewStatus}`, reviewStatus)}
+                  {task.submission?.is_late ? ` · ${t('tasks.late')}` : ''}
                 </p>
               ) : null}
               {submitted && task.submission?.instructor_feedback ? (
                 <div className="ft-task-item__feedback">
                   <strong>{t('tasks.instructorFeedback')}</strong>
                   <p>{task.submission.instructor_feedback}</p>
+                </div>
+              ) : null}
+              {submitted &&
+              (task.submission?.ai_response_inserted_text ||
+                task.submission?.student_self_evaluation_input) ? (
+                <div className="ft-task-item__feedback ft-task-item__ai-summary">
+                  {task.submission.student_self_evaluation_input ? (
+                    <>
+                      <strong>{t('selfEval.studentInputLabel')}</strong>
+                      <p>{task.submission.student_self_evaluation_input}</p>
+                    </>
+                  ) : null}
+                  {task.submission.ai_response_inserted_text ? (
+                    <>
+                      <strong>{t('selfEval.aiResultLabel')}</strong>
+                      <p>{task.submission.ai_response_inserted_text}</p>
+                    </>
+                  ) : null}
+                  {task.submission.final_student_notes ? (
+                    <>
+                      <strong>{t('selfEval.finalNotesLabel')}</strong>
+                      <p>{task.submission.final_student_notes}</p>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -181,17 +206,26 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                       {t('tasks.download')}
                     </Button>
                   ) : null}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="btn--sm"
-                    onClick={() => {
-                      setReplacingId(task.id);
-                      setPendingFile((p) => ({ ...p, [task.id]: null }));
-                    }}
-                  >
-                    {t('tasks.replaceFile')}
-                  </Button>
+                  {task.requires_ai_self_evaluation ? (
+                    <Link
+                      className="btn btn--outline btn--sm"
+                      to={`/student/field-training/${opportunityId}/tasks/${task.id}/self-evaluation`}
+                    >
+                      {t('selfEval.viewSubmission')}
+                    </Link>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      onClick={() => {
+                        setReplacingId(task.id);
+                        setPendingFile((p) => ({ ...p, [task.id]: null }));
+                      }}
+                    >
+                      {t('tasks.replaceFile')}
+                    </Button>
+                  )}
                 </div>
               ) : null}
 

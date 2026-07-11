@@ -12,6 +12,117 @@ import {
 import { fieldTrainingKeys } from '../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 
+function StudentQuestionField({ question, value, onChange, disabled }) {
+  const { t } = useTranslation('fieldTraining');
+  const type = question.question_type === 'short_answer' ? 'short_text' : question.question_type;
+
+  if (type === 'long_text') {
+    return (
+      <textarea
+        className="ft-qb-input"
+        rows={4}
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        required={question.is_required !== false}
+      />
+    );
+  }
+
+  if (type === 'short_text') {
+    return (
+      <input
+        className="ft-qb-input"
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        required={question.is_required !== false}
+      />
+    );
+  }
+
+  if (type === 'true_false') {
+    return (
+      <div className="ft-question-card__options">
+        {['true', 'false'].map((opt) => (
+          <label key={opt} className="ft-attendance-chip">
+            <input
+              type="radio"
+              name={`q-${question.id}`}
+              checked={value === opt}
+              disabled={disabled}
+              onChange={() => onChange(opt)}
+              required={question.is_required !== false}
+            />
+            <span>
+              {opt === 'true'
+                ? t('studentTraining.assessment.true')
+                : t('studentTraining.assessment.false')}
+            </span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === 'multi_select' && Array.isArray(question.options)) {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div className="ft-question-card__options">
+        {question.options.map((opt) => {
+          const checked = selected.includes(opt);
+          return (
+            <label key={String(opt)} className="ft-attendance-chip">
+              <input
+                type="checkbox"
+                checked={checked}
+                disabled={disabled}
+                onChange={(e) => {
+                  onChange(
+                    e.target.checked
+                      ? [...selected.filter((v) => v !== opt), opt]
+                      : selected.filter((v) => v !== opt)
+                  );
+                }}
+              />
+              <span>{String(opt)}</span>
+            </label>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (type === 'multiple_choice' && Array.isArray(question.options)) {
+    return (
+      <div className="ft-question-card__options">
+        {question.options.map((opt) => (
+          <label key={String(opt)} className="ft-attendance-chip">
+            <input
+              type="radio"
+              name={`q-${question.id}`}
+              checked={value === opt}
+              disabled={disabled}
+              onChange={() => onChange(opt)}
+              required={question.is_required !== false}
+            />
+            <span>{String(opt)}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <input
+      className="ft-qb-input"
+      value={value ?? ''}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  );
+}
+
 function AssessmentTakeForm({ opportunityId, type, onDone }) {
   const { t } = useTranslation('fieldTraining');
   const qc = useQueryClient();
@@ -48,9 +159,7 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
         <p>
           {t('studentTraining.assessment.score')}: {existingAttempt.score}%
         </p>
-        {existingAttempt.level ? (
-          <p>{t(`knowledgeLevel.${existingAttempt.level}`)}</p>
-        ) : null}
+        {existingAttempt.level ? <p>{t(`knowledgeLevel.${existingAttempt.level}`)}</p> : null}
         <Button type="button" variant="outline" onClick={onDone}>
           {t('cancel')}
         </Button>
@@ -65,6 +174,9 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
         <p>
           {t('studentTraining.assessment.score')}: {result.score}%
         </p>
+        {result.has_pending_manual ? (
+          <p className="ft-qb-hint">{t('studentTraining.assessment.pendingManual')}</p>
+        ) : null}
         {result.level ? <p>{t(`knowledgeLevel.${result.level}`)}</p> : null}
         <Button type="button" variant="primary" onClick={onDone}>
           {t('studentTraining.assessment.done')}
@@ -83,6 +195,18 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
       onSubmit={(e) => {
         e.preventDefault();
         setError('');
+        for (const q of assessment.questions) {
+          if (q.is_required === false) continue;
+          const v = answers[q.id];
+          const empty =
+            v == null ||
+            v === '' ||
+            (Array.isArray(v) && v.length === 0);
+          if (empty) {
+            setError(t('studentTraining.assessment.requiredAnswers'));
+            return;
+          }
+        }
         submitMut.mutate();
       }}
     >
@@ -92,47 +216,26 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
         <div key={q.id || idx} className="ft-question-card">
           <p className="ft-question-card__text">
             {idx + 1}. {q.question_text}
+            {q.is_required !== false ? ' *' : ''}
+            <span className="ft-question-card__points"> ({q.points})</span>
           </p>
-          {q.question_type === 'multiple_choice' && Array.isArray(q.options) ? (
-            <div className="ft-question-card__options">
-              {q.options.map((opt) => (
-                <label key={String(opt)} className="ft-attendance-chip">
-                  <input
-                    type="radio"
-                    name={`q-${q.id}`}
-                    checked={answers[q.id] === opt}
-                    onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                  />
-                  <span>{String(opt)}</span>
-                </label>
-              ))}
-            </div>
-          ) : q.question_type === 'true_false' ? (
-            <div className="ft-question-card__options">
-              {['true', 'false'].map((opt) => (
-                <label key={opt} className="ft-attendance-chip">
-                  <input
-                    type="radio"
-                    name={`q-${q.id}`}
-                    checked={answers[q.id] === opt}
-                    onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                  />
-                  <span>{opt === 'true' ? t('studentTraining.assessment.true') : t('studentTraining.assessment.false')}</span>
-                </label>
-              ))}
-            </div>
-          ) : (
-            <input
-              className="ft-modal-select__control"
-              value={answers[q.id] ?? ''}
-              onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-            />
-          )}
+          <StudentQuestionField
+            question={q}
+            value={answers[q.id]}
+            disabled={submitMut.isPending}
+            onChange={(next) => setAnswers((prev) => ({ ...prev, [q.id]: next }))}
+          />
         </div>
       ))}
-      {error ? <p className="form-field__error">{error}</p> : null}
+      {error ? (
+        <p className="form-field__error" role="alert">
+          {error}
+        </p>
+      ) : null}
       <Button type="submit" variant="primary" disabled={submitMut.isPending}>
-        {submitMut.isPending ? t('studentTraining.assessment.submitting') : t('studentTraining.assessment.submit')}
+        {submitMut.isPending
+          ? t('studentTraining.assessment.submitting')
+          : t('studentTraining.assessment.submit')}
       </Button>
     </form>
   );

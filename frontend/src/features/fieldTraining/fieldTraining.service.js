@@ -147,23 +147,47 @@ export async function submitFieldTrainingTask(taskId, file) {
   return unwrapApiData(res);
 }
 
+export async function runTaskAiSelfEvaluate(taskId, payload) {
+  const body =
+    typeof payload === 'string'
+      ? { studentDescription: payload }
+      : {
+          studentDescription: payload.studentDescription,
+          uploadedFileId: payload.uploadedFileId || null,
+          projectUrl: payload.projectUrl || null,
+        };
+  const res = await apiClient.post(`${student}/tasks/${taskId}/ai-self-evaluate`, body);
+  return unwrapApiData(res);
+}
+
 export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
-  const record = await uploadFileToStorage(file, {
-    folder: 'training',
-    visibility: 'private',
-    accept: [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-      'application/pdf',
-    ],
-    relatedEntityType: 'field_training_task',
-    relatedEntityId: taskId,
-  });
+  let fileId = meta.fileId || meta.analysis_file_id || null;
+  if (file && !fileId) {
+    const record = await uploadFileToStorage(file, {
+      folder: 'training',
+      visibility: 'private',
+      accept: [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain',
+        'text/csv',
+      ],
+      relatedEntityType: 'field_training_task',
+      relatedEntityId: taskId,
+      onProgress: meta.onProgress,
+    });
+    fileId = record.id;
+  }
+  const { onProgress, ...restMeta } = meta;
   const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, {
-    fileId: record.id,
-    ...meta,
+    fileId: fileId || undefined,
+    ...restMeta,
   });
   return unwrapApiData(res);
 }
@@ -300,14 +324,21 @@ export async function submitStudentAssessment(opportunityId, type, answers) {
   return unwrapApiData(res);
 }
 
-export async function runTaskAiSelfEvaluate(taskId, studentInput) {
-  const res = await apiClient.post(`${student}/tasks/${taskId}/ai-self-evaluate`, { studentInput });
-  return unwrapApiData(res);
-}
-
 export async function expelFieldTrainingParticipant(applicationId, body, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.post(`${base}/applications/${applicationId}/expel`, body);
+  return unwrapApiData(res);
+}
+
+export async function requestFieldTrainingExpulsion(applicationId, body, { asInstructor = true } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/applications/${applicationId}/request-expulsion`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchOpportunityEligibility(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/eligibility`);
   return unwrapApiData(res);
 }
 
@@ -319,6 +350,12 @@ export async function issueCompletionLetter(applicationId) {
 export async function fetchApplicationProgress(applicationId, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/applications/${applicationId}/progress`);
+  return unwrapApiData(res);
+}
+
+export async function recalculateApplicationEligibility(applicationId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/applications/${applicationId}/recalculate-eligibility`);
   return unwrapApiData(res);
 }
 
@@ -376,4 +413,29 @@ export async function downloadCompletionLetter(applicationId) {
     `completion-letter-${applicationId}.pdf`
   );
   return { blob: res.data, filename };
+}
+
+export async function downloadAdminCompletionLetter(applicationId, { asInstructor = false } = {}) {
+  const base = asInstructor ? instructor : admin;
+  const res = await apiClient.get(`${base}/applications/${applicationId}/completion-letter/download`, {
+    responseType: 'blob',
+  });
+  const filename = parseDownloadFilename(
+    res.headers['content-disposition'],
+    `completion-letter-${applicationId}.pdf`
+  );
+  const blob = res.data;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+  return { blob, filename };
+}
+
+export async function gradeAssessmentAttempt(attemptId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/assessment-attempts/${attemptId}/grade`, body);
+  return unwrapApiData(res);
 }

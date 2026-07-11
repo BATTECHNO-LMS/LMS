@@ -49,6 +49,7 @@ async function listUsers(query, requester = {}) {
     status: query.status,
     university_id: scopedUniversityId,
     search: query.search,
+    email_verified: query.email_verified,
   });
   if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
     return {
@@ -348,6 +349,198 @@ async function activateAllPendingStudents({
   };
 }
 
+const EMAIL_ALREADY_VERIFIED_MSG = 'البريد الإلكتروني موثق مسبقًا.';
+const EMAIL_VERIFIED_OK_MSG = 'تم توثيق البريد الإلكتروني بنجاح.';
+
+/**
+ * Manually verify a user's email. Does NOT change account status/activation.
+ */
+async function verifyUserEmail(id, { actorUserId, ipAddress, requester } = {}) {
+  const otpRepository = require('../auth/emailVerificationOtp.repository');
+  const existing = await usersRepository.findUserById(id);
+  if (!existing) {
+    throw new ApiError(404, 'User not found');
+  }
+  if (requester) {
+    await assertUserAccessible(requester, existing);
+  }
+
+  if (existing.email_verified_at) {
+    return {
+      alreadyVerified: true,
+      message: EMAIL_ALREADY_VERIFIED_MSG,
+      id: existing.id,
+      emailVerifiedAt: existing.email_verified_at,
+      email_verified_at: existing.email_verified_at,
+    };
+  }
+
+  const now = new Date();
+  await usersRepository.updateUser(id, {
+    email_verified_at: now,
+    updated_at: now,
+  });
+
+  if (existing.email) {
+    await otpRepository.invalidateActiveOtpsForUser(id, String(existing.email).trim().toLowerCase());
+  }
+
+  await recordAudit({
+    userId: actorUserId ?? null,
+    universityId: existing.primary_university_id ?? null,
+    actionType: 'USER_EMAIL_VERIFIED',
+    entityType: 'user',
+    entityId: id,
+    oldValues: { email_verified_at: null },
+    newValues: { email_verified_at: now.toISOString(), verified_manually: true },
+    ipAddress,
+  });
+
+  return {
+    alreadyVerified: false,
+    message: EMAIL_VERIFIED_OK_MSG,
+    id,
+    emailVerifiedAt: now,
+    email_verified_at: now,
+  };
+}
+
+/**
+ * Bulk-verify emails for unverified users in admin scope / optional filters.
+ * Does NOT activate accounts.
+ */
+async function verifyAllUnverifiedEmails({
+  university_id,
+  status,
+  user_ids,
+  actorUserId,
+  ipAddress,
+  requester = {},
+} = {}) {
+  const scopedUniversityId = resolveUniversityIdFilter(requester, university_id);
+
+  if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
+    return {
+      updatedCount: 0,
+      skippedCount: 0,
+      message: 'تم توثيق 0 حسابًا بنجاح.',
+    };
+  }
+
+  let candidates;
+  if (user_ids?.length) {
+    candidates = await prisma.users.findMany({
+      where: {
+        id: { in: user_ids },
+        email_verified_at: null,
+        ...(status ? { status } : {}),
+      },
+      select: { id: true, email: true, email_verified_at: true, primary_university_id: true, status: true },
+      orderBy: { created_at: 'asc' },
+    });
+  } else {
+    const where = await usersRepository.buildListWhere({
+      status,
+      university_id: scopedUniversityId || undefined,
+      email_verified: false,
+    });
+    candidates = await prisma.users.findMany({
+      where,
+      select: { id: true, email: true, email_verified_at: true, primary_university_id: true, status: true },
+      orderBy: { created_at: 'asc' },
+      take: 2000,
+    });
+  }
+
+  let updatedCount = 0;
+  let skippedCount = 0;
+  let unauthorizedCount = 0;
+
+  for (const row of candidates) {
+    try {
+      const result = await verifyUserEmail(row.id, { actorUserId, ipAddress, requester });
+      if (result.alreadyVerified) skippedCount += 1;
+      else updatedCount += 1;
+    } catch (err) {
+      if (err?.statusCode === 403) unauthorizedCount += 1;
+      else skippedCount += 1;
+    }
+  }
+
+  await recordAudit({
+    userId: actorUserId ?? null,
+    universityId: scopedUniversityId ?? null,
+    actionType: 'BULK_EMAIL_VERIFIED',
+    entityType: 'user',
+    entityId: null,
+    oldValues: null,
+    newValues: {
+      updatedCount,
+      skippedCount,
+      unauthorizedCount,
+      filters: {
+        university_id: scopedUniversityId ?? null,
+        status: status ?? null,
+        user_ids_count: user_ids?.length ?? null,
+      },
+      performedBy: actorUserId ?? null,
+    },
+    ipAddress,
+  });
+
+  return {
+    updatedCount,
+    skippedCount,
+    unauthorizedCount,
+    message: `تم توثيق ${updatedCount} حسابًا بنجاح.`,
+  };
+}
+
+/**
+ * Verify selected user emails only (scope-enforced per user).
+ */
+async function bulkVerifyUserEmails(userIds, { actorUserId, ipAddress, requester } = {}) {
+  const ids = [...new Set((userIds || []).map(String))];
+  let updatedCount = 0;
+  let skippedCount = 0;
+  let unauthorizedCount = 0;
+
+  for (const id of ids) {
+    try {
+      const result = await verifyUserEmail(id, { actorUserId, ipAddress, requester });
+      if (result.alreadyVerified) skippedCount += 1;
+      else updatedCount += 1;
+    } catch (err) {
+      if (err?.statusCode === 403 || err?.statusCode === 404) unauthorizedCount += 1;
+      else skippedCount += 1;
+    }
+  }
+
+  await recordAudit({
+    userId: actorUserId ?? null,
+    universityId: resolveUniversityIdFilter(requester, null) ?? null,
+    actionType: 'BULK_EMAIL_VERIFIED',
+    entityType: 'user',
+    entityId: null,
+    oldValues: null,
+    newValues: {
+      updatedCount,
+      skippedCount,
+      unauthorizedCount,
+      filters: { userIds: ids },
+      performedBy: actorUserId ?? null,
+    },
+    ipAddress,
+  });
+
+  return {
+    updatedCount,
+    skippedCount,
+    unauthorizedCount,
+    message: `تم توثيق ${updatedCount} حسابًا بنجاح.`,
+  };
+}
+
 module.exports = {
   listUsers,
   getUserById,
@@ -356,4 +549,7 @@ module.exports = {
   patchUserStatus,
   activateUser,
   activateAllPendingStudents,
+  verifyUserEmail,
+  verifyAllUnverifiedEmails,
+  bulkVerifyUserEmails,
 };

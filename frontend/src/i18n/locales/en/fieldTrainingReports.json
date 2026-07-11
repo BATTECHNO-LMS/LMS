@@ -155,7 +155,11 @@
     "solutionFileName": "Solution file name",
     "aiSelfEval": "AI self-evaluation",
     "aiStudentInput": "Student self-evaluation input",
+    "aiPromptUsed": "Prompt used",
     "aiResponse": "AI response",
+    "projectUrl": "Project URL",
+    "fileExtraction": "File extraction",
+    "urlExtraction": "URL extraction",
     "finalNotes": "Final student notes",
     "event": "Event"
   },

@@ -193,11 +193,19 @@ const assessmentTypeParamSchema = z.object({
 });
 
 const assessmentQuestionSchema = z.object({
-  question_text: z.string().min(1),
-  question_type: z.enum(['multiple_choice', 'true_false', 'short_answer']),
+  question_text: z.string().max(5000),
+  question_type: z.enum([
+    'multiple_choice',
+    'true_false',
+    'short_answer',
+    'short_text',
+    'long_text',
+    'multi_select',
+  ]),
   options: z.unknown().optional().nullable(),
   correct_answer: z.unknown().optional().nullable(),
   points: z.coerce.number().min(0).max(1000).optional(),
+  is_required: z.coerce.boolean().optional(),
   sort_order: z.coerce.number().int().min(0).optional(),
 });
 
@@ -219,24 +227,93 @@ const expelBodySchema = z.object({
   notifyStudent: z.coerce.boolean().optional(),
 });
 
-const aiSelfEvalBodySchema = z.object({
-  studentInput: z.string().trim().min(20).max(20000),
+const requestExpulsionBodySchema = z.object({
+  reason: z.string().trim().min(1).max(5000),
 });
 
+const aiSelfEvalBodySchema = z
+  .object({
+    studentDescription: z.string().trim().min(20).max(20000).optional(),
+    /** @deprecated use studentDescription */
+    studentInput: z.string().trim().min(20).max(20000).optional(),
+    uploadedFileId: z.string().uuid().optional().nullable(),
+    projectUrl: z
+      .string()
+      .trim()
+      .max(2000)
+      .optional()
+      .nullable()
+      .refine((v) => v == null || v === '' || /^https?:\/\//i.test(v), {
+        message: 'الرابط يجب أن يبدأ بـ http:// أو https://',
+      }),
+  })
+  .superRefine((data, ctx) => {
+    const description = (data.studentDescription || data.studentInput || '').trim();
+    if (description.length < 20) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'يجب كتابة وصف لما أنجزته (20 حرفًا على الأقل)',
+        path: ['studentDescription'],
+      });
+    }
+    const hasFile = Boolean(data.uploadedFileId);
+    const hasUrl = Boolean(data.projectUrl?.trim());
+    if (!hasFile && !hasUrl) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'أرفق ملفًا أو أدخل رابطًا عامًا للعمل مع الوصف',
+        path: ['uploadedFileId'],
+      });
+    }
+  });
+
 const taskSubmitFieldsSchema = z.object({
-  fileId: z.string().uuid().optional(),
+  fileId: z.string().uuid().optional().nullable(),
+  project_url: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .nullable()
+    .refine((v) => v == null || v === '' || /^https?:\/\//i.test(v), {
+      message: 'الرابط يجب أن يبدأ بـ http:// أو https://',
+    }),
   student_self_evaluation_input: z.string().max(20000).optional().nullable(),
-  ai_prompt_used: z.string().max(20000).optional().nullable(),
+  ai_prompt_used: z.string().max(50000).optional().nullable(),
   ai_model_provider: z.string().max(80).optional().nullable(),
   ai_model_name: z.string().max(120).optional().nullable(),
   ai_raw_response: z.string().max(100000).optional().nullable(),
   ai_response_inserted_text: z.string().max(100000).optional().nullable(),
   final_student_notes: z.string().max(10000).optional().nullable(),
-  ai_evaluated_at: z.string().datetime().optional().nullable(),
+  analysis_file_id: z.string().uuid().optional().nullable(),
+  file_extraction_status: z.string().max(40).optional().nullable(),
+  file_extracted_text: z.string().max(100000).optional().nullable(),
+  url_extraction_status: z.string().max(40).optional().nullable(),
+  url_extracted_text: z.string().max(100000).optional().nullable(),
+  extraction_errors: z.string().max(10000).optional().nullable(),
+  ai_evaluated_at: z
+    .union([z.string().datetime(), z.string().min(1), z.null()])
+    .optional()
+    .nullable(),
 });
 
 const assessmentIdParamSchema = z.object({
   assessmentId: z.string().uuid(),
+});
+
+const attemptIdParamSchema = z.object({
+  attemptId: z.string().uuid(),
+});
+
+const gradeAttemptBodySchema = z.object({
+  grades: z
+    .array(
+      z.object({
+        question_id: z.string().uuid(),
+        awarded_points: z.coerce.number().min(0),
+      })
+    )
+    .min(1),
 });
 
 const createAssessmentBodySchema = assessmentBodySchema.extend({
@@ -258,6 +335,7 @@ module.exports = {
   taskIdParamSchema,
   sessionIdParamSchema,
   assessmentIdParamSchema,
+  attemptIdParamSchema,
   assessmentTypeParamSchema,
   taskBodySchema,
   updateTaskBodySchema,
@@ -268,8 +346,10 @@ module.exports = {
   createAssessmentBodySchema,
   updateAssessmentBodySchema,
   submitAssessmentBodySchema,
+  gradeAttemptBodySchema,
   reviewSubmissionBodySchema,
   expelBodySchema,
+  requestExpulsionBodySchema,
   aiSelfEvalBodySchema,
   taskSubmitFieldsSchema,
   listAdminQuerySchema,

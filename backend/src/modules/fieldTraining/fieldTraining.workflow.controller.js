@@ -128,6 +128,20 @@ async function expelParticipant(req, res, next) {
   }
 }
 
+async function requestExpulsion(req, res, next) {
+  try {
+    const data = await workflowService.requestExpulsion(
+      req.validated.params.applicationId,
+      req.validated.body,
+      req.user.userId,
+      req.user
+    );
+    return success(res, data, { message: data.message || 'Expulsion request submitted' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function issueCompletionLetter(req, res, next) {
   try {
     const data = await workflowService.issueCompletionLetter(
@@ -157,6 +171,31 @@ async function getApplicationProgress(req, res, next) {
       req.user
     );
     return success(res, data, { message: 'Progress retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function recalculateEligibility(req, res, next) {
+  try {
+    const data = await workflowService.recalculateEligibility(
+      req.validated.params.applicationId,
+      req.user
+    );
+    return success(res, data, { message: 'Eligibility recalculated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function gradeAssessmentAttempt(req, res, next) {
+  try {
+    const data = await workflowService.gradeAssessmentAttempt(
+      req.validated.params.attemptId,
+      req.validated.body,
+      req.user
+    );
+    return success(res, data, { message: 'Attempt graded' });
   } catch (e) {
     return next(e);
   }
@@ -280,6 +319,23 @@ async function downloadCompletionLetter(req, res, next) {
   }
 }
 
+async function downloadCompletionLetterAsManager(req, res, next) {
+  const fs = require('fs');
+  try {
+    const { absPath, fileName, mimeType } = await workflowService.downloadCompletionLetterAsManager(
+      req.validated.params.applicationId,
+      req.user
+    );
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    const stream = fs.createReadStream(absPath);
+    stream.on('error', (err) => next(err));
+    stream.pipe(res);
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   startTraining,
   listSessions,
@@ -296,11 +352,15 @@ module.exports = {
   updateAssessment,
   publishAssessmentById,
   getApplicationProgress,
+  recalculateEligibility,
+  gradeAssessmentAttempt,
   getStudentProgress,
   listStudentAssessments,
   submitAssessmentById,
   downloadCompletionLetter,
   expelParticipant,
+  requestExpulsion,
   issueCompletionLetter,
+  downloadCompletionLetterAsManager,
   listInstructors,
 };

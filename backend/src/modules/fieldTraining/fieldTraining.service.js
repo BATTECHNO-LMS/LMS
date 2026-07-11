@@ -20,6 +20,8 @@ const {
   manageOpportunityListWhere,
   isSystemWideAdmin,
   isUniversityScopedFieldTrainingUser,
+  isFieldTrainingAdmin,
+  isAssignedInstructor,
 } = require('./fieldTraining.access');
 const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
@@ -218,18 +220,30 @@ async function listAdminOpportunities(query, user) {
   ];
   const instructors = instructorIds.length ? await repo.findUsersByIds(instructorIds) : [];
   const instructorById = Object.fromEntries(instructors.map((instructor) => [instructor.id, instructor]));
+  const opsStats = await repo.aggregateInstructorListStats(opportunities.map((row) => row.id));
 
   return {
-    opportunities: opportunities.map((row) =>
-      attachListDisplayMeta(repo.mapOpportunityRow(row, { compact: true }), {
+    opportunities: opportunities.map((row) => {
+      const base = attachListDisplayMeta(repo.mapOpportunityRow(row, { compact: true }), {
         eligibilityCounts,
         eligibilitySummaries,
         applicationCounts: applicationCounts[row.id] ?? { by_university: [], by_university_specialty: {}, total: 0 },
         instructor: row.assigned_instructor_id
           ? instructorById[row.assigned_instructor_id] ?? null
           : null,
-      })
-    ),
+      });
+      const stats = opsStats[row.id] ?? {};
+      return {
+        ...base,
+        participants_count: stats.participants_count ?? 0,
+        sessions_count: stats.sessions_count ?? 0,
+        pending_submissions_count: stats.pending_submissions_count ?? 0,
+        average_attendance: stats.average_attendance ?? null,
+        next_session: stats.next_session ?? null,
+        eligible_count: stats.eligible_count ?? 0,
+        at_risk_count: stats.at_risk_count ?? 0,
+      };
+    }),
     meta: { page, page_size, total, total_pages: Math.max(1, Math.ceil(total / page_size)) },
   };
 }
@@ -271,7 +285,12 @@ function attachEligibilityMeta(opportunity, eligibilityCounts = {}) {
 
 async function getAdminStats(query, user) {
   const scopedQuery = scopeAdminListQuery(user, query);
-  const stats = await repo.getAdminAggregateStats(scopedQuery);
+  const scopeWhere = manageOpportunityListWhere(user);
+  const filters = { ...scopedQuery };
+  if (scopeWhere.assigned_instructor_id) {
+    filters.assigned_instructor_id = scopeWhere.assigned_instructor_id;
+  }
+  const stats = await repo.getAdminAggregateStats(filters);
   return { stats };
 }
 
@@ -360,6 +379,13 @@ async function createAdminOpportunity(body, userId, user) {
     entityId: opportunity.id,
     newValues: { title: opportunity.title, status: opportunity.status },
   });
+  if (opportunity.assigned_instructor_id) {
+    await ftNotify.notifyInstructorAssigned({
+      instructorId: opportunity.assigned_instructor_id,
+      opportunityId: opportunity.id,
+      opportunityTitle: opportunity.title,
+    });
+  }
   const mapped = repo.mapOpportunityRow(opportunity);
   mapped.eligibility = await ftEligibility.findActiveByOpportunityId(opportunity.id);
   return { opportunity: mapped };
@@ -399,6 +425,16 @@ async function updateAdminOpportunity(id, body, userId, user) {
     oldValues: { title: existing.title },
     newValues: data,
   });
+  if (
+    data.assigned_instructor_id &&
+    String(data.assigned_instructor_id) !== String(existing.assigned_instructor_id || '')
+  ) {
+    await ftNotify.notifyInstructorAssigned({
+      instructorId: data.assigned_instructor_id,
+      opportunityId: id,
+      opportunityTitle: opportunity.title,
+    });
+  }
   const mapped = repo.mapOpportunityRow(opportunity);
   mapped.eligibility = await ftEligibility.findActiveByOpportunityId(id);
   return { opportunity: mapped };
@@ -486,6 +522,7 @@ function mapApplicationAdminRow(app, profile, opportunity) {
       : null,
     student_specialty: displaySpecialty,
     student_specialty_label: repo.formatSpecialtyLabel(displaySpecialty),
+    student_phone: profile?.phone ?? null,
     progress_summary: buildApplicationProgressSummary(app),
   };
 }
@@ -541,6 +578,16 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
   await assertApplicationStudentAccess(user, app.student_id);
+
+  if (isAssignedInstructor(user, opp) && !isFieldTrainingAdmin(user)) {
+    throw new ApiError(
+      403,
+      'موافقة ورفض الطلبات من صلاحيات الإدارة فقط',
+      null,
+      'FIELD_TRAINING_INSTRUCTOR_CANNOT_REVIEW_APPLICATION'
+    );
+  }
+
   if (app.status !== 'pending') {
     throw new ApiError(400, 'Only pending applications can be reviewed');
   }
@@ -664,6 +711,17 @@ async function getStudentOpportunityById(id, studentId) {
   if (!row) throw new ApiError(404, 'Opportunity not found');
   await assertStudentCanAccessOpportunity(row, studentId);
   const app = await repo.findApplicationByOpportunityAndStudent(id, studentId);
+  const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
+  let assignedInstructor = null;
+  if (row.assigned_instructor_id) {
+    const instructor = await prisma.users.findUnique({
+      where: { id: row.assigned_instructor_id },
+      select: { id: true, full_name: true },
+    });
+    if (instructor) {
+      assignedInstructor = { id: instructor.id, full_name: instructor.full_name };
+    }
+  }
   return {
     opportunity: {
       ...repo.mapOpportunityRow(row),
@@ -675,6 +733,14 @@ async function getStudentOpportunityById(id, studentId) {
       my_attendance_percentage:
         app?.attendance_percentage != null ? Number(app.attendance_percentage) : null,
       my_completion_eligibility_status: app?.completion_eligibility_status ?? null,
+      assigned_instructor: assignedInstructor,
+      student_matching_university: studentProfile?.university
+        ? { id: studentProfile.university.id, name: studentProfile.university.name }
+        : null,
+      student_matching_university_specialty: studentProfile?.university_specialty ?? null,
+      student_matching_university_specialty_label: studentProfile?.university_specialty
+        ? repo.formatSpecialtyLabel(studentProfile.university_specialty)
+        : null,
     },
     application: app ? repo.mapApplicationRow(app) : null,
   };
@@ -1059,15 +1125,19 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
 }
 
 async function submitTaskFile(taskId, file, studentId, body = {}, user = { userId: studentId }) {
+  const projectUrl = body.project_url?.trim() || null;
   const resolved = await filesService.resolveUploadInput(
     {
       file,
-      fileId: body.fileId,
+      fileId: body.fileId || body.analysis_file_id || null,
       localPathBuilder: (f) => repo.buildRelativeFilePath(taskId, path.basename(f.filename)),
     },
     user
   );
-  if (!resolved) throw new ApiError(400, 'الملف مطلوب');
+
+  if (!resolved && !projectUrl) {
+    throw new ApiError(400, 'أرفق ملف الحل أو أدخل رابط المشروع');
+  }
 
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
@@ -1084,12 +1154,26 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     if (!body.student_self_evaluation_input?.trim()) {
       throw new ApiError(400, 'التقييم الذاتي مطلوب قبل التسليم');
     }
-    if (!body.ai_response_inserted_text?.trim()) {
+    if (!body.ai_response_inserted_text?.trim() || !body.ai_raw_response?.trim()) {
       throw new ApiError(400, 'يجب إجراء تحليل الذكاء الاصطناعي قبل التسليم');
+    }
+    const fileOk = ['ok', 'partial'].includes(body.file_extraction_status);
+    const urlOk = body.url_extraction_status === 'ok';
+    if (!fileOk && !urlOk) {
+      throw new ApiError(
+        400,
+        'يجب توفر مصدر قابل للتحليل (ملف أو رابط) قبل التسليم'
+      );
     }
   }
 
-  const relative = resolved.filePath;
+  if (projectUrl) {
+    const urlFetch = require('./fieldTraining.urlFetch');
+    if (!urlFetch.isValidHttpUrlShape(projectUrl)) {
+      throw new ApiError(400, 'الرابط يجب أن يكون عامًا ومتاحًا.');
+    }
+  }
+
   const dueDate = task.due_date ? new Date(task.due_date) : null;
   const isLate = dueDate ? new Date() > dueDate : false;
 
@@ -1097,9 +1181,9 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     taskId,
     applicationId: app.id,
     studentId,
-    filePath: relative,
-    fileName: resolved.fileName,
-    mimeType: resolved.mimeType,
+    filePath: resolved?.filePath ?? null,
+    fileName: resolved?.fileName ?? null,
+    mimeType: resolved?.mimeType ?? null,
     extra: {
       student_self_evaluation_input: body.student_self_evaluation_input ?? null,
       ai_prompt_used: body.ai_prompt_used ?? null,
@@ -1108,6 +1192,13 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
       ai_raw_response: body.ai_raw_response ?? null,
       ai_response_inserted_text: body.ai_response_inserted_text ?? null,
       final_student_notes: body.final_student_notes ?? null,
+      project_url: projectUrl,
+      analysis_file_id: body.analysis_file_id || body.fileId || resolved?.fileId || null,
+      file_extraction_status: body.file_extraction_status ?? null,
+      file_extracted_text: body.file_extracted_text ?? null,
+      url_extraction_status: body.url_extraction_status ?? null,
+      url_extracted_text: body.url_extracted_text ?? null,
+      extraction_errors: body.extraction_errors ?? null,
       ai_evaluated_at: body.ai_evaluated_at
         ? new Date(body.ai_evaluated_at)
         : body.ai_raw_response
@@ -1135,7 +1226,7 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     instructorId: opp?.assigned_instructor_id,
   });
 
-  return { submission: repo.mapSubmissionRow(submission) };
+  return { submission: repo.mapSubmissionRow(submission, { exposeStudentOwnAudit: true }) };
 }
 
 async function listStudentOpportunityTasks(opportunityId, studentId) {
@@ -1191,8 +1282,95 @@ async function getEligibilityCatalog() {
   return { universities };
 }
 
+async function listOpportunityEligibility(opportunityId, user) {
+  const opp = await repo.findById(opportunityId);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  await assertManageOpportunityAccess(user, opp);
+
+  const studentUniversityId = resolveApplicationStudentUniversityId(user, undefined);
+  const apps = await repo.findApplicationsByOpportunity(opportunityId, {
+    status: 'approved',
+    studentUniversityId,
+  });
+  const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
+  const byId = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
+
+  const finalTasks = await prisma.field_training_tasks.findMany({
+    where: { opportunity_id: opportunityId, is_final_task: true },
+    select: {
+      id: true,
+      requires_ai_self_evaluation: true,
+      field_training_task_submissions: {
+        select: {
+          application_id: true,
+          review_status: true,
+          student_self_evaluation_input: true,
+          ai_response_inserted_text: true,
+          ai_evaluated_at: true,
+        },
+      },
+    },
+  });
+
+  const participants = apps.map((app) => {
+    const mapped = mapApplicationAdminRow(app, byId[app.student_id], opp);
+    const finalTaskSubs = finalTasks.flatMap((task) =>
+      (task.field_training_task_submissions || [])
+        .filter((sub) => sub.application_id === app.id)
+        .map((sub) => ({
+          task_id: task.id,
+          requires_ai_self_evaluation: task.requires_ai_self_evaluation,
+          review_status: sub.review_status,
+          ai_self_evaluation_completed: Boolean(
+            sub.student_self_evaluation_input || sub.ai_response_inserted_text || sub.ai_evaluated_at
+          ),
+        }))
+    );
+    const aiRequired = finalTasks.some((t) => t.requires_ai_self_evaluation);
+    const aiCompleted = !aiRequired
+      ? null
+      : finalTaskSubs.some((s) => s.requires_ai_self_evaluation && s.ai_self_evaluation_completed);
+
+    return {
+      application_id: mapped.id,
+      student_id: mapped.student_id,
+      student_name: mapped.student_name,
+      student_email: mapped.student_email,
+      student_university: mapped.student_university,
+      student_university_specialty_label: mapped.student_university_specialty_label,
+      training_status: mapped.training_status,
+      attendance_percentage: mapped.attendance_percentage,
+      minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
+      final_task_status: mapped.final_task_status,
+      post_assessment_score: mapped.post_assessment_score,
+      minimum_post_assessment_score:
+        opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
+      ai_self_evaluation_completed: aiCompleted,
+      eligibility_status: mapped.completion_eligibility_status,
+      eligibility_reason: mapped.eligibility_reason,
+      expelled_at: mapped.expelled_at,
+      expulsion_reason: mapped.expulsion_reason,
+      completion_letter_issued_at: mapped.completion_letter_issued_at,
+    };
+  });
+
+  return {
+    opportunity: {
+      id: opp.id,
+      title: opp.title,
+      minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
+      minimum_post_assessment_score:
+        opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
+      requires_final_task: opp.requires_final_task ?? true,
+      requires_post_assessment: opp.requires_post_assessment ?? true,
+    },
+    participants,
+  };
+}
+
 module.exports = {
   getEligibilityCatalog,
+  listOpportunityEligibility,
   listAdminOpportunities,
   getAdminStats,
   getAdminOpportunityById,

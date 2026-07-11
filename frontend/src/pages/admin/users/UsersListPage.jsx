@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, MailCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
@@ -14,7 +14,8 @@ import { StatCard } from '../../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
-import { genericStatusVariant, statusLabelAr } from '../../../utils/statusMap.js';
+import { ConfirmDeleteModal } from '../../../components/modals/ConfirmDeleteModal.jsx';
+import { genericStatusVariant } from '../../../utils/statusMap.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { roleLabelAr } from '../../../utils/labelsAr.js';
 import { useLocale } from '../../../features/locale/index.js';
@@ -25,8 +26,16 @@ import {
   mapUserListRow,
   useActivateUser,
   useActivateAllPendingUsers,
+  useVerifyUserEmail,
+  useVerifyAllUserEmails,
 } from '../../../features/users/index.js';
-import { Users, UserCheck, UserX, UserPlus } from 'lucide-react';
+import { Users, UserCheck, UserX, Mail, MailWarning } from 'lucide-react';
+
+function accountStatusLabel(t, status) {
+  if (status === 'active') return t('list.accountActive');
+  if (status === 'suspended') return t('list.accountSuspended');
+  return t('list.accountInactive');
+}
 
 export function UsersListPage() {
   const { t } = useTranslation('users');
@@ -37,9 +46,15 @@ export function UsersListPage() {
   const [q, setQ] = useState('');
   const [role, setRole] = useState('');
   const status = searchParams.get('status') || '';
-  const [activationFeedback, setActivationFeedback] = useState('');
+  const emailVerifiedFilter = searchParams.get('email_verified') || '';
+  const [feedback, setFeedback] = useState('');
+  const [verifyTarget, setVerifyTarget] = useState(null);
+  const [verifyAllOpen, setVerifyAllOpen] = useState(false);
+
   const activateUser = useActivateUser();
   const activateAllPending = useActivateAllPendingUsers();
+  const verifyEmail = useVerifyUserEmail();
+  const verifyAllEmails = useVerifyAllUserEmails();
 
   const setStatusParam = (value) => {
     const next = new URLSearchParams(searchParams);
@@ -48,12 +63,22 @@ export function UsersListPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const setEmailVerifiedParam = (value) => {
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('email_verified', value);
+    else next.delete('email_verified');
+    setSearchParams(next, { replace: true });
+  };
+
   const listParams = useMemo(() => {
     const params = { page: 1, page_size: 500 };
     if (status) params.status = status;
+    if (emailVerifiedFilter === 'true' || emailVerifiedFilter === 'false') {
+      params.email_verified = emailVerifiedFilter;
+    }
     if (scopeId && scopeId !== TENANT_SCOPE_ALL) params.university_id = scopeId;
     return params;
-  }, [status, scopeId]);
+  }, [status, emailVerifiedFilter, scopeId]);
 
   const { data, isLoading, isError, error } = useUsers(listParams);
 
@@ -77,22 +102,25 @@ export function UsersListPage() {
     [rows]
   );
 
+  const unverifiedUsers = useMemo(() => rows.filter((r) => !r.emailVerified), [rows]);
+
   const stats = {
     total: rows.length,
+    emailVerified: rows.filter((r) => r.emailVerified).length,
+    emailUnverified: unverifiedUsers.length,
     active: rows.filter((r) => r.status === 'active').length,
-    inactive: rows.filter((r) => r.status === 'inactive' || r.status === 'suspended').length,
-    new: rows.filter((r) => r.lastLogin === '—').length,
+    pendingActivation: rows.filter((r) => r.status === 'inactive').length,
   };
 
   async function handleActivateAll() {
     if (!pendingStudents.length) {
-      setActivationFeedback(t('list.activateAllNone'));
+      setFeedback(t('list.activateAllNone'));
       return;
     }
     const ok = window.confirm(t('list.activateAllConfirm', { count: pendingStudents.length }));
     if (!ok) return;
 
-    setActivationFeedback('');
+    setFeedback('');
     try {
       const payload = {
         user_ids: pendingStudents.map((r) => r.id),
@@ -103,12 +131,43 @@ export function UsersListPage() {
       const total = result?.total_pending ?? pendingStudents.length;
       const failed = result?.failed ?? 0;
       if (failed > 0) {
-        setActivationFeedback(t('list.activateAllPartial', { activated, total, failed }));
+        setFeedback(t('list.activateAllPartial', { activated, total, failed }));
       } else {
-        setActivationFeedback(t('list.activateAllSuccess', { count: activated }));
+        setFeedback(t('list.activateAllSuccess', { count: activated }));
       }
     } catch (e) {
-      setActivationFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+      setFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+    }
+  }
+
+  async function confirmVerifyOne() {
+    if (!verifyTarget?.id) return;
+    setFeedback('');
+    try {
+      const result = await verifyEmail.mutateAsync(verifyTarget.id);
+      setFeedback(result?.message || t('list.verifyEmailSuccess'));
+      setVerifyTarget(null);
+    } catch (e) {
+      setFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+      setVerifyTarget(null);
+    }
+  }
+
+  async function confirmVerifyAll() {
+    setFeedback('');
+    try {
+      const payload = {
+        user_ids: unverifiedUsers.map((r) => r.id),
+      };
+      if (scopeId && scopeId !== TENANT_SCOPE_ALL) payload.university_id = scopeId;
+      if (status) payload.status = status;
+      const result = await verifyAllEmails.mutateAsync(payload);
+      const count = result?.updatedCount ?? 0;
+      setFeedback(result?.message || t('list.verifyAllSuccess', { count }));
+      setVerifyAllOpen(false);
+    } catch (e) {
+      setFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+      setVerifyAllOpen(false);
     }
   }
 
@@ -126,6 +185,12 @@ export function UsersListPage() {
         : t('empty.tryFilters')
       : t('empty.tryFilters');
 
+  const busy =
+    activateUser.isPending ||
+    activateAllPending.isPending ||
+    verifyEmail.isPending ||
+    verifyAllEmails.isPending;
+
   return (
     <div className="page page--dashboard page--admin crud-page">
       <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
@@ -133,6 +198,15 @@ export function UsersListPage() {
         <Link className="btn btn--primary" to="/admin/users/create">
           <Plus size={18} aria-hidden /> {t('addUser')}
         </Link>
+        <button
+          type="button"
+          className="btn btn--outline"
+          disabled={busy || unverifiedUsers.length === 0}
+          onClick={() => setVerifyAllOpen(true)}
+        >
+          <MailCheck size={18} aria-hidden /> {t('list.verifyAll')}
+          {unverifiedUsers.length ? ` (${unverifiedUsers.length})` : ''}
+        </button>
       </AdminActionBar>
       <AdminFilterBar>
         <SearchInput
@@ -155,21 +229,32 @@ export function UsersListPage() {
           onChange={(e) => setStatusParam(e.target.value)}
         >
           <option value="">{tCommon('status.allStatuses')}</option>
-          <option value="active">{tCommon('status.active')}</option>
-          <option value="inactive">{tCommon('status.inactive')}</option>
-          <option value="suspended">{tCommon('status.suspended')}</option>
+          <option value="active">{t('list.accountActive')}</option>
+          <option value="inactive">{t('list.accountInactive')}</option>
+          <option value="suspended">{t('list.accountSuspended')}</option>
+        </SelectField>
+        <SelectField
+          id="email-verified-filter"
+          label={t('filters.emailVerification')}
+          value={emailVerifiedFilter}
+          onChange={(e) => setEmailVerifiedParam(e.target.value)}
+        >
+          <option value="">{t('filters.emailVerificationAll')}</option>
+          <option value="true">{t('list.emailVerified')}</option>
+          <option value="false">{t('list.emailNotVerified')}</option>
         </SelectField>
       </AdminFilterBar>
-      {activationFeedback ? (
+      {feedback ? (
         <p className="auth-register__helper" role="status" style={{ margin: '0 0 12px' }}>
-          {activationFeedback}
+          {feedback}
         </p>
       ) : null}
       <AdminStatsGrid>
         <StatCard label={t('stats.total')} value={String(stats.total)} icon={Users} />
+        <StatCard label={t('stats.emailVerified')} value={String(stats.emailVerified)} icon={Mail} />
+        <StatCard label={t('stats.emailUnverified')} value={String(stats.emailUnverified)} icon={MailWarning} />
         <StatCard label={t('stats.active')} value={String(stats.active)} icon={UserCheck} />
-        <StatCard label={t('stats.inactive')} value={String(stats.inactive)} icon={UserX} />
-        <StatCard label={t('stats.newUsers')} value={String(stats.new)} icon={UserPlus} />
+        <StatCard label={t('stats.pendingActivation')} value={String(stats.pendingActivation)} icon={UserX} />
       </AdminStatsGrid>
       <SectionCard
         title={<>{t('listTitle')}</>}
@@ -178,7 +263,7 @@ export function UsersListPage() {
             <button
               type="button"
               className="btn btn--primary btn--sm"
-              disabled={activateAllPending.isPending || activateUser.isPending}
+              disabled={busy}
               onClick={handleActivateAll}
             >
               {t('list.activateAll')}
@@ -212,13 +297,15 @@ export function UsersListPage() {
               },
               {
                 key: 'status',
-                label: tCommon('status.label'),
+                label: t('table.accountStatus'),
                 render: (r) => {
                   const isPendingStudent =
                     r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student');
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                      <StatusBadge variant={genericStatusVariant(r.status)}>{statusLabelAr(r.status, locale)}</StatusBadge>
+                      <StatusBadge variant={genericStatusVariant(r.status)}>
+                        {accountStatusLabel(t, r.status)}
+                      </StatusBadge>
                       {isPendingStudent ? (
                         <StatusBadge variant="warning">{t('list.pendingActivation')}</StatusBadge>
                       ) : null}
@@ -232,18 +319,33 @@ export function UsersListPage() {
                 label: tCommon('table.actions'),
                 render: (r) => (
                   <div className="table-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                    {!r.emailVerified ? (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        disabled={busy}
+                        onClick={() => setVerifyTarget(r)}
+                      >
+                        {t('list.verifyEmail')}
+                      </button>
+                    ) : (
+                      <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                        {t('list.alreadyVerified')}
+                      </span>
+                    )}
                     {r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student') ? (
                       <button
                         type="button"
                         className="btn btn--outline btn--sm"
-                        disabled={activateUser.isPending}
+                        disabled={busy || !r.emailVerified}
+                        title={!r.emailVerified ? t('list.activateRequiresEmail') : undefined}
                         onClick={async () => {
-                          setActivationFeedback('');
+                          setFeedback('');
                           try {
                             await activateUser.mutateAsync(r.id);
-                            setActivationFeedback(t('list.activateSuccess'));
+                            setFeedback(t('list.activateSuccess'));
                           } catch (e) {
-                            setActivationFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
+                            setFeedback(getApiErrorMessage(e, tCommon('errors.generic')));
                           }
                         }}
                       >
@@ -264,6 +366,30 @@ export function UsersListPage() {
           />
         )}
       </SectionCard>
+
+      <ConfirmDeleteModal
+        open={Boolean(verifyTarget)}
+        title={t('list.verifyEmailConfirmTitle')}
+        message={t('list.verifyEmailConfirmText')}
+        confirmLabel={t('list.verifyEmailConfirm')}
+        cancelLabel={tCommon('actions.cancel')}
+        confirmVariant="primary"
+        busy={verifyEmail.isPending}
+        onClose={() => setVerifyTarget(null)}
+        onConfirm={confirmVerifyOne}
+      />
+
+      <ConfirmDeleteModal
+        open={verifyAllOpen}
+        title={t('list.verifyAllConfirmTitle')}
+        message={t('list.verifyAllConfirmText', { count: unverifiedUsers.length })}
+        confirmLabel={t('list.verifyAllConfirm')}
+        cancelLabel={tCommon('actions.cancel')}
+        confirmVariant="primary"
+        busy={verifyAllEmails.isPending}
+        onClose={() => setVerifyAllOpen(false)}
+        onConfirm={confirmVerifyAll}
+      />
     </div>
   );
 }

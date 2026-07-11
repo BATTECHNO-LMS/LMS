@@ -1,9 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, Upload, X } from 'lucide-react';
 import { Button } from '../../../../components/common/Button.jsx';
 import { uploadFileToStorage } from '../../../../features/uploads/uploadFileToStorage.js';
-import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 
 const INSTRUCTION_ACCEPT = [
   'application/pdf',
@@ -17,6 +16,9 @@ const INSTRUCTION_ACCEPT = [
   'image/gif',
 ];
 
+const INSTRUCTION_UPLOAD_ERROR_AR =
+  'تعذر رفع ملف التعليمات. يرجى التأكد من نوع الملف وحجمه.';
+
 function formatBytes(bytes) {
   if (!bytes) return '';
   if (bytes < 1024) return `${bytes} B`;
@@ -26,22 +28,27 @@ function formatBytes(bytes) {
 
 /**
  * @param {{
+ *   opportunityId?: string | null,
+ *   taskId?: string | null,
  *   existing?: { name?: string | null, size?: number | null } | null,
  *   disabled?: boolean,
- *   onUploaded: (fileId: string) => void,
+ *   onUploaded: (fileId: string, meta?: { name: string, size: number, mimeType: string }) => void,
  *   onRemove?: () => void,
  *   onDownloadExisting?: () => void,
+ *   onUploadingChange?: (uploading: boolean) => void,
  * }} props
  */
 export function TaskInstructionFileField({
+  opportunityId,
+  taskId,
   existing,
   disabled,
   onUploaded,
   onRemove,
   onDownloadExisting,
+  onUploadingChange,
 }) {
   const { t } = useTranslation('fieldTraining');
-  const { t: tCommon } = useTranslation('common');
   const inputRef = useRef(null);
   const [pendingName, setPendingName] = useState('');
   const [pendingSize, setPendingSize] = useState(null);
@@ -51,32 +58,45 @@ export function TaskInstructionFileField({
   const showExisting = Boolean(existing?.name) && !pendingName;
   const showPending = Boolean(pendingName);
 
+  useEffect(() => {
+    onUploadingChange?.(uploading);
+  }, [uploading, onUploadingChange]);
+
   async function handlePick(e) {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file || disabled) return;
+    if (!file || disabled || uploading) return;
     setError('');
     setUploading(true);
     try {
+      const relatedEntityId = taskId || opportunityId || undefined;
       const record = await uploadFileToStorage(file, {
-        folder: 'field-training-instructions',
+        folder: 'training',
         visibility: 'private',
         accept: INSTRUCTION_ACCEPT,
-        relatedEntityType: 'field_training_task_instruction',
+        // purpose = task_instruction — stored via relatedEntityType (supported metadata)
+        relatedEntityType: 'task_instruction',
+        relatedEntityId,
       });
       setPendingName(file.name);
       setPendingSize(file.size);
-      onUploaded(record.id);
-    } catch (err) {
-      setError(getApiErrorMessage(err, tCommon('errors.generic')));
+      onUploaded(record.id, {
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || record.mimeType || '',
+      });
+    } catch {
+      setError(t('tasks.instructionUploadError', { defaultValue: INSTRUCTION_UPLOAD_ERROR_AR }));
     } finally {
       setUploading(false);
     }
   }
 
   function handleRemove() {
+    if (disabled || uploading) return;
     setPendingName('');
     setPendingSize(null);
+    setError('');
     onRemove?.();
   }
 
@@ -96,12 +116,12 @@ export function TaskInstructionFileField({
           </div>
           <div className="ft-task-instruction-file__actions">
             {onDownloadExisting ? (
-              <Button type="button" variant="outline" className="btn--sm" onClick={onDownloadExisting} disabled={disabled}>
+              <Button type="button" variant="outline" className="btn--sm" onClick={onDownloadExisting} disabled={disabled || uploading}>
                 {t('tasks.downloadInstruction')}
               </Button>
             ) : null}
             <Button type="button" variant="outline" className="btn--sm" onClick={() => inputRef.current?.click()} disabled={disabled || uploading}>
-              {t('tasks.changeInstructionFile')}
+              {uploading ? t('tasks.uploadingInstruction') : t('tasks.changeInstructionFile')}
             </Button>
             <Button type="button" variant="outline" className="btn--sm" onClick={handleRemove} disabled={disabled || uploading}>
               <X size={14} aria-hidden /> {t('tasks.removeInstructionFile')}
@@ -117,13 +137,18 @@ export function TaskInstructionFileField({
               <span className="ft-task-instruction-file__size">{formatBytes(pendingSize)}</span>
             ) : null}
           </div>
-          <Button type="button" variant="outline" className="btn--sm" onClick={handleRemove} disabled={disabled || uploading}>
-            <X size={14} aria-hidden /> {t('tasks.removeInstructionFile')}
-          </Button>
+          <div className="ft-task-instruction-file__actions">
+            <Button type="button" variant="outline" className="btn--sm" onClick={() => inputRef.current?.click()} disabled={disabled || uploading}>
+              {uploading ? t('tasks.uploadingInstruction') : t('tasks.changeInstructionFile')}
+            </Button>
+            <Button type="button" variant="outline" className="btn--sm" onClick={handleRemove} disabled={disabled || uploading}>
+              <X size={14} aria-hidden /> {t('tasks.removeInstructionFile')}
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="ft-task-instruction-file__empty">
-          <p>{t('tasks.noInstructionFile')}</p>
+          <p>{uploading ? t('tasks.uploadingInstruction') : t('tasks.noInstructionFile')}</p>
           <Button
             type="button"
             variant="outline"
@@ -143,6 +168,7 @@ export function TaskInstructionFileField({
         accept={INSTRUCTION_ACCEPT.join(',')}
         onChange={handlePick}
         disabled={disabled || uploading}
+        aria-label={t('tasks.instructionFile')}
       />
 
       {error ? <p className="form-field__error" role="alert">{error}</p> : null}

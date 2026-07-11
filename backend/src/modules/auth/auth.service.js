@@ -197,10 +197,10 @@ async function login(validated) {
   }
 
   if (user.status === 'inactive') {
-    throw new ApiError(403, 'Your account is not activated yet. Please wait for admin approval.');
+    throw new ApiError(403, 'حسابك بانتظار تفعيل الإدارة.', null, 'ACCOUNT_PENDING_ACTIVATION');
   }
   if (user.status !== 'active') {
-    throw new ApiError(403, 'Account is inactive or suspended');
+    throw new ApiError(403, 'الحساب غير مفعل أو موقوف.', null, 'ACCOUNT_INACTIVE');
   }
 
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);

@@ -14,6 +14,7 @@
       "courses": "Course management",
       "fieldTraining": "Field training management",
       "fieldTrainingReports": "Field training reports",
+      "fieldTrainingStudents": "Field training student follow-up",
       "users": "Users",
       "roles": "Roles and permissions",
       "settings": "Settings",
@@ -55,6 +56,11 @@
     "evidence": "Evidence",
     "riskStudents": "At-risk students",
     "fieldTraining": "Field training",
+    "fieldTrainingAssigned": "My assigned trainings",
+    "fieldTrainingSessions": "Sessions & attendance",
+    "fieldTrainingTasks": "Tasks & submissions",
+    "fieldTrainingResults": "Student results",
+    "fieldTrainingEligibility": "Eligibility & follow-up",
     "notifications": "Notifications"
   },
   "student": {

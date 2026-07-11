@@ -79,10 +79,23 @@ Each API domain reads allowed role codes from environment variables with default
 |---------|--------|
 | Analytics (`/analytics/*`) | `super_admin` only |
 | Admin courses (`/admin/courses/*`) | `super_admin` only |
-| Admin field training (`/admin/field-training/*`) | `super_admin` only |
+| Admin field training (`/admin/field-training/*`) | `super_admin`, `program_admin`, `university_admin` (UI); API also allows `academic_admin` via `FIELD_TRAINING_*_ROLE_CODES` |
+| Instructor field training (`/instructor/field-training/*`) | `instructor` (assigned opportunities only) |
+| Academic field training (`/academic/field-training/*`) | `academic_admin`, `university_reviewer`, `qa_officer`, `university_admin` (read-only reports) |
+| Field training reports (`/admin/field-training/reports/*`) | `REPORT_READ_ROLE_CODES` including `program_admin`; global report: `super_admin`, `program_admin` |
 | Student courses (`/student/courses/*`) | `student` role |
 | Student field training (`/student/field-training/*`) | `student` role |
 | Certificate verify (`GET /certificates/verify/:code`) | Public (no auth) |
+
+### Field Training role env defaults
+
+| Env var | Default includes |
+|---------|------------------|
+| `FIELD_TRAINING_ADMIN_ROLE_CODES` | super_admin, program_admin, university_admin, academic_admin |
+| `FIELD_TRAINING_MANAGE_ROLE_CODES` | same as admin (no instructor / reviewer on admin portal) |
+| `FIELD_TRAINING_INSTRUCTOR_ROLE_CODES` | instructor |
+
+**Scope note:** `program_admin` is treated as system-wide for Field Training (`isSystemWideAdmin`) and can manage opportunities across universities. `university_admin` / academic roles remain university-scoped via eligibility. Instructors must use `/instructor/field-training`; university reviewers use `/academic/field-training`.
 
 ## Frontend authorization
 

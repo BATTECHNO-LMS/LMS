@@ -6,6 +6,7 @@ export const STUDENT_TRAINING_TABS = [
   'attendance',
   'tasks',
   'assessments',
+  'eligibility',
   'completion',
 ];
 

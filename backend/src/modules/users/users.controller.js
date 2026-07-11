@@ -66,13 +66,57 @@ async function activate(req, res, next) {
 async function activateAllPending(req, res, next) {
   try {
     const data = await usersService.activateAllPendingStudents({
-      university_id: req.validated.query.university_id,
-      user_ids: req.validated.body?.user_ids,
+      university_id: req.validated?.query?.university_id,
+      user_ids: req.validated?.body?.user_ids,
       actorUserId: req.user.userId,
       ipAddress: req.ip || null,
       requester: req.user,
     });
-    return success(res, data, { message: 'Pending students activated' });
+    return success(res, data, {
+      message: `تم تفعيل ${data.activated ?? 0} حسابًا معلقًا بنجاح.`,
+    });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function verifyEmail(req, res, next) {
+  try {
+    const data = await usersService.verifyUserEmail(req.validated.params.id, {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+      requester: req.user,
+    });
+    return success(res, data, { message: data.message });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function verifyAllEmails(req, res, next) {
+  try {
+    const data = await usersService.verifyAllUnverifiedEmails({
+      university_id: req.validated?.query?.university_id,
+      status: req.validated?.query?.status,
+      user_ids: req.validated?.body?.user_ids,
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+      requester: req.user,
+    });
+    return success(res, data, { message: data.message });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function bulkVerifyEmails(req, res, next) {
+  try {
+    const data = await usersService.bulkVerifyUserEmails(req.validated?.body?.userIds ?? [], {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+      requester: req.user,
+    });
+    return success(res, data, { message: data.message });
   } catch (e) {
     return next(e);
   }
@@ -86,4 +130,7 @@ module.exports = {
   patchStatus,
   activate,
   activateAllPending,
+  verifyEmail,
+  verifyAllEmails,
+  bulkVerifyEmails,
 };

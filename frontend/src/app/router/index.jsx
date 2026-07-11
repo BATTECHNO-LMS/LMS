@@ -212,7 +212,13 @@ export function AppRouter() {
               <Route path="risk-students" element={<Pages.RiskStudentsPage />} />
               <Route path="field-training" element={<Pages.InstructorFieldTrainingPage />} />
               <Route path="field-training/:id/manage" element={<Pages.InstructorFieldTrainingManagePage />} />
+              <Route path="field-training/:id/participants" element={<Pages.InstructorFieldTrainingParticipantsPage />} />
+              <Route path="field-training/:id/sessions" element={<Pages.InstructorFieldTrainingSessionsPage />} />
+              <Route path="field-training/:id/attendance" element={<Pages.InstructorFieldTrainingAttendancePage />} />
               <Route path="field-training/:id/tasks" element={<Pages.InstructorFieldTrainingTasksPage />} />
+              <Route path="field-training/:id/submissions" element={<Pages.InstructorFieldTrainingSubmissionsPage />} />
+              <Route path="field-training/:id/results" element={<Pages.InstructorFieldTrainingResultsPage />} />
+              <Route path="field-training/:id/eligibility" element={<Pages.InstructorFieldTrainingEligibilityPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
               <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
@@ -231,6 +237,10 @@ export function AppRouter() {
               <Route
                 path="field-training/:opportunityId/tasks/:taskId/self-evaluation"
                 element={<Pages.StudentFieldTrainingSelfEvaluationPage />}
+              />
+              <Route
+                path="field-training/:id/progress"
+                element={<Pages.StudentFieldTrainingProgressRedirect />}
               />
               <Route path="field-training/:id" element={<Pages.StudentFieldTrainingDetailPage />} />
               <Route path="available-cohorts" element={<Pages.AvailableCohortsPage />} />

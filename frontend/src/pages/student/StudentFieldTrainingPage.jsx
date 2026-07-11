@@ -142,11 +142,11 @@ export function StudentFieldTrainingPage() {
                 {myApplications.map((app) => (
                   <article key={app.id} className="ft-my-apps__item">
                     <div className="ft-my-apps__main">
-                      <h3 className="ft-my-apps__opp">{app.opportunity?.title ?? '—'}</h3>
+                      <h3 className="ft-my-apps__opp">{app.opportunity?.title ?? t('notAvailable')}</h3>
                       <p className="ft-my-apps__meta">
                         {getOpportunitySpecialtyLabel(app.opportunity, i18n.language, t('form.specialtyUnspecified'))}
                         {' · '}
-                        {formatFtDate(app.created_at) ?? '—'}
+                        {formatFtDate(app.created_at) ?? t('notAvailable')}
                       </p>
                       {app.admin_note ? (
                         <p className="ft-my-apps__note">{app.admin_note}</p>
@@ -280,6 +280,9 @@ export function StudentFieldTrainingPage() {
                     <p className="ft-opp-card__org">
                       <GraduationCap size={16} aria-hidden />
                       {getOpportunitySpecialtyLabel(o, i18n.language, t('form.specialtyUnspecified'))}
+                      {o.university?.name || o.organization_name
+                        ? ` · ${o.university?.name || o.organization_name}`
+                        : ''}
                     </p>
 
                     {desc ? (

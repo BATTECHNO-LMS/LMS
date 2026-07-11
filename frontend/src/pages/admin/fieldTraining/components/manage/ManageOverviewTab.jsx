@@ -1,37 +1,60 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Users, ClipboardList, Award, Calendar, User } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from '../../../../../components/common/Button.jsx';
-import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
-import { StatCard } from '../../../../../components/common/StatCard.jsx';
-import { AdminStatsGrid } from '../../../../../components/admin/AdminStatsGrid.jsx';
 import {
-  startFieldTraining,
+  Award,
+  ClipboardList,
+  CheckCircle2,
+  Activity,
+  Users,
+  UserX,
+  Calendar,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '../../../../../components/common/Button.jsx';
+import {
+  formatFtDate,
   getOpportunitySpecialtyLabel,
-  opportunityStatusVariant,
 } from '../../../../../features/fieldTraining/index.js';
 import { BeneficiaryUniversitiesSection } from '../BeneficiaryUniversitiesSection.jsx';
-import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
-import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
+import { ManageKpiCard } from './ManageTabStates.jsx';
 
-export function ManageOverviewTab({ opportunityId, opp, applications, sessions, submissions, apiScope = 'admin' }) {
+function InfoItem({ label, value }) {
+  return (
+    <div className="ft-manage-info__item">
+      <dt>{label}</dt>
+      <dd>{value ?? '—'}</dd>
+    </div>
+  );
+}
+
+export function ManageOverviewTab({
+  opportunityId,
+  opp,
+  applications,
+  sessions,
+  submissions,
+  apiScope = 'admin',
+  appsLoading = false,
+  appsError = false,
+}) {
   const isInstructor = apiScope === 'instructor';
   const basePath = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t, i18n } = useTranslation('fieldTraining');
-  const qc = useQueryClient();
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [error, setError] = useState('');
 
   const approved = useMemo(
     () => (applications ?? []).filter((a) => a.status === 'approved'),
     [applications]
   );
-  const readyCount = useMemo(
+  const inTrainingCount = useMemo(
     () =>
       approved.filter((a) =>
-        ['ready_for_training', 'pre_assessment_completed', 'in_training'].includes(a.training_status)
+        [
+          'in_training',
+          'task_pending',
+          'task_submitted',
+          'post_assessment_pending',
+          'post_assessment_completed',
+        ].includes(a.training_status)
       ).length,
     [approved]
   );
@@ -45,131 +68,186 @@ export function ManageOverviewTab({ opportunityId, opp, applications, sessions, 
     () => approved.filter((a) => a.completion_letter_issued_at || a.training_status === 'completed').length,
     [approved]
   );
+  const pendingReviews = useMemo(
+    () => (submissions ?? []).filter((s) => (s.review_status || 'pending') === 'pending').length,
+    [submissions]
+  );
+  const eligibleCount = useMemo(
+    () => approved.filter((a) => a.completion_eligibility_status === 'eligible').length,
+    [approved]
+  );
+  const expelledCount = useMemo(
+    () => (applications ?? []).filter((a) => a.training_status === 'expelled').length,
+    [applications]
+  );
 
-  const startMut = useMutation({
-    mutationFn: () => startFieldTraining(opportunityId, { asInstructor: isInstructor }),
-    onSuccess: () => {
-      setConfirmOpen(false);
-      qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminDetail(opportunityId) });
-      qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(opportunityId) });
-    },
-    onError: (err) => setError(getApiErrorMessage(err)),
-  });
+  const modeLabel = opp?.training_mode ? t(`modes.${opp.training_mode}`, opp.training_mode) : null;
+  const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language);
+  const universities =
+    opp?.eligibility_grouped
+      ?.map((g) => g.university?.name)
+      .filter(Boolean)
+      .join(' · ') || null;
+  const specialties =
+    opp?.eligibility_grouped
+      ?.flatMap((g) => g.programs || [])
+      .map((p) => getOpportunitySpecialtyLabel({ specialty: p.university_specialty }, i18n.language, ''))
+      .filter(Boolean)
+      .join(' · ') || specialtyLabel;
 
-  const canStart = opp?.status === 'published' || opp?.status === 'in_progress';
+  const dataMissing = appsError || (!appsLoading && applications == null);
 
   return (
     <div className="ft-manage-panel">
-      <header className="ft-manage-panel__head">
-        <div>
-          <h2 className="ft-manage-panel__title">{opp?.title}</h2>
-          <p className="ft-manage-panel__meta">
-            {getOpportunitySpecialtyLabel(opp, i18n.language)}
-            {opp?.assigned_instructor?.full_name ? (
-              <>
-                {' · '}
-                <User size={14} aria-hidden /> {opp.assigned_instructor.full_name}
-              </>
-            ) : null}
-          </p>
-        </div>
-        {opp?.status ? (
-          <StatusBadge variant={opportunityStatusVariant(opp.status)}>
-            {t(`status.${opp.status}`)}
-          </StatusBadge>
-        ) : null}
-      </header>
-
-      <AdminStatsGrid>
-        <StatCard
+      <div className="ft-manage-kpi-grid" role="list">
+        <ManageKpiCard
+          icon={Users}
           label={t('manageHub.kpi.applications')}
-          value={applications?.length ?? 0}
+          value={dataMissing ? null : applications?.length ?? 0}
           hint={t('manageHub.kpi.applicationsHint')}
-          icon={Users}
         />
-        <StatCard
+        <ManageKpiCard
+          icon={Users}
           label={t('manageHub.kpi.approved')}
-          value={approved.length}
+          value={dataMissing ? null : approved.length}
           hint={t('manageHub.kpi.approvedHint')}
-          icon={Users}
         />
-        <StatCard
-          label={t('manageHub.kpi.sessions')}
-          value={sessions?.length ?? 0}
-          hint={t('manageHub.kpi.sessionsHint')}
+        <ManageKpiCard
+          icon={Activity}
+          label={t('manageHub.kpi.inTraining')}
+          value={dataMissing ? null : inTrainingCount}
+          hint={t('manageHub.kpi.inTrainingHint')}
+        />
+        <ManageKpiCard
           icon={Calendar}
-        />
-        <StatCard
-          label={t('manageHub.kpi.submissions')}
-          value={submissions?.length ?? 0}
-          hint={t('manageHub.kpi.submissionsHint')}
-          icon={ClipboardList}
-        />
-        <StatCard
           label={t('manageHub.kpi.avgAttendance')}
-          value={avgAttendance != null ? `${avgAttendance}%` : '—'}
+          value={avgAttendance != null ? `${avgAttendance}%` : null}
           hint={t('manageHub.kpi.avgAttendanceHint')}
-          icon={Calendar}
         />
-        <StatCard
-          label={t('manageHub.kpi.letters')}
-          value={lettersIssued}
-          hint={t('manageHub.kpi.lettersHint')}
+        <ManageKpiCard
+          icon={ClipboardList}
+          label={t('manageHub.kpi.pendingReviews')}
+          value={submissions == null ? null : pendingReviews}
+          hint={t('manageHub.kpi.pendingReviewsHint')}
+        />
+        <ManageKpiCard
+          icon={CheckCircle2}
+          label={t('manageHub.kpi.eligible')}
+          value={dataMissing ? null : eligibleCount}
+          hint={t('manageHub.kpi.eligibleHint')}
+        />
+        <ManageKpiCard
           icon={Award}
+          label={t('manageHub.kpi.letters')}
+          value={dataMissing ? null : lettersIssued}
+          hint={t('manageHub.kpi.lettersHint')}
         />
-      </AdminStatsGrid>
+        <ManageKpiCard
+          icon={UserX}
+          label={t('manageHub.kpi.expelled')}
+          value={dataMissing ? null : expelledCount}
+          hint={t('manageHub.kpi.expelledHint')}
+        />
+      </div>
+
+      <section className="ft-manage-info-card" aria-labelledby="ft-opp-info-title">
+        <header className="ft-manage-info-card__head">
+          <h2 id="ft-opp-info-title" className="ft-manage-panel__title">
+            {t('manageHub.opportunityInfo')}
+          </h2>
+          {!isInstructor ? (
+            <Button as={Link} to={`${basePath}?edit=${opportunityId}`} variant="outline" className="btn--sm">
+              {t('edit')}
+            </Button>
+          ) : null}
+        </header>
+
+        <dl className="ft-manage-info__grid">
+          <InfoItem label={t('form.specialty')} value={specialtyLabel} />
+          <InfoItem label={t('manageHub.info.universities')} value={universities} />
+          <InfoItem label={t('manageHub.info.eligibleSpecialties')} value={specialties} />
+          <InfoItem
+            label={t('manageHub.info.instructor')}
+            value={opp?.assigned_instructor?.full_name}
+          />
+          <InfoItem label={t('form.mode')} value={modeLabel} />
+          <InfoItem label={t('form.location')} value={opp?.location} />
+          <InfoItem
+            label={t('manageHub.info.dateRange')}
+            value={
+              opp?.start_date || opp?.end_date
+                ? `${formatFtDate(opp?.start_date) || '—'} — ${formatFtDate(opp?.end_date) || '—'}`
+                : null
+            }
+          />
+          <InfoItem
+            label={t('form.applicationDeadline')}
+            value={opp?.application_deadline ? formatFtDate(opp.application_deadline) : null}
+          />
+          <InfoItem
+            label={t('form.seatsLimit')}
+            value={opp?.seats_limit != null ? String(opp.seats_limit) : null}
+          />
+          <InfoItem
+            label={t('manageHub.kpi.sessions')}
+            value={sessions != null ? String(sessions.length) : null}
+          />
+        </dl>
+
+        <div className="ft-manage-info__rules">
+          <h3>{t('manageHub.workflowRules')}</h3>
+          <ul>
+            <li>
+              {t('form.requiresPreAssessment')}:{' '}
+              <strong>{opp?.requires_pre_assessment ? t('commonYes') : t('commonNo')}</strong>
+            </li>
+            <li>
+              {t('form.requiresPostAssessment')}:{' '}
+              <strong>{opp?.requires_post_assessment ? t('commonYes') : t('commonNo')}</strong>
+            </li>
+            <li>
+              {t('form.requiresFinalTask')}:{' '}
+              <strong>{opp?.requires_final_task ? t('commonYes') : t('commonNo')}</strong>
+            </li>
+            <li>
+              {t('manageHub.eligibilityRules.attendance')}:{' '}
+              <strong>
+                {opp?.minimum_attendance_percentage != null
+                  ? `${opp.minimum_attendance_percentage}%`
+                  : t('manageHub.eligibilityRules.notSet')}
+              </strong>
+            </li>
+            <li>
+              {t('manageHub.eligibilityRules.postScore')}:{' '}
+              <strong>
+                {opp?.minimum_post_assessment_score != null
+                  ? opp.minimum_post_assessment_score
+                  : t('manageHub.eligibilityRules.notSet')}
+              </strong>
+            </li>
+          </ul>
+        </div>
+      </section>
 
       <BeneficiaryUniversitiesSection grouped={opp?.eligibility_grouped} />
 
       <div className="ft-manage-actions">
         <Button
-          type="button"
-          variant="primary"
-          disabled={!canStart || startMut.isPending || opp?.status === 'in_progress'}
-          onClick={() => {
-            setError('');
-            setConfirmOpen(true);
-          }}
+          as={Link}
+          to={isInstructor ? `${basePath}/${opportunityId}/participants` : `${basePath}/${opportunityId}/applications`}
+          variant="outline"
         >
-          <Play size={16} aria-hidden /> {t('manageTraining.startTraining')}
+          {t('manageHub.tabs.applications')}
         </Button>
-        {!isInstructor ? (
-          <Button as={Link} to={`${basePath}/${opportunityId}/applications`} variant="outline">
-            {t('viewApplications')}
-          </Button>
-        ) : null}
         <Button as={Link} to={`${basePath}/${opportunityId}/tasks`} variant="outline">
           {t('tasks.manageTasks')}
         </Button>
+        {!isInstructor ? (
+          <Button as={Link} to="/admin/field-training/reports" variant="outline">
+            {t('manageHub.tabs.reports')}
+          </Button>
+        ) : null}
       </div>
-
-      {error ? <p className="form-field__error">{error}</p> : null}
-
-      {confirmOpen ? (
-        <div className="ft-modal-backdrop" onClick={() => setConfirmOpen(false)} role="presentation">
-          <div className="ft-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-            <header className="ft-modal__header">
-              <h2 className="ft-modal__title">{t('manageHub.startConfirmTitle')}</h2>
-              <p className="ft-modal__subtitle">
-                {t('manageHub.startConfirmBody', { count: readyCount })}
-              </p>
-            </header>
-            <footer className="ft-modal__footer">
-              <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
-                {t('cancel')}
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                disabled={startMut.isPending}
-                onClick={() => startMut.mutate()}
-              >
-                {startMut.isPending ? t('saving') : t('manageTraining.startTraining')}
-              </Button>
-            </footer>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

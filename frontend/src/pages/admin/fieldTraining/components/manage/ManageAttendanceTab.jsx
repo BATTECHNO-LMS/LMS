@@ -80,6 +80,10 @@ export function ManageAttendanceTab({
       setSuccess(t('manageHub.attendanceSaved'));
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.sessionAttendance(sessionId) });
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(opportunityId) });
+      qc.invalidateQueries({ queryKey: [...fieldTrainingKeys.all, 'student', 'progress'] });
+      qc.invalidateQueries({ queryKey: [...fieldTrainingKeys.all, 'progress'] });
+      qc.invalidateQueries({ queryKey: [...fieldTrainingKeys.all, 'student', 'detail'] });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentSessions(opportunityId) });
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });

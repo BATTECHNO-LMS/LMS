@@ -9,31 +9,52 @@
     "instructor": "Instructor",
     "student": "Student",
     "admin": "Admin",
-    "qaOfficer": "QA Officer"
+    "qaOfficer": "QA Officer",
+    "emailVerification": "Email verification",
+    "emailVerificationAll": "All"
   },
   "stats": {
     "total": "Total users",
-    "active": "Active users",
+    "active": "Active accounts",
     "inactive": "Suspended users",
-    "newUsers": "New users"
+    "newUsers": "New users",
+    "emailVerified": "Verified emails",
+    "emailUnverified": "Unverified emails",
+    "pendingActivation": "Pending activation"
   },
   "listTitle": "User list",
   "list": {
     "pendingActivation": "Pending activation",
-    "emailVerified": "Verified",
+    "emailVerified": "Email verified",
     "emailNotVerified": "Not verified",
+    "accountActive": "Active",
+    "accountInactive": "Inactive",
+    "accountSuspended": "Suspended",
     "activateAccount": "Activate account",
     "activateSuccess": "Account activated successfully.",
+    "activateRequiresEmail": "Email must be verified before activation.",
     "activateAll": "Activate all",
     "activateAllConfirm": "Activate {{count}} pending student account(s)?",
     "activateAllSuccess": "{{count}} account(s) activated.",
     "activateAllPartial": "Activated {{activated}} of {{total}}. {{failed}} failed.",
-    "activateAllNone": "No students waiting for activation."
+    "activateAllNone": "No students waiting for activation.",
+    "verifyEmail": "Verify email",
+    "verifyEmailSuccess": "Email verified successfully.",
+    "verifyEmailConfirmTitle": "Verify email",
+    "verifyEmailConfirmText": "Manually verify this user's email? The account will not be activated automatically.",
+    "verifyEmailConfirm": "Confirm verification",
+    "alreadyVerified": "Already verified",
+    "verifyAll": "Verify all",
+    "verifyAllConfirmTitle": "Verify all unverified accounts",
+    "verifyAllConfirmText": "Email addresses for all unverified accounts in the current scope ({{count}}) will be verified. Accounts will not be activated automatically.",
+    "verifyAllConfirm": "Confirm verify all",
+    "verifyAllSuccess": "{{count}} account(s) verified successfully."
   },
   "table": {
     "name": "Name",
     "email": "Email",
-    "emailVerified": "Email verified",
+    "emailVerified": "Email verification",
+    "accountStatus": "Account status",
     "role": "Role",
     "lastLogin": "Last login"
   },

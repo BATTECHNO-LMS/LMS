@@ -62,7 +62,7 @@ function validateRequest(parts) {
       out.query = parsed.data;
     }
     if (parts.body) {
-      const parsed = parts.body.safeParse(req.body);
+      const parsed = parts.body.safeParse(req.body ?? {});
       if (!parsed.success) {
         return res.status(400).json({
           success: false,

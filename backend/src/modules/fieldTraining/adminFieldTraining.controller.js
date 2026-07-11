@@ -252,10 +252,23 @@ async function eligibilityCatalog(_req, res, next) {
   }
 }
 
+async function listEligibility(req, res, next) {
+  try {
+    const data = await fieldTrainingService.listOpportunityEligibility(
+      req.validated.params.id,
+      req.user
+    );
+    return success(res, data, { message: 'Eligibility retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   stats,
   eligibilityCatalog,
+  listEligibility,
   getById,
   create,
   update,
