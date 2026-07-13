@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Bell,
@@ -18,6 +18,7 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { cn } from '../../utils/helpers.js';
 import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
@@ -64,6 +65,9 @@ export function NotificationsPage() {
   const { t: tCommon } = useTranslation('common');
   const { locale } = useLocale();
   const { user } = useAuth();
+  const location = useLocation();
+  const isStudentPortal = location.pathname.startsWith('/student');
+  const PageHeader = isStudentPortal ? StudentPageHeader : AdminPageHeader;
 
   const [active, setActive] = useState('all');
 
@@ -112,8 +116,8 @@ export function NotificationsPage() {
   const summaryValue = (n) => ((needsSeparateSummary ? summaryLoading : isLoading) ? '—' : String(n));
 
   return (
-    <div className="page page--dashboard page--admin">
-      <AdminPageHeader
+    <div className={cn('page page--dashboard', isStudentPortal ? 'page--student' : 'page--admin')}>
+      <PageHeader
         title={t('title')}
         description={t('description')}
         actions={

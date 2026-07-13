@@ -3,7 +3,10 @@ import { StatCard } from '../../../../components/common/StatCard.jsx';
 import { AdminStatsGrid } from '../../../../components/admin/AdminStatsGrid.jsx';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
 import { trainingStatusVariant } from '../../../../features/fieldTraining/index.js';
-import { StudentWorkflowTimeline } from './StudentWorkflowTimeline.jsx';
+import {
+  StudentWorkflowTimeline,
+  StudentOpportunityDescription,
+} from './StudentWorkflowTimeline.jsx';
 import { ClipboardList, Calendar, Award, GraduationCap } from 'lucide-react';
 
 function num(value, fallback = 0) {
@@ -176,16 +179,14 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
 
       <StudentWorkflowTimeline
         steps={progress?.steps}
+        progress={progress}
+        application={application}
+        opp={opp}
         expelled={expelled}
         rejected={rejected}
       />
 
-      {opp?.description ? (
-        <article className="ft-content-card">
-          <h3>{t('student.sectionDescription')}</h3>
-          <p>{opp.description}</p>
-        </article>
-      ) : null}
+      <StudentOpportunityDescription description={opp?.description} />
     </div>
   );
 }

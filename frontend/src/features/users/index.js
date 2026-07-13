@@ -1,6 +1,7 @@
 export const featureId = 'users';
 export * from './users.service.js';
 export * from './userMappers.js';
+export * from './userPermissions.js';
 export * from './hooks/useUsers.js';
 export * from './hooks/useUser.js';
 export * from './hooks/useCreateUser.js';
@@ -10,3 +11,4 @@ export * from './hooks/useActivateUser.js';
 export * from './hooks/useActivateAllPendingUsers.js';
 export * from './hooks/useVerifyUserEmail.js';
 export * from './hooks/useVerifyAllUserEmails.js';
+export * from './hooks/useAdminResetUserPassword.js';

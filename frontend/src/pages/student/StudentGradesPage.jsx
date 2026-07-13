@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
 import { BarChart3, Award, TrendingUp, BookMarked } from 'lucide-react';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
-import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { GradeSummaryCard } from '../../components/grades/GradeSummaryCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
+import { StudentPageHeader, StudentSection, StudentEmptyState } from '../../components/student/index.js';
 import { useGrades } from '../../features/grades/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
@@ -34,17 +33,17 @@ export function StudentGradesPage() {
     return { gpaPct: Math.round(avg), highestPct: Math.round(hi), courseCount: courses };
   }, [rows]);
 
-  const gpaLabel = gpaPct != null ? `${gpaPct}%` : '—';
-  const highLabel = highestPct != null ? `${highestPct}%` : '—';
+  const gpaLabel = gpaPct != null ? `${gpaPct}%` : '0%';
+  const highLabel = highestPct != null ? `${highestPct}%` : '0%';
   const loadError = isError ? getApiErrorMessage(error, 'تعذر تحميل الدرجات') : '';
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader
+      <StudentPageHeader
         title="الدرجات"
         description="درجاتك المنشورة فقط — لا تُعرض درجات المتعلمين الآخرين."
       />
-      <div className="grade-summary-grid">
+      <div className="grade-summary-grid admin-stats-grid">
         <GradeSummaryCard label="المعدل التقديري" value={gpaLabel} hint="وفق العناصر المعتمدة" icon={BarChart3} />
         <GradeSummaryCard label="مساقات بدرجات" value={String(courseCount)} icon={BookMarked} />
         <GradeSummaryCard label="أعلى درجة" value={highLabel} icon={Award} />
@@ -53,10 +52,13 @@ export function StudentGradesPage() {
       <AdminFilterBar>
         <SearchInput placeholder="بحث بالمساق" aria-label="بحث" />
       </AdminFilterBar>
-      <SectionCard title="درجاتي">
+      <StudentSection title="درجاتي" icon={Award}>
         {isLoading ? <LoadingSpinner /> : null}
-        {loadError ? <p className="crud-muted">{loadError}</p> : null}
-        {!isLoading ? (
+        {loadError ? <p className="student-section-error">{loadError}</p> : null}
+        {!isLoading && !loadError && !rows.length ? (
+          <StudentEmptyState title="لم يتم نشر درجات بعد." />
+        ) : null}
+        {!isLoading && rows.length ? (
           <DataTable
             emptyTitle="لا توجد درجات منشورة بعد"
             emptyDescription="ستظهر الدرجات المعتمدة من المدرّس هنا."
@@ -69,7 +71,7 @@ export function StudentGradesPage() {
             rows={loadError ? [] : rows}
           />
         ) : null}
-      </SectionCard>
+      </StudentSection>
     </div>
   );
 }

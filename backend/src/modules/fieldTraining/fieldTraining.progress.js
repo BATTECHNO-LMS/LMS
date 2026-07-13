@@ -140,4 +140,5 @@ function buildParticipantProgress(app, opp, counts = {}) {
 module.exports = {
   buildParticipantProgress,
   STEP_ORDER,
+  resolveStepIndex,
 };

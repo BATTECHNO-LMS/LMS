@@ -1,8 +1,6 @@
 import { Award, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
-import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { PermissionGate } from '../../components/permissions/PermissionGate.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
@@ -14,6 +12,7 @@ import { genericStatusVariant, statusLabelAr } from '../../utils/statusMap.js';
 import { useLocale } from '../../features/locale/index.js';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
 
 export function CertificatePage() {
   const P = UI_PERMISSION;
@@ -38,16 +37,16 @@ export function CertificatePage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader title={t('list.title')} description={t('list.description')} />
+      <StudentPageHeader title={t('list.title')} description={t('list.description')} />
       <AdminStatsGrid>
         <StatCard label={t('list.stats.issued')} value={String(issued)} icon={Award} />
         <StatCard label={t('list.stats.total')} value={String(rows.length)} icon={ShieldCheck} />
       </AdminStatsGrid>
-      <SectionCard title={t('list.title')}>
+      <StudentSection title={t('list.title')} icon={Award}>
         <PermissionGate permission={P.canViewCertificates}>
           {isLoading ? <p className="crud-muted">{tCommon('loading')}</p> : null}
           {isError ? (
-            <p className="crud-muted" role="alert">
+            <p className="student-section-error" role="alert">
               {getApiErrorMessage(error, t('list.loadError'))}
             </p>
           ) : null}
@@ -77,7 +76,7 @@ export function CertificatePage() {
             rows={rows}
           />
         </PermissionGate>
-      </SectionCard>
+      </StudentSection>
     </div>
   );
 }

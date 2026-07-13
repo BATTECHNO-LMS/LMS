@@ -67,10 +67,32 @@ async function listUsers(query, requester = {}) {
   ]);
 
   const items = await mapUsersWithRoles(rows);
+
+  const uniIds = [...new Set(items.map((u) => u.primary_university_id).filter(Boolean))];
+  const uspecIds = [...new Set(items.map((u) => u.university_specialty_id).filter(Boolean))];
+  const specIds = [...new Set(items.map((u) => u.specialty_id).filter(Boolean))];
+  const [unis, uspecs, specs] = await Promise.all([
+    usersRepository.findUniversitiesByIds(uniIds),
+    usersRepository.findUniversitySpecialtiesByIds(uspecIds),
+    usersRepository.findSpecialtiesByIds(specIds),
+  ]);
+  const uniMap = new Map(unis.map((u) => [u.id, u]));
+  const uspecMap = new Map(uspecs.map((s) => [s.id, s]));
+  const specMap = new Map(specs.map((s) => [s.id, s]));
+
+  const enriched = items.map((u) => ({
+    ...u,
+    primary_university: u.primary_university_id ? uniMap.get(u.primary_university_id) || null : null,
+    university_specialty: u.university_specialty_id
+      ? uspecMap.get(u.university_specialty_id) || null
+      : null,
+    specialty: u.specialty_id ? specMap.get(u.specialty_id) || null : null,
+  }));
+
   const total_pages = Math.max(1, Math.ceil(total / page_size));
 
   return {
-    items,
+    items: enriched,
     meta: {
       page,
       page_size,
@@ -104,10 +126,21 @@ async function getUserById(id, requester = {}) {
     university: uniById.get(m.university_id) || null,
   }));
 
+  const [uniSpec, globalSpec, activity, recentAudits] = await Promise.all([
+    usersRepository.findUniversitySpecialtyById(withRoles.university_specialty_id),
+    usersRepository.findSpecialtyById(withRoles.specialty_id),
+    usersRepository.countUserActivity(id),
+    usersRepository.findRecentAuditForUser(id, 25),
+  ]);
+
   return {
     ...withRoles,
     primary_university: primaryUniversity,
+    university_specialty: uniSpec,
+    specialty: globalSpec,
     university_relationships,
+    activity,
+    recent_audits: recentAudits,
   };
 }
 
@@ -179,12 +212,24 @@ async function createUser(body, requester = {}) {
   return getUserById(user.id, requester);
 }
 
-async function updateUser(id, body, requester = {}) {
+async function updateUser(id, body, requester = {}, meta = {}) {
   const existing = await usersRepository.findUserById(id);
   if (!existing) {
     throw new ApiError(404, 'User not found');
   }
   await assertUserAccessible(requester, existing);
+
+  if (body.email && body.email !== existing.email) {
+    const clash = await usersRepository.findUserByEmail(body.email);
+    if (clash && clash.id !== id) {
+      throw new ApiError(409, 'Email already exists');
+    }
+  }
+
+  let nextUniversityId =
+    body.primary_university_id !== undefined
+      ? body.primary_university_id
+      : existing.primary_university_id;
 
   if (body.primary_university_id) {
     assertUniversityRecordAccess(requester, body.primary_university_id);
@@ -194,13 +239,61 @@ async function updateUser(id, body, requester = {}) {
     }
   }
 
+  let nextUniSpecialtyId =
+    body.university_specialty_id !== undefined
+      ? body.university_specialty_id
+      : existing.university_specialty_id;
+  let nextSpecialtyId =
+    body.specialty_id !== undefined ? body.specialty_id : existing.specialty_id;
+
+  const universityChanged =
+    body.primary_university_id !== undefined &&
+    String(body.primary_university_id || '') !== String(existing.primary_university_id || '');
+
+  if (universityChanged && body.university_specialty_id === undefined) {
+    nextUniSpecialtyId = null;
+  }
+
+  if (nextUniSpecialtyId) {
+    const us = await usersRepository.findUniversitySpecialtyById(nextUniSpecialtyId);
+    if (!us) throw new ApiError(400, 'University specialty not found');
+    if (nextUniversityId && String(us.university_id) !== String(nextUniversityId)) {
+      throw new ApiError(400, 'University specialty does not belong to the selected university');
+    }
+    if (body.specialty_id === undefined && us.specialty_id) {
+      nextSpecialtyId = us.specialty_id;
+    }
+  }
+
+  if (nextSpecialtyId) {
+    const sp = await usersRepository.findSpecialtyById(nextSpecialtyId);
+    if (!sp) throw new ApiError(400, 'Specialty not found');
+  }
+
   const data = {};
   if (body.full_name !== undefined) data.full_name = body.full_name;
+  if (body.email !== undefined) data.email = body.email;
   if (body.phone !== undefined) data.phone = body.phone;
   if (body.status !== undefined) data.status = body.status;
   if (body.primary_university_id !== undefined) {
     data.primary_university_id = body.primary_university_id;
   }
+  if (body.university_specialty_id !== undefined || universityChanged) {
+    data.university_specialty_id = nextUniSpecialtyId;
+  }
+  if (body.specialty_id !== undefined || universityChanged || body.university_specialty_id !== undefined) {
+    data.specialty_id = nextSpecialtyId;
+  }
+
+  const oldSnapshot = {
+    full_name: existing.full_name,
+    email: existing.email,
+    phone: existing.phone,
+    status: existing.status,
+    primary_university_id: existing.primary_university_id,
+    university_specialty_id: existing.university_specialty_id,
+    specialty_id: existing.specialty_id,
+  };
 
   await prisma.$transaction(async (tx) => {
     if (Object.keys(data).length) {
@@ -224,17 +317,83 @@ async function updateUser(id, body, requester = {}) {
     }
   });
 
+  await recordAudit({
+    userId: meta.actorUserId ?? requester.userId ?? null,
+    universityId: nextUniversityId ?? null,
+    actionType: 'USER_UPDATED',
+    entityType: 'user',
+    entityId: id,
+    oldValues: oldSnapshot,
+    newValues: {
+      ...data,
+      role_codes: body.role_codes ?? undefined,
+      updatedBy: meta.actorUserId ?? requester.userId ?? null,
+    },
+    ipAddress: meta.ipAddress ?? null,
+  });
+
   return getUserById(id, requester);
 }
 
-async function patchUserStatus(id, status, requester = {}) {
+async function patchUserStatus(id, status, requester = {}, meta = {}) {
   const existing = await usersRepository.findUserById(id);
   if (!existing) {
     throw new ApiError(404, 'User not found');
   }
   await assertUserAccessible(requester, existing);
+
+  if (
+    String(requester.userId) === String(id) &&
+    status !== 'active' &&
+    (requester.isGlobal || (requester.roles || []).includes('super_admin'))
+  ) {
+    throw new ApiError(400, 'You cannot deactivate your own Super Admin account');
+  }
+
   await usersRepository.updateUser(id, { status, updated_at: new Date() });
+
+  await recordAudit({
+    userId: meta.actorUserId ?? requester.userId ?? null,
+    universityId: existing.primary_university_id ?? null,
+    actionType: 'USER_STATUS_CHANGED',
+    entityType: 'user',
+    entityId: id,
+    oldValues: { status: existing.status },
+    newValues: { status, updatedBy: meta.actorUserId ?? requester.userId ?? null },
+    ipAddress: meta.ipAddress ?? null,
+  });
+
   return getUserById(id, requester);
+}
+
+async function adminResetPassword(id, body, requester = {}, meta = {}) {
+  const existing = await usersRepository.findUserById(id);
+  if (!existing) {
+    throw new ApiError(404, 'User not found');
+  }
+  await assertUserAccessible(requester, existing);
+
+  const password_hash = await hashPassword(body.new_password);
+  await prisma.users.update({
+    where: { id },
+    data: { password_hash, updated_at: new Date() },
+  });
+
+  await recordAudit({
+    userId: meta.actorUserId ?? requester.userId ?? null,
+    universityId: existing.primary_university_id ?? null,
+    actionType: 'USER_PASSWORD_RESET',
+    entityType: 'user',
+    entityId: id,
+    oldValues: null,
+    newValues: { resetBy: meta.actorUserId ?? requester.userId ?? null },
+    ipAddress: meta.ipAddress ?? null,
+  });
+
+  return {
+    id,
+    message: 'Password reset successfully',
+  };
 }
 
 async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
@@ -547,6 +706,7 @@ module.exports = {
   createUser,
   updateUser,
   patchUserStatus,
+  adminResetPassword,
   activateUser,
   activateAllPendingStudents,
   verifyUserEmail,

@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, Circle, PlayCircle, Video } from 'lucide-react
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { Button } from '../../components/common/Button.jsx';
+import { CourseCoverImage } from '../../components/courses/CourseCoverImage.jsx';
 import { useStartStudentCourse, useStudentCourse } from '../../features/courses/index.js';
 import { LessonTrainingWorkflow } from './components/LessonTrainingWorkflow.jsx';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
@@ -45,7 +46,9 @@ export function StudentCourseDetailPage() {
 
   async function handleStart() {
     await startMut.mutateAsync(id);
-    refetch();
+    await refetch();
+    const next = allLessons.find((l) => !l.is_completed) ?? allLessons[0];
+    if (next) setActiveLessonId(next.id);
   }
 
   function selectLesson(lessonId) {
@@ -86,6 +89,14 @@ export function StudentCourseDetailPage() {
         </Link>
 
         <header className="course-detail-hero">
+          <div className="course-detail-hero__cover" aria-hidden={!course.cover_image_url}>
+            <CourseCoverImage
+              src={course.cover_image_url}
+              imgClassName="course-detail-hero__cover-img"
+              fallbackClassName="course-detail-hero__cover-fallback"
+              iconSize={40}
+            />
+          </div>
           <div className="course-detail-hero__main">
             <h1 className="course-detail-hero__title">{course.title}</h1>
             {course.short_description || course.description ? (

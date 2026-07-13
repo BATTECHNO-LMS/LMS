@@ -79,9 +79,18 @@
       "noCertificate": "لا توجد شهادة صادرة لهذا البرنامج بعد."
     },
     "semesterSchedule": {
-      "title": "الجدول الفصلي",
-      "subtitle": "جلساتك ضمن البرامج المعتمدة في جامعتك.",
-      "empty": "لا يوجد جدول فصلي متاح حاليًا",
+      "title": "البرامج التدريبية المسجلة",
+      "subtitle": "تابع الكورسات والبرامج والتدريب الميداني المسجل فيه.",
+      "breadcrumb": "الطالب / البرامج التدريبية المسجلة",
+      "empty": "لا توجد برامج تدريبية مسجلة حاليًا",
+      "emptyHint": "عند تسجيلك في كورس أو برنامج أو فرصة تدريب ميداني ستظهر تفاصيلها هنا.",
+      "browseCourses": "استعراض الكورسات",
+      "browseFieldTraining": "استعراض فرص التدريب",
+      "coursesSection": "البرامج والكورسات",
+      "fieldTrainingSection": "التدريب الميداني",
+      "sessionsSection": "الجلسات القادمة",
+      "assessmentsSection": "التقييمات المفتوحة",
+      "openAssessment": "فتح التقييم",
       "colTrack": "المسار",
       "colMicro": "الشهادة المصغّرة",
       "colCohort": "الدفعة",
@@ -90,7 +99,28 @@
       "colStart": "وقت البداية",
       "colEnd": "وقت النهاية",
       "colType": "نوع الجلسة",
-      "colStatus": "الحالة"
+      "colStatus": "الحالة",
+      "ft": {
+        "untitled": "فرصة تدريب ميداني",
+        "duration": "المدة",
+        "dates": "التواريخ",
+        "instructor": "المدرّب",
+        "instructorPending": "لم يُعيَّن بعد",
+        "mode": "نوع التدريب",
+        "progress": "التقدم",
+        "attendance": "نسبة الحضور: {{pct}}%",
+        "hoursValue": "{{hours}} ساعة تدريبية",
+        "hoursUnknown": "—",
+        "upcomingSession": "الجلسة القادمة",
+        "noUpcoming": "لا توجد جلسة قادمة حاليًا",
+        "joinZoom": "الانضمام عبر Zoom",
+        "continue": "متابعة التدريب",
+        "phaseNotStarted": "لم يبدأ بعد",
+        "phasePending": "طلبك قيد المراجعة",
+        "phaseStartsOn": "يبدأ التدريب بتاريخ {{date}}",
+        "phaseInTraining": "قيد التدريب",
+        "phaseCompleted": "تم إكمال التدريب"
+      }
     }
   },
   "pendingList": {

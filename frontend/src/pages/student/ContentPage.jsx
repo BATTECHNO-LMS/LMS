@@ -1,5 +1,5 @@
 import { BookOpen, PlayCircle, FileText, Layers } from 'lucide-react';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -10,7 +10,7 @@ import { DataTable } from '../../components/tables/DataTable.jsx';
 export function ContentPage() {
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader title="المحتوى" description="الوصول إلى الوحدات والمواد والموارد التعليمية لمساقاتك." />
+      <StudentPageHeader title="المحتوى" description="الوصول إلى الوحدات والمواد والموارد التعليمية لمساقاتك." />
       <AdminFilterBar>
         <SearchInput placeholder="بحث بالعنوان أو الوحدة" aria-label="بحث" />
       </AdminFilterBar>

@@ -3,6 +3,14 @@
   "description": "إدارة حسابات المستخدمين وصلاحياتهم ضمن النظام.",
   "addUser": "إضافة مستخدم",
   "searchPlaceholder": "بحث بالاسم أو البريد",
+  "view": {
+    "toggleLabel": "طريقة العرض",
+    "cards": "عرض كاردات",
+    "table": "عرض جدول",
+    "title": "تفاصيل المستخدم",
+    "description": "عرض بيانات المستخدم والحالة.",
+    "notFound": "لم يتم العثور على المستخدم."
+  },
   "filters": {
     "role": "الدور",
     "allRoles": "كل الأدوار",
@@ -10,6 +18,8 @@
     "student": "طالب",
     "admin": "إداري",
     "qaOfficer": "مسؤول جودة",
+    "academicReviewer": "مراجع أكاديمي",
+    "universityAdmin": "مدير جامعة",
     "emailVerification": "حالة توثيق البريد",
     "emailVerificationAll": "الكل"
   },
@@ -24,13 +34,18 @@
   },
   "listTitle": "قائمة المستخدمين",
   "list": {
+    "count": "{{count}} مستخدم",
     "pendingActivation": "بانتظار التفعيل",
-    "emailVerified": "موثق البريد",
+    "emailVerified": "موثق",
     "emailNotVerified": "غير موثق",
     "accountActive": "مفعل",
     "accountInactive": "غير مفعل",
-    "accountSuspended": "معطل",
+    "accountSuspended": "موقوف",
     "activateAccount": "تفعيل الحساب",
+    "deactivateAccount": "تعطيل الحساب",
+    "deactivateSuccess": "تم تعطيل الحساب.",
+    "deactivateConfirmTitle": "تعطيل الحساب",
+    "deactivateConfirmText": "هل تريد تعطيل حساب {{name}}؟",
     "activateSuccess": "تم تفعيل الحساب بنجاح.",
     "activateRequiresEmail": "يجب توثيق البريد قبل تفعيل الحساب.",
     "activateAll": "تفعيل الكل",
@@ -53,10 +68,54 @@
   "table": {
     "name": "الاسم",
     "email": "البريد الإلكتروني",
+    "university": "الجامعة",
+    "specialty": "التخصص",
     "emailVerified": "توثيق البريد",
     "accountStatus": "حالة الحساب",
     "role": "الدور",
-    "lastLogin": "آخر دخول"
+    "lastLogin": "آخر دخول",
+    "createdAt": "تاريخ الإنشاء"
+  },
+  "detail": {
+    "breadcrumb": "المستخدمون / التفاصيل",
+    "backToList": "العودة للقائمة",
+    "save": "حفظ التغييرات",
+    "saveSuccess": "تم حفظ بيانات المستخدم.",
+    "statusUpdated": "تم تحديث حالة الحساب.",
+    "reactivate": "إعادة التفعيل",
+    "resetPassword": "إعادة تعيين كلمة المرور",
+    "resetPasswordHint": "أدخل كلمة مرور جديدة (8 أحرف على الأقل). لن تُعرض كلمة المرور الحالية أبدًا.",
+    "resetPasswordSuccess": "تم إعادة تعيين كلمة المرور بنجاح.",
+    "statusConfirmTitle": "تأكيد تغيير الحالة",
+    "statusConfirmText": "هل أنت متأكد من تغيير حالة هذا الحساب؟",
+    "sensitiveConfirmTitle": "تأكيد تعديل حساس",
+    "sensitiveConfirmText": "سيتم تغيير الدور أو الجامعة. هل تريد المتابعة؟",
+    "tabs": {
+      "personal": "البيانات الشخصية",
+      "academic": "البيانات الأكاديمية",
+      "account": "الحساب والصلاحيات",
+      "activity": "النشاط"
+    },
+    "fields": {
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الهاتف",
+      "university": "الجامعة",
+      "universitySpecialty": "التخصص الجامعي",
+      "specialty": "التخصص المرجعي",
+      "role": "الدور",
+      "updatedAt": "آخر تحديث",
+      "newPassword": "كلمة المرور الجديدة",
+      "confirmPassword": "تأكيد كلمة المرور"
+    },
+    "activity": {
+      "enrollments": "البرامج المسجّل بها",
+      "courses": "الكورسات",
+      "fieldTraining": "طلبات التدريب الميداني",
+      "certificates": "الشهادات",
+      "recentAudits": "آخر سجلات التدقيق",
+      "noAudits": "لا توجد سجلات تدقيق حديثة."
+    }
   },
   "empty": {
     "noData": "لا توجد بيانات",
@@ -73,11 +132,6 @@
     "title": "تعديل مستخدم",
     "description": "تحديث بيانات المستخدم المحدد.",
     "section": "البيانات"
-  },
-  "view": {
-    "title": "تفاصيل المستخدم",
-    "description": "عرض بيانات المستخدم والحالة.",
-    "notFound": "لم يتم العثور على المستخدم."
   },
   "crud": {
     "create": "إنشاء",

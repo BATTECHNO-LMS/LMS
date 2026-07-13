@@ -78,7 +78,11 @@ export function AdminLessonRow({
           <span className="admin-lesson-row__title">
             {index + 1}. {lesson.title}
           </span>
-          <span className="admin-lesson-row__type">{t('lessonsPanel.normalLesson')}</span>
+          <span className="admin-lesson-row__type">
+            {t('lessonsPanel.normalLesson')}
+            {' · '}
+            {t(`status.${lesson.status || 'draft'}`)}
+          </span>
         </button>
         <div className="admin-lesson-row__actions">
           <button
@@ -171,6 +175,13 @@ export function AdminLessonRow({
           label={t('lessonsPanel.freePreview')}
           checked={form.is_preview}
           onChange={(e) => setField('is_preview', e.target.checked)}
+        />
+
+        <FormSwitch
+          id={`lesson-published-${lesson.id}`}
+          label={t('lessonsPanel.publishLesson')}
+          checked={form.status === 'published'}
+          onChange={(e) => setField('status', e.target.checked ? 'published' : 'draft')}
         />
 
         {courseId ? <AdminLessonTrainingSection courseId={courseId} lessonId={lesson.id} /> : null}

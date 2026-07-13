@@ -1,17 +1,8 @@
-import React from 'react';
+import { StudentMetricCard } from './StudentMetricCard.jsx';
 
-export function StudentKpiCard({ label, value, icon: Icon, color = 'primary' }) {
-  const colorClass = `student-kpi--${color}`;
-  
-  return (
-    <div className={`student-kpi ${colorClass}`}>
-      <div className="student-kpi__icon">
-        <Icon size={24} />
-      </div>
-      <div className="student-kpi__content">
-        <span className="student-kpi__label">{label}</span>
-        <span className="student-kpi__value">{value}</span>
-      </div>
-    </div>
-  );
+/**
+ * @deprecated Prefer StudentMetricCard (Admin StatCard). Kept for compatibility.
+ */
+export function StudentKpiCard({ label, value, icon, color: _color = 'primary' }) {
+  return <StudentMetricCard label={label} value={value} icon={icon} />;
 }

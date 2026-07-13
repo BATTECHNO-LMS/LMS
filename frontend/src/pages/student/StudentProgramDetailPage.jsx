@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { ProgramDetailsTabs } from '../../components/student/enrollment/ProgramDetailsTabs.jsx';
@@ -117,7 +117,7 @@ export function StudentProgramDetailPage() {
     const cohortBrief = enrollment.cohort;
     return (
       <div className="page page--dashboard page--student">
-        <AdminPageHeader
+        <StudentPageHeader
           title={cohortBrief?.title ?? cohort?.title ?? '—'}
           description={cohortBrief?.micro_credential?.title ?? cohort?.micro_credential?.title ?? ''}
         />
@@ -151,7 +151,7 @@ export function StudentProgramDetailPage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader
+      <StudentPageHeader
         title={mcTitle}
         description={
           <>

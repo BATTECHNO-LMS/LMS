@@ -7,6 +7,9 @@ const userPublicSelect = {
   phone: true,
   status: true,
   primary_university_id: true,
+  university_specialty_id: true,
+  specialty_id: true,
+  activated_at: true,
   email_verified_at: true,
   last_login_at: true,
   created_at: true,
@@ -74,8 +77,12 @@ async function findManyForList(where, skip, take) {
       phone: true,
       status: true,
       primary_university_id: true,
+      university_specialty_id: true,
+      specialty_id: true,
+      activated_at: true,
       email_verified_at: true,
       last_login_at: true,
+      created_at: true,
     },
   });
 }
@@ -224,6 +231,103 @@ async function findInactiveStudents({ studentRoleId, university_id }) {
   });
 }
 
+async function findUniversitySpecialtyById(id, tx = prisma) {
+  if (!id) return null;
+  return tx.university_specialties.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      university_id: true,
+      specialty_id: true,
+      name_ar: true,
+      name_en: true,
+      code: true,
+      college_name_ar: true,
+      college_name_en: true,
+      status: true,
+    },
+  });
+}
+
+async function findSpecialtyById(id, tx = prisma) {
+  if (!id) return null;
+  return tx.specialties.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name_ar: true,
+      name_en: true,
+      code: true,
+      status: true,
+    },
+  });
+}
+
+async function findUniversitiesByIds(ids, tx = prisma) {
+  if (!ids.length) return [];
+  return tx.universities.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, type: true, status: true },
+  });
+}
+
+async function findUniversitySpecialtiesByIds(ids, tx = prisma) {
+  if (!ids.length) return [];
+  return tx.university_specialties.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      university_id: true,
+      specialty_id: true,
+      name_ar: true,
+      name_en: true,
+      code: true,
+      status: true,
+    },
+  });
+}
+
+async function findSpecialtiesByIds(ids, tx = prisma) {
+  if (!ids.length) return [];
+  return tx.specialties.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+  });
+}
+
+async function findRecentAuditForUser(userId, take = 20) {
+  return prisma.audit_logs.findMany({
+    where: {
+      OR: [{ entity_type: 'user', entity_id: userId }, { user_id: userId }],
+    },
+    orderBy: { created_at: 'desc' },
+    take,
+    select: {
+      id: true,
+      action_type: true,
+      entity_type: true,
+      entity_id: true,
+      created_at: true,
+      user_id: true,
+    },
+  });
+}
+
+async function countUserActivity(userId) {
+  const [enrollments, courseEnrollments, fieldTrainings, certificates] = await Promise.all([
+    prisma.enrollments.count({ where: { student_id: userId } }).catch(() => 0),
+    prisma.course_enrollments.count({ where: { student_id: userId } }).catch(() => 0),
+    prisma.field_training_applications.count({ where: { student_id: userId } }).catch(() => 0),
+    prisma.certificates.count({ where: { student_id: userId } }).catch(() => 0),
+  ]);
+  return {
+    enrollments_count: enrollments,
+    course_enrollments_count: courseEnrollments,
+    field_training_applications_count: fieldTrainings,
+    certificates_count: certificates,
+  };
+}
+
 module.exports = {
   buildListWhere,
   countMany,
@@ -236,6 +340,13 @@ module.exports = {
   findUserByEmail,
   findUniversityById,
   findUniversityMembershipsForUser,
+  findUniversitySpecialtyById,
+  findSpecialtyById,
+  findUniversitiesByIds,
+  findUniversitySpecialtiesByIds,
+  findSpecialtiesByIds,
+  findRecentAuditForUser,
+  countUserActivity,
   createUser,
   createUserRoleLinks,
   upsertUniversityUser,

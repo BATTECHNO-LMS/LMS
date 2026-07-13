@@ -1,14 +1,16 @@
 import { useMemo } from 'react';
 import { CalendarDays, Video, MapPin, Bell } from 'lucide-react';
 import { useQueries } from '@tanstack/react-query';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
-import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import {
+  StudentPageHeader,
+  StudentSection,
+} from '../../components/student/index.js';
 import { useLocale } from '../../features/locale/index.js';
 import { useAssessments } from '../../features/assessments/index.js';
 import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
@@ -75,7 +77,7 @@ export function StudentSessionsPage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader
+      <StudentPageHeader
         title={tr(isArabic, 'الجلسات', 'Sessions')}
         description={tr(
           isArabic,
@@ -95,12 +97,12 @@ export function StudentSessionsPage() {
         <StatCard label={tr(isArabic, 'حضوري', 'Onsite')} value={String(onsite)} icon={MapPin} />
         <StatCard label={tr(isArabic, 'تذكيرات', 'Reminders')} value={String(rows.length)} icon={Bell} />
       </AdminStatsGrid>
-      <SectionCard title={tr(isArabic, 'الجلسات القادمة', 'Upcoming sessions')}>
+      <StudentSection title={tr(isArabic, 'الجلسات القادمة', 'Upcoming sessions')} icon={CalendarDays}>
         {loading ? <LoadingSpinner /> : null}
-        {loadError ? <p className="crud-muted">{loadError}</p> : null}
+        {loadError ? <p className="student-section-error">{loadError}</p> : null}
         {!loading ? (
           <DataTable
-            emptyTitle={tr(isArabic, 'لا توجد جلسات', 'No sessions')}
+            emptyTitle={tr(isArabic, 'لم تبدأ الجلسات بعد.', 'Sessions have not started yet.')}
             emptyDescription={tr(isArabic, 'لا توجد جلسات مطابقة.', 'No matching sessions.')}
             columns={[
               { key: 'when', label: tr(isArabic, 'الوقت', 'Time') },
@@ -111,7 +113,7 @@ export function StudentSessionsPage() {
             rows={loadError ? [] : rows}
           />
         ) : null}
-      </SectionCard>
+      </StudentSection>
     </div>
   );
 }

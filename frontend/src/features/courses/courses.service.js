@@ -2,7 +2,6 @@ import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
 import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
-import { storedValueFromFileRecord } from '../../utils/uploadUrl.js';
 
 const admin = endpoints.adminCourses;
 const student = endpoints.studentCourses;
@@ -17,16 +16,36 @@ export async function fetchAdminCourse(id) {
   return unwrapApiData(res);
 }
 
-export async function uploadCourseCoverImage(file) {
-  const record = await uploadFileToStorage(file, {
-    folder: 'logos',
-    visibility: 'public',
-    accept: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
+/**
+ * Upload course cover via dedicated multer endpoint (works with local storage and R2 PUBLIC_BASE_URL).
+ * Returns a relative path suitable for `cover_image_url` persistence.
+ */
+export async function uploadCourseCoverImage(file, { onProgress } = {}) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await apiClient.post(`${admin}/cover`, formData, {
+    transformRequest: [
+      (data, headers) => {
+        if (headers && typeof headers.set === 'function') {
+          headers.set('Content-Type', undefined);
+        } else if (headers) {
+          delete headers['Content-Type'];
+          delete headers['content-type'];
+        }
+        return data;
+      },
+    ],
+    onUploadProgress: (event) => {
+      if (!onProgress || !event.total) return;
+      onProgress(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+    },
   });
+  const data = unwrapApiData(res) || {};
+  const stored = data.cover_image_url || data.path || data.url || '';
   return {
-    url: storedValueFromFileRecord(record),
-    path: record.storageKey,
-    fileId: record.id,
+    url: data.url || stored,
+    path: data.path || stored,
+    cover_image_url: stored,
   };
 }
 
@@ -102,6 +121,11 @@ export async function deleteCourseLesson(courseId, lessonId) {
 
 export async function reorderCourseLessons(courseId, items) {
   const res = await apiClient.post(`${admin}/${courseId}/lessons/reorder`, { items });
+  return unwrapApiData(res);
+}
+
+export async function publishDraftCourseLessons(courseId) {
+  const res = await apiClient.post(`${admin}/${courseId}/lessons/publish-drafts`);
   return unwrapApiData(res);
 }
 

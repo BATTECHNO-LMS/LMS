@@ -11,6 +11,11 @@ import {
 } from '../../../../features/courses/index.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 import { AdminLessonRow } from './AdminLessonRow.jsx';
+import { CourseLessonFormModal } from './CourseLessonFormModal.jsx';
+
+function sortedLessons(lessons = []) {
+  return [...lessons].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+}
 
 export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
   const { t } = useTranslation('courses');
@@ -23,24 +28,52 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
   const [sectionTitle, setSectionTitle] = useState('');
   const [expandedLessonId, setExpandedLessonId] = useState(null);
   const [dragLessonId, setDragLessonId] = useState(null);
+  const [dragSectionId, setDragSectionId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [lessonModal, setLessonModal] = useState({
+    open: false,
+    mode: 'create',
+    sectionId: null,
+    lesson: null,
+  });
   const sectionInit = useRef(false);
+  const draftSync = useRef(false);
   const titleDebounce = useRef(null);
 
-  const sections = data?.sections ?? [];
+  const courseStatus = data?.course?.status ?? null;
+  const lessonDefaultStatus = courseStatus === 'published' ? 'published' : 'draft';
+
+  const sections = useMemo(() => {
+    const list = [...(data?.sections ?? [])];
+    list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    return list;
+  }, [data?.sections]);
+
   const primarySection = sections[0] ?? null;
   const sectionId = primarySection?.id ?? null;
 
-  const lessons = useMemo(() => {
-    const list = [...(primarySection?.lessons ?? [])];
-    list.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-    return list;
-  }, [primarySection]);
+  const totalLessons = useMemo(
+    () => sections.reduce((n, s) => n + (s.lessons?.length ?? 0), 0),
+    [sections]
+  );
+
+  const allLessons = useMemo(
+    () =>
+      sections.flatMap((s) =>
+        sortedLessons(s.lessons).map((l) => ({ ...l, section_id: l.section_id || s.id }))
+      ),
+    [sections]
+  );
+
+  const draftCount = useMemo(
+    () => allLessons.filter((l) => l.status !== 'published').length,
+    [allLessons]
+  );
 
   const existingVideoIds = useMemo(
-    () => new Set(lessons.map((l) => lessonVideoId(l)).filter(Boolean)),
-    [lessons]
+    () => new Set(allLessons.map((l) => lessonVideoId(l)).filter(Boolean)),
+    [allLessons]
   );
 
   const ensureDefaultSection = useCallback(async () => {
@@ -55,10 +88,35 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
   }, [courseId, sections.length, mut.createSection, refetch, t]);
 
   useEffect(() => {
-    if (courseId && !isLoading && sections.length === 0) {
+    if (courseId && !isLoading && !isError && sections.length === 0) {
       ensureDefaultSection();
     }
-  }, [courseId, isLoading, sections.length, ensureDefaultSection]);
+  }, [courseId, isLoading, isError, sections.length, ensureDefaultSection]);
+
+  // Published courses hide draft lessons from students — publish drafts so content is visible
+  useEffect(() => {
+    if (draftSync.current || isLoading || isError || !courseId) return;
+    if (courseStatus !== 'published' || draftCount === 0) return;
+    draftSync.current = true;
+    (async () => {
+      try {
+        await mut.publishDraftLessons.mutateAsync();
+        await refetch();
+        onLessonsChange?.();
+      } catch {
+        draftSync.current = false;
+      }
+    })();
+  }, [
+    courseId,
+    courseStatus,
+    draftCount,
+    isLoading,
+    isError,
+    mut.publishDraftLessons,
+    refetch,
+    onLessonsChange,
+  ]);
 
   useEffect(() => {
     if (primarySection?.title) setSectionTitle(primarySection.title);
@@ -94,7 +152,7 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
       const videos = preview?.videos ?? [];
       const seen = new Set(existingVideoIds);
       let added = 0;
-      const baseOrder = lessons.length;
+      const baseOrder = sortedLessons(primarySection?.lessons).length;
       for (let i = 0; i < videos.length; i += 1) {
         const v = videos[i];
         if (seen.has(v.video_id)) continue;
@@ -104,7 +162,7 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
             title: v.title,
             type: 'video',
             video_url: v.watch_url,
-            status: 'draft',
+            status: lessonDefaultStatus,
             sort_order: baseOrder + added,
             is_preview: false,
             is_required: true,
@@ -145,6 +203,15 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
     setSingleVideoUrl('');
   }
 
+  function openAddLesson(targetSectionId) {
+    setLessonModal({
+      open: true,
+      mode: 'create',
+      sectionId: targetSectionId || sectionId,
+      lesson: null,
+    });
+  }
+
   async function handleDeleteLesson(lesson) {
     if (!window.confirm(t('structure.confirmDeleteLesson', { title: lesson.title ?? '' }))) return;
     setBusy(true);
@@ -173,9 +240,31 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
     }
   }
 
-  async function handleReorder(targetLessonId) {
-    if (!dragLessonId || dragLessonId === targetLessonId || !sectionId) return;
-    const ordered = [...lessons];
+  async function handleLessonModalSubmit(body) {
+    try {
+      if (lessonModal.mode === 'edit' && lessonModal.lesson) {
+        await mut.updateLesson.mutateAsync({ lessonId: lessonModal.lesson.id, body });
+      } else if (lessonModal.sectionId) {
+        await mut.createLesson.mutateAsync({ sectionId: lessonModal.sectionId, body });
+      }
+      setLessonModal({ open: false, mode: 'create', sectionId: null, lesson: null });
+      await refetch();
+      onLessonsChange?.();
+    } catch (err) {
+      setError(getApiErrorMessage(err, tCommon('errors.generic')));
+    }
+  }
+
+  async function handleReorder(targetLessonId, targetSectionId) {
+    if (!dragLessonId || dragLessonId === targetLessonId) return;
+    if (!dragSectionId || dragSectionId !== targetSectionId) {
+      setDragLessonId(null);
+      setDragSectionId(null);
+      return;
+    }
+    const section = sections.find((s) => s.id === targetSectionId);
+    if (!section) return;
+    const ordered = sortedLessons(section.lessons);
     const from = ordered.findIndex((l) => l.id === dragLessonId);
     const to = ordered.findIndex((l) => l.id === targetLessonId);
     if (from < 0 || to < 0) return;
@@ -183,7 +272,7 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
     ordered.splice(to, 0, moved);
     const items = ordered.map((l, i) => ({
       lesson_id: l.id,
-      section_id: sectionId,
+      section_id: targetSectionId,
       sort_order: i,
     }));
     setBusy(true);
@@ -196,16 +285,28 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
     } finally {
       setBusy(false);
       setDragLessonId(null);
+      setDragSectionId(null);
+    }
+  }
+
+  async function handlePublishDrafts() {
+    setError('');
+    setBusy(true);
+    try {
+      await mut.publishDraftLessons.mutateAsync();
+      await refetch();
+      onLessonsChange?.();
+    } catch (err) {
+      setError(getApiErrorMessage(err, tCommon('errors.generic')));
+    } finally {
+      setBusy(false);
     }
   }
 
   const subtitle =
-    lessons.length === 0
+    totalLessons === 0
       ? t('lessonsPanel.noLessonsYet')
-      : t('lessonsPanel.lessonsFromSection', {
-          count: lessons.length,
-          section: sectionTitle || t('lessonsPanel.defaultSectionTitle'),
-        });
+      : t('lessonsPanel.lessonsCount', { count: totalLessons });
 
   if (!courseId) {
     return <p className="crud-muted">{t('composer.saveDraftBeforeLessons')}</p>;
@@ -216,8 +317,19 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
   }
 
   if (isError) {
-    return <p className="crud-muted">{t('structure.loadFailed')}</p>;
+    return (
+      <div className="admin-course-lessons-panel__error-state">
+        <p className="crud-muted" role="alert">
+          {t('structure.loadFailed')}
+        </p>
+        <Button type="button" variant="outline" onClick={() => refetch()}>
+          {t('structure.retry')}
+        </Button>
+      </div>
+    );
   }
+
+  let globalIndex = 0;
 
   return (
     <div className="admin-course-lessons-panel">
@@ -227,6 +339,21 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
         <p className="admin-course-lessons-panel__error" role="alert">
           {error}
         </p>
+      ) : null}
+
+      {draftCount > 0 ? (
+        <div className="admin-course-lessons-panel__draft-banner" role="status">
+          <p>{t('lessonsPanel.draftsHiddenHint', { count: draftCount })}</p>
+          <Button
+            type="button"
+            variant="primary"
+            className="btn--sm"
+            disabled={busy || mut.publishDraftLessons.isPending}
+            onClick={handlePublishDrafts}
+          >
+            {t('lessonsPanel.publishDrafts')}
+          </Button>
+        </div>
       ) : null}
 
       <div className="admin-course-lessons-panel__import">
@@ -287,53 +414,117 @@ export function AdminCourseLessonsPanel({ courseId, onLessonsChange, onDone }) {
         <label className="admin-course-lessons-panel__label" htmlFor="section-title-input">
           {t('lessonsPanel.sectionTitleLabel')}
         </label>
-        <input
-          id="section-title-input"
-          type="text"
-          className="admin-course-lessons-panel__input"
-          value={sectionTitle}
-          onChange={(e) => handleSectionTitleChange(e.target.value)}
-        />
+        <div className="admin-course-lessons-panel__row">
+          <input
+            id="section-title-input"
+            type="text"
+            className="admin-course-lessons-panel__input"
+            value={sectionTitle}
+            onChange={(e) => handleSectionTitleChange(e.target.value)}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            className="admin-course-lessons-panel__add-btn"
+            disabled={busy || !sectionId}
+            onClick={() => openAddLesson(sectionId)}
+          >
+            <Plus size={18} aria-hidden />
+            {t('lessonsPanel.addLesson')}
+          </Button>
+        </div>
       </div>
 
       <div className="admin-course-lessons-panel__list-wrap">
-        {lessons.length === 0 ? (
+        {totalLessons === 0 ? (
           <div className="admin-course-lessons-panel__empty">
-            <p>{t('lessonsPanel.emptyHint')}</p>
+            <p>{t('lessonsPanel.emptyNoLessons')}</p>
+            <Button
+              type="button"
+              variant="primary"
+              disabled={busy || !sectionId}
+              onClick={() => openAddLesson(sectionId)}
+            >
+              <Plus size={18} aria-hidden />
+              {t('lessonsPanel.addLesson')}
+            </Button>
           </div>
         ) : (
           <div className="admin-course-lessons-panel__list">
-            {lessons.map((lesson, index) => (
-              <AdminLessonRow
-                key={lesson.id}
-                courseId={courseId}
-                index={index}
-                lesson={lesson}
-                expanded={expandedLessonId === lesson.id}
-                saving={busy}
-                draggable
-                onToggleExpand={() =>
-                  setExpandedLessonId((id) => (id === lesson.id ? null : lesson.id))
-                }
-                onDelete={() => handleDeleteLesson(lesson)}
-                onSave={(body) => handleSaveLesson(lesson.id, body)}
-                onDragStart={() => setDragLessonId(lesson.id)}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleReorder(lesson.id);
-                }}
-              />
-            ))}
+            {sections.map((section) => {
+              const lessons = sortedLessons(section.lessons);
+              if (!lessons.length && sections.length > 1) {
+                return (
+                  <div key={section.id} className="admin-course-lessons-panel__section-block">
+                    <h3 className="admin-course-lessons-panel__section-heading">{section.title}</h3>
+                    <p className="crud-muted">{t('structure.noLessonsInSection')}</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      onClick={() => openAddLesson(section.id)}
+                    >
+                      <Plus size={16} aria-hidden />
+                      {t('lessonsPanel.addLesson')}
+                    </Button>
+                  </div>
+                );
+              }
+              return (
+                <div key={section.id} className="admin-course-lessons-panel__section-block">
+                  {sections.length > 1 ? (
+                    <h3 className="admin-course-lessons-panel__section-heading">{section.title}</h3>
+                  ) : null}
+                  {lessons.map((lesson) => {
+                    const index = globalIndex;
+                    globalIndex += 1;
+                    return (
+                      <AdminLessonRow
+                        key={lesson.id}
+                        courseId={courseId}
+                        index={index}
+                        lesson={lesson}
+                        expanded={expandedLessonId === lesson.id}
+                        saving={busy}
+                        draggable
+                        onToggleExpand={() =>
+                          setExpandedLessonId((id) => (id === lesson.id ? null : lesson.id))
+                        }
+                        onDelete={() => handleDeleteLesson(lesson)}
+                        onSave={(body) => handleSaveLesson(lesson.id, body)}
+                        onDragStart={() => {
+                          setDragLessonId(lesson.id);
+                          setDragSectionId(section.id);
+                        }}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          handleReorder(lesson.id, section.id);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
       <footer className="admin-course-lessons-panel__footer">
         <Button type="button" variant="primary" className="admin-course-lessons-panel__done" onClick={onDone}>
-          {t('lessonsPanel.done', { count: lessons.length })}
+          {t('lessonsPanel.done', { count: totalLessons })}
         </Button>
       </footer>
+
+      <CourseLessonFormModal
+        open={lessonModal.open}
+        mode={lessonModal.mode}
+        initialLesson={lessonModal.lesson}
+        saving={mut.createLesson.isPending || mut.updateLesson.isPending}
+        onClose={() => setLessonModal({ open: false, mode: 'create', sectionId: null, lesson: null })}
+        onSubmit={handleLessonModalSubmit}
+      />
     </div>
   );
 }

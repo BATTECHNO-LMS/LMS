@@ -61,41 +61,79 @@
     "dashboard": {
       "summary": {
         "welcome": "مرحباً، {{name}}",
+        "welcomeFull": "{{name}}",
+        "welcomeLine": "مرحبًا {{name}}، إليك ملخص تقدمك الأكاديمي والتدريبي.",
         "university": "الجامعة: {{name}}",
         "noUniversity": "ستظهر الجامعة عند ربطها بملفك.",
         "today": "اليوم: {{date}}"
+      },
+      "profile": {
+        "email": "البريد الجامعي",
+        "university": "الجامعة",
+        "specialty": "التخصص",
+        "status": "حالة الحساب",
+        "completeness": "اكتمال الملف الشخصي"
+      },
+      "profileStatus": {
+        "active": "نشط",
+        "pending": "معلّق",
+        "pending_activation": "بانتظار التفعيل",
+        "inactive": "غير نشط",
+        "suspended": "موقوف"
       },
       "kpi": {
         "enrolled": "برامج نشطة",
         "sessions": "جلسات قادمة",
         "assessments": "تقييمات مفتوحة",
         "pending": "تسليمات بانتظار الإكمال",
-        "attendance": "نسبة الحضور (متوسطة)",
-        "grades": "متوسط الدرجة النهائية"
+        "attendance": "نسبة الحضور",
+        "grades": "متوسط الدرجة النهائية",
+        "courses": "كورساتي",
+        "coursesCompleted": "كورسات مكتملة",
+        "courseProgress": "متوسط تقدم الكورسات",
+        "ftActive": "تدريب ميداني نشط",
+        "ftTasks": "مهام تدريب معلّقة",
+        "lastGrade": "آخر درجة",
+        "certificates": "شهادات / كتب إنهاء"
       },
       "sections": {
         "nextActions": "ماذا بعد؟",
         "programs": "برامجي النشطة",
+        "courses": "كورساتي",
+        "fieldTraining": "التدريب الميداني",
         "sessions": "الجلسات القادمة",
         "assessments": "التقييمات المفتوحة",
         "attendance": "نظرة على الحضور",
         "grades": "آخر الدرجات",
-        "certificate": "جاهزية الشهادة",
+        "certificate": "جاهزية الشهادة وكتاب الإنهاء",
         "notifications": "الإشعارات"
       },
       "empty": {
         "enrollments": "لا توجد برامج مسجّلة حالياً. تواصل مع الإدارة إذا كان يفترض أنك مسجّل.",
         "sessions": "لا توجد جلسات قادمة.",
+        "sessionsNotStarted": "لم تبدأ الجلسات بعد.",
+        "attendanceNotRecorded": "لم يتم تسجيل الحضور بعد.",
         "assessments": "لا توجد تقييمات مفتوحة حالياً.",
         "grades": "لم يتم نشر درجات بعد.",
         "attendance": "يظهر الحضور بعد تسجيل الجلسات.",
-        "notifications": "لا توجد إشعارات بعد."
+        "notifications": "لا توجد إشعارات بعد.",
+        "courses": "لا توجد كورسات مسجل بها حاليًا.",
+        "fieldTraining": "لا يوجد تدريب ميداني نشط حالياً.",
+        "nextActions": "لا توجد خطوات عاجلة الآن — واصل التعلّم."
       },
       "error": {
-        "section": "تعذّر تحميل هذا القسم."
+        "section": "تعذّر تحميل هذا القسم.",
+        "assessments": "تعذر تحميل التقييمات حاليًا.",
+        "grades": "تعذر تحميل الدرجات حاليًا.",
+        "courses": "تعذر تحميل الكورسات حاليًا.",
+        "fieldTraining": "تعذر تحميل التدريب الميداني حاليًا.",
+        "sessions": "تعذر تحميل الجلسات حاليًا.",
+        "notifications": "تعذر تحميل الإشعارات حاليًا.",
+        "certificates": "تعذر تحميل بيانات الشهادة حاليًا."
       },
       "actions": {
         "submit": "تسليم",
+        "startAssessment": "بدء التقييم",
         "viewAssessments": "عرض التقييمات",
         "viewSessions": "عرض الجلسات",
         "viewGrades": "عرض الدرجات",
@@ -104,6 +142,44 @@
         "viewNotifications": "كل الإشعارات",
         "viewFeedback": "عرض الملاحظات",
         "viewSubmission": "عرض التسليم"
+      },
+      "courses": {
+        "viewAll": "كل الكورسات",
+        "continue": "متابعة الكورس",
+        "start": "ابدأ الكورس",
+        "lessonsProgress": "{{done}} من {{total}} درس"
+      },
+      "fieldTraining": {
+        "viewAll": "بوابة التدريب",
+        "continue": "متابعة التدريب",
+        "untitled": "فرصة تدريب",
+        "org": "الجهة",
+        "instructor": "المدرّب المسؤول",
+        "specialty": "التخصص",
+        "preScore": "الامتحان القبلي",
+        "postScore": "الامتحان البعدي",
+        "attendance": "الحضور",
+        "tasks": "المهام",
+        "tasksRatio": "{{submitted}} / {{total}}",
+        "eligibility": "الأهلية",
+        "letter": "كتاب الإنهاء",
+        "letterIssued": "صادر",
+        "letterPending": "غير صادر بعد",
+        "nextStep": "الخطوة التالية: ",
+        "notYet": "0",
+        "noAttendanceYet": "0%",
+        "lettersReady": "{{count}} كتاب إنهاء جاهز"
+      },
+      "notifications": {
+        "unread": "غير مقروء: {{count}}",
+        "read": "مقروء"
+      },
+      "sessionTypes": {
+        "lecture": "محاضرة",
+        "lab": "مختبر",
+        "workshop": "ورشة",
+        "exam": "اختبار",
+        "other": "أخرى"
       },
       "badges": {
         "open": "مفتوح",
@@ -156,7 +232,12 @@
         }
       },
       "attendance": {
-        "lowWarning": "متوسط حضورك أقل من {{pct}}٪. تواصل مع المدرب عند الحاجة."
+        "lowWarning": "متوسط حضورك أقل من {{pct}}٪. تواصل مع المدرب عند الحاجة.",
+        "required": "الجلسات",
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "excused": "معذور"
       },
       "program": {
         "progress": "التقدّم",
@@ -167,6 +248,8 @@
         "submitDesc": "تقييم ضمن {{context}}",
         "sessionTitle": "جلسة قادمة: {{title}}",
         "sessionDesc": "{{context}}",
+        "courseTitle": "تابع الكورس: {{title}}",
+        "courseDesc": "التقدّم الحالي {{pct}}٪",
         "attendanceTitle": "تنبيه حضور",
         "attendanceDesc": "متوسط حضورك يحتاج إلى تحسين.",
         "certificateTitle": "تقدّم الشهادة",

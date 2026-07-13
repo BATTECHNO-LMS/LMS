@@ -10,6 +10,26 @@ const DEFAULT_INSTRUCTIONS =
 const DEFAULT_PROMPT =
   'صحّح إجابة الطالب وفق المعايير التالية: صحة الحل، اكتمال الإجابة، اتباع التعليمات، تنظيم المحتوى.';
 
+/**
+ * Same visibility rules as student course detail/list:
+ * published course + cohort access, published lesson in that course.
+ * Creates course_enrollments when the student opens learning content (same as completeLesson).
+ */
+async function assertStudentLessonAccess(courseId, lessonId, studentId) {
+  const course = await coursesRepo.findPublishedByIdForStudent(courseId, studentId);
+  if (!course) {
+    throw new ApiError(404, 'Course not found');
+  }
+
+  const lesson = await repo.findLessonInCourse(lessonId, courseId);
+  if (!lesson) {
+    throw new ApiError(404, 'Lesson not found');
+  }
+
+  const enrollment = await coursesRepo.upsertEnrollment(courseId, studentId);
+  return { course, lesson, enrollment };
+}
+
 function buildDefaultTraining(lesson) {
   return {
     lesson_id: lesson.id,
@@ -134,16 +154,14 @@ function mapWorkflow(wf, config) {
 }
 
 async function getStudentTrainingState(courseId, lessonId, studentId) {
-  const enrollment = await coursesRepo.findEnrollment(courseId, studentId);
-  if (!enrollment) throw new ApiError(403, 'يجب بدء الكورس أولاً');
+  await assertStudentLessonAccess(courseId, lessonId, studentId);
   const config = await getTrainingConfig(lessonId, courseId);
   const wf = await repo.findWorkflow(lessonId, studentId);
   return { config, workflow: mapWorkflow(wf, config) };
 }
 
 async function startTraining(courseId, lessonId, studentId) {
-  const lesson = await repo.findLessonInCourse(lessonId, courseId);
-  if (!lesson) throw new ApiError(404, 'Lesson not found');
+  await assertStudentLessonAccess(courseId, lessonId, studentId);
 
   const wf = await repo.upsertWorkflow(lessonId, studentId, courseId, {
     started_at: new Date(),
@@ -153,8 +171,7 @@ async function startTraining(courseId, lessonId, studentId) {
 }
 
 async function submitFile(courseId, lessonId, studentId, file, body = {}, user = { userId: studentId }) {
-  const lesson = await repo.findLessonInCourse(lessonId, courseId);
-  if (!lesson) throw new ApiError(404, 'Lesson not found');
+  await assertStudentLessonAccess(courseId, lessonId, studentId);
 
   let wf = await repo.findWorkflow(lessonId, studentId);
   if (!wf?.started_at) {
@@ -222,8 +239,7 @@ function buildFeedback(total, max, passed, details, prompt) {
 }
 
 async function submitAnswers(courseId, lessonId, studentId, answersInput) {
-  const lesson = await repo.findLessonInCourse(lessonId, courseId);
-  if (!lesson) throw new ApiError(404, 'Lesson not found');
+  await assertStudentLessonAccess(courseId, lessonId, studentId);
 
   let wf = await repo.findWorkflow(lessonId, studentId);
   if (!wf?.submitted_at) {

@@ -3,6 +3,14 @@
   "description": "Manage user accounts and permissions within the system.",
   "addUser": "Add user",
   "searchPlaceholder": "Search by name or email",
+  "view": {
+    "toggleLabel": "View mode",
+    "cards": "Cards view",
+    "table": "Table view",
+    "title": "User details",
+    "description": "View user details and status.",
+    "notFound": "User not found."
+  },
   "filters": {
     "role": "Role",
     "allRoles": "All roles",
@@ -10,6 +18,8 @@
     "student": "Student",
     "admin": "Admin",
     "qaOfficer": "QA Officer",
+    "academicReviewer": "Academic reviewer",
+    "universityAdmin": "University admin",
     "emailVerification": "Email verification",
     "emailVerificationAll": "All"
   },
@@ -24,13 +34,18 @@
   },
   "listTitle": "User list",
   "list": {
+    "count": "{{count}} users",
     "pendingActivation": "Pending activation",
-    "emailVerified": "Email verified",
-    "emailNotVerified": "Not verified",
+    "emailVerified": "Verified",
+    "emailNotVerified": "Unverified",
     "accountActive": "Active",
     "accountInactive": "Inactive",
     "accountSuspended": "Suspended",
     "activateAccount": "Activate account",
+    "deactivateAccount": "Deactivate account",
+    "deactivateSuccess": "Account deactivated.",
+    "deactivateConfirmTitle": "Deactivate account",
+    "deactivateConfirmText": "Deactivate {{name}}?",
     "activateSuccess": "Account activated successfully.",
     "activateRequiresEmail": "Email must be verified before activation.",
     "activateAll": "Activate all",
@@ -53,10 +68,54 @@
   "table": {
     "name": "Name",
     "email": "Email",
+    "university": "University",
+    "specialty": "Specialty",
     "emailVerified": "Email verification",
     "accountStatus": "Account status",
     "role": "Role",
-    "lastLogin": "Last login"
+    "lastLogin": "Last login",
+    "createdAt": "Created at"
+  },
+  "detail": {
+    "breadcrumb": "Users / Details",
+    "backToList": "Back to list",
+    "save": "Save changes",
+    "saveSuccess": "User saved successfully.",
+    "statusUpdated": "Account status updated.",
+    "reactivate": "Reactivate",
+    "resetPassword": "Reset password",
+    "resetPasswordHint": "Enter a new password (min 8 characters). The current password is never shown.",
+    "resetPasswordSuccess": "Password reset successfully.",
+    "statusConfirmTitle": "Confirm status change",
+    "statusConfirmText": "Are you sure you want to change this account status?",
+    "sensitiveConfirmTitle": "Confirm sensitive change",
+    "sensitiveConfirmText": "Role or university will change. Continue?",
+    "tabs": {
+      "personal": "Personal info",
+      "academic": "Academic info",
+      "account": "Account & permissions",
+      "activity": "Activity"
+    },
+    "fields": {
+      "fullName": "Full name",
+      "email": "Email",
+      "phone": "Phone",
+      "university": "University",
+      "universitySpecialty": "University specialty",
+      "specialty": "Canonical specialty",
+      "role": "Role",
+      "updatedAt": "Last updated",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password"
+    },
+    "activity": {
+      "enrollments": "Program enrollments",
+      "courses": "Courses",
+      "fieldTraining": "Field training applications",
+      "certificates": "Certificates",
+      "recentAudits": "Recent audit logs",
+      "noAudits": "No recent audit logs."
+    }
   },
   "empty": {
     "noData": "No data",
@@ -73,11 +132,6 @@
     "title": "Edit user",
     "description": "Update the selected user.",
     "section": "Details"
-  },
-  "view": {
-    "title": "User details",
-    "description": "View user details and status.",
-    "notFound": "User not found."
   },
   "crud": {
     "create": "Create",

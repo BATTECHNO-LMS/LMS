@@ -1,4 +1,5 @@
 const { prisma } = require('../../config/db');
+const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 
 const courseIncludeStructure = {
   course_sections: {
@@ -55,7 +56,7 @@ function mapCourseListRow(course) {
     level: course.level,
     status: course.status,
     category: course.category,
-    cover_image_url: course.cover_image_url,
+    cover_image_url: resolvePublicUrl(course.cover_image_url),
     estimated_duration_minutes: course.estimated_duration_minutes,
     published_at: course.published_at,
     created_at: course.created_at,

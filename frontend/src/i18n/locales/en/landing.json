@@ -261,14 +261,12 @@
   },
   "institutions": {
     "youthMinistry": "Ministry of Youth",
-    "digitalEconomyMinistry": "Ministry of Digital Economy",
     "tafilaTech": "Tafila Technical University",
     "mutah": "Mutah University",
     "zaytoonah": "Al-Zaytoonah University",
     "yarmouk": "Yarmouk University",
     "descriptions": {
       "youth": "A national institution focused on empowering youth and supporting training and development programs.",
-      "digital": "A government entity that advances digital transformation and builds technical and digital-economy skills.",
       "ttu": "A Jordanian technical university emphasizing applied learning and practical skills.",
       "mutah": "A leading Jordanian university combining academics, research, and community engagement.",
       "zay": "A private Jordanian university offering modern programs and professional growth.",

@@ -47,14 +47,20 @@
   "lessonsPanel": {
     "title": "Manage course lessons",
     "noLessonsYet": "No lessons yet",
+    "lessonsCount": "{{count}} lessons in this course",
     "lessonsFromSection": "{{count}} lessons · section: {{section}}",
     "playlistLabel": "YouTube playlist URL",
     "fetchLessons": "Fetch lessons",
     "singleVideoLabel": "Add one video (YouTube link)",
     "add": "Add",
+    "addLesson": "Add lesson",
     "sectionTitleLabel": "Lesson section title",
     "defaultSectionTitle": "Main content",
     "emptyHint": "Paste a playlist link and click «Fetch lessons», or add videos manually. Unlisted playlists need YOUTUBE_API_KEY on the server, or set the playlist to Public.",
+    "emptyNoLessons": "No lessons have been added to this course yet",
+    "publishLesson": "Publish lesson for students",
+    "publishDrafts": "Publish lessons for students",
+    "draftsHiddenHint": "{{count}} draft lessons — students will not see them until published",
     "done": "Done ({{count}} lessons)",
     "normalLesson": "Standard lesson",
     "dragHandle": "Drag to reorder",
@@ -249,6 +255,7 @@
     "openFile": "Open file",
     "noCourses": "No published courses yet",
     "courseNotFound": "Course not found or no longer available.",
+    "lessonAccessDenied": "You cannot access this lesson. Make sure you can take the course and the lesson is available.",
     "backToList": "Back to list"
   },
   "unauthorized": {

@@ -1,20 +1,19 @@
-import { useMemo } from 'react';
-import { useQueries } from '@tanstack/react-query';
-import { ClipboardCheck, Percent, Calendar, UserCheck } from 'lucide-react';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
-import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
+import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
 import { useAuth } from '../../features/auth/index.js';
 import { useAssessments } from '../../features/assessments/index.js';
 import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
 import { sessionsKeys } from '../../features/sessions/hooks/useSessions.js';
 import { fetchSessionAttendance } from '../../features/attendance/attendance.service.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { useMemo } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import { ClipboardCheck, Percent, Calendar, UserCheck } from 'lucide-react';
 
 export function StudentAttendancePage() {
   const { user } = useAuth();
@@ -90,7 +89,7 @@ export function StudentAttendancePage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader title="الحضور" description="عرض نسب حضورك في الجلسات وفق كل مساق مسجّل." />
+      <StudentPageHeader title="الحضور" description="عرض نسب حضورك في الجلسات وفق كل مساق مسجّل." />
       <AdminFilterBar>
         <SearchInput placeholder="بحث بالمساق" aria-label="بحث" />
       </AdminFilterBar>
@@ -100,9 +99,9 @@ export function StudentAttendancePage() {
         <StatCard label="حضور" value={String(presentCount)} icon={UserCheck} />
         <StatCard label="غياب" value={String(absentCount)} icon={ClipboardCheck} />
       </AdminStatsGrid>
-      <SectionCard title="التفصيل حسب المساق">
+      <StudentSection title="التفصيل حسب المساق" icon={ClipboardCheck}>
         {loading ? <LoadingSpinner /> : null}
-        {loadError ? <p className="crud-muted">{loadError}</p> : null}
+        {loadError ? <p className="student-section-error">{loadError}</p> : null}
         {!loading ? (
           <DataTable
             columns={[
@@ -114,7 +113,7 @@ export function StudentAttendancePage() {
             rows={loadError ? [] : rows}
           />
         ) : null}
-      </SectionCard>
+      </StudentSection>
     </div>
   );
 }

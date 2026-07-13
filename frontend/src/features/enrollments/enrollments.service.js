@@ -93,5 +93,8 @@ export async function fetchSemesterSchedule() {
   if (!data || typeof data !== 'object' || !Array.isArray(data.schedule)) {
     throw new Error('Invalid semester schedule response');
   }
-  return data;
+  return {
+    schedule: data.schedule,
+    field_trainings: Array.isArray(data.field_trainings) ? data.field_trainings : [],
+  };
 }

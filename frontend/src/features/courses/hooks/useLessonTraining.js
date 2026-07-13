@@ -16,6 +16,11 @@ export function useLessonTraining(courseId, lessonId, options = {}) {
     queryKey: lessonTrainingKey(courseId, lessonId),
     queryFn: () => fetchLessonTraining(courseId, lessonId),
     enabled: Boolean(courseId && lessonId),
+    retry: (failureCount, error) => {
+      const status = error?.response?.status;
+      if (status === 403 || status === 404) return false;
+      return failureCount < 2;
+    },
     ...options,
   });
 }

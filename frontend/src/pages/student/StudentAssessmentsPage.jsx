@@ -1,11 +1,5 @@
-import { Eye, Upload, Pencil, MessageSquare, FileCheck, Timer, Send, ListChecks } from 'lucide-react';
-import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { UI_PERMISSION } from '../../constants/permissions.js';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
-import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
@@ -17,6 +11,11 @@ import { useAssessments } from '../../features/assessments/index.js';
 import { useSubmissions } from '../../features/submissions/index.js';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
+import { Eye, Upload, Pencil, MessageSquare, FileCheck, Timer, Send, ListChecks } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { UI_PERMISSION } from '../../constants/permissions.js';
 
 export function StudentAssessmentsPage() {
   const { t } = useTranslation('assessments');
@@ -68,7 +67,7 @@ export function StudentAssessmentsPage() {
   return (
     <PagePermissionGate permission={P.canViewAssessments}>
       <div className="page page--dashboard page--student">
-        <AdminPageHeader
+        <StudentPageHeader
           title={<>{t('student.title')}</>}
           description={<>{t('student.description')}</>}
         />
@@ -81,7 +80,7 @@ export function StudentAssessmentsPage() {
           <StatCard label={t('student.stats.upcoming')} value={String(upcomingCount)} icon={Timer} />
           <StatCard label={t('student.stats.total')} value={String(rows.length)} icon={FileCheck} />
         </AdminStatsGrid>
-        <SectionCard title={<>{t('student.sectionTitle')}</>}>
+        <StudentSection title={<>{t('student.sectionTitle')}</>} icon={ListChecks}>
           {loading ? <LoadingSpinner /> : null}
           {loadError ? <p className="crud-muted">{loadError}</p> : null}
           {!loading ? (
@@ -159,7 +158,7 @@ export function StudentAssessmentsPage() {
               rows={loadError ? [] : rows}
             />
           ) : null}
-        </SectionCard>
+        </StudentSection>
       </div>
     </PagePermissionGate>
   );

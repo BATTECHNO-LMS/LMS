@@ -61,41 +61,79 @@
     "dashboard": {
       "summary": {
         "welcome": "Welcome, {{name}}",
+        "welcomeFull": "{{name}}",
+        "welcomeLine": "Hello {{name}}, here is a summary of your academic and training progress.",
         "university": "University: {{name}}",
         "noUniversity": "University will appear when linked to your profile.",
         "today": "Today: {{date}}"
+      },
+      "profile": {
+        "email": "University email",
+        "university": "University",
+        "specialty": "Specialty",
+        "status": "Account status",
+        "completeness": "Profile completeness"
+      },
+      "profileStatus": {
+        "active": "Active",
+        "pending": "Pending",
+        "pending_activation": "Pending activation",
+        "inactive": "Inactive",
+        "suspended": "Suspended"
       },
       "kpi": {
         "enrolled": "Active programs",
         "sessions": "Upcoming sessions",
         "assessments": "Open assessments",
         "pending": "Pending submissions",
-        "attendance": "Attendance (avg.)",
-        "grades": "Avg. final grade"
+        "attendance": "Attendance rate",
+        "grades": "Avg. final grade",
+        "courses": "My courses",
+        "coursesCompleted": "Completed courses",
+        "courseProgress": "Avg. course progress",
+        "ftActive": "Active field training",
+        "ftTasks": "Pending FT tasks",
+        "lastGrade": "Latest grade",
+        "certificates": "Certificates / letters"
       },
       "sections": {
         "nextActions": "What to do next",
         "programs": "My active programs",
+        "courses": "My courses",
+        "fieldTraining": "Field training",
         "sessions": "Upcoming sessions",
         "assessments": "Open assessments",
         "attendance": "Attendance overview",
         "grades": "Latest grades",
-        "certificate": "Certificate readiness",
+        "certificate": "Certificate & completion letter readiness",
         "notifications": "Notifications"
       },
       "empty": {
         "enrollments": "You are not enrolled in any programs yet. Contact your administration if you believe this is a mistake.",
         "sessions": "No upcoming sessions.",
+        "sessionsNotStarted": "Sessions have not started yet.",
+        "attendanceNotRecorded": "Attendance has not been recorded yet.",
         "assessments": "No open assessments right now.",
         "grades": "No grades have been published yet.",
         "attendance": "Attendance will appear after sessions are recorded.",
-        "notifications": "No notifications yet."
+        "notifications": "No notifications yet.",
+        "courses": "You are not enrolled in any courses yet.",
+        "fieldTraining": "No active field training right now.",
+        "nextActions": "No urgent steps right now — keep learning."
       },
       "error": {
-        "section": "This section could not be loaded."
+        "section": "This section could not be loaded.",
+        "assessments": "Assessments could not be loaded right now.",
+        "grades": "Grades could not be loaded right now.",
+        "courses": "Courses could not be loaded right now.",
+        "fieldTraining": "Field training could not be loaded right now.",
+        "sessions": "Sessions could not be loaded right now.",
+        "notifications": "Notifications could not be loaded right now.",
+        "certificates": "Certificate data could not be loaded right now."
       },
       "actions": {
         "submit": "Submit",
+        "startAssessment": "Start assessment",
         "viewAssessments": "View assessments",
         "viewSessions": "View sessions",
         "viewGrades": "View grades",
@@ -104,6 +142,44 @@
         "viewNotifications": "All notifications",
         "viewFeedback": "View feedback",
         "viewSubmission": "View submission"
+      },
+      "courses": {
+        "viewAll": "All courses",
+        "continue": "Continue course",
+        "start": "Start course",
+        "lessonsProgress": "{{done}} of {{total}} lessons"
+      },
+      "fieldTraining": {
+        "viewAll": "Training portal",
+        "continue": "Continue training",
+        "untitled": "Training opportunity",
+        "org": "Organization",
+        "instructor": "Instructor",
+        "specialty": "Specialty",
+        "preScore": "Pre-assessment",
+        "postScore": "Post-assessment",
+        "attendance": "Attendance",
+        "tasks": "Tasks",
+        "tasksRatio": "{{submitted}} / {{total}}",
+        "eligibility": "Eligibility",
+        "letter": "Completion letter",
+        "letterIssued": "Issued",
+        "letterPending": "Not issued yet",
+        "nextStep": "Next step: ",
+        "notYet": "0",
+        "noAttendanceYet": "0%",
+        "lettersReady": "{{count}} completion letter(s) ready"
+      },
+      "notifications": {
+        "unread": "Unread: {{count}}",
+        "read": "Read"
+      },
+      "sessionTypes": {
+        "lecture": "Lecture",
+        "lab": "Lab",
+        "workshop": "Workshop",
+        "exam": "Exam",
+        "other": "Other"
       },
       "badges": {
         "open": "Open",
@@ -156,7 +232,12 @@
         }
       },
       "attendance": {
-        "lowWarning": "Your average attendance is below {{pct}}%. Reach out to your instructor if you need support."
+        "lowWarning": "Your average attendance is below {{pct}}%. Reach out to your instructor if you need support.",
+        "required": "Sessions",
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused"
       },
       "program": {
         "progress": "Progress",
@@ -167,6 +248,8 @@
         "submitDesc": "Assessment in {{context}}",
         "sessionTitle": "Upcoming session: {{title}}",
         "sessionDesc": "{{context}}",
+        "courseTitle": "Continue course: {{title}}",
+        "courseDesc": "Current progress {{pct}}%",
         "attendanceTitle": "Attendance attention",
         "attendanceDesc": "Your average attendance needs improvement.",
         "certificateTitle": "Certificate progress",

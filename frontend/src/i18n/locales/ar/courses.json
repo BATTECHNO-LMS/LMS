@@ -47,14 +47,20 @@
   "lessonsPanel": {
     "title": "إدارة دروس الكورس",
     "noLessonsYet": "لا توجد دروس بعد",
+    "lessonsCount": "{{count}} درس في الكورس",
     "lessonsFromSection": "{{count}} درس · من: {{section}}",
     "playlistLabel": "رابط قائمة تشغيل YouTube",
     "fetchLessons": "جلب الدروس",
     "singleVideoLabel": "إضافة فيديو واحد (رابط يوتيوب)",
     "add": "إضافة",
+    "addLesson": "إضافة درس",
     "sectionTitleLabel": "عنوان قسم الدروس",
     "defaultSectionTitle": "المحتوى الرئيسي",
     "emptyHint": "الصق رابط قائمة التشغيل واضغط «جلب الدروس»، أو أضف فيديوهات يدويًا. القوائم «غير المدرجة» تحتاج YOUTUBE_API_KEY على الخادم؛ أو اجعل القائمة عامة.",
+    "emptyNoLessons": "لا توجد دروس مضافة لهذا الكورس بعد",
+    "publishLesson": "نشر الدرس للطلاب",
+    "publishDrafts": "نشر الدروس للطلاب",
+    "draftsHiddenHint": "{{count}} دروس مسودة — لن يراها الطلاب حتى يتم نشرها",
     "done": "تم ({{count}} درس)",
     "normalLesson": "درس عادي",
     "dragHandle": "سحب لإعادة الترتيب",
@@ -249,6 +255,7 @@
     "openFile": "فتح الملف",
     "noCourses": "لا توجد كورسات منشورة حاليًا",
     "courseNotFound": "الكورس غير موجود أو لم يعد متاحًا.",
+    "lessonAccessDenied": "لا يمكنك الوصول إلى هذا الدرس. تأكد أنك مسجّل في الكورس وأن الدرس متاح.",
     "backToList": "العودة للقائمة"
   },
   "unauthorized": {

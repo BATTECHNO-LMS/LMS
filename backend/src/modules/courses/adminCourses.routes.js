@@ -138,6 +138,14 @@ router.post(
   adminCoursesController.reorderLessons
 );
 
+router.post(
+  '/:courseId/lessons/publish-drafts',
+  authenticate,
+  superAdminOnly,
+  validateRequest({ params: courseIdParamSchema }),
+  adminCoursesController.publishDraftLessons
+);
+
 router.get(
   '/:id',
   authenticate,

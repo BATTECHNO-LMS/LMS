@@ -8,9 +8,14 @@ const { success, created } = require('../../utils/apiResponse');
 async function uploadCover(req, res, next) {
   try {
     if (!req.file) throw new ApiError(400, 'الصورة مطلوبة');
+    // Persist relative path under /uploads; clients resolve via PUBLIC_BASE_URL / VITE_API_BASE_URL
     const relative = path.posix.join('courses', 'covers', path.basename(req.file.filename));
     const url = resolvePublicUrl(relative);
-    return success(res, { url, path: relative }, { message: 'Cover image uploaded' });
+    return success(
+      res,
+      { url, path: relative, cover_image_url: relative },
+      { message: 'Cover image uploaded' }
+    );
   } catch (e) {
     return next(e);
   }
@@ -179,6 +184,15 @@ async function reorderLessons(req, res, next) {
   }
 }
 
+async function publishDraftLessons(req, res, next) {
+  try {
+    const data = await coursesService.publishAllDraftLessons(req.validated.params.courseId);
+    return success(res, data, { message: 'Draft lessons published' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   uploadCover,
   list,
@@ -195,5 +209,6 @@ module.exports = {
   updateLesson,
   deleteLesson,
   reorderLessons,
+  publishDraftLessons,
   previewYoutubePlaylist,
 };

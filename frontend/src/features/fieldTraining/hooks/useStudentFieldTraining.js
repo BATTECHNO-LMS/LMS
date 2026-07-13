@@ -40,7 +40,7 @@ export function useStudentFieldTraining(id, options = {}) {
 export function useMyFieldTrainingApplications(options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.myApplications(),
-    queryFn: fetchMyFieldTrainingApplications,
+    queryFn: () => fetchMyFieldTrainingApplications(),
     staleTime: 30_000,
     ...options,
   });

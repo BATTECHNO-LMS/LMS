@@ -12,7 +12,7 @@ export const semesterScheduleKeys = {
 export function useSemesterSchedule(options = {}) {
   return useQuery({
     queryKey: semesterScheduleKeys.mine(),
-    queryFn: fetchSemesterSchedule,
+    queryFn: () => fetchSemesterSchedule(),
     ...options,
   });
 }

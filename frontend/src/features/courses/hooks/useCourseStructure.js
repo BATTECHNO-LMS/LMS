@@ -5,6 +5,7 @@ import {
   deleteCourseLesson,
   deleteCourseSection,
   fetchCourseStructure,
+  publishDraftCourseLessons,
   updateCourseLesson,
   updateCourseSection,
   reorderCourseLessons,
@@ -22,7 +23,15 @@ export function useCourseStructure(courseId, options = {}) {
 
 export function useCourseStructureMutations(courseId) {
   const qc = useQueryClient();
-  const invalidate = () => qc.invalidateQueries({ queryKey: coursesKeys.structure(courseId) });
+
+  const invalidate = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: coursesKeys.structure(courseId) }),
+      qc.invalidateQueries({ queryKey: coursesKeys.adminDetail(courseId) }),
+      qc.invalidateQueries({ queryKey: coursesKeys.all }),
+      qc.invalidateQueries({ queryKey: [...coursesKeys.all, 'student'] }),
+    ]);
+  };
 
   return {
     createSection: useMutation({
@@ -51,6 +60,10 @@ export function useCourseStructureMutations(courseId) {
     }),
     reorderLessons: useMutation({
       mutationFn: (items) => reorderCourseLessons(courseId, items),
+      onSuccess: invalidate,
+    }),
+    publishDraftLessons: useMutation({
+      mutationFn: () => publishDraftCourseLessons(courseId),
       onSuccess: invalidate,
     }),
   };

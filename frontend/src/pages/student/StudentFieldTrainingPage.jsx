@@ -15,8 +15,11 @@ import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue.js';
 import { SearchInput } from '../../components/admin/SearchInput.jsx';
 import { SelectField } from '../../components/admin/SelectField.jsx';
+import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
+import { StatCard } from '../../components/common/StatCard.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import {
   TRAINING_MODES,
   useStudentFieldTrainingList,
@@ -106,31 +109,17 @@ export function StudentFieldTrainingPage() {
   return (
     <PagePermissionGate permission={UI_PERMISSION.canViewFieldTraining}>
       <div className="page page--dashboard page--student ft-page">
-        <section className="ft-hero" aria-labelledby="ft-student-hero-title">
-          <h1 id="ft-student-hero-title" className="ft-hero__title">
-            {t('student.title')}
-          </h1>
-          <p className="ft-hero__desc">{t('student.heroDescription')}</p>
-          {!profileIncomplete ? (
-            <p className="ft-hero__scope-info" role="status">
-              {t('student.scopeInfo')}
-            </p>
-          ) : null}
-          <div className="ft-hero__stats">
-            <div className="ft-stat-mini">
-              <span className="ft-stat-mini__value">{stats.available}</span>
-              <span className="ft-stat-mini__label">{t('student.statAvailable')}</span>
-            </div>
-            <div className="ft-stat-mini">
-              <span className="ft-stat-mini__value">{stats.pending}</span>
-              <span className="ft-stat-mini__label">{t('student.statPending')}</span>
-            </div>
-            <div className="ft-stat-mini">
-              <span className="ft-stat-mini__value">{stats.approved}</span>
-              <span className="ft-stat-mini__label">{t('student.statApproved')}</span>
-            </div>
-          </div>
-        </section>
+        <StudentPageHeader title={t('student.title')} description={t('student.heroDescription')} />
+        {!profileIncomplete ? (
+          <p className="ft-hero__scope-info" role="status">
+            {t('student.scopeInfo')}
+          </p>
+        ) : null}
+        <AdminStatsGrid>
+          <StatCard label={t('student.statAvailable')} value={String(stats.available)} icon={Briefcase} />
+          <StatCard label={t('student.statPending')} value={String(stats.pending)} icon={Clock} />
+          <StatCard label={t('student.statApproved')} value={String(stats.approved)} icon={CheckCircle2} />
+        </AdminStatsGrid>
 
         {myApplications.length > 0 ? (
           <section className="ft-my-apps" aria-labelledby="ft-my-apps-title">

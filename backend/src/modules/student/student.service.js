@@ -6,12 +6,63 @@ const { resolvePrimaryUniversityId } = require('../../utils/studentScope');
 const cohortsService = require('../cohorts/cohorts.service');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
 const { dateOnlyISO } = require('../cohorts/cohorts.service');
+const { STEP_ORDER, resolveStepIndex } = require('../fieldTraining/fieldTraining.progress');
+const ftRepo = require('../fieldTraining/fieldTraining.repository');
 
 function timeToHHMMSS(d) {
   if (!d) return null;
   const x = d instanceof Date ? d : new Date(d);
   if (Number.isNaN(x.getTime())) return null;
   return x.toISOString().slice(11, 19);
+}
+
+function parseTimeToMinutes(value) {
+  if (value == null || value === '') return null;
+  const parts = String(value).trim().split(':').map((p) => Number(p));
+  if (parts.length < 2 || parts.some((n) => Number.isNaN(n))) return null;
+  return parts[0] * 60 + parts[1] + (parts[2] || 0) / 60;
+}
+
+function sessionDurationHours(startTime, endTime) {
+  const start = parseTimeToMinutes(startTime);
+  const end = parseTimeToMinutes(endTime);
+  if (start == null || end == null || end <= start) return 0;
+  return Math.round(((end - start) / 60) * 100) / 100;
+}
+
+function todayDateOnly() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function progressPercent(trainingStatus, applicationStatus) {
+  if (String(trainingStatus) === 'completed') return 100;
+  const idx = resolveStepIndex(trainingStatus, applicationStatus);
+  const max = Math.max(1, STEP_ORDER.length - 1);
+  return Math.min(100, Math.round((idx / max) * 100));
+}
+
+function displayPhase(app, opp) {
+  const ts = String(app.training_status || '');
+  if (ts === 'completed') {
+    return { key: 'completed', message_key: 'completed' };
+  }
+  if (
+    [
+      'in_training',
+      'task_pending',
+      'task_submitted',
+      'post_assessment_pending',
+      'post_assessment_completed',
+      'eligible_for_completion',
+    ].includes(ts)
+  ) {
+    return { key: 'in_training', message_key: 'in_training' };
+  }
+  return {
+    key: 'not_started',
+    message_key: 'not_started',
+    starts_on: dateOnlyISO(opp.start_date) || null,
+  };
 }
 
 async function assertStudent(requester) {
@@ -28,18 +79,11 @@ async function availableCohorts(requester) {
   return cohortsService.listAvailableForUniversity(uid);
 }
 
-/**
- * Sessions for enrollments in **enrolled** or **completed** state, scoped to the student's primary university.
- */
-async function semesterSchedule(requester) {
-  await assertStudent(requester);
-  const primaryUni = await resolvePrimaryUniversityId(requester);
-  if (!primaryUni) throw new ApiError(400, 'Primary university is required for your account');
-
+async function buildCourseSchedule(requester, primaryUni) {
   const rows = await enrollmentsRepository.findManyByStudent(requester.userId);
   const active = rows.filter((e) => ['enrolled', 'completed'].includes(e.enrollment_status));
   const cohortIds = active.map((e) => e.cohort_id);
-  if (!cohortIds.length) return { schedule: [] };
+  if (!cohortIds.length) return [];
 
   const cohortRows = await prisma.cohorts.findMany({
     where: {
@@ -48,7 +92,7 @@ async function semesterSchedule(requester) {
     },
   });
   const scopedIds = cohortRows.map((c) => c.id);
-  if (!scopedIds.length) return { schedule: [] };
+  if (!scopedIds.length) return [];
 
   const sessions = await prisma.sessions.findMany({
     where: { cohort_id: { in: scopedIds } },
@@ -83,7 +127,157 @@ async function semesterSchedule(requester) {
       documentation_status: s.documentation_status,
     });
   }
-  return { schedule };
+  return schedule;
+}
+
+/**
+ * Visible field-training applications for the current student.
+ * Includes pending + approved; excludes rejected / cancelled / expelled / failed.
+ */
+async function buildFieldTrainings(studentId) {
+  const apps = await prisma.field_training_applications.findMany({
+    where: {
+      student_id: studentId,
+      status: { in: ['pending', 'approved'] },
+      training_status: { notIn: ['expelled', 'failed'] },
+    },
+    orderBy: { created_at: 'desc' },
+    include: {
+      field_training_opportunities: {
+        include: {
+          specialties: {
+            select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!apps.length) return [];
+
+  const oppIds = [...new Set(apps.map((a) => a.opportunity_id))];
+  const instructorIds = [
+    ...new Set(
+      apps
+        .map((a) => a.field_training_opportunities?.assigned_instructor_id)
+        .filter(Boolean)
+    ),
+  ];
+
+  const [sessions, instructors] = await Promise.all([
+    prisma.field_training_sessions.findMany({
+      where: { opportunity_id: { in: oppIds } },
+      orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
+    }),
+    instructorIds.length
+      ? prisma.users.findMany({
+          where: { id: { in: instructorIds } },
+          select: { id: true, full_name: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const instructorMap = new Map(instructors.map((u) => [u.id, u]));
+  const sessionsByOpp = new Map();
+  for (const s of sessions) {
+    const list = sessionsByOpp.get(s.opportunity_id) || [];
+    list.push(s);
+    sessionsByOpp.set(s.opportunity_id, list);
+  }
+
+  const today = todayDateOnly();
+  const nowMinutes = (() => {
+    const d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+  })();
+
+  return apps.map((app) => {
+    const opp = app.field_training_opportunities;
+    const oppSessions = sessionsByOpp.get(app.opportunity_id) || [];
+
+    let totalHours = 0;
+    let completedHours = 0;
+    for (const s of oppSessions) {
+      const hours = sessionDurationHours(s.start_time, s.end_time);
+      totalHours += hours;
+      const date = dateOnlyISO(s.session_date);
+      if (!date) continue;
+      if (date < today) completedHours += hours;
+      else if (date === today) {
+        const endMin = parseTimeToMinutes(s.end_time);
+        if (endMin != null && endMin <= nowMinutes) completedHours += hours;
+      }
+    }
+    totalHours = Math.round(totalHours * 100) / 100;
+    completedHours = Math.round(completedHours * 100) / 100;
+    const remainingHours = Math.max(0, Math.round((totalHours - completedHours) * 100) / 100);
+
+    const upcoming = oppSessions.find((s) => {
+      const date = dateOnlyISO(s.session_date);
+      if (!date) return false;
+      if (date > today) return true;
+      if (date < today) return false;
+      const endMin = parseTimeToMinutes(s.end_time);
+      return endMin == null || endMin > nowMinutes;
+    });
+
+    const instructorId = opp?.assigned_instructor_id || null;
+    const instructorUser = instructorId ? instructorMap.get(instructorId) : null;
+    const phase = displayPhase(app, opp || {});
+
+    return {
+      application_id: app.id,
+      opportunity_id: app.opportunity_id,
+      title: opp?.title || null,
+      organization_name: opp?.organization_name || null,
+      specialty: ftRepo.mapSpecialtySummary(opp?.specialties),
+      instructor: instructorUser
+        ? { id: instructorUser.id, full_name: instructorUser.full_name }
+        : null,
+      training_mode: opp?.training_mode || null,
+      location: opp?.location || null,
+      start_date: dateOnlyISO(opp?.start_date),
+      end_date: dateOnlyISO(opp?.end_date),
+      total_training_hours: totalHours,
+      completed_training_hours: completedHours,
+      remaining_training_hours: remainingHours,
+      application_status: app.status,
+      training_status: app.training_status,
+      attendance_percentage:
+        app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      progress_percent: progressPercent(app.training_status, app.status),
+      display_phase: phase,
+      upcoming_session: upcoming
+        ? {
+            id: upcoming.id,
+            title: upcoming.title,
+            session_date: dateOnlyISO(upcoming.session_date),
+            start_time: upcoming.start_time,
+            end_time: upcoming.end_time,
+            zoom_link: upcoming.zoom_link || null,
+          }
+        : null,
+    };
+  });
+}
+
+/**
+ * Sessions for enrollments in **enrolled** or **completed** state, plus the student's active field trainings.
+ */
+async function semesterSchedule(requester) {
+  await assertStudent(requester);
+  const primaryUni = await resolvePrimaryUniversityId(requester);
+  if (!primaryUni) throw new ApiError(400, 'Primary university is required for your account');
+
+  const [schedule, fieldTrainings] = await Promise.all([
+    buildCourseSchedule(requester, primaryUni),
+    buildFieldTrainings(requester.userId),
+  ]);
+
+  return {
+    schedule,
+    field_trainings: fieldTrainings,
+  };
 }
 
 module.exports = {

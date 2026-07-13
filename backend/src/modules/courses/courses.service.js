@@ -3,7 +3,33 @@ const { recordAudit } = require('../../utils/auditRecorder');
 const { uniqueSlugFromTitle } = require('./courses.slug');
 const { assertPublishReady } = require('./courses.publishReadiness');
 const { prisma } = require('../../config/db');
+const { env } = require('../../config/env');
+const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const repo = require('./courses.repository');
+
+/** Persist relative upload keys when possible so URLs stay portable across environments. */
+function normalizeCoverForStorage(value) {
+  if (value == null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  if (s.startsWith('http://') || s.startsWith('https://')) {
+    const bases = [
+      env.PUBLIC_BASE_URL,
+      env.R2_PUBLIC_BASE_URL,
+      env.S3_PUBLIC_BASE_URL,
+    ].filter(Boolean);
+    for (const base of bases) {
+      const prefixUploads = `${base}/uploads/`;
+      if (s.startsWith(prefixUploads)) return s.slice(prefixUploads.length);
+      if (s.startsWith(`${base}/`)) {
+        const rest = s.slice(base.length + 1);
+        return rest.replace(/^uploads\//, '');
+      }
+    }
+    return s;
+  }
+  return s.replace(/^\/+/, '').replace(/^uploads\//, '');
+}
 
 async function assertCohortIdsExist(cohortIds) {
   if (!cohortIds?.length) return;
@@ -93,15 +119,17 @@ async function getAdminCourseById(id) {
     ...course,
     _count: { course_sections: course.course_sections.length },
   });
+  const structure = mapStructure(course);
   return {
     course: {
       ...mapped,
       description: course.description,
       short_description: course.short_description,
-      cover_image_url: course.cover_image_url,
+      cover_image_url: resolvePublicUrl(course.cover_image_url),
       slug: course.slug,
       created_by_id: course.created_by_id,
     },
+    sections: structure.sections,
   };
 }
 
@@ -112,7 +140,7 @@ async function createAdminCourse(body, userId) {
     slug,
     short_description: body.short_description ?? null,
     description: body.description ?? null,
-    cover_image_url: body.cover_image_url || null,
+    cover_image_url: normalizeCoverForStorage(body.cover_image_url),
     category: body.category ?? null,
     level: body.level ?? 'beginner',
     status: 'draft',
@@ -144,7 +172,9 @@ async function updateAdminCourse(id, body, userId) {
   }
   if (body.short_description !== undefined) data.short_description = body.short_description;
   if (body.description !== undefined) data.description = body.description;
-  if (body.cover_image_url !== undefined) data.cover_image_url = body.cover_image_url || null;
+  if (body.cover_image_url !== undefined) {
+    data.cover_image_url = normalizeCoverForStorage(body.cover_image_url);
+  }
   if (body.category !== undefined) data.category = body.category;
   if (body.level !== undefined) data.level = body.level;
   if (body.estimated_duration_minutes !== undefined) {
@@ -241,8 +271,11 @@ async function createLesson(courseId, sectionId, body) {
   const section = await repo.findSectionInCourse(courseId, sectionId);
   if (!section) throw new ApiError(404, 'Section not found');
   const course = await repo.findById(courseId);
+  if (!course) throw new ApiError(404, 'Course not found');
   const sectionRow = (course.course_sections || []).find((s) => s.id === sectionId);
   const maxOrder = (sectionRow?.course_lessons || []).reduce((m, l) => Math.max(m, l.sort_order), -1);
+  // Published courses expose lessons to students — default new lessons to published
+  const defaultStatus = course.status === 'published' ? 'published' : 'draft';
   const lesson = await repo.createLesson(courseId, sectionId, {
     title: body.title.trim(),
     description: body.description ?? null,
@@ -254,9 +287,21 @@ async function createLesson(courseId, sectionId, body) {
     sort_order: body.sort_order ?? maxOrder + 1,
     is_preview: body.is_preview ?? false,
     is_required: body.is_required ?? true,
-    status: body.status ?? 'draft',
+    status: body.status ?? defaultStatus,
   });
   return { lesson };
+}
+
+/** Publish all draft lessons so students can see them on a live course. */
+async function publishAllDraftLessons(courseId) {
+  const course = await repo.findById(courseId);
+  if (!course) throw new ApiError(404, 'Course not found');
+  const { prisma } = require('../../config/db');
+  const result = await prisma.course_lessons.updateMany({
+    where: { course_id: courseId, status: 'draft' },
+    data: { status: 'published' },
+  });
+  return { updated: result.count, ...(await getCourseStructure(courseId)) };
 }
 
 async function updateLesson(courseId, lessonId, body) {
@@ -287,11 +332,26 @@ async function reorderLessons(courseId, items) {
   return getCourseStructure(courseId);
 }
 
-function mapStudentCourseCard(course, enrollment, progressPct) {
-  const lessonsCount = (course.course_sections || []).reduce(
+async function computeProgressPercent(courseId, studentId) {
+  const total = await repo.countPublishedLessons(courseId);
+  if (!total) return { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };
+  const progress = await repo.findProgressForCourse(courseId, studentId);
+  const completed = progress.filter((p) => p.is_completed).length;
+  return {
+    progress_percent: Math.round((completed / total) * 100),
+    completed_lessons: completed,
+    lessons_count: total,
+  };
+}
+
+function mapStudentCourseCard(course, enrollment, progressInfo) {
+  const lessonsFromStructure = (course.course_sections || []).reduce(
     (n, s) => n + (s.course_lessons?.length || 0),
     0
   );
+  const lessons_count = progressInfo?.lessons_count ?? lessonsFromStructure;
+  const completed_lessons = progressInfo?.completed_lessons ?? 0;
+  const progress_percent = progressInfo?.progress_percent ?? 0;
   return {
     id: course.id,
     title: course.title,
@@ -299,21 +359,14 @@ function mapStudentCourseCard(course, enrollment, progressPct) {
     short_description: course.short_description,
     level: course.level,
     category: course.category,
-    cover_image_url: course.cover_image_url,
+    cover_image_url: resolvePublicUrl(course.cover_image_url),
     estimated_duration_minutes: course.estimated_duration_minutes,
-    lessons_count: lessonsCount,
-    progress_percent: progressPct,
+    lessons_count,
+    completed_lessons_count: completed_lessons,
+    progress_percent,
     enrollment_status: enrollment?.status ?? null,
     started_at: enrollment?.started_at ?? null,
   };
-}
-
-async function computeProgressPercent(courseId, studentId) {
-  const total = await repo.countPublishedLessons(courseId);
-  if (!total) return 0;
-  const progress = await repo.findProgressForCourse(courseId, studentId);
-  const completed = progress.filter((p) => p.is_completed).length;
-  return Math.round((completed / total) * 100);
 }
 
 async function listStudentCourses(query, studentId) {
@@ -335,20 +388,37 @@ async function listStudentCourses(query, studentId) {
   const courses = await Promise.all(
     rows.map(async (c) => {
       const enrollment = await repo.findEnrollment(c.id, studentId);
-      const progress_percent = enrollment
+      const progressInfo = enrollment
         ? await computeProgressPercent(c.id, studentId)
-        : 0;
-      return mapStudentCourseCard(c, enrollment, progress_percent);
+        : { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };
+      return mapStudentCourseCard(c, enrollment, progressInfo);
     })
   );
   return { courses };
 }
 
 async function getStudentCourseById(courseId, studentId) {
-  const course = await repo.findPublishedByIdForStudent(courseId, studentId);
+  let course = await repo.findPublishedByIdForStudent(courseId, studentId);
   if (!course) throw new ApiError(404, 'Course not found');
+
+  // Lessons added after course publish often remain draft and are hidden from students.
+  // Promote drafts to published once so enrolled students see the real curriculum.
+  const draftCount = await prisma.course_lessons.count({
+    where: { course_id: courseId, status: 'draft' },
+  });
+  if (draftCount > 0) {
+    await prisma.course_lessons.updateMany({
+      where: { course_id: courseId, status: 'draft' },
+      data: { status: 'published' },
+    });
+    course = await repo.findPublishedByIdForStudent(courseId, studentId);
+    if (!course) throw new ApiError(404, 'Course not found');
+  }
+
   const enrollment = await repo.findEnrollment(courseId, studentId);
-  const progress_percent = enrollment ? await computeProgressPercent(courseId, studentId) : 0;
+  const progressInfo = enrollment
+    ? await computeProgressPercent(courseId, studentId)
+    : { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };
   const progress = enrollment ? await repo.findProgressForCourse(courseId, studentId) : [];
   const completedSet = new Set(progress.filter((p) => p.is_completed).map((p) => p.lesson_id));
   const structure = mapStructure(course);
@@ -361,11 +431,11 @@ async function getStudentCourseById(courseId, studentId) {
   }));
   return {
     course: {
-      ...mapStudentCourseCard(course, enrollment, progress_percent),
+      ...mapStudentCourseCard(course, enrollment, progressInfo),
       description: course.description,
     },
     ...structure,
-    progress_percent,
+    progress_percent: progressInfo.progress_percent,
   };
 }
 
@@ -385,18 +455,16 @@ async function completeLesson(courseId, lessonId, studentId) {
   }
   await repo.upsertEnrollment(courseId, studentId);
   const progress = await repo.upsertLessonComplete(courseId, lessonId, studentId);
-  const progress_percent = await computeProgressPercent(courseId, studentId);
-  const total = await repo.countPublishedLessons(courseId);
-  const completedCount = (await repo.findProgressForCourse(courseId, studentId)).filter(
-    (p) => p.is_completed
-  ).length;
+  const progressInfo = await computeProgressPercent(courseId, studentId);
+  const total = progressInfo.lessons_count;
+  const completedCount = progressInfo.completed_lessons;
   if (total > 0 && completedCount >= total) {
     const en = await repo.findEnrollment(courseId, studentId);
     if (en && en.status !== 'completed') {
       await repo.markEnrollmentCompleted(en.id);
     }
   }
-  return { progress, progress_percent };
+  return { progress, progress_percent: progressInfo.progress_percent };
 }
 
 async function getStudentProgress(courseId, studentId) {
@@ -404,11 +472,13 @@ async function getStudentProgress(courseId, studentId) {
   if (!course) throw new ApiError(404, 'Course not found');
   const enrollment = await repo.findEnrollment(courseId, studentId);
   const progress = await repo.findProgressForCourse(courseId, studentId);
-  const progress_percent = enrollment ? await computeProgressPercent(courseId, studentId) : 0;
+  const progressInfo = enrollment
+    ? await computeProgressPercent(courseId, studentId)
+    : { progress_percent: 0 };
   return {
     enrollment,
     progress,
-    progress_percent,
+    progress_percent: progressInfo.progress_percent,
     completed_lesson_ids: progress.filter((p) => p.is_completed).map((p) => p.lesson_id),
   };
 }
@@ -428,6 +498,7 @@ module.exports = {
   updateLesson,
   deleteLesson,
   reorderLessons,
+  publishAllDraftLessons,
   listStudentCourses,
   getStudentCourseById,
   startStudentCourse,

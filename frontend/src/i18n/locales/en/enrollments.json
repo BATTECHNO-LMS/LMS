@@ -79,9 +79,18 @@
       "noCertificate": "No certificate issued yet for this program."
     },
     "semesterSchedule": {
-      "title": "Semester schedule",
-      "subtitle": "Sessions for your approved enrollments at your university.",
-      "empty": "No semester schedule is available yet",
+      "title": "Registered training programs",
+      "subtitle": "Follow your enrolled courses, programs, and field training.",
+      "breadcrumb": "Student / Registered training programs",
+      "empty": "No registered training programs yet",
+      "emptyHint": "When you enroll in a course, program, or field-training opportunity, details will appear here.",
+      "browseCourses": "Browse courses",
+      "browseFieldTraining": "Browse field training",
+      "coursesSection": "Programs & courses",
+      "fieldTrainingSection": "Field training",
+      "sessionsSection": "Upcoming sessions",
+      "assessmentsSection": "Open assessments",
+      "openAssessment": "Open assessment",
       "colTrack": "Track",
       "colMicro": "Micro-credential",
       "colCohort": "Cohort",
@@ -90,7 +99,28 @@
       "colStart": "Start time",
       "colEnd": "End time",
       "colType": "Session type",
-      "colStatus": "Status"
+      "colStatus": "Status",
+      "ft": {
+        "untitled": "Field training opportunity",
+        "duration": "Duration",
+        "dates": "Dates",
+        "instructor": "Instructor",
+        "instructorPending": "Not assigned yet",
+        "mode": "Training mode",
+        "progress": "Progress",
+        "attendance": "Attendance: {{pct}}%",
+        "hoursValue": "{{hours}} training hours",
+        "hoursUnknown": "—",
+        "upcomingSession": "Upcoming session",
+        "noUpcoming": "No upcoming session right now",
+        "joinZoom": "Join via Zoom",
+        "continue": "Continue training",
+        "phaseNotStarted": "Not started yet",
+        "phasePending": "Your application is under review",
+        "phaseStartsOn": "Training starts on {{date}}",
+        "phaseInTraining": "In training",
+        "phaseCompleted": "Training completed"
+      }
     }
   },
   "pendingList": {

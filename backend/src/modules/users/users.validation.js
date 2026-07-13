@@ -62,28 +62,48 @@ const createUserBodySchema = z
 const updateUserBodySchema = z
   .object({
     full_name: z.string().min(1).max(255).optional(),
+    email: z.string().email('Invalid email').max(255).optional(),
     phone: z.string().max(50).optional().nullable(),
     status: userStatusEnum.optional(),
     primary_university_id: z.string().uuid().optional().nullable(),
+    university_specialty_id: z.string().uuid().optional().nullable(),
+    specialty_id: z.string().uuid().optional().nullable(),
     role_codes: z.array(z.string().min(1).max(80)).min(1).optional(),
   })
   .strict()
   .refine(
     (b) =>
       b.full_name !== undefined ||
+      b.email !== undefined ||
       b.phone !== undefined ||
       b.status !== undefined ||
       b.primary_university_id !== undefined ||
+      b.university_specialty_id !== undefined ||
+      b.specialty_id !== undefined ||
       b.role_codes !== undefined,
     { message: 'At least one field is required' }
   )
   .transform((b) => ({
     full_name: b.full_name?.trim(),
+    email: b.email?.trim().toLowerCase(),
     phone: b.phone === null ? null : b.phone?.trim(),
     status: b.status,
     primary_university_id: b.primary_university_id,
+    university_specialty_id: b.university_specialty_id,
+    specialty_id: b.specialty_id,
     role_codes: b.role_codes ? [...new Set(b.role_codes.map((c) => c.trim().toLowerCase()))] : undefined,
   }));
+
+const adminResetPasswordBodySchema = z
+  .object({
+    new_password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+    confirm_password: z.string().min(8).max(128),
+  })
+  .strict()
+  .refine((b) => b.new_password === b.confirm_password, {
+    message: 'Passwords do not match',
+    path: ['confirm_password'],
+  });
 
 const patchUserStatusBodySchema = z
   .object({
@@ -128,6 +148,7 @@ module.exports = {
   createUserBodySchema,
   updateUserBodySchema,
   patchUserStatusBodySchema,
+  adminResetPasswordBodySchema,
   activatePendingQuerySchema,
   activatePendingBodySchema,
   verifyAllEmailsQuerySchema,

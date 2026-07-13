@@ -29,14 +29,6 @@ export const PARTNER_INSTITUTIONS = [
     descriptionKey: 'institutions.descriptions.youth',
   },
   {
-    id: 'digital',
-    nameKey: 'institutions.digitalEconomyMinistry',
-    category: 'ministry',
-    initials: 'رق',
-    logoUrl: '/partners/ministry-digital-economy-transparent.png',
-    descriptionKey: 'institutions.descriptions.digital',
-  },
-  {
     id: 'ttu',
     nameKey: 'institutions.tafilaTech',
     category: 'university',

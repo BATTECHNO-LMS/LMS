@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { ProgramCard } from '../../components/student/enrollment/ProgramCard.jsx';
 import { EmptyState } from '../../components/student/enrollment/EmptyState.jsx';
@@ -61,7 +61,7 @@ export function MyProgramsPage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader title={t('studentEnrollment.programsTitle')} description={t('studentEnrollment.programsSubtitle')} />
+      <StudentPageHeader title={t('studentEnrollment.programsTitle')} description={t('studentEnrollment.programsSubtitle')} />
 
       {loading ? <LoadingSpinner /> : null}
       {loadError ? <p className="form-error">{loadError}</p> : null}

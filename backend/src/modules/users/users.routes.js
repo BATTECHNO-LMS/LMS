@@ -10,6 +10,7 @@ const {
   createUserBodySchema,
   updateUserBodySchema,
   patchUserStatusBodySchema,
+  adminResetPasswordBodySchema,
   activatePendingQuerySchema,
   activatePendingBodySchema,
   verifyAllEmailsQuerySchema,
@@ -85,6 +86,14 @@ router.patch(
   userWrite,
   validateRequest({ params: uuidParamSchema, body: patchUserStatusBodySchema }),
   usersController.patchStatus
+);
+
+router.post(
+  '/:id/reset-password',
+  authenticate,
+  userWrite,
+  validateRequest({ params: uuidParamSchema, body: adminResetPasswordBodySchema }),
+  usersController.resetPassword
 );
 
 router.patch(

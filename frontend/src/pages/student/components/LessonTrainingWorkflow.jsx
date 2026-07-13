@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CheckCircle2,
   FileText,
@@ -40,10 +40,10 @@ function formatBytes(n) {
 export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
   const { t } = useTranslation('courses');
   const { t: tCommon } = useTranslation('common');
-  const { data, isLoading, isError, refetch } = useLessonTraining(courseId, lesson?.id);
+  const { data, isLoading, isError, error, refetch } = useLessonTraining(courseId, lesson?.id);
   const mut = useLessonTrainingMutations(courseId, lesson?.id);
 
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [localAnswers, setLocalAnswers] = useState({});
 
@@ -58,6 +58,15 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
     if (workflow?.answers) setLocalAnswers(workflow.answers);
   }, [workflow?.answers]);
 
+  // Opening a lesson creates enrollment server-side — refresh course progress/enrollment UI once
+  const notifiedAccess = useRef(null);
+  useEffect(() => {
+    if (!data?.config || !lesson?.id) return;
+    if (notifiedAccess.current === lesson.id) return;
+    notifiedAccess.current = lesson.id;
+    onFinished?.();
+  }, [data?.config, lesson?.id, onFinished]);
+
   const answerList = useMemo(
     () =>
       questions.map((q) => ({
@@ -69,13 +78,13 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
 
   const run = useCallback(
     async (fn) => {
-      setError('');
+      setErrorMsg('');
       try {
         await fn();
         await refetch();
         onFinished?.();
       } catch (err) {
-        setError(getApiErrorMessage(err, tCommon('errors.generic')));
+        setErrorMsg(getApiErrorMessage(err, tCommon('errors.generic')));
       }
     },
     [refetch, onFinished, tCommon]
@@ -88,7 +97,7 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
   async function onUpload(file) {
     if (!file) return;
     if (file.type !== 'application/pdf') {
-      setError(t('training.pdfOnly'));
+      setErrorMsg(t('training.pdfOnly'));
       return;
     }
     await run(() => mut.upload.mutateAsync(file));
@@ -107,7 +116,23 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
 
   if (!lesson?.id) return null;
   if (isLoading) return <LoadingSpinner />;
-  if (isError) return <p className="crud-muted">{tCommon('errors.generic')}</p>;
+  if (isError) {
+    const status = error?.response?.status;
+    const message = getApiErrorMessage(
+      error,
+      status === 403 ? t('student.lessonAccessDenied') : tCommon('errors.generic')
+    );
+    return (
+      <div className="lesson-training__error-state">
+        <p className="crud-muted" role="alert">
+          {message}
+        </p>
+        <Button type="button" variant="outline" className="btn--sm" onClick={() => refetch()}>
+          {t('structure.retry')}
+        </Button>
+      </div>
+    );
+  }
 
   const busy = mut.start.isPending || mut.upload.isPending || mut.submitAnswers.isPending;
 
@@ -124,9 +149,9 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
         ))}
       </nav>
 
-      {error ? (
+      {errorMsg ? (
         <p className="lesson-training__error" role="alert">
-          {error}
+          {errorMsg}
         </p>
       ) : null}
 

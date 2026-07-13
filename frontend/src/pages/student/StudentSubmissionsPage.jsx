@@ -2,7 +2,7 @@ import { Eye, Upload, Pencil } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -58,7 +58,7 @@ export function StudentSubmissionsPage() {
   return (
     <PagePermissionGate permission={P.canViewSubmissionStatus}>
       <div className="page page--dashboard page--student">
-        <AdminPageHeader title={<>{t('student.title')}</>} description={<>{t('student.description')}</>} />
+        <StudentPageHeader title={<>{t('student.title')}</>} description={<>{t('student.description')}</>} />
         <AdminFilterBar>
           <SearchInput placeholder={t('student.searchPlaceholder')} aria-label={t('student.searchAria')} />
         </AdminFilterBar>

@@ -30,7 +30,10 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const data = await usersService.updateUser(req.validated.params.id, req.validated.body, req.user);
+    const data = await usersService.updateUser(req.validated.params.id, req.validated.body, req.user, {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+    });
     return success(res, data, { message: 'User updated' });
   } catch (e) {
     return next(e);
@@ -42,9 +45,24 @@ async function patchStatus(req, res, next) {
     const data = await usersService.patchUserStatus(
       req.validated.params.id,
       req.validated.body.status,
-      req.user
+      req.user,
+      { actorUserId: req.user.userId, ipAddress: req.ip || null }
     );
     return success(res, data, { message: 'User status updated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function resetPassword(req, res, next) {
+  try {
+    const data = await usersService.adminResetPassword(
+      req.validated.params.id,
+      req.validated.body,
+      req.user,
+      { actorUserId: req.user.userId, ipAddress: req.ip || null }
+    );
+    return success(res, data, { message: data.message });
   } catch (e) {
     return next(e);
   }
@@ -128,6 +146,7 @@ module.exports = {
   create,
   update,
   patchStatus,
+  resetPassword,
   activate,
   activateAllPending,
   verifyEmail,

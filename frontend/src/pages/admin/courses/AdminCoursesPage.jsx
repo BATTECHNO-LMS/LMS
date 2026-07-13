@@ -22,7 +22,6 @@ import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../../components/common/EmptyState.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
 import { cn } from '../../../utils/helpers.js';
-import { resolveUploadUrl } from '../../../utils/uploadUrl.js';
 import {
   buildCourseBody,
   EMPTY_COURSE_FORM,
@@ -37,6 +36,7 @@ import {
   fetchAdminCourse,
 } from '../../../features/courses/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { CourseCoverImage } from '../../../components/courses/CourseCoverImage.jsx';
 import { AdminCourseComposer } from './components/AdminCourseComposer.jsx';
 import { AdminCoursesLessonsPopup } from './components/AdminCoursesLessonsPopup.jsx';
 
@@ -450,19 +450,12 @@ export function AdminCoursesPage() {
         <>
           <div className="course-cards-grid">
             {visibleRows.map((r) => {
-              const cover = r.cover_image_url ? resolveUploadUrl(r.cover_image_url) : null;
               const lessonsCount = r.lessons_count ?? null;
               const isActive = r.id === editingId && composerOpen;
               return (
                 <article key={r.id} className={cn('course-card', isActive && 'is-active')}>
-                  <div className={cn('course-card__cover', !cover && 'course-card__cover--placeholder')}>
-                    {cover ? (
-                      <img src={cover} alt="" className="course-card__cover-img" loading="lazy" />
-                    ) : (
-                      <div className="course-card__cover-fallback" aria-hidden>
-                        <BookOpen size={36} strokeWidth={1.5} />
-                      </div>
-                    )}
+                  <div className={cn('course-card__cover', !r.cover_image_url && 'course-card__cover--placeholder')}>
+                    <CourseCoverImage src={r.cover_image_url} />
                     <span className="course-card__cover-scrim" aria-hidden />
                     <StatusBadge variant={statusVariant(r.status)} className="course-card__status">
                       {t(`status.${r.status}`)}

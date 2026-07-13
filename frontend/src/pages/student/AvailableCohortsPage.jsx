@@ -1,6 +1,6 @@
 import { useMemo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { CohortCard } from '../../components/student/enrollment/CohortCard.jsx';
 import { EmptyState } from '../../components/student/enrollment/EmptyState.jsx';
@@ -57,7 +57,7 @@ export function AvailableCohortsPage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <AdminPageHeader title={t('studentEnrollment.availableTitle')} description={t('studentEnrollment.availableSubtitle')} />
+      <StudentPageHeader title={t('studentEnrollment.availableTitle')} description={t('studentEnrollment.availableSubtitle')} />
 
       {hasPending ? (
         <PendingStateBanner style={{ marginBottom: '1rem' }}>

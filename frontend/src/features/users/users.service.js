@@ -100,3 +100,13 @@ export async function bulkVerifyUserEmails(userIds) {
   const res = await apiClient.post(`${endpoints.users}/bulk-verify-emails`, { userIds });
   return unwrapApiData(res);
 }
+
+/**
+ * Admin reset user password (hashed on server).
+ * @param {string} id
+ * @param {{ new_password: string, confirm_password: string }} body
+ */
+export async function adminResetUserPassword(id, body) {
+  const res = await apiClient.post(`${endpoints.users}/${id}/reset-password`, body);
+  return unwrapApiData(res);
+}
