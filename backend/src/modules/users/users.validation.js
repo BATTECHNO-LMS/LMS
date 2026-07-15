@@ -142,6 +142,41 @@ const bulkVerifyEmailsBodySchema = z
   })
   .strict();
 
+const exportUsersExcelQuerySchema = z
+  .object({
+    university_id: z.string().uuid().optional(),
+    role: z.string().min(1).max(80).optional(),
+    status: userStatusEnum.optional(),
+    search: z.string().max(255).optional(),
+    email_verified: z
+      .union([z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0'), z.boolean()])
+      .optional(),
+    apply_filters: z
+      .union([z.literal('true'), z.literal('false'), z.literal('1'), z.literal('0'), z.boolean()])
+      .optional(),
+  })
+  .strict()
+  .transform((q) => {
+    let emailVerified;
+    if (q.email_verified === true || q.email_verified === 'true' || q.email_verified === '1') {
+      emailVerified = true;
+    } else if (q.email_verified === false || q.email_verified === 'false' || q.email_verified === '0') {
+      emailVerified = false;
+    }
+    let applyFilters = true;
+    if (q.apply_filters === false || q.apply_filters === 'false' || q.apply_filters === '0') {
+      applyFilters = false;
+    }
+    return {
+      university_id: q.university_id,
+      role: q.role?.trim().toLowerCase() || undefined,
+      status: q.status,
+      search: q.search?.trim() || undefined,
+      email_verified: emailVerified,
+      apply_filters: applyFilters,
+    };
+  });
+
 module.exports = {
   uuidParamSchema,
   listUsersQuerySchema,
@@ -154,4 +189,5 @@ module.exports = {
   verifyAllEmailsQuerySchema,
   verifyAllEmailsBodySchema,
   bulkVerifyEmailsBodySchema,
+  exportUsersExcelQuerySchema,
 };

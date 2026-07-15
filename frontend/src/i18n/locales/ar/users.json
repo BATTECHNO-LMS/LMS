@@ -11,6 +11,21 @@
     "description": "عرض بيانات المستخدم والحالة.",
     "notFound": "لم يتم العثور على المستخدم."
   },
+  "export": {
+    "button": "تصدير Excel",
+    "title": "تصدير المستخدمين إلى Excel",
+    "description": "اختر نطاق التصدير. سيتم جلب جميع السجلات المطابقة من الخادم بغض النظر عن صفحة العرض الحالية.",
+    "scopeLabel": "نطاق التصدير",
+    "scopeAll": "جميع الجامعات",
+    "scopeUniversity": "جامعة محددة",
+    "university": "الجامعة",
+    "scopedUniversityHint": "سيتم التصدير ضمن نطاق جامعتك فقط.",
+    "applyFilters": "تطبيق الفلاتر الحالية",
+    "confirm": "تصدير",
+    "preparing": "جاري تجهيز ملف Excel...",
+    "success": "تم تنزيل ملف Excel بنجاح.",
+    "failed": "تعذّر تصدير ملف Excel."
+  },
   "filters": {
     "role": "الدور",
     "allRoles": "كل الأدوار",

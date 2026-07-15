@@ -282,9 +282,57 @@ async function findUniversitySpecialtiesByIds(ids, tx = prisma) {
       name_ar: true,
       name_en: true,
       code: true,
+      college_name_ar: true,
+      college_name_en: true,
       status: true,
     },
   });
+}
+
+/**
+ * Unpaginated export select — no secrets / OTP / password fields.
+ */
+async function findManyForExport(where) {
+  return prisma.users.findMany({
+    where,
+    orderBy: [{ full_name: 'asc' }],
+    select: {
+      id: true,
+      full_name: true,
+      email: true,
+      phone: true,
+      status: true,
+      primary_university_id: true,
+      university_specialty_id: true,
+      specialty_id: true,
+      email_verified_at: true,
+      last_login_at: true,
+      created_at: true,
+    },
+  });
+}
+
+async function findUserIdsByRoleCode(roleCode) {
+  if (!roleCode) return null;
+  const role = await prisma.roles.findFirst({
+    where: { code: String(roleCode).trim().toLowerCase() },
+    select: { id: true },
+  });
+  if (!role) return [];
+  const links = await prisma.user_roles.findMany({
+    where: { role_id: role.id },
+    select: { user_id: true },
+  });
+  return links.map((l) => l.user_id);
+}
+
+async function findExporterName(userId) {
+  if (!userId) return null;
+  const u = await prisma.users.findUnique({
+    where: { id: userId },
+    select: { full_name: true, email: true },
+  });
+  return u?.full_name || u?.email || null;
 }
 
 async function findSpecialtiesByIds(ids, tx = prisma) {
@@ -347,6 +395,9 @@ module.exports = {
   findSpecialtiesByIds,
   findRecentAuditForUser,
   countUserActivity,
+  findManyForExport,
+  findUserIdsByRoleCode,
+  findExporterName,
   createUser,
   createUserRoleLinks,
   upsertUniversityUser,

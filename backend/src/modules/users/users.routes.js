@@ -16,6 +16,7 @@ const {
   verifyAllEmailsQuerySchema,
   verifyAllEmailsBodySchema,
   bulkVerifyEmailsBodySchema,
+  exportUsersExcelQuerySchema,
 } = require('./users.validation');
 
 const router = express.Router();
@@ -30,6 +31,14 @@ router.get(
   adminRead,
   validateRequest({ query: listUsersQuerySchema }),
   usersController.list
+);
+
+router.get(
+  '/export/excel',
+  authenticate,
+  adminRead,
+  validateRequest({ query: exportUsersExcelQuerySchema }),
+  usersController.exportExcel
 );
 
 router.post(

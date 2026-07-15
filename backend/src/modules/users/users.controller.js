@@ -1,4 +1,5 @@
 ﻿const usersService = require('./users.service');
+const { buildContentDisposition } = require('./users.export.excel');
 const { success, created } = require('../../utils/apiResponse');
 
 async function list(req, res, next) {
@@ -140,6 +141,24 @@ async function bulkVerifyEmails(req, res, next) {
   }
 }
 
+async function exportExcel(req, res, next) {
+  try {
+    const { buffer, filename } = await usersService.exportUsersExcel(req.validated.query, req.user, {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+    });
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', buildContentDisposition(filename));
+    res.setHeader('Content-Length', buffer.length);
+    return res.status(200).send(buffer);
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   list,
   getById,
@@ -152,4 +171,5 @@ module.exports = {
   verifyEmail,
   verifyAllEmails,
   bulkVerifyEmails,
+  exportExcel,
 };

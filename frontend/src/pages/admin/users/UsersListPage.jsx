@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, MailCheck, LayoutGrid, Table2, Users, UserCheck, UserX, Mail, MailWarning } from 'lucide-react';
+import { Plus, MailCheck, LayoutGrid, Table2, Users, UserCheck, UserX, Mail, MailWarning, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { AdminActionBar } from '../../../components/admin/AdminActionBar.jsx';
 import { AdminFilterBar } from '../../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../../components/admin/AdminStatsGrid.jsx';
 import { AdminUserCard } from '../../../components/admin/AdminUserCard.jsx';
+import { UsersExcelExportModal } from '../../../components/admin/UsersExcelExportModal.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { SearchInput } from '../../../components/admin/SearchInput.jsx';
 import { SelectField } from '../../../components/admin/SelectField.jsx';
@@ -33,6 +34,10 @@ import {
   useUpdateUserStatus,
   canManageUsers,
   canActivateUsers,
+  canExportUsers,
+  canExportAllUniversities,
+  downloadUsersExcelExport,
+  saveUsersExcelBlob,
 } from '../../../features/users/index.js';
 
 const VIEW_KEY = 'battechno.admin.users.viewMode';
@@ -68,9 +73,13 @@ export function UsersListPage() {
   const [verifyTarget, setVerifyTarget] = useState(null);
   const [verifyAllOpen, setVerifyAllOpen] = useState(false);
   const [deactivateTarget, setDeactivateTarget] = useState(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const canWrite = canManageUsers(user);
   const canActivate = canActivateUsers(user);
+  const canExport = canExportUsers(user);
+  const canExportAll = canExportAllUniversities(user);
 
   const activateUser = useActivateUser();
   const activateAllPending = useActivateAllPendingUsers();
@@ -209,6 +218,37 @@ export function UsersListPage() {
     }
   }
 
+  async function handleExportConfirm({ university_id, apply_filters }) {
+    setFeedback('');
+    setExporting(true);
+    try {
+      const params = {
+        university_id: university_id || undefined,
+        apply_filters,
+      };
+      if (apply_filters) {
+        if (role) params.role = role;
+        if (status) params.status = status;
+        if (emailVerifiedFilter === 'true' || emailVerifiedFilter === 'false') {
+          params.email_verified = emailVerifiedFilter === 'true';
+        }
+        const qq = q.trim();
+        if (qq) params.search = qq;
+      }
+      if (!params.university_id && scopeId && scopeId !== TENANT_SCOPE_ALL && !canExportAll) {
+        params.university_id = scopeId;
+      }
+      const file = await downloadUsersExcelExport(params);
+      saveUsersExcelBlob(file);
+      setFeedback(t('export.success'));
+      setExportOpen(false);
+    } catch (e) {
+      setFeedback(getApiErrorMessage(e, t('export.failed')));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const emptyTitle =
     rows.length === 0
       ? isError
@@ -228,7 +268,11 @@ export function UsersListPage() {
     activateAllPending.isPending ||
     verifyEmail.isPending ||
     verifyAllEmails.isPending ||
-    updateStatus.isPending;
+    updateStatus.isPending ||
+    exporting;
+
+  const defaultExportUniversityId =
+    scopeId && scopeId !== TENANT_SCOPE_ALL ? scopeId : user?.universityId || user?.primary_university_id || '';
 
   const viewToggle = (
     <div className="admin-users-view-toggle" role="group" aria-label={t('view.toggleLabel')}>
@@ -259,6 +303,16 @@ export function UsersListPage() {
           <Link className="btn btn--primary" to="/admin/users/create">
             <Plus size={18} aria-hidden /> {t('addUser')}
           </Link>
+        ) : null}
+        {canExport ? (
+          <button
+            type="button"
+            className="btn btn--outline"
+            disabled={busy}
+            onClick={() => setExportOpen(true)}
+          >
+            <FileSpreadsheet size={18} aria-hidden /> {t('export.button')}
+          </button>
         ) : null}
         {canActivate ? (
           <button
@@ -504,6 +558,15 @@ export function UsersListPage() {
         busy={updateStatus.isPending}
         onClose={() => setDeactivateTarget(null)}
         onConfirm={confirmDeactivate}
+      />
+
+      <UsersExcelExportModal
+        open={exportOpen}
+        busy={exporting}
+        canExportAll={canExportAll}
+        defaultUniversityId={defaultExportUniversityId}
+        onClose={() => !exporting && setExportOpen(false)}
+        onConfirm={handleExportConfirm}
       />
     </div>
   );

@@ -11,6 +11,21 @@
     "description": "View user details and status.",
     "notFound": "User not found."
   },
+  "export": {
+    "button": "Export Excel",
+    "title": "Export users to Excel",
+    "description": "Choose the export scope. All matching records are fetched from the server, regardless of the current page.",
+    "scopeLabel": "Export scope",
+    "scopeAll": "All universities",
+    "scopeUniversity": "Selected university",
+    "university": "University",
+    "scopedUniversityHint": "Export is limited to your university scope.",
+    "applyFilters": "Apply current filters",
+    "confirm": "Export",
+    "preparing": "Preparing Excel file...",
+    "success": "Excel file downloaded successfully.",
+    "failed": "Could not export Excel file."
+  },
   "filters": {
     "role": "Role",
     "allRoles": "All roles",

@@ -1933,3 +1933,58 @@
   gap: 0.65rem;
   margin-top: 0.35rem;
 }
+
+.users-excel-export-modal {
+  max-width: 28rem;
+  width: min(100%, 28rem);
+  text-align: start;
+}
+
+.users-excel-export-modal__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.users-excel-export-modal__scope {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-border-tinted);
+  background: $color-cream-soft;
+
+  legend {
+    font-weight: 700;
+    color: $color-primary;
+    padding-inline: 0.25rem;
+  }
+}
+
+.users-excel-export-modal__radio,
+.users-excel-export-modal__check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.45rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  cursor: pointer;
+}
+
+.users-excel-export-modal__hint {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.users-excel-export-modal__loading {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.75rem;
+  background: rgba($color-accent, 0.12);
+  border: 1px solid rgba($color-accent, 0.28);
+  color: $color-primary;
+  font-weight: 700;
+  text-align: center;
+}

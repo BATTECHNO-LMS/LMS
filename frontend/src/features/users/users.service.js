@@ -110,3 +110,62 @@ export async function adminResetUserPassword(id, body) {
   const res = await apiClient.post(`${endpoints.users}/${id}/reset-password`, body);
   return unwrapApiData(res);
 }
+
+/**
+ * Download Users management Excel export (unpaginated, server-built).
+ * @param {Record<string, string | boolean | undefined>} params
+ * @returns {Promise<{ blob: Blob, filename: string }>}
+ */
+export async function downloadUsersExcelExport(params = {}) {
+  const query = {};
+  if (params.university_id) query.university_id = params.university_id;
+  if (params.role) query.role = params.role;
+  if (params.status) query.status = params.status;
+  if (params.search) query.search = params.search;
+  if (params.email_verified === true || params.email_verified === false) {
+    query.email_verified = String(params.email_verified);
+  }
+  if (params.apply_filters === false) query.apply_filters = 'false';
+  else query.apply_filters = 'true';
+
+  const res = await apiClient.get(`${endpoints.users}/export/excel`, {
+    params: query,
+    responseType: 'blob',
+    timeout: 180_000,
+  });
+
+  const contentType = String(res.headers['content-type'] || '');
+  if (contentType.includes('application/json')) {
+    const text = await res.data.text();
+    let message = 'Export failed';
+    try {
+      const parsed = JSON.parse(text);
+      message = parsed?.message || parsed?.error || message;
+    } catch {
+      /* ignore */
+    }
+    throw new Error(message);
+  }
+
+  const disposition = res.headers['content-disposition'] || '';
+  const match = /filename="?([^"]+)"?/i.exec(disposition);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const filename = match?.[1] || `BATTECHNO_Users_All_Universities_${stamp}.xlsx`;
+  return { blob: res.data, filename };
+}
+
+/**
+ * Trigger browser download for an Excel blob.
+ * @param {{ blob: Blob, filename: string }} file
+ */
+export function saveUsersExcelBlob({ blob, filename }) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

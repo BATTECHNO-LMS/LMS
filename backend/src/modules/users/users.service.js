@@ -10,6 +10,7 @@ const {
 const { prisma } = require('../../config/db');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
+const { buildUsersExportWorkbook } = require('./users.export.excel');
 
 async function assertUserAccessible(requester, user) {
   if (isSystemWideAdmin(requester)) return;
@@ -700,6 +701,143 @@ async function bulkVerifyUserEmails(userIds, { actorUserId, ipAddress, requester
   };
 }
 
+async function exportUsersExcel(query, requester = {}, meta = {}) {
+  const applyFilters = query.apply_filters !== false;
+
+  let requestedUniversityId = query.university_id || null;
+  if (!requestedUniversityId && !isSystemWideAdmin(requester)) {
+    requestedUniversityId = requester.universityId || null;
+    if (!requestedUniversityId) {
+      throw new ApiError(403, 'Forbidden');
+    }
+  }
+
+  if (!requestedUniversityId && !isSystemWideAdmin(requester)) {
+    throw new ApiError(403, 'Forbidden: exporting all universities requires Super Admin or Program Admin');
+  }
+
+  const scopedUniversityId = resolveUniversityIdFilter(requester, requestedUniversityId);
+
+  if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const whereParts = await usersRepository.buildListWhere({
+    status: applyFilters ? query.status : undefined,
+    university_id: scopedUniversityId,
+    search: applyFilters ? query.search : undefined,
+    email_verified: applyFilters ? query.email_verified : undefined,
+  });
+
+  let where = whereParts;
+  if (applyFilters && query.role) {
+    const roleUserIds = await usersRepository.findUserIdsByRoleCode(query.role);
+    if (!roleUserIds.length) {
+      where = { AND: [whereParts, { id: { in: [] } }] };
+    } else {
+      where = { AND: [whereParts, { id: { in: roleUserIds } }] };
+    }
+  }
+
+  const rows = await usersRepository.findManyForExport(where);
+  const withRoles = await mapUsersWithRoles(rows);
+
+  const uniIds = [...new Set(withRoles.map((u) => u.primary_university_id).filter(Boolean))];
+  const uspecIds = [...new Set(withRoles.map((u) => u.university_specialty_id).filter(Boolean))];
+  const specIds = [...new Set(withRoles.map((u) => u.specialty_id).filter(Boolean))];
+
+  const [unis, uspecs, specs, exporterName] = await Promise.all([
+    usersRepository.findUniversitiesByIds(uniIds),
+    usersRepository.findUniversitySpecialtiesByIds(uspecIds),
+    usersRepository.findSpecialtiesByIds(specIds),
+    usersRepository.findExporterName(meta.actorUserId || requester.userId),
+  ]);
+
+  const uniMap = new Map(unis.map((u) => [u.id, u]));
+  const uspecMap = new Map(uspecs.map((s) => [s.id, s]));
+  const specMap = new Map(specs.map((s) => [s.id, s]));
+
+  let selectedUniversityName = null;
+  if (scopedUniversityId) {
+    const selected =
+      uniMap.get(scopedUniversityId) || (await usersRepository.findUniversityById(scopedUniversityId));
+    selectedUniversityName = selected?.name || null;
+  }
+
+  const enriched = withRoles.map((u) => {
+    const uni = u.primary_university_id ? uniMap.get(u.primary_university_id) : null;
+    const uspec = u.university_specialty_id ? uspecMap.get(u.university_specialty_id) : null;
+    const spec = u.specialty_id ? specMap.get(u.specialty_id) : null;
+    return {
+      ...u,
+      university_name: uni?.name || '',
+      college_name: uspec?.college_name_ar || uspec?.college_name_en || '',
+      university_specialty_name: uspec?.name_ar || uspec?.name_en || uspec?.code || '',
+      specialty_name: spec?.name_ar || spec?.name_en || spec?.code || '',
+    };
+  });
+
+  enriched.sort((a, b) => {
+    const ua = a.university_name || '';
+    const ub = b.university_name || '';
+    const byUni = ua.localeCompare(ub, 'ar');
+    if (byUni !== 0) return byUni;
+    return String(a.full_name || '').localeCompare(String(b.full_name || ''), 'ar');
+  });
+
+  const filterBits = [];
+  if (applyFilters) {
+    if (query.role) filterBits.push(`الدور: ${query.role}`);
+    if (query.status) filterBits.push(`الحالة: ${query.status}`);
+    if (query.email_verified === true) filterBits.push('البريد: موثق');
+    if (query.email_verified === false) filterBits.push('البريد: غير موثق');
+    if (query.search) filterBits.push(`بحث: ${query.search}`);
+  }
+
+  const allUniversities = !scopedUniversityId;
+  const result = await buildUsersExportWorkbook({
+    users: enriched,
+    meta: {
+      scopeLabel: allUniversities ? 'جميع الجامعات' : 'جامعة محددة',
+      universityName: selectedUniversityName,
+      universityId: scopedUniversityId || null,
+      allUniversities,
+      exportedBy: exporterName || requester.email || requester.userId || '—',
+      exportedAt: new Date(),
+      filtersApplied: applyFilters,
+      filtersSummary: filterBits.length ? filterBits.join(' | ') : 'لا توجد فلاتر إضافية',
+    },
+  });
+
+  await recordAudit({
+    userId: meta.actorUserId ?? requester.userId ?? null,
+    universityId: scopedUniversityId ?? null,
+    actionType: 'USERS_EXCEL_EXPORTED',
+    entityType: 'user',
+    entityId: null,
+    oldValues: null,
+    newValues: {
+      scope: allUniversities ? 'all_universities' : 'single_university',
+      universityId: scopedUniversityId ?? null,
+      filters: applyFilters
+        ? {
+            role: query.role || null,
+            status: query.status || null,
+            email_verified: query.email_verified ?? null,
+            search: query.search || null,
+          }
+        : null,
+      apply_filters: applyFilters,
+      exportedCount: result.exportedCount,
+      performedBy: meta.actorUserId ?? requester.userId ?? null,
+      filename: result.filename,
+    },
+    ipAddress: meta.ipAddress ?? null,
+  });
+
+  return result;
+}
+
 module.exports = {
   listUsers,
   getUserById,
@@ -712,4 +850,5 @@ module.exports = {
   verifyUserEmail,
   verifyAllUnverifiedEmails,
   bulkVerifyUserEmails,
+  exportUsersExcel,
 };
