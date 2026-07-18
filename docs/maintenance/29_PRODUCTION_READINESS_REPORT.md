@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18  
 **Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **Conditional Go** (automated / code) · **NO-GO for staging-verified cutover** — QA-STAGING-SMOKE-001 blocked: no isolated staging environment (see `31_STAGING_SMOKE_REPORT.md`).
+**Verdict:** **READY WITH MANUAL ACTIONS** for production cutover — env activated locally (JWT/URLs/providers); Neon pending uniqueness migration + host JWT sync remain (see `41`–`43`). Automated/code Conditional Go history retained.
 
 ---
 
@@ -203,3 +203,7 @@ Automated suites and RC hygiene support deploying **to an isolated staging host*
 | 33 | Staging academic flow |
 | 34 | Staging field-training flow |
 | 35 | Staging environment review |
+| 39 | Environment preflight (historical mixed classification) |
+| 41 | Production env activation |
+| 42 | Production database verification |
+| 43 | Production deployment readiness |
