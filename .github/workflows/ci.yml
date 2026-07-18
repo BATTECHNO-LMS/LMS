@@ -7,7 +7,7 @@ on:
     branches: [main, master, develop]
 
 jobs:
-  backend:
+  backend-unit:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,8 +20,97 @@ jobs:
           cache: npm
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
-      - run: npm test
+      - run: npm run test:unit
       - run: npx prisma validate
+
+  backend-empty-db-reproducibility:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-jwt-secret-at-least-32-characters
+      AI_PROVIDER: ''
+      RESEND_API_KEY: ''
+      STORAGE_BACKEND: local
+      EMPTY_DB_BASELINE_VERSION: v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Validate baseline manifest
+        run: npm run db:validate-baseline
+      - name: Create disposable empty databases
+        run: |
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE lms_ci_prove;"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE lms_ci_empty;"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE lms_ci_cutoff;"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE lms_ci_app;"
+          PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE lms_ci_test;"
+      - name: Prove migrate deploy alone fails on empty DB
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_prove
+        run: npm run db:prove-empty-migrate-fails
+      - name: Drop prove database (failed migration residue)
+        run: PGPASSWORD=postgres psql -h 127.0.0.1 -U postgres -c "DROP DATABASE lms_ci_prove WITH (FORCE);"
+      - name: Initialize empty schema via versioned baseline
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_empty
+          ALLOW_EMPTY_DB_INIT: 'true'
+        run: |
+          npm run db:init-empty
+          npm run prisma:status
+          npm run db:verify-schema
+          node -e "
+            const {PrismaClient}=require('@prisma/client');
+            const p=new PrismaClient();
+            p.\$queryRawUnsafe('SELECT COUNT(*)::int AS c FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')
+              .then(r=>{ if(r[0].c!==27){ console.error('expected 27 applied, got', r[0].c); process.exit(1);} console.log('applied', r[0].c); })
+              .finally(()=>p.\$disconnect());
+          "
+      - name: Prove post-cutoff migration is not falsely resolved
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_cutoff
+          ALLOW_EMPTY_DB_INIT: 'true'
+        run: npm run db:prove-baseline-cutoff
+      - name: Initialize integration TEST database the same way
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_test
+          ALLOW_EMPTY_DB_INIT: 'true'
+        run: |
+          npm run db:init-empty
+          npm run db:verify-schema
+      - name: Catalog seed + test accounts on TEST only
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_test
+        run: |
+          npm run seed:catalog
+          npm run seed:test-accounts
+      - name: Integration tests (guarded TEST_DATABASE_URL)
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_app
+          TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_test
+          ALLOW_TEST_DB_WRITES: 'true'
+        run: npm run test:integration
 
   frontend:
     runs-on: ubuntu-latest

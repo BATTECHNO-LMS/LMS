@@ -1,3 +1,6 @@
+/** Fail-closed: landing-stats increments system_settings (DB write). */
+require('./helpers/requireIntegrationDb');
+
 const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');

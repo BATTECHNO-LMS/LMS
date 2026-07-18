@@ -1,3 +1,13 @@
+/**
+ * DB-writing helper. Callers must load `./requireIntegrationDb` first so
+ * Prisma uses an approved TEST_DATABASE_URL (never the app DATABASE_URL alone).
+ */
+if (!globalThis.__battechnoIntegrationDbGuardApplied) {
+  throw new Error(
+    'fieldTrainingIntegration helpers require tests/helpers/requireIntegrationDb to run first (fail-closed test DB guard).'
+  );
+}
+
 const { prisma } = require('../../src/config/db');
 const { signToken } = require('../../src/utils/jwt');
 const { seedTestAccounts } = require('../../scripts/lib/testAccounts');
@@ -7,7 +17,8 @@ const INSTRUCTOR_EMAIL = 'instructor@batuni.edu';
 const STUDENT_EMAIL = 'student@batuni.edu';
 
 async function canConnectDatabase() {
-  if (!process.env.DATABASE_URL) return false;
+  if (!globalThis.__battechnoIntegrationDbGuardApplied) return false;
+  if (!process.env.DATABASE_URL || !process.env.TEST_DATABASE_URL) return false;
   try {
     await prisma.$queryRaw`SELECT 1`;
     return true;

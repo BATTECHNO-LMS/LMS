@@ -111,11 +111,12 @@ When `NODE_ENV=production`:
 
 ### Role configuration (optional)
 
-Role access is controlled via comma-separated `roles.code` env vars. Defaults are defined in `backend/src/config/env.js`. Example:
+Role access is controlled via comma-separated `roles.code` env vars. Defaults are defined in `backend/src/config/env.js`. Deprecated `program_admin` is stripped even if listed. Example:
 
 ```env
-ADMIN_READ_ROLE_CODES=super_admin,program_admin,university_admin
-USER_WRITE_ROLE_CODES=super_admin,program_admin
+ADMIN_READ_ROLE_CODES=super_admin,university_admin
+USER_WRITE_ROLE_CODES=super_admin
+UNIVERSITY_WRITE_ROLE_CODES=super_admin
 ```
 
 See [ROLES_AND_PERMISSIONS.md](ROLES_AND_PERMISSIONS.md) for the full list.

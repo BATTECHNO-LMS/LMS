@@ -1,3 +1,6 @@
+/** Fail-closed: approve TEST_DATABASE_URL before Prisma/app load. */
+require('./helpers/requireIntegrationDb');
+
 const test = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
@@ -6,6 +9,8 @@ const request = require('supertest');
 const app = require('../src/app');
 const { prisma } = require('../src/config/db');
 const aiService = require('../src/modules/fieldTraining/fieldTraining.ai.service');
+const coreAiService = require('../src/modules/ai/ai.service');
+const { env } = require('../src/config/env');
 const {
   canConnectDatabase,
   fieldTrainingMigrationsApplied,
@@ -24,6 +29,9 @@ const originalFetch = global.fetch;
 const originalAiProvider = process.env.AI_PROVIDER;
 const originalAiKey = process.env.OPENAI_API_KEY;
 const originalRunAi = aiService.runSelfEvaluationAi;
+const originalIsAiConfigured = coreAiService.isAiConfigured;
+const originalEnvProvider = env.AI_PROVIDER;
+const originalEnvOpenAiKey = env.OPENAI_API_KEY;
 
 test.before(async () => {
   aiService.runSelfEvaluationAi = async () => ({
@@ -31,6 +39,9 @@ test.before(async () => {
     provider: 'openai',
     model: 'integration-test',
   });
+  coreAiService.isAiConfigured = () => true;
+  env.AI_PROVIDER = 'openai';
+  env.OPENAI_API_KEY = 'test-integration-key';
 
   dbReady = await canConnectDatabase();
   if (!dbReady) return;
@@ -52,7 +63,8 @@ test.before(async () => {
   process.env.AI_PROVIDER = 'openai';
   process.env.OPENAI_API_KEY = 'test-integration-key';
   global.fetch = async (url, options) => {
-    if (String(url).includes('openai.com')) {
+    const href = String(url);
+    if (href.includes('openai.com')) {
       return {
         ok: true,
         text: async () => '',
@@ -61,12 +73,23 @@ test.before(async () => {
         }),
       };
     }
+    if (href.includes('example.com')) {
+      return {
+        ok: true,
+        headers: { get: (name) => (String(name).toLowerCase() === 'content-type' ? 'text/html' : null) },
+        text: async () =>
+          '<html><body><p>Integration test submission content with enough readable text for extraction.</p></body></html>',
+      };
+    }
     return originalFetch(url, options);
   };
 });
 
 test.after(async () => {
   aiService.runSelfEvaluationAi = originalRunAi;
+  coreAiService.isAiConfigured = originalIsAiConfigured;
+  env.AI_PROVIDER = originalEnvProvider;
+  env.OPENAI_API_KEY = originalEnvOpenAiKey;
   global.fetch = originalFetch;
   if (originalAiProvider === undefined) delete process.env.AI_PROVIDER;
   else process.env.AI_PROVIDER = originalAiProvider;
@@ -103,7 +126,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('complete workflow: opportunity through completion letter', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or fixtures incomplete'
+      );
     }
     const { admin, instructor, student, specialty, universitySpecialty } = fixtures;
     const title = `FT Integration ${Date.now()}`;
@@ -236,13 +261,23 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     const aiRes = await request(app)
       .post(`/api/v1/student/field-training/tasks/${ctx.taskId}/ai-self-evaluate`)
       .set('Authorization', bearerForUser(student))
-      .send({ studentInput: 'أنجزت المهمة وفق المتطلبات.' });
+      .send({
+        studentInput: 'أنجزت المهمة وفق المتطلبات المذكورة في الوصف.',
+        projectUrl: 'https://example.com/ft-integration-submission',
+      });
     assert.strictEqual(aiRes.status, 200, JSON.stringify(aiRes.body));
+    const aiData = aiRes.body.data;
     ctx.aiMeta = {
-      ai_response: aiRes.body.data.ai_response,
-      ai_prompt_used: aiRes.body.data.ai_prompt_used,
-      ai_model_provider: aiRes.body.data.ai_model_provider,
-      ai_model_name: aiRes.body.data.ai_model_name,
+      ai_response: aiData.ai_response,
+      ai_prompt_used: aiData.ai_prompt_used,
+      ai_model_provider: aiData.ai_model_provider,
+      ai_model_name: aiData.ai_model_name,
+      ai_raw_response: aiData.ai_response,
+      file_extraction_status: aiData.file_extraction_status,
+      url_extraction_status: aiData.url_extraction_status,
+      url_extracted_text: aiData.url_extracted_text,
+      file_extracted_text: aiData.file_extracted_text,
+      evaluated_at: aiData.evaluated_at,
     };
 
     const tmpFile = path.join(__dirname, 'fixtures', 'ft-task.pdf');
@@ -252,17 +287,26 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     const submitRes = await request(app)
       .post(`/api/v1/student/field-training/tasks/${ctx.taskId}/submit`)
       .set('Authorization', bearerForUser(student))
-      .field('student_self_evaluation_input', 'أنجزت المهمة')
+      .field('student_self_evaluation_input', 'أنجزت المهمة وفق المتطلبات المذكورة في الوصف.')
       .field('ai_response_inserted_text', ctx.aiMeta.ai_response)
+      .field('ai_raw_response', ctx.aiMeta.ai_raw_response)
+      .field('ai_prompt_used', ctx.aiMeta.ai_prompt_used || '')
+      .field('ai_model_provider', ctx.aiMeta.ai_model_provider || '')
+      .field('ai_model_name', ctx.aiMeta.ai_model_name || '')
+      .field('file_extraction_status', ctx.aiMeta.file_extraction_status || 'skipped')
+      .field('url_extraction_status', ctx.aiMeta.url_extraction_status || 'ok')
+      .field('url_extracted_text', ctx.aiMeta.url_extracted_text || 'readable')
+      .field('ai_evaluated_at', ctx.aiMeta.evaluated_at || new Date().toISOString())
+      .field('project_url', 'https://example.com/ft-integration-submission')
       .attach('file', tmpFile, { contentType: 'application/pdf' });
     assert.strictEqual(submitRes.status, 200, JSON.stringify(submitRes.body));
     ctx.submissionId = submitRes.body.data.submission.id;
 
     const notif = await prisma.notifications.findFirst({
-      where: { user_id: instructor.id, title: 'تسليم مهمة تدريب ميداني' },
+      where: { user_id: instructor.id, title: 'تسليم مهمة جديد' },
       orderBy: { created_at: 'desc' },
     });
-    assert.ok(notif);
+    assert.ok(notif, 'expected instructor notification after task submission');
 
     await request(app)
       .patch(`/api/v1/instructor/field-training/submissions/${ctx.submissionId}/review`)
@@ -316,7 +360,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('expelled student cannot access tasks or completion letter', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or fixtures incomplete'
+      );
     }
     if (!ctx.applicationId) return t.skip('workflow test did not complete');
     const { admin, student } = fixtures;
@@ -339,7 +385,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('student cannot download another student submission', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or fixtures incomplete'
+      );
     }
     if (!ctx.submissionId) return t.skip('workflow test did not complete');
     const { specialty } = fixtures;
@@ -365,7 +413,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('field training reports: university dashboard and student report', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures || !ctx.applicationId) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or workflow incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or workflow incomplete'
+      );
     }
     const { admin, student } = fixtures;
     const uniId = student.primary_university_id;
@@ -396,7 +446,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('field training reports: global, admin routes, and academic scoping', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures || !ctx.applicationId) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or workflow incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or workflow incomplete'
+      );
     }
     const { admin, instructor, student } = fixtures;
     const uniId = student.primary_university_id;
@@ -464,7 +516,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('student visibility, apply guards, and report access control', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or fixtures incomplete'
+      );
     }
     const { admin, student, specialty, universitySpecialty } = fixtures;
 
@@ -580,7 +634,9 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
 
   test('instructor cannot manage unassigned training opportunity', async (t) => {
     if (!dbReady || !migrationsReady || !fixtures) {
-      return t.skip('DATABASE_URL unavailable, migrations missing, or fixtures incomplete');
+      return t.skip(
+        'Approved TEST_DATABASE_URL unavailable, migrations missing, or fixtures incomplete'
+      );
     }
     const { instructor, specialty, admin, student, universitySpecialty } = fixtures;
     const createRes = await request(app)
