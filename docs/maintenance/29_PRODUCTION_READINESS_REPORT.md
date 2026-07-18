@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18  
 **Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **READY WITH MANUAL ACTIONS** for production cutover — env activated locally (JWT/URLs/providers); Neon pending uniqueness migration + host JWT sync remain (see `41`–`43`). Automated/code Conditional Go history retained.
+**Verdict:** **MANUAL ACTION REQUIRED** for cutover — Neon **27/27** + unique index applied (PROD-PREDEPLOY-001); Render **JWT_SECRET** sync still required (see `44_PRODUCTION_PREDEPLOYMENT_COMPLETION.md`).
 
 ---
 
@@ -207,3 +207,4 @@ Automated suites and RC hygiene support deploying **to an isolated staging host*
 | 41 | Production env activation |
 | 42 | Production database verification |
 | 43 | Production deployment readiness |
+| 44 | Production pre-deployment completion |
