@@ -6,6 +6,6 @@ function roleCodes(user) {
 /** Aligned with backend CERTIFICATE_WRITE_ROLE_CODES default. */
 export function canWriteCertificate(user) {
   return roleCodes(user).some((r) =>
-    ['super_admin', 'program_admin', 'university_admin', 'academic_admin'].includes(r)
+    ['super_admin', 'university_admin', 'academic_admin'].includes(r)
   );
 }

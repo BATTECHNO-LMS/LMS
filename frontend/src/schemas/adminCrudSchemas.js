@@ -1,20 +1,26 @@
 import { z } from 'zod';
+import { ASSIGNABLE_USER_ROLE_CODES, ROLES } from '../constants/roles.js';
+
+const assignableRoleEnum = z.enum(ASSIGNABLE_USER_ROLE_CODES, {
+  required_error: 'الدور مطلوب',
+});
+
+/** Edit forms may display a legacy program_admin holder; assignment UIs never offer it as new. */
+const editableRoleEnum = z.enum([...ASSIGNABLE_USER_ROLE_CODES, ROLES.PROGRAM_ADMIN], {
+  required_error: 'الدور مطلوب',
+});
 
 export const userSchema = z.object({
   name: z.string().min(1, 'الاسم مطلوب'),
   email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
   password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-  role: z.enum(['instructor', 'student', 'program_admin', 'qa_officer', 'academic_admin'], {
-    required_error: 'الدور مطلوب',
-  }),
+  role: assignableRoleEnum,
   status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
 });
 
 export const userUpdateSchema = z.object({
   name: z.string().min(1, 'الاسم مطلوب'),
-  role: z.enum(['instructor', 'student', 'program_admin', 'qa_officer', 'academic_admin'], {
-    required_error: 'الدور مطلوب',
-  }),
+  role: editableRoleEnum,
   status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
   phone: z.string().max(50).optional(),
 });

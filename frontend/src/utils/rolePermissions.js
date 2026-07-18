@@ -1,4 +1,4 @@
-import { ROLES, ADMIN_ROLE_SET } from '../constants/roles.js';
+import { ROLES, ADMIN_ROLE_SET, isLegacyDeprecatedRole } from '../constants/roles.js';
 import { UI_PERMISSION } from '../constants/permissions.js';
 
 const P = UI_PERMISSION;
@@ -8,6 +8,9 @@ export const UI_ROUTE_DENY = '__UI_ROUTE_DENY__';
 
 /** Admin shell: all LMS UI capabilities enabled for visibility (real RBAC can narrow later). */
 const ADMIN_ALL = Object.fromEntries(Object.values(P).map((k) => [k, true]));
+
+/** Deprecated roles fail closed — no student fallback. */
+const DENY_ALL = Object.fromEntries(Object.values(P).map((k) => [k, false]));
 
 const STUDENT = {
   [P.canViewDashboard]: true,
@@ -97,6 +100,7 @@ const BY_ROLE = {
  * @returns {Record<string, boolean>}
  */
 export function getUiPermissions(role) {
+  if (isLegacyDeprecatedRole(role)) return { ...DENY_ALL };
   if (role && ADMIN_ROLE_SET.includes(role)) return { ...ADMIN_ALL };
   return BY_ROLE[role] ?? STUDENT;
 }
@@ -200,6 +204,7 @@ export function getRouteUiPermission(pathname) {
  */
 export function canAccessPathWithUiPermissions(role, pathname) {
   if (!role) return false;
+  if (isLegacyDeprecatedRole(role)) return false;
   if (ADMIN_ROLE_SET.includes(role)) return true;
   const perm = getRouteUiPermission(pathname);
   if (perm === null) return true;
@@ -215,6 +220,7 @@ export function canAccessPathWithUiPermissions(role, pathname) {
 export function canAccessPathWithUiPermissionsForUser(user, pathname) {
   const role = user?.role;
   if (!role) return false;
+  if (isLegacyDeprecatedRole(role)) return false;
   if (ADMIN_ROLE_SET.includes(role)) return true;
   const perm = getRouteUiPermission(pathname);
   if (perm === null) return true;

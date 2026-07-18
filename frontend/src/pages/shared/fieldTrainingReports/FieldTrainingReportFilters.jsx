@@ -12,7 +12,7 @@ export function FieldTrainingReportFilters({ value, onChange, mode = 'admin', sh
   const { t } = useTranslation('fieldTrainingReports');
   const { user } = useAuth();
   const { scopeId, isAllTenantsSelected } = useTenant();
-  const lockUniversity = mode === 'academic' || !['super_admin', 'program_admin'].includes(user?.role);
+  const lockUniversity = mode === 'academic' || !['super_admin'].includes(user?.role);
 
   const universityId = useMemo(() => {
     if (lockUniversity) return user?.universityId || scopeId || value.university_id;
@@ -75,7 +75,7 @@ export function FieldTrainingReportFilters({ value, onChange, mode = 'admin', sh
 
 export function resolveReportParams(value, { mode = 'admin', user, scopeId, isAllTenantsSelected }) {
   const lockUniversity =
-    mode === 'academic' || ![ROLES.SUPER_ADMIN, ROLES.PROGRAM_ADMIN].includes(user?.role);
+    mode === 'academic' || ![ROLES.SUPER_ADMIN].includes(user?.role);
   const university_id = lockUniversity
     ? user?.universityId || scopeId
     : value.university_id || (!isAllTenantsSelected && scopeId ? scopeId : undefined);

@@ -1,51 +1,114 @@
+'use strict';
+
+/**
+ * Analytics trends contract tests (DB-free).
+ *
+ * History: an earlier test called `repo.computePreviousPeriodFilters`, but that
+ * helper was never implemented or exported. Overview `kpiTrends` is a stub:
+ * each KPI maps to `{ pct: 0 }`. Frontend reads `trends?.<kpi>?.pct`.
+ *
+ * These tests cover the shipped stub helper and query date-filter validation.
+ * They do not invent previous-period comparison semantics.
+ */
+
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const repo = require('../src/modules/analytics/analytics.repository');
+const { buildKpiTrendsStub } = require('../src/modules/analytics/analytics.kpiTrends');
+const { analyticsQuerySchema } = require('../src/modules/analytics/analytics.validation');
 
-function buildTrendMetrics(currentKpis, previousKpis) {
-  return Object.fromEntries(
-    Object.keys(currentKpis).map((key) => {
-      const current = currentKpis[key];
-      if (!previousKpis) {
-        return [key, { current, previous: null, trendPct: null }];
-      }
-      const previous = previousKpis[key] ?? 0;
-      if (previous === 0 && current > 0) {
-        return [key, { current, previous, trendPct: 100, label: 'new' }];
-      }
-      const trendPct = Math.round(((current - previous) / Math.max(previous, 1)) * 10000) / 100;
-      return [key, { current, previous, trendPct }];
-    })
-  );
-}
-
-describe('analytics trend period helpers', () => {
-  it('computePreviousPeriodFilters returns equivalent prior window', () => {
-    const filters = {
-      university_id: undefined,
-      from: new Date('2025-05-01T00:00:00.000Z'),
-      to: new Date('2025-05-30T00:00:00.000Z'),
-    };
-    const prev = repo.computePreviousPeriodFilters(filters);
-    assert.ok(prev);
-    assert.equal(prev.from.toISOString().slice(0, 10), '2025-04-01');
-    assert.equal(prev.to.toISOString().slice(0, 10), '2025-04-30');
+describe('buildKpiTrendsStub (public kpiTrends shape)', () => {
+  it('maps each KPI key to { pct: 0 }', () => {
+    const trends = buildKpiTrendsStub({
+      enrolledStudents: 115,
+      certificatesIssued: 3,
+    });
+    assert.deepEqual(trends, {
+      enrolledStudents: { pct: 0 },
+      certificatesIssued: { pct: 0 },
+    });
   });
 
-  it('computePreviousPeriodFilters returns null without dates', () => {
-    assert.equal(repo.computePreviousPeriodFilters({ from: null, to: null }), null);
+  it('returns empty object for empty KPIs', () => {
+    assert.deepEqual(buildKpiTrendsStub({}), {});
   });
 
-  it('buildTrendMetrics calculates period-over-period change', () => {
-    const trends = buildTrendMetrics({ enrolledStudents: 115 }, { enrolledStudents: 100 });
-    assert.equal(trends.enrolledStudents.trendPct, 15);
-    assert.equal(trends.enrolledStudents.current, 115);
-    assert.equal(trends.enrolledStudents.previous, 100);
+  it('treats nullish KPIs as empty', () => {
+    assert.deepEqual(buildKpiTrendsStub(null), {});
+    assert.deepEqual(buildKpiTrendsStub(undefined), {});
   });
 
-  it('buildTrendMetrics marks new growth when previous is zero', () => {
-    const trends = buildTrendMetrics({ certificatesIssued: 3 }, { certificatesIssued: 0 });
-    assert.equal(trends.certificatesIssued.label, 'new');
-    assert.equal(trends.certificatesIssued.trendPct, 100);
+  it('does not use KPI values for trend magnitude (stub always 0)', () => {
+    const trends = buildKpiTrendsStub({ enrolledStudents: 999 });
+    assert.equal(trends.enrolledStudents.pct, 0);
+    assert.equal(Object.keys(trends.enrolledStudents).length, 1);
+  });
+
+  it('does not mutate the input KPI object', () => {
+    const kpis = { enrolledStudents: 10 };
+    const snapshot = { ...kpis };
+    buildKpiTrendsStub(kpis);
+    assert.deepEqual(kpis, snapshot);
+  });
+});
+
+describe('analyticsQuerySchema date filters', () => {
+  it('parses explicit ISO start and end dates', () => {
+    const parsed = analyticsQuerySchema.parse({
+      from: '2025-05-01T00:00:00.000Z',
+      to: '2025-05-30T00:00:00.000Z',
+    });
+    assert.ok(parsed.from instanceof Date);
+    assert.ok(parsed.to instanceof Date);
+    assert.equal(parsed.from.toISOString(), '2025-05-01T00:00:00.000Z');
+    assert.equal(parsed.to.toISOString(), '2025-05-30T00:00:00.000Z');
+  });
+
+  it('accepts date-only strings as Date instances (UTC midnight for YYYY-MM-DD)', () => {
+    const parsed = analyticsQuerySchema.parse({
+      from: '2025-05-01',
+      to: '2025-05-30',
+    });
+    assert.equal(parsed.from.toISOString(), '2025-05-01T00:00:00.000Z');
+    assert.equal(parsed.to.toISOString(), '2025-05-30T00:00:00.000Z');
+  });
+
+  it('allows empty / missing optional date filters', () => {
+    const parsed = analyticsQuerySchema.parse({});
+    assert.equal(parsed.from, undefined);
+    assert.equal(parsed.to, undefined);
+  });
+
+  it('drops invalid date strings instead of throwing', () => {
+    const parsed = analyticsQuerySchema.parse({
+      from: 'not-a-date',
+      to: 'also-bad',
+    });
+    assert.equal(parsed.from, undefined);
+    assert.equal(parsed.to, undefined);
+  });
+
+  it('does not reject end before start (current contract allows it)', () => {
+    const parsed = analyticsQuerySchema.parse({
+      from: '2025-06-01T00:00:00.000Z',
+      to: '2025-05-01T00:00:00.000Z',
+    });
+    assert.ok(parsed.from > parsed.to);
+  });
+
+  it('accepts only from or only to', () => {
+    const fromOnly = analyticsQuerySchema.parse({ from: '2025-05-01T00:00:00.000Z' });
+    assert.ok(fromOnly.from instanceof Date);
+    assert.equal(fromOnly.to, undefined);
+
+    const toOnly = analyticsQuerySchema.parse({ to: '2025-05-30T00:00:00.000Z' });
+    assert.equal(toOnly.from, undefined);
+    assert.ok(toOnly.to instanceof Date);
+  });
+
+  it('does not mutate the raw query object', () => {
+    const raw = { from: '2025-05-01T00:00:00.000Z', to: '2025-05-30T00:00:00.000Z' };
+    const before = { ...raw };
+    analyticsQuerySchema.parse(raw);
+    assert.deepEqual(raw, before);
   });
 });

@@ -32,6 +32,7 @@
     "instructor": "مدرّس",
     "student": "طالب",
     "admin": "إداري",
+    "programAdminDeprecated": "إداري برامج — متوقف",
     "qaOfficer": "مسؤول جودة",
     "academicReviewer": "مراجع أكاديمي",
     "universityAdmin": "مدير جامعة",

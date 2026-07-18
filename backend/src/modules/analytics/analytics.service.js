@@ -2,6 +2,7 @@ const repo = require('./analytics.repository');
 const ftAnalyticsRepo = require('../fieldTraining/fieldTrainingAnalytics.repository');
 const { prisma } = require('../../config/db');
 const { isMissingPrismaModelTableError } = require('./prismaMissingTable.js');
+const { buildKpiTrendsStub } = require('./analytics.kpiTrends');
 
 function toRecognitionStatusKey(status) {
   const map = {
@@ -367,7 +368,7 @@ async function getOverviewAnalytics(filters) {
     filters,
     chartsEnabled: true,
     kpis,
-    kpiTrends: Object.fromEntries(Object.keys(kpis).map((k) => [k, { pct: 0 }])),
+    kpiTrends: buildKpiTrendsStub(kpis),
     universitiesOverview: universitiesOverview.map((u) => ({ id: u.university_id, nameAr: u.name, nameEn: u.name, ...u })),
     enrollmentGrowth,
     cohortStatus: cohortStatus.map((c) => ({ ...c, statusKey: toCohortStatusKey(c.statusKey) })),

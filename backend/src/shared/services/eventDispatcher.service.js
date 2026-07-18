@@ -139,7 +139,7 @@ async function handleIntegrityCaseReported(event) {
     where: { id: integrityCase?.cohort_id },
     select: { university_id: true, title: true },
   });
-  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'program_admin', 'university_admin', 'qa_officer'], {
+  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'university_admin', 'qa_officer'], {
     universityId: cohort?.university_id,
   });
   await notificationService.createNotificationsForUsers({

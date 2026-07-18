@@ -33,8 +33,12 @@ import {
   canActivateUsers,
 } from '../../../features/users/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { ASSIGNABLE_USER_ROLE_CODES, ROLES } from '../../../constants/roles.js';
 
 const TABS = ['personal', 'academic', 'account', 'activity'];
+
+/** Roles offered when changing account role (excludes deprecated program_admin). */
+const VIEW_ASSIGNABLE_ROLE_CODES = [...ASSIGNABLE_USER_ROLE_CODES, ROLES.UNIVERSITY_ADMIN];
 
 function formatDt(value) {
   if (!value) return '—';
@@ -136,8 +140,11 @@ export function UserViewPage() {
         primary_university_id: form.primary_university_id || null,
         university_specialty_id: form.university_specialty_id || null,
         specialty_id: form.specialty_id || null,
-        role_codes: [form.role_code],
       };
+      // Never resubmit deprecated program_admin; omit role_codes to preserve legacy holders.
+      if (form.role_code !== ROLES.PROGRAM_ADMIN) {
+        body.role_codes = [form.role_code];
+      }
       await updateUser.mutateAsync({ id, body });
       setFeedback(t('detail.saveSuccess'));
       setRoleConfirmOpen(false);
@@ -487,12 +494,14 @@ export function UserViewPage() {
                 value={form.role_code}
                 onChange={(e) => setField('role_code', e.target.value)}
               >
-                <option value="student">{t('filters.student')}</option>
-                <option value="instructor">{t('filters.instructor')}</option>
-                <option value="program_admin">{t('filters.admin')}</option>
-                <option value="qa_officer">{t('filters.qaOfficer')}</option>
-                <option value="academic_admin">{t('filters.academicReviewer')}</option>
-                <option value="university_admin">{t('filters.universityAdmin')}</option>
+                {form.role_code === ROLES.PROGRAM_ADMIN ? (
+                  <option value={ROLES.PROGRAM_ADMIN}>{roleLabelAr(ROLES.PROGRAM_ADMIN, locale)}</option>
+                ) : null}
+                {VIEW_ASSIGNABLE_ROLE_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {roleLabelAr(code, locale)}
+                  </option>
+                ))}
               </FormSelect>
               <FormSelect
                 id="status"

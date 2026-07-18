@@ -1,4 +1,5 @@
 const path = require('path');
+const { filterDeprecatedFromRoleAllowlist } = require('../utils/runtimeRoles');
 
 // Resolve backend/.env regardless of process cwd (e.g. monorepo root).
 require('dotenv').config({
@@ -10,11 +11,14 @@ function parseRoleCodes(csv) {
   return [...new Set(csv.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean))];
 }
 
-/** If env var is missing or empty after parsing, use defaults (empty CSV would otherwise deny all roles). */
-function parseRoleCodesWithFallback(envValue, defaultCsv) {
+/**
+ * Parse env CSV (or defaults), then strip deprecated runtime roles such as program_admin.
+ * Env can still list the deprecated code; it is ignored with a one-time safe warning.
+ */
+function parseRoleCodesWithFallback(envValue, defaultCsv, allowlistKey = 'ROLE_CODES') {
   const parsed = parseRoleCodes(typeof envValue === 'string' ? envValue : '');
-  if (parsed.length) return parsed;
-  return parseRoleCodes(defaultCsv);
+  const source = parsed.length ? parsed : parseRoleCodes(defaultCsv);
+  return filterDeprecatedFromRoleAllowlist(source, allowlistKey);
 }
 
 function parseCorsOrigins(csv) {
@@ -63,104 +67,128 @@ const env = {
   /** Comma-separated `roles.code` values allowed to list/read users and universities. */
   ADMIN_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.ADMIN_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin'
+    'super_admin,university_admin',
+    'ADMIN_READ_ROLE_CODES'
   ),
   /** Comma-separated `roles.code` values allowed to create/update users (extend via env). */
-  USER_WRITE_ROLE_CODES: parseRoleCodesWithFallback(process.env.USER_WRITE_ROLE_CODES, 'super_admin,program_admin'),
+  USER_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.USER_WRITE_ROLE_CODES,
+    'super_admin',
+    'USER_WRITE_ROLE_CODES'
+  ),
   /** Roles allowed to activate pending self-registered students (`PATCH /users/:id/activate`). */
   USER_ACTIVATE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.USER_ACTIVATE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'USER_ACTIVATE_ROLE_CODES'
   ),
   /** Comma-separated `roles.code` values allowed to create/update universities. */
   UNIVERSITY_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.UNIVERSITY_WRITE_ROLE_CODES,
-    'super_admin,program_admin'
+    'super_admin',
+    'UNIVERSITY_WRITE_ROLE_CODES'
   ),
   /** Tracks, micro-credentials, nested learning-outcome lists (read). */
   CURRICULUM_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.CURRICULUM_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor',
+    'CURRICULUM_READ_ROLE_CODES'
   ),
   /** Tracks, micro-credentials, learning outcomes (write). */
   CURRICULUM_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.CURRICULUM_WRITE_ROLE_CODES,
-    'super_admin,program_admin,academic_admin'
+    'super_admin,academic_admin',
+    'CURRICULUM_WRITE_ROLE_CODES'
   ),
   /** Cohorts, enrollments, sessions, attendance (read). */
   DELIVERY_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.DELIVERY_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor',
+    'DELIVERY_READ_ROLE_CODES'
   ),
   /** Cohorts, enrollments, sessions, attendance (write). */
   DELIVERY_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.DELIVERY_WRITE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,instructor'
+    'super_admin,university_admin,academic_admin,instructor',
+    'DELIVERY_WRITE_ROLE_CODES'
   ),
   /** Assessments, rubrics, submissions list/read (includes students for enrolled cohorts). */
   ACADEMIC_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.ACADEMIC_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor,student'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor,student',
+    'ACADEMIC_READ_ROLE_CODES'
   ),
   /** Create/update assessments, rubrics, grade others, review submissions. */
   ACADEMIC_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.ACADEMIC_WRITE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,instructor'
+    'super_admin,university_admin,academic_admin,instructor',
+    'ACADEMIC_WRITE_ROLE_CODES'
   ),
   /** Evidence list/read (staff + instructor + university reviewer portal). */
   EVIDENCE_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.EVIDENCE_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor,university_reviewer'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor,university_reviewer',
+    'EVIDENCE_READ_ROLE_CODES'
   ),
   /** Evidence create/update. */
   EVIDENCE_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.EVIDENCE_WRITE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,instructor'
+    'super_admin,university_admin,academic_admin,instructor',
+    'EVIDENCE_WRITE_ROLE_CODES'
   ),
   /** QA reviews + corrective actions (no student). */
   QA_OVERSIGHT_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.QA_OVERSIGHT_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer'
+    'super_admin,university_admin,academic_admin,qa_officer',
+    'QA_OVERSIGHT_ROLE_CODES'
   ),
   /** Risk + integrity cases (includes instructor). */
   RISK_INTEGRITY_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.RISK_INTEGRITY_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor',
+    'RISK_INTEGRITY_ROLE_CODES'
   ),
   /** Recognition requests + documents (read). */
   RECOGNITION_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.RECOGNITION_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,university_reviewer'
+    'super_admin,university_admin,academic_admin,university_reviewer',
+    'RECOGNITION_READ_ROLE_CODES'
   ),
   /** Recognition requests create/update/status. */
   RECOGNITION_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.RECOGNITION_WRITE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'RECOGNITION_WRITE_ROLE_CODES'
   ),
   /** Issue certificates and change status (staff). */
   CERTIFICATE_WRITE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.CERTIFICATE_WRITE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'CERTIFICATE_WRITE_ROLE_CODES'
   ),
   /** List/view certificates (staff + student for self-scoped list). */
   CERTIFICATE_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.CERTIFICATE_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor,student,university_reviewer'
+    'super_admin,university_admin,academic_admin,qa_officer,instructor,student,university_reviewer',
+    'CERTIFICATE_READ_ROLE_CODES'
   ),
   /** Audit log read (restricted). */
   AUDIT_LOG_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.AUDIT_LOG_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'AUDIT_LOG_READ_ROLE_CODES'
   ),
   /** Reports read/export access. */
   REPORT_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.REPORT_READ_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin,qa_officer,university_reviewer'
+    'super_admin,university_admin,academic_admin,qa_officer,university_reviewer',
+    'REPORT_READ_ROLE_CODES'
   ),
   /** Approve/reject student enrollment requests (pending → enrolled/rejected). */
   ENROLLMENT_DECISION_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.ENROLLMENT_DECISION_ROLE_CODES,
-    'super_admin,program_admin,academic_admin,university_reviewer'
+    'super_admin,academic_admin,university_reviewer',
+    'ENROLLMENT_DECISION_ROLE_CODES'
   ),
   /**
    * Field training admin portal (`/admin/field-training/*`).
@@ -168,12 +196,14 @@ const env = {
    */
   FIELD_TRAINING_ADMIN_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.FIELD_TRAINING_ADMIN_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'FIELD_TRAINING_ADMIN_ROLE_CODES'
   ),
   /** Field training instructor portal (assigned opportunities only). */
   FIELD_TRAINING_INSTRUCTOR_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.FIELD_TRAINING_INSTRUCTOR_ROLE_CODES,
-    'instructor'
+    'instructor',
+    'FIELD_TRAINING_INSTRUCTOR_ROLE_CODES'
   ),
   /**
    * Staff roles for admin FT manage APIs (same portal as ADMIN; no instructor/reviewer).
@@ -181,7 +211,8 @@ const env = {
    */
   FIELD_TRAINING_MANAGE_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.FIELD_TRAINING_MANAGE_ROLE_CODES,
-    'super_admin,program_admin,university_admin,academic_admin'
+    'super_admin,university_admin,academic_admin',
+    'FIELD_TRAINING_MANAGE_ROLE_CODES'
   ),
   /** AI provider (openai | gemini). Empty = disabled. */
   AI_PROVIDER: (process.env.AI_PROVIDER || '').trim().toLowerCase(),
@@ -210,4 +241,4 @@ const env = {
     Number(process.env.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES) || 10,
 };
 
-module.exports = { env };
+module.exports = { env, parseRoleCodes, parseRoleCodesWithFallback };

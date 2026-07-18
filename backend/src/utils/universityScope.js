@@ -1,14 +1,12 @@
 const { ApiError } = require('./apiError');
-const { normalizeRoles } = require('./deliveryAccess');
 
 /**
- * Super Admin (isGlobal) and Program Admin may access all universities.
+ * Super Admin (isGlobal) may access all universities.
+ * program_admin is deprecated and is not system-wide (Phase 3).
  * @param {{ isGlobal?: boolean, roles?: string[] }} requester
  */
 function isSystemWideAdmin(requester) {
-  if (requester?.isGlobal) return true;
-  const roles = normalizeRoles(requester?.roles);
-  return roles.includes('program_admin');
+  return Boolean(requester?.isGlobal);
 }
 
 /**

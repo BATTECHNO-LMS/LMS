@@ -20,7 +20,7 @@ const TEST_PASSWORD = '12345678';
 
 const TEST_ACCOUNT_USERS = [
   { email: 'superadmin@batuni.edu', full_name: 'BATUNI Super Admin', role: 'super_admin' },
-  { email: 'program.admin@batuni.edu', full_name: 'BATUNI Program Admin', role: 'program_admin' },
+  // Phase 1 PA freeze: do not assign program_admin to new/re-seeded accounts.
   { email: 'university.admin@batuni.edu', full_name: 'BATUNI University Admin', role: 'university_admin' },
   { email: 'academic.admin@batuni.edu', full_name: 'BATUNI Academic Admin', role: 'academic_admin' },
   { email: 'qa.officer@batuni.edu', full_name: 'BATUNI QA Officer', role: 'qa_officer' },

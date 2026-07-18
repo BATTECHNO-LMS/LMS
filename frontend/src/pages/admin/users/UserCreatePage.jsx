@@ -12,6 +12,8 @@ import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
 import { tr } from '../../../utils/i18n.js';
 import { useCreateUser } from '../../../features/users/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { ASSIGNABLE_USER_ROLE_CODES } from '../../../constants/roles.js';
+import { roleLabelAr } from '../../../utils/labelsAr.js';
 
 export function UserCreatePage() {
   const { locale } = useLocale();
@@ -114,11 +116,11 @@ export function UserCreatePage() {
               onChange={(e) => setField('role', e.target.value)}
               error={errors.role}
             >
-              <option value="instructor">{tr(isArabic, 'مدرّس', 'Instructor')}</option>
-              <option value="student">{tr(isArabic, 'طالب', 'Student')}</option>
-              <option value="program_admin">{tr(isArabic, 'إداري برامج', 'Program admin')}</option>
-              <option value="qa_officer">{tr(isArabic, 'مسؤول جودة', 'QA Officer')}</option>
-              <option value="academic_admin">{tr(isArabic, 'إداري أكاديمي', 'Academic admin')}</option>
+              {ASSIGNABLE_USER_ROLE_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {roleLabelAr(code, locale)}
+                </option>
+              ))}
             </FormSelect>
             <FormSelect
               id="status"
