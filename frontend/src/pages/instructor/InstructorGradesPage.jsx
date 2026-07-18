@@ -1,5 +1,6 @@
 import { BarChart3, Award, Users, ClipboardCheck } from 'lucide-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
@@ -11,7 +12,6 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { PermissionGate } from '../../components/permissions/PermissionGate.jsx';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
-import { Button } from '../../components/common/Button.jsx';
 import { useLocale } from '../../features/locale/index.js';
 import { useGrades } from '../../features/grades/index.js';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
@@ -71,17 +71,17 @@ export function InstructorGradesPage() {
                 {
                   key: 'actions',
                   label: tCommon('table.actions'),
-                  render: () => (
+                  render: (r) => (
                     <div className="table-row-actions">
                       <PermissionGate permission={P.canGradeAssessments}>
-                        <Button type="button" variant="outline">
+                        <Link className="btn btn--outline" to={`/instructor/grades/${r.id}/edit`}>
                           {tCommon('actions.edit')}
-                        </Button>
+                        </Link>
                       </PermissionGate>
                       <PermissionGate permission={P.canPublishFeedback}>
-                        <Button type="button" variant="primary">
+                        <Link className="btn btn--primary" to={`/instructor/grades/${r.id}/edit`}>
                           {t('instructor.actions.publish')}
-                        </Button>
+                        </Link>
                       </PermissionGate>
                     </div>
                   ),

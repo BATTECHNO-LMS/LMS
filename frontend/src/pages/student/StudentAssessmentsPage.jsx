@@ -14,8 +14,10 @@ import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
 import { Eye, Upload, Pencil, MessageSquare, FileCheck, Timer, Send, ListChecks } from 'lucide-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
+import { isAcademicSubmissionEditable } from '../../features/assessments/academicStatusMap.js';
 
 export function StudentAssessmentsPage() {
   const { t } = useTranslation('assessments');
@@ -48,7 +50,10 @@ export function StudentAssessmentsPage() {
           name: a.title,
           type: a.assessment_type,
           due: a.due_date ? String(a.due_date).slice(0, 10) : '—',
-          submissionState: sub?.status ?? (a.status === 'closed' ? 'graded' : 'open'),
+          submissionState: sub?.status ?? 'open',
+          submission: sub || null,
+          canEdit: !sub || isAcademicSubmissionEditable(sub),
+          hasFinalGrade: Boolean(sub?.current_grade?.is_final) || sub?.status === 'graded',
         };
       }),
     [assessmentsPayload, submissionsByAssessment]
@@ -106,49 +111,49 @@ export function StudentAssessmentsPage() {
                   render: (r) => (
                     <div className="table-row-actions">
                       <PermissionGate permission={P.canViewAssessments}>
-                        <button
-                          type="button"
+                        <Link
+                          to={`/student/assessments/${r.id}/submit`}
                           className="btn btn--icon btn--ghost"
                           title={t('student.actions.viewDetails')}
                           aria-label={t('student.actions.viewDetails')}
                         >
                           <Eye size={18} />
-                        </button>
+                        </Link>
                       </PermissionGate>
                       <PermissionGate permission={P.canSubmitAssessments}>
-                        {r.submissionState === 'open' || r.submissionState === 'late' ? (
-                          <button
-                            type="button"
+                        {!r.submission && r.canEdit ? (
+                          <Link
+                            to={`/student/assessments/${r.id}/submit`}
                             className="btn btn--icon btn--ghost"
                             title={t('student.actions.upload')}
                             aria-label={t('student.actions.upload')}
                           >
                             <Upload size={18} />
-                          </button>
+                          </Link>
                         ) : null}
                       </PermissionGate>
                       <PermissionGate permission={P.canEditOwnSubmission}>
-                        {r.submissionState === 'open' || r.submissionState === 'draft' ? (
-                          <button
-                            type="button"
+                        {r.submission && r.canEdit ? (
+                          <Link
+                            to={`/student/assessments/${r.id}/submit`}
                             className="btn btn--icon btn--ghost"
                             title={t('student.actions.editSubmission')}
                             aria-label={t('student.actions.editSubmission')}
                           >
                             <Pencil size={18} />
-                          </button>
+                          </Link>
                         ) : null}
                       </PermissionGate>
                       <PermissionGate permission={P.canViewFeedback}>
-                        {r.submissionState === 'graded' ? (
-                          <button
-                            type="button"
+                        {r.hasFinalGrade || r.submissionState === 'graded' ? (
+                          <Link
+                            to={`/student/assessments/${r.id}/submit`}
                             className="btn btn--icon btn--ghost"
                             title={t('student.actions.viewFeedback')}
                             aria-label={t('student.actions.viewFeedback')}
                           >
                             <MessageSquare size={18} />
-                          </button>
+                          </Link>
                         ) : null}
                       </PermissionGate>
                     </div>

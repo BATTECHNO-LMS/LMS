@@ -271,6 +271,10 @@ export const InstructorSubmissionsPage = lazyNamed(
   () => import('../../pages/instructor/InstructorSubmissionsPage.jsx'),
   'InstructorSubmissionsPage'
 );
+export const InstructorAcademicGradePage = lazyNamed(
+  () => import('../../pages/instructor/InstructorAcademicGradePage.jsx'),
+  'InstructorAcademicGradePage'
+);
 export const InstructorGradesPage = lazyNamed(
   () => import('../../pages/instructor/InstructorGradesPage.jsx'),
   'InstructorGradesPage'
@@ -379,6 +383,10 @@ export const StudentAttendancePage = lazyNamed(
 export const StudentAssessmentsPage = lazyNamed(
   () => import('../../pages/student/StudentAssessmentsPage.jsx'),
   'StudentAssessmentsPage'
+);
+export const StudentAcademicSubmissionPage = lazyNamed(
+  () => import('../../pages/student/StudentAcademicSubmissionPage.jsx'),
+  'StudentAcademicSubmissionPage'
 );
 export const StudentSubmissionsPage = lazyNamed(
   () => import('../../pages/student/StudentSubmissionsPage.jsx'),

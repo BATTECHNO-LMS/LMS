@@ -1,0 +1,2 @@
+-- Rollback for 20260718120000_academic_submission_uniqueness
+-- DROP INDEX IF EXISTS "uq_submissions_assessment_student";

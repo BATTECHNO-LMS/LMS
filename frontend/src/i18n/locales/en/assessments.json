@@ -71,7 +71,7 @@
     },
     "actions": {
       "viewDetails": "View details",
-      "upload": "Upload submission",
+      "upload": "Submit response",
       "editSubmission": "Edit submission",
       "viewFeedback": "View feedback"
     },
@@ -165,6 +165,52 @@
       "file_upload": "File upload",
       "repo_link": "Repository link",
       "text_response": "Text response"
+    }
+  },
+  "delivery": {
+    "fields": {
+      "assessmentStatus": "Assessment status",
+      "submissionStatus": "Submission status",
+      "submissionType": "Submission type",
+      "textResponse": "Text response",
+      "fileUrl": "File or document link (URL)",
+      "repoUrl": "Repository URL",
+      "score": "Score (0–100)",
+      "feedback": "Feedback",
+      "final": "Final",
+      "student": "Student"
+    },
+    "types": {
+      "text_response": "Text response",
+      "file_url": "File/document URL",
+      "repo_url": "Repository URL",
+      "mixed": "Mixed (text and links)"
+    },
+    "submit": {
+      "title": "Submit assessment",
+      "description": "Enter your response as text and/or links. Binary file upload is not available on this form.",
+      "notFound": "Assessment not found",
+      "locked": "This submission is locked because a final grade exists or the submission is graded.",
+      "feedbackTitle": "Grade and feedback",
+      "fileUrlHint": "Paste a publicly accessible URL to your file. This does not upload a file to the platform.",
+      "saveNew": "Submit",
+      "saveEdit": "Update submission",
+      "created": "Submission saved.",
+      "updated": "Submission updated.",
+      "alreadyExists": "A submission already exists for this assessment. Your existing submission has been loaded — use Update to change it."
+    },
+    "grade": {
+      "title": "Grade submission",
+      "description": "Review the student submission, enter a score and feedback, then finalize when ready.",
+      "notFound": "Submission or grade not found",
+      "submissionCard": "Submission",
+      "save": "Save grade",
+      "finalize": "Finalize grade",
+      "finalizeConfirm": "Finalize this grade? Students will no longer be able to edit their submission after a final grade exists.",
+      "finalReadOnly": "This grade is finalized. Editing is disabled in the SPA.",
+      "created": "Grade saved.",
+      "updated": "Grade updated.",
+      "finalized": "Grade finalized."
     }
   }
 }

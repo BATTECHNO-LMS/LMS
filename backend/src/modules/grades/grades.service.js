@@ -5,10 +5,15 @@ const enrollmentsRepo = require('../enrollments/enrollments.repository');
 const assessmentsRepo = require('../assessments/assessments.repository');
 const assessmentsService = require('../assessments/assessments.service');
 const repo = require('./grades.repository');
+const {
+  assertGradeMutable,
+  assertNoFinalizedGradeOverwrite,
+  assertGradeScoreInRange,
+  isGradeFinal,
+} = require('./grades.lifecycle');
 
 const STAFF_ROLES = new Set([
   'super_admin',
-  'program_admin',
   'university_admin',
   'academic_admin',
   'qa_officer',
@@ -141,10 +146,7 @@ async function createGradeForAssessment(assessmentId, body, requester) {
     throw new ApiError(400, 'Cannot grade without at least one submission');
   }
 
-  const score = Number(body.score);
-  if (Number.isNaN(score) || score < 0 || score > 100) {
-    throw new ApiError(400, 'score must be between 0 and 100');
-  }
+  const score = assertGradeScoreInRange(body.score);
 
   const wantFinal = Boolean(body.is_final);
 
@@ -152,17 +154,9 @@ async function createGradeForAssessment(assessmentId, body, requester) {
     where: { assessment_id: assessmentId, student_id: body.student_id, is_final: true },
   });
 
-  if (wantFinal && existingFinal) {
-    const row = await repo.update(existingFinal.id, {
-      score,
-      feedback: body.feedback ?? null,
-      grader_id: requester.userId,
-      graded_at: new Date(),
-      is_final: true,
-    });
-    const sm = await loadStudentsMap([row.student_id]);
-    const gm = await loadGradersMap([row.grader_id]);
-    return mapGrade(row, sm, gm);
+  // Finalized grades are immutable: do not overwrite via create with is_final.
+  if (existingFinal) {
+    assertNoFinalizedGradeOverwrite(existingFinal);
   }
 
   if (wantFinal && !existingFinal) {
@@ -197,10 +191,6 @@ async function createGradeForAssessment(assessmentId, body, requester) {
     return mapGrade(row, sm, gm);
   }
 
-  if (existingFinal) {
-    throw new ApiError(400, 'A final grade already exists; update it or use finalize');
-  }
-
   const row = await repo.create({
     assessment_id: assessmentId,
     student_id: body.student_id,
@@ -220,10 +210,11 @@ async function updateGrade(id, body, requester) {
   const assessment = await assessmentsRepo.findById(row.assessment_id);
   await assertStaffGrader(requester, assessment);
 
-  const score = body.score !== undefined ? Number(body.score) : Number(row.score);
-  if (Number.isNaN(score) || score < 0 || score > 100) {
-    throw new ApiError(400, 'score must be between 0 and 100');
-  }
+  // Authoritative immutability: finalized grades cannot be changed via PUT
+  // for any role (including super_admin). No ordinary override path exists.
+  assertGradeMutable(row);
+
+  const score = body.score !== undefined ? assertGradeScoreInRange(body.score) : assertGradeScoreInRange(row.score);
 
   const data = {
     score,
@@ -235,7 +226,12 @@ async function updateGrade(id, body, requester) {
 
   if (data.is_final === true && !row.is_final) {
     await prisma.grades.deleteMany({
-      where: { assessment_id: row.assessment_id, student_id: row.student_id, is_final: true },
+      where: {
+        assessment_id: row.assessment_id,
+        student_id: row.student_id,
+        is_final: true,
+        NOT: { id: row.id },
+      },
     });
   }
 
@@ -251,9 +247,23 @@ async function finalizeGrade(id, requester) {
   const assessment = await assessmentsRepo.findById(row.assessment_id);
   await assertStaffGrader(requester, assessment);
 
+  assertGradeScoreInRange(row.score);
+
+  // Idempotent: already-final grades are returned without mutation.
+  if (isGradeFinal(row)) {
+    const sm = await loadStudentsMap([row.student_id]);
+    const gm = await loadGradersMap([row.grader_id]);
+    return mapGrade(row, sm, gm);
+  }
+
   await prisma.$transaction([
     prisma.grades.deleteMany({
-      where: { assessment_id: row.assessment_id, student_id: row.student_id, is_final: true },
+      where: {
+        assessment_id: row.assessment_id,
+        student_id: row.student_id,
+        is_final: true,
+        NOT: { id: row.id },
+      },
     }),
     prisma.grades.update({
       where: { id: row.id },

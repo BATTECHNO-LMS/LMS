@@ -1,5 +1,7 @@
 export const featureId = 'assessments';
 export * from './assessmentSubmissionDefaults.js';
+export * from './academicDeliverySchemas.js';
+export * from './academicStatusMap.js';
 export * from './assessments.service.js';
 export * from './hooks/useAssessments.js';
 export * from './hooks/useAssessment.js';

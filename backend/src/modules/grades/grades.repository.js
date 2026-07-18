@@ -1,5 +1,7 @@
 ﻿const { prisma } = require('../../config/db');
+const { ApiError } = require('../../utils/apiError');
 const { isMissingPrismaModelTableError } = require('../analytics/prismaMissingTable.js');
+const { GRADE_FINALIZED, FINALIZED_IMMUTABLE_MESSAGE } = require('./grades.lifecycle');
 
 const gradeInclude = {
   assessments: {
@@ -102,16 +104,9 @@ async function findGradesForPair(assessmentId, studentId) {
   }
 }
 
-async function setAllNonFinalForPair(assessmentId, studentId) {
-  try {
-    await prisma.grades.updateMany({
-      where: { assessment_id: assessmentId, student_id: studentId, is_final: true },
-      data: { is_final: false },
-    });
-  } catch (e) {
-    if (isMissingPrismaModelTableError(e, 'grades')) return;
-    throw e;
-  }
+async function setAllNonFinalForPair(_assessmentId, _studentId) {
+  // Unfinalize / reopen is not a supported product operation.
+  throw new ApiError(409, FINALIZED_IMMUTABLE_MESSAGE, undefined, GRADE_FINALIZED);
 }
 
 module.exports = {

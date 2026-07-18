@@ -15,3 +15,15 @@ export async function fetchSubmissionById(id) {
   const res = await apiClient.get(`${endpoints.submissions}/${id}`);
   return unwrapApiData(res);
 }
+
+/** POST /api/v1/assessments/:assessmentId/submissions */
+export async function createAcademicSubmission(assessmentId, body) {
+  const res = await apiClient.post(`${endpoints.assessments}/${assessmentId}/submissions`, body);
+  return unwrapApiData(res);
+}
+
+/** PUT /api/v1/submissions/:id */
+export async function updateAcademicSubmission(submissionId, body) {
+  const res = await apiClient.put(`${endpoints.submissions}/${submissionId}`, body);
+  return unwrapApiData(res);
+}
