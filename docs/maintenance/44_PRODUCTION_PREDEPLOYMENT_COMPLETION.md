@@ -177,7 +177,8 @@ No production integration writes. No Gemini/Resend/R2 upload/YouTube calls.
 
 ## 15. Verdict
 
-### **MANUAL ACTION REQUIRED**
+### **MANUAL ACTION REQUIRED** (predeploy) → superseded for app ship by **PROD-DEPLOY-001**
 
 Database predeploy migration objectives are **complete** (27/27 + unique index).  
-Render JWT synchronization and post-rotation session smoke are **not** complete — no Render API credentials in this environment.
+Render JWT synchronization remains owner-deferred.  
+Application code deployment: see **`45_PRODUCTION_APPLICATION_DEPLOYMENT.md`** — **MANUAL DEPLOYMENT REQUIRED** (no Render/Hostinger access in agent).

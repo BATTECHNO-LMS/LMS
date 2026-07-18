@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18  
 **Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **MANUAL ACTION REQUIRED** for cutover — Neon **27/27** + unique index applied (PROD-PREDEPLOY-001); Render **JWT_SECRET** sync still required (see `44_PRODUCTION_PREDEPLOYMENT_COMPLETION.md`).
+**Verdict:** **MANUAL DEPLOYMENT REQUIRED** — pre-deploy validation green; app source `e3cadb1`≡`4eeec0f` (docs-only delta); Render/Hostinger deploy credentials unavailable in agent (see `45_PRODUCTION_APPLICATION_DEPLOYMENT.md`). Neon **27/27**. JWT sync still deferred.
 
 ---
 
@@ -208,3 +208,4 @@ Automated suites and RC hygiene support deploying **to an isolated staging host*
 | 42 | Production database verification |
 | 43 | Production deployment readiness |
 | 44 | Production pre-deployment completion |
+| 45 | Production application deployment |
