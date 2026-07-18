@@ -1,96 +1,107 @@
 # 01 — Test & Command Safety Matrix
 
+**Updated:** ISS-011 (database-test / CI safety hardening)
+
 ## Policy
 
 - Classify **before** execute.
-- Neon/cloud `DATABASE_URL` ⇒ no write/read-integration tests.
-- No external provider calls.
+- Neon/cloud `DATABASE_URL` ⇒ never use for writes; integration tests must use `TEST_DATABASE_URL`.
+- Integration tests are **fail-closed** via `tests/helpers/testDatabaseGuard.js`.
+- No external provider calls in unit tests.
 - Do not install dependencies until lifecycle scripts inspected (`postinstall` = `prisma generate` only — codegen, no DB).
 
 ---
 
-## Backend `package.json` scripts
+## Backend test commands (after ISS-011)
 
-| Script | Classification | Safe to run (this env)? | Notes |
-|--------|----------------|-------------------------|-------|
-| `postinstall` / `prisma:generate` | Static / codegen | Yes | No DB connection |
-| `prisma:validate` (via `npx prisma validate`) | Static and safe | **Yes — ran** | Schema only |
-| `start` / `dev` | Runtime (uses live DB/env) | Not for verification writes | Serves API against configured DB |
-| `prisma:migrate` | Migration | **No** | Writes schema to target DB |
-| `prisma:deploy` | Migration | **No** | Applies migrations |
-| `prisma:studio` | Database write (interactive) | **No** | UI can mutate data |
-| `seed` / `seed:real-baseline` | Seed | **No** | Upserts catalog/roles |
-| `seed:demo` / `seed:analytics-demo` / `seed:auth` / `seed:test-accounts` | Seed | **No** | Demo/test users; some refuse `NODE_ENV=production` |
-| `cleanup:demo` | Cleanup / destructive (if confirmed) | **No** | Dry-run reads; `--confirm-clean-demo` deletes |
-| `merge:specialties` | Database write | **No** | Reassigns specialty refs |
-| `test` | Mixed (includes DB write) | **No (full suite)** | See per-file table |
-| `r2:health` | External network | **No** | Hits R2 if configured |
-| `r2:setup-cors` | External network + write | **No** | Mutates bucket CORS |
+| Script | Before | After | Safe without isolated TEST DB? |
+|--------|--------|-------|--------------------------------|
+| `test` | `node --test tests/*.test.js` (all files, including DB writers) | `npm run test:unit` | **Yes** |
+| `test:unit` | — | Explicit unit file list (includes `testDatabaseGuard.test.js` + `analytics.trends.test.js`) | **Yes** |
+| `test:integration` | — | `--require ./tests/helpers/requireIntegrationDb.js` + FT integration + landingStats | **No** — fails closed without guard env |
+| `test:all` | — | `test:unit` then `test:integration` | Unit yes; integration needs guard |
 
-## Frontend `package.json` scripts
+### Required env for `test:integration`
 
-| Script | Classification | Safe? | Notes |
-|--------|----------------|-------|-------|
-| `build` | Build-only and safe | **Yes — ran** | No DB |
-| `dev` | Runtime | N/A for baseline | Dev server |
-| `preview` | Build preview | Safe after build | Serves `dist` |
+| Variable | Requirement |
+|----------|-------------|
+| `NODE_ENV` | Exactly `test` |
+| `TEST_DATABASE_URL` | Explicit postgres URL, **≠** `DATABASE_URL` after normalization |
+| `ALLOW_TEST_DB_WRITES` | Exactly `true` |
+| `ALLOW_REMOTE_TEST_DATABASE` | Required **only** if TEST host is not localhost/127.0.0.1/::1 |
+| `DATABASE_URL` | App URL (distinct); preload then points Prisma at `TEST_DATABASE_URL` |
+
+Do **not** set `ALLOW_REMOTE_TEST_DATABASE` for shared Neon used as the app database.
+
+### Local integration setup
+
+1. Create a **local** Postgres database dedicated to tests (e.g. `lms_test`).
+2. Keep app `DATABASE_URL` pointing at a **different** database (even if same host).
+3. Export:
+   - `NODE_ENV=test`
+   - `TEST_DATABASE_URL=postgresql://.../lms_test`
+   - `ALLOW_TEST_DB_WRITES=true`
+4. `DATABASE_URL="$TEST_DATABASE_URL" npx prisma migrate deploy`
+5. Optionally seed on test DB only: `DATABASE_URL="$TEST_DATABASE_URL" npm run seed:real-baseline` and `seed:test-accounts`
+6. `npm run test:integration`
+
+### CI integration setup
+
+See `.github/workflows/ci.yml` job `backend-integration`: ephemeral Postgres service, two local DBs (`lms_ci_app` vs `lms_ci_test`), migrate/seed against `TEST_DATABASE_URL` only, then `npm run test:integration`. No production Neon secrets.
+
+### Remote test database policy
+
+Remote TEST hosts are **rejected by default**. Only with `ALLOW_REMOTE_TEST_DATABASE=true` **and** isolation from `DATABASE_URL` **and** `ALLOW_TEST_DB_WRITES=true`. Never use the application Neon URL as `TEST_DATABASE_URL`.
+
+---
+
+## Backend `package.json` other scripts
+
+| Script | Classification | Safe to run (shared Neon)? |
+|--------|----------------|----------------------------|
+| `postinstall` / `prisma:generate` | Static / codegen | Yes |
+| `prisma:validate` | Static | Yes |
+| `start` / `dev` | Runtime | N/A for tests |
+| `prisma:migrate` / `deploy` / `studio` | Migration / write UI | **No** on shared Neon for experiments |
+| `seed*` / `cleanup:demo` / `merge:specialties` | Seed / destructive | **No** on shared Neon |
+| `r2:*` | External | **No** unless intentional |
+
+## Frontend scripts
+
+| Script | Safe? |
+|--------|-------|
+| `build` | Yes |
+| `dev` / `preview` | Dev only |
 
 ---
 
 ## Backend tests — per file
 
-| File | Feature | Pure / integration | Imports `app`? | Needs DB? | Reads DB? | Writes DB? | External? | Safe on Neon? | Ran? |
-|------|---------|--------------------|----------------|-----------|-----------|------------|-----------|---------------|------|
-| `emailOtp.test.js` | Email OTP utils | Pure unit | No | No | No | No | No | **Yes** | Yes — pass |
-| `passwordResetToken.test.js` | Reset token utils | Pure unit | No | No | No | No | No | **Yes** | Yes — pass |
-| `universityScope.test.js` | University scope helpers | Pure unit | No | No | No | No | No | **Yes** | Yes — pass |
-| `universityEmailLink.test.js` | Email domain utils | Pure unit | No | No | No | No | No | **Yes** | Yes — pass |
-| `youtubePlaylist.test.js` | Playlist ID parse | Pure unit | No | No | No | No | No (parse only) | **Yes** | Yes — pass |
-| `fieldTraining.workflow.test.js` | FT workflow pure logic | Pure unit | No | No | No | No | No | **Yes** | Yes — pass |
-| `fieldTraining.access.test.js` | FT access/mapping | Pure unit | No | Client may load; **no queries** | No | No | No | **Yes** | Yes — pass |
-| `specialties.service.test.js` | Specialty assert | Pure unit | No | Early throw; no query | No | No | No | **Yes** | Yes — pass |
-| `analytics.trends.test.js` | Analytics period helpers | Pure unit (intended) | No | No queries | No | No | No | **Yes** | Yes — **2 fail** |
-| `health.test.js` | `/`, `/health`, CORS | HTTP (no DB routes) | Yes | No for tested paths | No | No | No | **Yes** | Yes — pass |
-| `fieldTraining.auth.test.js` | FT routes 401 | HTTP auth | Yes | No on 401 | No | No | No | **Yes** | Yes — pass |
-| `submissions.auth.test.js` | submissions/dashboard/roles/analytics 401 | HTTP auth | Yes | No on 401 | No | No | No | **Yes** | Yes — pass |
-| `landingStats.test.js` | Public landing stats | Integration | Yes | **Yes** | **Yes** | **Yes** (visit counter upsert) | No | **No** | **Skipped** |
-| `fieldTraining.integration.test.js` | Full FT workflow | Integration | Yes | **Yes** | **Yes** | **Yes** (create/delete fixtures) | AI mocked | **No** | **Skipped** |
-| `helpers/fieldTrainingIntegration.js` | Fixtures/helpers | Helper (not a test entry) | — | Yes | Yes | Yes | — | **No if executed** | Not run |
+| File | Category | Writes DB? | Guard? | In `test:unit`? | In `test:integration`? |
+|------|----------|------------|--------|-----------------|------------------------|
+| `testDatabaseGuard.test.js` | Pure unit | No | N/A (tests the guard) | Yes | No |
+| `emailOtp`, `passwordResetToken`, `universityScope`, `universityEmailLink`, `youtubePlaylist`, `fieldTraining.workflow`, `fieldTraining.access`, `specialties.service` | Pure unit | No | — | Yes | No |
+| `analytics.trends.test.js` | Pure unit (broken helper) | No | — | Yes (**2 known failures**, ISS-004) | No |
+| `health`, `fieldTraining.auth`, `submissions.auth` | HTTP 401 / health | No queries | — | Yes | No |
+| `landingStats.test.js` | Integration | Yes (visit counter) | **Yes** (first-line require) | No | Yes |
+| `fieldTraining.integration.test.js` | Integration | Yes (create/delete) | **Yes** | No | Yes |
+| `helpers/fieldTrainingIntegration.js` | Helper | Yes if used | Requires guard flag | — | Used by integration |
 
-### Existing failure (safe suite)
+### Known unrelated failure
 
-| Test | Error | Classification |
-|------|-------|----------------|
-| `analytics.trends.test.js` → `computePreviousPeriodFilters` | `repo.computePreviousPeriodFilters is not a function` | Test/implementation drift — **not repaired this phase** |
+`analytics.trends.test.js`: `repo.computePreviousPeriodFilters is not a function` — **ISS-004**, not fixed in ISS-011. Still run in `test:unit` so failures remain visible.
 
-### Safe command used
+### Commands intentionally not executed on shared Neon
 
-```text
-node --test tests/emailOtp.test.js tests/passwordResetToken.test.js tests/universityScope.test.js tests/universityEmailLink.test.js tests/youtubePlaylist.test.js tests/fieldTraining.workflow.test.js tests/fieldTraining.access.test.js tests/specialties.service.test.js tests/analytics.trends.test.js tests/health.test.js tests/fieldTraining.auth.test.js tests/submissions.auth.test.js
-```
-
-| Result | Exit |
-|--------|------|
-| 55 tests, 53 pass, 2 fail | `1` |
-
-Reproducible: yes (failure is deterministic missing export).
+- `npm run test:integration`
+- `npm run test:all` (when integration would hit Neon)
+- Full historical `node --test tests/*.test.js` without guard
 
 ---
 
-## Required mocks / isolated DB (when later allowed)
+## Guard proof points
 
-| Suite | Requirement |
-|-------|-------------|
-| Pure unit / 401 HTTP | None |
-| `landingStats.test.js` | Isolated test database (writes `system_settings`) |
-| `fieldTraining.integration.test.js` | Isolated test DB + migrated schema; AI already mocked |
-
----
-
-## Commands classified as Unknown / High risk (not run)
-
-| Command | Risk |
-|---------|------|
-| Full `npm test` | Runs DB writers against whatever `DATABASE_URL` is |
-| Any seed/cleanup/migrate | Database write |
-| R2 scripts | External mutation/network |
+- Guard module has **no** `@prisma/client` / `config/db` imports.
+- Unit tests use **synthetic** URLs only.
+- Integration preload sets `DATABASE_URL` to approved `TEST_DATABASE_URL` only after checks.
+- Helper throws if imported without guard.

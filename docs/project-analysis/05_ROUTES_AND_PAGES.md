@@ -55,7 +55,7 @@
 ## بوابة الإدارة `/admin`
 
 - **Layout:** `AdminLayout`
-- **أدوار:** `ADMIN_ROLE_SET` = `super_admin`, `program_admin`, `university_admin`, `academic_admin`, `qa_officer`
+- **أدوار نشطة للإدارة:** `ADMIN_ROLE_SET` = `super_admin`, `university_admin`, `academic_admin`, `qa_officer` (`program_admin` متوقف تاريخيًا فقط)
 - **تنقل:** `constants/adminNavigation.js` (أقل من كل المسارات العميقة)
 
 مجموعات المسارات (Confirmed):

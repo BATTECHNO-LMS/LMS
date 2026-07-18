@@ -42,14 +42,20 @@ Confidence legend: Confirmed / Strong inference / Unknown
 | Step | Backend | Frontend SPA | Status |
 |------|---------|--------------|--------|
 | Create assessment | `POST /assessments` (`ACADEMIC_WRITE`) | Yes (`assessments.service`) | Confirmed |
-| Student submit | `POST /assessments/:id/submissions` (`student`) | **No write client** | **Confirmed gap** |
-| Update submission | `PUT /submissions/:id` (`student`) | **No** | Confirmed gap |
+| Student submit | `POST /assessments/:id/submissions` (`student`) | Yes — `StudentAcademicSubmissionPage` | **Resolved (ISS-002)** |
+| Duplicate create prevention | App guard + `uq_submissions_assessment_student` → 409 | Conflict refresh → edit | **Resolved (ACADEMIC-SUBMISSION-001)** |
+| Update submission | `PUT /submissions/:id` (`student`) | Yes — same page when editable | **Resolved (ISS-002)** |
 | List submissions | `GET /submissions` | Yes GET | Confirmed |
-| Create grade | `POST /assessments/:id/grades` | **No** | Confirmed gap |
-| Update/finalize grade | `PUT/PATCH grades` | **No** | Confirmed gap |
+| Create grade | `POST /assessments/:id/grades` | Yes — `InstructorAcademicGradePage` | **Resolved (ISS-002)** |
+| Update/finalize grade | `PUT/PATCH grades` | Yes — update + confirm finalize | **Resolved (ISS-002)** |
+| Finalized grade immutability | `PUT` / create-overwrite → 409 `GRADE_FINALIZED` | SPA read-only + conflict refresh | **Resolved (ACADEMIC-GRADE-001)** |
 | Student view grades | `GET /grades` (scoped) | Yes | Confirmed |
+| Quiz attempts / answers | Schema placeholders only | No | Confirmed unused (out of scope) |
+| Certificate gate on grades | None | — | Confirmed uncoupled |
 
-**Product:** Academic loop incomplete in SPA. Field-training has separate submit/grade paths that **do** write from FE.
+**Product:** Minimum academic submit/grade loop is reachable in SPA. Analysis: `12_…ANALYSIS.md`. Implementation: `13_…IMPLEMENTATION.md`. Field-training remains a separate write path (**classification G**).
+
+**Tests:** `authorization.iss002.academicSubmissions.characterization.test.js`, `authorization.iss002.academicDelivery.remediation.test.js`, `authorization.academicGrade001.finalizedImmutability.test.js`, `authorization.academicSubmission001.uniqueness.test.js`, `frontend/tests/academicDelivery.iss002.test.js`.
 
 ---
 

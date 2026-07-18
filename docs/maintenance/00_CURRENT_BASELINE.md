@@ -88,17 +88,47 @@ Triggers: push/PR to `main`, `master`, `develop`.
 | Command | Exit | Result |
 |---------|-----:|--------|
 | `npx prisma validate` (cwd `backend`) | 0 | Schema valid; Prisma update notice 6.19.3 → 7.x (warning only) |
-| Selective `node --test` (12 safe files; see matrix) | 1 | **53 pass, 2 fail** (`analytics.trends.test.js`) |
+| Selective `node --test` (12 safe files; see matrix) | 1 | **53 pass, 2 fail** (`analytics.trends.test.js`) — baseline before ISS-004 |
 | `npm run build` (cwd `frontend`) | 0 | Build succeeded; chunk size warnings (>500 kB) |
+
+## ISS-004 follow-up (analytics trends contract)
+
+| Item | Value |
+|------|-------|
+| Original failures | 2 — `repo.computePreviousPeriodFilters is not a function` |
+| Root cause | Test targeted a helper that never existed; production `kpiTrends` is stub `{ pct: 0 }` |
+| Resolution | Pure `buildKpiTrendsStub` + rewritten DB-free tests; no previous-period feature invented |
+| Safe re-run | `npm run test:unit` → **77 pass / 0 fail** (includes guard + rewritten analytics.trends); `prisma validate` OK; FE build OK |
+
+## Test-count reconciliation (2026-07-18)
+
+| Item | Value |
+|------|-------|
+| Backend unit after Phase 2 | **326 pass** (36 suites) |
+| Backend unit after Phase 3 | **242 pass** (25 suites) |
+| Δ | **−84** |
+| Cause | Intentional envRoles matrix consolidation (−102) + Phase 3 suite (+12) + related replacements; **no accidental file omission** |
+| Detail | `docs/maintenance/10_TEST_SUITE_RECONCILIATION.md` |
+| Live re-verify | `npm run test:unit` → **242 pass / 0 fail / 0 skipped** |
+
+## Phase 4 soft-retire (2026-07-18)
+
+| Item | Value |
+|------|-------|
+| Catalog presentation | `Program Admin (Deprecated)` in `baselineCatalog` / analytics seed name |
+| Compact regression | `authorization.activeRoles.regression.test.js` (5 leaf tests; table-driven) |
+| Backend unit after Phase 4 | **247 pass** (+5 vs post–Phase 3) |
+| Historical data | Unchanged (no DB deletes; freeze/rollback scripts retained) |
 
 ## Explicitly not run
 
-- `npm test` (full suite)
+- `npm test` (full suite) — superseded by `test:unit` / `test:integration` after ISS-011
 - Any `prisma migrate` / `deploy` / `studio`
 - Any `seed*` / `cleanup:demo` / `merge:specialties`
 - `r2:health` / `r2:setup-cors`
 - `npm ci` / `npm install`
 - Live calls to Resend, R2, AI, YouTube APIs
+- Database integration tests / Neon writes
 
 ## Documentation produced this phase
 

@@ -4,7 +4,7 @@ BATTECHNO-LMS is a learning / micro-credential management product delivered main
 
 2. What this project is
 System type: LMS-style platform for universities, tracks, micro-credentials, cohorts, sessions, attendance, assessments, submissions, grades, evidence, QA / risk / integrity, recognition requests, certificates, reports, audit logs, plus a super-admin analytics dashboard.
-Supported roles (code): super_admin, program_admin, academic_admin, qa_officer (admin shell), instructor, student, university_reviewer.
+Supported roles (code): super_admin, university_admin, academic_admin, qa_officer (admin shell), instructor, student, university_reviewer. Deprecated historical: program_admin (labels/filters only).
 Problem it targets: Operational and academic workflows for credential programs across institutions, with separate portals and navigation per persona.
 3. Tech stack and why each tool is used
 Technology	Role in repo (actual usage)

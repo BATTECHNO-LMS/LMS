@@ -33,7 +33,7 @@
 | رمز الدور | النطاق في DB | استخدام الواجهة |
 |-----------|--------------|-----------------|
 | `super_admin` | `global` | بوابة `/admin` + تحليلات ومقررات وتدريب |
-| `program_admin` | `university` (لكن عابر عمليًا) | `/admin` |
+| `program_admin` | `university` | **متوقف** — عرض/تصفية تاريخية فقط (لا بوابة) |
 | `university_admin` | `university` | `/admin` |
 | `academic_admin` | `university` | `/admin` + `/academic` |
 | `qa_officer` | `university` | `/admin` + `/academic` |
