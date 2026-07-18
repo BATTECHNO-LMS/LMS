@@ -1,21 +1,17 @@
-# 43 — Production Deployment Readiness (updated PROD-DEPLOY-001)
+# 43 — Production Deployment Readiness (updated PROD-FINAL-SMOKE-001)
 
 **Date:** 2026-07-18  
 **Approved application baseline:** `e3cadb1`  
-**Docs tip (same app bytes):** `4eeec0f`  
-**Verdict:** **MANUAL DEPLOYMENT REQUIRED**
+**Verdict:** **CONDITIONAL GO**
 
 ---
 
 ## Decision summary
 
-- Neon is **27/27** with uniqueness index (predeploy complete).  
-- Application source is ready and validated (318/42/8 + FE build).  
-- Agent could **not** deploy to Render or Hostinger (no provider credentials/CLIs).  
-- **Do not** rotate `JWT_SECRET` during the upcoming manual deploy.  
-- **Do not** create a production tag until after deploy + optional JWT sync smoke.
+Production Backend/Frontend are Live and smoke-tested. Database remains **27/27** with uniqueness index.  
+**Blocker to full GO:** production-issued JWTs do not verify with the approved local secret fingerprint `eec7827fb0` — Render secret appears out of sync with the approved value (or rotation used a different secret).
 
-See `45_PRODUCTION_APPLICATION_DEPLOYMENT.md` for exact manual steps.
+See `46_PRODUCTION_FINAL_SMOKE.md`.
 
 ---
 
@@ -23,20 +19,21 @@ See `45_PRODUCTION_APPLICATION_DEPLOYMENT.md` for exact manual steps.
 
 | Gate | Status |
 |------|--------|
-| Source approved / equivalent | Pass |
-| Pre-deploy tests / build | Pass |
-| DB 27/27 | Pass |
-| Backend deployed | **Manual pending** |
-| Frontend deployed | **Manual pending** |
-| Login smoke on new build | Pending deploy |
-| JWT sync `eec7827fb0` | Deferred (owner) |
+| API health / ready | Pass |
+| FE loads + prod API in bundle | Pass |
+| Login + `/me` | Pass |
+| Wrong-secret token rejected | Pass |
+| DB 27/27 + index | Pass |
+| Data not reduced | Pass (users 424 ≥ 423) |
+| Render JWT == `eec7827fb0` | **Fail / unconfirmed** |
+| QA-AUTH-001/003 | Open (accepted residual) |
+| Production tag | **Not created** |
 
 ---
 
 ## Remaining manual actions
 
-1. Deploy Backend (`e3cadb1`/`4eeec0f`) on Render — preserve JWT.  
-2. Deploy Frontend `dist/` to Hostinger for `lms.battechno.com`.  
-3. Production login + `/me` smoke.  
-4. Later: JWT sync + session reset.  
-5. Later: release tag.
+1. Confirm/fix Render `JWT_SECRET` to fingerprint `eec7827fb0` if that remains the approved secret.  
+2. Re-verify: prod token verifies with local secret.  
+3. Record Render deploy commit SHA.  
+4. Create release tag only after **GO**.

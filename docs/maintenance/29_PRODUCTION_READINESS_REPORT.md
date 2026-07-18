@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18  
 **Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **MANUAL DEPLOYMENT REQUIRED** — pre-deploy validation green; app source `e3cadb1`≡`4eeec0f` (docs-only delta); Render/Hostinger deploy credentials unavailable in agent (see `45_PRODUCTION_APPLICATION_DEPLOYMENT.md`). Neon **27/27**. JWT sync still deferred.
+**Verdict:** **CONDITIONAL GO** — production Live; health/auth/FE/API smoke passed; Neon **27/27**. Render JWT does **not** match approved fingerprint `eec7827fb0` (see `46_PRODUCTION_FINAL_SMOKE.md`). QA-AUTH-001/003 remain open. No production tag yet.
 
 ---
 
@@ -209,3 +209,4 @@ Automated suites and RC hygiene support deploying **to an isolated staging host*
 | 43 | Production deployment readiness |
 | 44 | Production pre-deployment completion |
 | 45 | Production application deployment |
+| 46 | Production final smoke |
