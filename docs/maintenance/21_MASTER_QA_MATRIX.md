@@ -11,7 +11,7 @@ Legend for coverage: **U** unit · **I** integration · **C** characterization �
 
 | Feature | Role | Entry | API | Expected | Negative | Auto | Manual | Finding |
 |---------|------|-------|-----|----------|----------|------|--------|---------|
-| Login valid | all active | `/login/*` | `POST /api/auth/login` | JWT + portal | bad password | U (partial) | Pending staging | — |
+| Login valid | all active | `/login/*` | `POST /api/auth/login` | JWT + portal | bad password | U (partial) | **Blocked** QA-STG-001 | **QA-STG-001** |
 | Login inactive | any | login | login | 401/deny | — | C (currentAuth) | Pending | — |
 | Logout | all | UI logout | `POST /logout` | client clear | token still valid server-side | Confirmed code | Pending | **QA-AUTH-001** |
 | `/me` | authed | — | `GET /me` | current user | stale JWT claims ignored on protected | C | Pending | — |
@@ -60,7 +60,7 @@ Legend for coverage: **U** unit · **I** integration · **C** characterization �
 
 | Area | Auto | Manual | Finding |
 |------|------|--------|---------|
-| Opportunity → letter happy path | **I** (mocked AI) | Pending staging UI | — |
+| Opportunity → letter happy path | **I** (mocked AI) | **Blocked** QA-STG-001 | **QA-STG-001** |
 | Expel / access denial | I | Pending | — |
 | Reports scoping | I | Pending | — |
 | Unused enum statuses | Confirmed never written | N/A | **QA-FT-001** (ISS-003) |

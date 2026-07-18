@@ -75,7 +75,8 @@ Local exclude entries added under `.git/info/exclude` for the zip and `_*.sql` /
 | `fix(auth): …` | `b26953abd97590092dbba8ab74683a74d3df2c34` |
 | `feat(academic): …` | `acecb63a178352debbda1164ac534083479100e6` |
 | `fix(db): …` | `774bbdae3bcdcfbcbe1a8757f62718a398d3b281` |
-| `test(qa): …` | Tip of branch after this hygiene commit (see `git log -1`) |
+| `test(qa): …` | `1cfe2f4fb0c8b30fea3df5187a17d5071d562db3` |
+| Final HEAD (RC) | `1cfe2f4fb0c8b30fea3df5187a17d5071d562db3` |
 | Baseline version | `empty_init_v1` |
 | Manifest cutoff | `20260718120000_academic_submission_uniqueness` |
 | Migrations represented | **27** |
@@ -101,10 +102,10 @@ Local exclude entries added under `.git/info/exclude` for the zip and `_*.sql` /
 
 ## Remaining staging blockers (not QA-REL-001)
 
-1. Staging UI browser smoke across seven roles (see below).  
-2. Product decisions on JWT revoke at logout / password reset (**QA-AUTH-001/003**).  
-3. Confirm staging env vars and mock/sandbox integrations.  
-4. Explicit GO after smoke — Conditional Go remains until staging passes.
+1. **QA-STG-001** — Provision isolated staging FE/API/DB + `$STAGING_*` credentials (see `31_STAGING_SMOKE_REPORT.md`).  
+2. Re-run seven-role browser smoke (docs 32–34).  
+3. Product decisions on JWT revoke at logout / password reset (**QA-AUTH-001/003**) after staging evidence.  
+4. Explicit GO only after staging smoke passes.
 
 ---
 
@@ -166,4 +167,4 @@ Credentials: store only in staging secret store / `$STAGING_*_PASSWORD` env vars
 
 ### Recommended next task
 
-**QA-STAGING-SMOKE-001** — Deploy this branch to staging, run browser smoke for the seven roles against academic submit/grade and field-training happy paths, then update the Conditional Go verdict.
+**QA-STAGING-SMOKE-001** — Attempted 2026-07-18: **NO-GO / staging pending**. Preflight passed on exact RC `1cfe2f4`; deploy and browser smoke **blocked** by missing `$STAGING_*` URLs and credentials (see `31_STAGING_SMOKE_REPORT.md`). Provision isolated staging, then re-run smoke.

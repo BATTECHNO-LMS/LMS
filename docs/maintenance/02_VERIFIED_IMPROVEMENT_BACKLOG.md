@@ -323,3 +323,4 @@ Severity: **P0** blocker / data-loss / auth hole in practice · **P1** high prod
 12. **DB-MIGRATION-003** — done (versioned cutoff-aware baseline; `19_VERSIONED_EMPTY_DATABASE_BASELINE.md`).
 13. **QA-001** — production-readiness audit pack (`20`–`29` under `docs/maintenance/`); verdict **Conditional Go**.
 14. **QA-REL-001** — **Resolved** — release-candidate hygiene; intended work committed on `maintenance/test-safety-baseline` (see `30_RELEASE_CANDIDATE_HYGIENE.md`). Staging smoke still required before production tag.
+15. **QA-STAGING-SMOKE-001** — **Blocked / NO-GO** — RC `1cfe2f4` verified locally; **no isolated staging URLs/credentials/deploy access**. Browser smoke not executed. See `31_STAGING_SMOKE_REPORT.md`–`35_STAGING_ENVIRONMENT_REVIEW.md`. Finding **QA-STG-001**.

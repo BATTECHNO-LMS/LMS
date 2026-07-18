@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-18  
 **Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **Conditional Go** — core authz, academic delivery integrity, FT integration, and DB migration governance are in good shape; production cutover still needs staging UI smoke and explicit acceptance of residual session-token risks.
+**Verdict:** **Conditional Go** (automated / code) · **NO-GO for staging-verified cutover** — QA-STAGING-SMOKE-001 blocked: no isolated staging environment (see `31_STAGING_SMOKE_REPORT.md`).
 
 ---
 
@@ -26,8 +26,8 @@ This is **not** a claim that every role×page×viewport was manually exercised i
 | `prisma:check-history` (Neon, read-only) | **27/27**, 0 pending/failed |
 | `db:validate-baseline` | **v1 OK** |
 | Test database guard | **Pass** |
-| Browser E2E (Playwright/Cypress full matrix) | **Not run** — Pending staging |
-| Full responsive/a11y matrix | **Not run** — Pending staging |
+| Browser E2E (Playwright/Cypress full matrix) | **Not run** — no E2E framework; staging URLs missing (**QA-STG-001**) |
+| Full responsive/a11y matrix | **Not run** — Pending staging provision |
 
 ---
 
@@ -35,14 +35,14 @@ This is **not** a claim that every role×page×viewport was manually exercised i
 
 | Role | Automated AuthZ/portal evidence | Staging UI smoke |
 |------|----------------------------------|------------------|
-| super_admin | High | Pending |
-| university_admin | High (scope) | Pending |
-| academic_admin | High; FT manage UI drift noted | Pending |
-| qa_officer | Medium | Pending |
-| instructor | High + FT I | Pending |
-| student | High + academic U/FE | Pending |
-| university_reviewer | Medium | Pending |
-| program_admin | Fail-closed confirmed | Confirm inactive |
+| super_admin | High | **Blocked** (QA-STG-001) |
+| university_admin | High (scope) | **Blocked** |
+| academic_admin | High; FT manage UI drift noted | **Blocked** |
+| qa_officer | Medium | **Blocked** |
+| instructor | High + FT I | **Blocked** |
+| student | High + academic U/FE | **Blocked** |
+| university_reviewer | Medium | **Blocked** |
+| program_admin | Fail-closed confirmed | **Blocked** (confirm on staging when available) |
 
 ---
 
@@ -75,15 +75,16 @@ See docs **23–27**. Highlights: dead `auth/refresh` map; enrollment dual path;
 
 | ID | Summary | Status |
 |----|---------|--------|
-| — | None newly confirmed that block *technical* deploy of current build | — |
-| — | (QA-REL-001 resolved — tree committed; production tag still deferred) | — |
+| — | None newly confirmed that block *technical* deploy of current build to a **new** staging host | — |
+| **QA-STG-001** | No isolated staging FE/API/DB/credentials — browser smoke impossible | **Blocks staging-verified release** |
 
 ### P1
 
 | ID | Summary | Fix now? |
 |----|---------|----------|
-| **QA-AUTH-001** | Logout does not revoke JWT | No — product decision |
-| **QA-AUTH-003** | Password reset leaves access JWTs valid | No — product decision |
+| **QA-AUTH-001** | Logout does not revoke JWT | No — product decision; staging verify still pending |
+| **QA-AUTH-003** | Password reset leaves access JWTs valid | No — product decision; staging verify still pending |
+| **QA-STG-002** | Neon unreachable during one preflight history check | Ops; retry before any shared-DB read |
 
 ### P2 / P3 (summary)
 
@@ -125,11 +126,11 @@ See docs **23–27**. Highlights: dead `auth/refresh` map; enrollment dual path;
 
 ## Deployment blockers
 
-1. ~~Commit hygiene (QA-REL-001)~~ — **done**; production **tag** still deferred until staging smoke.  
-2. Staging smoke checklist completed (below).  
-3. Explicit acceptance of residual JWT validity after logout/reset **or** ship revocation.  
+1. ~~Commit hygiene (QA-REL-001)~~ — **done**.  
+2. **Provision isolated staging** + complete browser smoke (`31`–`35`) — **blocked (QA-STG-001)**.  
+3. Explicit acceptance of residual JWT validity after logout/reset **or** ship revocation (after staging evidence).  
 4. Confirm production env: JWT secret strength, CORS, rate limits, storage/AI/email flags.  
-5. Neon backup / migrate status already clean — keep `prisma:check-history` in deploy.
+5. Neon backup / migrate status — re-verify `prisma:check-history` when Neon reachable; never smoke-write Neon.
 
 ---
 
@@ -162,10 +163,10 @@ See `28_VERIFIED_CLEANUP_CANDIDATES.md` — **no deletions** until review.
 
 ## Go / Conditional Go / No-Go
 
-### **Conditional Go**
+### **Conditional Go** (code/automated) · **NO-GO** (staging-verified cutover)
 
-**Go** for staging deployment and controlled production once release hygiene + staging smoke pass.  
-**No-Go** for “declare fully production-hardened” until P1 session lifecycle is decided and staging UI matrix is signed off.
+Automated suites and RC hygiene support deploying **to an isolated staging host** once that host exists.  
+**No-Go** for staging-signed production cutover until QA-STG-001 is cleared, seven-role browser smoke passes, and JWT risks are accepted or fixed.
 
 ---
 
@@ -197,3 +198,8 @@ See `28_VERIFIED_CLEANUP_CANDIDATES.md` — **no deletions** until review.
 | 28 | Verified cleanup candidates |
 | 29 | This report |
 | 30 | Release candidate hygiene (QA-REL-001) |
+| 31 | Staging smoke report (QA-STAGING-SMOKE-001) |
+| 32 | Staging role matrix |
+| 33 | Staging academic flow |
+| 34 | Staging field-training flow |
+| 35 | Staging environment review |
