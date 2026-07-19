@@ -1,6 +1,9 @@
 /**
  * DB-MIGRATION-003 — Versioned empty-database baseline manifest helpers.
  * Pure filesystem/crypto utilities. No database connections. No secrets in errors.
+ *
+ * Checksums are cross-platform: files are hashed after newline canonicalization
+ * (CRLF and lone CR → LF). This is a portability policy, not a schema change.
  */
 'use strict';
 
@@ -8,7 +11,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const GENERATOR_VERSION = 'db-migration-003-v1';
+/** Bumped when checksum canonicalization policy changed (CI-BASELINE-CHECKSUM-001). */
+const GENERATOR_VERSION = 'db-migration-003-v1-canonical-eol';
 const MANIFEST_REQUIRED_FIELDS = [
   'version',
   'sqlFile',
@@ -22,13 +26,29 @@ const MANIFEST_REQUIRED_FIELDS = [
   'generatorVersion',
 ];
 
+/**
+ * Canonicalize newlines for stable cross-platform checksums.
+ * - CRLF → LF
+ * - lone CR → LF
+ * Does not trim, reorder, or alter any other bytes/comments/whitespace.
+ * @param {Buffer|string} input
+ * @returns {Buffer}
+ */
+function canonicalizeNewlines(input) {
+  const text = Buffer.isBuffer(input) ? input.toString('utf8') : String(input);
+  return Buffer.from(text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'), 'utf8');
+}
+
+function sha256CanonicalBytes(input) {
+  return crypto.createHash('sha256').update(canonicalizeNewlines(input)).digest('hex');
+}
+
 function sha256File(filePath) {
-  const buf = fs.readFileSync(filePath);
-  return crypto.createHash('sha256').update(buf).digest('hex');
+  return sha256CanonicalBytes(fs.readFileSync(filePath));
 }
 
 function sha256String(text) {
-  return crypto.createHash('sha256').update(String(text), 'utf8').digest('hex');
+  return sha256CanonicalBytes(text);
 }
 
 function listMigrationDirs(migrationsDir) {
@@ -282,6 +302,8 @@ function redactSecretsFromMessage(message) {
 module.exports = {
   GENERATOR_VERSION,
   MANIFEST_REQUIRED_FIELDS,
+  canonicalizeNewlines,
+  sha256CanonicalBytes,
   sha256File,
   sha256String,
   listMigrationDirs,

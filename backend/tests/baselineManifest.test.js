@@ -319,8 +319,83 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       schemaPath: realSchema,
       schemaMismatchPolicy: 'warn',
     });
+    assert.equal(result.ok, true);
     assert.equal(result.migrationsToResolve.length, 27);
     assert.equal(result.cutoff, '20260718120000_academic_submission_uniqueness');
     assert.equal(result.pendingAfterCutoff.length, 0);
+  });
+
+  test('LF and CRLF forms of identical SQL share canonical checksum', () => {
+    const { sha256CanonicalBytes } = require('../scripts/lib/baselineManifest');
+    const lf = '-- comment\nCREATE TABLE t(id int);\n';
+    const crlf = '-- comment\r\nCREATE TABLE t(id int);\r\n';
+    const loneCr = '-- comment\rCREATE TABLE t(id int);\r';
+    assert.equal(sha256CanonicalBytes(lf), sha256CanonicalBytes(crlf));
+    assert.equal(sha256CanonicalBytes(lf), sha256CanonicalBytes(loneCr));
+  });
+
+  test('real SQL character change changes canonical checksum', () => {
+    const { sha256CanonicalBytes } = require('../scripts/lib/baselineManifest');
+    const a = 'CREATE TABLE t(id int);\n';
+    const b = 'CREATE TABLE t(id text);\n';
+    assert.notEqual(sha256CanonicalBytes(a), sha256CanonicalBytes(b));
+  });
+
+  test('non-EOL whitespace remains detectable in checksum', () => {
+    const { sha256CanonicalBytes } = require('../scripts/lib/baselineManifest');
+    const a = 'CREATE TABLE t(id int);\n';
+    const b = 'CREATE TABLE t(id  int);\n';
+    assert.notEqual(sha256CanonicalBytes(a), sha256CanonicalBytes(b));
+  });
+
+  test('SQL comments are part of the checksum', () => {
+    const { sha256CanonicalBytes } = require('../scripts/lib/baselineManifest');
+    const a = '-- alpha\nCREATE TABLE t(id int);\n';
+    const b = '-- beta\nCREATE TABLE t(id int);\n';
+    assert.notEqual(sha256CanonicalBytes(a), sha256CanonicalBytes(b));
+  });
+
+  test('UTF-8 content is stable under EOL canonicalization', () => {
+    const { sha256CanonicalBytes } = require('../scripts/lib/baselineManifest');
+    const lf = '-- جامعة\nCREATE TABLE t(id int);\n';
+    const crlf = '-- جامعة\r\nCREATE TABLE t(id int);\r\n';
+    assert.equal(sha256CanonicalBytes(lf), sha256CanonicalBytes(crlf));
+  });
+
+  test('Windows-style checkout bytes validate against LF-canonical manifest', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'baseline-eol-'));
+    try {
+      const migrationsDir = path.join(dir, 'migrations');
+      const baselinesDir = path.join(dir, 'baselines');
+      fs.mkdirSync(migrationsDir, { recursive: true });
+      fs.mkdirSync(baselinesDir, { recursive: true });
+      const name = '20260101000000_one';
+      const sqlLf = '-- one\nSELECT 1;\n';
+      writeMigration(migrationsDir, name, sqlLf.replace(/\n/g, '\r\n'));
+      const schemaPath = path.join(dir, 'schema.prisma');
+      fs.writeFileSync(schemaPath, 'generator client { provider = "prisma-client-js" }\n');
+      const sqlPath = path.join(baselinesDir, 'empty_init_v1.sql');
+      fs.writeFileSync(sqlPath, '-- baseline\n');
+      const m = buildManifestPayload({
+        version: 'v1',
+        sqlFile: 'empty_init_v1.sql',
+        sqlPath,
+        schemaPath,
+        migrationsDir,
+        cutoffMigration: name,
+      });
+      // Simulate Linux LF checkout of the same SQL while manifest stays canonical
+      fs.writeFileSync(path.join(migrationsDir, name, 'migration.sql'), sqlLf);
+      const result = validateBaselineManifest({
+        manifest: m,
+        baselinesDir,
+        migrationsDir,
+        schemaPath,
+        schemaMismatchPolicy: 'error',
+      });
+      assert.equal(result.ok, true);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

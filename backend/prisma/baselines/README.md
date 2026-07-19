@@ -27,7 +27,15 @@ npm run db:validate-baseline
 ALLOW_EMPTY_DB_INIT=true DATABASE_URL=<empty> npm run db:init-empty
 ```
 
-## Regeneration (reviewed, explicit)
+## Checksums (CI-BASELINE-CHECKSUM-001)
+
+Manifest `sqlSha256`, `schemaSha256`, and `migrationChecksums` use **canonical newline hashing**:
+
+- `CRLF` and lone `CR` are normalized to `LF` before SHA-256
+- No trimming, reordering, or comment stripping
+
+This is a **portability** correction so Windows checkouts and Linux CI agree. It is **not** a schema or migration-list change.
+
 
 ```bash
 ALLOW_BASELINE_REGENERATION=true \
