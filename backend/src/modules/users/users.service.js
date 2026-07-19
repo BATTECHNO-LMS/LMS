@@ -11,6 +11,19 @@ const { prisma } = require('../../config/db');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { buildUsersExportWorkbook } = require('./users.export.excel');
+const {
+  assertSuperAdminRoleMutationAllowed,
+  assertSuperAdminAdministrativeControlAllowed,
+} = require('./superAdminPrivilegeBoundary');
+const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignmentGuard');
+
+async function loadUserRoleCodes(userId) {
+  const links = await usersRepository.findRoleLinksForUsers([userId]);
+  const roleIds = [...new Set(links.map((l) => l.role_id))];
+  if (!roleIds.length) return [];
+  const roles = await usersRepository.findRolesByIds(roleIds);
+  return roles.map((r) => r.code);
+}
 
 async function assertUserAccessible(requester, user) {
   if (isSystemWideAdmin(requester)) return;
@@ -156,6 +169,13 @@ async function createUser(body, requester = {}) {
     throw new ApiError(409, 'Email already exists');
   }
 
+  assertSuperAdminRoleMutationAllowed({
+    requester,
+    currentRoleCodes: [],
+    requestedRoleCodes: body.role_codes,
+  });
+  assertProgramAdminNotNewlyAssigned({ requestedRoleCodes: body.role_codes });
+
   const roleRecords = await usersRepository.findRolesByCodes(body.role_codes);
   const foundCodes = new Set(roleRecords.map((r) => r.code.toLowerCase()));
   const missing = body.role_codes.filter((c) => !foundCodes.has(c.toLowerCase()));
@@ -219,6 +239,15 @@ async function updateUser(id, body, requester = {}, meta = {}) {
     throw new ApiError(404, 'User not found');
   }
   await assertUserAccessible(requester, existing);
+
+  const currentRoleCodes = await loadUserRoleCodes(id);
+  assertSuperAdminAdministrativeControlAllowed(requester, currentRoleCodes);
+  assertSuperAdminRoleMutationAllowed({
+    requester,
+    currentRoleCodes,
+    requestedRoleCodes: body.role_codes,
+  });
+  assertProgramAdminNotNewlyAssigned({ requestedRoleCodes: body.role_codes });
 
   if (body.email && body.email !== existing.email) {
     const clash = await usersRepository.findUserByEmail(body.email);
@@ -343,6 +372,9 @@ async function patchUserStatus(id, status, requester = {}, meta = {}) {
   }
   await assertUserAccessible(requester, existing);
 
+  const currentRoleCodes = await loadUserRoleCodes(id);
+  assertSuperAdminAdministrativeControlAllowed(requester, currentRoleCodes);
+
   if (
     String(requester.userId) === String(id) &&
     status !== 'active' &&
@@ -374,6 +406,9 @@ async function adminResetPassword(id, body, requester = {}, meta = {}) {
   }
   await assertUserAccessible(requester, existing);
 
+  const currentRoleCodes = await loadUserRoleCodes(id);
+  assertSuperAdminAdministrativeControlAllowed(requester, currentRoleCodes);
+
   const password_hash = await hashPassword(body.new_password);
   await prisma.users.update({
     where: { id },
@@ -404,6 +439,8 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
   }
   if (requester) {
     await assertUserAccessible(requester, existing);
+    const currentRoleCodes = await loadUserRoleCodes(id);
+    assertSuperAdminAdministrativeControlAllowed(requester, currentRoleCodes);
   }
   if (existing.status === 'suspended') {
     throw new ApiError(400, 'Suspended accounts cannot be activated via this endpoint');
@@ -523,6 +560,8 @@ async function verifyUserEmail(id, { actorUserId, ipAddress, requester } = {}) {
   }
   if (requester) {
     await assertUserAccessible(requester, existing);
+    const currentRoleCodes = await loadUserRoleCodes(id);
+    assertSuperAdminAdministrativeControlAllowed(requester, currentRoleCodes);
   }
 
   if (existing.email_verified_at) {
@@ -713,7 +752,7 @@ async function exportUsersExcel(query, requester = {}, meta = {}) {
   }
 
   if (!requestedUniversityId && !isSystemWideAdmin(requester)) {
-    throw new ApiError(403, 'Forbidden: exporting all universities requires Super Admin or Program Admin');
+    throw new ApiError(403, 'Forbidden: exporting all universities requires Super Admin');
   }
 
   const scopedUniversityId = resolveUniversityIdFilter(requester, requestedUniversityId);

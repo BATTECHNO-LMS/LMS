@@ -27,7 +27,7 @@ export function FieldTrainingGlobalReportPage({ basePath }) {
   const [filters, setFilters] = useState({});
   const [exporting, setExporting] = useState(null);
 
-  const canView = [ROLES.SUPER_ADMIN, ROLES.PROGRAM_ADMIN].includes(user?.role);
+  const canView = [ROLES.SUPER_ADMIN].includes(user?.role);
   const params = useMemo(
     () => resolveReportParams(filters, { mode: 'admin', user, scopeId, isAllTenantsSelected }),
     [filters, user, scopeId, isAllTenantsSelected]

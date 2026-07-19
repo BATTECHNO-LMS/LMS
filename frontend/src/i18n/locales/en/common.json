@@ -16,7 +16,8 @@
     "update": "Update",
     "confirm": "Confirm",
     "close": "Close",
-    "submit": "Submit"
+    "submit": "Submit",
+    "saving": "Saving…"
   },
   "status": {
     "label": "Status",

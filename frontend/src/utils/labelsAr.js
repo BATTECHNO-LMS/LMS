@@ -4,7 +4,12 @@ export const ROLE_LABELS_AR = {
   instructor: 'مدرّس',
   student: 'طالب',
   admin: 'إداري',
+  program_admin: 'إداري برامج — متوقف',
   qa_officer: 'مسؤول جودة',
+  academic_admin: 'إداري أكاديمي',
+  university_admin: 'مدير جامعة',
+  super_admin: 'مشرف عام',
+  university_reviewer: 'مراجع جامعي',
 };
 
 export const ASSESSMENT_TYPE_LABELS_AR = {
@@ -18,7 +23,12 @@ const ROLE_LABELS_EN = {
   instructor: 'Instructor',
   student: 'Student',
   admin: 'Admin',
+  program_admin: 'Program Admin — Deprecated',
   qa_officer: 'QA Officer',
+  academic_admin: 'Academic admin',
+  university_admin: 'University admin',
+  super_admin: 'Super admin',
+  university_reviewer: 'University reviewer',
 };
 
 const ASSESSMENT_TYPE_LABELS_EN = {

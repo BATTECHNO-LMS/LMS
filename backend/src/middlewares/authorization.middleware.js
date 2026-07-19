@@ -1,10 +1,16 @@
+const { filterDeprecatedFromRoleAllowlist } = require('../utils/runtimeRoles');
+
 /**
  * Require the authenticated user (`req.user` from authenticate) to have at least one
  * of the given `roles.code` values (case-insensitive).
+ * Deprecated runtime roles (e.g. program_admin) are stripped from allowlists.
  * @param {...string} allowedRoleCodes
  */
 function authorizeRoles(...allowedRoleCodes) {
-  const normalized = [...new Set(allowedRoleCodes.flat().filter(Boolean).map((c) => String(c).toLowerCase()))];
+  const normalized = filterDeprecatedFromRoleAllowlist(
+    allowedRoleCodes.flat().filter(Boolean),
+    'authorizeRoles'
+  );
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Unauthorized' });

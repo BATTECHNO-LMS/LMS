@@ -203,7 +203,9 @@ export function AppRouter() {
               <Route path="assessments/:id/edit" element={<Pages.InstructorAssessmentEditPage />} />
               <Route path="assessments/:id" element={<Pages.AssessmentViewPage />} />
               <Route path="assessments" element={<Pages.InstructorAssessmentsPage />} />
+              <Route path="submissions/:submissionId/grade" element={<Pages.InstructorAcademicGradePage />} />
               <Route path="submissions" element={<Pages.InstructorSubmissionsPage />} />
+              <Route path="grades/:gradeId/edit" element={<Pages.InstructorAcademicGradePage />} />
               <Route path="grades" element={<Pages.InstructorGradesPage />} />
               <Route path="evidence/create" element={<Pages.EvidenceCreatePage />} />
               <Route path="evidence/:id/edit" element={<Pages.EvidenceEditPage />} />
@@ -250,6 +252,7 @@ export function AppRouter() {
               <Route path="content" element={<Pages.ContentPage />} />
               <Route path="sessions" element={<Pages.StudentSessionsPage />} />
               <Route path="attendance" element={<Pages.StudentAttendancePage />} />
+              <Route path="assessments/:assessmentId/submit" element={<Pages.StudentAcademicSubmissionPage />} />
               <Route path="assessments" element={<Pages.StudentAssessmentsPage />} />
               <Route path="submissions" element={<Pages.StudentSubmissionsPage />} />
               <Route path="grades" element={<Pages.StudentGradesPage />} />

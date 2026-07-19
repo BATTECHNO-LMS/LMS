@@ -1,8 +1,7 @@
-import { ADMIN_ROLE_SET, ROLES } from '../constants/roles.js';
+import { ADMIN_ROLE_SET, ROLES, isLegacyDeprecatedRole } from '../constants/roles.js';
 
 const DASHBOARD_BY_ROLE = {
   [ROLES.SUPER_ADMIN]: '/admin/dashboard',
-  [ROLES.PROGRAM_ADMIN]: '/admin/dashboard',
   [ROLES.UNIVERSITY_ADMIN]: '/admin/dashboard',
   [ROLES.ACADEMIC_ADMIN]: '/admin/dashboard',
   [ROLES.QA_OFFICER]: '/admin/dashboard',
@@ -13,8 +12,10 @@ const DASHBOARD_BY_ROLE = {
 
 /**
  * Default home path after login for a role.
+ * Deprecated program_admin fails closed to /login (no portal).
  */
 export function getDashboardPathForRole(role) {
+  if (isLegacyDeprecatedRole(role)) return '/login';
   return DASHBOARD_BY_ROLE[role] ?? '/login';
 }
 

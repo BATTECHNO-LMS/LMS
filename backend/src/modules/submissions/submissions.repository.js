@@ -1,5 +1,6 @@
 ﻿const { prisma } = require('../../config/db');
 const { isMissingPrismaModelTableError } = require('../analytics/prismaMissingTable.js');
+const { mapAcademicSubmissionUniqueConflict } = require('./submissions.lifecycle');
 
 const SUBMISSIONS = 'submissions';
 const GRADES = 'grades';
@@ -52,6 +53,34 @@ async function findById(id) {
   }
 }
 
+/**
+ * Lookup by canonical uniqueness key (assessment_id + student_id).
+ * Uses compound unique when available; falls back to findFirst if client not regenerated.
+ */
+async function findByAssessmentAndStudent(assessmentId, studentId) {
+  try {
+    return await prisma.submissions.findUnique({
+      where: {
+        assessment_id_student_id: {
+          assessment_id: assessmentId,
+          student_id: studentId,
+        },
+      },
+      include: submissionInclude,
+    });
+  } catch (e) {
+    if (isMissingPrismaModelTableError(e, SUBMISSIONS)) return null;
+    if (e && (e.code === 'P2022' || /assessment_id_student_id|Unknown arg/i.test(String(e.message)))) {
+      return prisma.submissions.findFirst({
+        where: { assessment_id: assessmentId, student_id: studentId },
+        orderBy: { submitted_at: 'desc' },
+        include: submissionInclude,
+      });
+    }
+    throw e;
+  }
+}
+
 async function create(data) {
   try {
     return await prisma.submissions.create({
@@ -60,6 +89,8 @@ async function create(data) {
     });
   } catch (e) {
     if (isMissingPrismaModelTableError(e, SUBMISSIONS)) throw missingSubmissionsTableError();
+    const conflict = mapAcademicSubmissionUniqueConflict(e);
+    if (conflict) throw conflict;
     throw e;
   }
 }
@@ -102,6 +133,7 @@ async function findAnyFinalGrade(assessmentId, studentId) {
 module.exports = {
   findMany,
   findById,
+  findByAssessmentAndStudent,
   create,
   update,
   findLatestGradeForStudentAssessment,

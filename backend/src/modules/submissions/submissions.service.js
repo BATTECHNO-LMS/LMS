@@ -5,10 +5,13 @@ const assessmentsRepo = require('../assessments/assessments.repository');
 const assessmentsService = require('../assessments/assessments.service');
 const { prisma } = require('../../config/db');
 const repo = require('./submissions.repository');
+const {
+  assertNoExistingAcademicSubmission,
+  mapAcademicSubmissionUniqueConflict,
+} = require('./submissions.lifecycle');
 
 const STAFF_ROLES = new Set([
   'super_admin',
-  'program_admin',
   'university_admin',
   'academic_admin',
   'qa_officer',
@@ -156,17 +159,30 @@ async function createForAssessment(assessmentId, body, requester) {
   const finalG = await repo.findAnyFinalGrade(assessmentId, requester.userId);
   if (finalG) throw new ApiError(400, 'Cannot submit: a final grade already exists');
 
+  // Canonical uniqueness: one academic delivery per assessment_id + student_id.
+  const existing = await repo.findByAssessmentAndStudent(assessmentId, requester.userId);
+  assertNoExistingAcademicSubmission(existing);
+
   const status = late ? 'late' : 'submitted';
 
-  const row = await repo.create({
-    assessment_id: assessmentId,
-    student_id: requester.userId,
-    submission_type: body.submission_type,
-    file_url: body.file_url || null,
-    repo_url: body.repo_url || null,
-    text_response: body.text_response || null,
-    status,
-  });
+  let row;
+  try {
+    row = await repo.create({
+      assessment_id: assessmentId,
+      student_id: requester.userId,
+      submission_type: body.submission_type,
+      file_url: body.file_url || null,
+      repo_url: body.repo_url || null,
+      text_response: body.text_response || null,
+      status,
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.code === 'ACADEMIC_SUBMISSION_EXISTS') throw e;
+    const conflict = mapAcademicSubmissionUniqueConflict(e);
+    if (conflict) throw conflict;
+    throw e;
+  }
+
   const sm = await loadStudentsMap([row.student_id]);
   return mapSubmission(row, sm);
 }

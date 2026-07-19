@@ -1,5 +1,6 @@
 import { Eye, PenLine, MessageSquare, Inbox, CheckCircle2, Hourglass } from 'lucide-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
@@ -93,37 +94,37 @@ export function InstructorSubmissionsPage() {
                 {
                   key: 'actions',
                   label: tCommon('table.actions'),
-                  render: () => (
+                  render: (r) => (
                     <div className="table-row-actions">
                       <PermissionGate permission={P.canViewSubmissionsTeaching}>
-                        <button
-                          type="button"
+                        <Link
+                          to={`/instructor/submissions/${r.id}/grade`}
                           className="btn btn--icon btn--ghost"
                           title={t('instructor.actions.viewSubmission')}
                           aria-label={t('instructor.actions.viewSubmission')}
                         >
                           <Eye size={18} />
-                        </button>
+                        </Link>
                       </PermissionGate>
                       <PermissionGate permission={P.canGradeAssessments}>
-                        <button
-                          type="button"
+                        <Link
+                          to={`/instructor/submissions/${r.id}/grade`}
                           className="btn btn--icon btn--ghost"
                           title={t('instructor.actions.grade')}
                           aria-label={t('instructor.actions.grade')}
                         >
                           <PenLine size={18} />
-                        </button>
+                        </Link>
                       </PermissionGate>
                       <PermissionGate permission={P.canPublishFeedback}>
-                        <button
-                          type="button"
+                        <Link
+                          to={`/instructor/submissions/${r.id}/grade`}
                           className="btn btn--icon btn--ghost"
                           title={t('instructor.actions.feedback')}
                           aria-label={t('instructor.actions.feedback')}
                         >
                           <MessageSquare size={18} />
-                        </button>
+                        </Link>
                       </PermissionGate>
                     </div>
                   ),

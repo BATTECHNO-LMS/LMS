@@ -11,8 +11,8 @@ test('isSystemWideAdmin returns true for isGlobal', () => {
   assert.strictEqual(isSystemWideAdmin({ isGlobal: true, roles: [] }), true);
 });
 
-test('isSystemWideAdmin returns true for program_admin', () => {
-  assert.strictEqual(isSystemWideAdmin({ isGlobal: false, roles: ['program_admin'] }), true);
+test('isSystemWideAdmin returns false for program_admin (Phase 3)', () => {
+  assert.strictEqual(isSystemWideAdmin({ isGlobal: false, roles: ['program_admin'] }), false);
 });
 
 test('resolveUniversityIdFilter forces university for scoped user', () => {

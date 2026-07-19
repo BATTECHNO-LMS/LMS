@@ -484,6 +484,7 @@ model submissions {
   updated_at      DateTime          @default(now()) @db.Timestamptz(6)
   assessments     assessments       @relation(fields: [assessment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
+  @@unique([assessment_id, student_id], map: "uq_submissions_assessment_student")
   @@index([assessment_id], map: "idx_submissions_assessment_id")
   @@index([attempt_id], map: "idx_submissions_attempt_id")
   @@index([status], map: "idx_submissions_status")

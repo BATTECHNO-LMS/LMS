@@ -8,7 +8,6 @@ const {
 async function findFieldTrainingAdminUserIds(universityId) {
   const superIds = await userIdsByRoleCodes([
     env.SUPER_ADMIN_ROLE_CODE || 'super_admin',
-    'program_admin',
   ]);
   const uniAdminIds = universityId
     ? await userIdsByRoleCodes(['university_admin', 'academic_admin'], { universityId })

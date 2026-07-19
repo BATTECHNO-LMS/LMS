@@ -29,7 +29,7 @@ const THIN_BORDER = {
 
 const ROLE_LABELS_AR = {
   super_admin: 'مدير عام',
-  program_admin: 'إداري البرنامج',
+  program_admin: 'إداري البرنامج (متوقف)',
   university_admin: 'مدير جامعة',
   academic_admin: 'مراجع أكاديمي',
   qa_officer: 'مسؤول جودة',

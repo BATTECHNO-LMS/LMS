@@ -338,7 +338,7 @@ export function UsersListPage() {
           <option value="">{t('filters.allRoles')}</option>
           <option value="instructor">{t('filters.instructor')}</option>
           <option value="student">{t('filters.student')}</option>
-          <option value="program_admin">{t('filters.admin')}</option>
+          <option value="program_admin">{t('filters.programAdminDeprecated')}</option>
           <option value="qa_officer">{t('filters.qaOfficer')}</option>
           <option value="academic_admin">{t('filters.academicReviewer')}</option>
         </SelectField>

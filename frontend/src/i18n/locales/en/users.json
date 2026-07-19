@@ -32,6 +32,7 @@
     "instructor": "Instructor",
     "student": "Student",
     "admin": "Admin",
+    "programAdminDeprecated": "Program Admin — Deprecated",
     "qaOfficer": "QA Officer",
     "academicReviewer": "Academic reviewer",
     "universityAdmin": "University admin",

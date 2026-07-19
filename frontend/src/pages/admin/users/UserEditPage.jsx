@@ -11,6 +11,8 @@ import { useLocale } from '../../../features/locale/index.js';
 import { tr } from '../../../utils/i18n.js';
 import { useUser, useUpdateUser } from '../../../features/users/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { ASSIGNABLE_USER_ROLE_CODES, ROLES } from '../../../constants/roles.js';
+import { roleLabelAr } from '../../../utils/labelsAr.js';
 
 export function UserEditPage() {
   const { locale } = useLocale();
@@ -45,14 +47,18 @@ export function UserEditPage() {
       return;
     }
     try {
+      const body = {
+        full_name: res.data.name,
+        status: res.data.status,
+        phone: res.data.phone || null,
+      };
+      // Never resubmit deprecated program_admin; omit role_codes to preserve legacy holders.
+      if (res.data.role !== ROLES.PROGRAM_ADMIN) {
+        body.role_codes = [res.data.role];
+      }
       await updateUserMutation.mutateAsync({
         id,
-        body: {
-          full_name: res.data.name,
-          status: res.data.status,
-          role_codes: [res.data.role],
-          phone: res.data.phone || null,
-        },
+        body,
       });
       navigate(`/admin/users/${id}`);
     } catch (err) {
@@ -135,11 +141,14 @@ export function UserEditPage() {
               onChange={(e) => setField('role', e.target.value)}
               error={errors.role}
             >
-              <option value="instructor">{tr(isArabic, 'مدرّس', 'Instructor')}</option>
-              <option value="student">{tr(isArabic, 'طالب', 'Student')}</option>
-              <option value="program_admin">{tr(isArabic, 'إداري برامج', 'Program admin')}</option>
-              <option value="qa_officer">{tr(isArabic, 'مسؤول جودة', 'QA Officer')}</option>
-              <option value="academic_admin">{tr(isArabic, 'إداري أكاديمي', 'Academic admin')}</option>
+              {form.role === ROLES.PROGRAM_ADMIN ? (
+                <option value={ROLES.PROGRAM_ADMIN}>{roleLabelAr(ROLES.PROGRAM_ADMIN, locale)}</option>
+              ) : null}
+              {ASSIGNABLE_USER_ROLE_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {roleLabelAr(code, locale)}
+                </option>
+              ))}
             </FormSelect>
             <FormSelect
               id="status"

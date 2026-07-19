@@ -60,7 +60,8 @@ const COHORT_TITLES = [
 ];
 
 const DEMO_USERS = [
-  { full_name: 'Tafila Program Admin', email: 'admin@ttu.edu.jo', role: 'program_admin' },
+  // Phase 1 PA freeze: demo seed must not create program_admin holders.
+  { full_name: 'Tafila University Admin', email: 'admin@ttu.edu.jo', role: 'university_admin' },
   { full_name: 'Tafila Academic Reviewer', email: 'reviewer@ttu.edu.jo', role: 'university_reviewer' },
   { full_name: 'Tafila Student One', email: 'student1@ttu.edu.jo', role: 'student' },
   { full_name: 'Tafila Student Two', email: 'student2@ttu.edu.jo', role: 'student' },

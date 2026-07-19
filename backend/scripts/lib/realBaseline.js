@@ -14,12 +14,16 @@ async function ensureRoles() {
   for (const role of REQUIRED_ROLES) {
     const row = await prisma.roles.upsert({
       where: { code: role.code },
-      update: { name: role.name, scope: role.scope, description: role.name },
+      update: {
+        name: role.name,
+        scope: role.scope,
+        description: role.description || role.name,
+      },
       create: {
         name: role.name,
         code: role.code,
         scope: role.scope,
-        description: role.name,
+        description: role.description || role.name,
       },
     });
     rows.push(row);

@@ -11,8 +11,8 @@ const {
 } = require('./fieldTrainingReport.validation');
 
 const router = express.Router();
-const reportRead = authorizeRoles(...env.REPORT_READ_ROLE_CODES, 'program_admin');
-const globalReportRead = authorizeRoles('super_admin', 'program_admin');
+const reportRead = authorizeRoles(...env.REPORT_READ_ROLE_CODES);
+const globalReportRead = authorizeRoles('super_admin');
 
 router.get('/', authenticate, reportRead, validateRequest({ query: reportFiltersSchema }), reportController.dashboard);
 router.get('/global', authenticate, globalReportRead, validateRequest({ query: reportFiltersSchema }), reportController.globalReport);

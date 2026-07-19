@@ -1,7 +1,9 @@
-import { Eye, Upload, Pencil } from 'lucide-react';
+import { Eye, Pencil } from 'lucide-react';
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
+import { isAcademicSubmissionEditable } from '../../features/assessments/academicStatusMap.js';
 import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
@@ -40,11 +42,13 @@ export function StudentSubmissionsPage() {
     () =>
       (submissionsPayload?.submissions ?? []).map((s) => ({
         id: s.id,
+        assessmentId: s.assessment_id,
         assessmentName: s.assessment?.title ?? '—',
         type: s.assessment?.assessment_type ?? s.submission_type,
         submittedAt: s.submitted_at ? String(s.submitted_at).slice(0, 19) : '—',
         state: s.status,
         score: scoreByAssessment.get(s.assessment_id) ?? '—',
+        canEdit: isAcademicSubmissionEditable(s),
       })),
     [submissionsPayload, scoreByAssessment]
   );
@@ -95,37 +99,25 @@ export function StudentSubmissionsPage() {
                   render: (r) => (
                     <div className="table-row-actions">
                       <PermissionGate permission={P.canViewSubmissionStatus}>
-                        <button
-                          type="button"
+                        <Link
+                          to={`/student/assessments/${r.assessmentId}/submit`}
                           className="btn btn--icon btn--ghost"
                           title={t('student.actions.view')}
                           aria-label={t('student.actions.view')}
                         >
                           <Eye size={18} />
-                        </button>
-                      </PermissionGate>
-                      <PermissionGate permission={P.canSubmitAssessments}>
-                        {r.state === 'late' || r.state === 'open' ? (
-                          <button
-                            type="button"
-                            className="btn btn--icon btn--ghost"
-                            title={t('student.actions.upload')}
-                            aria-label={t('student.actions.upload')}
-                          >
-                            <Upload size={18} />
-                          </button>
-                        ) : null}
+                        </Link>
                       </PermissionGate>
                       <PermissionGate permission={P.canEditOwnSubmission}>
-                        {r.state === 'submitted' ? (
-                          <button
-                            type="button"
+                        {r.canEdit ? (
+                          <Link
+                            to={`/student/assessments/${r.assessmentId}/submit`}
                             className="btn btn--icon btn--ghost"
                             title={t('student.actions.edit')}
                             aria-label={t('student.actions.edit')}
                           >
                             <Pencil size={18} />
-                          </button>
+                          </Link>
                         ) : null}
                       </PermissionGate>
                     </div>

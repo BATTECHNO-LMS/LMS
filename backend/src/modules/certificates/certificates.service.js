@@ -28,7 +28,7 @@ async function cohortIdsVisibleTo(requester) {
 
 function isGlobalCertificateReader(requester) {
   const roles = normalizeRoles(requester.roles);
-  return roles.includes('super_admin') || roles.includes('program_admin');
+  return roles.includes('super_admin');
 }
 
 async function buildCertificateListWhere(query, requester) {

@@ -1,7 +1,7 @@
 import { ROLES } from '../../constants/roles.js';
 
 /**
- * Super Admin + Program Admin (Admin) can fully manage users.
+ * Super Admin can fully manage users (program_admin deprecated — Phase 3).
  * @param {{ role?: string, roles?: string[], isGlobal?: boolean } | null | undefined} user
  */
 export function canManageUsers(user) {
@@ -12,12 +12,7 @@ export function canManageUsers(user) {
     : user.role
       ? [String(user.role).toLowerCase()]
       : [];
-  return (
-    roles.includes(ROLES.SUPER_ADMIN) ||
-    roles.includes(ROLES.PROGRAM_ADMIN) ||
-    roles.includes('super_admin') ||
-    roles.includes('program_admin')
-  );
+  return roles.includes(ROLES.SUPER_ADMIN) || roles.includes('super_admin');
 }
 
 /**

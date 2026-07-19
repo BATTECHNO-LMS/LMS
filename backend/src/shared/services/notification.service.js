@@ -125,13 +125,13 @@ async function userIdsByRoleCodes(roleCodes, { universityId } = {}) {
 }
 
 /**
- * Active super_admin (any university) plus program_admin / academic_admin
+ * Active super_admin (any university) plus academic_admin
  * linked to the given university (primary university or university_users membership).
  * @param {string} universityId
  * @returns {Promise<string[]>}
  */
 async function findActiveAdminUserIdsForStudentRegistrationAlert(universityId) {
-  const codes = ['super_admin', 'program_admin', 'academic_admin'];
+  const codes = ['super_admin', 'academic_admin'];
   const roles = await prisma.roles.findMany({
     where: { code: { in: codes } },
     select: { id: true, code: true },
@@ -155,7 +155,7 @@ async function findActiveAdminUserIdsForStudentRegistrationAlert(universityId) {
     }
   }
 
-  const scopedRoleIds = [roleIdByCode.get('program_admin'), roleIdByCode.get('academic_admin')].filter(Boolean);
+  const scopedRoleIds = [roleIdByCode.get('academic_admin')].filter(Boolean);
   if (scopedRoleIds.length && universityId) {
     const memberships = await prisma.university_users.findMany({
       where: { university_id: universityId },
@@ -232,14 +232,14 @@ async function notifyAdminsStudentRegistrationPending(params) {
 }
 
 /**
- * super_admin (all) + program_admin, academic_admin, university_reviewer scoped to the cohort university.
+ * super_admin (all) + academic_admin, university_reviewer scoped to the cohort university.
  * @param {string} universityId
  * @returns {Promise<string[]>}
  */
 async function findStakeholdersForEnrollmentRequest(universityId) {
   if (!universityId) return [];
   const roles = await prisma.roles.findMany({
-    where: { code: { in: ['super_admin', 'program_admin', 'academic_admin', 'university_reviewer'] } },
+    where: { code: { in: ['super_admin', 'academic_admin', 'university_reviewer'] } },
     select: { id: true, code: true },
   });
   const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
@@ -262,7 +262,6 @@ async function findStakeholdersForEnrollmentRequest(universityId) {
   }
 
   const scopedRoleIds = [
-    roleIdByCode.get('program_admin'),
     roleIdByCode.get('academic_admin'),
     roleIdByCode.get('university_reviewer'),
   ].filter(Boolean);
@@ -315,7 +314,7 @@ async function resolveEnrollmentRequestActionUrl(userId) {
       : [];
   const codes = roleRows.map((r) => r.code);
   const isElevated = codes.some((c) =>
-    ['super_admin', 'program_admin', 'academic_admin'].includes(c)
+    ['super_admin', 'academic_admin'].includes(c)
   );
   if (codes.includes('university_reviewer') && !isElevated) {
     return '/reviewer/enrollment-requests?status=pending';

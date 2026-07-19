@@ -18,7 +18,7 @@ export function ManageReportsTab({ opportunityId }) {
   const { user } = useAuth();
   const { scopeId, isAllTenantsSelected } = useTenant();
   const base = '/admin/field-training/reports';
-  const canGlobal = [ROLES.SUPER_ADMIN, ROLES.PROGRAM_ADMIN].includes(user?.role);
+  const canGlobal = [ROLES.SUPER_ADMIN].includes(user?.role);
   const [exporting, setExporting] = useState('');
   const [error, setError] = useState('');
 

@@ -16,7 +16,8 @@
     "update": "تحديث",
     "confirm": "تأكيد",
     "close": "إغلاق",
-    "submit": "إرسال"
+    "submit": "إرسال",
+    "saving": "جارٍ الحفظ…"
   },
   "status": {
     "label": "الحالة",

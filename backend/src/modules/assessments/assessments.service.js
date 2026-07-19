@@ -10,7 +10,6 @@ const repo = require('./assessments.repository');
 
 const STAFF_ROLES = new Set([
   'super_admin',
-  'program_admin',
   'university_admin',
   'academic_admin',
   'qa_officer',

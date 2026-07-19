@@ -122,7 +122,7 @@ function assertSafeEnvironment() {
 async function ensureRoles() {
   const roles = [
     { code: 'super_admin', name: 'Super Admin', scope: 'global' },
-    { code: 'program_admin', name: 'Program Admin', scope: 'university' },
+    { code: 'program_admin', name: 'Program Admin (Deprecated)', scope: 'university' },
     { code: 'university_admin', name: 'University Admin', scope: 'university' },
     { code: 'academic_admin', name: 'Academic Admin', scope: 'university' },
     { code: 'qa_officer', name: 'QA Officer', scope: 'university' },
@@ -375,8 +375,8 @@ async function seedUsers(universities, roleByCode, specialties) {
     { code: 'academic_admin', count: 28 },
     { code: 'qa_officer', count: 24 },
     { code: 'university_reviewer', count: 20 },
-    { code: 'university_admin', count: 20 },
-    { code: 'program_admin', count: 10 },
+    { code: 'university_admin', count: 30 },
+    // Phase 1 PA freeze: do not seed new program_admin users (role catalog row may still exist).
   ];
   const users = [];
   const userRoles = [];

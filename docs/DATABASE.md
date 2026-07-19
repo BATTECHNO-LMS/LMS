@@ -7,12 +7,35 @@ BATTECHNO LMS uses **PostgreSQL** with **Prisma 6** as the ORM. The schema lives
 | Command | Purpose |
 |---------|---------|
 | `npm run prisma:migrate` | Create/apply migrations (development) |
-| `npm run prisma:deploy` | Apply migrations (production) |
+| `npm run prisma:check-history` | Fail-closed history consistency check (no deploy) |
+| `npm run prisma:deploy` | Apply **reviewed** pending migrations (production) |
 | `npm run prisma:generate` | Regenerate Prisma Client |
 | `npm run prisma:studio` | Visual database browser |
 | `npm run seed` | Seed roles, university, users |
 
 Migrations are stored in `backend/prisma/migrations/`.
+
+### Production / shared DB rules
+
+1. Backup or provider restore point.
+2. `npm run prisma:check-history` then `npx prisma migrate status`.
+3. Review pending migration names and SQL.
+4. `npx prisma migrate deploy`.
+5. Post-deploy schema verification + app smoke test.
+
+Do **not** use `prisma db push`, `prisma migrate reset`, or ad-hoc `db execute` for normal schema delivery. See `docs/maintenance/17_PRISMA_MIGRATION_RECONCILIATION.md` (DB-MIGRATION-001).
+
+### New empty database (CI / local / staging / DR)
+
+Do **not** run bare `prisma migrate deploy` on an empty database (fails: missing core enums/tables). Use:
+
+1. `npm run db:validate-baseline`
+2. `ALLOW_EMPTY_DB_INIT=true DATABASE_URL=<empty-local-or-ephemeral> npm run db:init-empty`
+3. `npm run prisma:deploy` / `npm run prisma:status`
+4. `npm run db:verify-schema`
+5. Optional: `npm run seed:catalog` only (never auto demo seeds)
+
+Baseline is versioned (`empty_init_v1.*`); only manifest migrations are resolved. See `docs/maintenance/19_VERSIONED_EMPTY_DATABASE_BASELINE.md`. **Never** `db:init-empty` against Neon.
 
 ## Schema overview
 

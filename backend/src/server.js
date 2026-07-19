@@ -1,6 +1,7 @@
 const app = require('./app');
 const { env } = require('./config/env');
 const { prisma } = require('./config/db');
+const { validateJwtSecret } = require('./config/jwtSecretValidation');
 
 const port = env.PORT;
 
@@ -8,8 +9,9 @@ function assertProductionConfig() {
   if (env.NODE_ENV !== 'production') return;
   const errors = [];
   if (!env.DATABASE_URL) errors.push('DATABASE_URL is required in production');
-  if (!env.JWT_SECRET || env.JWT_SECRET.length < env.JWT_SECRET_MIN_LENGTH) {
-    errors.push(`JWT_SECRET must be at least ${env.JWT_SECRET_MIN_LENGTH} characters in production`);
+  const jwtCheck = validateJwtSecret(env.JWT_SECRET, { minLength: env.JWT_SECRET_MIN_LENGTH });
+  if (!jwtCheck.ok) {
+    errors.push(jwtCheck.reason);
   }
   if (env.STORAGE_BACKEND === 'r2') {
     const { getRequiredR2Config } = require('./shared/storage/providers/r2.provider');

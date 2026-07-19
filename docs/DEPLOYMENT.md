@@ -79,9 +79,35 @@ docker run -p 10000:10000 \
 ### Container notes
 
 - Exposes port **10000** (configure `PORT=10000` or map accordingly)
-- Run `prisma migrate deploy` before or during deploy
+- Run migrations via the **production migration procedure** below (never `db push` / `migrate reset`)
 - `postinstall` runs `prisma generate` automatically
 - No `docker-compose` is included in the repo
+
+## Production migration procedure (required)
+
+Shared/production PostgreSQL must keep a trustworthy Prisma history. After DB-MIGRATION-001, follow this order:
+
+1. Confirm a backup or Neon restore point.
+2. `cd backend && npm run prisma:check-history` (fails closed if `_prisma_migrations` is missing or has failed rows).
+3. `npx prisma migrate status` — review every pending migration name.
+4. Read pending `migration.sql` files; reject destructive or unexpected SQL.
+5. `npx prisma migrate deploy` — only after the pending set is reviewed.
+6. Post-deploy: `npx prisma migrate status` (expect up to date), smoke-test the API, verify critical indexes (e.g. `uq_submissions_assessment_student`).
+
+**Forbidden on shared/prod:** `prisma db push`, `prisma migrate reset`, casual `prisma db execute` for schema changes, destructive seeds, auto-marking unknown migrations as applied, `npm run db:init-empty`.
+
+If history is inconsistent (P3005-class / missing `_prisma_migrations`), stop and use `docs/maintenance/16_PRISMA_MIGRATION_BASELINE_AUDIT.md` + `17_PRISMA_MIGRATION_RECONCILIATION.md`.
+
+### New empty environments (DB-MIGRATION-002 / 003)
+
+For CI, local, staging, or disaster-recovery **empty** databases (never shared Neon):
+
+1. `npm run db:validate-baseline`
+2. `ALLOW_EMPTY_DB_INIT=true DATABASE_URL=<empty> npm run db:init-empty`
+3. `npm run prisma:deploy` && `npm run db:verify-schema`
+4. Optional catalog: `npm run seed:catalog`
+
+Only migrations listed in the active baseline manifest are marked applied; later migrations deploy normally. Details: `docs/maintenance/19_VERSIONED_EMPTY_DATABASE_BASELINE.md`.
 
 ## Production environment variables
 
@@ -191,8 +217,12 @@ Ensure your hosting platform sends these signals on deploy/restart.
 - [ ] `NODE_ENV=production`
 - [ ] `CORS_ORIGINS` includes frontend URL
 - [ ] `TRUST_PROXY=true` if behind proxy
-- [ ] `prisma migrate deploy` run
-- [ ] Seed or migrate initial data if needed
+- [ ] Backup / restore point confirmed
+- [ ] `npm run prisma:check-history` clean (or pending set explicitly reviewed)
+- [ ] `npx prisma migrate status` reviewed
+- [ ] `npx prisma migrate deploy` run (not `db push` / not `migrate reset`)
+- [ ] Post-deploy status + smoke test
+- [ ] Seed only if intentionally required on a non-prod or empty bootstrap DB
 - [ ] Health checks configured
 
 ### Frontend

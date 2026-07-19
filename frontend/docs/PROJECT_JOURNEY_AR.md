@@ -68,7 +68,7 @@ src/
 - بعد تسجيل الدخول: **`ProtectedRoute`** يحمي المسارات التي تحتاج مستخدماً.
 - **`RoleBasedRoute`** يقيّد المسارات حسب **الدور** (مثلاً فقط أدوار الإدارة لمسار `/admin/*`).
 
-**الأدوار المعرفة:** `constants/roles.js` — مثل `super_admin`, `program_admin`, `academic_admin`, `qa_officer`, `instructor`, `student`, `university_reviewer`.
+**الأدوار المعرفة:** `constants/roles.js` — نشطة: `super_admin`, `academic_admin`, `qa_officer`, `instructor`, `student`, `university_reviewer`, `university_admin`. `program_admin` متوقف (عرض تاريخي فقط).
 
 ---
 

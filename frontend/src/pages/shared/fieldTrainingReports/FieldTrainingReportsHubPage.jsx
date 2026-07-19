@@ -28,7 +28,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
   );
   const studentsPath = mode === 'academic' ? '/academic/field-training/students' : `${basePath}/students`;
   const studentDetailPrefix = mode === 'academic' ? '/academic/field-training/reports/student' : `${basePath}/student`;
-  const canGlobal = mode === 'admin' && [ROLES.SUPER_ADMIN, ROLES.PROGRAM_ADMIN].includes(user?.role);
+  const canGlobal = mode === 'admin' && [ROLES.SUPER_ADMIN].includes(user?.role);
 
   const { data, isLoading, isError, error } = useFieldTrainingDashboard(params, {
     enabled: Boolean(params.university_id),

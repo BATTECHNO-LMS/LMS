@@ -302,4 +302,7 @@ module.exports = {
   verifyPasswordResetOtp,
   resendPasswordResetOtp,
   resetPassword,
+  /** Exported for characterization tests — same helpers used at login. */
+  isGlobalFromRoleRecords,
+  buildTokenPayload,
 };

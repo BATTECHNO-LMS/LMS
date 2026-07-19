@@ -210,9 +210,7 @@ async function exportStudentReport(user, applicationId, format = 'pdf') {
 }
 
 function assertGlobalReportAccess(user) {
-  const roles = ftAccess.normalizeRoles(user);
   if (isSystemWideAdmin(user)) return;
-  if (roles.includes('program_admin')) return;
   throw new ApiError(403, 'غير مصرح بالوصول إلى التقرير الشامل', null, 'FIELD_TRAINING_FORBIDDEN');
 }
 

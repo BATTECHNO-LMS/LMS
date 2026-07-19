@@ -11,7 +11,7 @@ const {
 } = require('./fieldTrainingReport.validation');
 
 const router = express.Router();
-const reportRead = authorizeRoles(...env.REPORT_READ_ROLE_CODES, 'program_admin');
+const reportRead = authorizeRoles(...env.REPORT_READ_ROLE_CODES);
 
 router.get('/dashboard', authenticate, reportRead, validateRequest({ query: dateRangeQuerySchema }), controller.dashboard);
 router.get('/university', authenticate, reportRead, validateRequest({ query: dateRangeQuerySchema }), controller.universityReport);

@@ -3,7 +3,6 @@ import { ROLES } from '../../../constants/roles.js';
 /** Roles allowed to manage Field Training operations under /admin/field-training. */
 export const FIELD_TRAINING_ADMIN_ROLES = [
   ROLES.SUPER_ADMIN,
-  ROLES.PROGRAM_ADMIN,
   ROLES.UNIVERSITY_ADMIN,
 ];
 
