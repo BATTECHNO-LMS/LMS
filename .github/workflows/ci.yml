@@ -21,7 +21,11 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run test:unit
-      - run: npx prisma validate
+      # prisma validate resolves env("DATABASE_URL") but does not connect.
+      - name: Prisma schema validate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/prisma_validate_dummy
+        run: npx prisma validate
 
   backend-empty-db-reproducibility:
     runs-on: ubuntu-latest
