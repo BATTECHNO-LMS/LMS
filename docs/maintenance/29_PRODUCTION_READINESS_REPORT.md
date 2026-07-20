@@ -1,16 +1,24 @@
 # 29 — Production Readiness Report (QA-001)
 
-**Date:** 2026-07-18  
-**Branch:** `maintenance/test-safety-baseline` (QA-REL-001 hygiene complete — clean working tree; see `30_RELEASE_CANDIDATE_HYGIENE.md`)  
-**Verdict:** **CONDITIONAL GO** — production Live; health/auth/FE/API smoke passed; Neon **27/27**. Render JWT does **not** match approved fingerprint `eec7827fb0` (see `46_PRODUCTION_FINAL_SMOKE.md`). QA-AUTH-001/003 remain open. No production tag yet.
+**Date:** 2026-07-20 (updated — RELEASE-FINAL-001)  
+**Branch / main:** `main` @ `f48274f` (PR #2 merged from `maintenance/test-safety-baseline`)  
+**Verdict:** **NO-GO** for `v1.0.0` tag — see `47_FINAL_PRODUCTION_GO_DECISION.md`.  
+**Operational status:** Production **Live** (health + login). JWT sync, FE deploy identity, and Neon↔repo migration parity remain open.
 
 ---
 
 ## Executive summary
 
-Automated verification shows a **strong unit/integration safety net** (312 BE + 42 FE + 8 integration) and a **reconciled Neon migration history** with **versioned empty-DB baseline v1**. Academic submit/grade uniqueness and finalized-grade immutability are enforced in Backend and covered by tests. Field-training happy path runs under mocked externals.
+Automated verification remains strong (**324** BE unit + **42** FE unit + **8** integration on disposable Postgres; baseline v1 valid; empty-DB reproducible at **27** migrations). PR #2 is merged; GitHub CI was green before merge.
 
-This is **not** a claim that every role×page×viewport was manually exercised in a browser. Staging smoke remains mandatory. Several **P1** session-lifecycle gaps and **P2** product/ops items remain open by design (no automatic revocation implementation in this phase).
+Release-final production proof **failed gates**:
+
+1. Render `JWT_SECRET` still does **not** match approved fingerprint `eec7827fb0` (prod token ≠ local verify; local mint ≠ prod `/me`).
+2. Live frontend asset hash (`index-Cmf0WSFP.js`) does **not** match a fresh `main` production build (`index-CuYaHmIt.js`).
+3. Neon↔repo migration parity: **resolved** — Option B complete; checksum reconciled; **28/28** aligned (see `49`).
+4. Academic write smoke could not run (production has **0** assessments).
+
+**QA-AUTH-001** and **QA-AUTH-003** remain open and are **accepted temporarily** for a future v1.0.0 only after other gates clear — **not marked resolved**.
 
 ---
 
@@ -18,195 +26,94 @@ This is **not** a claim that every role×page×viewport was manually exercised i
 
 | Suite | Result |
 |-------|--------|
-| Backend unit | **312 pass / 0 fail** |
+| Backend unit | **324 pass / 0 fail** |
 | Frontend unit | **42 pass / 0 fail** |
-| Backend integration (local ephemeral Postgres + baseline init) | **8 pass / 0 fail** |
+| Backend integration (disposable Postgres + baseline init) | **8 pass / 0 fail** |
 | Frontend production build | **Pass** (large-chunk warnings) |
 | Prisma validate | **Pass** |
-| `prisma:check-history` (Neon, read-only) | **27/27**, 0 pending/failed |
-| `db:validate-baseline` | **v1 OK** |
-| Test database guard | **Pass** |
-| Browser E2E (Playwright/Cypress full matrix) | **Not run** — no E2E framework; staging URLs missing (**QA-STG-001**) |
-| Full responsive/a11y matrix | **Not run** — Pending staging provision |
+| `prisma:check-history` (Neon, read-only) | **28** applied / **0** pending / **0** failed — aligned with repo |
+| `db:validate-baseline` | **v1 OK** (27 represented; cutoff unchanged) |
+| Empty-DB disposable verify | **Pass** (baseline 27 → deploy #28 → **28/28**) |
+| Browser E2E framework | **Not present** |
+| Seven-role API smoke (prod synthetic accounts) | **Pass** (landing contract + allow/deny); SA deny N/A |
+| Academic write smoke (prod) | **Blocked** (empty academic dataset) |
+| Field-training smoke (prod) | **Partial pass** (list/application paths 200; cross-scope 403) |
 
 ---
 
 ## Role coverage
 
-| Role | Automated AuthZ/portal evidence | Staging UI smoke |
-|------|----------------------------------|------------------|
-| super_admin | High | **Blocked** (QA-STG-001) |
-| university_admin | High (scope) | **Blocked** |
-| academic_admin | High; FT manage UI drift noted | **Blocked** |
-| qa_officer | Medium | **Blocked** |
-| instructor | High + FT I | **Blocked** |
-| student | High + academic U/FE | **Blocked** |
-| university_reviewer | Medium | **Blocked** |
-| program_admin | Fail-closed confirmed | **Blocked** (confirm on staging when available) |
+| Role | Automated AuthZ | Production API smoke (RELEASE-FINAL-001) |
+|------|-----------------|------------------------------------------|
+| super_admin | High | Login + analytics allow |
+| university_admin | High | Login + allow/deny |
+| academic_admin | High | Login + allow/deny |
+| qa_officer | Medium | Login + allow/deny |
+| instructor | High | Login + allow/deny |
+| student | High | Login + allow/deny |
+| university_reviewer | Medium | Login + allow/deny |
+| program_admin | Fail-closed | Catalog absent; FE → `/login` |
 
 ---
 
-## Academic workflow
+## Academic / field-training workflow
 
-| Step | Status |
+| Area | Status |
 |------|--------|
-| Submit / duplicate / update same row | **Pass** (automated) |
-| Grade / finalize / immutability | **Pass** (automated) |
-| Cross-uni / unauthorized | **Pass** characterization; staging probe recommended |
-| Quiz attempts / certificate grade gate / binary upload | **Out of scope / deferred** (QA-PROD-001/002) |
-
-## Field-training workflow
-
-| Step | Status |
-|------|--------|
-| Integration happy path + reports + expel guards | **Pass** (8 tests) |
-| Unused statuses `task_pending` / `post_assessment_pending` / `failed` | **Known gap** QA-FT-001 |
-| Real AI/email/R2 | **Not exercised** (correctly mocked/unset) |
-
-## API / routes / UI / security / DB / integrations / perf
-
-See docs **23–27**. Highlights: dead `auth/refresh` map; enrollment dual path; JWT logout/reset residual validity (**P1**); sync PDF/Excel risk; no APM.
+| Submit / duplicate / finalize (automated) | **Pass** |
+| Production academic write smoke | **Blocked** (0 assessments) |
+| FT integration (disposable DB) | **Pass** |
+| FT production list/application paths | **Pass** |
+| Unused FT statuses (`task_pending` / etc.) | Known gap **QA-FT-001** |
 
 ---
 
 ## Findings board
 
-### P0 — Deployment blockers
+### P0 — Release / tag blockers (RELEASE-FINAL-001)
 
 | ID | Summary | Status |
 |----|---------|--------|
-| — | None newly confirmed that block *technical* deploy of current build to a **new** staging host | — |
-| **QA-STG-001** | No isolated staging FE/API/DB/credentials — browser smoke impossible | **Blocks staging-verified release** |
+| **REL-JWT-001** | Render JWT ≠ approved fingerprint `eec7827fb0` | **Open — blocks GO/tag** |
+| **REL-FE-001** | Live FE bundle ≠ `main` rebuild hash | **Open — blocks GO/tag** |
+| **REL-MIG-001 / PROD-DRIFT-OPTION-B** | Migration history reconciled — repo and Neon **28/28** | **Resolved** (see `49`) |
+| **QA-STG-001** | No isolated staging | Still open (prod smoke used carefully with synthetic accounts) |
 
 ### P1
 
 | ID | Summary | Fix now? |
 |----|---------|----------|
-| **QA-AUTH-001** | Logout does not revoke JWT | No — product decision; staging verify still pending |
-| **QA-AUTH-003** | Password reset leaves access JWTs valid | No — product decision; staging verify still pending |
-| **QA-STG-002** | Neon unreachable during one preflight history check | Ops; retry before any shared-DB read |
+| **QA-AUTH-001** | Logout does not revoke JWT | Accepted temporarily for eventual v1; **not resolved** |
+| **QA-AUTH-003** | Password reset leaves access JWTs valid | Accepted temporarily for eventual v1; **not resolved** |
 
-### P2 / P3 (summary)
+### P2 / P3 (summary — unchanged)
 
-| ID | Severity | Topic |
-|----|----------|-------|
-| QA-ROLE-001 | P2 | FT admin FE vs BE role drift |
-| QA-SEC-001 | P2 | Dual AuthZ sources (ISS-001) |
-| QA-SEC-002 | P2 | Account enumeration / error wording |
-| QA-SEC-003 | P2 | Confirm auth rate-limit production values |
-| QA-SEC-005 | P2 | File download ownership staging probe |
-| QA-NAV-001 | P2 | Unmounted QA/Risk/Integrity CRUD |
-| QA-API-003/006 | P2 | Dual enrollment; pagination caps |
-| QA-PERF-001/002 | P2 | Bundle size; sync PDF/Excel |
-| QA-OBS-001 | P2 | No error tracking |
-| QA-FT-001 | P2 | Unused FT statuses |
-| QA-API-001/002/004/005 | P3 | Dead/legacy endpoints |
-| QA-UI-001/002 | P3 | Chunks; UI permission matrix vs API |
-| QA-PROD-001/002 | P3 | Quiz/certificate product gaps |
+QA-ROLE-001, QA-SEC-001/002/003/005, QA-NAV-001, QA-API-003/006, QA-PERF-001/002, QA-FT-001 — see docs 21–27.
 
 ---
 
-## Small fixes applied this phase
+## Production smoke (post-merge)
 
-**None.** No unambiguous, decision-free, schema-free defect was auto-patched; open items require product/ops decisions or staging confirmation.
-
----
-
-## Product decisions required
-
-1. JWT revocation on logout and/or password reset (QA-AUTH-001/003).  
-2. Align FT `academic_admin` manage access FE↔BE (QA-ROLE-001).  
-3. AuthZ single source of truth (ISS-001).  
-4. Mount or explicitly defer QA/Risk/Integrity CRUD (QA-NAV-001).  
-5. Enrollment API unification (QA-API-003).  
-6. FT unused enum statuses (ISS-003 / QA-FT-001).  
-7. Quiz attempts / certificate gating (QA-PROD-*).  
+See **`46_PRODUCTION_FINAL_SMOKE.md`** and **`47_FINAL_PRODUCTION_GO_DECISION.md`**.
 
 ---
 
-## Deployment blockers
+## Go / No-Go
 
-1. ~~Commit hygiene (QA-REL-001)~~ — **done**.  
-2. **Provision isolated staging** + complete browser smoke (`31`–`35`) — **blocked (QA-STG-001)**.  
-3. Explicit acceptance of residual JWT validity after logout/reset **or** ship revocation (after staging evidence).  
-4. Confirm production env: JWT secret strength, CORS, rate limits, storage/AI/email flags.  
-5. Neon backup / migrate status — re-verify `prisma:check-history` when Neon reachable; never smoke-write Neon.
-
----
-
-## Cleanup candidates
-
-See `28_VERIFIED_CLEANUP_CANDIDATES.md` — **no deletions** until review.
+| Question | Answer |
+|----------|--------|
+| Is production Live and basically usable? | **Yes** (health, login, role probes) |
+| Is final release / `v1.0.0` tag authorized? | **No — NO-GO** |
+| Next actions | Sync JWT → redeploy FE from `main` → reconcile migration → re-run RELEASE-FINAL-001 |
 
 ---
 
-## Staging checklist
+## Document index (maintenance)
 
-- [ ] Login each of 7 active roles → correct portal  
-- [ ] Student academic submit → duplicate 409 → edit → instructor grade → finalize → 409 on edit  
-- [ ] One FT opportunity → apply → approve → task → submit → letter (sandbox keys only)  
-- [ ] Cross-university denial spot checks  
-- [ ] Certificate public verify  
-- [ ] Password reset + confirm whether old session still works (document result)  
-- [ ] Mobile 360px: student submit + FT detail  
-- [ ] Analytics PDF export timeout behavior  
-
-## Production smoke (post-deploy)
-
-- [ ] `/health` + `/health/ready`  
-- [ ] Login SA + student  
-- [ ] `prisma migrate status` up to date  
-- [ ] Unique index present  
-- [ ] No unexpected 5xx spike  
-
----
-
-## Go / Conditional Go / No-Go
-
-### **Conditional Go** (code/automated) · **NO-GO** (staging-verified cutover)
-
-Automated suites and RC hygiene support deploying **to an isolated staging host** once that host exists.  
-**No-Go** for staging-signed production cutover until QA-STG-001 is cleared, seven-role browser smoke passes, and JWT risks are accepted or fixed.
-
----
-
-## Ordered remediation plan
-
-1. ~~Commit release-candidate hygiene (QA-REL-001)~~ — done; open PR / CI green; tag only after staging.  
-2. Staging smoke (auth + academic + FT).  
-3. Decide JWT revocation (QA-AUTH-001/003).  
-4. Resolve QA-ROLE-001 (product).  
-5. Pagination/export timeouts (QA-API-006, QA-PERF-002).  
-6. Error tracking (QA-OBS-001).  
-7. Reviewed cleanup from doc 28.  
-8. ISS-001 AuthZ redesign (larger program).  
-
----
-
-## Documents in this QA pack
-
-| Doc | Title |
-|-----|-------|
-| 20 | QA production-readiness baseline |
-| 21 | Master QA matrix |
-| 22 | Field-training state transition QA |
-| 23 | API contract QA |
-| 24 | Route and navigation QA |
-| 25 | UI/accessibility QA |
-| 26 | Security regression QA |
-| 27 | Performance and observability QA |
-| 28 | Verified cleanup candidates |
-| 29 | This report |
-| 30 | Release candidate hygiene (QA-REL-001) |
-| 31 | Staging smoke report (QA-STAGING-SMOKE-001) |
-| 32 | Staging role matrix |
-| 33 | Staging academic flow |
-| 34 | Staging field-training flow |
-| 35 | Staging environment review |
-| 39 | Environment preflight (historical mixed classification) |
-| 41 | Production env activation |
-| 42 | Production database verification |
-| 43 | Production deployment readiness |
-| 44 | Production pre-deployment completion |
-| 45 | Production application deployment |
+| # | Topic |
+|---|--------|
+| 30 | Release-candidate hygiene |
+| 31–35 | Staging smoke (blocked) |
+| 41–45 | Prod env / DB / deploy trail |
 | 46 | Production final smoke |
+| 47 | Final production GO decision |

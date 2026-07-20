@@ -1,11 +1,12 @@
-# 46 — Production Final Smoke (PROD-FINAL-SMOKE-001)
+# 46 — Production Final Smoke
 
-**Date:** 2026-07-18  
+**Date:** 2026-07-20 (updated — RELEASE-FINAL-001)  
+**Prior run:** 2026-07-18 (CONDITIONAL GO — JWT mismatch)  
 **Frontend:** https://lms.battechno.com  
 **API:** https://lms-7txx.onrender.com  
-**Approved app baseline:** `e3cadb1`  
+**Main merge SHA:** `f48274f` (PR #2)  
 **Expected JWT fingerprint:** `eec7827fb0`  
-**Verdict:** **CONDITIONAL GO**
+**Verdict:** **NO-GO** for `v1.0.0` (see `47_FINAL_PRODUCTION_GO_DECISION.md`)
 
 No credentials, tokens, or connection strings are recorded here.
 
@@ -15,9 +16,12 @@ No credentials, tokens, or connection strings are recorded here.
 
 | Item | Result |
 |------|--------|
-| Backend deployed Git SHA | **Not exposed by Render health API** — service Live (`x-render-origin-server=Render`); confirm SHA in Render dashboard |
-| Frontend build marker | Live main bundle `/assets/index-Cmf0WSFP.js` (differs from local rebuild name — confirms hosted FE asset set) |
-| App baseline reference | `e3cadb1` (docs tip may be later; app-equivalent) |
+| Backend deployed Git SHA | **Not exposed** by Render health API — confirm in Render dashboard |
+| Frontend live main bundle | `/assets/index-Cmf0WSFP.js` (675 832 B; `Last-Modified: 2026-07-15`) |
+| Local `main` rebuild main bundle | `/assets/index-CuYaHmIt.js` (731 305 B) |
+| FE vs merged main | **Older deploy (E)** — live predates PR #2; redeploy from `main` required |
+| FE embeds production API | **Yes** (`lms-7txx.onrender.com`) |
+| Localhost API in live JS | **None found** |
 
 ---
 
@@ -29,33 +33,51 @@ No credentials, tokens, or connection strings are recorded here.
 | `/health/ready` | **200** (`db: true`) |
 | FE `/` | **200** |
 | FE `/login` | **200** |
-| FE embeds production API | **Yes** (`lms-7txx.onrender.com` in live JS) |
-| Localhost/staging in FE index/JS | **None found** |
-| CORS `Origin: https://lms.battechno.com` | Reflects `https://lms.battechno.com` |
+| CORS `Origin: https://lms.battechno.com` | Allowed (login/me probes succeed with Origin header) |
+| Unexpected 5xx in probes | **None** |
 
 ---
 
-## Auth / session smoke
+## Auth / session / JWT rotation
 
 | Check | Result |
 |-------|--------|
-| Bogus / wrong-secret token → `/api/auth/me` | **401 rejected** |
-| New login (synthetic catalog student) | **200** + token issued |
-| `/api/auth/me` with new token | **200**; roles include `student` |
-| Dashboard expectation | **`/student`** |
+| Bogus / wrong-secret token → `/api/auth/me` | **401** |
+| New login (synthetic catalog) | **200** |
+| `/api/auth/me` with new token | **200** |
+| Dashboard landing (student) | **`/student`** |
 | Logout endpoint | **200** |
-| Client session clear | Required in SPA (logout API success); browser storage not instrumented here |
-| Post-logout server token | Still **200** on `/me` — confirms **QA-AUTH-001** remains open |
-
-### JWT rotation fingerprint check
-
-| Check | Result |
-|-------|--------|
+| Post-logout server token | Still **200** on `/me` — **QA-AUTH-001** open |
+| Re-login after logout | **200** |
 | Local `.env` JWT fingerprint | `eec7827fb0` (match expected) |
-| Production-issued token verifies with local secret | **No** (`JsonWebTokenError`) |
-| Conclusion | Render is **Live and authenticating**, but its `JWT_SECRET` does **not** match the approved local fingerprint `eec7827fb0` |
+| Production-issued token verifies with local secret | **No** (`invalid signature`) |
+| Local-minted token accepted by Render | **No** (**401**) |
+| Render == approved fingerprint | **Fail / not synchronized** |
 
-**Owner action:** Confirm Render Environment `JWT_SECRET` was set to the exact approved local value (fingerprint `eec7827fb0`), then restart and re-check. Until then, local/prod secrets are divergent.
+---
+
+## Seven-role API smoke
+
+| Role | Login | Allow | Deny | Notes |
+|------|-------|-------|------|-------|
+| super_admin | 200 | 200 | N/A (SA/global) | Analytics overview allowed |
+| university_admin | 200 | 200 | 403 settings | Pass |
+| academic_admin | 200 | 200 | 403 settings | Pass |
+| qa_officer | 200 | 200 | 403 settings | Pass |
+| instructor | 200 | 200 | 403 settings | Pass (re-run may 429) |
+| student | 200 | 200 | 403 users | Pass |
+| university_reviewer | 200 | 200 | 403 settings | Pass |
+| program_admin | — | — | fail-closed | Not seeded; FE → `/login` |
+
+---
+
+## Academic / field-training
+
+| Area | Result |
+|------|--------|
+| Academic write smoke | **Blocked** — production has **0** assessments/submissions |
+| Field training student/instructor lists | **200** |
+| Cross-university / privileged analytics as uni admin | **403** |
 
 ---
 
@@ -63,10 +85,13 @@ No credentials, tokens, or connection strings are recorded here.
 
 | Check | Result |
 |-------|--------|
-| Migrations | **27/27**, 0 pending, 0 failed |
+| Repo migrations (working tree / post-commit) | **28** |
+| Applied `_prisma_migrations` rows | **28** |
+| Pending / failed | **0 / 0** |
+| Checksum reconcile | **Complete** — production `411b2fe3…` matches canonical file (see `49`) |
 | `uq_submissions_assessment_student` | Present |
-| Users | **424** (was 423 — **increase**, not reduction) |
-| Submissions | **0** (unchanged) |
+| Users | **468** (no unexpected reduction vs prior 424) |
+| Submissions | **0** |
 
 ---
 
@@ -74,31 +99,28 @@ No credentials, tokens, or connection strings are recorded here.
 
 | Suite | Result |
 |-------|--------|
-| Backend unit | **318 pass** |
+| Backend unit | **324 pass** |
 | Frontend unit | **42 pass** |
 | Frontend production build | **Pass** |
+| Prisma validate | **Pass** |
+| Baseline v1 | **OK** (27 represented) |
+| Empty-DB disposable | **Pass** |
+| Integration (isolated Postgres) | **8 pass** |
 
 ---
 
-## Open issues (unchanged)
+## Open issues
 
-- **QA-AUTH-001** — Logout does not revoke server-side JWT (confirmed again in this smoke).  
-- **QA-AUTH-003** — Password reset does not invalidate existing JWTs.
-
----
-
-## Remaining blockers / follow-ups
-
-1. Align Render `JWT_SECRET` with approved fingerprint `eec7827fb0` (if that was the intent of “JWT rotation”).  
-2. Record exact Render deploy commit SHA from dashboard into this doc.  
-3. Optional: full seven-role UI smoke.  
-4. Production release tag — only after verdict upgraded to **GO**.
+- **QA-AUTH-001** — Logout does not revoke server-side JWT (accepted temporarily for v1; not resolved).  
+- **QA-AUTH-003** — Password reset does not invalidate existing JWTs (accepted temporarily for v1; not resolved).  
+- **JWT sync** — Render secret still ≠ approved fingerprint.  
+- **FE deploy drift** — live bundle ≠ `main` rebuild.  
+- **Migration history (PROD-DRIFT-OPTION-B-001)** — **Resolved** — checksum reconciled; repo and Neon **28/28**. See `49`.
 
 ---
 
 ## Verdict
 
-### **CONDITIONAL GO**
+### **NO-GO** (release / tag)
 
-Production is healthy, FE points at prod API, auth works, DB 27/27 preserved.  
-Not full **GO** until Render JWT fingerprint is confirmed equal to `eec7827fb0` (or the mismatch is explicitly accepted as intentional and documented).
+Service is Live; release-final gates (JWT sync, FE identity, migration parity) are **not** met. See `47_FINAL_PRODUCTION_GO_DECISION.md`.
