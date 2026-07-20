@@ -102,14 +102,25 @@ async function main() {
         ORDER BY migration_name
       `);
       const names = applied.map((r) => r.migration_name);
-      if (names.length !== 28) {
-        fail(`Expected 28 applied after init+deploy, found ${names.length}`);
+      // Final applied = baseline resolved + every post-cutoff dir (real + synthetic fixture).
+      // Do not hardcode 28 — that only held when there was a single post-cutoff migration.
+      const expectedApplied =
+        validation.migrationsToResolve.length + validation.pendingAfterCutoff.length;
+      if (names.length !== expectedApplied) {
+        fail(
+          `Expected ${expectedApplied} applied after init+deploy ` +
+            `(baseline ${validation.migrationsToResolve.length} + ` +
+            `post-cutoff ${validation.pendingAfterCutoff.length}), found ${names.length}`
+        );
       }
       if (!names.includes(fixtureName)) {
         fail('Fixture migration was not applied by migrate deploy');
       }
       for (const m of validation.migrationsToResolve) {
         if (!names.includes(m)) fail(`Missing resolved migration ${m}`);
+      }
+      for (const m of validation.pendingAfterCutoff) {
+        if (!names.includes(m)) fail(`Missing post-cutoff migration ${m}`);
       }
       const tables = await prisma.$queryRawUnsafe(`
         SELECT tablename FROM pg_tables
