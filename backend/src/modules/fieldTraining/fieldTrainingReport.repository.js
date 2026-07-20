@@ -218,6 +218,25 @@ async function buildUniversityReport(universityId, filters = {}) {
       application_status: app.status,
       training_status: app.training_status,
       attendance_percentage: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      required_training_hours:
+        opp?.required_training_hours != null ? Number(opp.required_training_hours) : null,
+      completed_training_hours:
+        app.completed_training_hours != null ? Number(app.completed_training_hours) : null,
+      remaining_training_hours:
+        opp?.required_training_hours != null && app.completed_training_hours != null
+          ? Math.max(0, Number(opp.required_training_hours) - Number(app.completed_training_hours))
+          : null,
+      hours_progress_percentage:
+        opp?.required_training_hours != null &&
+        Number(opp.required_training_hours) > 0 &&
+        app.completed_training_hours != null
+          ? Math.min(
+              100,
+              Math.round(
+                (Number(app.completed_training_hours) / Number(opp.required_training_hours)) * 100
+              )
+            )
+          : null,
       pre_assessment_score: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       post_assessment_score: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
       final_task_status: app.final_task_status,
@@ -467,6 +486,28 @@ async function buildStudentDetailedReport(applicationId) {
         opp.minimum_attendance_percentage != null
           ? Number(app.attendance_percentage ?? 0) >= Number(opp.minimum_attendance_percentage)
           : null,
+    },
+    hours: {
+      required_training_hours:
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
+      completed_training_hours:
+        app.completed_training_hours != null ? Number(app.completed_training_hours) : null,
+      remaining_training_hours:
+        opp.required_training_hours != null && app.completed_training_hours != null
+          ? Math.max(0, Number(opp.required_training_hours) - Number(app.completed_training_hours))
+          : null,
+      hours_progress_percentage:
+        opp.required_training_hours != null &&
+        Number(opp.required_training_hours) > 0 &&
+        app.completed_training_hours != null
+          ? Math.min(
+              100,
+              Math.round(
+                (Number(app.completed_training_hours) / Number(opp.required_training_hours)) * 100
+              )
+            )
+          : null,
+      hours_updated_at: app.hours_updated_at ?? null,
     },
     tasks,
     submissions,

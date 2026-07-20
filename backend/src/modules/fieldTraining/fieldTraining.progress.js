@@ -1,5 +1,6 @@
 const workflow = require('./fieldTraining.workflow');
 const repo = require('./fieldTraining.repository');
+const { buildHoursSummary } = require('./fieldTraining.hours');
 
 const STEP_ORDER = [
   'application_submitted',
@@ -103,6 +104,8 @@ function buildParticipantProgress(app, opp, counts = {}) {
       requires_pre_assessment: Boolean(opp.requires_pre_assessment),
       requires_post_assessment: Boolean(opp.requires_post_assessment),
       requires_final_task: Boolean(opp.requires_final_task),
+      required_training_hours:
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
       minimum_attendance_percentage:
         opp.minimum_attendance_percentage != null ? Number(opp.minimum_attendance_percentage) : null,
       minimum_post_assessment_score: minPost,
@@ -123,6 +126,7 @@ function buildParticipantProgress(app, opp, counts = {}) {
       attended_sessions: counts.sessionsAttended ?? 0,
       attendance_percentage:
         app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      ...buildHoursSummary(app, opp),
       pre_assessment_required: Boolean(opp.requires_pre_assessment),
       pre_assessment_published: Boolean(counts.preAssessmentPublished),
       pre_assessment_score: preScore,

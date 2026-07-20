@@ -28,6 +28,7 @@ const {
   requestExpulsionBodySchema,
   submissionIdParamSchema,
   reviewSubmissionBodySchema,
+  updateApplicationHoursBodySchema,
   listApplicationsQuerySchema,
 } = require('./fieldTraining.validation');
 
@@ -178,6 +179,22 @@ router.get(
   instructorOnly,
   validateRequest({ params: applicationIdParamSchema }),
   workflowController.getApplicationProgress
+);
+
+router.get(
+  '/applications/:applicationId/hours',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.getApplicationHours
+);
+
+router.patch(
+  '/applications/:applicationId/hours',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: applicationIdParamSchema, body: updateApplicationHoursBodySchema }),
+  workflowController.updateApplicationHours
 );
 
 router.post(

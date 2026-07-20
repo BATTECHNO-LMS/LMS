@@ -189,6 +189,14 @@ export function ManageOverviewTab({
             value={opp?.seats_limit != null ? String(opp.seats_limit) : null}
           />
           <InfoItem
+            label={t('form.requiredTrainingHours')}
+            value={
+              opp?.required_training_hours != null
+                ? String(opp.required_training_hours)
+                : t('manageHub.eligibilityRules.notSet')
+            }
+          />
+          <InfoItem
             label={t('manageHub.kpi.sessions')}
             value={sessions != null ? String(sessions.length) : null}
           />
