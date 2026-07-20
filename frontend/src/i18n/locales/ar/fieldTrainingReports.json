@@ -60,6 +60,7 @@
     "application": "بيانات الطلب",
     "preAssessment": "التقييم القبلي",
     "attendance": "الجلسات والحضور",
+    "hours": "تقدم الساعات التدريبية",
     "tasks": "المهام والتسليمات",
     "postAssessment": "التقييم البعدي",
     "eligibility": "أهلية الإنهاء",
@@ -105,9 +106,17 @@
     "percentage": "نسبة الحضور",
     "eligibility": "أهلية الحضور"
   },
+  "hours": {
+    "required": "الساعات المطلوبة",
+    "completed": "الساعات المنجزة",
+    "remaining": "الساعات المتبقية",
+    "percentage": "نسبة الإنجاز",
+    "status": "حالة إكمال الساعات"
+  },
   "eligibility": {
     "status": "الحالة",
     "attendanceRule": "قاعدة الحضور",
+    "hoursRule": "قاعدة الساعات",
     "taskRule": "قاعدة المهام",
     "postAssessmentRule": "قاعدة التقييم البعدي"
   },
@@ -126,6 +135,11 @@
     "applicationStatus": "حالة الطلب",
     "trainingStatus": "حالة التدريب",
     "attendance": "الحضور %",
+    "requiredHours": "الساعات المطلوبة",
+    "completedHours": "الساعات المنجزة",
+    "remainingHours": "الساعات المتبقية",
+    "hoursPercentage": "نسبة إكمال الساعات %",
+    "hoursStatus": "حالة إكمال الساعات",
     "preAssessment": "التقييم القبلي",
     "postAssessment": "التقييم البعدي",
     "finalTask": "المهمة النهائية",

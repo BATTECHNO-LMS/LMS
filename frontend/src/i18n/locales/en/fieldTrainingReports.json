@@ -61,6 +61,7 @@
     "application": "Application",
     "preAssessment": "Pre-assessment",
     "attendance": "Sessions & attendance",
+    "hours": "Training hours progress",
     "tasks": "Tasks & submissions",
     "postAssessment": "Post-assessment",
     "eligibility": "Completion eligibility",
@@ -106,9 +107,17 @@
     "percentage": "Attendance %",
     "eligibility": "Attendance eligibility"
   },
+  "hours": {
+    "required": "Required hours",
+    "completed": "Completed hours",
+    "remaining": "Remaining hours",
+    "percentage": "Completion percentage",
+    "status": "Hours completion status"
+  },
   "eligibility": {
     "status": "Status",
     "attendanceRule": "Attendance rule",
+    "hoursRule": "Hours rule",
     "taskRule": "Task rule",
     "postAssessmentRule": "Post-assessment rule"
   },
@@ -127,6 +136,11 @@
     "applicationStatus": "Application status",
     "trainingStatus": "Training status",
     "attendance": "Attendance %",
+    "requiredHours": "Required hours",
+    "completedHours": "Completed hours",
+    "remainingHours": "Remaining hours",
+    "hoursPercentage": "Hours completion %",
+    "hoursStatus": "Hours status",
     "preAssessment": "Pre-assessment",
     "postAssessment": "Post-assessment",
     "finalTask": "Final task",

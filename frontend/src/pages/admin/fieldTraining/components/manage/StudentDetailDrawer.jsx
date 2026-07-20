@@ -288,6 +288,22 @@ export function StudentDetailDrawer({
                     }
                   />
                   <MetricTile
+                    label={t('hours.required')}
+                    value={metrics.required_training_hours}
+                  />
+                  <MetricTile
+                    label={t('hours.completed')}
+                    value={metrics.completed_training_hours}
+                  />
+                  <MetricTile
+                    label={t('hours.percentage')}
+                    value={
+                      metrics.hours_completion_percentage != null
+                        ? `${metrics.hours_completion_percentage}%`
+                        : null
+                    }
+                  />
+                  <MetricTile
                     label={t('manageHub.studentCards.sessionsAttended')}
                     value={metrics.sessions_attended}
                   />

@@ -6314,3 +6314,92 @@
     font-size: 0.88rem;
   }
 }
+
+.ft-hours-progress {
+  margin-block: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid var(--color-border-tinted, rgba(27, 42, 74, 0.12));
+  background: linear-gradient(135deg, rgba(27, 42, 74, 0.04), rgba(201, 162, 39, 0.06));
+}
+
+.ft-hours-progress__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  color: var(--color-primary, #1b2a4a);
+}
+
+.ft-hours-progress__title {
+  margin: 0;
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ft-hours-progress__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(27, 42, 74, 0.08);
+}
+
+.ft-hours-progress__badge--not_started { color: #6b7280; }
+.ft-hours-progress__badge--in_progress { color: #b45309; background: rgba(245, 158, 11, 0.15); }
+.ft-hours-progress__badge--completed { color: #047857; background: rgba(16, 185, 129, 0.15); }
+
+.ft-hours-progress__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    color: var(--color-primary, #1b2a4a);
+  }
+}
+
+.ft-hours-progress__label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.ft-hours-progress__unit {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-inline-start: 0.2rem;
+}
+
+.ft-hours-progress__bar {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: rgba(27, 42, 74, 0.1);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #1b2a4a, #c9a227);
+    transition: width 0.35s ease;
+  }
+}
+
+.ft-hours-progress__empty {
+  margin: 0;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.9rem;
+}

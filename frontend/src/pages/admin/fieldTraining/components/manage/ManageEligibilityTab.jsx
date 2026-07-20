@@ -83,6 +83,14 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
             </strong>
           </span>
           <span>
+            {t('hours.required')}:{' '}
+            <strong>
+              {opp.required_training_hours != null
+                ? `${opp.required_training_hours}`
+                : t('manageHub.eligibilityRules.notSet')}
+            </strong>
+          </span>
+          <span>
             {t('manageHub.eligibilityRules.postScore')}:{' '}
             <strong>
               {opp.minimum_post_assessment_score != null
@@ -132,6 +140,24 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
                     <dd>
                       {row.attendance_percentage != null
                         ? `${row.attendance_percentage}%`
+                        : t('notAvailable')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('hours.completed')}</dt>
+                    <dd>
+                      {row.training_hours?.completed_training_hours != null
+                        ? `${row.training_hours.completed_training_hours} / ${
+                            row.training_hours.required_training_hours ?? '—'
+                          }`
+                        : t('notAvailable')}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t('hours.percentage')}</dt>
+                    <dd>
+                      {row.training_hours?.hours_completion_percentage != null
+                        ? `${row.training_hours.hours_completion_percentage}%`
                         : t('notAvailable')}
                     </dd>
                   </div>

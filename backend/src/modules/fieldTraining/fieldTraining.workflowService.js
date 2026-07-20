@@ -12,6 +12,7 @@ const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const aiService = require('./fieldTraining.ai.service');
 const progressBuilder = require('./fieldTraining.progress');
+const hoursMod = require('./fieldTraining.hours');
 const {
   gradeAnswers,
   prepareQuestionForStorage,
@@ -162,6 +163,11 @@ async function updateSession(sessionId, body, user) {
     opportunityTitle: oppRow?.title,
     sessionTitle: updated.title,
   });
+
+  if (body.start_time != null || body.end_time != null || body.is_required !== undefined) {
+    await Promise.all(participants.map((p) => workflow.persistEligibility(p.id)));
+  }
+
   return { session: repo.mapSessionRow(updated) };
 }
 
@@ -999,6 +1005,10 @@ async function getApplicationProgress(applicationId, user) {
     tasksSubmitted: submissions.length,
     preAssessmentPublished: assessments.some((a) => a.type === 'pre' && a.status === 'published'),
     postAssessmentPublished: assessments.some((a) => a.type === 'post' && a.status === 'published'),
+    hoursProgress: await hoursMod.calculateHoursProgressForApplication(
+      app.id,
+      opp.required_training_hours
+    ),
   });
 
   progress.metrics = {
@@ -1219,6 +1229,11 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(app.id, studentId);
 
+  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
+    app.id,
+    opp.required_training_hours
+  );
+
   return {
     progress: progressBuilder.buildParticipantProgress(app, opp, {
       sessionsCount,
@@ -1229,7 +1244,9 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
       tasksSubmitted,
       preAssessmentPublished,
       postAssessmentPublished,
+      hoursProgress,
     }),
+    hours: hoursProgress,
     completion_letter_id: letter?.id ?? null,
   };
 }

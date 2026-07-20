@@ -155,6 +155,11 @@
     "requirements": "المتطلبات",
     "benefits": "المميزات / ما سيكتسبه الطالب",
     "seatsLimit": "عدد المقاعد",
+    "requiredTrainingHours": "عدد الساعات التدريبية المطلوبة",
+    "requiredTrainingHoursPlaceholder": "مثال: 160",
+    "requiredTrainingHoursHelp": "إجمالي الساعات التي يجب على الطالب إكمالها ضمن هذه الفرصة.",
+    "requiredHoursRequired": "يرجى إدخال عدد الساعات التدريبية المطلوبة.",
+    "requiredHoursInvalid": "عدد الساعات يجب أن يكون رقمًا صحيحًا أكبر من صفر.",
     "startDate": "تاريخ البداية",
     "endDate": "تاريخ النهاية",
     "applicationDeadline": "آخر موعد للتقديم",
@@ -461,6 +466,20 @@
     "postScore": "درجة التقييم البعدي",
     "task": "المهمة النهائية",
     "letterIssued": "صدر كتاب الإنهاء"
+  },
+  "hours": {
+    "title": "تقدم الساعات التدريبية",
+    "required": "الساعات المطلوبة",
+    "completed": "الساعات المنجزة",
+    "remaining": "الساعات المتبقية",
+    "percentage": "نسبة الإنجاز",
+    "unit": "ساعة",
+    "notConfigured": "لم يتم تحديد ساعات مطلوبة لهذه الفرصة بعد.",
+    "status": {
+      "notStarted": "لم يبدأ",
+      "inProgress": "قيد الإنجاز",
+      "completed": "مكتمل"
+    }
   },
   "manageTraining": {
     "link": "إدارة التدريب",

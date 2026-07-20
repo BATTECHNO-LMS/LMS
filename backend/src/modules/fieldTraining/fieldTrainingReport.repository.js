@@ -2,6 +2,7 @@ const { prisma } = require('../../config/db');
 const repo = require('./fieldTraining.repository');
 const ftEligibility = require('./fieldTraining.eligibility');
 const progressBuilder = require('./fieldTraining.progress');
+const hoursMod = require('./fieldTraining.hours');
 
 function parseDateFilter(filters = {}) {
   const where = {};
@@ -202,9 +203,20 @@ async function buildUniversityReport(universityId, filters = {}) {
     completion_count: row.completion_count,
   }));
 
+  const hoursByApp = await hoursMod.calculateHoursProgressForApplications(
+    apps.map((app) => ({ id: app.id, opportunity_id: app.opportunity_id })),
+    new Map(
+      opportunities.map((opp) => [opp.id, opp.required_training_hours != null ? Number(opp.required_training_hours) : null])
+    )
+  );
+
   const students = apps.map((app) => {
     const profile = profileById[app.student_id];
     const opp = oppById[app.opportunity_id];
+    const hours = hoursByApp.get(app.id) || hoursMod.buildHoursProgress({
+      requiredHours: opp?.required_training_hours,
+      completedMinutes: 0,
+    });
     return {
       application_id: app.id,
       student_name: profile?.full_name ?? null,
@@ -218,6 +230,12 @@ async function buildUniversityReport(universityId, filters = {}) {
       application_status: app.status,
       training_status: app.training_status,
       attendance_percentage: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      required_training_hours: hours.required_training_hours,
+      completed_training_hours: hours.completed_training_hours,
+      remaining_training_hours: hours.remaining_training_hours,
+      hours_completion_percentage: hours.hours_completion_percentage,
+      hours_completion_status: hours.hours_completion_status,
+      hours_completion_status_label: hoursMod.hoursStatusLabelAr(hours.hours_completion_status),
       pre_assessment_score: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       post_assessment_score: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
       final_task_status: app.final_task_status,
@@ -395,10 +413,16 @@ async function buildStudentDetailedReport(applicationId) {
     instructor = ins ? { id: ins.id, full_name: ins.full_name, email: ins.email } : null;
   }
 
+  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
+    app.id,
+    opp.required_training_hours
+  );
+
   const progress = progressBuilder.buildParticipantProgress(app, opp, {
     sessionsCount: sessions.length,
     tasksCount: tasks.length,
     tasksSubmitted: submissions.length,
+    hoursProgress,
   });
 
   return {
@@ -423,6 +447,7 @@ async function buildStudentDetailedReport(applicationId) {
       eligibility_grouped: ftEligibility.groupEligibilityByUniversity(eligibility),
     },
     application: repo.mapApplicationRow(app),
+    training_hours: hoursProgress,
     pre_assessment: attemptByType.pre
       ? {
           score: attemptByType.pre.score != null ? Number(attemptByType.pre.score) : app.pre_assessment_score,
@@ -476,6 +501,10 @@ async function buildStudentDetailedReport(applicationId) {
       attendance_rule:
         opp.minimum_attendance_percentage != null
           ? Number(app.attendance_percentage ?? 0) >= Number(opp.minimum_attendance_percentage)
+          : null,
+      hours_rule:
+        opp.required_training_hours != null
+          ? hoursProgress.hours_completion_status === hoursMod.HOURS_STATUS.COMPLETED
           : null,
       task_rule: opp.requires_final_task ? app.final_task_status === 'approved' : true,
       post_assessment_rule:

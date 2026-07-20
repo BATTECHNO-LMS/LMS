@@ -139,6 +139,18 @@ async function calculateFieldTrainingEligibility(applicationId) {
     }
   }
 
+  if (opp.required_training_hours != null && Number(opp.required_training_hours) > 0) {
+    const hoursMod = require('./fieldTraining.hours');
+    const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
+      applicationId,
+      opp.required_training_hours
+    );
+    details.training_hours = hoursProgress;
+    if (hoursProgress.hours_completion_status !== hoursMod.HOURS_STATUS.COMPLETED) {
+      reasons.push('training_hours_incomplete');
+    }
+  }
+
   if (opp.requires_post_assessment) {
     details.post_assessment_score =
       app.post_assessment_score != null ? Number(app.post_assessment_score) : null;
