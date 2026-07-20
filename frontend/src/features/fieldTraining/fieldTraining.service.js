@@ -353,6 +353,19 @@ export async function fetchApplicationProgress(applicationId, { asInstructor = f
   return unwrapApiData(res);
 }
 
+export async function fetchApplicationHours(applicationId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/applications/${applicationId}/hours`);
+  return unwrapApiData(res);
+}
+
+/** Replace total completed hours (Model A aggregate). */
+export async function updateApplicationHours(applicationId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/applications/${applicationId}/hours`, body);
+  return unwrapApiData(res);
+}
+
 export async function recalculateApplicationEligibility(applicationId, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.post(`${base}/applications/${applicationId}/recalculate-eligibility`);

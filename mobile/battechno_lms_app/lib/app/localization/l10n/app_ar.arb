@@ -1,0 +1,668 @@
+{
+  "@@locale": "ar",
+  "appName": "BATTECHNO LMS",
+  "appTagline": "منصة التعلّم الجامعي والتدريب الميداني",
+  "welcomeTitle": "مرحبًا بك في رحلتك التعليمية",
+  "welcomeSubtitle": "تابع تدريبك الميداني، مهامك، وتقدّمك الأكاديمي من هاتفك.",
+  "email": "البريد الإلكتروني",
+  "password": "كلمة المرور",
+  "login": "تسجيل الدخول",
+  "register": "إنشاء حساب",
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "fullName": "الاسم الكامل",
+  "phoneOptional": "رقم الهاتف (اختياري)",
+  "university": "الجامعة",
+  "specialty": "التخصص",
+  "verifyEmail": "توثيق البريد الإلكتروني",
+  "otpHint": "أدخل الرمز المكوّن من 6 أرقام",
+  "resendCode": "إعادة إرسال الرمز",
+  "resetPassword": "إعادة تعيين كلمة المرور",
+  "newPassword": "كلمة المرور الجديدة",
+  "confirmPassword": "تأكيد كلمة المرور",
+  "continueAction": "متابعة",
+  "retry": "إعادة المحاولة",
+  "logout": "تسجيل الخروج",
+  "profile": "حسابي",
+  "home": "الرئيسية",
+  "training": "التدريب",
+  "tasks": "المهام",
+  "students": "الطلاب",
+  "grading": "التقييم",
+  "opportunities": "الفرص",
+  "users": "المستخدمون",
+  "reports": "التقارير",
+  "reviews": "المراجعات",
+  "universities": "الجامعات",
+  "administration": "الإدارة",
+  "notifications": "الإشعارات",
+  "accountPendingTitle": "حسابك قيد المراجعة",
+  "accountPendingBody": "تم توثيق بريدك الإلكتروني. ينتظر حسابك موافقة إدارة الجامعة للتفعيل.",
+  "accountInactiveTitle": "الحساب غير نشط",
+  "accountInactiveBody": "لا يمكن الوصول إلى المنصة حاليًا. تواصل مع إدارة الجامعة للمساعدة.",
+  "unsupportedRoleTitle": "حساب غير مدعوم",
+  "unsupportedRoleBody": "دور حسابك لم يعد مدعومًا في تطبيق الجوال. تواصل مع الدعم الفني.",
+  "networkErrorTitle": "تعذّر الاتصال",
+  "networkErrorBody": "تحقق من اتصال الإنترنت ثم حاول مجددًا.",
+  "sessionExpired": "انتهت الجلسة. يرجى تسجيل الدخول مجددًا.",
+  "loading": "جاري التحميل…",
+  "emptyDashboard": "لا توجد بيانات لعرضها حاليًا",
+  "nextAction": "الإجراء التالي",
+  "trainingProgress": "تقدّم التدريب",
+  "completedHours": "الساعات المنجزة",
+  "requiredHours": "الساعات المطلوبة",
+  "quickActions": "إجراءات سريعة",
+  "eligibleOpportunities": "فرص متاحة",
+  "recentActivity": "آخر النشاط",
+  "greetingMorning": "صباح الخير",
+  "greetingEvening": "مساء الخير",
+  "fieldTrainingStatus": "حالة التدريب الميداني",
+  "noActiveTraining": "لا يوجد تدريب ميداني نشط حاليًا",
+  "emailRequired": "يرجى إدخال البريد الإلكتروني",
+  "emailInvalid": "صيغة البريد الإلكتروني غير صحيحة",
+  "passwordRequired": "يرجى إدخال كلمة المرور",
+  "passwordMinRegister": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+  "passwordMinReset": "كلمة المرور يجب أن تكون 8 أحرف على الأقل",
+  "passwordMismatch": "كلمتا المرور غير متطابقتين",
+  "nameRequired": "يرجى إدخال الاسم الكامل",
+  "otpRequired": "يرجى إدخال رمز التحقق",
+  "otpInvalid": "رمز التحقق يجب أن يكون 6 أرقام",
+  "loginFailed": "تعذّر تسجيل الدخول. تحقق من البيانات وحاول مجددًا.",
+  "emailNotVerified": "يرجى توثيق بريدك الإلكتروني أولًا.",
+  "settings": "الإعدادات",
+  "trainingDetails": "تفاصيل التدريب",
+  "description": "الوصف",
+  "trainingDates": "تواريخ التدريب",
+  "requiredHoursNotSet": "لم يتم تحديد عدد الساعات المطلوبة بعد",
+  "remainingHours": "الساعات المتبقية",
+  "noTasksCurrently": "لا توجد مهام مطلوبة حاليًا",
+  "taskUntitled": "مهمة بدون عنوان",
+  "dueDate": "تاريخ الاستحقاق",
+  "tasksProgressLabel": "{submitted} من {total} مهام",
+  "@tasksProgressLabel": {
+    "placeholders": {
+      "submitted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "taskDetails": "تفاصيل المهمة",
+  "taskNotFound": "تعذّر العثور على المهمة",
+  "previousSubmission": "التسليم السابق",
+  "submittedAt": "تاريخ التسليم",
+  "submitTask": "تسليم المهمة",
+  "projectUrl": "رابط المشروع",
+  "submissionNotes": "ملاحظاتك (اختياري)",
+  "attachFileOptional": "إرفاق ملف (اختياري)",
+  "fileUploadHint": "يمكنك إرفاق PDF أو صورة. في بيئة R2 قد يلزم الرفع عبر الويب لاحقًا.",
+  "taskSubmitSuccess": "تم تسليم المهمة بنجاح",
+  "aiTaskMobileLimited": "هذه المهمة تتطلب التقييم الذاتي بالذكاء الاصطناعي. أكملها من منصة الويب حاليًا.",
+  "assessmentsTitle": "الاختبارات",
+  "preAssessment": "الاختبار القبلي",
+  "postAssessment": "الاختبار البعدي",
+  "assessmentAvailable": "متاح الآن",
+  "assessmentCompleted": "مكتمل",
+  "assessmentNotPublished": "غير منشور بعد",
+  "assessmentLocked": "غير متاح حاليًا",
+  "assessmentUnavailable": "غير متاح حاليًا",
+  "startAssessment": "ابدأ الاختبار",
+  "viewAssessmentResult": "عرض النتيجة",
+  "assessmentScoreLabel": "النتيجة: {score}%",
+  "@assessmentScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentPassScoreLabel": "درجة النجاح: {score}%",
+  "@assessmentPassScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentInstructions": "تعليمات الاختبار",
+  "assessmentDefaultInstructions": "اقرأ الأسئلة بعناية واختر الإجابة الأنسب. لا يمكن إعادة الاختبار بعد التسليم.",
+  "assessmentQuestionCountLabel": "عدد الأسئلة: {count}",
+  "@assessmentQuestionCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentStartWarning": "تأكد من اتصالك بالإنترنت قبل البدء. لن تتمكن من تعديل إجاباتك بعد التسليم.",
+  "assessmentQuestionProgress": "السؤال {current} من {total}",
+  "@assessmentQuestionProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentAttempt": "أداء الاختبار",
+  "previousQuestion": "السابق",
+  "nextQuestion": "التالي",
+  "submitAssessment": "تسليم الاختبار",
+  "submitAssessmentConfirmTitle": "تأكيد التسليم",
+  "submitAssessmentConfirmBody": "هل أنت متأكد من تسليم إجاباتك؟ لا يمكن التراجع بعد التسليم.",
+  "leaveAssessmentTitle": "مغادرة الاختبار؟",
+  "leaveAssessmentBody": "قد تفقد إجاباتك غير المحفوظة على الخادم. هل تريد المغادرة؟",
+  "leaveAssessmentConfirm": "مغادرة",
+  "assessmentResult": "نتيجة الاختبار",
+  "assessmentPassed": "ناجح",
+  "assessmentNotPassed": "غير ناجح",
+  "assessmentResultPending": "بانتظار التقييم",
+  "assessmentPendingManual": "بعض الإجابات تحتاج تقييمًا يدويًا من المُدرِّب.",
+  "backToTraining": "العودة إلى التدريب",
+  "trueAnswer": "صح",
+  "falseAnswer": "خطأ",
+  "yourAnswer": "إجابتك",
+  "unsupportedQuestionType": "نوع السؤال غير مدعوم على الجوال حاليًا.",
+  "noAssessmentsRequired": "لا توجد اختبارات مطلوبة لهذا التدريب.",
+  "assessmentNotReady": "الاختبار غير جاهز بعد.",
+  "trainingJourney": "مسار التدريب",
+  "upcomingSession": "الجلسة القادمة",
+  "viewAssessments": "عرض الاختبارات",
+  "attendanceSummary": "ملخص الحضور",
+  "viewAllSessions": "كل الجلسات",
+  "attendancePercentageLabel": "نسبة الحضور: {percent}%",
+  "@attendancePercentageLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionsAttendedLabel": "{attended} من {required} جلسات",
+  "@sessionsAttendedLabel": {
+    "placeholders": {
+      "attended": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceSummaryUnavailable": "ملخص الحضور غير متوفر بعد.",
+  "trainingSessions": "جلسات التدريب",
+  "noSessionsCurrently": "لا توجد جلسات مجدولة حاليًا.",
+  "upcomingSessions": "الجلسات القادمة",
+  "pastSessions": "الجلسات السابقة",
+  "sessionDetails": "تفاصيل الجلسة",
+  "sessionNotFound": "تعذّر العثور على الجلسة",
+  "sessionTime": "وقت الجلسة",
+  "sessionRequired": "جلسة إلزامية",
+  "attendanceStatus": "حالة الحضور",
+  "yes": "نعم",
+  "no": "لا",
+  "joinSession": "انضم إلى الجلسة",
+  "noMeetingLink": "رابط الاجتماع غير متوفر بعد.",
+  "openMeetingLinkTitle": "فتح رابط الاجتماع",
+  "openMeetingLinkBody": "سيتم فتح الرابط في تطبيق خارجي. هل تريد المتابعة؟",
+  "openLink": "فتح الرابط",
+  "invalidMeetingLink": "رابط الاجتماع غير صالح.",
+  "pendingPreAssessment": "اختبار قبلي مطلوب",
+  "pendingPostAssessment": "اختبار بعدي مطلوب",
+  "applyToTrainingTitle": "تأكيد التقديم",
+  "applyToTrainingBody": "هل تريد التقديم على هذه الفرصة التدريبية؟",
+  "applyNow": "قدّم الآن",
+  "applicationSubmitted": "تم إرسال طلبك بنجاح",
+  "searchTraining": "ابحث في التدريب",
+  "noTrainingInSection": "لا توجد عناصر في هذا القسم",
+  "viewTrainingDetails": "عرض التفاصيل",
+  "profileIncompleteForTraining": "أكمل ملفك الجامعي من منصة الويب للتقديم على التدريب.",
+  "lastUpdatedAt": "آخر تحديث: {time}",
+  "@lastUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineCachedBanner": "يتم عرض بيانات محفوظة مؤقتًا",
+  "notificationsUnreadCount": "{count} غير مقروء",
+  "@notificationsUnreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "markAllRead": "تعليم الكل كمقروء",
+  "unreadOnly": "غير المقروء فقط",
+  "noNotifications": "لا توجد إشعارات حاليًا",
+  "notificationTargetUnavailable": "لا يمكن فتح هذا الإشعار على الجوال حاليًا",
+  "certificatesAndDocuments": "الشهادات والوثائق",
+  "certificatesTitle": "الشهادات",
+  "officialLetters": "الخطابات الرسمية",
+  "completionLetter": "خطاب إتمام التدريب",
+  "noCertificatesOrDocuments": "لا توجد شهادات أو وثائق متاحة بعد",
+  "certificateDetails": "تفاصيل الشهادة",
+  "certificateNotFound": "تعذّر العثور على الشهادة",
+  "certificateNumber": "رقم الشهادة",
+  "issuedAt": "تاريخ الإصدار",
+  "certificateStatus": "حالة الشهادة",
+  "verificationCode": "رمز التحقق",
+  "certificateDownloadUnavailable": "تنزيل ملف الشهادة غير متوفر حاليًا. يمكنك التحقق عبر الرابط الرسمي.",
+  "verifyCertificate": "التحقق من الشهادة",
+  "documentDownloadFailed": "تعذّر تنزيل الوثيقة",
+  "profileReadOnlyNotice": "تحديث الملف الشخصي غير متاح حاليًا من التطبيق. تواصل مع إدارة الجامعة عند الحاجة.",
+  "accountStatus": "حالة الحساب",
+  "language": "اللغة",
+  "languageArabic": "العربية",
+  "languageEnglish": "English",
+  "changePasswordUnavailable": "تغيير كلمة المرور",
+  "useForgotPasswordFlow": "استخدم استعادة كلمة المرور من شاشة الدخول",
+  "privacyNotice": "الخصوصية",
+  "privacyNoticeBody": "لا يتم تخزين كلمات المرور أو بيانات التقييم على الجهاز.",
+  "appVersion": "إصدار التطبيق",
+  "logoutServerLimitation": "تسجيل الخروج يمسح الجلسة محليًا فقط. رموز الخادم قد تبقى نشطة مؤقتًا (QA-AUTH-001).",
+  "certificateReady": "وثيقة إتمام جاهزة",
+  "viewCertificatesHint": "يمكنك عرض أو تنزيل خطاب الإتمام",
+  "myTrainings": "تدريباتي",
+  "instructorGreeting": "مرحباً، {name}",
+  "@instructorGreeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activeTrainingsCount": "{count} تدريب نشط",
+  "@activeTrainingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activeStudentsCount": "{count} طالب نشط",
+  "@activeStudentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingSubmissionsCount": "{count} تسليم بانتظار المراجعة",
+  "@pendingSubmissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "atRiskStudentsCount": "{count} طالب يحتاج متابعة",
+  "@atRiskStudentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityReviewSubmissions": "راجع {count} تسليمات",
+  "@instructorPriorityReviewSubmissions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityUpcomingSession": "افتح التدريب القادم",
+  "instructorPriorityRecordAttendance": "سجّل حضور جلسة اليوم",
+  "instructorPriorityFollowUp": "تابع {count} طلاب",
+  "@instructorPriorityFollowUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityOpenTraining": "افتح تدريبك",
+  "noAssignedTrainings": "لا توجد تدريبات معيّنة لك حالياً",
+  "searchAssignedTrainings": "ابحث في تدريباتك",
+  "hours": "ساعة",
+  "hoursNotSpecified": "الساعات غير محددة",
+  "sessions": "جلسات",
+  "attendance": "الحضور",
+  "participants": "المشاركون",
+  "viewParticipants": "عرض الطلاب",
+  "viewSessions": "عرض الجلسات",
+  "viewSubmissions": "مراجعة التسليمات",
+  "viewAssessmentResults": "نتائج التقييمات",
+  "recordAttendance": "تسجيل الحضور",
+  "createSession": "إنشاء جلسة",
+  "editSession": "تعديل الجلسة",
+  "sessionTitle": "عنوان الجلسة",
+  "sessionDate": "تاريخ الجلسة",
+  "startTime": "وقت البداية",
+  "endTime": "وقت النهاية",
+  "meetingLink": "رابط الاجتماع",
+  "sessionSaved": "تم حفظ الجلسة",
+  "invalidSessionTimes": "وقت النهاية يجب أن يكون بعد وقت البداية",
+  "invalidMeetingUrl": "رابط الاجتماع غير صالح",
+  "markAllPresent": "تعليم الكل حاضرين",
+  "unsavedAttendanceTitle": "تغييرات غير محفوظة",
+  "unsavedAttendanceBody": "لديك تغييرات حضور لم تُحفظ. هل تريد المغادرة؟",
+  "discardChanges": "تجاهل",
+  "saveAttendance": "حفظ الحضور",
+  "attendanceSaved": "تم حفظ الحضور",
+  "attendanceSaveFailed": "تعذّر حفظ الحضور",
+  "confirmAttendanceSave": "تأكيد حفظ الحضور",
+  "confirmAttendanceSaveBody": "سيتم حفظ حالة الحضور لجميع الطلاب المحددين.",
+  "hoursReadOnlyNotice": "تسجيل ساعات التدريب المكتملة غير متاح عبر واجهة الجوال حالياً. تُعرض الساعات عند توفرها من الخادم فقط.",
+  "requiredHoursLabel": "الساعات المطلوبة",
+  "completedHoursLabel": "الساعات المكتملة",
+  "remainingHoursLabel": "الساعات المتبقية",
+  "hoursProgressLabel": "تقدم الساعات",
+  "recordHours": "تسجيل ساعات",
+  "updateHours": "تحديث الساعات",
+  "hoursNoteOptional": "ملاحظة (اختياري)",
+  "hoursSaved": "تم تحديث الساعات",
+  "hoursConflict": "تم تحديث الساعات من مستخدم آخر. حدّث البيانات وحاول مجدداً.",
+  "hoursExceedRequired": "لا يمكن أن تتجاوز الساعات المكتملة الساعات المطلوبة.",
+  "hoursValidationInvalid": "أدخل عدداً صحيحاً غير سالب.",
+  "hoursNotRecorded": "لم تُسجَّل بعد",
+  "hoursRecordedPerStudentHint": "تُسجَّل الساعات المكتملة لكل طالب من شاشة تقدم المشارك.",
+  "reviewSubmission": "مراجعة التسليم",
+  "approveSubmission": "اعتماد",
+  "rejectSubmission": "رفض",
+  "requestRevision": "طلب تعديل",
+  "instructorFeedback": "ملاحظات المدرب",
+  "feedbackRequired": "أدخل ملاحظات عند طلب التعديل أو الرفض",
+  "reviewSaved": "تم حفظ المراجعة",
+  "downloadAttachment": "تنزيل المرفق",
+  "noSubmissions": "لا توجد تسليمات بعد",
+  "noParticipants": "لا يوجد مشاركون بعد",
+  "noSessions": "لا توجد جلسات بعد",
+  "assessmentResults": "نتائج التقييمات",
+  "score": "الدرجة",
+  "passed": "ناجح",
+  "failed": "راسب",
+  "noAssessmentResults": "لا توجد نتائج تقييمات بعد",
+  "forbiddenAccess": "ليس لديك صلاحية للوصول إلى هذا التدريب",
+  "resourceNotFound": "العنصر غير موجود أو تمت إزالته",
+  "conflictError": "تعارض في التحديث. حدّث الصفحة وحاول مجدداً",
+  "validationError": "تحقق من صحة البيانات المدخلة",
+  "instructorStudentsHub": "طلاب تدريباتي",
+  "selectTrainingForStudents": "اختر تدريباً لعرض طلابه",
+  "opportunityInfo": "معلومات الفرصة",
+  "leaveWithoutSaving": "مغادرة",
+  "stayAndEdit": "البقاء",
+  "save": "حفظ",
+  "instructorRole": "مدرب",
+  "trainees": "المتدربون",
+  "universityAdminRole": "مدير الجامعة",
+  "academicAdminRole": "مدير أكاديمي",
+  "adminOpportunitiesCount": "{count} فرصة تدريب",
+  "@adminOpportunitiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPublishedOpportunitiesCount": "{count} فرصة منشورة",
+  "@adminPublishedOpportunitiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPendingApplicationsCount": "{count} طلب بانتظار المراجعة",
+  "@adminPendingApplicationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPendingUsersCount": "{count} حساب بانتظار التفعيل",
+  "@adminPendingUsersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPriorityCompleteSetup": "أكمل إعداد فرصة تدريب",
+  "createOpportunity": "إنشاء فرصة تدريب",
+  "noOpportunities": "لا توجد فرص تدريب حالياً",
+  "editOpportunity": "تعديل الفرصة",
+  "publishOpportunity": "نشر الفرصة",
+  "archiveOpportunity": "أرشفة الفرصة",
+  "confirmPublishBody": "سيتم نشر الفرصة وإتاحتها للتقديم من الطلاب المؤهلين.",
+  "confirmArchiveBody": "سيتم أرشفة الفرصة ولن تكون متاحة للتقديم بعد الآن.",
+  "opportunityPublished": "تم نشر الفرصة",
+  "opportunityArchived": "تم أرشفة الفرصة",
+  "needsEligibilitySetupNotice": "يجب ضبط الجامعات والتخصصات المؤهلة قبل النشر",
+  "assignedInstructorLabel": "المدرب المسؤول",
+  "reviewApplications": "مراجعة الطلبات",
+  "rejectApplication": "رفض",
+  "approveApplication": "قبول",
+  "confirmApproveTitle": "تأكيد قبول الطلب",
+  "confirmRejectTitle": "تأكيد رفض الطلب",
+  "adminNoteOptional": "ملاحظة الإدارة (اختياري)",
+  "opportunityTitleLabel": "عنوان الفرصة",
+  "locationLabel": "الموقع",
+  "trainingModeLabel": "نوع التدريب",
+  "startDateLabel": "تاريخ البداية",
+  "endDateLabel": "تاريخ النهاية",
+  "invalidRequiredHours": "أدخل عدداً صحيحاً موجباً للساعات المطلوبة",
+  "specialtyRequired": "يرجى اختيار التخصص",
+  "specialtyCatalogUnavailable": "تعذّر تحميل قائمة التخصصات المؤهلة لجامعتك",
+  "opportunitySaved": "تم حفظ فرصة التدريب",
+  "adminReportEligibleOpportunities": "الفرص المؤهلة",
+  "adminReportTotalApplicants": "إجمالي المتقدمين",
+  "adminReportAcceptedStudents": "الطلاب المقبولون",
+  "adminReportInTraining": "قيد التدريب",
+  "adminReportCompletedStudents": "الطلاب المكتملون",
+  "adminReportCompletionLetters": "خطابات الإتمام المصدرة",
+  "approveRecognition": "اعتماد الطلب",
+  "assignedReviewerLabel": "المراجع المسؤول",
+  "certificatesUnavailableForRole": "قائمة الشهادات غير متاحة لهذا الدور حالياً",
+  "changeStatus": "تغيير الحالة",
+  "cohortLabel": "الدفعة",
+  "confirmEnrollmentApproveTitle": "تأكيد قبول التسجيل",
+  "confirmEnrollmentRejectTitle": "تأكيد رفض التسجيل",
+  "confirmRecognitionDecisionBody": "سيتم تحديث حالة الطلب إلى: {status}",
+  "@confirmRecognitionDecisionBody": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmRecognitionDecisionTitle": "تأكيد القرار",
+  "confirmStatusChangeBody": "سيتم تغيير الحالة إلى: {status}",
+  "@confirmStatusChangeBody": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmStatusChangeTitle": "تأكيد تغيير الحالة",
+  "correctiveActionsTitle": "الإجراءات التصحيحية",
+  "correctiveAssigneeLabel": "الجهة المكلفة",
+  "decideRecognition": "اتخاذ قرار",
+  "enrollmentApproveAction": "قبول التسجيل",
+  "enrollmentApproved": "تم قبول طلب التسجيل",
+  "enrollmentRejectAction": "رفض التسجيل",
+  "enrollmentRejected": "تم رفض طلب التسجيل",
+  "enrollmentRejectReasonOptional": "سبب الرفض (اختياري)",
+  "evidenceTitle": "الأدلة",
+  "evidenceTypeLabel": "نوع الدليل",
+  "integrityCasesTitle": "حالات النزاهة",
+  "integrityCaseTypeLabel": "نوع المخالفة",
+  "integrityDecisionLabel": "القرار",
+  "integrityEvidenceNotesLabel": "ملاحظات الأدلة",
+  "moveToUnderReview": "بدء المراجعة",
+  "noCorrectiveActions": "لا توجد إجراءات تصحيحية حالياً",
+  "noEvidence": "لا توجد أدلة حالياً",
+  "noIntegrityCases": "لا توجد حالات نزاهة حالياً",
+  "noPendingEnrollments": "لا توجد طلبات تسجيل معلقة",
+  "noQaReviews": "لا توجد مراجعات جودة حالياً",
+  "noRecognitionDocuments": "لا توجد وثائق مرفقة بعد",
+  "noRecognitionRequests": "لا توجد طلبات اعتماد حالياً",
+  "noRiskCases": "لا توجد حالات خطر حالياً",
+  "noStatusActionsAvailable": "لا توجد إجراءات حالة متاحة من الحالة الحالية",
+  "offlineWriteBlocked": "هذا الإجراء غير متاح بدون اتصال بالإنترنت. تحقق من الاتصال وحاول مجدداً.",
+  "openCorrectiveActionsCount": "{count} إجراء تصحيحي مفتوح",
+  "@openCorrectiveActionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openDocument": "فتح الوثيقة",
+  "openEvidenceFile": "فتح الملف",
+  "openQaReviewsCount": "{count} مراجعة جودة مفتوحة",
+  "@openQaReviewsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openRiskCasesCount": "{count} حالة خطر مفتوحة",
+  "@openRiskCasesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingEnrollmentsCountLabel": "{count} طلب تسجيل بانتظار القرار",
+  "@pendingEnrollmentsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingEnrollmentsTitle": "طلبات التسجيل المعلقة",
+  "pendingRecognitionCount": "{count} طلب اعتماد بانتظار القرار",
+  "@pendingRecognitionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qaActionRequiredLabel": "الإجراء المطلوب",
+  "qaFindingsLabel": "النتائج",
+  "qaOfficerRoleLabel": "مسؤول الجودة",
+  "qaPriorityOpenReview": "راجع أقدم مراجعة جودة مفتوحة",
+  "qaReviewDateLabel": "تاريخ المراجعة",
+  "qaReviewsTitle": "مراجعات الجودة",
+  "qaReviewTypeLabel": "نوع المراجعة",
+  "qaStatusClosed": "مغلقة",
+  "qaStatusInProgress": "قيد التنفيذ",
+  "qaStatusOpen": "مفتوحة",
+  "qaStatusResolved": "محلولة",
+  "recognitionDocumentsTitle": "وثائق الطلب",
+  "recognitionMicroCredentialLabel": "الشهادة المصغّرة",
+  "recognitionRequestsTitle": "طلبات الاعتماد",
+  "recognitionStatusApproved": "مُعتمد",
+  "recognitionStatusDraft": "مسودة",
+  "recognitionStatusInPreparation": "قيد التحضير",
+  "recognitionStatusNeedsRevision": "يحتاج مراجعة",
+  "recognitionStatusReadyForSubmission": "جاهز للتقديم",
+  "recognitionStatusRejected": "مرفوض",
+  "recognitionStatusSubmitted": "مُقدَّم",
+  "recognitionStatusUnderReview": "قيد المراجعة",
+  "recognitionStatusUpdated": "تم تحديث حالة طلب الاعتماد",
+  "rejectRecognition": "رفض الطلب",
+  "relatedCorrectiveActions": "الإجراءات التصحيحية المرتبطة",
+  "requestChangesRecognition": "طلب تعديلات",
+  "reviewerPriorityDecideEnrollment": "راجع طلبات التسجيل المعلقة",
+  "reviewerPriorityDecideRecognition": "اتخذ قرارًا بشأن طلب الاعتماد",
+  "reviewerSearchStudents": "ابحث عن طالب",
+  "reviewTypePeriodic": "دورية",
+  "reviewTypePreClosure": "ما قبل الإغلاق",
+  "reviewTypeScheduled": "مجدولة",
+  "reviewTypeSpecial": "خاصة",
+  "riskActionPlanLabel": "خطة العمل",
+  "riskCasesTitle": "حالات الخطر",
+  "riskLevelLabel": "مستوى الخطر",
+  "riskTypeLabel": "نوع الخطر",
+  "searchEvidence": "ابحث في الأدلة",
+  "searchRecognitionRequests": "ابحث في طلبات الاعتماد",
+  "searchReviews": "ابحث في المراجعات",
+  "statusChangeSaved": "تم تحديث الحالة",
+  "statusConflictRefresh": "تم تعديل هذا العنصر من مستخدم آخر. تم تحديث البيانات.",
+  "statusEscalatedLabel": "مصعّدة",
+  "statusLabel": "الحالة",
+  "statusOverdueLabel": "متأخرة",
+  "statusReportedLabel": "مُبلَّغ عنها",
+  "statusUnderInvestigationLabel": "تحت التحقيق",
+  "universityReviewerRoleLabel": "مراجع الجامعة",
+  "superAdminRoleLabel": "مشرف عام",
+  "isGlobalBadge": "صلاحية عامة (Global)",
+  "superAdminGlobalScopeNotice": "لديك صلاحية عامة على جميع الجامعات والمستخدمين في النظام.",
+  "superAdminLostPrivilegeMessage": "لم تعد صلاحية المشرف العام مفعّلة لحسابك. تواصل مع مشرف عام آخر إذا كان هذا غير متوقع.",
+  "superAdminCohortsLabel": "الدفعات",
+  "superAdminPendingEnrollmentsLabel": "تسجيلات معلقة",
+  "superAdminFieldTrainingOversight": "متابعة التدريب الميداني",
+  "superAdminQaOversight": "متابعة الجودة والاعتماد",
+  "superAdminGlobalReportTitle": "التقرير الشامل للتدريب الميداني",
+  "superAdminUniversityComparisonTitle": "مقارنة الجامعات",
+  "superAdminExpelledLabel": "حالات الفصل",
+  "superAdminReportExportWebOnlyNotice": "تصدير التقرير (PDF/Excel) متاح حاليًا من منصة الويب فقط.",
+  "auditLogsTitle": "سجل التدقيق",
+  "searchAuditLogs": "ابحث في سجل التدقيق",
+  "noAuditLogs": "لا توجد سجلات تدقيق حالياً",
+  "systemStatusTitle": "حالة النظام",
+  "systemStatusApiOnlyNotice": "يعرض هذا الفحص توفر الخادم فقط، دون أي تفاصيل بيئة أو قاعدة بيانات.",
+  "apiAvailable": "الخادم متاح",
+  "apiUnavailable": "تعذّر الاتصال بالخادم",
+  "searchUniversities": "ابحث عن جامعة",
+  "noUniversitiesFound": "لا توجد جامعات مطابقة",
+  "createUniversity": "إضافة جامعة",
+  "editUniversity": "تعديل الجامعة",
+  "universityDetail": "تفاصيل الجامعة",
+  "universityNameLabel": "اسم الجامعة",
+  "contactPersonLabel": "المسؤول عن التواصل",
+  "universitySaved": "تم حفظ بيانات الجامعة",
+  "universityNameTaken": "اسم الجامعة مستخدم من قبل",
+  "searchUsers": "ابحث عن مستخدم",
+  "noUsersFound": "لا يوجد مستخدمون مطابقون",
+  "userDetail": "تفاصيل المستخدم",
+  "userActivated": "تم تفعيل المستخدم",
+  "activateUserAction": "تفعيل المستخدم",
+  "roleAssignmentLabel": "الأدوار المعيّنة",
+  "assignRolesTitle": "تعيين الأدوار",
+  "superAdminRoleWarning": "تحذير: هذا الدور يمنح صلاحية مشرف عام كاملة على النظام",
+  "superAdminBadge": "مشرف عام",
+  "rolesUpdated": "تم تحديث أدوار المستخدم",
+  "confirmGrantSuperAdminTitle": "تأكيد منح صلاحية مشرف عام",
+  "confirmGrantSuperAdminBody": "سيحصل هذا المستخدم على صلاحية مشرف عام كاملة تشمل جميع الجامعات والمستخدمين. هل أنت متأكد؟",
+  "confirmRevokeSuperAdminTitle": "تأكيد إزالة صلاحية مشرف عام",
+  "confirmRevokeSuperAdminBody": "سيتم إزالة صلاحية المشرف العام من هذا المستخدم فوراً. هل أنت متأكد؟",
+  "pushPermissionSheetTitle": "لا تفوّت أي تحديث",
+  "pushPermissionSheetBody": "فعّل الإشعارات لتصلك تنبيهات فورية عند قبول التسجيل، مراجعة المهام، وتحديثات التدريب الميداني — حتى عندما يكون التطبيق مغلقًا.",
+  "pushPermissionEnableAction": "تفعيل الإشعارات",
+  "pushPermissionSkipAction": "ليس الآن",
+  "pushNotificationChannelName": "إشعارات BATTECHNO LMS",
+  "pushNotificationChannelDescription": "التنبيهات الفورية لتحديثات الحساب والتدريب الميداني والمهام",
+  "pushPermissionSettingsTitle": "إشعارات الجهاز",
+  "pushPermissionStatusGranted": "مفعّلة",
+  "pushPermissionStatusDenied": "غير مفعّلة",
+  "pushPermissionStatusProvisional": "مفعّلة (مؤقتة)",
+  "pushPermissionStatusNotDetermined": "لم يتم السؤال بعد",
+  "pushPermissionStatusUnsupported": "غير متاحة في هذا الإصدار",
+  "pushPermissionSettingsAction": "تفعيل الإشعارات",
+  "pushPermissionOpenSystemSettingsHint": "لتغيير هذا الإذن يجب فتح إعدادات النظام لهذا التطبيق."
+}

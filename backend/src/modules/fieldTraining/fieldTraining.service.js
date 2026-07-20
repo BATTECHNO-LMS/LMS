@@ -127,6 +127,7 @@ async function mapBodyToCreateData(body) {
     requirements: body.requirements ?? null,
     benefits: body.benefits ?? null,
     seats_limit: body.seats_limit ?? null,
+    required_training_hours: body.required_training_hours ?? null,
     start_date: repo.toDateOnly(body.start_date),
     end_date: repo.toDateOnly(body.end_date),
     application_deadline: repo.toDateOnly(body.application_deadline),
@@ -165,6 +166,9 @@ async function mapBodyToUpdateData(body) {
   if (body.requirements !== undefined) data.requirements = body.requirements;
   if (body.benefits !== undefined) data.benefits = body.benefits;
   if (body.seats_limit !== undefined) data.seats_limit = body.seats_limit;
+  if (body.required_training_hours !== undefined) {
+    data.required_training_hours = body.required_training_hours;
+  }
   if (body.start_date !== undefined) data.start_date = repo.toDateOnly(body.start_date);
   if (body.end_date !== undefined) data.end_date = repo.toDateOnly(body.end_date);
   if (body.application_deadline !== undefined) {

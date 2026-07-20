@@ -32,6 +32,7 @@ import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/f
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
 import { computeCardProgressPercent, resolveJourneyLabelKey } from './StudentApplicationCard.jsx';
+import { ApplicationHoursPanel } from './ApplicationHoursPanel.jsx';
 
 const WORKFLOW_STEPS = [
   'application_submitted',
@@ -246,6 +247,23 @@ export function StudentDetailDrawer({
                     <dd>{formatFtDate(app.created_at) ?? '—'}</dd>
                   </div>
                 </dl>
+              </section>
+
+              <section className="ft-student-drawer__section">
+                <h3>{t('form.completedTrainingHours')}</h3>
+                <ApplicationHoursPanel
+                  applicationId={app.id}
+                  hours={data?.hours || data?.progress?.metrics || {}}
+                  asInstructor={isInstructor}
+                  canEdit={app.status === 'approved' && app.training_status !== 'expelled'}
+                  onUpdated={() => {
+                    setActionOk(t('form.hoursSaved'));
+                    refetch();
+                    qc.invalidateQueries({
+                      queryKey: fieldTrainingKeys.adminApplications(opportunityId),
+                    });
+                  }}
+                />
               </section>
 
               <section className="ft-student-drawer__section">
