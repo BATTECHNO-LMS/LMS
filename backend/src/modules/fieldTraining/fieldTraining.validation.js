@@ -82,6 +82,11 @@ const opportunityBodySchema = z.object({
   requirements: z.string().max(50000).optional().nullable(),
   benefits: z.string().max(50000).optional().nullable(),
   seats_limit: z.coerce.number().int().min(1).max(10000).optional().nullable(),
+  required_training_hours: z.coerce
+    .number({ invalid_type_error: 'عدد الساعات التدريبية المطلوبة يجب أن يكون رقمًا صحيحًا' })
+    .int({ message: 'عدد الساعات التدريبية المطلوبة يجب أن يكون رقمًا صحيحًا' })
+    .positive({ message: 'عدد الساعات التدريبية المطلوبة يجب أن يكون أكبر من صفر' })
+    .max(10000, { message: 'عدد الساعات التدريبية المطلوبة كبير جدًا' }),
   start_date: optionalDateSchema,
   end_date: optionalDateSchema,
   application_deadline: optionalDateSchema,
@@ -95,6 +100,14 @@ const opportunityBodySchema = z.object({
 
 const updateOpportunityBodySchema = opportunityBodySchema.partial().extend({
   eligibility: z.array(eligibilityItemSchema).min(1).optional(),
+  // Legacy opportunities may keep null; clearing is allowed on update only.
+  required_training_hours: z.coerce
+    .number({ invalid_type_error: 'عدد الساعات التدريبية المطلوبة يجب أن يكون رقمًا صحيحًا' })
+    .int({ message: 'عدد الساعات التدريبية المطلوبة يجب أن يكون رقمًا صحيحًا' })
+    .positive({ message: 'عدد الساعات التدريبية المطلوبة يجب أن يكون أكبر من صفر' })
+    .max(10000, { message: 'عدد الساعات التدريبية المطلوبة كبير جدًا' })
+    .optional()
+    .nullable(),
 });
 
 const applyBodySchema = z.object({
@@ -164,7 +177,7 @@ const zoomLinkSchema = z.preprocess(
   z.union([z.string().url({ message: 'Invalid zoom link URL' }).max(2000), z.null()]).optional()
 );
 
-const sessionBodySchema = z.object({
+const sessionFieldsSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(10000).optional().nullable(),
   session_date: sessionDateSchema,
@@ -174,7 +187,23 @@ const sessionBodySchema = z.object({
   is_required: z.coerce.boolean().optional(),
 });
 
-const updateSessionBodySchema = sessionBodySchema.partial();
+function refineSessionTimes(data, ctx) {
+  if (!data.start_time || !data.end_time) return;
+  const [sh, sm] = data.start_time.split(':').map(Number);
+  const [eh, em] = data.end_time.split(':').map(Number);
+  const start = sh * 60 + sm;
+  const end = eh * 60 + em;
+  if (!(end > start)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['end_time'],
+      message: 'وقت نهاية الجلسة يجب أن يكون بعد وقت البداية',
+    });
+  }
+}
+
+const sessionBodySchema = sessionFieldsSchema.superRefine(refineSessionTimes);
+const updateSessionBodySchema = sessionFieldsSchema.partial().superRefine(refineSessionTimes);
 
 const attendanceRecordSchema = z.object({
   applicationId: z.string().uuid(),

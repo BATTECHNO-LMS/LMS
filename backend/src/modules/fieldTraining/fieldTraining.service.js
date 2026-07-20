@@ -25,6 +25,7 @@ const {
 } = require('./fieldTraining.access');
 const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
+const hoursMod = require('./fieldTraining.hours');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
@@ -127,6 +128,7 @@ async function mapBodyToCreateData(body) {
     requirements: body.requirements ?? null,
     benefits: body.benefits ?? null,
     seats_limit: body.seats_limit ?? null,
+    required_training_hours: body.required_training_hours,
     start_date: repo.toDateOnly(body.start_date),
     end_date: repo.toDateOnly(body.end_date),
     application_deadline: repo.toDateOnly(body.application_deadline),
@@ -165,6 +167,9 @@ async function mapBodyToUpdateData(body) {
   if (body.requirements !== undefined) data.requirements = body.requirements;
   if (body.benefits !== undefined) data.benefits = body.benefits;
   if (body.seats_limit !== undefined) data.seats_limit = body.seats_limit;
+  if (body.required_training_hours !== undefined) {
+    data.required_training_hours = body.required_training_hours;
+  }
   if (body.start_date !== undefined) data.start_date = repo.toDateOnly(body.start_date);
   if (body.end_date !== undefined) data.end_date = repo.toDateOnly(body.end_date);
   if (body.application_deadline !== undefined) {
@@ -437,6 +442,12 @@ async function updateAdminOpportunity(id, body, userId, user) {
   }
   const mapped = repo.mapOpportunityRow(opportunity);
   mapped.eligibility = await ftEligibility.findActiveByOpportunityId(id);
+
+  if (data.required_training_hours !== undefined) {
+    const participants = await repo.findActiveParticipants(id);
+    await Promise.all(participants.map((p) => workflow.persistEligibility(p.id)));
+  }
+
   return { opportunity: mapped };
 }
 
@@ -475,13 +486,16 @@ async function archiveOpportunity(id, userId, user) {
   return { opportunity: repo.mapOpportunityRow(opportunity) };
 }
 
-function buildApplicationProgressSummary(app) {
+function buildApplicationProgressSummary(app, hoursProgress = null) {
   const parts = [];
   if (app.training_status && app.training_status !== 'none') {
     parts.push(`training:${app.training_status}`);
   }
   if (app.pre_assessment_level) parts.push(`pre:${app.pre_assessment_level}`);
   if (app.attendance_percentage != null) parts.push(`attendance:${app.attendance_percentage}`);
+  if (hoursProgress?.hours_completion_percentage != null) {
+    parts.push(`hours:${hoursProgress.hours_completion_percentage}`);
+  }
   if (app.post_assessment_score != null) parts.push(`post:${app.post_assessment_score}`);
   if (app.final_task_status && app.final_task_status !== 'not_required') {
     parts.push(`task:${app.final_task_status}`);
@@ -496,13 +510,24 @@ function buildApplicationProgressSummary(app) {
       app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
     final_task_status: app.final_task_status ?? null,
     completion_eligibility_status: app.completion_eligibility_status ?? null,
+    required_training_hours: hoursProgress?.required_training_hours ?? null,
+    completed_training_hours: hoursProgress?.completed_training_hours ?? null,
+    remaining_training_hours: hoursProgress?.remaining_training_hours ?? null,
+    hours_completion_percentage: hoursProgress?.hours_completion_percentage ?? null,
+    hours_completion_status: hoursProgress?.hours_completion_status ?? null,
     summary_key: parts.join('|') || null,
   };
 }
 
-function mapApplicationAdminRow(app, profile, opportunity) {
+function mapApplicationAdminRow(app, profile, opportunity, hoursProgress = null) {
   const universitySpecialty = profile?.university_specialty ?? null;
   const displaySpecialty = profile?.specialty ?? null;
+  const hours =
+    hoursProgress ||
+    hoursMod.buildHoursProgress({
+      requiredHours: opportunity?.required_training_hours,
+      completedMinutes: 0,
+    });
   return {
     ...repo.mapApplicationRow(app),
     opportunity_title: opportunity?.title ?? null,
@@ -523,7 +548,8 @@ function mapApplicationAdminRow(app, profile, opportunity) {
     student_specialty: displaySpecialty,
     student_specialty_label: repo.formatSpecialtyLabel(displaySpecialty),
     student_phone: profile?.phone ?? null,
-    progress_summary: buildApplicationProgressSummary(app),
+    progress_summary: buildApplicationProgressSummary(app, hours),
+    training_hours: hours,
   };
 }
 
@@ -545,7 +571,14 @@ async function listOpportunityApplications(opportunityId, query = {}, user) {
     const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
     const byId = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
 
-    let applications = apps.map((app) => mapApplicationAdminRow(app, byId[app.student_id], opp));
+    const hoursByApp = await hoursMod.calculateHoursProgressForApplications(
+      apps.map((app) => ({ id: app.id, opportunity_id: opportunityId })),
+      new Map([[opportunityId, opp.required_training_hours ?? null]])
+    );
+
+    let applications = apps.map((app) =>
+      mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id))
+    );
 
     if (query.specialty_id && opp.specialty_id !== query.specialty_id) {
       applications = [];
@@ -1295,6 +1328,11 @@ async function listOpportunityEligibility(opportunityId, user) {
   const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
   const byId = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
 
+  const hoursByApp = await hoursMod.calculateHoursProgressForApplications(
+    apps.map((app) => ({ id: app.id, opportunity_id: opportunityId })),
+    new Map([[opportunityId, opp.required_training_hours ?? null]])
+  );
+
   const finalTasks = await prisma.field_training_tasks.findMany({
     where: { opportunity_id: opportunityId, is_final_task: true },
     select: {
@@ -1313,7 +1351,7 @@ async function listOpportunityEligibility(opportunityId, user) {
   });
 
   const participants = apps.map((app) => {
-    const mapped = mapApplicationAdminRow(app, byId[app.student_id], opp);
+    const mapped = mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id));
     const finalTaskSubs = finalTasks.flatMap((task) =>
       (task.field_training_task_submissions || [])
         .filter((sub) => sub.application_id === app.id)
@@ -1341,6 +1379,7 @@ async function listOpportunityEligibility(opportunityId, user) {
       training_status: mapped.training_status,
       attendance_percentage: mapped.attendance_percentage,
       minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
+      training_hours: mapped.training_hours,
       final_task_status: mapped.final_task_status,
       post_assessment_score: mapped.post_assessment_score,
       minimum_post_assessment_score:
@@ -1359,6 +1398,8 @@ async function listOpportunityEligibility(opportunityId, user) {
       id: opp.id,
       title: opp.title,
       minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
+      required_training_hours:
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
       minimum_post_assessment_score:
         opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
       requires_final_task: opp.requires_final_task ?? true,

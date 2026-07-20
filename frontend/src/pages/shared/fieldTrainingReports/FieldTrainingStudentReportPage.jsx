@@ -176,6 +176,23 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             />
           </SectionCard>
 
+          <SectionCard title={t('sections.hours')}>
+            <DetailGrid
+              items={[
+                [t('hours.required'), data.training_hours?.required_training_hours],
+                [t('hours.completed'), data.training_hours?.completed_training_hours],
+                [t('hours.remaining'), data.training_hours?.remaining_training_hours],
+                [
+                  t('hours.percentage'),
+                  data.training_hours?.hours_completion_percentage != null
+                    ? `${data.training_hours.hours_completion_percentage}%`
+                    : '—',
+                ],
+                [t('hours.status'), data.training_hours?.hours_completion_status ?? '—'],
+              ]}
+            />
+          </SectionCard>
+
           <SectionCard title={t('sections.tasks')}>
             <DataTable
               columns={[
@@ -238,6 +255,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
               items={[
                 [t('eligibility.status'), data.completion_eligibility?.status],
                 [t('eligibility.attendanceRule'), data.completion_eligibility?.attendance_rule],
+                [t('eligibility.hoursRule'), data.completion_eligibility?.hours_rule],
                 [t('eligibility.taskRule'), data.completion_eligibility?.task_rule],
                 [t('eligibility.postAssessmentRule'), data.completion_eligibility?.post_assessment_rule],
               ]}

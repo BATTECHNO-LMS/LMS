@@ -153,6 +153,11 @@
     "requirements": "Requirements",
     "benefits": "Benefits / outcomes",
     "seatsLimit": "Seats limit",
+    "requiredTrainingHours": "Required training hours",
+    "requiredTrainingHoursPlaceholder": "e.g. 160",
+    "requiredTrainingHoursHelp": "Total hours the student must complete for this opportunity.",
+    "requiredHoursRequired": "Please enter the required training hours.",
+    "requiredHoursInvalid": "Hours must be a positive whole number.",
     "startDate": "Start date",
     "endDate": "End date",
     "applicationDeadline": "Application deadline",
@@ -438,6 +443,20 @@
     "postScore": "Post score",
     "task": "Final task",
     "letterIssued": "Letter issued"
+  },
+  "hours": {
+    "title": "Training hours progress",
+    "required": "Required hours",
+    "completed": "Completed hours",
+    "remaining": "Remaining hours",
+    "percentage": "Completion percentage",
+    "unit": "hours",
+    "notConfigured": "Required hours have not been set for this opportunity yet.",
+    "status": {
+      "notStarted": "Not started",
+      "inProgress": "In progress",
+      "completed": "Completed"
+    }
   },
   "attendanceStatus": {
     "present": "Present",

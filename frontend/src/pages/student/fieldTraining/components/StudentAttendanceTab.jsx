@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatCard } from '../../../../components/common/StatCard.jsx';
 import { AdminStatsGrid } from '../../../../components/admin/AdminStatsGrid.jsx';
+import { TrainingHoursProgressCard } from '../../../../components/fieldTraining/TrainingHoursProgressCard.jsx';
 import { useStudentFieldTrainingSessions } from '../../../../features/fieldTraining/index.js';
 import { Calendar, CheckCircle2, XCircle, Percent, Clock, Shield } from 'lucide-react';
 
@@ -70,6 +71,11 @@ export function StudentAttendanceTab({ opportunityId, progress, opp, enabled }) 
           icon={Percent}
         />
       </AdminStatsGrid>
+
+      <TrainingHoursProgressCard
+        hours={progress?.hours ?? progress?.metrics}
+        className="ft-student-attendance__hours"
+      />
 
       <div
         className={`ft-attendance-eligibility${eligible ? ' ft-attendance-eligibility--ok' : ' ft-attendance-eligibility--warn'}`}
