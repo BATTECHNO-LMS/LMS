@@ -84,13 +84,9 @@ jobs:
           npm run db:init-empty
           npm run prisma:status
           npm run db:verify-schema
-          node -e "
-            const {PrismaClient}=require('@prisma/client');
-            const p=new PrismaClient();
-            p.\$queryRawUnsafe('SELECT COUNT(*)::int AS c FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL')
-              .then(r=>{ if(r[0].c!==27){ console.error('expected 27 applied, got', r[0].c); process.exit(1);} console.log('applied', r[0].c); })
-              .finally(()=>p.\$disconnect());
-          "
+          # Final applied count must equal repository migration dirs (30),
+          # NOT the baseline represented count (27). See CI-EMPTY-DB-MIGRATION-COUNT-001.
+          npm run db:verify-empty-migration-counts
       - name: Prove post-cutoff migration is not falsely resolved
         env:
           DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/lms_ci_cutoff
