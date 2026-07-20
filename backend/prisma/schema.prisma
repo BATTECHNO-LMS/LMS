@@ -1173,6 +1173,7 @@ model field_training_opportunities {
   requirements         String?
   benefits             String?
   seats_limit          Int?
+  required_training_hours Int?
   start_date           DateTime?                         @db.Date
   end_date             DateTime?                         @db.Date
   application_deadline DateTime?                         @db.Date

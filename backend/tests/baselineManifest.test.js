@@ -322,7 +322,10 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
     assert.equal(result.ok, true);
     assert.equal(result.migrationsToResolve.length, 27);
     assert.equal(result.cutoff, '20260718120000_academic_submission_uniqueness');
-    assert.equal(result.pendingAfterCutoff.length, 0);
+    // Migration 28 exists after cutoff by design (PROD-DRIFT-OPTION-B-001); baseline v1 stays at 27.
+    assert.deepEqual(result.pendingAfterCutoff, [
+      '20260719120000_field_training_required_hours',
+    ]);
   });
 
   test('LF and CRLF forms of identical SQL share canonical checksum', () => {
