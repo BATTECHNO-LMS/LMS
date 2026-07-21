@@ -275,6 +275,31 @@ model notifications {
   @@index([user_id, is_read], map: "idx_notifications_user_read")
 }
 
+/// Mobile push (FCM) device registrations. Additive; push delivery is disabled
+/// unless FIREBASE_PUSH_ENABLED and service-account credentials are configured.
+model mobile_push_registrations {
+  id                              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                         String    @db.Uuid
+  registration_token              String    @db.VarChar(512)
+  platform                        String    @db.VarChar(16) // android|ios
+  app_id                          String?   @db.VarChar(120)
+  app_version                     String?   @db.VarChar(40)
+  device_installation_id          String?   @db.VarChar(120)
+  locale                          String?   @db.VarChar(16)
+  notification_permission_status  String?   @db.VarChar(32)
+  created_at                      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at                      DateTime  @default(now()) @db.Timestamptz(6)
+  last_seen_at                    DateTime  @default(now()) @db.Timestamptz(6)
+  disabled_at                     DateTime? @db.Timestamptz(6)
+  last_delivery_error             String?   @db.VarChar(500)
+  last_delivery_error_at          DateTime? @db.Timestamptz(6)
+
+  @@unique([registration_token], map: "uq_mobile_push_registration_token")
+  @@index([user_id], map: "idx_mobile_push_user_id")
+  @@index([user_id, disabled_at], map: "idx_mobile_push_user_active")
+  @@index([last_seen_at], map: "idx_mobile_push_last_seen")
+}
+
 /// Issued micro-credential certificates (verification + lifecycle).
 model certificates {
   id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -1263,6 +1288,9 @@ model field_training_applications {
   pre_assessment_level field_training_knowledge_level?
   post_assessment_score Decimal?                    @db.Decimal(6, 2)
   attendance_percentage Decimal?                    @db.Decimal(5, 2)
+  completed_training_hours Int?
+  hours_updated_at DateTime?                        @db.Timestamptz(6)
+  hours_updated_by_id String?                       @db.Uuid
   final_task_status field_training_final_task_status @default(not_required)
   completion_eligibility_status field_training_completion_eligibility_status @default(pending)
   eligibility_reason Json?
@@ -1286,6 +1314,7 @@ model field_training_applications {
   @@index([training_status], map: "idx_field_training_applications_training_status")
   @@index([opportunity_id, status], map: "idx_field_training_applications_opportunity_status")
   @@index([student_id, created_at(sort: Desc)], map: "idx_field_training_applications_student_created")
+  @@index([hours_updated_at], map: "idx_field_training_applications_hours_updated")
 }
 
 enum field_training_mode {

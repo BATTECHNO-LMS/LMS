@@ -18,6 +18,10 @@ const {
   prepareQuestionForStorage,
   validateAssessmentQuestions,
 } = require('./fieldTraining.assessmentQuestions');
+const {
+  buildHoursSummary,
+  validateCompletedHoursReplacement,
+} = require('./fieldTraining.hours');
 
 async function assertPreAssessmentSatisfied(opportunityId) {
   const opp = await repo.findById(opportunityId);
@@ -1053,6 +1057,122 @@ async function getApplicationProgress(applicationId, user) {
           has_pdf: Boolean(letter.pdf_url),
         }
       : null,
+    hours: buildHoursSummary(app, opp),
+  };
+}
+
+/**
+ * Read authoritative hours summary for an application (instructor/admin manage scope).
+ */
+async function getApplicationHours(applicationId, user) {
+  const app = await repo.findApplicationById(applicationId);
+  if (!app) throw new ApiError(404, 'Application not found');
+  const opp = await repo.findById(app.opportunity_id);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  return {
+    application_id: app.id,
+    opportunity_id: opp.id,
+    hours: buildHoursSummary(app, opp),
+    application: repo.mapApplicationRow(app),
+  };
+}
+
+/**
+ * Replace total completed hours for an application (Model A).
+ * Body: { completed_hours, note?, expected_completed_hours? }
+ */
+async function updateApplicationHours(applicationId, body, user) {
+  const app = await repo.findApplicationById(applicationId);
+  if (!app) throw new ApiError(404, 'Application not found');
+  const opp = await repo.findById(app.opportunity_id);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  await assertManageOpportunityAccess(user, opp);
+  await assertApplicationStudentAccess(user, app.student_id);
+
+  if (workflow.isExpelled(app)) {
+    throw new ApiError(409, 'لا يمكن تحديث ساعات طالب مستبعد', null, 'HOURS_EXPELLED');
+  }
+  if (app.status !== 'approved') {
+    throw new ApiError(
+      409,
+      'تحديث الساعات متاح للمشاركين المقبولين فقط',
+      null,
+      'HOURS_APPLICATION_NOT_APPROVED'
+    );
+  }
+
+  const previous = app.completed_training_hours != null ? Number(app.completed_training_hours) : null;
+  if (body.expected_completed_hours !== undefined) {
+    const expected =
+      body.expected_completed_hours === null || body.expected_completed_hours === ''
+        ? null
+        : Number(body.expected_completed_hours);
+    const expectedNorm = expected == null || Number.isNaN(expected) ? null : expected;
+    if (previous !== expectedNorm) {
+      throw new ApiError(
+        409,
+        'تم تحديث الساعات من مستخدم آخر. حدّث الصفحة وحاول مجدداً.',
+        {
+          current_completed_hours: previous,
+          expected_completed_hours: expectedNorm,
+        },
+        'HOURS_CONFLICT'
+      );
+    }
+  }
+
+  const validated = validateCompletedHoursReplacement(
+    body.completed_hours,
+    opp.required_training_hours
+  );
+  if (!validated.ok) {
+    throw new ApiError(validated.status, validated.message, null, validated.code);
+  }
+
+  const now = new Date();
+  const updated = await prisma.$transaction(async (tx) => {
+    const row = await tx.field_training_applications.update({
+      where: { id: applicationId },
+      data: {
+        completed_training_hours: validated.value,
+        hours_updated_at: now,
+        hours_updated_by_id: user.userId,
+        updated_at: now,
+      },
+    });
+    return row;
+  });
+
+  await recordAudit({
+    userId: user.userId,
+    universityId: user.universityId ?? null,
+    actionType: 'field_training.hours.update',
+    entityType: 'field_training_application',
+    entityId: applicationId,
+    oldValues: {
+      completed_training_hours: previous,
+      opportunity_id: opp.id,
+    },
+    newValues: {
+      completed_training_hours: validated.value,
+      difference: previous == null ? validated.value : validated.value - previous,
+      note: body.note?.trim() || null,
+      required_training_hours:
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
+    },
+  });
+
+  // Eligibility is NOT gated on hours today; still refresh progress metrics for clients.
+  const hours = buildHoursSummary(updated, opp);
+  return {
+    application_id: updated.id,
+    opportunity_id: opp.id,
+    hours,
+    previous_completed_hours: previous,
+    application: repo.mapApplicationRow(updated),
   };
 }
 
@@ -1462,6 +1582,8 @@ module.exports = {
   submitAssessment,
   submitAssessmentById,
   getApplicationProgress,
+  getApplicationHours,
+  updateApplicationHours,
   recalculateEligibility,
   gradeAssessmentAttempt,
   getStudentOpportunityProgress,
