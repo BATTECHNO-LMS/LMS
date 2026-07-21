@@ -265,11 +265,16 @@ export function AppRouter() {
 
         <Route path="/academic" element={<AdminLayout />}>
           <Route index element={<Navigate to="field-training/reports" replace />} />
-          <Route element={<RoleBasedRoute allowedRoles={[ROLES.ACADEMIC_ADMIN, ROLES.QA_OFFICER, ROLES.UNIVERSITY_REVIEWER]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={[ROLES.ADMIN, ROLES.ACADEMIC_REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="field-training/reports" element={<Pages.AcademicFieldTrainingReportsHubPage />} />
               <Route path="field-training/reports/university" element={<Pages.AcademicFieldTrainingUniversityReportPage />} />
               <Route path="field-training/students" element={<Pages.AcademicFieldTrainingStudentsPage />} />
+              <Route path="field-training/opportunities" element={<Pages.AcademicFieldTrainingOpportunitiesPage />} />
+              <Route
+                path="field-training/opportunities/:opportunityId"
+                element={<Pages.AcademicFieldTrainingOpportunityDetailPage />}
+              />
               <Route
                 path="field-training/reports/student/:applicationId"
                 element={<Pages.AcademicFieldTrainingStudentReportPage />}
@@ -280,7 +285,7 @@ export function AppRouter() {
 
         <Route path="/reviewer" element={<ReviewerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
-          <Route element={<RoleBasedRoute allowedRoles={[ROLES.UNIVERSITY_REVIEWER]} />}>
+          <Route element={<RoleBasedRoute allowedRoles={[ROLES.ACADEMIC_REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.ReviewerDashboardPage />} />
               <Route path="enrollment-requests" element={<Pages.ReviewerEnrollmentRequestsPage />} />

@@ -31,15 +31,13 @@ import {
   Bell,
   UserPlus,
 } from 'lucide-react';
-import { ROLES } from './roles.js';
+import { ROLES, canonicalizeRoleCode } from './roles.js';
 
 const S = ROLES.SUPER_ADMIN;
-const U = ROLES.UNIVERSITY_ADMIN;
-const A = ROLES.ACADEMIC_ADMIN;
-const Q = ROLES.QA_OFFICER;
+const Ad = ROLES.ADMIN;
 
-/** All admin-shell roles (program_admin removed — Phase 3) */
-export const ADMIN_SHELL_ROLES = [S, U, A, Q];
+/** All admin-shell roles */
+export const ADMIN_SHELL_ROLES = [S, Ad];
 
 function entry(to, labelKey, icon, roles) {
   return { to, labelKey, icon, roles };
@@ -47,20 +45,21 @@ function entry(to, labelKey, icon, roles) {
 
 /**
  * Grouped navigation — labels resolved via `t` from namespace `navigation`.
+ * Item visibility for Admin is further narrowed by UI permissions / backend later.
  */
 export const ADMIN_NAV_GROUPS = [
   {
     id: 'general',
     titleKey: 'admin.groups.general',
     items: [
-      entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, U, A, Q]),
-      entry('/admin/notifications', 'admin.items.notifications', Bell, [S, U, A, Q]),
+      entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, Ad]),
+      entry('/admin/notifications', 'admin.items.notifications', Bell, [S, Ad]),
       entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
-      entry('/admin/courses', 'admin.items.courses', BookMarked, [S]),
-      entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, U]),
-      entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, U, A, Q]),
-      entry('/admin/field-training/reports/students', 'admin.items.fieldTrainingStudents', Users, [S, U]),
-      entry('/admin/users', 'admin.items.users', Users, [S, U]),
+      entry('/admin/courses', 'admin.items.courses', BookMarked, [S, Ad]),
+      entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, Ad]),
+      entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, Ad]),
+      entry('/admin/field-training/reports/students', 'admin.items.fieldTrainingStudents', Users, [S, Ad]),
+      entry('/admin/users', 'admin.items.users', Users, [S, Ad]),
       entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
       entry('/admin/settings', 'admin.items.settings', Settings, [S]),
     ],
@@ -69,58 +68,59 @@ export const ADMIN_NAV_GROUPS = [
     id: 'orgs',
     titleKey: 'admin.groups.orgs',
     items: [
-      entry('/admin/universities', 'admin.items.universities', Building2, [S, U]),
-      entry('/admin/tracks', 'admin.items.tracks', Route, [S, U, A]),
-      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S, U, A]),
-      entry('/admin/learning-outcomes', 'admin.items.learningOutcomes', ListTree, [S, U, A]),
-      entry('/admin/cohorts', 'admin.items.cohorts', Layers, [S, U, A]),
-      entry('/admin/enrollments', 'admin.items.enrollments', UserPlus, [S, A, U]),
-      entry('/admin/content', 'admin.items.content', BookOpen, [S, U, A]),
+      entry('/admin/universities', 'admin.items.universities', Building2, [S, Ad]),
+      entry('/admin/tracks', 'admin.items.tracks', Route, [S, Ad]),
+      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S, Ad]),
+      entry('/admin/learning-outcomes', 'admin.items.learningOutcomes', ListTree, [S, Ad]),
+      entry('/admin/cohorts', 'admin.items.cohorts', Layers, [S, Ad]),
+      entry('/admin/enrollments', 'admin.items.enrollments', UserPlus, [S, Ad]),
+      entry('/admin/content', 'admin.items.content', BookOpen, [S, Ad]),
     ],
   },
   {
     id: 'delivery',
     titleKey: 'admin.groups.delivery',
     items: [
-      entry('/admin/sessions', 'admin.items.sessions', CalendarDays, [S, U, A, Q]),
-      entry('/admin/attendance', 'admin.items.attendance', ClipboardCheck, [S, U, A, Q]),
-      entry('/admin/assessments', 'admin.items.assessments', FileCheck, [S, U, A, Q]),
-      entry('/admin/rubrics', 'admin.items.rubrics', ListChecks, [S, U, A]),
-      entry('/admin/submissions', 'admin.items.submissions', Upload, [S, U, A]),
-      entry('/admin/grades', 'admin.items.grades', BarChart3, [S, U, A]),
-      entry('/admin/evidence', 'admin.items.evidence', FolderOpen, [S, U, A, Q]),
+      entry('/admin/sessions', 'admin.items.sessions', CalendarDays, [S, Ad]),
+      entry('/admin/attendance', 'admin.items.attendance', ClipboardCheck, [S, Ad]),
+      entry('/admin/assessments', 'admin.items.assessments', FileCheck, [S, Ad]),
+      entry('/admin/rubrics', 'admin.items.rubrics', ListChecks, [S, Ad]),
+      entry('/admin/submissions', 'admin.items.submissions', Upload, [S, Ad]),
+      entry('/admin/grades', 'admin.items.grades', BarChart3, [S, Ad]),
+      entry('/admin/evidence', 'admin.items.evidence', FolderOpen, [S, Ad]),
     ],
   },
   {
     id: 'quality',
     titleKey: 'admin.groups.quality',
     items: [
-      entry('/admin/qa', 'admin.items.qa', HeartPulse, [S, U, A, Q]),
-      entry('/admin/qa-reviews', 'admin.items.qaReviews', ShieldCheck, [S, U, A, Q]),
-      entry('/admin/corrective-actions', 'admin.items.correctiveActions', ClipboardList, [S, U, A, Q]),
-      entry('/admin/at-risk-students', 'admin.items.atRiskStudents', AlertTriangle, [S, U, A, Q]),
-      entry('/admin/risk-cases', 'admin.items.riskCases', AlertTriangle, [S, U, A, Q]),
-      entry('/admin/integrity-cases', 'admin.items.integrity', BadgeAlert, [S, U, A, Q]),
+      entry('/admin/qa', 'admin.items.qa', HeartPulse, [S, Ad]),
+      entry('/admin/qa-reviews', 'admin.items.qaReviews', ShieldCheck, [S, Ad]),
+      entry('/admin/corrective-actions', 'admin.items.correctiveActions', ClipboardList, [S, Ad]),
+      entry('/admin/at-risk-students', 'admin.items.atRiskStudents', AlertTriangle, [S, Ad]),
+      entry('/admin/risk-cases', 'admin.items.riskCases', AlertTriangle, [S, Ad]),
+      entry('/admin/integrity-cases', 'admin.items.integrity', BadgeAlert, [S, Ad]),
     ],
   },
   {
     id: 'accreditation',
     titleKey: 'admin.groups.accreditation',
     items: [
-      entry('/admin/recognition-requests', 'admin.items.recognition', FileBadge, [S, U, A]),
-      entry('/admin/certificates', 'admin.items.certificates', Award, [S, U, A]),
-      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [S, U, A, Q]),
-      entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S, U, A]),
+      entry('/admin/recognition-requests', 'admin.items.recognition', FileBadge, [S, Ad]),
+      entry('/admin/certificates', 'admin.items.certificates', Award, [S, Ad]),
+      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [S, Ad]),
+      entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S, Ad]),
     ],
   },
 ];
 
 export function getAdminNavGroupsForRole(role, t) {
+  const canonical = canonicalizeRoleCode(role);
   return ADMIN_NAV_GROUPS.map((group) => ({
     id: group.id,
     title: t(group.titleKey),
     items: group.items
-      .filter((item) => item.roles.includes(role))
+      .filter((item) => item.roles.includes(canonical))
       .map((item) => ({
         ...item,
         label: t(item.labelKey),
@@ -134,5 +134,8 @@ export function flattenAdminNavItems(role, t) {
 
 /** Route paths only — for access checks without translation. */
 export function flattenAdminNavPaths(role) {
-  return ADMIN_NAV_GROUPS.flatMap((g) => g.items.filter((i) => i.roles.includes(role)).map((i) => i.to));
+  const canonical = canonicalizeRoleCode(role);
+  return ADMIN_NAV_GROUPS.flatMap((g) =>
+    g.items.filter((i) => i.roles.includes(canonical)).map((i) => i.to)
+  );
 }

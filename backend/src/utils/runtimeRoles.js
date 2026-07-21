@@ -1,14 +1,21 @@
 'use strict';
 
 /**
- * Active vs legacy role helpers (program_admin Phase 3).
- * Deprecated roles must never grant runtime authorization.
+ * Active vs legacy role helpers.
+ * Legacy codes are canonicalized via roleCanon; they must not appear in allowlists raw.
  */
 
+const {
+  canonicalizeRoleCode,
+  normalizeRoleCodes,
+  LEGACY_CATALOG_ROLE_CODES,
+  isLegacyCatalogRoleCode,
+} = require('./roleCanon');
+
+/** @deprecated use LEGACY_CATALOG_ROLE_CODES — kept for older tests */
 const PROGRAM_ADMIN_ROLE_CODE = 'program_admin';
 
-/** Roles that must never appear in active AuthZ allowlists. */
-const DEPRECATED_RUNTIME_ROLE_CODES = Object.freeze([PROGRAM_ADMIN_ROLE_CODE]);
+const DEPRECATED_RUNTIME_ROLE_CODES = Object.freeze([...LEGACY_CATALOG_ROLE_CODES]);
 
 const deprecatedSet = new Set(DEPRECATED_RUNTIME_ROLE_CODES);
 
@@ -19,36 +26,33 @@ const warnedAllowlistKeys = new Set();
  * @param {unknown} code
  */
 function isDeprecatedRuntimeRole(code) {
-  return deprecatedSet.has(String(code || '').trim().toLowerCase());
+  return isLegacyCatalogRoleCode(code);
 }
 
 /**
- * Strip deprecated roles from an allowlist. Optionally warn once per allowlist key.
+ * Normalize allowlist to canonical codes (maps university_admin → admin, etc.).
+ * Emits a one-time warning when legacy codes were present in the source list.
  * @param {unknown} codes
- * @param {string} [allowlistKey] Stable name for de-duplicated warnings (no secrets).
+ * @param {string} [allowlistKey]
  * @returns {string[]}
  */
 function filterDeprecatedFromRoleAllowlist(codes, allowlistKey = 'role_allowlist') {
   const list = Array.isArray(codes) ? codes : codes == null ? [] : [codes];
-  const filtered = [];
-  const removed = [];
+  const legacySeen = [];
   for (const raw of list) {
-    const code = String(raw || '').trim().toLowerCase();
-    if (!code) continue;
-    if (deprecatedSet.has(code)) {
-      removed.push(code);
-      continue;
-    }
-    filtered.push(code);
+    const code = String(raw || '')
+      .trim()
+      .toLowerCase();
+    if (deprecatedSet.has(code)) legacySeen.push(code);
   }
-  const unique = [...new Set(filtered)];
-  if (removed.length) {
+  const unique = normalizeRoleCodes(list);
+  if (legacySeen.length) {
     const key = String(allowlistKey || 'role_allowlist');
     if (!warnedAllowlistKeys.has(key)) {
       warnedAllowlistKeys.add(key);
       // eslint-disable-next-line no-console
       console.warn(
-        `[runtimeRoles] Ignoring deprecated runtime role(s) in ${key}: ${[...new Set(removed)].join(', ')}`
+        `[runtimeRoles] Canonicalized legacy role(s) in ${key}: ${[...new Set(legacySeen)].join(', ')} → ${unique.join(', ')}`
       );
     }
   }
@@ -66,4 +70,6 @@ module.exports = {
   isDeprecatedRuntimeRole,
   filterDeprecatedFromRoleAllowlist,
   resetDeprecatedRoleWarningsForTests,
+  canonicalizeRoleCode,
+  normalizeRoleCodes,
 };

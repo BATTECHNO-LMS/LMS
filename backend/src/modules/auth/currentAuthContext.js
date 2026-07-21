@@ -8,15 +8,39 @@
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { isGlobalFromRoleRecords } = require('./auth.service');
+const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCanon');
+const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
 
 /**
+ * Official university scope for non-global users: `users.primary_university_id`.
+ * Exposed on the request user as `universityId` (and mirrored as primaryUniversityId).
+ *
  * @typedef {{
  *   userId: string,
  *   roles: string[],
  *   universityId: string | null,
+ *   primaryUniversityId: string | null,
+ *   university: { id: string, name: string } | null,
+ *   scope: { type: 'global' | 'university' | 'none', universityId: string | null },
  *   isGlobal: boolean,
+ *   permissions: string[],
  * }} AuthRequestUser
  */
+
+async function loadPermissionCodesForRoleIds(roleIds) {
+  if (!roleIds.length) return [];
+  const links = await prisma.role_permissions.findMany({
+    where: { role_id: { in: roleIds } },
+    select: { permission_id: true },
+  });
+  if (!links.length) return [];
+  const permIds = [...new Set(links.map((l) => l.permission_id))];
+  const perms = await prisma.permissions.findMany({
+    where: { id: { in: permIds } },
+    select: { code: true },
+  });
+  return [...new Set(perms.map((p) => p.code))];
+}
 
 /**
  * @param {string} userId
@@ -56,32 +80,55 @@ async function loadCurrentAuthContextFromDb(userId) {
       })
     : [];
 
-  const roles = roleRecords.map((r) => r.code);
-  const isGlobal = isGlobalFromRoleRecords(roleRecords);
+  const normalizedRecords = normalizeRoleRecords(roleRecords);
+  const roles = normalizeRoleCodes(normalizedRecords.map((r) => r.code));
+  const isGlobal = isGlobalFromRoleRecords(normalizedRecords);
+
+  const canonicalRoleRows = roles.length
+    ? await prisma.roles.findMany({
+        where: { code: { in: roles } },
+        select: { id: true, code: true },
+      })
+    : [];
+  let permissions = await loadPermissionCodesForRoleIds(canonicalRoleRows.map((r) => r.id));
+  if (isGlobal) {
+    permissions = [...ALL_PERMISSION_CODES];
+  }
+
+  const primaryUniversityId = user.primary_university_id ?? null;
+  let university = null;
+  if (primaryUniversityId) {
+    university = await prisma.universities.findUnique({
+      where: { id: primaryUniversityId },
+      select: { id: true, name: true },
+    });
+  }
+
+  const scope = isGlobal
+    ? { type: 'global', universityId: null }
+    : primaryUniversityId
+      ? { type: 'university', universityId: primaryUniversityId }
+      : { type: 'none', universityId: null };
 
   return {
     userId: user.id,
     roles,
-    universityId: user.primary_university_id ?? null,
+    universityId: primaryUniversityId,
+    primaryUniversityId,
+    university,
+    scope,
     isGlobal,
+    permissions,
   };
 }
 
 /** @type {(userId: string) => Promise<AuthRequestUser>} */
 let activeLoader = loadCurrentAuthContextFromDb;
 
-/**
- * @param {string} userId
- * @returns {Promise<AuthRequestUser>}
- */
 function loadCurrentAuthContext(userId) {
   return activeLoader(userId);
 }
 
-/**
- * Test-only: replace the DB loader with a mock. Call reset after each suite.
- * @param {(userId: string) => Promise<AuthRequestUser>} fn
- */
 function setCurrentAuthContextLoaderForTests(fn) {
   activeLoader = fn;
 }

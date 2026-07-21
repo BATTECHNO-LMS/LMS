@@ -38,7 +38,10 @@ export function RegisterForm() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const universityOptions = useMemo(() => mapUniversitiesForSelect(universityRows), [universityRows]);
+  const universityOptions = useMemo(
+    () => mapUniversitiesForSelect(universityRows, { locale: i18n.language }),
+    [universityRows, i18n.language]
+  );
 
   const {
     register,

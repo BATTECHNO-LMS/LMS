@@ -3,6 +3,7 @@
 const { verifyToken } = require('../utils/jwt');
 const { ApiError } = require('../utils/apiError');
 const { loadCurrentAuthContext } = require('../modules/auth/currentAuthContext');
+const { enforceAcademicReviewerReadOnly } = require('./permission.middleware');
 
 /**
  * Verify JWT, then build req.user from current database authorization state.
@@ -37,7 +38,7 @@ async function authMiddleware(req, res, next) {
 
   try {
     req.user = await loadCurrentAuthContext(userId);
-    return next();
+    return enforceAcademicReviewerReadOnly(req, res, next);
   } catch (err) {
     if (err instanceof ApiError) {
       return res.status(err.statusCode).json({
@@ -46,13 +47,10 @@ async function authMiddleware(req, res, next) {
         code: err.code || 'API_ERROR',
       });
     }
-    // Infrastructure / unexpected DB failure — do not treat as bad credentials
-    // and do not fall back to stale JWT claims.
     return next(err);
   }
 }
 
-/** Alias for `authMiddleware` — same JWT verification + current-state identity. */
 const authenticate = authMiddleware;
 
 module.exports = { authMiddleware, authenticate };

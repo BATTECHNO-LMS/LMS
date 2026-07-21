@@ -3,15 +3,34 @@
     "title": "Field training — university dashboard",
     "description": "Stats, applications, and reports for your university only.",
     "applicationsLink": "University applications",
+    "opportunitiesLink": "Training opportunities",
     "globalReportLink": "Global comprehensive report",
     "universityReportLink": "University report",
     "recentApplications": "Recent applications",
-    "noApplications": "No applications yet"
+    "opportunitiesTitle": "Opportunities linked to your university",
+    "viewAll": "View all",
+    "noApplications": "No applications yet",
+    "noOpportunities": "No opportunities linked to your university yet",
+    "universityRequiredTitle": "University not linked",
+    "universityRequired": "The academic reviewer account is not linked to a university. Please contact administration."
   },
   "applications": {
     "title": "University field training applications",
-    "description": "All applications from students at your university.",
-    "tableTitle": "Student table"
+    "description": "All applications from students at your university (read-only).",
+    "tableTitle": "Student table",
+    "viewToggle": "View mode",
+    "cards": "Cards",
+    "table": "Table",
+    "viewJourney": "Student journey"
+  },
+  "opportunities": {
+    "title": "University field training opportunities",
+    "description": "Opportunities where your university is a beneficiary.",
+    "listTitle": "Eligible opportunities",
+    "detailTitle": "Opportunity detail",
+    "detailDescription": "Only students from your university — no write actions.",
+    "backToList": "Back to opportunities",
+    "universityStudentsOnly": "University students in this opportunity"
   },
   "global": {
     "title": "Global comprehensive field training report",
@@ -27,6 +46,12 @@
     "universityLocked": "Report is limited to your university.",
     "status": "Application status",
     "allStatuses": "All statuses",
+    "trainingStatus": "Training status",
+    "allTrainingStatuses": "All training statuses",
+    "eligibility": "Eligibility",
+    "allEligibility": "All eligibility statuses",
+    "search": "Search",
+    "searchPlaceholder": "Student name, email, or opportunity…",
     "from": "From date",
     "to": "To date"
   },
@@ -44,16 +69,22 @@
     "universities": "Universities",
     "eligibleOpportunities": "Eligible opportunities",
     "totalApplicants": "Total applicants",
+    "pendingReview": "Pending review",
     "accepted": "Accepted",
     "rejected": "Rejected",
     "expelled": "Expelled",
     "inTraining": "In training",
     "completed": "Completed",
+    "eligibleStudents": "Eligible for completion",
     "completionLetters": "Completion letters",
     "averageAttendance": "Average attendance",
     "averagePreAssessment": "Avg. pre-assessment",
     "averagePostAssessment": "Avg. post-assessment",
+    "tasksSubmitted": "Tasks submitted",
     "taskSubmissionRate": "Task submission rate"
+  },
+  "timeline": {
+    "empty": "No training journey events recorded yet."
   },
   "sections": {
     "student": "Student information",
@@ -66,7 +97,7 @@
     "postAssessment": "Post-assessment",
     "eligibility": "Completion eligibility",
     "completionLetter": "Completion letter",
-    "timeline": "Activity timeline"
+    "timeline": "Training journey"
   },
   "student": {
     "name": "Name",
@@ -83,7 +114,9 @@
     "instructor": "Instructor",
     "dates": "Training dates",
     "mode": "Mode",
-    "location": "Location"
+    "location": "Location",
+    "specialties": "Eligible specialties",
+    "applicants": "University applicants"
   },
   "application": {
     "submittedAt": "Submitted at",
@@ -130,11 +163,13 @@
   },
   "table": {
     "student": "Student",
+    "email": "Email",
     "university": "University",
     "specialty": "Specialty",
     "opportunity": "Opportunity",
     "applicationStatus": "Application status",
     "trainingStatus": "Training status",
+    "progress": "Progress",
     "attendance": "Attendance %",
     "requiredHours": "Required hours",
     "completedHours": "Completed hours",
@@ -146,7 +181,7 @@
     "finalTask": "Final task",
     "eligibility": "Eligibility",
     "completionLetter": "Completion letter",
-    "actions": "Actions",
+    "actions": "View",
     "applicants": "Applicants",
     "accepted": "Accepted",
     "attendanceAvg": "Avg. attendance",

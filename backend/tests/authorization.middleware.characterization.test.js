@@ -200,18 +200,18 @@ describe('authorizeRoles characterization', () => {
     assert.equal(out.status, 403);
   });
 
-  it('program_admin is ignored even when listed on allowlist (Phase 3)', () => {
+  it('legacy program_admin JWT is canonicalized to admin when admin is allowlisted', () => {
     const mw = authorizeRoles('program_admin', 'university_admin');
     const req = createMockReq({
       user: makeRequester({ roles: ['program_admin'], isGlobal: false }),
     });
     const out = runMiddlewareSync(mw, req);
-    assert.equal(out.status, 403);
+    assert.equal(out.nextCalled, true);
   });
 
-  it('multiple allowed roles: any match succeeds', () => {
+  it('multiple allowed roles: any match succeeds (legacy aliases included)', () => {
     const mw = authorizeRoles('academic_admin', 'university_reviewer', 'qa_officer');
-    for (const role of ['academic_admin', 'university_reviewer', 'qa_officer']) {
+    for (const role of ['academic_admin', 'university_reviewer', 'qa_officer', 'admin', 'academic_reviewer']) {
       const out = runMiddlewareSync(
         mw,
         createMockReq({ user: makeRequester({ roles: [role], isGlobal: false }) })

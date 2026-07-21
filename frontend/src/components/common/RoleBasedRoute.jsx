@@ -2,6 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../features/auth/index.js';
 import { getDefaultDashboardPath } from '../../utils/authRouting.js';
 import { getLoginPathForCurrentPortal } from '../../utils/portal.js';
+import { normalizeRoleCodes } from '../../constants/roles.js';
 import { LoadingSpinner } from './LoadingSpinner.jsx';
 
 /**
@@ -10,9 +11,9 @@ import { LoadingSpinner } from './LoadingSpinner.jsx';
 function userRoleCodes(user) {
   if (!user || typeof user !== 'object') return [];
   if (Array.isArray(user.roles) && user.roles.length) {
-    return user.roles.map(String);
+    return normalizeRoleCodes(user.roles.map(String));
   }
-  if (user.role) return [String(user.role)];
+  if (user.role) return normalizeRoleCodes([String(user.role)]);
   return [];
 }
 
@@ -28,7 +29,8 @@ export function RoleBasedRoute({ allowedRoles = [] }) {
   }
 
   const codes = userRoleCodes(user);
-  const allowed = codes.some((r) => allowedRoles.includes(r));
+  const allowedSet = new Set(normalizeRoleCodes(allowedRoles));
+  const allowed = codes.some((r) => allowedSet.has(r));
 
   if (!allowed) {
     return <Navigate to={getDefaultDashboardPath(user)} replace />;

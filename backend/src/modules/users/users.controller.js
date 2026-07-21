@@ -22,7 +22,10 @@ async function getById(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const data = await usersService.createUser(req.validated.body, req.user);
+    const data = await usersService.createUser(req.validated.body, req.user, {
+      actorUserId: req.user.userId,
+      ipAddress: req.ip || null,
+    });
     return created(res, data, { message: 'User created' });
   } catch (e) {
     return next(e);

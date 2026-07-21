@@ -1,4 +1,4 @@
-import { ROLES, ADMIN_ROLE_SET, isLegacyDeprecatedRole } from '../constants/roles.js';
+import { ROLES, ADMIN_ROLE_SET, isLegacyDeprecatedRole, canonicalizeRoleCode } from '../constants/roles.js';
 import { UI_PERMISSION } from '../constants/permissions.js';
 
 const P = UI_PERMISSION;
@@ -92,7 +92,7 @@ const REVIEWER = {
 const BY_ROLE = {
   [ROLES.STUDENT]: STUDENT,
   [ROLES.INSTRUCTOR]: INSTRUCTOR,
-  [ROLES.UNIVERSITY_REVIEWER]: REVIEWER,
+  [ROLES.ACADEMIC_REVIEWER]: REVIEWER,
 };
 
 /**
@@ -100,9 +100,10 @@ const BY_ROLE = {
  * @returns {Record<string, boolean>}
  */
 export function getUiPermissions(role) {
-  if (isLegacyDeprecatedRole(role)) return { ...DENY_ALL };
-  if (role && ADMIN_ROLE_SET.includes(role)) return { ...ADMIN_ALL };
-  return BY_ROLE[role] ?? STUDENT;
+  const code = canonicalizeRoleCode(role);
+  if (!code) return { ...STUDENT };
+  if (code && ADMIN_ROLE_SET.includes(code)) return { ...ADMIN_ALL };
+  return BY_ROLE[code] ?? STUDENT;
 }
 
 /**

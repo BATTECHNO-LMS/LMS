@@ -11,16 +11,19 @@ const { listActiveSpecialties, assertActiveSpecialty } = require('../specialties
 const universitySpecialtiesService = require('../universitySpecialties/universitySpecialties.service');
 const { issueEmailVerificationOtp, verifyEmailOtpForUser, resendEmailVerificationOtp } = require('./emailVerification.service');
 const passwordResetService = require('./passwordReset.service');
+const { normalizeRoleCodes, normalizeRoleRecords, pickPrimaryRoleCode } = require('../../utils/roleCanon');
+const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
 
 function isGlobalFromRoleRecords(roleRecords) {
   const code = (env.SUPER_ADMIN_ROLE_CODE || 'super_admin').toLowerCase();
-  return roleRecords.some((r) => r.code.toLowerCase() === code);
+  return normalizeRoleRecords(roleRecords).some((r) => r.code.toLowerCase() === code);
 }
 
 function buildTokenPayload(userId, roleRecords, primaryUniversityId) {
+  const roles = normalizeRoleCodes((roleRecords || []).map((r) => r.code));
   return {
     userId,
-    roles: roleRecords.map((r) => r.code),
+    roles,
     universityId: primaryUniversityId ?? null,
     isGlobal: isGlobalFromRoleRecords(roleRecords),
   };
@@ -69,22 +72,34 @@ async function toLoginUser(user, roleRecords, permissionCodes, isGlobal) {
         }
       : null);
 
+  const roles = normalizeRoleCodes((roleRecords || []).map((r) => r.code));
+  const role = pickPrimaryRoleCode((roleRecords || []).map((r) => r.code));
+  const scope = isGlobal
+    ? { type: 'global', universityId: null }
+    : primaryUniversityId
+      ? { type: 'university', universityId: primaryUniversityId }
+      : { type: 'none', universityId: null };
+
   return {
     id: user.id,
     full_name: user.full_name,
     email: user.email,
     phone: user.phone,
     status: user.status,
+    /** Official university scope source (alias of primary_university_id). */
+    universityId: primaryUniversityId ?? null,
     primary_university_id: primaryUniversityId,
     primary_university: university,
     university,
+    scope,
     university_specialty_id: user.university_specialty_id ?? null,
     specialty_id: user.specialty_id ?? null,
     specialty,
     university_specialty: universitySpecialty,
     canonical_specialty: canonicalSpecialty,
-    roles: roleRecords.map((r) => r.code),
-    permissions: permissionCodes,
+    roles,
+    role,
+    permissions: isGlobal ? [...ALL_PERMISSION_CODES] : permissionCodes,
     isGlobal,
   };
 }

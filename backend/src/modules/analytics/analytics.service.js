@@ -236,8 +236,11 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics, univer
       byRole: [
         { roleKey: 'instructor', count: byRoleMap.get('instructor') || 0 },
         { roleKey: 'student', count: byRoleMap.get('student') || 0 },
-        { roleKey: 'reviewer', count: byRoleMap.get('university_reviewer') || 0 },
-        { roleKey: 'admin', count: (byRoleMap.get('super_admin') || 0) + (byRoleMap.get('program_admin') || 0) + (byRoleMap.get('university_admin') || 0) },
+        { roleKey: 'reviewer', count: byRoleMap.get('academic_reviewer') || 0 },
+        {
+          roleKey: 'admin',
+          count: (byRoleMap.get('super_admin') || 0) + (byRoleMap.get('admin') || 0),
+        },
       ],
     },
     universities: {

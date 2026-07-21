@@ -8,7 +8,7 @@ import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
-import { useTenant } from '../../features/tenant/index.js';
+import { useAuth, resolveAuthUniversityId } from '../../features/auth/index.js';
 import { useRecognitionRequests } from '../../features/recognition/index.js';
 import { useEvidence } from '../../features/evidence/index.js';
 import { useReport } from '../../features/reports/index.js';
@@ -18,8 +18,11 @@ import { getApiErrorMessage } from '../../services/apiHelpers.js';
 export function ReviewerDashboardPage() {
   const { t } = useTranslation('dashboard');
   const { t: tCommon } = useTranslation('common');
-  const { scopeId, isAllTenantsSelected } = useTenant();
-  const universityParam = !isAllTenantsSelected && scopeId ? { university_id: scopeId } : {};
+  const { t: tFt } = useTranslation('fieldTrainingReports');
+  const { user } = useAuth();
+  const universityId = resolveAuthUniversityId(user);
+  const universityName = user?.university?.name || user?.primary_university?.name || '';
+  const universityParam = universityId ? { university_id: universityId } : {};
   const {
     data: recognitionPayload,
     isLoading: recognitionLoading,
@@ -39,7 +42,7 @@ export function ReviewerDashboardPage() {
     isError: ftError,
     error: ftErrorObj,
   } = useFieldTrainingDashboard(universityParam, {
-    enabled: Boolean(universityParam.university_id),
+    enabled: Boolean(universityId),
     staleTime: 30_000,
     mode: 'academic',
   });
@@ -77,8 +80,20 @@ export function ReviewerDashboardPage() {
     <div className="page page--dashboard page--reviewer">
       <AdminPageHeader
         title={<>{t('reviewer.title')}</>}
-        description={<>{t('reviewer.description')}</>}
+        description={
+          <>
+            {t('reviewer.description')}
+            {universityName ? ` — ${universityName}` : ''}
+          </>
+        }
       />
+      {!universityId ? (
+        <SectionCard title={<>{tFt('hub.universityRequiredTitle')}</>}>
+          <p className="crud-muted" role="alert">
+            {tFt('hub.universityRequired')}
+          </p>
+        </SectionCard>
+      ) : null}
       <AdminStatsGrid>
         <StatCard
           label={t('reviewer.requests')}

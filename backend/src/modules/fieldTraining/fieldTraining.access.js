@@ -22,15 +22,11 @@ const NO_UNIVERSITY_SPECIALTY_MSG =
 const NOT_ELIGIBLE_MSG = 'هذه الفرصة غير متاحة للجامعة أو التخصص المسجل في حسابك.';
 const UNIVERSITY_FORBIDDEN_MSG = 'غير مصرح بالوصول إلى بيانات طلاب جامعة أخرى';
 
-const UNIVERSITY_SCOPED_FT_ROLES = [
-  'university_admin',
-  'academic_admin',
-  'university_reviewer',
-  'qa_officer',
-];
+const UNIVERSITY_SCOPED_FT_ROLES = ['admin', 'academic_reviewer'];
 
 function normalizeRoles(user) {
-  return (user?.roles || []).map((r) => String(r).toLowerCase());
+  const { normalizeRoleCodes } = require('../../utils/roleCanon');
+  return normalizeRoleCodes(user?.roles || []);
 }
 
 function isFieldTrainingAdmin(user) {
@@ -215,4 +211,4 @@ module.exports = {
   manageOpportunityListWhere,
   normalizeRoles,
 };
-
+

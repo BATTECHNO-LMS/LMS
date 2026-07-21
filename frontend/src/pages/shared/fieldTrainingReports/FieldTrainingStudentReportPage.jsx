@@ -281,16 +281,21 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
           </SectionCard>
 
           <SectionCard title={t('sections.timeline')}>
-            <DataTable
-              columns={[
-                { key: 'at', label: t('table.date') },
-                { key: 'label_ar', label: t('table.event') },
-              ]}
-              rows={(data.timeline ?? []).map((event) => ({
-                ...event,
-                at: formatFtDate(event.at),
-              }))}
-            />
+            {(data.timeline ?? []).length === 0 ? (
+              <p className="crud-muted">{t('timeline.empty')}</p>
+            ) : (
+              <ol className="ft-report-timeline">
+                {(data.timeline ?? []).map((event, index) => (
+                  <li key={`${event.key}-${index}`} className="ft-report-timeline__item">
+                    <div className="ft-report-timeline__marker" aria-hidden />
+                    <div className="ft-report-timeline__body">
+                      <time className="ft-report-timeline__date">{formatFtDate(event.at)}</time>
+                      <p className="ft-report-timeline__label">{event.label_ar || event.key}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </SectionCard>
         </>
       ) : null}
