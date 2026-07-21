@@ -1,7 +1,11 @@
 /**
- * Field-training hours progress — single source of truth.
- * Completed hours are derived from approved attendance × session duration (start/end times).
- * No duplicated stored totals on applications.
+ * Field-training hours helpers.
+ *
+ * Two complementary surfaces:
+ * 1) Attendance-derived progress (`buildHoursProgress`) — completed hours from
+ *    approved attendance × session duration (no duplicated stored totals needed).
+ * 2) Model A aggregate (`buildHoursSummary`) — reads
+ *    `field_training_applications.completed_training_hours` (REPLACE write semantics).
  */
 
 const { prisma } = require('../../config/db');
@@ -72,34 +76,6 @@ function buildHoursProgress({ requiredHours = null, completedMinutes = 0 } = {})
     else if (completed >= required) status = HOURS_STATUS.COMPLETED;
     else status = HOURS_STATUS.IN_PROGRESS;
   }
- * Authoritative field-training hours helpers.
- *
- * Model A — aggregate on field_training_applications.completed_training_hours.
- * Write semantics: REPLACE total completed hours (not incremental add).
- * Required hours: field_training_opportunities.required_training_hours (nullable).
- * Completion eligibility does NOT currently gate on hours (attendance / assessments / task).
- */
-
-function toNullableInt(value) {
-  if (value == null || value === '') return null;
-  const n = Number(value);
-  if (!Number.isFinite(n)) return null;
-  return Math.trunc(n);
-}
-
-/**
- * @param {{ completed_training_hours?: unknown, hours_updated_at?: unknown }} app
- * @param {{ required_training_hours?: unknown }} opp
- */
-function buildHoursSummary(app = {}, opp = {}) {
-  const required = toNullableInt(opp.required_training_hours);
-  const completed = toNullableInt(app.completed_training_hours);
-  const remaining =
-    required != null && completed != null ? Math.max(0, required - completed) : null;
-  const hoursProgressPercentage =
-    required != null && required > 0 && completed != null
-      ? Math.min(100, Math.round((completed / required) * 100))
-      : null;
 
   return {
     required_training_hours: required,
@@ -217,19 +193,32 @@ async function calculateHoursProgressForApplications(applications, requiredByOpp
   return result;
 }
 
-module.exports = {
-  HOURS_ATTENDED_STATUSES,
-  HOURS_STATUS,
-  parseTimeToMinutes,
-  sessionDurationMinutes,
-  minutesToHours,
-  roundHours,
-  buildHoursProgress,
-  hoursStatusLabelAr,
-  sumCompletedMinutesFromRecords,
-  calculateCompletedTrainingMinutes,
-  calculateHoursProgressForApplication,
-  calculateHoursProgressForApplications,
+function toNullableInt(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.trunc(n);
+}
+
+/**
+ * Model A summary from stored application aggregate hours.
+ * @param {{ completed_training_hours?: unknown, hours_updated_at?: unknown }} app
+ * @param {{ required_training_hours?: unknown }} opp
+ */
+function buildHoursSummary(app = {}, opp = {}) {
+  const required = toNullableInt(opp.required_training_hours);
+  const completed = toNullableInt(app.completed_training_hours);
+  const remaining =
+    required != null && completed != null ? Math.max(0, required - completed) : null;
+  const hoursProgressPercentage =
+    required != null && required > 0 && completed != null
+      ? Math.min(100, Math.round((completed / required) * 100))
+      : null;
+
+  return {
+    required_training_hours: required,
+    completed_training_hours: completed,
+    remaining_training_hours: remaining,
     hours_progress_percentage: hoursProgressPercentage,
     hours_updated_at: app.hours_updated_at ?? null,
     hours_configured: required != null,
@@ -327,8 +316,20 @@ function validateRequiredHoursValue(requiredHours) {
 }
 
 module.exports = {
+  HOURS_ATTENDED_STATUSES,
+  HOURS_STATUS,
+  parseTimeToMinutes,
+  sessionDurationMinutes,
+  minutesToHours,
+  roundHours,
+  buildHoursProgress,
+  hoursStatusLabelAr,
+  sumCompletedMinutesFromRecords,
+  calculateCompletedTrainingMinutes,
+  calculateHoursProgressForApplication,
+  calculateHoursProgressForApplications,
+  toNullableInt,
   buildHoursSummary,
   validateCompletedHoursReplacement,
   validateRequiredHoursValue,
-  toNullableInt,
 };

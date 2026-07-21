@@ -1,12 +1,20 @@
-const test = require('node:test');
+'use strict';
+
+const { describe, it, test } = require('node:test');
 const assert = require('node:assert/strict');
 const {
   sessionDurationMinutes,
   buildHoursProgress,
   sumCompletedMinutesFromRecords,
   HOURS_STATUS,
+  buildHoursSummary,
+  validateCompletedHoursReplacement,
+  validateRequiredHoursValue,
 } = require('../src/modules/fieldTraining/fieldTraining.hours');
-const { opportunityBodySchema, updateOpportunityBodySchema } = require('../src/modules/fieldTraining/fieldTraining.validation');
+const {
+  opportunityBodySchema,
+  updateOpportunityBodySchema,
+} = require('../src/modules/fieldTraining/fieldTraining.validation');
 
 test('sessionDurationMinutes derives duration from start/end times', () => {
   assert.equal(sessionDurationMinutes('09:00', '11:00'), 120);
@@ -102,15 +110,9 @@ test('updateOpportunityBodySchema allows null hours for legacy compatibility', (
 
   assert.equal(updateOpportunityBodySchema.safeParse({ required_training_hours: 120 }).success, true);
   assert.equal(updateOpportunityBodySchema.safeParse({ required_training_hours: 0 }).success, false);
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const {
-  buildHoursSummary,
-  validateCompletedHoursReplacement,
-  validateRequiredHoursValue,
-} = require('../src/modules/fieldTraining/fieldTraining.hours');
+});
 
-describe('fieldTraining.hours', () => {
+describe('fieldTraining.hours Model A', () => {
   describe('buildHoursSummary', () => {
     it('returns nulls when neither required nor completed set', () => {
       const summary = buildHoursSummary({}, {});

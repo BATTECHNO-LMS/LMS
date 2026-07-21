@@ -6,7 +6,7 @@
  */
 
 const { ApiError } = require('../../utils/apiError');
-const { LEGACY_CATALOG_ROLE_CODES, canonicalizeRoleCode } = require('../../utils/roleCanon');
+const { LEGACY_CATALOG_ROLE_CODES } = require('../../utils/roleCanon');
 
 const DEPRECATED_CODE = 'LEGACY_ROLE_DEPRECATED';
 const DEPRECATED_MESSAGE =
@@ -23,12 +23,7 @@ function denyLegacyRoleAssignment(codes) {
   const found = (Array.isArray(codes) ? codes : [])
     .map((c) => String(c || '').trim().toLowerCase())
     .filter((c) => legacySet.has(c));
-  throw new ApiError(
-    400,
-    `${DEPRECATED_MESSAGE} (${found.join(', ')} → ${found.map(canonicalizeRoleCode).join(', ')})`,
-    { legacy_roles: found },
-    DEPRECATED_CODE
-  );
+  throw new ApiError(400, DEPRECATED_MESSAGE, { legacy_roles: found }, DEPRECATED_CODE);
 }
 
 /**

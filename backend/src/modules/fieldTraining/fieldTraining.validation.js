@@ -95,7 +95,6 @@ const opportunityBodySchema = z.object({
   requires_final_task: z.coerce.boolean().optional(),
   minimum_attendance_percentage: z.coerce.number().int().min(0).max(100).optional().nullable(),
   minimum_post_assessment_score: z.coerce.number().min(0).max(100).optional().nullable(),
-  required_training_hours: z.coerce.number().int().positive().max(10000).optional().nullable(),
   completion_rules: z.record(z.unknown()).optional().nullable(),
 });
 
