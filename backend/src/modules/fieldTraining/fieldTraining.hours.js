@@ -1,7 +1,10 @@
 /**
- * Field-training hours progress — single source of truth.
- * Completed hours are derived from approved attendance × session duration (start/end times).
- * No duplicated stored totals on applications.
+ * Field-training hours helpers.
+ *
+ * Two surfaces (kept together after merge):
+ * 1) Attendance-derived progress — session duration × present/late/excused.
+ * 2) Model A — stored field_training_applications.completed_training_hours
+ *    (REPLACE write semantics via validateCompletedHoursReplacement / buildHoursSummary).
  */
 
 const { prisma } = require('../../config/db');
@@ -47,6 +50,13 @@ function minutesToHours(minutes) {
   return roundHours((Number(minutes) || 0) / 60);
 }
 
+function toNullableInt(value) {
+  if (value == null || value === '') return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.trunc(n);
+}
+
 /**
  * @param {{ requiredHours?: number | null, completedMinutes?: number }} input
  */
@@ -80,6 +90,32 @@ function buildHoursProgress({ requiredHours = null, completedMinutes = 0 } = {})
     excess_training_hours: excess,
     hours_completion_percentage: percentage,
     hours_completion_status: status,
+  };
+}
+
+/**
+ * Model A summary from stored application/opportunity hour columns.
+ * @param {{ completed_training_hours?: unknown, hours_updated_at?: unknown }} app
+ * @param {{ required_training_hours?: unknown }} opp
+ */
+function buildHoursSummary(app = {}, opp = {}) {
+  const required = toNullableInt(opp.required_training_hours);
+  const completed = toNullableInt(app.completed_training_hours);
+  const remaining =
+    required != null && completed != null ? Math.max(0, required - completed) : null;
+  const hoursProgressPercentage =
+    required != null && required > 0 && completed != null
+      ? Math.min(100, Math.round((completed / required) * 100))
+      : null;
+
+  return {
+    required_training_hours: required,
+    completed_training_hours: completed,
+    remaining_training_hours: remaining,
+    hours_progress_percentage: hoursProgressPercentage,
+    hours_updated_at: app.hours_updated_at ?? null,
+    hours_configured: required != null,
+    hours_recorded: completed != null,
   };
 }
 
@@ -189,6 +225,95 @@ async function calculateHoursProgressForApplications(applications, requiredByOpp
   return result;
 }
 
+/**
+ * Validate a replacement completed-hours value against opportunity required hours.
+ * @returns {{ ok: true, value: number } | { ok: false, status: number, message: string, code: string }}
+ */
+function validateCompletedHoursReplacement(completedHours, requiredHours) {
+  if (completedHours == null || completedHours === '') {
+    return {
+      ok: false,
+      status: 422,
+      message: 'يجب إدخال عدد ساعات مكتملة صالح.',
+      code: 'HOURS_REQUIRED',
+    };
+  }
+  const value = Number(completedHours);
+  if (!Number.isFinite(value) || !Number.isInteger(value)) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'ساعات التدريب المكتملة يجب أن تكون عدداً صحيحاً.',
+      code: 'HOURS_INVALID_PRECISION',
+    };
+  }
+  if (value < 0) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'لا يمكن أن تكون الساعات المكتملة سالبة.',
+      code: 'HOURS_NEGATIVE',
+    };
+  }
+  if (value > 10000) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'قيمة الساعات المكتملة تتجاوز الحد المسموح.',
+      code: 'HOURS_TOO_LARGE',
+    };
+  }
+  const required = toNullableInt(requiredHours);
+  if (required != null && value > required) {
+    return {
+      ok: false,
+      status: 422,
+      message: `لا يمكن أن تتجاوز الساعات المكتملة الساعات المطلوبة (${required}).`,
+      code: 'HOURS_EXCEED_REQUIRED',
+    };
+  }
+  return { ok: true, value };
+}
+
+/**
+ * Validate required-hours value for opportunity create/update.
+ * null clears the target; positive integers only when provided.
+ */
+function validateRequiredHoursValue(requiredHours) {
+  if (requiredHours === undefined) {
+    return { ok: true, skipped: true };
+  }
+  if (requiredHours === null || requiredHours === '') {
+    return { ok: true, value: null };
+  }
+  const value = Number(requiredHours);
+  if (!Number.isFinite(value) || !Number.isInteger(value)) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'ساعات التدريب المطلوبة يجب أن تكون عدداً صحيحاً.',
+      code: 'REQUIRED_HOURS_INVALID',
+    };
+  }
+  if (value <= 0) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'ساعات التدريب المطلوبة يجب أن تكون أكبر من صفر عند تحديدها.',
+      code: 'REQUIRED_HOURS_NOT_POSITIVE',
+    };
+  }
+  if (value > 10000) {
+    return {
+      ok: false,
+      status: 422,
+      message: 'ساعات التدريب المطلوبة تتجاوز الحد المسموح.',
+      code: 'REQUIRED_HOURS_TOO_LARGE',
+    };
+  }
+  return { ok: true, value };
+}
+
 module.exports = {
   HOURS_ATTENDED_STATUSES,
   HOURS_STATUS,
@@ -196,10 +321,14 @@ module.exports = {
   sessionDurationMinutes,
   minutesToHours,
   roundHours,
+  toNullableInt,
   buildHoursProgress,
+  buildHoursSummary,
   hoursStatusLabelAr,
   sumCompletedMinutesFromRecords,
   calculateCompletedTrainingMinutes,
   calculateHoursProgressForApplication,
   calculateHoursProgressForApplications,
+  validateCompletedHoursReplacement,
+  validateRequiredHoursValue,
 };

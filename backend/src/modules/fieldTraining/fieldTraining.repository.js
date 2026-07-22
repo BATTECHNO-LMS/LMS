@@ -111,6 +111,10 @@ function mapApplicationRow(row) {
     post_assessment_score: row.post_assessment_score != null ? Number(row.post_assessment_score) : null,
     attendance_percentage:
       row.attendance_percentage != null ? Number(row.attendance_percentage) : null,
+    completed_training_hours:
+      row.completed_training_hours != null ? Number(row.completed_training_hours) : null,
+    hours_updated_at: row.hours_updated_at ?? null,
+    hours_updated_by_id: row.hours_updated_by_id ?? null,
     final_task_status: row.final_task_status ?? 'not_required',
     completion_eligibility_status: row.completion_eligibility_status ?? 'pending',
     eligibility_reason: row.eligibility_reason ?? null,

@@ -76,6 +76,7 @@ const emptyForm = {
   requires_pre_assessment: true,
   requires_post_assessment: true,
   requires_final_task: true,
+  required_training_hours: '',
   minimum_attendance_percentage: '80',
   minimum_post_assessment_score: '60',
   eligibility: [],
@@ -214,6 +215,8 @@ export function AdminFieldTrainingPage() {
       requires_pre_assessment: r.requires_pre_assessment ?? true,
       requires_post_assessment: r.requires_post_assessment ?? true,
       requires_final_task: r.requires_final_task ?? true,
+      required_training_hours:
+        r.required_training_hours != null ? String(r.required_training_hours) : '',
       minimum_attendance_percentage:
         r.minimum_attendance_percentage != null ? String(r.minimum_attendance_percentage) : '',
       minimum_post_assessment_score:
@@ -287,6 +290,9 @@ export function AdminFieldTrainingPage() {
       requires_pre_assessment: Boolean(form.requires_pre_assessment),
       requires_post_assessment: Boolean(form.requires_post_assessment),
       requires_final_task: Boolean(form.requires_final_task),
+      required_training_hours: form.required_training_hours
+        ? Number(form.required_training_hours)
+        : null,
       minimum_attendance_percentage: form.minimum_attendance_percentage
         ? Number(form.minimum_attendance_percentage)
         : null,
@@ -330,6 +336,13 @@ export function AdminFieldTrainingPage() {
       const attendance = Number(form.minimum_attendance_percentage);
       if (Number.isNaN(attendance) || attendance < 0 || attendance > 100) {
         errors.attendance = t('form.attendanceRange');
+      }
+    }
+
+    if (form.required_training_hours !== '') {
+      const hours = Number(form.required_training_hours);
+      if (Number.isNaN(hours) || !Number.isInteger(hours) || hours <= 0) {
+        errors.requiredHours = t('form.requiredHoursPositive');
       }
     }
 
@@ -1009,6 +1022,22 @@ export function AdminFieldTrainingPage() {
                       </label>
                     </div>
                     <div className="ft-workflow-numbers">
+                      <FormInput
+                        id="ft-required-hours"
+                        type="number"
+                        min={1}
+                        max={10000}
+                        label={t('form.requiredTrainingHours')}
+                        value={form.required_training_hours}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, required_training_hours: e.target.value }));
+                          if (formErrors.requiredHours) {
+                            setFormErrors((prev) => ({ ...prev, requiredHours: undefined }));
+                          }
+                        }}
+                        error={formErrors.requiredHours}
+                        aria-invalid={Boolean(formErrors.requiredHours)}
+                      />
                       <FormInput
                         id="ft-min-att"
                         type="number"

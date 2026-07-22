@@ -1,0 +1,668 @@
+{
+  "@@locale": "en",
+  "appName": "BATTECHNO LMS",
+  "appTagline": "University learning and field training platform",
+  "welcomeTitle": "Welcome to your learning journey",
+  "welcomeSubtitle": "Track field training, tasks, and academic progress from your phone.",
+  "email": "Email",
+  "password": "Password",
+  "login": "Sign in",
+  "register": "Create account",
+  "forgotPassword": "Forgot password?",
+  "fullName": "Full name",
+  "phoneOptional": "Phone (optional)",
+  "university": "University",
+  "specialty": "Specialty",
+  "verifyEmail": "Verify email",
+  "otpHint": "Enter the 6-digit code",
+  "resendCode": "Resend code",
+  "resetPassword": "Reset password",
+  "newPassword": "New password",
+  "confirmPassword": "Confirm password",
+  "continueAction": "Continue",
+  "retry": "Retry",
+  "logout": "Sign out",
+  "profile": "Profile",
+  "home": "Home",
+  "training": "Training",
+  "tasks": "Tasks",
+  "students": "Students",
+  "grading": "Grading",
+  "opportunities": "Opportunities",
+  "users": "Users",
+  "reports": "Reports",
+  "reviews": "Reviews",
+  "universities": "Universities",
+  "administration": "Administration",
+  "notifications": "Notifications",
+  "accountPendingTitle": "Account pending approval",
+  "accountPendingBody": "Your email is verified. Your account awaits university administrator approval.",
+  "accountInactiveTitle": "Account inactive",
+  "accountInactiveBody": "You cannot access the platform right now. Contact your university administration.",
+  "unsupportedRoleTitle": "Unsupported account",
+  "unsupportedRoleBody": "Your account role is not supported in the mobile app. Contact support.",
+  "networkErrorTitle": "Connection failed",
+  "networkErrorBody": "Check your internet connection and try again.",
+  "sessionExpired": "Session expired. Please sign in again.",
+  "loading": "Loading…",
+  "emptyDashboard": "Nothing to show yet",
+  "nextAction": "Next action",
+  "trainingProgress": "Training progress",
+  "completedHours": "Completed hours",
+  "requiredHours": "Required hours",
+  "quickActions": "Quick actions",
+  "eligibleOpportunities": "Eligible opportunities",
+  "recentActivity": "Recent activity",
+  "greetingMorning": "Good morning",
+  "greetingEvening": "Good evening",
+  "fieldTrainingStatus": "Field training status",
+  "noActiveTraining": "No active field training right now",
+  "emailRequired": "Email is required",
+  "emailInvalid": "Enter a valid email address",
+  "passwordRequired": "Password is required",
+  "passwordMinRegister": "Password must be at least 6 characters",
+  "passwordMinReset": "Password must be at least 8 characters",
+  "passwordMismatch": "Passwords do not match",
+  "nameRequired": "Full name is required",
+  "otpRequired": "Verification code is required",
+  "otpInvalid": "Code must be 6 digits",
+  "loginFailed": "Sign in failed. Check your credentials and try again.",
+  "emailNotVerified": "Please verify your email first.",
+  "settings": "Settings",
+  "trainingDetails": "Training details",
+  "description": "Description",
+  "trainingDates": "Training dates",
+  "requiredHoursNotSet": "Required training hours have not been set yet",
+  "remainingHours": "Remaining hours",
+  "noTasksCurrently": "No required tasks at the moment",
+  "taskUntitled": "Untitled task",
+  "dueDate": "Due date",
+  "tasksProgressLabel": "{submitted} of {total} tasks",
+  "@tasksProgressLabel": {
+    "placeholders": {
+      "submitted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "taskDetails": "Task details",
+  "taskNotFound": "Task not found",
+  "previousSubmission": "Previous submission",
+  "submittedAt": "Submitted at",
+  "submitTask": "Submit task",
+  "projectUrl": "Project URL",
+  "submissionNotes": "Your notes (optional)",
+  "attachFileOptional": "Attach file (optional)",
+  "fileUploadHint": "You may attach a PDF or image. R2-hosted production may require web upload in a later phase.",
+  "taskSubmitSuccess": "Task submitted successfully",
+  "aiTaskMobileLimited": "This task requires AI self-evaluation. Complete it on the web platform for now.",
+  "assessmentsTitle": "Assessments",
+  "preAssessment": "Pre-training assessment",
+  "postAssessment": "Post-training assessment",
+  "assessmentAvailable": "Available now",
+  "assessmentCompleted": "Completed",
+  "assessmentNotPublished": "Not published yet",
+  "assessmentLocked": "Currently unavailable",
+  "assessmentUnavailable": "Currently unavailable",
+  "startAssessment": "Start assessment",
+  "viewAssessmentResult": "View result",
+  "assessmentScoreLabel": "Score: {score}%",
+  "@assessmentScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentPassScoreLabel": "Pass score: {score}%",
+  "@assessmentPassScoreLabel": {
+    "placeholders": {
+      "score": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentInstructions": "Assessment instructions",
+  "assessmentDefaultInstructions": "Read each question carefully. You cannot retake the assessment after submission.",
+  "assessmentQuestionCountLabel": "Questions: {count}",
+  "@assessmentQuestionCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentStartWarning": "Ensure you have a stable connection before starting. Answers cannot be changed after submission.",
+  "assessmentQuestionProgress": "Question {current} of {total}",
+  "@assessmentQuestionProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "assessmentAttempt": "Take assessment",
+  "previousQuestion": "Previous",
+  "nextQuestion": "Next",
+  "submitAssessment": "Submit assessment",
+  "submitAssessmentConfirmTitle": "Confirm submission",
+  "submitAssessmentConfirmBody": "Are you sure you want to submit? You cannot undo this action.",
+  "leaveAssessmentTitle": "Leave assessment?",
+  "leaveAssessmentBody": "Your answers are only saved locally until you submit. Leave anyway?",
+  "leaveAssessmentConfirm": "Leave",
+  "assessmentResult": "Assessment result",
+  "assessmentPassed": "Passed",
+  "assessmentNotPassed": "Not passed",
+  "assessmentResultPending": "Pending evaluation",
+  "assessmentPendingManual": "Some answers require manual grading by an instructor.",
+  "backToTraining": "Back to training",
+  "trueAnswer": "True",
+  "falseAnswer": "False",
+  "yourAnswer": "Your answer",
+  "unsupportedQuestionType": "This question type is not supported on mobile yet.",
+  "noAssessmentsRequired": "No assessments are required for this training.",
+  "assessmentNotReady": "The assessment is not ready yet.",
+  "trainingJourney": "Training journey",
+  "upcomingSession": "Upcoming session",
+  "viewAssessments": "View assessments",
+  "attendanceSummary": "Attendance summary",
+  "viewAllSessions": "All sessions",
+  "attendancePercentageLabel": "Attendance: {percent}%",
+  "@attendancePercentageLabel": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "sessionsAttendedLabel": "{attended} of {required} sessions",
+  "@sessionsAttendedLabel": {
+    "placeholders": {
+      "attended": {
+        "type": "int"
+      },
+      "required": {
+        "type": "int"
+      }
+    }
+  },
+  "attendanceSummaryUnavailable": "Attendance summary is not available yet.",
+  "trainingSessions": "Training sessions",
+  "noSessionsCurrently": "No sessions scheduled at the moment.",
+  "upcomingSessions": "Upcoming sessions",
+  "pastSessions": "Past sessions",
+  "sessionDetails": "Session details",
+  "sessionNotFound": "Session not found",
+  "sessionTime": "Session time",
+  "sessionRequired": "Required session",
+  "attendanceStatus": "Attendance status",
+  "yes": "Yes",
+  "no": "No",
+  "joinSession": "Join session",
+  "noMeetingLink": "Meeting link is not available yet.",
+  "openMeetingLinkTitle": "Open meeting link",
+  "openMeetingLinkBody": "This will open an external app. Continue?",
+  "openLink": "Open link",
+  "invalidMeetingLink": "Invalid meeting link.",
+  "pendingPreAssessment": "Pre-assessment required",
+  "pendingPostAssessment": "Post-assessment required",
+  "applyToTrainingTitle": "Confirm application",
+  "applyToTrainingBody": "Do you want to apply for this training opportunity?",
+  "applyNow": "Apply now",
+  "applicationSubmitted": "Your application was submitted",
+  "searchTraining": "Search training",
+  "noTrainingInSection": "Nothing in this section",
+  "viewTrainingDetails": "View details",
+  "profileIncompleteForTraining": "Complete your university profile on the web before applying.",
+  "lastUpdatedAt": "Last updated: {time}",
+  "@lastUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "offlineCachedBanner": "Showing temporarily cached data",
+  "notificationsUnreadCount": "{count} unread",
+  "@notificationsUnreadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "markAllRead": "Mark all read",
+  "unreadOnly": "Unread only",
+  "noNotifications": "No notifications right now",
+  "notificationTargetUnavailable": "This notification cannot be opened on mobile yet",
+  "certificatesAndDocuments": "Certificates & documents",
+  "certificatesTitle": "Certificates",
+  "officialLetters": "Official letters",
+  "completionLetter": "Completion letter",
+  "noCertificatesOrDocuments": "No certificates or documents yet",
+  "certificateDetails": "Certificate details",
+  "certificateNotFound": "Certificate not found",
+  "certificateNumber": "Certificate number",
+  "issuedAt": "Issued at",
+  "certificateStatus": "Certificate status",
+  "verificationCode": "Verification code",
+  "certificateDownloadUnavailable": "Certificate file download is not available yet. Use official verification instead.",
+  "verifyCertificate": "Verify certificate",
+  "documentDownloadFailed": "Could not download document",
+  "profileReadOnlyNotice": "Profile updates are not available in the app yet. Contact your university if needed.",
+  "accountStatus": "Account status",
+  "language": "Language",
+  "languageArabic": "Arabic",
+  "languageEnglish": "English",
+  "changePasswordUnavailable": "Change password",
+  "useForgotPasswordFlow": "Use forgot password from the login screen",
+  "privacyNotice": "Privacy",
+  "privacyNoticeBody": "Passwords and assessment answers are not stored on device.",
+  "appVersion": "App version",
+  "logoutServerLimitation": "Logout clears the local session only. Server tokens may remain active briefly (QA-AUTH-001).",
+  "certificateReady": "Completion document ready",
+  "viewCertificatesHint": "View or download your completion letter",
+  "myTrainings": "My trainings",
+  "instructorGreeting": "Hello, {name}",
+  "@instructorGreeting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activeTrainingsCount": "{count} active trainings",
+  "@activeTrainingsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activeStudentsCount": "{count} active students",
+  "@activeStudentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingSubmissionsCount": "{count} submissions awaiting review",
+  "@pendingSubmissionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "atRiskStudentsCount": "{count} students need follow-up",
+  "@atRiskStudentsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityReviewSubmissions": "Review {count} submissions",
+  "@instructorPriorityReviewSubmissions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityUpcomingSession": "Open upcoming training",
+  "instructorPriorityRecordAttendance": "Record today's session attendance",
+  "instructorPriorityFollowUp": "Follow up {count} students",
+  "@instructorPriorityFollowUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "instructorPriorityOpenTraining": "Open your training",
+  "noAssignedTrainings": "No trainings assigned to you yet",
+  "searchAssignedTrainings": "Search your trainings",
+  "hours": "hours",
+  "hoursNotSpecified": "Hours not specified",
+  "sessions": "sessions",
+  "attendance": "Attendance",
+  "participants": "Participants",
+  "viewParticipants": "View students",
+  "viewSessions": "View sessions",
+  "viewSubmissions": "Review submissions",
+  "viewAssessmentResults": "Assessment results",
+  "recordAttendance": "Record attendance",
+  "createSession": "Create session",
+  "editSession": "Edit session",
+  "sessionTitle": "Session title",
+  "sessionDate": "Session date",
+  "startTime": "Start time",
+  "endTime": "End time",
+  "meetingLink": "Meeting link",
+  "sessionSaved": "Session saved",
+  "invalidSessionTimes": "End time must be after start time",
+  "invalidMeetingUrl": "Invalid meeting link",
+  "markAllPresent": "Mark all present",
+  "unsavedAttendanceTitle": "Unsaved changes",
+  "unsavedAttendanceBody": "You have unsaved attendance changes. Leave anyway?",
+  "discardChanges": "Discard",
+  "saveAttendance": "Save attendance",
+  "attendanceSaved": "Attendance saved",
+  "attendanceSaveFailed": "Could not save attendance",
+  "confirmAttendanceSave": "Confirm attendance",
+  "confirmAttendanceSaveBody": "Attendance will be saved for all selected students.",
+  "hoursReadOnlyNotice": "Recording completed training hours is not available via the mobile API yet. Hours are shown only when returned by the server.",
+  "requiredHoursLabel": "Required hours",
+  "completedHoursLabel": "Completed hours",
+  "remainingHoursLabel": "Remaining hours",
+  "hoursProgressLabel": "Hours progress",
+  "recordHours": "Record hours",
+  "updateHours": "Update hours",
+  "hoursNoteOptional": "Note (optional)",
+  "hoursSaved": "Hours updated",
+  "hoursConflict": "Hours were updated by someone else. Refresh and try again.",
+  "hoursExceedRequired": "Completed hours cannot exceed required hours.",
+  "hoursValidationInvalid": "Enter a non-negative whole number.",
+  "hoursNotRecorded": "Not recorded yet",
+  "hoursRecordedPerStudentHint": "Completed hours are recorded per student from the participant progress screen.",
+  "reviewSubmission": "Review submission",
+  "approveSubmission": "Approve",
+  "rejectSubmission": "Reject",
+  "requestRevision": "Request revision",
+  "instructorFeedback": "Instructor feedback",
+  "feedbackRequired": "Enter feedback when requesting revision or rejecting",
+  "reviewSaved": "Review saved",
+  "downloadAttachment": "Download attachment",
+  "noSubmissions": "No submissions yet",
+  "noParticipants": "No participants yet",
+  "noSessions": "No sessions yet",
+  "assessmentResults": "Assessment results",
+  "score": "Score",
+  "passed": "Passed",
+  "failed": "Failed",
+  "noAssessmentResults": "No assessment results yet",
+  "forbiddenAccess": "You are not authorized to access this training",
+  "resourceNotFound": "This item was not found or was removed",
+  "conflictError": "Update conflict. Refresh and try again",
+  "validationError": "Please check the entered data",
+  "instructorStudentsHub": "My training students",
+  "selectTrainingForStudents": "Select a training to view its students",
+  "opportunityInfo": "Opportunity info",
+  "leaveWithoutSaving": "Leave",
+  "stayAndEdit": "Stay",
+  "save": "Save",
+  "instructorRole": "Instructor",
+  "trainees": "Trainees",
+  "universityAdminRole": "University Admin",
+  "academicAdminRole": "Academic Admin",
+  "adminOpportunitiesCount": "{count} opportunities",
+  "@adminOpportunitiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPublishedOpportunitiesCount": "{count} published",
+  "@adminPublishedOpportunitiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPendingApplicationsCount": "{count} applications awaiting review",
+  "@adminPendingApplicationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPendingUsersCount": "{count} accounts pending activation",
+  "@adminPendingUsersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "adminPriorityCompleteSetup": "Complete an opportunity's setup",
+  "createOpportunity": "Create opportunity",
+  "noOpportunities": "No training opportunities yet",
+  "editOpportunity": "Edit opportunity",
+  "publishOpportunity": "Publish opportunity",
+  "archiveOpportunity": "Archive opportunity",
+  "confirmPublishBody": "The opportunity will be published and open for eligible students to apply.",
+  "confirmArchiveBody": "The opportunity will be archived and no longer accept applications.",
+  "opportunityPublished": "Opportunity published",
+  "opportunityArchived": "Opportunity archived",
+  "needsEligibilitySetupNotice": "Set up eligible universities and specialties before publishing",
+  "assignedInstructorLabel": "Assigned instructor",
+  "reviewApplications": "Review applications",
+  "rejectApplication": "Reject",
+  "approveApplication": "Approve",
+  "confirmApproveTitle": "Confirm approval",
+  "confirmRejectTitle": "Confirm rejection",
+  "adminNoteOptional": "Admin note (optional)",
+  "opportunityTitleLabel": "Opportunity title",
+  "locationLabel": "Location",
+  "trainingModeLabel": "Training mode",
+  "startDateLabel": "Start date",
+  "endDateLabel": "End date",
+  "invalidRequiredHours": "Enter a positive whole number for required hours",
+  "specialtyRequired": "Please select a specialty",
+  "specialtyCatalogUnavailable": "Could not load the eligible specialties for your university",
+  "opportunitySaved": "Training opportunity saved",
+  "adminReportEligibleOpportunities": "Eligible opportunities",
+  "adminReportTotalApplicants": "Total applicants",
+  "adminReportAcceptedStudents": "Accepted students",
+  "adminReportInTraining": "In training",
+  "adminReportCompletedStudents": "Completed students",
+  "adminReportCompletionLetters": "Completion letters issued",
+  "approveRecognition": "Approve request",
+  "assignedReviewerLabel": "Assigned reviewer",
+  "certificatesUnavailableForRole": "Certificate listing is not available for this role yet",
+  "changeStatus": "Change status",
+  "cohortLabel": "Cohort",
+  "confirmEnrollmentApproveTitle": "Confirm enrollment approval",
+  "confirmEnrollmentRejectTitle": "Confirm enrollment rejection",
+  "confirmRecognitionDecisionBody": "The request status will change to: {status}",
+  "@confirmRecognitionDecisionBody": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmRecognitionDecisionTitle": "Confirm decision",
+  "confirmStatusChangeBody": "Status will change to: {status}",
+  "@confirmStatusChangeBody": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "confirmStatusChangeTitle": "Confirm status change",
+  "correctiveActionsTitle": "Corrective actions",
+  "correctiveAssigneeLabel": "Assigned to",
+  "decideRecognition": "Decide",
+  "enrollmentApproveAction": "Approve enrollment",
+  "enrollmentApproved": "Enrollment approved",
+  "enrollmentRejectAction": "Reject enrollment",
+  "enrollmentRejected": "Enrollment rejected",
+  "enrollmentRejectReasonOptional": "Rejection reason (optional)",
+  "evidenceTitle": "Evidence",
+  "evidenceTypeLabel": "Evidence type",
+  "integrityCasesTitle": "Integrity cases",
+  "integrityCaseTypeLabel": "Case type",
+  "integrityDecisionLabel": "Decision",
+  "integrityEvidenceNotesLabel": "Evidence notes",
+  "moveToUnderReview": "Start review",
+  "noCorrectiveActions": "No corrective actions yet",
+  "noEvidence": "No evidence yet",
+  "noIntegrityCases": "No integrity cases yet",
+  "noPendingEnrollments": "No pending enrollment requests",
+  "noQaReviews": "No QA reviews yet",
+  "noRecognitionDocuments": "No documents attached yet",
+  "noRecognitionRequests": "No recognition requests yet",
+  "noRiskCases": "No risk cases yet",
+  "noStatusActionsAvailable": "No status actions are available from the current status",
+  "offlineWriteBlocked": "This action requires an internet connection. Check your connection and try again.",
+  "openCorrectiveActionsCount": "{count} open corrective actions",
+  "@openCorrectiveActionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openDocument": "Open document",
+  "openEvidenceFile": "Open file",
+  "openQaReviewsCount": "{count} open QA reviews",
+  "@openQaReviewsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "openRiskCasesCount": "{count} open risk cases",
+  "@openRiskCasesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingEnrollmentsCountLabel": "{count} enrollment requests awaiting decision",
+  "@pendingEnrollmentsCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pendingEnrollmentsTitle": "Pending enrollments",
+  "pendingRecognitionCount": "{count} recognition requests awaiting decision",
+  "@pendingRecognitionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "qaActionRequiredLabel": "Action required",
+  "qaFindingsLabel": "Findings",
+  "qaOfficerRoleLabel": "QA officer",
+  "qaPriorityOpenReview": "Review the oldest open QA review",
+  "qaReviewDateLabel": "Review date",
+  "qaReviewsTitle": "QA reviews",
+  "qaReviewTypeLabel": "Review type",
+  "qaStatusClosed": "Closed",
+  "qaStatusInProgress": "In progress",
+  "qaStatusOpen": "Open",
+  "qaStatusResolved": "Resolved",
+  "recognitionDocumentsTitle": "Request documents",
+  "recognitionMicroCredentialLabel": "Micro-credential",
+  "recognitionRequestsTitle": "Recognition requests",
+  "recognitionStatusApproved": "Approved",
+  "recognitionStatusDraft": "Draft",
+  "recognitionStatusInPreparation": "In preparation",
+  "recognitionStatusNeedsRevision": "Needs revision",
+  "recognitionStatusReadyForSubmission": "Ready for submission",
+  "recognitionStatusRejected": "Rejected",
+  "recognitionStatusSubmitted": "Submitted",
+  "recognitionStatusUnderReview": "Under review",
+  "recognitionStatusUpdated": "Recognition request status updated",
+  "rejectRecognition": "Reject request",
+  "relatedCorrectiveActions": "Related corrective actions",
+  "requestChangesRecognition": "Request changes",
+  "reviewerPriorityDecideEnrollment": "Review pending enrollment requests",
+  "reviewerPriorityDecideRecognition": "Decide on the recognition request",
+  "reviewerSearchStudents": "Search students",
+  "reviewTypePeriodic": "Periodic",
+  "reviewTypePreClosure": "Pre-closure",
+  "reviewTypeScheduled": "Scheduled",
+  "reviewTypeSpecial": "Special",
+  "riskActionPlanLabel": "Action plan",
+  "riskCasesTitle": "Risk cases",
+  "riskLevelLabel": "Risk level",
+  "riskTypeLabel": "Risk type",
+  "searchEvidence": "Search evidence",
+  "searchRecognitionRequests": "Search recognition requests",
+  "searchReviews": "Search reviews",
+  "statusChangeSaved": "Status updated",
+  "statusConflictRefresh": "This item was updated by someone else. Data has been refreshed.",
+  "statusEscalatedLabel": "Escalated",
+  "statusLabel": "Status",
+  "statusOverdueLabel": "Overdue",
+  "statusReportedLabel": "Reported",
+  "statusUnderInvestigationLabel": "Under investigation",
+  "universityReviewerRoleLabel": "University reviewer",
+  "superAdminRoleLabel": "Super Admin",
+  "isGlobalBadge": "Global access",
+  "superAdminGlobalScopeNotice": "You have global access across every university and user in the system.",
+  "superAdminLostPrivilegeMessage": "Your super admin privilege is no longer active. Contact another super admin if this is unexpected.",
+  "superAdminCohortsLabel": "Cohorts",
+  "superAdminPendingEnrollmentsLabel": "Pending enrollments",
+  "superAdminFieldTrainingOversight": "Field training oversight",
+  "superAdminQaOversight": "QA & recognition oversight",
+  "superAdminGlobalReportTitle": "Global field training report",
+  "superAdminUniversityComparisonTitle": "University comparison",
+  "superAdminExpelledLabel": "Expelled",
+  "superAdminReportExportWebOnlyNotice": "PDF/Excel export is currently only available on the web platform.",
+  "auditLogsTitle": "Audit log",
+  "searchAuditLogs": "Search audit log",
+  "noAuditLogs": "No audit log entries yet",
+  "systemStatusTitle": "System status",
+  "systemStatusApiOnlyNotice": "This check only shows API availability — no environment or database details.",
+  "apiAvailable": "API is available",
+  "apiUnavailable": "Could not reach the API",
+  "searchUniversities": "Search universities",
+  "noUniversitiesFound": "No matching universities",
+  "createUniversity": "Add university",
+  "editUniversity": "Edit university",
+  "universityDetail": "University details",
+  "universityNameLabel": "University name",
+  "contactPersonLabel": "Contact person",
+  "universitySaved": "University saved",
+  "universityNameTaken": "This university name is already taken",
+  "searchUsers": "Search users",
+  "noUsersFound": "No matching users",
+  "userDetail": "User details",
+  "userActivated": "User activated",
+  "activateUserAction": "Activate user",
+  "roleAssignmentLabel": "Assigned roles",
+  "assignRolesTitle": "Assign roles",
+  "superAdminRoleWarning": "Warning: this role grants full super admin control over the system",
+  "superAdminBadge": "Super Admin",
+  "rolesUpdated": "User roles updated",
+  "confirmGrantSuperAdminTitle": "Confirm granting super admin",
+  "confirmGrantSuperAdminBody": "This user will get full super admin privileges across every university and user. Are you sure?",
+  "confirmRevokeSuperAdminTitle": "Confirm removing super admin",
+  "confirmRevokeSuperAdminBody": "Super admin privilege will be removed from this user immediately. Are you sure?",
+  "pushPermissionSheetTitle": "Never miss an update",
+  "pushPermissionSheetBody": "Turn on notifications to get instant alerts for enrollment approvals, task reviews, and field training updates — even when the app is closed.",
+  "pushPermissionEnableAction": "Enable notifications",
+  "pushPermissionSkipAction": "Not now",
+  "pushNotificationChannelName": "BATTECHNO LMS notifications",
+  "pushNotificationChannelDescription": "Real-time alerts for account, field training, and task updates",
+  "pushPermissionSettingsTitle": "Device notifications",
+  "pushPermissionStatusGranted": "Enabled",
+  "pushPermissionStatusDenied": "Disabled",
+  "pushPermissionStatusProvisional": "Enabled (provisional)",
+  "pushPermissionStatusNotDetermined": "Not asked yet",
+  "pushPermissionStatusUnsupported": "Not available in this build",
+  "pushPermissionSettingsAction": "Enable notifications",
+  "pushPermissionOpenSystemSettingsHint": "Changing this permission requires opening this app's system settings."
+}

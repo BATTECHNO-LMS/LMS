@@ -64,6 +64,106 @@ function migrationSqlPath(migrationsDir, name) {
   return path.join(migrationsDir, name, 'migration.sql');
 }
 
+/**
+ * Migration directories that contain a real `migration.sql` file.
+ * Excludes lock/README/hidden noise and empty fixture dirs.
+ */
+function listValidMigrationDirs(migrationsDir) {
+  return listMigrationDirs(migrationsDir).filter((name) =>
+    fs.existsSync(migrationSqlPath(migrationsDir, name))
+  );
+}
+
+/**
+ * Pure empty-DB migration count model (CI-EMPTY-DB-MIGRATION-COUNT-001).
+ *
+ * baselineRepresentedCount — migrations resolved from the baseline manifest (27).
+ * repositoryMigrationCount — valid migration.sql directories on disk (currently 30).
+ * finalAppliedMigrationCount — finished rows in `_prisma_migrations` after init+deploy.
+ *
+ * Final applied must equal repository count, NOT the baseline represented count.
+ *
+ * @returns {{ ok: boolean, errors: string[], summary: object }}
+ */
+function evaluateEmptyDbMigrationCounts({
+  baselineRepresentedCount,
+  repositoryMigrationCount,
+  finalAppliedMigrationCount,
+  pendingCount = 0,
+  failedCount = 0,
+  expectedBaselineRepresentedCount = 27,
+  expectedCutoff = '20260718120000_academic_submission_uniqueness',
+  actualCutoff,
+  appliedMigrationNames = null,
+  repositoryMigrationNames = null,
+}) {
+  const errors = [];
+  const postCutoffCount = repositoryMigrationCount - baselineRepresentedCount;
+
+  if (baselineRepresentedCount !== expectedBaselineRepresentedCount) {
+    errors.push(
+      `baseline represented count mismatch: expected ${expectedBaselineRepresentedCount}, got ${baselineRepresentedCount}`
+    );
+  }
+  if (actualCutoff != null && actualCutoff !== expectedCutoff) {
+    errors.push(
+      `baseline cutoff mismatch: expected ${expectedCutoff}, got ${actualCutoff}`
+    );
+  }
+  if (!Number.isInteger(repositoryMigrationCount) || repositoryMigrationCount < expectedBaselineRepresentedCount) {
+    errors.push(
+      `repository migration count mismatch: expected >= ${expectedBaselineRepresentedCount}, got ${repositoryMigrationCount}`
+    );
+  }
+  if (postCutoffCount < 0) {
+    errors.push(
+      `post-cutoff count mismatch: repository (${repositoryMigrationCount}) < baseline (${baselineRepresentedCount})`
+    );
+  }
+  if (finalAppliedMigrationCount !== repositoryMigrationCount) {
+    errors.push(
+      `final applied migration count mismatch: expected repository count ${repositoryMigrationCount}, got ${finalAppliedMigrationCount}`
+    );
+  }
+  if (pendingCount !== 0) {
+    errors.push(`pending post-cutoff migrations: ${pendingCount}`);
+  }
+  if (failedCount !== 0) {
+    errors.push(`failed migration rows: ${failedCount}`);
+  }
+  if (
+    Array.isArray(appliedMigrationNames) &&
+    Array.isArray(repositoryMigrationNames)
+  ) {
+    const appliedSet = new Set(appliedMigrationNames);
+    const repoSet = new Set(repositoryMigrationNames);
+    for (const name of repositoryMigrationNames) {
+      if (!appliedSet.has(name)) {
+        errors.push(`missing applied migration present in repository: ${name}`);
+      }
+    }
+    for (const name of appliedMigrationNames) {
+      if (!repoSet.has(name)) {
+        errors.push(`extra applied migration not present in repository: ${name}`);
+      }
+    }
+  }
+
+  const summary = {
+    baseline_represented_migrations: baselineRepresentedCount,
+    repository_migration_directories: repositoryMigrationCount,
+    post_cutoff_migrations: postCutoffCount,
+    final_applied_migrations: finalAppliedMigrationCount,
+    pending_migrations: pendingCount,
+    failed_migrations: failedCount,
+    expected_baseline_represented: expectedBaselineRepresentedCount,
+    expected_cutoff: expectedCutoff,
+    actual_cutoff: actualCutoff ?? null,
+  };
+
+  return { ok: errors.length === 0, errors, summary };
+}
+
 function loadManifest(manifestPath) {
   if (!fs.existsSync(manifestPath)) {
     const err = new Error(`Baseline manifest missing: ${path.basename(manifestPath)}`);
@@ -307,11 +407,13 @@ module.exports = {
   sha256File,
   sha256String,
   listMigrationDirs,
+  listValidMigrationDirs,
   migrationSqlPath,
   loadManifest,
   assertManifestShape,
   validateBaselineManifest,
   buildManifestPayload,
   migrationsToResolveFromManifest,
+  evaluateEmptyDbMigrationCounts,
   redactSecretsFromMessage,
 };

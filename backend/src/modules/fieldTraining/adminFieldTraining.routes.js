@@ -31,6 +31,7 @@ const {
   updateAssessmentBodySchema,
   expelBodySchema,
   reviewSubmissionBodySchema,
+  updateApplicationHoursBodySchema,
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
@@ -120,6 +121,22 @@ router.get(
   fieldTrainingStaff,
   validateRequest({ params: applicationIdParamSchema }),
   workflowController.getApplicationProgress
+);
+
+router.get(
+  '/applications/:applicationId/hours',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.getApplicationHours
+);
+
+router.patch(
+  '/applications/:applicationId/hours',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema, body: updateApplicationHoursBodySchema }),
+  workflowController.updateApplicationHours
 );
 
 router.post(

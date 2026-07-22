@@ -5,8 +5,14 @@ const {
   buildHoursProgress,
   sumCompletedMinutesFromRecords,
   HOURS_STATUS,
+  buildHoursSummary,
+  validateCompletedHoursReplacement,
+  validateRequiredHoursValue,
 } = require('../src/modules/fieldTraining/fieldTraining.hours');
-const { opportunityBodySchema, updateOpportunityBodySchema } = require('../src/modules/fieldTraining/fieldTraining.validation');
+const {
+  opportunityBodySchema,
+  updateOpportunityBodySchema,
+} = require('../src/modules/fieldTraining/fieldTraining.validation');
 
 test('sessionDurationMinutes derives duration from start/end times', () => {
   assert.equal(sessionDurationMinutes('09:00', '11:00'), 120);
@@ -102,4 +108,82 @@ test('updateOpportunityBodySchema allows null hours for legacy compatibility', (
 
   assert.equal(updateOpportunityBodySchema.safeParse({ required_training_hours: 120 }).success, true);
   assert.equal(updateOpportunityBodySchema.safeParse({ required_training_hours: 0 }).success, false);
+});
+
+test('fieldTraining.hours Model A — buildHoursSummary', async (t) => {
+  await t.test('returns nulls when neither required nor completed set', () => {
+    const summary = buildHoursSummary({}, {});
+    assert.equal(summary.required_training_hours, null);
+    assert.equal(summary.completed_training_hours, null);
+    assert.equal(summary.remaining_training_hours, null);
+    assert.equal(summary.hours_progress_percentage, null);
+    assert.equal(summary.hours_configured, false);
+    assert.equal(summary.hours_recorded, false);
+  });
+
+  await t.test('computes remaining and capped progress', () => {
+    const summary = buildHoursSummary(
+      { completed_training_hours: 90 },
+      { required_training_hours: 100 }
+    );
+    assert.equal(summary.remaining_training_hours, 10);
+    assert.equal(summary.hours_progress_percentage, 90);
+  });
+
+  await t.test('caps progress at 100', () => {
+    const summary = buildHoursSummary(
+      { completed_training_hours: 120 },
+      { required_training_hours: 100 }
+    );
+    assert.equal(summary.hours_progress_percentage, 100);
+    assert.equal(summary.remaining_training_hours, 0);
+  });
+});
+
+test('fieldTraining.hours Model A — validateCompletedHoursReplacement', async (t) => {
+  await t.test('rejects negative hours', () => {
+    const result = validateCompletedHoursReplacement(-1, 40);
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'HOURS_NEGATIVE');
+  });
+
+  await t.test('rejects non-integer precision', () => {
+    const result = validateCompletedHoursReplacement(4.5, 40);
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'HOURS_INVALID_PRECISION');
+  });
+
+  await t.test('rejects exceeding required hours', () => {
+    const result = validateCompletedHoursReplacement(50, 40);
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'HOURS_EXCEED_REQUIRED');
+  });
+
+  await t.test('allows completed when required is null', () => {
+    const result = validateCompletedHoursReplacement(50, null);
+    assert.equal(result.ok, true);
+    assert.equal(result.value, 50);
+  });
+
+  await t.test('allows zero completed hours', () => {
+    const result = validateCompletedHoursReplacement(0, 40);
+    assert.equal(result.ok, true);
+    assert.equal(result.value, 0);
+  });
+});
+
+test('fieldTraining.hours Model A — validateRequiredHoursValue', async (t) => {
+  await t.test('allows clearing with null', () => {
+    assert.deepEqual(validateRequiredHoursValue(null), { ok: true, value: null });
+  });
+
+  await t.test('rejects zero required hours', () => {
+    const result = validateRequiredHoursValue(0);
+    assert.equal(result.ok, false);
+    assert.equal(result.code, 'REQUIRED_HOURS_NOT_POSITIVE');
+  });
+
+  await t.test('accepts positive required hours', () => {
+    assert.deepEqual(validateRequiredHoursValue(120), { ok: true, value: 120 });
+  });
 });

@@ -210,7 +210,6 @@ async function buildFieldTrainings(studentId) {
     }
     totalHours = Math.round(totalHours * 100) / 100;
     completedHours = Math.round(completedHours * 100) / 100;
-    const remainingHours = Math.max(0, Math.round((totalHours - completedHours) * 100) / 100);
 
     const upcoming = oppSessions.find((s) => {
       const date = dateOnlyISO(s.session_date);
@@ -225,6 +224,18 @@ async function buildFieldTrainings(studentId) {
     const instructorUser = instructorId ? instructorMap.get(instructorId) : null;
     const phase = displayPhase(app, opp || {});
 
+    // Prefer authoritative Model A hours when recorded; otherwise session-calendar estimate for schedule UX.
+    const requiredHours =
+      opp?.required_training_hours != null ? Number(opp.required_training_hours) : null;
+    const storedCompleted =
+      app.completed_training_hours != null ? Number(app.completed_training_hours) : null;
+    const authoritativeCompleted = storedCompleted != null ? storedCompleted : completedHours;
+    const authoritativeTotal = requiredHours != null ? requiredHours : totalHours;
+    const authoritativeRemaining = Math.max(
+      0,
+      Math.round((authoritativeTotal - authoritativeCompleted) * 100) / 100
+    );
+
     return {
       application_id: app.id,
       opportunity_id: app.opportunity_id,
@@ -238,9 +249,11 @@ async function buildFieldTrainings(studentId) {
       location: opp?.location || null,
       start_date: dateOnlyISO(opp?.start_date),
       end_date: dateOnlyISO(opp?.end_date),
-      total_training_hours: totalHours,
-      completed_training_hours: completedHours,
-      remaining_training_hours: remainingHours,
+      required_training_hours: requiredHours,
+      total_training_hours: authoritativeTotal,
+      completed_training_hours: authoritativeCompleted,
+      remaining_training_hours: authoritativeRemaining,
+      hours_source: storedCompleted != null ? 'recorded' : 'session_estimate',
       application_status: app.status,
       training_status: app.training_status,
       attendance_percentage:

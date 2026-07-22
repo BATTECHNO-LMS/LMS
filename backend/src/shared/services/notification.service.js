@@ -61,24 +61,55 @@ async function createNotificationForUser(payload) {
       '[createNotificationForUser] Falling back to type "system" (extended enum not in client or database).',
       err?.code || msg.slice(0, 200)
     );
-    return prisma.notifications.create({ data: { ...attemptData, type: 'system' } });
+    const row = await prisma.notifications.create({ data: { ...attemptData, type: 'system' } });
+    fanoutPushForRow(row);
+    return row;
   }
 
   try {
-    return await prisma.notifications.create({ data });
+    const row = await prisma.notifications.create({ data });
+    fanoutPushForRow(row);
+    return row;
   } catch (err) {
     const msg = String(err?.message || '');
     const missingCol = msg.includes('action_url') || msg.includes('Unknown arg');
     if (missingCol) {
       delete data.action_url;
       try {
-        return await prisma.notifications.create({ data });
+        const row = await prisma.notifications.create({ data });
+        fanoutPushForRow(row);
+        return row;
       } catch (err2) {
         return createWithTypeFallback(err2, data);
       }
     }
     return createWithTypeFallback(err, data);
   }
+}
+
+/**
+ * Best-effort mobile push fanout for a newly created in-app notification.
+ * Runs after the caller's transaction/response path; push failures must never
+ * surface to `createNotificationForUser` callers.
+ */
+function fanoutPushForRow(row) {
+  if (!row || !row.user_id) return;
+  setImmediate(() => {
+    try {
+      const push = require('../../services/pushNotification.service');
+      push
+        .sendToUser(row.user_id, {
+          notificationId: row.id,
+          title: row.title,
+          body: row.body,
+          actionUrl: row.action_url,
+          type: row.type,
+        })
+        .catch(() => {});
+    } catch (_err) {
+      // Push module unavailable/misconfigured — never affect notification creation.
+    }
+  });
 }
 
 async function createNotificationsForUsers(payload) {
@@ -91,6 +122,7 @@ async function createNotificationsForUsers(payload) {
       title: payload.title,
       body: payload.body,
       type: payload.type,
+      actionUrl: payload.actionUrl,
       dedupeWindowHours: payload.dedupeWindowHours,
     });
     if (row) created += 1;

@@ -128,7 +128,7 @@ async function mapBodyToCreateData(body) {
     requirements: body.requirements ?? null,
     benefits: body.benefits ?? null,
     seats_limit: body.seats_limit ?? null,
-    required_training_hours: body.required_training_hours,
+    required_training_hours: body.required_training_hours ?? null,
     start_date: repo.toDateOnly(body.start_date),
     end_date: repo.toDateOnly(body.end_date),
     application_deadline: repo.toDateOnly(body.application_deadline),

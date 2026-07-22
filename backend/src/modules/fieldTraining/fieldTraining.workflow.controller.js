@@ -176,6 +176,31 @@ async function getApplicationProgress(req, res, next) {
   }
 }
 
+async function getApplicationHours(req, res, next) {
+  try {
+    const data = await workflowService.getApplicationHours(
+      req.validated.params.applicationId,
+      req.user
+    );
+    return success(res, data, { message: 'Hours retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function updateApplicationHours(req, res, next) {
+  try {
+    const data = await workflowService.updateApplicationHours(
+      req.validated.params.applicationId,
+      req.validated.body,
+      req.user
+    );
+    return success(res, data, { message: 'Hours updated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function recalculateEligibility(req, res, next) {
   try {
     const data = await workflowService.recalculateEligibility(
@@ -352,6 +377,8 @@ module.exports = {
   updateAssessment,
   publishAssessmentById,
   getApplicationProgress,
+  getApplicationHours,
+  updateApplicationHours,
   recalculateEligibility,
   gradeAssessmentAttempt,
   getStudentProgress,

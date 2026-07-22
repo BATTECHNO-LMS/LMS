@@ -356,6 +356,18 @@ const reviewSubmissionBodySchema = z.object({
   instructor_feedback: z.string().max(5000).optional().nullable(),
 });
 
+/** Replace total completed hours for an application (Model A aggregate). */
+const updateApplicationHoursBodySchema = z.object({
+  completed_hours: z.coerce.number().int().min(0).max(10000),
+  note: z.string().max(2000).optional().nullable(),
+  /** Optimistic concurrency: must match current completed_training_hours (null-aware). */
+  expected_completed_hours: z.preprocess((value) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+    return value;
+  }, z.union([z.null(), z.coerce.number().int().min(0).max(10000)]).optional()),
+});
+
 module.exports = {
   uuidParamSchema,
   opportunityIdParamSchema,
@@ -377,6 +389,7 @@ module.exports = {
   submitAssessmentBodySchema,
   gradeAttemptBodySchema,
   reviewSubmissionBodySchema,
+  updateApplicationHoursBodySchema,
   expelBodySchema,
   requestExpulsionBodySchema,
   aiSelfEvalBodySchema,
