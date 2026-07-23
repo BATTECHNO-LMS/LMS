@@ -447,9 +447,19 @@ async function main() {
   console.log('\nApplied:', JSON.stringify(result, null, 2));
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+module.exports = {
+  RAW_QUESTIONS,
+  DESCRIPTION,
+  ASSESSMENT_TITLE,
+  fixQuestion13Option,
+  fixQuestion15Option,
+};
+
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error(e);
+      process.exitCode = 1;
+    })
+    .finally(() => prisma.$disconnect());
+}
