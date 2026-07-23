@@ -11,6 +11,7 @@ const {
   NO_UNIVERSITY_MSG,
   NO_UNIVERSITY_SPECIALTY_MSG,
   NOT_ELIGIBLE_MSG,
+  STUDENT_INACTIVE_MSG,
   requireStudentFieldTrainingScope,
   scopeAdminListQuery,
   assertAdminOpportunityAccess,
@@ -670,11 +671,20 @@ async function reviewApplication(applicationId, body, reviewerId, user) {
 
 async function listStudentOpportunities(query, studentId) {
   const scope = await resolveStudentFieldTrainingScope({ userId: studentId });
+  if (scope.accountStatus && scope.accountStatus !== 'active') {
+    return {
+      opportunities: [],
+      message: STUDENT_INACTIVE_MSG,
+      profile_incomplete: true,
+      code: 'FIELD_TRAINING_STUDENT_INACTIVE',
+    };
+  }
   if (!scope.universityId) {
     return {
       opportunities: [],
       message: NO_UNIVERSITY_MSG,
       profile_incomplete: true,
+      code: 'FIELD_TRAINING_STUDENT_UNIVERSITY_REQUIRED',
     };
   }
   if (!scope.universitySpecialtyId) {
@@ -682,12 +692,25 @@ async function listStudentOpportunities(query, studentId) {
       opportunities: [],
       message: NO_UNIVERSITY_SPECIALTY_MSG,
       profile_incomplete: true,
+      code: 'FIELD_TRAINING_STUDENT_UNIVERSITY_SPECIALTY_REQUIRED',
     };
   }
 
-  const rows = await repo.findPublishedMany({
-    where: buildStudentWhere(query, scope.universityId, scope.universitySpecialtyId),
-  });
+  const [rows, studentProfiles] = await Promise.all([
+    repo.findPublishedMany({
+      where: buildStudentWhere(query, scope.universityId, scope.universitySpecialtyId),
+    }),
+    repo.findStudentProfilesByIds([studentId]),
+  ]);
+  const studentProfile = studentProfiles[0] || null;
+  const matchingUniversity = studentProfile?.university
+    ? { id: studentProfile.university.id, name: studentProfile.university.name }
+    : null;
+  const matchingSpecialty = studentProfile?.university_specialty ?? null;
+  const matchingSpecialtyLabel = matchingSpecialty
+    ? repo.formatSpecialtyLabel(matchingSpecialty)
+    : null;
+
   const oppIds = rows.map((row) => row.id);
   const myApps = await repo.findApplicationsByOpportunityIdsForStudent(oppIds, studentId);
   const appByOpp = Object.fromEntries(myApps.map((app) => [app.opportunity_id, app]));
@@ -698,9 +721,20 @@ async function listStudentOpportunities(query, studentId) {
       my_application_status: app?.status ?? null,
       my_application_id: app?.id ?? null,
       my_training_status: app?.training_status ?? null,
+      student_matching_university: matchingUniversity,
+      student_matching_university_specialty: matchingSpecialty,
+      student_matching_university_specialty_label: matchingSpecialtyLabel,
     };
   });
-  return { opportunities };
+  return {
+    opportunities,
+    student_scope: {
+      university_id: scope.universityId,
+      university_specialty_id: scope.universitySpecialtyId,
+      university: matchingUniversity,
+      university_specialty_label: matchingSpecialtyLabel,
+    },
+  };
 }
 
 async function listMyApplications(studentId) {
@@ -1410,6 +1444,7 @@ async function listOpportunityEligibility(opportunityId, user) {
 }
 
 module.exports = {
+  buildStudentWhere,
   getEligibilityCatalog,
   listOpportunityEligibility,
   listAdminOpportunities,

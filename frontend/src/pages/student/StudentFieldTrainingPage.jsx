@@ -268,10 +268,12 @@ export function StudentFieldTrainingPage() {
                     <h2 className="ft-opp-card__title">{o.title}</h2>
                     <p className="ft-opp-card__org">
                       <GraduationCap size={16} aria-hidden />
-                      {getOpportunitySpecialtyLabel(o, i18n.language, t('form.specialtyUnspecified'))}
-                      {o.university?.name || o.organization_name
-                        ? ` · ${o.university?.name || o.organization_name}`
-                        : ''}
+                      {o.student_matching_university?.name
+                        ? o.student_matching_university.name
+                        : o.university?.name || o.organization_name || t('notAvailable')}
+                      {' · '}
+                      {o.student_matching_university_specialty_label ||
+                        getOpportunitySpecialtyLabel(o, i18n.language, t('form.specialtyUnspecified'))}
                     </p>
 
                     {desc ? (

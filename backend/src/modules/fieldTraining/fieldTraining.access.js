@@ -21,6 +21,7 @@ const NO_UNIVERSITY_SPECIALTY_MSG =
   'يرجى استكمال بيانات الجامعة والتخصص لعرض فرص التدريب المناسبة.';
 const NOT_ELIGIBLE_MSG = 'هذه الفرصة غير متاحة للجامعة أو التخصص المسجل في حسابك.';
 const UNIVERSITY_FORBIDDEN_MSG = 'غير مصرح بالوصول إلى بيانات طلاب جامعة أخرى';
+const STUDENT_INACTIVE_MSG = 'حسابك غير مفعّل. لا يمكن عرض فرص التدريب حتى يتم تفعيل الحساب.';
 
 const UNIVERSITY_SCOPED_FT_ROLES = ['admin', 'academic_reviewer'];
 
@@ -173,6 +174,9 @@ async function requireStudentUniversitySpecialtyId(studentId) {
 
 async function requireStudentFieldTrainingScope(studentId) {
   const scope = await resolveStudentFieldTrainingScope({ userId: studentId });
+  if (scope.accountStatus && scope.accountStatus !== 'active') {
+    throw new ApiError(403, STUDENT_INACTIVE_MSG, null, 'FIELD_TRAINING_STUDENT_INACTIVE');
+  }
   if (!scope.universityId) {
     throw new ApiError(403, NO_UNIVERSITY_MSG, null, 'FIELD_TRAINING_STUDENT_UNIVERSITY_REQUIRED');
   }
@@ -193,6 +197,7 @@ module.exports = {
   NO_UNIVERSITY_SPECIALTY_MSG,
   NOT_ELIGIBLE_MSG,
   UNIVERSITY_FORBIDDEN_MSG,
+  STUDENT_INACTIVE_MSG,
   requireStudentUniversityId,
   requireStudentSpecialtyId,
   requireStudentUniversitySpecialtyId,

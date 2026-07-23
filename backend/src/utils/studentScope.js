@@ -1,13 +1,12 @@
 const { prisma } = require('../config/db');
 
 /**
- * Student JWT may omit universityId on older tokens — fall back to users.primary_university_id.
+ * Always resolve from DB when userId is present — never trust JWT universityId alone.
  * @param {{ userId: string, universityId?: string | null }} requester
  * @returns {Promise<string | null>}
  */
 async function resolvePrimaryUniversityId(requester) {
-  if (requester?.universityId) return requester.universityId;
-  if (!requester?.userId) return null;
+  if (!requester?.userId) return requester?.universityId ?? null;
   const u = await prisma.users.findUnique({
     where: { id: requester.userId },
     select: { primary_university_id: true },
@@ -42,12 +41,23 @@ async function resolveStudentUniversitySpecialtyId(requester) {
 }
 
 /**
+ * Field-training student scope — always loaded from DB (not JWT / frontend).
  * @param {{ userId: string }} requester
- * @returns {Promise<{ universityId: string | null, universitySpecialtyId: string | null, canonicalSpecialtyId: string | null }>}
+ * @returns {Promise<{
+ *   universityId: string | null,
+ *   universitySpecialtyId: string | null,
+ *   canonicalSpecialtyId: string | null,
+ *   accountStatus: string | null,
+ * }>}
  */
 async function resolveStudentFieldTrainingScope(requester) {
   if (!requester?.userId) {
-    return { universityId: null, universitySpecialtyId: null, canonicalSpecialtyId: null };
+    return {
+      universityId: null,
+      universitySpecialtyId: null,
+      canonicalSpecialtyId: null,
+      accountStatus: null,
+    };
   }
   const u = await prisma.users.findUnique({
     where: { id: requester.userId },
@@ -55,12 +65,14 @@ async function resolveStudentFieldTrainingScope(requester) {
       primary_university_id: true,
       university_specialty_id: true,
       specialty_id: true,
+      status: true,
     },
   });
   return {
     universityId: u?.primary_university_id ?? null,
     universitySpecialtyId: u?.university_specialty_id ?? null,
     canonicalSpecialtyId: u?.specialty_id ?? null,
+    accountStatus: u?.status ?? null,
   };
 }
 
