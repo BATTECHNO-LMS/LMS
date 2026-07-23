@@ -1288,7 +1288,7 @@ model field_training_applications {
   pre_assessment_level field_training_knowledge_level?
   post_assessment_score Decimal?                    @db.Decimal(6, 2)
   attendance_percentage Decimal?                    @db.Decimal(5, 2)
-  completed_training_hours Int?
+  completed_training_hours Int                      @default(0)
   hours_updated_at DateTime?                        @db.Timestamptz(6)
   hours_updated_by_id String?                       @db.Uuid
   final_task_status field_training_final_task_status @default(not_required)

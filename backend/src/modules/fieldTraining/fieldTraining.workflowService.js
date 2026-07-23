@@ -1104,13 +1104,14 @@ async function updateApplicationHours(applicationId, body, user) {
     );
   }
 
-  const previous = app.completed_training_hours != null ? Number(app.completed_training_hours) : null;
+  const previous =
+    app.completed_training_hours != null ? Number(app.completed_training_hours) : 0;
   if (body.expected_completed_hours !== undefined) {
     const expected =
       body.expected_completed_hours === null || body.expected_completed_hours === ''
-        ? null
+        ? 0
         : Number(body.expected_completed_hours);
-    const expectedNorm = expected == null || Number.isNaN(expected) ? null : expected;
+    const expectedNorm = Number.isNaN(expected) ? 0 : expected;
     if (previous !== expectedNorm) {
       throw new ApiError(
         409,
