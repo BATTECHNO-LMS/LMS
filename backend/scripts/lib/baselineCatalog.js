@@ -59,21 +59,10 @@ const REAL_UNIVERSITIES = [
 
 const REQUIRED_ROLES = [
   { code: 'super_admin', name: 'Super Admin', scope: 'global' },
-  // Phase 4 soft-retire: catalog row retained for historical user_roles / audits / filters.
-  // Not assignable; grants no runtime AuthZ after Phase 3.
-  {
-    code: 'program_admin',
-    name: 'Program Admin (Deprecated)',
-    scope: 'university',
-    description:
-      'Deprecated historical role. Do not assign. Preserved for legacy user_roles, audits, and filters.',
-  },
-  { code: 'university_admin', name: 'University Admin', scope: 'university' },
-  { code: 'academic_admin', name: 'Academic Admin', scope: 'university' },
-  { code: 'qa_officer', name: 'QA Officer', scope: 'university' },
+  { code: 'admin', name: 'Admin', scope: 'university', description: 'University or staff admin (scoped by primary_university_id).' },
   { code: 'instructor', name: 'Instructor', scope: 'university' },
   { code: 'student', name: 'Student', scope: 'university' },
-  { code: 'university_reviewer', name: 'University Reviewer', scope: 'university' },
+  { code: 'academic_reviewer', name: 'Academic Reviewer', scope: 'university', description: 'Read-only university reviewer.' },
 ];
 
 const SPECIALTY_CATALOG = [

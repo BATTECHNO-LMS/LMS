@@ -1,10 +1,11 @@
 /**
  * Field-training hours helpers.
  *
- * Two surfaces (kept together after merge):
- * 1) Attendance-derived progress — session duration × present/late/excused.
- * 2) Model A — stored field_training_applications.completed_training_hours
- *    (REPLACE write semantics via validateCompletedHoursReplacement / buildHoursSummary).
+ * Two complementary surfaces:
+ * 1) Attendance-derived progress (`buildHoursProgress`) — completed hours from
+ *    approved attendance × session duration (no duplicated stored totals needed).
+ * 2) Model A aggregate (`buildHoursSummary`) — reads
+ *    `field_training_applications.completed_training_hours` (REPLACE write semantics).
  */
 
 const { prisma } = require('../../config/db');
@@ -94,7 +95,7 @@ function buildHoursProgress({ requiredHours = null, completedMinutes = 0 } = {})
 }
 
 /**
- * Model A summary from stored application/opportunity hour columns.
+ * Model A summary from stored application aggregate hours.
  * @param {{ completed_training_hours?: unknown, hours_updated_at?: unknown }} app
  * @param {{ required_training_hours?: unknown }} opp
  */

@@ -536,11 +536,20 @@ model tracks {
 
 model universities {
   id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// Arabic display name (legacy unique column).
   name                     String                     @unique(map: "uq_universities_name") @db.VarChar(255)
+  name_en                  String?                    @db.VarChar(255)
+  short_name               String?                    @db.VarChar(80)
+  code                     String?                    @unique(map: "uq_universities_code") @db.VarChar(50)
   type                     String?                    @db.VarChar(120)
+  website                  String?                    @db.VarChar(500)
+  country                  String?                    @db.VarChar(120)
+  city                     String?                    @db.VarChar(120)
+  address                  String?                    @db.VarChar(500)
   contact_person           String?                    @db.VarChar(255)
   contact_email            String?                    @db.VarChar(255)
   contact_phone            String?                    @db.VarChar(50)
+  logo_url                 String?                    @db.VarChar(1000)
   status                   university_status          @default(active)
   partnership_state        partnership_status         @default(active)
   notes                    String?
@@ -550,6 +559,9 @@ model universities {
   university_specialties   university_specialties[]
   field_training_opportunities field_training_opportunities[]
   field_training_opportunity_eligibility field_training_opportunity_eligibility[]
+
+  @@index([code], map: "idx_universities_code")
+  @@index([short_name], map: "idx_universities_short_name")
 }
 
 model university_email_domains {
@@ -557,6 +569,7 @@ model university_email_domains {
   university_id  String   @db.Uuid
   domain         String   @db.VarChar(255)
   is_active      Boolean  @default(true)
+  is_primary     Boolean  @default(false)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
   updated_at     DateTime @default(now()) @db.Timestamptz(6)
 

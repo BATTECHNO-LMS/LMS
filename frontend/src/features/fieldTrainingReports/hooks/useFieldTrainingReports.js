@@ -3,6 +3,8 @@ import {
   fetchFieldTrainingApplicationsReport,
   fetchFieldTrainingDashboard,
   fetchFieldTrainingGlobalReport,
+  fetchFieldTrainingOpportunities,
+  fetchFieldTrainingOpportunityDetail,
   fetchFieldTrainingStudentReport,
   fetchFieldTrainingUniversityReport,
   fetchFieldTrainingAnalytics,
@@ -15,6 +17,14 @@ export const fieldTrainingReportKeys = {
   global: (params) => [...fieldTrainingReportKeys.all, 'global', params],
   university: (params, mode) => [...fieldTrainingReportKeys.all, 'university', mode, params],
   applications: (params, mode) => [...fieldTrainingReportKeys.all, 'applications', mode, params],
+  opportunities: (params, mode) => [...fieldTrainingReportKeys.all, 'opportunities', mode, params],
+  opportunity: (opportunityId, params, mode) => [
+    ...fieldTrainingReportKeys.all,
+    'opportunity',
+    mode,
+    opportunityId,
+    params,
+  ],
   student: (applicationId, mode) => [...fieldTrainingReportKeys.all, 'student', mode, applicationId],
   analytics: (params) => [...fieldTrainingReportKeys.all, 'analytics', params],
 };
@@ -57,6 +67,28 @@ export function useFieldTrainingApplicationsReport(params, options = {}) {
     queryFn: () => fetchFieldTrainingApplicationsReport(params, mode),
     staleTime: STALE.dashboard,
     placeholderData: keepPreviousListData,
+    ...queryOptions,
+  });
+}
+
+export function useFieldTrainingOpportunities(params, options = {}) {
+  const { mode = 'academic', ...queryOptions } = options;
+  return useQuery({
+    queryKey: fieldTrainingReportKeys.opportunities(params, mode),
+    queryFn: () => fetchFieldTrainingOpportunities(params, mode),
+    staleTime: STALE.dashboard,
+    placeholderData: keepPreviousListData,
+    ...queryOptions,
+  });
+}
+
+export function useFieldTrainingOpportunityDetail(opportunityId, params = {}, options = {}) {
+  const { mode = 'academic', ...queryOptions } = options;
+  return useQuery({
+    queryKey: fieldTrainingReportKeys.opportunity(opportunityId, params, mode),
+    queryFn: () => fetchFieldTrainingOpportunityDetail(opportunityId, params, mode),
+    enabled: Boolean(opportunityId),
+    staleTime: STALE.detail,
     ...queryOptions,
   });
 }

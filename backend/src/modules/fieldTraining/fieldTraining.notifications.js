@@ -10,7 +10,7 @@ async function findFieldTrainingAdminUserIds(universityId) {
     env.SUPER_ADMIN_ROLE_CODE || 'super_admin',
   ]);
   const uniAdminIds = universityId
-    ? await userIdsByRoleCodes(['university_admin', 'academic_admin'], { universityId })
+    ? await userIdsByRoleCodes(['admin'], { universityId })
     : [];
   return [...new Set([...superIds, ...uniAdminIds])];
 }

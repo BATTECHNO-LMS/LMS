@@ -4,7 +4,7 @@ const PORTAL_CONFIG = {
   admin: { role: ROLES.SUPER_ADMIN, loginPath: '/login/admin' },
   instructor: { role: ROLES.INSTRUCTOR, loginPath: '/login/instructor' },
   student: { role: ROLES.STUDENT, loginPath: '/login/student' },
-  reviewer: { role: ROLES.UNIVERSITY_REVIEWER, loginPath: '/login/reviewer' },
+  reviewer: { role: ROLES.ACADEMIC_REVIEWER, loginPath: '/login/reviewer' },
 };
 
 export function detectPortalKeyFromHostname(hostname) {

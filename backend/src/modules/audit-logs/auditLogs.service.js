@@ -8,7 +8,7 @@ function auditScopeWhere(requester) {
   if (isSystemWideAdmin(requester)) return null;
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
-  if (uni && roles.some((r) => ['university_admin', 'academic_admin', 'qa_officer'].includes(r))) {
+  if (uni && roles.some((r) => ['admin'].includes(r))) {
     return { university_id: uni };
   }
   return { id: { in: [] } };

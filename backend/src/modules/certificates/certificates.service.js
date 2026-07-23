@@ -18,7 +18,7 @@ async function cohortIdsVisibleTo(requester) {
   if (roles.includes('instructor')) {
     or.push({ instructor_id: requester.userId });
   }
-  if (uni && roles.some((r) => ['university_admin', 'academic_admin', 'qa_officer'].includes(r))) {
+  if (uni && roles.some((r) => ['admin'].includes(r))) {
     or.push({ university_id: uni });
   }
   if (!or.length) return [];
@@ -125,7 +125,7 @@ async function assertStaffMayAccessCohort(requester, cohort) {
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
   if (roles.includes('instructor') && cohort.instructor_id === requester.userId) return;
-  if (uni && roles.some((r) => ['university_admin', 'academic_admin', 'qa_officer'].includes(r)) && cohort.university_id === uni) {
+  if (uni && roles.some((r) => ['admin'].includes(r)) && cohort.university_id === uni) {
     return;
   }
   throw new ApiError(403, 'Forbidden');

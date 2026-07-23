@@ -2,10 +2,10 @@ import { cn } from '../../utils/helpers.js';
 import { useLocale } from '../../features/locale/index.js';
 import { translateText } from '../../utils/i18n.js';
 
-export function SectionCard({ title, actions, children, className }) {
+export function SectionCard({ title, actions, children, className, id }) {
   const { locale } = useLocale();
   return (
-    <section className={cn('section-card', className)}>
+    <section id={id} className={cn('section-card', className)}>
       {(title || actions) && (
         <div className="section-card__head">
           {title ? (

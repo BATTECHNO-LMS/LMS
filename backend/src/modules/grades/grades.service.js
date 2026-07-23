@@ -12,13 +12,7 @@ const {
   isGradeFinal,
 } = require('./grades.lifecycle');
 
-const STAFF_ROLES = new Set([
-  'super_admin',
-  'university_admin',
-  'academic_admin',
-  'qa_officer',
-  'instructor',
-]);
+const STAFF_ROLES = new Set(['super_admin', 'admin', 'instructor']);
 
 function isStaff(requester) {
   if (requester.isGlobal) return true;

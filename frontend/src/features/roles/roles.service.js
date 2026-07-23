@@ -11,3 +11,10 @@ export async function fetchRoleById(id) {
   const res = await apiClient.get(`${endpoints.roles}/${id}`);
   return unwrapApiData(res);
 }
+
+export async function updateRolePermissions(roleIdOrCode, permissionCodes) {
+  const res = await apiClient.put(`${endpoints.roles}/${roleIdOrCode}/permissions`, {
+    permission_codes: permissionCodes,
+  });
+  return unwrapApiData(res);
+}
