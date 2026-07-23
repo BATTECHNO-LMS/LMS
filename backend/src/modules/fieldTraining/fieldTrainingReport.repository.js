@@ -2,18 +2,25 @@ const { prisma } = require('../../config/db');
 const repo = require('./fieldTraining.repository');
 const ftEligibility = require('./fieldTraining.eligibility');
 const progressBuilder = require('./fieldTraining.progress');
+const hoursMod = require('./fieldTraining.hours');
 
 function parseDateFilter(filters = {}) {
   const where = {};
-  if (filters.from) where.gte = filters.from;
-  if (filters.to) where.lte = filters.to;
+  if (filters.from) where.gte = new Date(filters.from);
+  if (filters.to) {
+    const end = new Date(filters.to);
+    if (!Number.isNaN(end.getTime()) && String(filters.to).length <= 10) {
+      end.setHours(23, 59, 59, 999);
+    }
+    where.lte = end;
+  }
   return Object.keys(where).length ? where : null;
 }
 
 async function loadUniversity(universityId) {
   return prisma.universities.findFirst({
     where: { id: universityId, status: 'active' },
-    select: { id: true, name: true },
+    select: { id: true, name: true, name_en: true, short_name: true, code: true },
   });
 }
 
@@ -42,36 +49,66 @@ function average(nums) {
   return Math.round((values.reduce((sum, n) => sum + Number(n), 0) / values.length) * 100) / 100;
 }
 
-async function buildUniversityDashboard(universityId, filters = {}) {
-  const studentIds = await studentIdsForUniversity(universityId);
-  if (!studentIds.length) {
-    return {
-      university_id: universityId,
-      summary: {
-        eligible_opportunities: await countEligibleOpportunities(universityId),
-        total_applicants: 0,
-        accepted_students: 0,
-        rejected_students: 0,
-        expelled_students: 0,
-        in_training_students: 0,
-        completed_students: 0,
-        completion_letters_issued: 0,
-        average_attendance: null,
-        average_pre_assessment_score: null,
-        average_post_assessment_score: null,
-        task_submission_rate: null,
-      },
-      opportunities_count: 0,
-      applications_count: 0,
-    };
-  }
+const IN_TRAINING_STATUSES = new Set([
+  'in_training',
+  'task_pending',
+  'task_submitted',
+  'post_assessment_pending',
+  'ready_for_training',
+  'pre_assessment_completed',
+]);
 
-  const createdAt = parseDateFilter(filters);
+function emptyUniversitySummary(eligibleOpportunities = 0) {
+  return {
+    eligible_opportunities: eligibleOpportunities,
+    total_applicants: 0,
+    pending_review: 0,
+    accepted_students: 0,
+    rejected_students: 0,
+    expelled_students: 0,
+    in_training_students: 0,
+    completed_students: 0,
+    eligible_students: 0,
+    completion_letters_issued: 0,
+    average_attendance: null,
+    average_pre_assessment_score: null,
+    average_post_assessment_score: null,
+    tasks_submitted: 0,
+    task_submission_rate: null,
+  };
+}
+
+function summarizeApplications(apps, { eligibleOpportunities = 0, submissions = 0, tasks = 0 } = {}) {
+  const approved = apps.filter((app) => app.status === 'approved');
+  return {
+    eligible_opportunities: eligibleOpportunities,
+    total_applicants: apps.length,
+    pending_review: apps.filter((app) => app.status === 'pending').length,
+    accepted_students: approved.length,
+    rejected_students: apps.filter((app) => app.status === 'rejected').length,
+    expelled_students: approved.filter((app) => app.training_status === 'expelled').length,
+    in_training_students: approved.filter((app) => IN_TRAINING_STATUSES.has(app.training_status)).length,
+    completed_students: approved.filter((app) => app.training_status === 'completed').length,
+    eligible_students: approved.filter((app) => app.completion_eligibility_status === 'eligible').length,
+    completion_letters_issued: approved.filter((app) => app.completion_letter_issued_at).length,
+    average_attendance: average(approved.map((app) => app.attendance_percentage)),
+    average_pre_assessment_score: average(approved.map((app) => app.pre_assessment_score)),
+    average_post_assessment_score: average(approved.map((app) => app.post_assessment_score)),
+    tasks_submitted: submissions,
+    task_submission_rate:
+      tasks > 0 && approved.length > 0
+        ? Math.round((submissions / (tasks * approved.length)) * 10000) / 100
+        : null,
+  };
+}
+
+async function buildUniversityDashboard(universityId, filters = {}) {
+  const { buildApplicationWhere } = require('./fieldTrainingGlobalReport.repository');
+  const appWhere = await buildApplicationWhere({ ...filters, university_id: universityId });
+  const eligibleOpportunities = await countEligibleOpportunities(universityId);
+
   const apps = await prisma.field_training_applications.findMany({
-    where: {
-      student_id: { in: studentIds },
-      ...(createdAt ? { created_at: createdAt } : {}),
-    },
+    where: appWhere,
     select: {
       id: true,
       status: true,
@@ -87,6 +124,17 @@ async function buildUniversityDashboard(universityId, filters = {}) {
     },
   });
 
+  if (!apps.length) {
+    return {
+      university_id: universityId,
+      summary: emptyUniversitySummary(eligibleOpportunities),
+      opportunities_count: eligibleOpportunities,
+      applications_count: 0,
+    };
+  }
+
+  const studentIds = [...new Set(apps.map((app) => app.student_id))];
+  const createdAt = parseDateFilter(filters);
   const submissions = await prisma.field_training_task_submissions.count({
     where: {
       student_id: { in: studentIds },
@@ -103,28 +151,11 @@ async function buildUniversityDashboard(universityId, filters = {}) {
     },
   });
 
-  const approved = apps.filter((app) => app.status === 'approved');
-  const summary = {
-    eligible_opportunities: await countEligibleOpportunities(universityId),
-    total_applicants: apps.length,
-    accepted_students: approved.length,
-    rejected_students: apps.filter((app) => app.status === 'rejected').length,
-    expelled_students: approved.filter((app) => app.training_status === 'expelled').length,
-    in_training_students: approved.filter((app) =>
-      ['in_training', 'task_pending', 'task_submitted', 'post_assessment_pending', 'ready_for_training', 'pre_assessment_completed'].includes(
-        app.training_status
-      )
-    ).length,
-    completed_students: approved.filter((app) => app.training_status === 'completed').length,
-    completion_letters_issued: approved.filter((app) => app.completion_letter_issued_at).length,
-    average_attendance: average(approved.map((app) => app.attendance_percentage)),
-    average_pre_assessment_score: average(approved.map((app) => app.pre_assessment_score)),
-    average_post_assessment_score: average(approved.map((app) => app.post_assessment_score)),
-    task_submission_rate:
-      tasks > 0 && approved.length > 0
-        ? Math.round((submissions / (tasks * approved.length)) * 10000) / 100
-        : null,
-  };
+  const summary = summarizeApplications(apps, {
+    eligibleOpportunities,
+    submissions,
+    tasks,
+  });
 
   return {
     university_id: universityId,
@@ -202,14 +233,30 @@ async function buildUniversityReport(universityId, filters = {}) {
     completion_count: row.completion_count,
   }));
 
+  const hoursByApp = await hoursMod.calculateHoursProgressForApplications(
+    apps.map((app) => ({ id: app.id, opportunity_id: app.opportunity_id })),
+    new Map(
+      opportunities.map((opp) => [opp.id, opp.required_training_hours != null ? Number(opp.required_training_hours) : null])
+    )
+  );
+
   const students = apps.map((app) => {
     const profile = profileById[app.student_id];
     const opp = oppById[app.opportunity_id];
+    const hours = hoursByApp.get(app.id) || hoursMod.buildHoursProgress({
+      requiredHours: opp?.required_training_hours,
+      completedMinutes: 0,
+    });
     return {
       application_id: app.id,
+      student_id: app.student_id,
       student_name: profile?.full_name ?? null,
       student_email: profile?.email ?? null,
+      student_phone: profile?.phone ?? null,
+      student_account_status: profile?.status ?? null,
+      university_name: profile?.university?.name ?? university.name,
       university_specialty: profile?.university_specialty ?? null,
+      university_specialty_id: profile?.university_specialty_id ?? null,
       university_specialty_label: repo.formatSpecialtyLabel(profile?.university_specialty),
       canonical_specialty: profile?.canonical_specialty ?? null,
       opportunity_id: app.opportunity_id,
@@ -218,6 +265,12 @@ async function buildUniversityReport(universityId, filters = {}) {
       application_status: app.status,
       training_status: app.training_status,
       attendance_percentage: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      required_training_hours: hours.required_training_hours,
+      completed_training_hours: hours.completed_training_hours,
+      remaining_training_hours: hours.remaining_training_hours,
+      hours_completion_percentage: hours.hours_completion_percentage,
+      hours_completion_status: hours.hours_completion_status,
+      hours_completion_status_label: hoursMod.hoursStatusLabelAr(hours.hours_completion_status),
       required_training_hours:
         opp?.required_training_hours != null ? Number(opp.required_training_hours) : null,
       completed_training_hours:
@@ -243,13 +296,40 @@ async function buildUniversityReport(universityId, filters = {}) {
       eligibility_status: app.completion_eligibility_status,
       completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
       submitted_at: app.created_at,
+      progress_percentage: hours.hours_completion_percentage,
     };
+  }).filter((row) => {
+    if (filters.eligibility_status && row.eligibility_status !== filters.eligibility_status) {
+      return false;
+    }
+    if (filters.search) {
+      const q = String(filters.search).trim().toLowerCase();
+      if (!q) return true;
+      const hay = [row.student_name, row.student_email, row.opportunity_title, row.university_specialty_label]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    }
+    return true;
   });
+
+  const summary =
+    filters.eligibility_status || filters.search
+      ? summarizeApplications(
+          apps.filter((app) => students.some((row) => row.application_id === app.id)),
+          {
+            eligibleOpportunities: dashboard.summary.eligible_opportunities,
+            submissions: dashboard.summary.tasks_submitted,
+            tasks: 0,
+          }
+        )
+      : dashboard.summary;
 
   return {
     report_title: 'تقرير الجامعة للتدريب الميداني',
     university,
-    summary: dashboard.summary,
+    summary,
     by_specialty,
     students,
   };
@@ -294,6 +374,20 @@ function buildTimeline(app, opp, sessions, submissions, letter, attempts) {
         at: submission.submitted_at,
         key: 'task_submitted',
         label_ar: `تسليم مهمة: ${submission.task_title ?? submission.task_id}`,
+      });
+    }
+    if (submission.ai_response_inserted_text || submission.student_self_evaluation_input) {
+      events.push({
+        at: submission.submitted_at ?? submission.updated_at ?? app.updated_at,
+        key: 'ai_self_evaluation',
+        label_ar: `تقييم ذاتي بالذكاء الاصطناعي: ${submission.task_title ?? submission.task_id}`,
+      });
+    }
+    if (submission.instructor_feedback || submission.reviewed_at) {
+      events.push({
+        at: submission.reviewed_at ?? submission.updated_at ?? submission.submitted_at,
+        key: 'instructor_feedback',
+        label_ar: `ملاحظات المدرب: ${submission.task_title ?? submission.task_id}`,
       });
     }
   }
@@ -414,10 +508,16 @@ async function buildStudentDetailedReport(applicationId) {
     instructor = ins ? { id: ins.id, full_name: ins.full_name, email: ins.email } : null;
   }
 
+  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
+    app.id,
+    opp.required_training_hours
+  );
+
   const progress = progressBuilder.buildParticipantProgress(app, opp, {
     sessionsCount: sessions.length,
     tasksCount: tasks.length,
     tasksSubmitted: submissions.length,
+    hoursProgress,
   });
 
   return {
@@ -442,6 +542,7 @@ async function buildStudentDetailedReport(applicationId) {
       eligibility_grouped: ftEligibility.groupEligibilityByUniversity(eligibility),
     },
     application: repo.mapApplicationRow(app),
+    training_hours: hoursProgress,
     pre_assessment: attemptByType.pre
       ? {
           score: attemptByType.pre.score != null ? Number(attemptByType.pre.score) : app.pre_assessment_score,
@@ -518,6 +619,10 @@ async function buildStudentDetailedReport(applicationId) {
         opp.minimum_attendance_percentage != null
           ? Number(app.attendance_percentage ?? 0) >= Number(opp.minimum_attendance_percentage)
           : null,
+      hours_rule:
+        opp.required_training_hours != null
+          ? hoursProgress.hours_completion_status === hoursMod.HOURS_STATUS.COMPLETED
+          : null,
       task_rule: opp.requires_final_task ? app.final_task_status === 'approved' : true,
       post_assessment_rule:
         opp.requires_post_assessment && opp.minimum_post_assessment_score != null
@@ -539,9 +644,152 @@ async function buildStudentDetailedReport(applicationId) {
   };
 }
 
+function summarizeOpportunityUniversityApps(apps) {
+  const approved = apps.filter((app) => app.status === 'approved');
+  return {
+    applicants_count: apps.length,
+    pending_count: apps.filter((app) => app.status === 'pending').length,
+    accepted_count: approved.length,
+    in_training_count: approved.filter((app) => IN_TRAINING_STATUSES.has(app.training_status)).length,
+    completed_count: approved.filter((app) => app.training_status === 'completed').length,
+    expelled_count: approved.filter((app) => app.training_status === 'expelled').length,
+    average_attendance: average(approved.map((app) => app.attendance_percentage)),
+  };
+}
+
+async function listUniversityEligibleOpportunities(universityId, filters = {}) {
+  const opportunities = await prisma.field_training_opportunities.findMany({
+    where: {
+      ...(filters.opportunity_id ? { id: filters.opportunity_id } : {}),
+      field_training_opportunity_eligibility: {
+        some: {
+          university_id: universityId,
+          is_active: true,
+          ...(filters.university_specialty_id
+            ? { university_specialty_id: filters.university_specialty_id }
+            : {}),
+        },
+      },
+    },
+    include: {
+      specialties: { select: { id: true, name_ar: true, name_en: true, code: true } },
+      field_training_opportunity_eligibility: {
+        where: { university_id: universityId, is_active: true },
+        include: {
+          university_specialties: {
+            select: { id: true, name_ar: true, name_en: true, code: true },
+          },
+        },
+      },
+    },
+    orderBy: [{ start_date: 'desc' }, { created_at: 'desc' }],
+  });
+
+  if (!opportunities.length) return [];
+
+  const studentIds = await studentIdsForUniversity(universityId);
+  const opportunityIds = opportunities.map((opp) => opp.id);
+  const apps = studentIds.length
+    ? await prisma.field_training_applications.findMany({
+        where: {
+          opportunity_id: { in: opportunityIds },
+          student_id: { in: studentIds },
+          ...(filters.status ? { status: filters.status } : {}),
+          ...(filters.training_status ? { training_status: filters.training_status } : {}),
+        },
+        select: {
+          id: true,
+          opportunity_id: true,
+          status: true,
+          training_status: true,
+          attendance_percentage: true,
+        },
+      })
+    : [];
+
+  const appsByOpp = new Map();
+  for (const id of opportunityIds) appsByOpp.set(id, []);
+  for (const app of apps) {
+    const list = appsByOpp.get(app.opportunity_id);
+    if (list) list.push(app);
+  }
+
+  const instructorIds = [
+    ...new Set(opportunities.map((opp) => opp.assigned_instructor_id).filter(Boolean)),
+  ];
+  const instructors = instructorIds.length ? await repo.findUsersByIds(instructorIds) : [];
+  const instructorById = Object.fromEntries(instructors.map((row) => [row.id, row]));
+
+  return opportunities.map((opp) => {
+    const stats = summarizeOpportunityUniversityApps(appsByOpp.get(opp.id) || []);
+    const instructor = opp.assigned_instructor_id
+      ? instructorById[opp.assigned_instructor_id] ?? null
+      : null;
+    return {
+      id: opp.id,
+      title: opp.title,
+      status: opp.status,
+      training_mode: opp.training_mode,
+      location: opp.location,
+      start_date: opp.start_date,
+      end_date: opp.end_date,
+      required_training_hours:
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
+      training_track: repo.mapSpecialtySummary(opp.specialties) ?? null,
+      assigned_instructor: instructor
+        ? { id: instructor.id, full_name: instructor.full_name, email: instructor.email }
+        : null,
+      eligible_specialties: (opp.field_training_opportunity_eligibility || []).map((row) => ({
+        id: row.university_specialty_id,
+        label: repo.formatSpecialtyLabel(row.university_specialties),
+        university_specialty: row.university_specialties,
+        seats_limit: row.seats_limit,
+      })),
+      ...stats,
+    };
+  });
+}
+
+async function getUniversityOpportunityDetail(universityId, opportunityId) {
+  const opportunity = await prisma.field_training_opportunities.findFirst({
+    where: {
+      id: opportunityId,
+      field_training_opportunity_eligibility: {
+        some: { university_id: universityId, is_active: true },
+      },
+    },
+    include: {
+      specialties: { select: { id: true, name_ar: true, name_en: true, code: true } },
+      field_training_opportunity_eligibility: {
+        where: { university_id: universityId, is_active: true },
+        include: {
+          university_specialties: {
+            select: { id: true, name_ar: true, name_en: true, code: true },
+          },
+        },
+      },
+    },
+  });
+  if (!opportunity) return null;
+
+  const report = await buildUniversityReport(universityId, { opportunity_id: opportunityId });
+  const [listed] = await listUniversityEligibleOpportunities(universityId, {
+    opportunity_id: opportunityId,
+  });
+
+  return {
+    university: report?.university ?? (await loadUniversity(universityId)),
+    opportunity: listed ?? null,
+    summary: report?.summary ?? emptyUniversitySummary(),
+    students: report?.students ?? [],
+  };
+}
+
 module.exports = {
   buildUniversityDashboard,
   buildUniversityReport,
   buildStudentDetailedReport,
+  listUniversityEligibleOpportunities,
+  getUniversityOpportunityDetail,
   loadUniversity,
 };

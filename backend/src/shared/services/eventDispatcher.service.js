@@ -78,7 +78,7 @@ async function handleAttendanceBelowThreshold(event) {
   if (!cohort) return;
   const recipientIds = [];
   if (cohort.instructor_id) recipientIds.push(cohort.instructor_id);
-  const adminIds = await notificationService.userIdsByRoleCodes(['university_admin', 'academic_admin', 'qa_officer'], {
+  const adminIds = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort.university_id,
   });
   recipientIds.push(...adminIds);
@@ -105,7 +105,7 @@ async function handleCorrectiveActionOverdue(event) {
       select: { university_id: true },
     });
     if (cohort?.university_id) {
-      const qaOfficers = await notificationService.userIdsByRoleCodes(['qa_officer'], {
+      const qaOfficers = await notificationService.userIdsByRoleCodes(['admin'], {
         universityId: cohort.university_id,
       });
       recipients.push(...qaOfficers);
@@ -139,7 +139,7 @@ async function handleIntegrityCaseReported(event) {
     where: { id: integrityCase?.cohort_id },
     select: { university_id: true, title: true },
   });
-  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'university_admin', 'qa_officer'], {
+  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'admin'], {
     universityId: cohort?.university_id,
   });
   await notificationService.createNotificationsForUsers({
@@ -160,7 +160,7 @@ async function handleQaReviewOpened(event) {
   const recipients = [];
   if (qaReview?.reviewer_id) recipients.push(qaReview.reviewer_id);
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const qaOfficers = await notificationService.userIdsByRoleCodes(['qa_officer', 'university_admin'], {
+  const qaOfficers = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...qaOfficers);
@@ -182,7 +182,7 @@ async function handleAssessmentOverdue(event) {
   });
   const recipients = [];
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const admins = await notificationService.userIdsByRoleCodes(['academic_admin'], {
+  const admins = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...admins);
@@ -204,7 +204,7 @@ async function handleAssessmentUngradedBeforeClosure(event) {
   });
   const recipients = [];
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const admins = await notificationService.userIdsByRoleCodes(['academic_admin', 'qa_officer'], {
+  const admins = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...admins);

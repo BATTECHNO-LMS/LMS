@@ -23,10 +23,12 @@ function mapUniversityRow(u) {
   return {
     id: String(u.id),
     name: String(u.name ?? ''),
+    code: u.code != null ? String(u.code) : '—',
     contact: u.contact_person != null ? String(u.contact_person) : '—',
     email: u.contact_email != null ? String(u.contact_email) : '—',
     status: String(u.status ?? ''),
-    programs: 0,
+    programs: Number(u.active_specialties_count ?? 0),
+    domains: Number(u.active_email_domains_count ?? 0),
     tenantId: String(u.id),
   };
 }
@@ -48,7 +50,11 @@ export function UniversitiesListPage() {
     const qq = q.trim().toLowerCase();
     return scoped.filter((r) => {
       const matchQ =
-        !qq || r.name.toLowerCase().includes(qq) || r.contact.toLowerCase().includes(qq) || r.email.toLowerCase().includes(qq);
+        !qq ||
+        r.name.toLowerCase().includes(qq) ||
+        String(r.code || '').toLowerCase().includes(qq) ||
+        r.contact.toLowerCase().includes(qq) ||
+        r.email.toLowerCase().includes(qq);
       const matchStatus = !status || r.status === status;
       return matchQ && matchStatus;
     });
@@ -112,6 +118,7 @@ export function UniversitiesListPage() {
             emptyDescription={emptyDescription}
             columns={[
               { key: 'name', label: t('table.name') },
+              { key: 'code', label: t('table.code') },
               { key: 'contact', label: t('table.contact') },
               { key: 'email', label: t('table.email') },
               {
@@ -122,6 +129,7 @@ export function UniversitiesListPage() {
                 ),
               },
               { key: 'programs', label: t('table.programs') },
+              { key: 'domains', label: t('table.domains') },
               {
                 key: 'actions',
                 label: tCommon('table.actions'),

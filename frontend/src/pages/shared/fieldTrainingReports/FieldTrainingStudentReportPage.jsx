@@ -176,6 +176,23 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             />
           </SectionCard>
 
+          <SectionCard title={t('sections.hours')}>
+            <DetailGrid
+              items={[
+                [t('hours.required'), data.training_hours?.required_training_hours],
+                [t('hours.completed'), data.training_hours?.completed_training_hours],
+                [t('hours.remaining'), data.training_hours?.remaining_training_hours],
+                [
+                  t('hours.percentage'),
+                  data.training_hours?.hours_completion_percentage != null
+                    ? `${data.training_hours.hours_completion_percentage}%`
+                    : '—',
+                ],
+                [t('hours.status'), data.training_hours?.hours_completion_status ?? '—'],
+              ]}
+            />
+          </SectionCard>
+
           <SectionCard title={t('sections.tasks')}>
             <DataTable
               columns={[
@@ -238,6 +255,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
               items={[
                 [t('eligibility.status'), data.completion_eligibility?.status],
                 [t('eligibility.attendanceRule'), data.completion_eligibility?.attendance_rule],
+                [t('eligibility.hoursRule'), data.completion_eligibility?.hours_rule],
                 [t('eligibility.taskRule'), data.completion_eligibility?.task_rule],
                 [t('eligibility.postAssessmentRule'), data.completion_eligibility?.post_assessment_rule],
               ]}
@@ -263,16 +281,21 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
           </SectionCard>
 
           <SectionCard title={t('sections.timeline')}>
-            <DataTable
-              columns={[
-                { key: 'at', label: t('table.date') },
-                { key: 'label_ar', label: t('table.event') },
-              ]}
-              rows={(data.timeline ?? []).map((event) => ({
-                ...event,
-                at: formatFtDate(event.at),
-              }))}
-            />
+            {(data.timeline ?? []).length === 0 ? (
+              <p className="crud-muted">{t('timeline.empty')}</p>
+            ) : (
+              <ol className="ft-report-timeline">
+                {(data.timeline ?? []).map((event, index) => (
+                  <li key={`${event.key}-${index}`} className="ft-report-timeline__item">
+                    <div className="ft-report-timeline__marker" aria-hidden />
+                    <div className="ft-report-timeline__body">
+                      <time className="ft-report-timeline__date">{formatFtDate(event.at)}</time>
+                      <p className="ft-report-timeline__label">{event.label_ar || event.key}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
           </SectionCard>
         </>
       ) : null}

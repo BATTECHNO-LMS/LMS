@@ -73,10 +73,10 @@ describe('buildTokenPayload privileged claims', () => {
     assert.equal(payload.universityId, SYNTH_UNI_A);
   });
 
-  it('program_admin → isGlobal false with universityId', () => {
+  it('program_admin → isGlobal false with universityId (canonicalized to admin)', () => {
     const payload = buildTokenPayload(SYNTH_USER_A, [roleRec('program_admin')], SYNTH_UNI_A);
     assert.equal(payload.isGlobal, false);
-    assert.deepEqual(payload.roles, ['program_admin']);
+    assert.deepEqual(payload.roles, ['admin']);
     assert.equal(payload.universityId, SYNTH_UNI_A);
   });
 

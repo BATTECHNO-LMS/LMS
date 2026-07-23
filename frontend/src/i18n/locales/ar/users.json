@@ -29,13 +29,11 @@
   "filters": {
     "role": "الدور",
     "allRoles": "كل الأدوار",
+    "superAdmin": "سوبر أدمن",
     "instructor": "مدرّس",
     "student": "طالب",
-    "admin": "إداري",
-    "programAdminDeprecated": "إداري برامج — متوقف",
-    "qaOfficer": "مسؤول جودة",
+    "admin": "أدمن",
     "academicReviewer": "مراجع أكاديمي",
-    "universityAdmin": "مدير جامعة",
     "emailVerification": "حالة توثيق البريد",
     "emailVerificationAll": "الكل"
   },

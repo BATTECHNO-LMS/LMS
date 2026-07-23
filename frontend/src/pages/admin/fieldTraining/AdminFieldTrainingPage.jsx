@@ -69,6 +69,7 @@ const emptyForm = {
   requirements: '',
   benefits: '',
   seats_limit: '',
+  required_training_hours: '',
   start_date: '',
   end_date: '',
   application_deadline: '',
@@ -205,6 +206,8 @@ export function AdminFieldTrainingPage() {
       requirements: r.requirements ?? '',
       benefits: r.benefits ?? '',
       seats_limit: r.seats_limit != null ? String(r.seats_limit) : '',
+      required_training_hours:
+        r.required_training_hours != null ? String(r.required_training_hours) : '',
       start_date: r.start_date ?? '',
       end_date: r.end_date ?? '',
       application_deadline: r.application_deadline ?? '',
@@ -277,6 +280,9 @@ export function AdminFieldTrainingPage() {
       requirements: form.requirements.trim() || null,
       benefits: form.benefits.trim() || null,
       seats_limit: form.seats_limit ? Number(form.seats_limit) : null,
+      required_training_hours: form.required_training_hours
+        ? Number(form.required_training_hours)
+        : null,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       application_deadline: form.application_deadline || null,
@@ -307,6 +313,16 @@ export function AdminFieldTrainingPage() {
     }
     if (!form.specialty_id) {
       errors.specialty = t('form.trainingTrackRequired');
+    }
+
+    const hoursRaw = String(form.required_training_hours ?? '').trim();
+    if (!editingId && !hoursRaw) {
+      errors.requiredHours = t('form.requiredHoursRequired');
+    } else if (hoursRaw) {
+      const hours = Number(hoursRaw);
+      if (!Number.isInteger(hours) || hours <= 0) {
+        errors.requiredHours = t('form.requiredHoursInvalid');
+      }
     }
 
     const uniqueUniversities = new Set(form.eligibility.map((row) => row.university_id));
@@ -1071,6 +1087,26 @@ export function AdminFieldTrainingPage() {
                       value={form.seats_limit}
                       onChange={(e) => setForm((f) => ({ ...f, seats_limit: e.target.value }))}
                     />
+                    <FormInput
+                      id="ft-required-hours"
+                      label={t('form.requiredTrainingHours')}
+                      type="number"
+                      min={1}
+                      step={1}
+                      inputMode="numeric"
+                      placeholder={t('form.requiredTrainingHoursPlaceholder')}
+                      value={form.required_training_hours}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, required_training_hours: e.target.value }));
+                        if (formErrors.requiredHours) {
+                          setFormErrors((prev) => ({ ...prev, requiredHours: undefined }));
+                        }
+                      }}
+                      error={formErrors.requiredHours}
+                      aria-invalid={Boolean(formErrors.requiredHours)}
+                      required={!editingId}
+                    />
+                    <p className="ft-composer-section__field-help">{t('form.requiredTrainingHoursHelp')}</p>
                     <FormInput
                       id="ft-start"
                       label={t('form.startDate')}

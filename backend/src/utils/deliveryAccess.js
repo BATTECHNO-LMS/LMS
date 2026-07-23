@@ -2,8 +2,11 @@
  * Scope rules for cohorts / delivery modules (JWT `req.user`).
  * @param {{ roles?: string[], isGlobal?: boolean, universityId?: string | null, userId?: string }} requester
  */
+const { normalizeRoleCodes } = require('./roleCanon');
+const { env } = require('../config/env');
+
 function normalizeRoles(roles) {
-  return (Array.isArray(roles) ? roles : []).map((r) => String(r).toLowerCase());
+  return normalizeRoleCodes(Array.isArray(roles) ? roles : []);
 }
 
 /**
@@ -14,9 +17,7 @@ function cohortListWhere(requester) {
   if (requester.isGlobal) return null;
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
-  const uniStaff = roles.some((r) =>
-    ['university_admin', 'academic_admin', 'qa_officer', 'university_reviewer'].includes(r)
-  );
+  const uniStaff = roles.some((r) => ['admin', 'academic_reviewer'].includes(r));
   if (uni && uniStaff) {
     return { university_id: uni };
   }
@@ -28,8 +29,6 @@ function cohortListWhere(requester) {
   }
   return { AND: [{ id: { in: [] } }] };
 }
-
-const { env } = require('../config/env');
 
 /**
  * Cohort catalog browse (student): cohort open for self-service enrollment requests.
@@ -62,9 +61,7 @@ function canAccessCohort(requester, cohort) {
   if (requester.isGlobal) return true;
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
-  const uniStaff = roles.some((r) =>
-    ['university_admin', 'academic_admin', 'qa_officer', 'university_reviewer'].includes(r)
-  );
+  const uniStaff = roles.some((r) => ['admin', 'academic_reviewer'].includes(r));
   if (uni && uniStaff && cohort.university_id === uni) return true;
   if (roles.includes('instructor') && cohort.instructor_id === requester.userId) return true;
   return false;

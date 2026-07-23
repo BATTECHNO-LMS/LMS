@@ -1,9 +1,10 @@
 const { filterDeprecatedFromRoleAllowlist } = require('../utils/runtimeRoles');
+const { normalizeRoleCodes } = require('../utils/roleCanon');
 
 /**
  * Require the authenticated user (`req.user` from authenticate) to have at least one
  * of the given `roles.code` values (case-insensitive).
- * Deprecated runtime roles (e.g. program_admin) are stripped from allowlists.
+ * Legacy codes in allowlists are canonicalized (e.g. university_admin → admin).
  * @param {...string} allowedRoleCodes
  */
 function authorizeRoles(...allowedRoleCodes) {
@@ -19,8 +20,9 @@ function authorizeRoles(...allowedRoleCodes) {
     if (req.user.isGlobal) {
       return next();
     }
-    const roles = Array.isArray(req.user.roles) ? req.user.roles : [];
-    const userRoles = roles.map((r) => String(r).toLowerCase());
+    const userRoles = normalizeRoleCodes(
+      Array.isArray(req.user.roles) ? req.user.roles : []
+    );
     const ok = userRoles.some((r) => normalized.includes(r));
     if (!ok) {
       return res.status(403).json({ success: false, message: 'Forbidden' });

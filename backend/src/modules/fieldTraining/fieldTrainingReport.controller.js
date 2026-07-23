@@ -133,6 +133,19 @@ async function exportStudentExcel(req, res, next) {
   }
 }
 
+async function academicDashboard(req, res, next) {
+  try {
+    const data = await reportService.getAcademicDashboard(req.user, req.validated.query);
+    await auditReport(req, 'report.read', data.university_id ?? null, {
+      type: 'academic_field_training_dashboard',
+      university_id: data.university_id,
+    });
+    return success(res, data, { message: 'Academic field training dashboard loaded' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function academicUniversityReport(req, res, next) {
   try {
     const data = await reportService.getAcademicUniversityReport(req.user, req.validated.query);
@@ -153,12 +166,38 @@ async function academicStudentsList(req, res, next) {
   }
 }
 
+async function academicOpportunitiesList(req, res, next) {
+  try {
+    const data = await reportService.listAcademicOpportunities(req.user, req.validated.query);
+    await auditReport(req, 'report.read', data.university_id ?? null, {
+      type: 'academic_field_training_opportunities',
+    });
+    return success(res, data, { message: 'Eligible field training opportunities loaded' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function academicOpportunityDetail(req, res, next) {
+  try {
+    const data = await reportService.getAcademicOpportunity(
+      req.user,
+      req.validated.params.opportunityId,
+      req.validated.query
+    );
+    await auditReport(req, 'report.read', req.validated.params.opportunityId, {
+      type: 'academic_field_training_opportunity',
+    });
+    return success(res, data, { message: 'Field training opportunity detail loaded' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function academicStudentReport(req, res, next) {
   try {
     const { applicationId } = req.validated.params;
-    const scoped = reportService.withAcademicUniversity(req.user, {});
-    await reportService.getUniversityReport(req.user, scoped);
-    const data = await reportService.getStudentReport(req.user, applicationId);
+    const data = await reportService.getAcademicStudentReport(req.user, applicationId);
     await auditReport(req, 'report.read', applicationId, { type: 'academic_field_training_student' });
     return success(res, data, { message: 'Student field training report generated' });
   } catch (e) {
@@ -189,6 +228,7 @@ async function academicExportUniversityExcel(req, res, next) {
 async function academicExportStudentPdf(req, res, next) {
   try {
     const { applicationId } = req.validated.params;
+    await reportService.getAcademicStudentReport(req.user, applicationId);
     const file = await reportService.exportStudentReport(req.user, applicationId, 'pdf');
     return sendExport(res, file);
   } catch (e) {
@@ -199,6 +239,7 @@ async function academicExportStudentPdf(req, res, next) {
 async function academicExportStudentExcel(req, res, next) {
   try {
     const { applicationId } = req.validated.params;
+    await reportService.getAcademicStudentReport(req.user, applicationId);
     const file = await reportService.exportStudentReport(req.user, applicationId, 'xlsx');
     return sendExport(res, file);
   } catch (e) {
@@ -256,11 +297,14 @@ module.exports = {
   exportStudentExcel,
   academicUniversityReport,
   academicStudentsList,
+  academicOpportunitiesList,
+  academicOpportunityDetail,
   academicStudentReport,
   academicExportUniversityPdf,
   academicExportUniversityExcel,
   academicExportStudentPdf,
   academicExportStudentExcel,
+  academicDashboard,
   academicTaskInstructionDownloadUrl,
   academicDownloadTaskInstruction,
   applications: studentsList,

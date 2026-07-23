@@ -5,3 +5,8 @@ export { useAuthLogin } from './hooks/useAuthLogin.js';
 export { useAuthRegister } from './hooks/useAuthRegister.js';
 export { useCurrentUser } from './hooks/useCurrentUser.js';
 export { RegisterPage } from './pages/RegisterPage.jsx';
+export {
+  mapAuthUser,
+  pickPrimaryRole,
+  resolveAuthUniversityId,
+} from './authUserMapper.js';

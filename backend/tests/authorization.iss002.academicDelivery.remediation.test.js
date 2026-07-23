@@ -88,11 +88,12 @@ describe('ISS-002 academic delivery remediation (backend)', () => {
     assert.equal(updateGradeBodySchema.safeParse({ score: 88, feedback: 'ok' }).success, true);
   });
 
-  it('default ACADEMIC_WRITE excludes student, qa_officer, university_reviewer', () => {
+  it('default ACADEMIC_WRITE includes admin+instructor and excludes student/reviewer', () => {
     const write = env.ACADEMIC_WRITE_ROLE_CODES;
     assert.ok(write.includes('instructor'));
-    assert.ok(write.includes('academic_admin'));
+    assert.ok(write.includes('admin'));
     assert.equal(write.includes('student'), false);
+    assert.equal(write.includes('academic_reviewer'), false);
     assert.equal(write.includes('qa_officer'), false);
     assert.equal(write.includes('university_reviewer'), false);
   });

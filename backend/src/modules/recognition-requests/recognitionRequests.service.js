@@ -30,7 +30,7 @@ function listScopeWhere(requester) {
   }
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
-  if (uni && roles.some((r) => ['university_admin', 'university_reviewer', 'academic_admin'].includes(r))) {
+  if (uni && roles.some((r) => ['admin', 'academic_reviewer'].includes(r))) {
     return { university_id: uni };
   }
   return { id: { in: [] } };
@@ -175,7 +175,7 @@ async function createRecognitionRequest(body, requester) {
   const scope = listScopeWhere(requester);
   if (scope.university_id && body.university_id !== scope.university_id) throw new ApiError(403, 'Forbidden');
   const roles = normalizeRoles(requester.roles);
-  if (!roles.some((r) => ['super_admin', 'university_admin', 'academic_admin'].includes(r))) {
+  if (!roles.some((r) => ['super_admin', 'admin'].includes(r))) {
     throw new ApiError(403, 'Forbidden');
   }
   const allowedCreate = new Set(['draft', 'in_preparation']);
@@ -196,7 +196,7 @@ async function updateRecognitionRequest(id, body, requester) {
   const row = await repo.findById(id);
   assertCanAccessRow(requester, row);
   const roles = normalizeRoles(requester.roles);
-  if (!roles.some((r) => ['super_admin', 'university_admin', 'academic_admin'].includes(r))) {
+  if (!roles.some((r) => ['super_admin', 'admin'].includes(r))) {
     throw new ApiError(403, 'Forbidden');
   }
   const data = { updated_at: new Date() };
@@ -210,7 +210,7 @@ async function patchRecognitionStatus(id, body, requester) {
   const row = await repo.findById(id);
   assertCanAccessRow(requester, row);
   const roles = normalizeRoles(requester.roles);
-  if (!roles.some((r) => ['super_admin', 'university_admin', 'academic_admin', 'university_reviewer'].includes(r))) {
+  if (!roles.some((r) => ['super_admin', 'admin', 'academic_reviewer'].includes(r))) {
     throw new ApiError(403, 'Forbidden');
   }
   assertStatusTransition(row.status, body.status);

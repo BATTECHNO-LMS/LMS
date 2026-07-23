@@ -14,6 +14,8 @@ function normalizeParams(params = {}) {
     opportunity_id: params.opportunity_id || undefined,
     status: params.status || undefined,
     training_status: params.training_status || undefined,
+    eligibility_status: params.eligibility_status || undefined,
+    search: params.search || undefined,
     from: params.from || undefined,
     to: params.to || undefined,
   };
@@ -32,13 +34,9 @@ function parseFilename(contentDisposition, fallback) {
 
 export async function fetchFieldTrainingDashboard(params = {}, mode = 'admin') {
   const base = apiBase(mode);
-  const path = mode === 'academic' ? `${base}/reports/university` : `${base}`;
+  const path = mode === 'academic' ? `${base}/dashboard` : `${base}`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
-  const data = unwrapApiData(res);
-  if (mode === 'academic' && data.summary) {
-    return { university: data.university, summary: data.summary, university_id: data.university?.id };
-  }
-  return data;
+  return unwrapApiData(res);
 }
 
 export async function fetchFieldTrainingGlobalReport(params = {}) {
@@ -55,8 +53,23 @@ export async function fetchFieldTrainingUniversityReport(params = {}, mode = 'ad
 
 export async function fetchFieldTrainingApplicationsReport(params = {}, mode = 'admin') {
   const base = apiBase(mode);
-  const path = mode === 'academic' ? `${base}/students` : `${base}/students`;
+  const path = `${base}/students`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
+  return unwrapApiData(res);
+}
+
+export async function fetchFieldTrainingOpportunities(params = {}, mode = 'academic') {
+  const base = apiBase(mode);
+  const path = mode === 'academic' ? `${base}/opportunities` : `${base}/opportunities`;
+  const res = await apiClient.get(path, { params: normalizeParams(params) });
+  return unwrapApiData(res);
+}
+
+export async function fetchFieldTrainingOpportunityDetail(opportunityId, params = {}, mode = 'academic') {
+  const base = apiBase(mode);
+  const res = await apiClient.get(`${base}/opportunities/${opportunityId}`, {
+    params: normalizeParams(params),
+  });
   return unwrapApiData(res);
 }
 
@@ -93,7 +106,10 @@ export async function exportFieldTrainingGlobalReport(format = 'pdf', params = {
 export async function exportFieldTrainingUniversityReport(format = 'pdf', params = {}, mode = 'admin') {
   const base = apiBase(mode);
   const suffix = format === 'pdf' ? 'pdf' : 'excel';
-  const path = mode === 'academic' ? `${base}/reports/university/export/${suffix}` : `${base}/university/export/${suffix}`;
+  const path =
+    mode === 'academic'
+      ? `${base}/reports/university/export/${suffix}`
+      : `${base}/university/export/${suffix}`;
   const res = await apiClient.get(path, {
     params: normalizeParams(params),
     responseType: 'blob',

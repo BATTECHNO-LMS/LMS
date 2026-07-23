@@ -19,4 +19,21 @@ async function getById(req, res, next) {
   }
 }
 
-module.exports = { list, getById };
+async function updatePermissions(req, res, next) {
+  try {
+    const data = await rolesService.updateRolePermissions(
+      req.validated.params.id,
+      req.validated.body.permission_codes,
+      req.user,
+      {
+        actorUserId: req.user?.userId,
+        ipAddress: req.ip,
+      }
+    );
+    return success(res, data, { message: 'Role permissions updated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+module.exports = { list, getById, updatePermissions };

@@ -8,13 +8,7 @@ const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.serv
 const enrollmentsRepo = require('../enrollments/enrollments.repository');
 const repo = require('./assessments.repository');
 
-const STAFF_ROLES = new Set([
-  'super_admin',
-  'university_admin',
-  'academic_admin',
-  'qa_officer',
-  'instructor',
-]);
+const STAFF_ROLES = new Set(['super_admin', 'admin', 'instructor']);
 
 const STATUS_FLOW = {
   draft: new Set(['published', 'archived']),

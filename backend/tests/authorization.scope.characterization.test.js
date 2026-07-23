@@ -154,9 +154,11 @@ describe('universityScope characterization', () => {
     assert.deepEqual(denyAllWhere(), { id: { in: [] } });
   });
 
-  it('canonical role set used by fixtures has eight codes', () => {
-    assert.equal(CANONICAL_ROLES.length, 8);
-    assert.ok(CANONICAL_ROLES.includes('program_admin'));
+  it('canonical role set used by fixtures has five codes', () => {
+    assert.equal(CANONICAL_ROLES.length, 5);
+    assert.ok(CANONICAL_ROLES.includes('admin'));
+    assert.ok(CANONICAL_ROLES.includes('academic_reviewer'));
     assert.ok(CANONICAL_ROLES.includes('super_admin'));
+    assert.ok(!CANONICAL_ROLES.includes('program_admin'));
   });
 });

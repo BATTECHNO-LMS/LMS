@@ -40,7 +40,7 @@ function navItem(to, labelKey, icon, permission) {
 const ROLE_NAV_PREFIX = {
   [ROLES.INSTRUCTOR]: 'instructor',
   [ROLES.STUDENT]: 'student',
-  [ROLES.UNIVERSITY_REVIEWER]: 'reviewer',
+  [ROLES.ACADEMIC_REVIEWER]: 'reviewer',
 };
 
 /** Non-admin roles — `{ to, labelKey, icon, permission }`. */
@@ -81,7 +81,7 @@ export const NAV_BY_ROLE = {
     navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
-  [ROLES.UNIVERSITY_REVIEWER]: [
+  [ROLES.ACADEMIC_REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
     navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),
     navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),

@@ -203,7 +203,15 @@ async function findActiveUniversitiesForRegistration() {
         some: { is_active: true },
       },
     },
-    select: { id: true, name: true, type: true, status: true },
+    select: {
+      id: true,
+      name: true,
+      name_en: true,
+      short_name: true,
+      code: true,
+      type: true,
+      status: true,
+    },
     orderBy: { name: 'asc' },
   });
 }

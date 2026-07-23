@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { StatCard } from '../../../../components/common/StatCard.jsx';
 import { AdminStatsGrid } from '../../../../components/admin/AdminStatsGrid.jsx';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
+import { TrainingHoursProgressCard } from '../../../../components/fieldTraining/TrainingHoursProgressCard.jsx';
 import { trainingStatusVariant } from '../../../../features/fieldTraining/index.js';
 import {
   StudentWorkflowTimeline,
@@ -176,6 +177,11 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
           icon={Award}
         />
       </AdminStatsGrid>
+
+      <TrainingHoursProgressCard
+        hours={progress?.hours ?? progress?.metrics}
+        className="ft-student-overview__hours"
+      />
 
       <StudentWorkflowTimeline
         steps={progress?.steps}

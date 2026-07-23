@@ -3,6 +3,7 @@ const fs = require('fs');
 const { prisma } = require('../../config/db');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { env } = require('../../config/env');
+const hoursMod = require('./fieldTraining.hours');
 
 function toDateOnly(value) {
   if (value == null || value === '') return null;
@@ -978,6 +979,7 @@ function resolveSubmissionAbsolutePath(relativePath) {
 }
 
 function mapSessionRow(row) {
+  const durationMinutes = hoursMod.sessionDurationMinutes(row.start_time, row.end_time);
   return {
     id: row.id,
     opportunity_id: row.opportunity_id,
@@ -986,6 +988,8 @@ function mapSessionRow(row) {
     session_date: formatDateOnly(row.session_date),
     start_time: row.start_time,
     end_time: row.end_time,
+    duration_minutes: durationMinutes,
+    duration_hours: durationMinutes != null ? hoursMod.minutesToHours(durationMinutes) : null,
     zoom_link: row.zoom_link,
     is_required: Boolean(row.is_required),
     created_by_id: row.created_by_id,

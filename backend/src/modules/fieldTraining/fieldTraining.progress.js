@@ -95,6 +95,13 @@ function buildParticipantProgress(app, opp, counts = {}) {
   const postPassed =
     postScore == null ? null : minPost == null ? true : postScore >= minPost;
 
+  const hours =
+    counts.hoursProgress ||
+    require('./fieldTraining.hours').buildHoursProgress({
+      requiredHours: opp.required_training_hours,
+      completedMinutes: counts.completedTrainingMinutes ?? 0,
+    });
+
   return {
     application: repo.mapApplicationRow(app),
     opportunity: {
@@ -112,6 +119,7 @@ function buildParticipantProgress(app, opp, counts = {}) {
     },
     steps,
     next_action: resolveNextAction(app, opp),
+    hours,
     metrics: {
       sessions_count: counts.sessionsCount ?? 0,
       required_sessions_count: counts.requiredSessionsCount ?? 0,
@@ -137,6 +145,12 @@ function buildParticipantProgress(app, opp, counts = {}) {
       post_assessment_passed: postPassed,
       completion_eligibility_status: app.completion_eligibility_status ?? 'pending',
       completion_letter_issued_at: app.completion_letter_issued_at ?? null,
+      required_training_hours: hours.required_training_hours,
+      completed_training_hours: hours.completed_training_hours,
+      remaining_training_hours: hours.remaining_training_hours,
+      excess_training_hours: hours.excess_training_hours,
+      hours_completion_percentage: hours.hours_completion_percentage,
+      hours_completion_status: hours.hours_completion_status,
     },
   };
 }

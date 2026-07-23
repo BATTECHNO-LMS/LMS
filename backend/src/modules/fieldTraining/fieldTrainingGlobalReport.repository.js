@@ -1,5 +1,6 @@
 const { prisma } = require('../../config/db');
 const repo = require('./fieldTraining.repository');
+const hoursMod = require('./fieldTraining.hours');
 
 function parseDateFilter(filters = {}) {
   const where = {};
@@ -247,6 +248,16 @@ async function buildGlobalReport(filters = {}) {
     ),
   };
 
+  const hoursByApp = await hoursMod.calculateHoursProgressForApplications(
+    applications.map((app) => ({ id: app.id, opportunity_id: app.opportunity_id })),
+    new Map(
+      opportunities.map((opp) => [
+        opp.id,
+        opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
+      ])
+    )
+  );
+
   return {
     report_title: 'التقرير الشامل للتدريب الميداني',
     generated_at: new Date().toISOString(),
@@ -281,6 +292,13 @@ async function buildGlobalReport(filters = {}) {
     applications: applications.map((app) => {
       const profile = profileById[app.student_id];
       const opp = oppById[app.opportunity_id];
+      const hours = hoursByApp.get(app.id) || {
+        required_training_hours: opp?.required_training_hours != null ? Number(opp.required_training_hours) : null,
+        completed_training_hours: 0,
+        remaining_training_hours: null,
+        hours_completion_percentage: null,
+        hours_completion_status: null,
+      };
       return {
         ...repo.mapApplicationRow(app),
         student_name: profile?.full_name ?? null,
@@ -288,6 +306,12 @@ async function buildGlobalReport(filters = {}) {
         university_name: profile?.university?.name ?? null,
         university_specialty_label: repo.formatSpecialtyLabel(profile?.university_specialty),
         opportunity_title: opp?.title ?? null,
+        required_training_hours: hours.required_training_hours,
+        completed_training_hours: hours.completed_training_hours,
+        remaining_training_hours: hours.remaining_training_hours,
+        hours_completion_percentage: hours.hours_completion_percentage,
+        hours_completion_status: hours.hours_completion_status,
+        hours_completion_status_label: hoursMod.hoursStatusLabelAr(hours.hours_completion_status),
       };
     }),
     attendance: attendanceRows.map((row) => ({

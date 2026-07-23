@@ -53,6 +53,21 @@ async function findRoleById(roleId) {
   });
 }
 
+async function findRoleByCode(code) {
+  return prisma.roles.findUnique({
+    where: { code: String(code).toLowerCase() },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      scope: true,
+      description: true,
+      created_at: true,
+      updated_at: true,
+    },
+  });
+}
+
 async function findPermissionCodesForRole(roleId) {
   const links = await prisma.role_permissions.findMany({
     where: { role_id: roleId },
@@ -65,6 +80,28 @@ async function findPermissionCodesForRole(roleId) {
     select: { code: true },
   });
   return perms.map((p) => p.code);
+}
+
+async function findPermissionIdsByCodes(codes) {
+  if (!codes.length) return [];
+  const rows = await prisma.permissions.findMany({
+    where: { code: { in: codes } },
+    select: { id: true, code: true },
+  });
+  return rows;
+}
+
+async function replaceRolePermissions(roleId, permissionIds, tx = prisma) {
+  await tx.role_permissions.deleteMany({ where: { role_id: roleId } });
+  if (!permissionIds.length) return;
+  await tx.role_permissions.createMany({
+    data: permissionIds.map((permission_id) => ({ role_id: roleId, permission_id })),
+    skipDuplicates: true,
+  });
+  await tx.roles.update({
+    where: { id: roleId },
+    data: { updated_at: new Date() },
+  });
 }
 
 async function countTotalRolePermissionLinks() {
@@ -83,7 +120,10 @@ module.exports = {
   countUsersPerRole,
   findAllPermissions,
   findRoleById,
+  findRoleByCode,
   findPermissionCodesForRole,
+  findPermissionIdsByCodes,
+  replaceRolePermissions,
   countTotalRolePermissionLinks,
   countUsersWithRoles,
 };

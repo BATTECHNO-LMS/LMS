@@ -1,19 +1,49 @@
-import { ADMIN_ROLE_SET, ROLES } from '../../constants/roles.js';
+import {
+  ADMIN_ROLE_SET,
+  ROLES,
+  normalizeRoleCodes,
+  canonicalizeRoleCode,
+} from '../../constants/roles.js';
 import { TENANT_SCOPE_ALL } from '../../constants/tenants.js';
+
+/**
+ * Official university id for the signed-in user.
+ * Source of truth on the API is users.primary_university_id, exposed as universityId.
+ * @param {Record<string, unknown> | null | undefined} user
+ * @returns {string | null}
+ */
+export function resolveAuthUniversityId(user) {
+  if (!user || typeof user !== 'object') return null;
+  const candidates = [
+    user.universityId,
+    user.primary_university_id,
+    user.primaryUniversityId,
+    user.scope && typeof user.scope === 'object' ? user.scope.universityId : null,
+    user.university && typeof user.university === 'object' ? user.university.id : null,
+    user.primary_university && typeof user.primary_university === 'object'
+      ? user.primary_university.id
+      : null,
+  ];
+  for (const value of candidates) {
+    if (value != null && String(value).trim()) return String(value);
+  }
+  return null;
+}
 
 /**
  * Pick a single dashboard role from JWT / profile role codes (priority: admin roles first).
  * @param {string[]} roles
  */
 export function pickPrimaryRole(roles) {
-  if (!Array.isArray(roles) || roles.length === 0) return null;
+  const normalized = normalizeRoleCodes(roles);
+  if (!normalized.length) return null;
   for (const code of ADMIN_ROLE_SET) {
-    if (roles.includes(code)) return code;
+    if (normalized.includes(code)) return code;
   }
-  if (roles.includes(ROLES.UNIVERSITY_REVIEWER)) return ROLES.UNIVERSITY_REVIEWER;
-  if (roles.includes(ROLES.INSTRUCTOR)) return ROLES.INSTRUCTOR;
-  if (roles.includes(ROLES.STUDENT)) return ROLES.STUDENT;
-  return roles[0];
+  if (normalized.includes(ROLES.ACADEMIC_REVIEWER)) return ROLES.ACADEMIC_REVIEWER;
+  if (normalized.includes(ROLES.INSTRUCTOR)) return ROLES.INSTRUCTOR;
+  if (normalized.includes(ROLES.STUDENT)) return ROLES.STUDENT;
+  return normalized[0];
 }
 
 /**
@@ -22,15 +52,20 @@ export function pickPrimaryRole(roles) {
  */
 export function mapAuthUser(raw) {
   if (!raw || typeof raw !== 'object') return null;
-  const roles = Array.isArray(raw.roles) ? raw.roles.map(String) : [];
-  const role = raw.role ? String(raw.role) : pickPrimaryRole(roles);
+  const roles = normalizeRoleCodes(Array.isArray(raw.roles) ? raw.roles.map(String) : []);
+  const role = canonicalizeRoleCode(raw.role) || pickPrimaryRole(roles);
   const isGlobal = Boolean(raw.isGlobal ?? role === ROLES.SUPER_ADMIN);
-  const primaryUniversityId = raw.primary_university_id != null ? String(raw.primary_university_id) : null;
+  const universityId = isGlobal ? null : resolveAuthUniversityId(raw);
   const uniRaw = raw.university ?? raw.primary_university;
   const university =
-    uniRaw && typeof uniRaw === 'object' && uniRaw.name
-      ? { id: String(uniRaw.id ?? primaryUniversityId ?? ''), name: String(uniRaw.name) }
-      : null;
+    uniRaw && typeof uniRaw === 'object' && (uniRaw.name || uniRaw.id)
+      ? {
+          id: String(uniRaw.id ?? universityId ?? ''),
+          name: uniRaw.name != null ? String(uniRaw.name) : '',
+        }
+      : universityId
+        ? { id: universityId, name: '' }
+        : null;
 
   const specialtyRaw = raw.specialty ?? raw.university_specialty ?? raw.canonical_specialty;
   const specialty =
@@ -43,7 +78,23 @@ export function mapAuthUser(raw) {
         }
       : null;
 
-  const tenantId = isGlobal ? TENANT_SCOPE_ALL : primaryUniversityId;
+  const tenantId = isGlobal ? TENANT_SCOPE_ALL : universityId;
+  const scope =
+    raw.scope && typeof raw.scope === 'object'
+      ? {
+          type: String(raw.scope.type || (isGlobal ? 'global' : universityId ? 'university' : 'none')),
+          universityId:
+            raw.scope.universityId != null
+              ? String(raw.scope.universityId)
+              : isGlobal
+                ? null
+                : universityId,
+        }
+      : isGlobal
+        ? { type: 'global', universityId: null }
+        : universityId
+          ? { type: 'university', universityId }
+          : { type: 'none', universityId: null };
 
   return {
     id: String(raw.id ?? ''),
@@ -54,9 +105,13 @@ export function mapAuthUser(raw) {
     role,
     roles,
     isGlobal,
-    primary_university_id: primaryUniversityId,
+    /** Canonical camelCase alias used by reviewer / academic portals. */
+    universityId,
+    primaryUniversityId: universityId,
+    primary_university_id: universityId,
     primary_university: university,
     university,
+    scope,
     specialty_id: raw.specialty_id != null ? String(raw.specialty_id) : null,
     university_specialty_id:
       raw.university_specialty_id != null ? String(raw.university_specialty_id) : null,
