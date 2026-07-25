@@ -42,6 +42,11 @@ import { TaskInstructionFileField } from './components/TaskInstructionFileField.
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import {
+  GRADING_MODES,
+  resolveTaskGradingMode,
+  gradingModeLabelKey,
+} from '../../../features/fieldTraining/fieldTrainingGrading.js';
 
 function isPastDue(dateStr) {
   if (!dateStr) return false;
@@ -87,7 +92,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isFinalTask, setIsFinalTask] = useState(false);
-  const [requiresAi, setRequiresAi] = useState(false);
+  const [gradingMode, setGradingMode] = useState(GRADING_MODES.AI);
   const [aiPrompt, setAiPrompt] = useState('');
   const [instructionFileId, setInstructionFileId] = useState(null);
   const [removeInstructionFile, setRemoveInstructionFile] = useState(false);
@@ -98,7 +103,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [editDescription, setEditDescription] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
   const [editIsFinalTask, setEditIsFinalTask] = useState(false);
-  const [editRequiresAi, setEditRequiresAi] = useState(false);
+  const [editGradingMode, setEditGradingMode] = useState(GRADING_MODES.AI);
   const [editAiPrompt, setEditAiPrompt] = useState('');
   const [editInstructionFileId, setEditInstructionFileId] = useState(null);
   const [editRemoveInstructionFile, setEditRemoveInstructionFile] = useState(false);
@@ -107,6 +112,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [reviewModal, setReviewModal] = useState(null);
   const [reviewFeedback, setReviewFeedback] = useState('');
   const [reviewStatus, setReviewStatus] = useState('approved');
+  const [reviewScore, setReviewScore] = useState('');
 
   const tasks = tasksData?.tasks ?? [];
   const submissions = subsData?.submissions ?? [];
@@ -148,8 +154,10 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         description: description.trim() || null,
         due_date: dueDate || null,
         is_final_task: isFinalTask,
-        requires_ai_self_evaluation: requiresAi,
-        ai_self_evaluation_prompt: requiresAi ? aiPrompt.trim() || null : null,
+        grading_mode: gradingMode,
+        requires_ai_self_evaluation: gradingMode === GRADING_MODES.AI,
+        ai_self_evaluation_prompt:
+          gradingMode === GRADING_MODES.AI ? aiPrompt.trim() || null : null,
       };
       if (instructionFileId) body.instruction_file_id = instructionFileId;
       await mut.create.mutateAsync(body);
@@ -157,7 +165,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
       setDescription('');
       setDueDate('');
       setIsFinalTask(false);
-      setRequiresAi(false);
+      setGradingMode(GRADING_MODES.AI);
       setAiPrompt('');
       setInstructionFileId(null);
       setRemoveInstructionFile(false);
@@ -173,7 +181,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
     setEditDescription(task.description || '');
     setEditDueDate(task.due_date ? String(task.due_date).slice(0, 10) : '');
     setEditIsFinalTask(Boolean(task.is_final_task));
-    setEditRequiresAi(Boolean(task.requires_ai_self_evaluation));
+    setEditGradingMode(resolveTaskGradingMode(task));
     setEditAiPrompt(task.ai_self_evaluation_prompt || '');
     setEditInstructionFileId(null);
     setEditRemoveInstructionFile(false);
@@ -202,8 +210,10 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         description: editDescription.trim() || null,
         due_date: editDueDate || null,
         is_final_task: editIsFinalTask,
-        requires_ai_self_evaluation: editRequiresAi,
-        ai_self_evaluation_prompt: editRequiresAi ? editAiPrompt.trim() || null : null,
+        grading_mode: editGradingMode,
+        requires_ai_self_evaluation: editGradingMode === GRADING_MODES.AI,
+        ai_self_evaluation_prompt:
+          editGradingMode === GRADING_MODES.AI ? editAiPrompt.trim() || null : null,
       };
       if (editInstructionFileId) body.instruction_file_id = editInstructionFileId;
       if (editRemoveInstructionFile) body.remove_instruction_file = true;
@@ -366,11 +376,28 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
               <input type="checkbox" checked={isFinalTask} onChange={(e) => setIsFinalTask(e.target.checked)} />
               <span>{t('tasks.finalTask')}</span>
             </label>
-            <label className="form-field form-field--checkbox">
-              <input type="checkbox" checked={requiresAi} onChange={(e) => setRequiresAi(e.target.checked)} />
-              <span>{t('tasks.requiresAi')}</span>
-            </label>
-            {requiresAi ? (
+            <div className="form-field">
+              <label className="form-field__label" htmlFor="ft-task-grading-mode">
+                {t('tasks.gradingMode')}
+              </label>
+              <select
+                id="ft-task-grading-mode"
+                className="form-field__control"
+                value={gradingMode}
+                onChange={(e) => setGradingMode(e.target.value)}
+              >
+                <option value={GRADING_MODES.AI}>{t('tasks.gradingModes.AI')}</option>
+                <option value={GRADING_MODES.MANUAL}>{t('tasks.gradingModes.MANUAL')}</option>
+                <option value={GRADING_MODES.NONE}>{t('tasks.gradingModes.NONE')}</option>
+              </select>
+              <p className="form-field__hint">{t('tasks.gradingModeHelp')}</p>
+            </div>
+            {gradingMode === GRADING_MODES.NONE ? (
+              <p className="form-field__hint" role="note">
+                {t('tasks.noGradingNotice')}
+              </p>
+            ) : null}
+            {gradingMode === GRADING_MODES.AI ? (
               <>
                 <FormTextarea
                   label={t('tasks.aiPrompt')}
@@ -514,15 +541,22 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                               />
                               <span>{t('tasks.finalTask')}</span>
                             </label>
-                            <label className="form-field form-field--checkbox">
-                              <input
-                                type="checkbox"
-                                checked={editRequiresAi}
-                                onChange={(e) => setEditRequiresAi(e.target.checked)}
-                              />
-                              <span>{t('tasks.requiresAi')}</span>
-                            </label>
-                            {editRequiresAi ? (
+                            <div className="form-field">
+                              <label className="form-field__label">{t('tasks.gradingMode')}</label>
+                              <select
+                                className="form-field__control"
+                                value={editGradingMode}
+                                onChange={(e) => setEditGradingMode(e.target.value)}
+                              >
+                                <option value={GRADING_MODES.AI}>{t('tasks.gradingModes.AI')}</option>
+                                <option value={GRADING_MODES.MANUAL}>{t('tasks.gradingModes.MANUAL')}</option>
+                                <option value={GRADING_MODES.NONE}>{t('tasks.gradingModes.NONE')}</option>
+                              </select>
+                            </div>
+                            {editGradingMode === GRADING_MODES.NONE ? (
+                              <p className="form-field__hint">{t('tasks.noGradingNotice')}</p>
+                            ) : null}
+                            {editGradingMode === GRADING_MODES.AI ? (
                               <FormTextarea
                                 label={t('tasks.aiPrompt')}
                                 value={editAiPrompt}
@@ -600,11 +634,9 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                               {t('tasks.finalTaskBadge')}
                             </span>
                           ) : null}
-                          {task.requires_ai_self_evaluation ? (
-                            <span className="ft-task-item__badge ft-task-item__badge--ai">
-                              {t('tasks.aiBadge')}
-                            </span>
-                          ) : null}
+                          <span className="ft-task-item__badge ft-task-item__badge--ai">
+                            {t(gradingModeLabelKey(resolveTaskGradingMode(task)))}
+                          </span>
                           {task.has_instruction_file ? (
                             <span className="ft-task-item__badge ft-task-item__badge--instruction">
                               {t('tasks.instructionFileBadge')}
@@ -694,7 +726,18 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                       onClick={() => {
                         setReviewModal(r);
                         setReviewFeedback(r.instructor_feedback || '');
-                        setReviewStatus(r.review_status === 'rejected' ? 'rejected' : 'approved');
+                        setReviewScore(r.manual_score != null ? String(r.manual_score) : '');
+                        setReviewStatus(
+                          r.review_status === 'rejected'
+                            ? 'rejected'
+                            : r.review_status === 'needs_revision'
+                              ? 'needs_revision'
+                              : r.review_status === 'under_review'
+                                ? 'under_review'
+                                : r.review_status === 'graded'
+                                  ? 'graded'
+                                  : 'approved'
+                        );
                       }}
                     >
                       {t('tasks.review')}
@@ -789,10 +832,21 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                 value={reviewStatus}
                 onChange={(e) => setReviewStatus(e.target.value)}
               >
+                <option value="under_review">{t('tasks.reviewStatuses.under_review')}</option>
+                <option value="graded">{t('tasks.reviewStatuses.graded')}</option>
                 <option value="approved">{t('tasks.reviewStatuses.approved')}</option>
                 <option value="rejected">{t('tasks.reviewStatuses.rejected')}</option>
                 <option value="needs_revision">{t('tasks.reviewStatuses.needs_revision')}</option>
               </select>
+              <FormInput
+                label={t('tasks.manualScore')}
+                type="number"
+                min="0"
+                max="1000"
+                step="0.5"
+                value={reviewScore}
+                onChange={(e) => setReviewScore(e.target.value)}
+              />
               <FormTextarea
                 label={t('tasks.instructorFeedback')}
                 value={reviewFeedback}
@@ -814,6 +868,8 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                     body: {
                       review_status: reviewStatus,
                       instructor_feedback: reviewFeedback.trim() || null,
+                      manual_feedback: reviewFeedback.trim() || null,
+                      manual_score: reviewScore === '' ? null : Number(reviewScore),
                     },
                   })
                 }

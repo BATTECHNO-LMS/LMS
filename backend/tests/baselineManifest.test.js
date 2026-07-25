@@ -328,6 +328,8 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260720140000_field_training_completed_hours',
       '20260720140000_university_profile_and_domain_primary',
       '20260720180000_mobile_push_registrations',
+      '20260725140000_field_training_task_grading_mode',
+      '20260725160000_field_training_attendance_windows',
     ]);
   });
 

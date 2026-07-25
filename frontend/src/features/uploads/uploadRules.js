@@ -41,9 +41,19 @@ export function formatMaxSize(bytes) {
 export function validateFileForUpload(file, options = {}) {
   if (!file) return { valid: false, code: 'FILE_REQUIRED' };
   const mime = String(file.type || '').toLowerCase();
-  const accept = options.accept?.length ? options.accept : ALLOWED_MIME_TYPES;
-  if (!accept.includes(mime)) return { valid: false, code: 'INVALID_TYPE' };
-  const maxBytes = options.maxBytes ?? getMaxBytesForMime(mime);
+  const accept = options.accept;
+  const acceptAll =
+    !accept ||
+    accept === '*/*' ||
+    (Array.isArray(accept) && (accept.length === 0 || accept.includes('*/*')));
+  if (!acceptAll) {
+    const list = Array.isArray(accept) ? accept : [accept];
+    if (mime && !list.includes(mime) && !list.includes('*/*')) {
+      // Allow empty browser MIME for archives (.rar/.7z) when extension-based backend check will run
+      if (mime) return { valid: false, code: 'INVALID_TYPE' };
+    }
+  }
+  const maxBytes = options.maxBytes ?? getMaxBytesForMime(mime || 'application/octet-stream');
   if (file.size > maxBytes) return { valid: false, code: 'TOO_LARGE', maxBytes };
-  return { valid: true, mime, maxBytes };
+  return { valid: true, mime: mime || 'application/octet-stream', maxBytes };
 }

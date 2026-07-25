@@ -31,7 +31,8 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
   const [downloadError, setDownloadError] = useState('');
   const [reviewModal, setReviewModal] = useState(null);
   const [reviewFeedback, setReviewFeedback] = useState('');
-  const [reviewStatus, setReviewStatus] = useState('approved');
+  const [reviewStatus, setReviewStatus] = useState('graded');
+  const [reviewScore, setReviewScore] = useState('');
   const [actionError, setActionError] = useState('');
 
   const submissions = data?.submissions ?? [];
@@ -43,6 +44,7 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.submissions(opportunityId, apiScope) });
       setReviewModal(null);
       setReviewFeedback('');
+      setReviewScore('');
     },
     onError: (err) => setActionError(getApiErrorMessage(err)),
   });
@@ -107,7 +109,7 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                 render: (r) => (
                   <StatusBadge
                     variant={
-                      r.review_status === 'approved'
+                      r.review_status === 'approved' || r.review_status === 'graded'
                         ? 'success'
                         : r.review_status === 'needs_revision' || r.review_status === 'rejected'
                           ? 'warning'
@@ -117,6 +119,11 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                     {t(`tasks.reviewStatuses.${r.review_status || 'pending'}`)}
                   </StatusBadge>
                 ),
+              },
+              {
+                key: 'grading',
+                label: t('tasks.gradingMode'),
+                render: (r) => t(`tasks.gradingModes.${r.grading_mode || 'MANUAL'}`),
               },
               {
                 key: 'ai',
@@ -149,12 +156,15 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                       onClick={() => {
                         setReviewModal(r);
                         setReviewFeedback(r.instructor_feedback || '');
+                        setReviewScore(r.manual_score != null ? String(r.manual_score) : '');
                         setReviewStatus(
                           r.review_status === 'needs_revision'
                             ? 'needs_revision'
                             : r.review_status === 'rejected'
                               ? 'rejected'
-                              : 'approved'
+                              : r.review_status === 'under_review'
+                                ? 'under_review'
+                                : 'graded'
                         );
                         setActionError('');
                       }}
@@ -185,6 +195,15 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
               </p>
             </header>
             <div className="ft-modal__body">
+              {reviewModal.grading_mode === 'NONE' ? (
+                <p role="note">{t('tasks.noGradingNotice')}</p>
+              ) : null}
+              {reviewModal.solution_notes || reviewModal.final_student_notes ? (
+                <div className="ft-manage-review-block">
+                  <h3>{t('tasks.solutionNotes')}</h3>
+                  <p>{reviewModal.solution_notes || reviewModal.final_student_notes}</p>
+                </div>
+              ) : null}
               {reviewModal.student_self_evaluation_input ? (
                 <div className="ft-manage-review-block">
                   <h3>{t('tasks.aiStudentInput')}</h3>
@@ -199,6 +218,31 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                       {reviewModal.project_url}
                     </a>
                   </p>
+                </div>
+              ) : null}
+              {(reviewModal.files?.length || reviewModal.file_name) ? (
+                <div className="ft-manage-review-block">
+                  <h3>{t('tasks.file')}</h3>
+                  <ul>
+                    {(reviewModal.files?.length
+                      ? reviewModal.files
+                      : [{ file_name: reviewModal.file_name, mime_type: reviewModal.mime_type }]
+                    ).map((f, i) => (
+                      <li key={f.id || `${f.file_name}-${i}`}>
+                        {f.file_name}
+                        {f.file_size ? ` (${Math.round(f.file_size / 1024)} KB)` : ''}
+                        {f.is_archive ? ' · archive' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--sm"
+                    onClick={() => handleDownload(reviewModal.id)}
+                  >
+                    {t('tasks.download')}
+                  </Button>
                 </div>
               ) : null}
               {(reviewModal.file_extraction_status || reviewModal.url_extraction_status) ? (
@@ -258,11 +302,27 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                   value={reviewStatus}
                   onChange={(e) => setReviewStatus(e.target.value)}
                 >
+                  <option value="under_review">{t('tasks.reviewStatuses.under_review')}</option>
+                  <option value="graded">{t('tasks.reviewStatuses.graded')}</option>
                   <option value="approved">{t('tasks.reviewStatuses.approved')}</option>
                   <option value="rejected">{t('tasks.reviewStatuses.rejected')}</option>
                   <option value="needs_revision">{t('tasks.reviewStatuses.needs_revision')}</option>
                 </select>
               </label>
+              {reviewModal.grading_mode === 'MANUAL' || reviewModal.grading_mode === 'AI' ? (
+                <label className="form-field">
+                  <span className="form-field__label">{t('tasks.manualScore')}</span>
+                  <input
+                    className="form-field__control"
+                    type="number"
+                    min="0"
+                    max="1000"
+                    step="0.5"
+                    value={reviewScore}
+                    onChange={(e) => setReviewScore(e.target.value)}
+                  />
+                </label>
+              ) : null}
               <FormTextarea
                 label={t('tasks.instructorFeedback')}
                 value={reviewFeedback}
@@ -284,6 +344,8 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                     body: {
                       review_status: reviewStatus,
                       instructor_feedback: reviewFeedback.trim() || null,
+                      manual_feedback: reviewFeedback.trim() || null,
+                      manual_score: reviewScore === '' ? null : Number(reviewScore),
                     },
                   })
                 }

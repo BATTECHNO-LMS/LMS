@@ -3,9 +3,16 @@ const fs = require('fs');
 const { randomUUID } = require('crypto');
 const multer = require('multer');
 const { env } = require('../../config/env');
+const {
+  MAX_FILE_BYTES,
+  MAX_FILES_PER_SUBMISSION,
+  isAllowedSubmissionFile,
+  isBlockedExtension,
+} = require('./fieldTraining.submissionFileRules');
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = MAX_FILE_BYTES;
 const INSTRUCTION_MAX_BYTES = 10 * 1024 * 1024;
+
 const ALLOWED_MIME = new Set([
   'image/jpeg',
   'image/png',
@@ -36,7 +43,16 @@ const storage = multer.diskStorage({
 });
 
 function fileFilter(_req, file, cb) {
-  if (ALLOWED_MIME.has(file.mimetype)) {
+  if (isBlockedExtension(file.originalname)) {
+    cb(new Error('UNSUPPORTED_FILE_TYPE'));
+    return;
+  }
+  const check = isAllowedSubmissionFile({
+    fileName: file.originalname,
+    mimeType: file.mimetype,
+    size: 1,
+  });
+  if (check.valid || ALLOWED_MIME.has(file.mimetype)) {
     cb(null, true);
     return;
   }
@@ -44,6 +60,12 @@ function fileFilter(_req, file, cb) {
 }
 
 const uploadTaskFile = multer({
+  storage,
+  limits: { fileSize: MAX_BYTES, files: MAX_FILES_PER_SUBMISSION },
+  fileFilter,
+}).array('files', MAX_FILES_PER_SUBMISSION);
+
+const uploadTaskFileSingle = multer({
   storage,
   limits: { fileSize: MAX_BYTES, files: 1 },
   fileFilter,
@@ -55,15 +77,25 @@ function handleTaskUpload(req, res, next) {
     return next();
   }
   uploadTaskFile(req, res, (err) => {
-    if (!err) return next();
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return next(Object.assign(new Error('FILE_TOO_LARGE'), { statusCode: 400 }));
+    if (err && (err.code === 'LIMIT_UNEXPECTED_FILE' || err.message === 'Unexpected field')) {
+      return uploadTaskFileSingle(req, res, (err2) => mapUploadError(err2, next));
     }
-    if (err.message === 'UNSUPPORTED_FILE_TYPE') {
-      return next(Object.assign(new Error('UNSUPPORTED_FILE_TYPE'), { statusCode: 400 }));
-    }
-    return next(err);
+    return mapUploadError(err, next);
   });
+}
+
+function mapUploadError(err, next) {
+  if (!err) return next();
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return next(Object.assign(new Error('FILE_TOO_LARGE'), { statusCode: 400 }));
+  }
+  if (err.code === 'LIMIT_FILE_COUNT') {
+    return next(Object.assign(new Error('TOO_MANY_FILES'), { statusCode: 400 }));
+  }
+  if (err.message === 'UNSUPPORTED_FILE_TYPE') {
+    return next(Object.assign(new Error('UNSUPPORTED_FILE_TYPE'), { statusCode: 400 }));
+  }
+  return next(err);
 }
 
 module.exports = {
@@ -72,4 +104,5 @@ module.exports = {
   INSTRUCTION_MAX_BYTES,
   ALLOWED_MIME,
   INSTRUCTION_MIME,
+  MAX_FILES_PER_SUBMISSION,
 };

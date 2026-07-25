@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
  *   hint?: string,
  *   meta?: string,
  *   currentFileName?: string | null,
+ *   multiple?: boolean,
  * }} props
  */
 export function FileDropzone({
@@ -19,21 +20,25 @@ export function FileDropzone({
   hint,
   meta,
   currentFileName,
+  multiple = false,
 }) {
   const { t } = useTranslation('fieldTraining');
   const inputRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
-  function pickFile(file) {
-    if (!file || disabled) return;
-    onFile(file);
+  function pickFiles(fileList) {
+    if (!fileList?.length || disabled) return;
+    if (multiple) {
+      Array.from(fileList).forEach((file) => onFile(file));
+      return;
+    }
+    onFile(fileList[0]);
   }
 
   function onDrop(e) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    pickFile(file);
+    pickFiles(e.dataTransfer.files);
   }
 
   return (
@@ -57,8 +62,12 @@ export function FileDropzone({
         type="file"
         className="file-dropzone__input"
         accept={accept}
+        multiple={multiple}
         disabled={disabled}
-        onChange={(e) => pickFile(e.target.files?.[0])}
+        onChange={(e) => {
+          pickFiles(e.target.files);
+          e.target.value = '';
+        }}
       />
       <Upload size={28} aria-hidden />
       <p>{hint ?? t('tasks.dropzoneHint')}</p>

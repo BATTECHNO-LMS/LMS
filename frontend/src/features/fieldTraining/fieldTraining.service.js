@@ -129,21 +129,32 @@ export async function fetchInstructorFieldTraining(id) {
   return unwrapApiData(res);
 }
 
-export async function submitFieldTrainingTask(taskId, file) {
-  const record = await uploadFileToStorage(file, {
-    folder: 'training',
-    visibility: 'private',
-    accept: [
-      'image/jpeg',
-      'image/png',
-      'image/webp',
-      'image/gif',
-      'application/pdf',
-    ],
-    relatedEntityType: 'field_training_task',
-    relatedEntityId: taskId,
+export async function submitFieldTrainingTask(taskId, file, meta = {}) {
+  const files = Array.isArray(file) ? file.filter(Boolean) : file ? [file] : [];
+  const fileIds = [...(meta.fileIds || [])];
+  for (const f of files) {
+    const record = await uploadFileToStorage(f, {
+      folder: 'training',
+      visibility: 'private',
+      accept: meta.accept || undefined,
+      maxBytes: meta.maxBytes || 100 * 1024 * 1024,
+      relatedEntityType: 'field_training_task',
+      relatedEntityId: taskId,
+      onProgress: meta.onProgress,
+    });
+    fileIds.push(record.id);
+  }
+  const { onProgress, accept, maxBytes, ...restMeta } = meta;
+  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, {
+    fileId: fileIds[0] || undefined,
+    fileIds: fileIds.length ? fileIds : undefined,
+    ...restMeta,
   });
-  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, { fileId: record.id });
+  return unwrapApiData(res);
+}
+
+export async function fetchAiSupportedSubmissionFileTypes() {
+  const res = await apiClient.get(`${student}/submissions/ai-supported-file-types`);
   return unwrapApiData(res);
 }
 
@@ -154,6 +165,7 @@ export async function runTaskAiSelfEvaluate(taskId, payload) {
       : {
           studentDescription: payload.studentDescription,
           uploadedFileId: payload.uploadedFileId || null,
+          uploadedFileIds: payload.uploadedFileIds || undefined,
           projectUrl: payload.projectUrl || null,
         };
   const res = await apiClient.post(`${student}/tasks/${taskId}/ai-self-evaluate`, body);
@@ -161,32 +173,28 @@ export async function runTaskAiSelfEvaluate(taskId, payload) {
 }
 
 export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
-  let fileId = meta.fileId || meta.analysis_file_id || null;
-  if (file && !fileId) {
-    const record = await uploadFileToStorage(file, {
+  let fileIds = [...(meta.fileIds || [])];
+  if (meta.fileId) fileIds.push(meta.fileId);
+  if (meta.analysis_file_id) fileIds.push(meta.analysis_file_id);
+  const files = Array.isArray(file) ? file.filter(Boolean) : file ? [file] : [];
+  for (const f of files) {
+    const record = await uploadFileToStorage(f, {
       folder: 'training',
       visibility: 'private',
-      accept: [
-        'image/jpeg',
-        'image/png',
-        'image/webp',
-        'image/gif',
-        'application/pdf',
-        'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'text/plain',
-        'text/csv',
-      ],
+      accept: meta.accept || undefined,
+      maxBytes: meta.maxBytes || 100 * 1024 * 1024,
       relatedEntityType: 'field_training_task',
       relatedEntityId: taskId,
       onProgress: meta.onProgress,
     });
-    fileId = record.id;
+    fileIds.push(record.id);
   }
-  const { onProgress, ...restMeta } = meta;
+  fileIds = [...new Set(fileIds.filter(Boolean))];
+  const { onProgress, accept, maxBytes, fileId, analysis_file_id, ...restMeta } = meta;
   const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, {
-    fileId: fileId || undefined,
+    fileId: fileIds[0] || fileId || undefined,
+    fileIds: fileIds.length ? fileIds : undefined,
+    analysis_file_id: analysis_file_id || fileIds[0] || undefined,
     ...restMeta,
   });
   return unwrapApiData(res);
@@ -293,6 +301,51 @@ export async function deleteOpportunitySession(sessionId, { asInstructor = false
 export async function saveSessionAttendance(sessionId, records, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance`, { records });
+  return unwrapApiData(res);
+}
+
+export async function openAttendanceWindow(sessionId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance-window/open`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchAttendanceWindow(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/sessions/${sessionId}/attendance-window`);
+  return unwrapApiData(res);
+}
+
+export async function closeAttendanceWindow(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance-window/close`);
+  return unwrapApiData(res);
+}
+
+export async function finalizeAttendanceAbsences(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance/finalize-absences`);
+  return unwrapApiData(res);
+}
+
+export async function patchStudentAttendance(
+  sessionId,
+  studentId,
+  body,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/sessions/${sessionId}/attendance/${studentId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchActiveAttendanceWindows() {
+  const res = await apiClient.get(`${student}/attendance-window/active`);
+  return unwrapApiData(res);
+}
+
+export async function confirmAttendanceWindow(body) {
+  const res = await apiClient.post(`${student}/attendance-window/confirm`, body);
   return unwrapApiData(res);
 }
 

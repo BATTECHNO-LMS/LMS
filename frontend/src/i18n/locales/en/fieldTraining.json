@@ -356,24 +356,48 @@
     "submit": "Submit task",
     "uploading": "Uploading...",
     "replaceFile": "Replace file",
-    "dropzoneHint": "Drag a file or image here, or click to choose",
-    "dropzoneMeta": "Images · PDF — up to 8 MB",
+    "dropzoneHint": "Drag solution files here, or click to choose",
+    "dropzoneMeta": "Docs · images · video · audio · code · archives — up to 100 MB per file",
     "notFound": "Task not found",
     "selfEvalLink": "Self-evaluate before submit",
+    "openSubmitPage": "Open submission page",
     "finalTaskBadge": "Final",
-    "aiBadge": "AI self-eval",
+    "aiBadge": "AI grading",
+    "manualBadge": "Manual grading",
+    "noneBadge": "No grading",
     "reviewStatus": "Review status",
     "reviewStatuses": {
       "pending": "Pending review",
+      "submitted": "Submitted",
+      "under_review": "Under review",
       "approved": "Approved",
       "rejected": "Rejected",
-      "needs_revision": "Needs revision"
+      "needs_revision": "Needs revision",
+      "graded": "Graded"
     },
     "instructorFeedback": "Instructor feedback",
-    "finalTask": "Final task",
+    "finalTask": "Is this a final task?",
     "requiresAi": "Requires AI self-evaluation",
+    "gradingMode": "Task grading method",
+    "gradingModeHelp": "Independent from whether the task is final. Choose how student solutions are graded.",
+    "gradingModes": {
+      "AI": "AI grading",
+      "MANUAL": "Manual grading",
+      "NONE": "No grading"
+    },
+    "noGradingNotice": "This task does not require grading; completion is counted when the solution is submitted.",
     "aiPrompt": "Self-evaluation prompt",
     "aiPromptHelp": "This text guides the AI model when evaluating the student's response before submission.",
+    "maxScore": "Score",
+    "manualScore": "Awarded score",
+    "solutionNotes": "Solution description or notes",
+    "filesCount": "{{count}} file(s)",
+    "uploadProgress": "Uploading… {{percent}}%",
+    "fileTooLarge": "File exceeds the allowed size",
+    "tooManyFiles": "Too many files for one submission",
+    "archiveAiWarning": "File uploaded successfully, but the archive will not be analyzed automatically. Attach a description or a supported file for a more accurate evaluation.",
+    "aiSupportedFilesTitle": "Files the AI can read",
+    "aiSupportedFilesNote": "The AI can read and analyze text files, documents, images, and some source-code files. Archives or unsupported files can still be uploaded and submitted, but may not be analyzed automatically.",
     "timing": "Timing",
     "late": "Late",
     "onTime": "On time",
@@ -462,7 +486,8 @@
     "present": "Present",
     "absent": "Absent",
     "late": "Late",
-    "excused": "Excused"
+    "excused": "Excused",
+    "unconfirmed": "Unconfirmed"
   },
   "assessmentStatus": {
     "draft": "Draft",
@@ -932,7 +957,8 @@
       "excused": "Excused",
       "minRequired": "Minimum required: {{min}}%",
       "eligible": "You meet the attendance requirement.",
-      "notEligible": "Attendance is below the required minimum."
+      "notEligible": "Attendance is below the required minimum.",
+      "sessionListTitle": "Attendance by session"
     },
     "assessment": {
       "preTitle": "Pre-assessment",
@@ -974,5 +1000,65 @@
       "awaitingIssue": "You are eligible — awaiting letter issuance by administration.",
       "pending": "The completion letter will be issued after requirements are met and reviewed by administration."
     }
-  }
+  },
+  "attendance": {
+    "startElectronic": "Start electronic attendance",
+    "openLateWindow": "Open late window",
+    "closeWindow": "Close window early",
+    "finalizeAbsences": "Finalize absences",
+    "finalizeConfirm": "Mark all unconfirmed students as absent?",
+    "finalizeDone": "Finalized absence for {{count}} student(s)",
+    "windowOpened": "Electronic attendance window opened",
+    "windowClosed": "Attendance window closed",
+    "codeLabel": "Attendance code",
+    "generateCode": "Generate random code",
+    "duration": "Window duration",
+    "durationMinutes": {
+      "1": "1 minute",
+      "2": "2 minutes",
+      "3": "3 minutes",
+      "5": "5 minutes"
+    },
+    "notes": "Optional notes",
+    "startNow": "Start attendance",
+    "codeHiddenHint": "The code is shown once on open for security.",
+    "remaining": "Time remaining: {{seconds}}s",
+    "stats": "Eligible: {{eligible}} · Confirmed: {{confirmed}} · Unconfirmed: {{unconfirmed}}",
+    "status": "Status",
+    "method": "Method",
+    "manualReason": "Manual change reason",
+    "manualReasonDefault": "Bulk manual update from attendance panel",
+    "saveOne": "Save",
+    "popupTitle": "Electronic attendance",
+    "latePopupTitle": "Late attendance window",
+    "popupHint": "Enter the attendance code before time runs out. Registration closes automatically when the timer ends.",
+    "confirm": "Confirm attendance",
+    "confirmSuccess": "Your attendance was recorded successfully.",
+    "confirmError": "Could not confirm attendance",
+    "codeInvalid": "Incorrect attendance code. Check the code and try again.",
+    "windowExpired": "The electronic attendance window has ended. Contact your instructor if you were present and could not register.",
+    "statuses": {
+      "present": "Present",
+      "absent": "Absent",
+      "late": "Late",
+      "excused": "Excused",
+      "unconfirmed": "Unconfirmed"
+    },
+    "methods": {
+      "electronic": "Electronic",
+      "manual": "Manual",
+      "auto_finalize": "Finalized after review"
+    },
+    "windowStatuses": {
+      "pending": "Pending",
+      "open": "Open",
+      "closed": "Closed",
+      "finalized": "Finalized"
+    },
+    "modes": {
+      "normal": "Normal",
+      "late": "Late"
+    }
+  },
+  "close": "Close"
 }

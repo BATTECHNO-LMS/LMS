@@ -22,6 +22,9 @@ const {
   sessionBodySchema,
   updateSessionBodySchema,
   saveAttendanceBodySchema,
+  openAttendanceWindowBodySchema,
+  manualAttendanceBodySchema,
+  studentIdParamSchema,
   assessmentTypeParamSchema,
   assessmentIdParamSchema,
   attemptIdParamSchema,
@@ -225,6 +228,49 @@ router.post(
   fieldTrainingStaff,
   validateRequest({ params: sessionIdParamSchema, body: saveAttendanceBodySchema }),
   workflowController.saveAttendance
+);
+
+router.get(
+  '/sessions/:sessionId/attendance-window',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.getAttendanceWindow
+);
+
+router.post(
+  '/sessions/:sessionId/attendance-window/open',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema, body: openAttendanceWindowBodySchema }),
+  workflowController.openAttendanceWindow
+);
+
+router.post(
+  '/sessions/:sessionId/attendance-window/close',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.closeAttendanceWindow
+);
+
+router.post(
+  '/sessions/:sessionId/attendance/finalize-absences',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.finalizeAttendanceAbsences
+);
+
+router.patch(
+  '/sessions/:sessionId/attendance/:studentId',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({
+    params: sessionIdParamSchema.merge(studentIdParamSchema),
+    body: manualAttendanceBodySchema,
+  }),
+  workflowController.patchStudentAttendance
 );
 
 router.patch(

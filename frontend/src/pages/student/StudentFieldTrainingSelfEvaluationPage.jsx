@@ -25,6 +25,7 @@ import {
   runTaskAiSelfEvaluate,
   submitFieldTrainingTaskWithMeta,
   downloadTaskInstructionFile,
+  fetchAiSupportedSubmissionFileTypes,
 } from '../../features/fieldTraining/fieldTraining.service.js';
 import { saveFieldTrainingSubmissionBlob } from '../../features/fieldTraining/fieldTrainingDownload.js';
 import { fieldTrainingKeys } from '../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
@@ -32,22 +33,15 @@ import { uploadFileToStorage } from '../../features/uploads/uploadFileToStorage.
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { formatFtDate } from '../../features/fieldTraining/fieldTrainingUi.js';
 import { StudentTaskInstructionSection } from './fieldTraining/components/StudentTaskInstructionSection.jsx';
+import {
+  GRADING_MODES,
+  resolveTaskGradingMode,
+  gradingModeLabelKey,
+  SUBMISSION_ACCEPT_ALL,
+} from '../../features/fieldTraining/fieldTrainingGrading.js';
 
 const MIN_INPUT_LENGTH = 20;
 const MAX_INPUT_LENGTH = 20000;
-
-const ANALYSIS_ACCEPT = [
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-  'image/gif',
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain',
-  'text/csv',
-];
 
 function formatBytes(bytes) {
   if (bytes == null || Number.isNaN(Number(bytes))) return '';
@@ -90,10 +84,11 @@ export function StudentFieldTrainingSelfEvaluationPage() {
   const [studentDescription, setStudentDescription] = useState('');
   const [projectUrl, setProjectUrl] = useState('');
   const [urlError, setUrlError] = useState('');
-  const [file, setFile] = useState(null);
-  const [uploadedFileId, setUploadedFileId] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [uploadedFileIds, setUploadedFileIds] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [archiveWarning, setArchiveWarning] = useState('');
 
   const [aiResponse, setAiResponse] = useState('');
   const [aiMeta, setAiMeta] = useState(null);
@@ -130,14 +125,15 @@ export function StudentFieldTrainingSelfEvaluationPage() {
   const trainingStatus = application?.training_status ?? null;
   const expelled = trainingStatus === 'expelled' || Boolean(application?.expelled_at);
   const task = (tasksData?.tasks ?? []).find((x) => x.id === taskId);
-  const requiresAi = Boolean(task?.requires_ai_self_evaluation);
+  const gradingMode = resolveTaskGradingMode(task);
+  const requiresAi = gradingMode === GRADING_MODES.AI;
   const submitted = Boolean(task?.submission);
   const trimmedDescription = studentDescription.trim();
   const inputValid =
     trimmedDescription.length >= MIN_INPUT_LENGTH && trimmedDescription.length <= MAX_INPUT_LENGTH;
   const urlTrimmed = projectUrl.trim();
   const hasUrl = Boolean(urlTrimmed);
-  const hasFileSource = Boolean(file || uploadedFileId);
+  const hasFileSource = Boolean(files.length || uploadedFileIds.length);
   const hasAnalyzableSource = hasFileSource || hasUrl;
   const aiReady = Boolean(aiMeta && aiResponse.trim());
   const isLoading = oppLoading || tasksLoading;
@@ -146,23 +142,40 @@ export function StudentFieldTrainingSelfEvaluationPage() {
     (oppErr?.response?.status === 403 ||
       oppErr?.response?.data?.code === 'FIELD_TRAINING_NOT_ELIGIBLE');
 
+  const { data: aiFileTypes } = useQuery({
+    queryKey: ['field-training', 'ai-supported-file-types'],
+    queryFn: fetchAiSupportedSubmissionFileTypes,
+    staleTime: 5 * 60 * 1000,
+    enabled: requiresAi,
+  });
+
   const aiMut = useMutation({
     mutationFn: async () => {
-      let fileId = uploadedFileId;
-      if (file && !fileId) {
+      let ids = [...uploadedFileIds];
+      if (files.length) {
         setUploading(true);
         setUploadProgress(0);
+        setArchiveWarning('');
         try {
-          const record = await uploadFileToStorage(file, {
-            folder: 'training',
-            visibility: 'private',
-            accept: ANALYSIS_ACCEPT,
-            relatedEntityType: 'field_training_task',
-            relatedEntityId: taskId,
-            onProgress: setUploadProgress,
-          });
-          fileId = record.id;
-          setUploadedFileId(record.id);
+          for (const f of files) {
+            const record = await uploadFileToStorage(f, {
+              folder: 'training',
+              visibility: 'private',
+              accept: SUBMISSION_ACCEPT_ALL,
+              maxBytes: aiFileTypes?.maxFileSize || 100 * 1024 * 1024,
+              relatedEntityType: 'field_training_task',
+              relatedEntityId: taskId,
+              onProgress: setUploadProgress,
+            });
+            ids.push(record.id);
+            const name = String(f.name || '').toLowerCase();
+            if (/\.(zip|rar|7z|tar|gz|tgz)$/.test(name)) {
+              setArchiveWarning(t('tasks.archiveAiWarning'));
+            }
+          }
+          ids = [...new Set(ids)];
+          setUploadedFileIds(ids);
+          setFiles([]);
         } finally {
           setUploading(false);
           setUploadProgress(null);
@@ -170,7 +183,8 @@ export function StudentFieldTrainingSelfEvaluationPage() {
       }
       return runTaskAiSelfEvaluate(taskId, {
         studentDescription: trimmedDescription,
-        uploadedFileId: fileId || null,
+        uploadedFileId: ids[0] || null,
+        uploadedFileIds: ids,
         projectUrl: urlTrimmed || null,
       });
     },
@@ -178,6 +192,10 @@ export function StudentFieldTrainingSelfEvaluationPage() {
       setAiResponse(res.ai_response || '');
       setAiMeta(res);
       setError('');
+      if (res.warnings?.length) {
+        const archiveMsg = res.warnings.find((w) => /مضغوط|archive/i.test(String(w)));
+        if (archiveMsg) setArchiveWarning(archiveMsg);
+      }
     },
     onError: (err) => {
       const code = err?.response?.data?.code;
@@ -192,9 +210,12 @@ export function StudentFieldTrainingSelfEvaluationPage() {
 
   const submitMut = useMutation({
     mutationFn: () =>
-      submitFieldTrainingTaskWithMeta(taskId, file && !uploadedFileId ? file : null, {
-        fileId: uploadedFileId || undefined,
-        analysis_file_id: uploadedFileId || aiMeta?.analysis_file_id || undefined,
+      submitFieldTrainingTaskWithMeta(taskId, files.length ? files : null, {
+        accept: SUBMISSION_ACCEPT_ALL,
+        maxBytes: aiFileTypes?.maxFileSize || 100 * 1024 * 1024,
+        fileIds: uploadedFileIds,
+        fileId: uploadedFileIds[0] || undefined,
+        analysis_file_id: uploadedFileIds[0] || aiMeta?.analysis_file_id || undefined,
         project_url: urlTrimmed || aiMeta?.project_url || null,
         student_self_evaluation_input: trimmedDescription,
         ai_prompt_used: aiMeta?.ai_prompt_used,
@@ -257,15 +278,22 @@ export function StudentFieldTrainingSelfEvaluationPage() {
   }
 
   function handleFilePick(nextFile) {
-    setFile(nextFile);
-    setUploadedFileId(null);
-    setUploadProgress(null);
+    if (!nextFile) return;
+    setFiles((prev) => [...prev, nextFile].slice(0, 10));
+    const name = String(nextFile.name || '').toLowerCase();
+    if (/\.(zip|rar|7z|tar|gz|tgz)$/.test(name)) {
+      setArchiveWarning(t('tasks.archiveAiWarning'));
+    }
     if (aiMeta) clearAiState();
   }
 
-  function handleRemoveFile() {
-    setFile(null);
-    setUploadedFileId(null);
+  function handleRemoveFile(index) {
+    if (typeof index === 'number') {
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+    } else {
+      setFiles([]);
+      setUploadedFileIds([]);
+    }
     setUploadProgress(null);
     if (aiMeta) clearAiState();
   }
@@ -319,9 +347,9 @@ export function StudentFieldTrainingSelfEvaluationPage() {
               {t('tasks.dueDate')}:{' '}
               {task?.due_date ? formatFtDate(task.due_date) : t('selfEval.noDueDate')}
             </span>
-            <StatusBadge variant={requiresAi ? 'warning' : 'muted'}>
+            <StatusBadge variant="info">
               <Sparkles size={12} aria-hidden />
-              {requiresAi ? t('selfEval.aiRequiredBadge') : t('selfEval.aiOptionalBadge')}
+              {t(gradingModeLabelKey(gradingMode))}
             </StatusBadge>
           </div>
         </div>
@@ -535,45 +563,62 @@ export function StudentFieldTrainingSelfEvaluationPage() {
 
           <div className="ft-self-eval__upload">
             <span className="form-field__label">{t('selfEval.analysisFileLabel')}</span>
-            {file || uploadedFileId ? (
-              <div className="ft-self-eval__file-chip">
-                <FileText size={18} aria-hidden />
-                <div className="ft-self-eval__file-chip-meta">
-                  <span className="ft-self-eval__file-chip-name">
-                    {file?.name || aiMeta?.analysis_file_name || t('tasks.file')}
-                  </span>
-                  <span className="ft-self-eval__file-chip-size">
-                    {[formatBytes(file?.size), file?.type || aiMeta?.analysis_file_mime_type]
-                      .filter(Boolean)
-                      .join(' · ')}
-                    {uploadedFileId ? ` · ${t('selfEval.fileUploaded')}` : ''}
-                  </span>
-                  {uploadProgress != null ? (
-                    <span className="ft-self-eval__file-chip-size">
-                      {t('selfEval.uploadProgress', { percent: uploadProgress })}
-                    </span>
-                  ) : null}
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="btn--sm"
-                  disabled={busy}
-                  onClick={handleRemoveFile}
-                >
-                  <Trash2 size={14} aria-hidden />
-                  {t('selfEval.removeFile')}
-                </Button>
-              </div>
-            ) : (
-              <FileDropzone
-                disabled={busy}
-                hint={t('selfEval.analysisFileHint')}
-                meta={t('selfEval.analysisFileMeta')}
-                accept={ANALYSIS_ACCEPT.join(',')}
-                onFile={handleFilePick}
-              />
+            <div className="ft-self-eval__info-card" role="note">
+              <strong>{t('tasks.aiSupportedFilesTitle')}</strong>
+              <p>{aiFileTypes?.notes || t('tasks.aiSupportedFilesNote')}</p>
+              {aiFileTypes?.extensions?.length ? (
+                <p className="ft-self-eval__hint">{aiFileTypes.extensions.join(' · ')}</p>
+              ) : null}
+            </div>
+            {archiveWarning ? (
+              <p className="ft-self-eval__hint ft-self-eval__hint--warn" role="status">
+                {archiveWarning}
+              </p>
+            ) : null}
+            {(files.length > 0 || uploadedFileIds.length > 0) && (
+              <ul className="ft-student-task-item__file-list">
+                {files.map((f, i) => (
+                  <li key={`${f.name}-${i}`}>
+                    <FileText size={16} aria-hidden /> {f.name} ({formatBytes(f.size)})
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      disabled={busy}
+                      onClick={() => handleRemoveFile(i)}
+                    >
+                      <Trash2 size={14} aria-hidden />
+                    </Button>
+                  </li>
+                ))}
+                {uploadedFileIds.length && !files.length ? (
+                  <li>
+                    {t('selfEval.fileUploaded')} ({uploadedFileIds.length})
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="btn--sm"
+                      disabled={busy}
+                      onClick={() => handleRemoveFile()}
+                    >
+                      <Trash2 size={14} aria-hidden />
+                      {t('selfEval.removeFile')}
+                    </Button>
+                  </li>
+                ) : null}
+              </ul>
             )}
+            {uploadProgress != null ? (
+              <p role="status">{t('tasks.uploadProgress', { percent: uploadProgress })}</p>
+            ) : null}
+            <FileDropzone
+              disabled={busy}
+              multiple
+              hint={t('selfEval.analysisFileHint')}
+              meta={t('tasks.dropzoneMeta')}
+              accept={SUBMISSION_ACCEPT_ALL}
+              onFile={handleFilePick}
+            />
           </div>
 
           <div className="ft-self-eval__url-field">

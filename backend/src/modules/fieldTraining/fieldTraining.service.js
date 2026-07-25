@@ -30,8 +30,32 @@ const hoursMod = require('./fieldTraining.hours');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
+const {
+  resolveGradingMode,
+  syncRequiresAiFlag,
+  normalizeGradingMode,
+  initialReviewStatusForGradingMode,
+  requiresAiSelfEvaluation,
+} = require('./fieldTraining.gradingMode');
+const {
+  isAllowedSubmissionFile,
+  validateSubmissionFilesList,
+  MAX_FILES_PER_SUBMISSION,
+} = require('./fieldTraining.submissionFileRules');
+const { getAiSupportedFileTypesConfig } = require('./fieldTraining.contentExtract');
 const { assertActiveSpecialty } = require('../specialties/specialties.service');
 const { prisma } = require('../../config/db');
+
+function resolveTaskGradingModeFromBody(body) {
+  if (body.grading_mode != null) {
+    const mode = normalizeGradingMode(body.grading_mode);
+    if (!mode) throw new ApiError(400, 'طريقة تصحيح المهمة غير صالحة');
+    return mode;
+  }
+  if (body.requires_ai_self_evaluation === true) return 'AI';
+  if (body.requires_ai_self_evaluation === false) return 'MANUAL';
+  return null;
+}
 
 function buildAdminWhere(query) {
   const where = {};
@@ -1037,6 +1061,12 @@ async function createOpportunityTask(opportunityId, body, user) {
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
 
+  const gradingMode = resolveTaskGradingModeFromBody(body) || 'AI';
+  const requiresAi = syncRequiresAiFlag(gradingMode);
+  if (requiresAi && !String(body.ai_self_evaluation_prompt || '').trim()) {
+    // Allow create without prompt but warn via empty — keep flexible like before
+  }
+
   const count = await repo.countTasksByOpportunity(opportunityId);
   const task = await repo.createTask({
     opportunity_id: opportunityId,
@@ -1044,8 +1074,9 @@ async function createOpportunityTask(opportunityId, body, user) {
     description: body.description ?? null,
     sort_order: body.sort_order ?? count,
     due_date: repo.toDateOnly(body.due_date),
-    ai_self_evaluation_prompt: body.ai_self_evaluation_prompt ?? null,
-    requires_ai_self_evaluation: body.requires_ai_self_evaluation ?? false,
+    ai_self_evaluation_prompt: requiresAi ? body.ai_self_evaluation_prompt ?? null : null,
+    requires_ai_self_evaluation: requiresAi,
+    grading_mode: gradingMode,
     is_final_task: body.is_final_task ?? false,
   });
 
@@ -1077,8 +1108,18 @@ async function updateOpportunityTask(taskId, body, user) {
   if (body.ai_self_evaluation_prompt !== undefined) {
     data.ai_self_evaluation_prompt = body.ai_self_evaluation_prompt;
   }
-  if (body.requires_ai_self_evaluation !== undefined) {
+  const gradingMode = resolveTaskGradingModeFromBody(body);
+  if (gradingMode) {
+    data.grading_mode = gradingMode;
+    data.requires_ai_self_evaluation = syncRequiresAiFlag(gradingMode);
+    if (gradingMode !== 'AI') {
+      data.ai_self_evaluation_prompt = body.ai_self_evaluation_prompt !== undefined
+        ? body.ai_self_evaluation_prompt
+        : null;
+    }
+  } else if (body.requires_ai_self_evaluation !== undefined) {
     data.requires_ai_self_evaluation = body.requires_ai_self_evaluation;
+    data.grading_mode = body.requires_ai_self_evaluation ? 'AI' : 'MANUAL';
   }
   if (body.is_final_task !== undefined) data.is_final_task = body.is_final_task;
   if (body.remove_instruction_file) {
@@ -1193,17 +1234,95 @@ async function downloadSubmissionFile(submissionId, user, { asAdmin = false } = 
 
 async function submitTaskFile(taskId, file, studentId, body = {}, user = { userId: studentId }) {
   const projectUrl = body.project_url?.trim() || null;
-  const resolved = await filesService.resolveUploadInput(
-    {
-      file,
-      fileId: body.fileId || body.analysis_file_id || null,
-      localPathBuilder: (f) => repo.buildRelativeFilePath(taskId, path.basename(f.filename)),
-    },
-    user
-  );
+  const solutionNotes =
+    body.solution_notes?.trim() ||
+    body.final_student_notes?.trim() ||
+    body.student_self_evaluation_input?.trim() ||
+    null;
 
-  if (!resolved && !projectUrl) {
-    throw new ApiError(400, 'أرفق ملف الحل أو أدخل رابط المشروع');
+  const fileIdList = [
+    ...(Array.isArray(body.fileIds) ? body.fileIds : []),
+    body.fileId,
+    body.analysis_file_id,
+  ].filter(Boolean);
+  const uniqueFileIds = [...new Set(fileIdList.map(String))];
+
+  if (uniqueFileIds.length > MAX_FILES_PER_SUBMISSION) {
+    throw new ApiError(400, `الحد الأقصى لعدد الملفات هو ${MAX_FILES_PER_SUBMISSION}`);
+  }
+
+  const multerFiles = [
+    ...(Array.isArray(file) ? file : []),
+    ...(Array.isArray(body._multerFiles) ? body._multerFiles : []),
+  ];
+  if (file && !Array.isArray(file) && file.path) {
+    multerFiles.push(file);
+  }
+
+  const resolvedFiles = [];
+  for (const fileId of uniqueFileIds) {
+    const resolved = await filesService.resolveUploadInput(
+      {
+        file: null,
+        fileId,
+        localPathBuilder: (f) => repo.buildRelativeFilePath(taskId, path.basename(f.filename)),
+      },
+      user
+    );
+    if (!resolved) continue;
+    const check = isAllowedSubmissionFile({
+      fileName: resolved.fileName,
+      mimeType: resolved.mimeType,
+      size: resolved.size || 1,
+    });
+    if (!check.valid) {
+      throw new ApiError(400, check.errors[0] || 'نوع الملف غير مدعوم', null, 'UNSUPPORTED_FILE_TYPE');
+    }
+    resolvedFiles.push({
+      file_id: resolved.fileId || fileId,
+      file_path: resolved.filePath,
+      file_name: check.fileName || resolved.fileName,
+      mime_type: check.mimeType || resolved.mimeType,
+      file_size: resolved.size || check.size || null,
+      is_archive: check.isArchive,
+      extraction_status: null,
+    });
+  }
+
+  for (const multerFile of multerFiles) {
+    const check = isAllowedSubmissionFile({
+      fileName: multerFile.originalname,
+      mimeType: multerFile.mimetype,
+      size: multerFile.size || 1,
+    });
+    if (!check.valid) {
+      throw new ApiError(400, check.errors[0] || 'نوع الملف غير مدعوم', null, 'UNSUPPORTED_FILE_TYPE');
+    }
+    const relative = repo.buildRelativeFilePath(taskId, path.basename(multerFile.filename));
+    resolvedFiles.push({
+      file_id: null,
+      file_path: relative,
+      file_name: check.fileName,
+      mime_type: check.mimeType,
+      file_size: multerFile.size || null,
+      is_archive: check.isArchive,
+      extraction_status: null,
+    });
+  }
+
+  const listCheck = validateSubmissionFilesList(
+    resolvedFiles.map((f) => ({
+      fileName: f.file_name,
+      mimeType: f.mime_type,
+      size: f.file_size || 1,
+    }))
+  );
+  if (!listCheck.valid) {
+    throw new ApiError(400, listCheck.errors[0] || 'ملفات التسليم غير صالحة');
+  }
+
+  if (!resolvedFiles.length && !projectUrl && !solutionNotes) {
+    throw new ApiError(400, 'أرفق ملف الحل أو أدخل رابط المشروع أو وصف الحل');
   }
 
   const task = await repo.findTaskById(taskId);
@@ -1217,7 +1336,9 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     requireTrainingAccess: true,
   });
 
-  if (task.requires_ai_self_evaluation) {
+  const gradingMode = resolveGradingMode(task);
+
+  if (requiresAiSelfEvaluation(task)) {
     if (!body.student_self_evaluation_input?.trim()) {
       throw new ApiError(400, 'التقييم الذاتي مطلوب قبل التسليم');
     }
@@ -1226,7 +1347,9 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     }
     const fileOk = ['ok', 'partial'].includes(body.file_extraction_status);
     const urlOk = body.url_extraction_status === 'ok';
-    if (!fileOk && !urlOk) {
+    const hasReadableArchiveFallback =
+      resolvedFiles.some((f) => f.is_archive) && Boolean(body.student_self_evaluation_input?.trim());
+    if (!fileOk && !urlOk && !hasReadableArchiveFallback) {
       throw new ApiError(
         400,
         'يجب توفر مصدر قابل للتحليل (ملف أو رابط) قبل التسليم'
@@ -1243,44 +1366,53 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
 
   const dueDate = task.due_date ? new Date(task.due_date) : null;
   const isLate = dueDate ? new Date() > dueDate : false;
+  const reviewStatus = initialReviewStatusForGradingMode(gradingMode);
 
+  const primary = resolvedFiles[0] || null;
   const submission = await repo.upsertSubmissionExtended({
     taskId,
     applicationId: app.id,
     studentId,
-    filePath: resolved?.filePath ?? null,
-    fileName: resolved?.fileName ?? null,
-    mimeType: resolved?.mimeType ?? null,
+    filePath: primary?.file_path ?? null,
+    fileName: primary?.file_name ?? null,
+    mimeType: primary?.mime_type ?? null,
+    files: resolvedFiles,
     extra: {
       student_self_evaluation_input: body.student_self_evaluation_input ?? null,
-      ai_prompt_used: body.ai_prompt_used ?? null,
-      ai_model_provider: body.ai_model_provider ?? null,
-      ai_model_name: body.ai_model_name ?? null,
-      ai_raw_response: body.ai_raw_response ?? null,
-      ai_response_inserted_text: body.ai_response_inserted_text ?? null,
+      solution_notes: solutionNotes,
+      ai_prompt_used: gradingMode === 'AI' ? body.ai_prompt_used ?? null : null,
+      ai_model_provider: gradingMode === 'AI' ? body.ai_model_provider ?? null : null,
+      ai_model_name: gradingMode === 'AI' ? body.ai_model_name ?? null : null,
+      ai_raw_response: gradingMode === 'AI' ? body.ai_raw_response ?? null : null,
+      ai_response_inserted_text: gradingMode === 'AI' ? body.ai_response_inserted_text ?? null : null,
       final_student_notes: body.final_student_notes ?? null,
       project_url: projectUrl,
-      analysis_file_id: body.analysis_file_id || body.fileId || resolved?.fileId || null,
+      analysis_file_id: body.analysis_file_id || body.fileId || primary?.file_id || null,
       file_extraction_status: body.file_extraction_status ?? null,
       file_extracted_text: body.file_extracted_text ?? null,
       url_extraction_status: body.url_extraction_status ?? null,
       url_extracted_text: body.url_extracted_text ?? null,
       extraction_errors: body.extraction_errors ?? null,
-      ai_evaluated_at: body.ai_evaluated_at
-        ? new Date(body.ai_evaluated_at)
-        : body.ai_raw_response
-          ? new Date()
-          : null,
+      ai_evaluated_at:
+        gradingMode === 'AI' && body.ai_evaluated_at
+          ? new Date(body.ai_evaluated_at)
+          : gradingMode === 'AI' && body.ai_raw_response
+            ? new Date()
+            : null,
       is_late: isLate,
-      review_status: 'pending',
+      review_status: reviewStatus,
     },
   });
 
   const appUpdate = { training_status: 'task_submitted' };
   if (task.is_final_task) {
-    appUpdate.final_task_status = 'submitted';
+    appUpdate.final_task_status = gradingMode === 'NONE' ? 'approved' : 'submitted';
   }
   await repo.updateApplication(app.id, appUpdate);
+
+  if (task.is_final_task && gradingMode === 'NONE') {
+    await workflow.persistEligibility(app.id);
+  }
 
   const opp = await repo.findById(task.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds([studentId]);
@@ -1294,6 +1426,10 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
   });
 
   return { submission: repo.mapSubmissionRow(submission, { exposeStudentOwnAudit: true }) };
+}
+
+async function getAiSupportedSubmissionFileTypes() {
+  return getAiSupportedFileTypesConfig();
 }
 
 async function listStudentOpportunityTasks(opportunityId, studentId) {
@@ -1310,18 +1446,30 @@ async function reviewSubmission(submissionId, body, user) {
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
 
+  const feedback = body.manual_feedback ?? body.instructor_feedback;
+  let reviewStatus = body.review_status;
+  if (reviewStatus === 'approved' && body.manual_score != null) {
+    reviewStatus = 'graded';
+  }
+
   const updated = await repo.updateSubmissionReview(submissionId, {
-    review_status: body.review_status,
-    instructor_feedback: body.instructor_feedback,
+    review_status: reviewStatus,
+    instructor_feedback: feedback,
+    manual_score: body.manual_score,
+    max_score: body.max_score,
     reviewed_by_id: user.userId,
   });
 
-  if (body.review_status === 'approved' && submission.field_training_tasks?.is_final_task) {
+  const approvedLike = ['approved', 'graded'].includes(reviewStatus);
+  if (approvedLike && submission.field_training_tasks?.is_final_task) {
     const app = await repo.findApplicationById(submission.application_id);
     if (app) {
       await repo.updateApplication(app.id, { final_task_status: 'approved' });
       await workflow.persistEligibility(app.id);
     }
+  }
+  if (reviewStatus === 'needs_revision' && submission.field_training_tasks?.is_final_task) {
+    await repo.updateApplication(submission.application_id, { final_task_status: 'pending' });
   }
 
   const oppFull = await repo.findById(opp.id);
@@ -1330,7 +1478,7 @@ async function reviewSubmission(submissionId, body, user) {
     opportunityId: opp.id,
     opportunityTitle: oppFull?.title || opp.title,
     taskTitle: submission.field_training_tasks?.title,
-    reviewStatus: body.review_status,
+    reviewStatus,
   });
 
   await recordAudit({
@@ -1338,7 +1486,10 @@ async function reviewSubmission(submissionId, body, user) {
     actionType: 'FIELD_TRAINING_SUBMISSION_REVIEWED',
     entityType: 'field_training_task_submission',
     entityId: submissionId,
-    newValues: { review_status: body.review_status },
+    newValues: {
+      review_status: reviewStatus,
+      manual_score: body.manual_score ?? null,
+    },
   });
 
   return { submission: repo.mapSubmissionRow(updated) };
@@ -1473,4 +1624,5 @@ module.exports = {
   submitTaskFile,
   listStudentOpportunityTasks,
   reviewSubmission,
+  getAiSupportedSubmissionFileTypes,
 };

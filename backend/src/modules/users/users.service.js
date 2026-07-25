@@ -50,7 +50,7 @@ function rolesRequireUniversity(roleCodes = []) {
 }
 
 function rolesIncludeStudent(roleCodes = []) {
-  return roleCodes.map((c) => String(c).toLowerCase()).includes(STUDENT_ROLE);
+  return normalizeRoleCodes(roleCodes).includes('student');
 }
 
 async function resolveSpecialtyFields({

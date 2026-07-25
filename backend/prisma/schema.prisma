@@ -1380,6 +1380,25 @@ enum field_training_attendance_status {
   absent
   late
   excused
+  unconfirmed
+}
+
+enum field_training_attendance_window_status {
+  pending
+  open
+  closed
+  finalized
+}
+
+enum field_training_attendance_window_mode {
+  normal
+  late
+}
+
+enum field_training_attendance_method {
+  electronic
+  manual
+  auto_finalize
 }
 
 enum field_training_assessment_type {
@@ -1404,9 +1423,18 @@ enum field_training_question_type {
 
 enum field_training_task_review_status {
   pending
+  submitted
+  under_review
+  needs_revision
   approved
   rejected
-  needs_revision
+  graded
+}
+
+enum field_training_task_grading_mode {
+  AI
+  MANUAL
+  NONE
 }
 
 enum field_training_completion_letter_status {
@@ -1423,6 +1451,7 @@ model field_training_tasks {
   due_date       DateTime? @db.Date
   ai_self_evaluation_prompt String?
   requires_ai_self_evaluation Boolean @default(false)
+  grading_mode   field_training_task_grading_mode @default(AI)
   is_final_task  Boolean  @default(false)
   instruction_file_path String? @db.VarChar(500)
   instruction_file_name String? @db.VarChar(255)
@@ -1451,6 +1480,7 @@ model field_training_task_submissions {
   ai_raw_response String?
   ai_response_inserted_text String?
   final_student_notes String?
+  solution_notes String?
   ai_evaluated_at DateTime? @db.Timestamptz(6)
   file_path      String?  @db.VarChar(500)
   file_name      String?  @db.VarChar(255)
@@ -1466,6 +1496,8 @@ model field_training_task_submissions {
   is_late        Boolean  @default(false)
   review_status  field_training_task_review_status @default(pending)
   instructor_feedback String?
+  manual_score   Float?
+  max_score      Float?
   reviewed_by_id String?  @db.Uuid
   reviewed_at    DateTime? @db.Timestamptz(6)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -1473,11 +1505,30 @@ model field_training_task_submissions {
 
   field_training_tasks        field_training_tasks        @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_task_submission_files field_training_task_submission_files[]
 
   @@unique([task_id, application_id], map: "uq_field_training_task_submissions")
   @@index([student_id], map: "idx_field_training_task_submissions_student")
   @@index([review_status], map: "idx_field_training_task_submissions_review_status")
   @@index([application_id], map: "idx_field_training_task_submissions_application")
+}
+
+model field_training_task_submission_files {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id  String   @db.Uuid
+  file_id        String?  @db.Uuid
+  file_path      String   @db.VarChar(500)
+  file_name      String   @db.VarChar(255)
+  mime_type      String?  @db.VarChar(120)
+  file_size      Int?
+  sort_order     Int      @default(0)
+  extraction_status String? @db.VarChar(40)
+  is_archive     Boolean  @default(false)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_task_submissions field_training_task_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([submission_id], map: "idx_ft_submission_files_submission")
 }
 
 model field_training_sessions {
@@ -1496,13 +1547,14 @@ model field_training_sessions {
 
   field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_attendance    field_training_attendance[]
+  field_training_attendance_windows field_training_attendance_windows[]
 
   @@index([opportunity_id], map: "idx_field_training_sessions_opportunity")
   @@index([session_date], map: "idx_field_training_sessions_date")
 }
 
 /// Attendance rule: percentage uses required sessions only.
-/// present + late + excused count as attended; absent does not.
+/// present + late + excused count as attended; absent / unconfirmed do not.
 model field_training_attendance {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   session_id     String   @db.Uuid
@@ -1510,6 +1562,12 @@ model field_training_attendance {
   student_id     String   @db.Uuid
   status         field_training_attendance_status
   note           String?
+  method         field_training_attendance_method?
+  confirmed_at   DateTime? @db.Timestamptz(6)
+  manual_reason  String?
+  attendance_window_id String? @db.Uuid
+  ip_address     String?  @db.VarChar(64)
+  device_info    String?  @db.VarChar(500)
   recorded_by_id String?  @db.Uuid
   recorded_at    DateTime @default(now()) @db.Timestamptz(6)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -1517,10 +1575,49 @@ model field_training_attendance {
 
   field_training_sessions     field_training_sessions     @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_attendance_windows field_training_attendance_windows? @relation(fields: [attendance_window_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([session_id, application_id], map: "uq_field_training_attendance_session_application")
   @@index([student_id], map: "idx_field_training_attendance_student")
   @@index([application_id], map: "idx_field_training_attendance_application")
+}
+
+model field_training_attendance_windows {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id       String   @db.Uuid
+  code_hash        String   @db.VarChar(128)
+  status           field_training_attendance_window_status @default(pending)
+  mode             field_training_attendance_window_mode @default(normal)
+  opened_at        DateTime? @db.Timestamptz(6)
+  expires_at       DateTime? @db.Timestamptz(6)
+  closed_at        DateTime? @db.Timestamptz(6)
+  opened_by_id     String?  @db.Uuid
+  closed_by_id     String?  @db.Uuid
+  duration_seconds Int      @default(120)
+  notes            String?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_sessions field_training_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_attendance field_training_attendance[]
+  field_training_attendance_window_attempts field_training_attendance_window_attempts[]
+
+  @@index([session_id], map: "idx_ft_attendance_windows_session")
+  @@index([status, expires_at], map: "idx_ft_attendance_windows_status_expires")
+}
+
+model field_training_attendance_window_attempts {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  window_id       String   @db.Uuid
+  student_id      String   @db.Uuid
+  attempt_count   Int      @default(0)
+  last_attempt_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_attendance_windows field_training_attendance_windows @relation(fields: [window_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([window_id, student_id], map: "uq_ft_attendance_window_attempts_student")
 }
 
 model field_training_assessments {

@@ -161,6 +161,46 @@ async function notifyStudentsMarkedAbsent(params) {
   return { created_count: created };
 }
 
+async function notifyStudentsAttendanceWindowOpened(params) {
+  const {
+    opportunityId,
+    opportunityTitle,
+    sessionTitle,
+    sessionId,
+    windowId,
+    mode,
+    durationSeconds,
+  } = params;
+  const apps = await prisma.field_training_applications.findMany({
+    where: {
+      opportunity_id: opportunityId,
+      status: 'approved',
+      expelled_at: null,
+      training_status: { not: 'expelled' },
+    },
+    select: { student_id: true },
+  });
+  const title =
+    mode === 'late' ? 'نافذة حضور للمتأخرين مفتوحة' : 'تسجيل حضور إلكتروني مفتوح الآن';
+  const body =
+    mode === 'late'
+      ? `تم فتح نافذة تسجيل المتأخرين لجلسة "${sessionTitle || ''}" في "${opportunityTitle || ''}" لمدة ${Math.round((durationSeconds || 120) / 60)} دقيقة. أدخل رمز الحضور الآن.`
+      : `تم فتح تسجيل الحضور الإلكتروني لجلسة "${sessionTitle || ''}" في "${opportunityTitle || ''}" لمدة ${Math.round((durationSeconds || 120) / 60)} دقيقة. أدخل رمز الحضور الآن.`;
+
+  let created = 0;
+  for (const app of apps) {
+    const row = await createNotificationForUser({
+      userId: app.student_id,
+      title,
+      body,
+      type: 'action_required',
+      actionUrl: `/student/field-training/${opportunityId}?tab=sessions&attendanceWindow=${windowId || ''}&sessionId=${sessionId || ''}`,
+    });
+    if (row) created += 1;
+  }
+  return { created_count: created };
+}
+
 async function notifyStudentExpelled(params) {
   const { studentId, opportunityId, opportunityTitle, reason } = params;
   return createNotificationForUser({
@@ -398,6 +438,7 @@ module.exports = {
   notifyStudentsNewSession,
   notifyStudentsSessionUpdated,
   notifyStudentsMarkedAbsent,
+  notifyStudentsAttendanceWindowOpened,
   notifyStudentExpelled,
   notifyStudentCompletionLetter,
   notifyStudentTaskReviewed,

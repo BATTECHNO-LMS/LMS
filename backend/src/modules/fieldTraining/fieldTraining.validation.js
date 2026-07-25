@@ -134,7 +134,12 @@ const taskBodySchema = z.object({
   sort_order: z.coerce.number().int().min(0).max(10000).optional(),
   due_date: optionalDateSchema,
   ai_self_evaluation_prompt: z.string().max(20000).optional().nullable(),
+  /** @deprecated prefer grading_mode */
   requires_ai_self_evaluation: z.coerce.boolean().optional(),
+  grading_mode: z
+    .enum(['AI', 'MANUAL', 'NONE', 'ai', 'manual', 'none'])
+    .optional()
+    .transform((v) => (v == null ? undefined : String(v).toUpperCase())),
   is_final_task: z.coerce.boolean().optional(),
   instruction_file_id: z.string().uuid().optional().nullable(),
   remove_instruction_file: z.coerce.boolean().optional(),
@@ -206,14 +211,61 @@ const sessionBodySchema = sessionFieldsSchema.superRefine(refineSessionTimes);
 const updateSessionBodySchema = sessionFieldsSchema.partial().superRefine(refineSessionTimes);
 
 const attendanceRecordSchema = z.object({
-  applicationId: z.string().uuid(),
-  studentId: z.string().uuid(),
-  status: z.enum(['present', 'absent', 'late', 'excused']),
+  applicationId: z.string().uuid().optional(),
+  application_id: z.string().uuid().optional(),
+  studentId: z.string().uuid().optional(),
+  student_id: z.string().uuid().optional(),
+  status: z.enum(['present', 'absent', 'late', 'excused', 'unconfirmed']),
   note: z.string().max(2000).optional().nullable(),
+  manual_reason: z.string().max(2000).optional().nullable(),
+  reason: z.string().max(2000).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!(data.applicationId || data.application_id)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'applicationId مطلوب', path: ['applicationId'] });
+  }
+  if (!(data.studentId || data.student_id)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'studentId مطلوب', path: ['studentId'] });
+  }
 });
 
 const saveAttendanceBodySchema = z.object({
   records: z.array(attendanceRecordSchema).min(1),
+});
+
+const openAttendanceWindowBodySchema = z.object({
+  duration_seconds: z.coerce.number().int().optional(),
+  mode: z.enum(['normal', 'late']).optional(),
+  notes: z.string().max(2000).optional().nullable(),
+  code: z.string().trim().min(4).max(12).optional().nullable(),
+});
+
+const confirmAttendanceWindowBodySchema = z.object({
+  windowId: z.string().uuid().optional(),
+  window_id: z.string().uuid().optional(),
+  code: z.string().trim().min(4).max(12),
+}).superRefine((data, ctx) => {
+  if (!(data.windowId || data.window_id)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'windowId مطلوب', path: ['windowId'] });
+  }
+});
+
+const manualAttendanceBodySchema = z.object({
+  status: z.enum(['present', 'absent', 'late', 'excused', 'unconfirmed']),
+  manual_reason: z.string().trim().min(1).max(2000).optional(),
+  reason: z.string().trim().min(1).max(2000).optional(),
+  note: z.string().max(2000).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!(data.manual_reason || data.reason)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'سبب التعديل اليدوي مطلوب',
+      path: ['manual_reason'],
+    });
+  }
+});
+
+const studentIdParamSchema = z.object({
+  studentId: z.string().uuid(),
 });
 
 const assessmentTypeParamSchema = z.object({
@@ -266,6 +318,7 @@ const aiSelfEvalBodySchema = z
     /** @deprecated use studentDescription */
     studentInput: z.string().trim().min(20).max(20000).optional(),
     uploadedFileId: z.string().uuid().optional().nullable(),
+    uploadedFileIds: z.array(z.string().uuid()).max(10).optional(),
     projectUrl: z
       .string()
       .trim()
@@ -285,7 +338,9 @@ const aiSelfEvalBodySchema = z
         path: ['studentDescription'],
       });
     }
-    const hasFile = Boolean(data.uploadedFileId);
+    const hasFile =
+      Boolean(data.uploadedFileId) ||
+      (Array.isArray(data.uploadedFileIds) && data.uploadedFileIds.length > 0);
     const hasUrl = Boolean(data.projectUrl?.trim());
     if (!hasFile && !hasUrl) {
       ctx.addIssue({
@@ -298,6 +353,7 @@ const aiSelfEvalBodySchema = z
 
 const taskSubmitFieldsSchema = z.object({
   fileId: z.string().uuid().optional().nullable(),
+  fileIds: z.array(z.string().uuid()).max(10).optional(),
   project_url: z
     .string()
     .trim()
@@ -308,6 +364,7 @@ const taskSubmitFieldsSchema = z.object({
       message: 'الرابط يجب أن يبدأ بـ http:// أو https://',
     }),
   student_self_evaluation_input: z.string().max(20000).optional().nullable(),
+  solution_notes: z.string().max(20000).optional().nullable(),
   ai_prompt_used: z.string().max(50000).optional().nullable(),
   ai_model_provider: z.string().max(80).optional().nullable(),
   ai_model_name: z.string().max(120).optional().nullable(),
@@ -324,6 +381,22 @@ const taskSubmitFieldsSchema = z.object({
     .union([z.string().datetime(), z.string().min(1), z.null()])
     .optional()
     .nullable(),
+});
+
+const reviewSubmissionBodySchema = z.object({
+  review_status: z.enum([
+    'approved',
+    'rejected',
+    'needs_revision',
+    'submitted',
+    'under_review',
+    'graded',
+    'pending',
+  ]),
+  instructor_feedback: z.string().max(5000).optional().nullable(),
+  manual_feedback: z.string().max(5000).optional().nullable(),
+  manual_score: z.coerce.number().min(0).max(1000).optional().nullable(),
+  max_score: z.coerce.number().min(0).max(1000).optional().nullable(),
 });
 
 const assessmentIdParamSchema = z.object({
@@ -351,11 +424,6 @@ const createAssessmentBodySchema = assessmentBodySchema.extend({
 
 const updateAssessmentBodySchema = assessmentBodySchema.partial();
 
-const reviewSubmissionBodySchema = z.object({
-  review_status: z.enum(['approved', 'rejected', 'needs_revision']),
-  instructor_feedback: z.string().max(5000).optional().nullable(),
-});
-
 /** Replace total completed hours for an application (Model A aggregate). */
 const updateApplicationHoursBodySchema = z.object({
   completed_hours: z.coerce.number().int().min(0).max(10000),
@@ -375,6 +443,7 @@ module.exports = {
   submissionIdParamSchema,
   taskIdParamSchema,
   sessionIdParamSchema,
+  studentIdParamSchema,
   assessmentIdParamSchema,
   attemptIdParamSchema,
   assessmentTypeParamSchema,
@@ -383,6 +452,9 @@ module.exports = {
   sessionBodySchema,
   updateSessionBodySchema,
   saveAttendanceBodySchema,
+  openAttendanceWindowBodySchema,
+  confirmAttendanceWindowBodySchema,
+  manualAttendanceBodySchema,
   assessmentBodySchema,
   createAssessmentBodySchema,
   updateAssessmentBodySchema,

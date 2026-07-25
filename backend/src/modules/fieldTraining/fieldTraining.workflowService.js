@@ -195,16 +195,58 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
   const activeApps = await repo.findActiveParticipants(opp.id);
   const activeById = new Map(activeApps.map((a) => [a.id, a]));
 
-  for (const rec of records) {
+  const normalized = records.map((rec) => ({
+    applicationId: rec.applicationId || rec.application_id,
+    studentId: rec.studentId || rec.student_id,
+    status: rec.status,
+    note: rec.note ?? null,
+    manual_reason: rec.manual_reason || rec.reason || null,
+  }));
+
+  for (const rec of normalized) {
     const app = activeById.get(rec.applicationId);
     if (!app || app.student_id !== rec.studentId) {
       throw new ApiError(400, 'مشارك غير صالح للجلسة');
     }
+    if (!rec.manual_reason) {
+      throw new ApiError(400, 'سبب التعديل اليدوي مطلوب عند حفظ الحضور يدويًا', null, 'MANUAL_REASON_REQUIRED');
+    }
   }
 
-  await repo.upsertAttendanceRecords(sessionId, records, userId);
+  const existingRows = await prisma.field_training_attendance.findMany({
+    where: { session_id: sessionId, application_id: { in: normalized.map((r) => r.applicationId) } },
+  });
+  const existingByApp = new Map(existingRows.map((r) => [r.application_id, r]));
 
-  const absentStudentIds = records
+  await repo.upsertAttendanceRecords(
+    sessionId,
+    normalized.map((r) => ({
+      ...r,
+      method: 'manual',
+      manual_reason: r.manual_reason,
+    })),
+    userId
+  );
+
+  for (const rec of normalized) {
+    const prev = existingByApp.get(rec.applicationId);
+    await recordAudit({
+      userId,
+      actionType: 'FIELD_TRAINING_ATTENDANCE_MANUAL_UPDATE',
+      entityType: 'field_training_attendance',
+      entityId: rec.applicationId,
+      oldValues: prev ? { status: prev.status, method: prev.method } : null,
+      newValues: {
+        status: rec.status,
+        method: 'manual',
+        manual_reason: rec.manual_reason,
+        student_id: rec.studentId,
+        session_id: sessionId,
+      },
+    });
+  }
+
+  const absentStudentIds = normalized
     .filter((r) => r.status === 'absent')
     .map((r) => r.studentId);
   if (absentStudentIds.length) {
@@ -216,7 +258,7 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
     });
   }
 
-  const applicationIds = [...new Set(records.map((r) => r.applicationId))];
+  const applicationIds = [...new Set(normalized.map((r) => r.applicationId))];
   const oppFull = await repo.findById(opp.id);
   const minAttendance = oppFull?.minimum_attendance_percentage;
 
@@ -242,7 +284,7 @@ async function saveSessionAttendance(sessionId, records, userId, user) {
     }
   }
 
-  return { ok: true, saved: records.length };
+  return { ok: true, saved: normalized.length };
 }
 
 async function getSessionParticipants(sessionId, user) {
@@ -608,13 +650,18 @@ async function requestExpulsion(applicationId, body, userId, user) {
 async function runTaskAiSelfEvaluate(taskId, body, user) {
   const studentId = user.userId;
   const studentDescription = String(body.studentDescription || body.studentInput || '').trim();
-  const uploadedFileId = body.uploadedFileId || null;
+  const uploadedFileIds = [
+    ...(Array.isArray(body.uploadedFileIds) ? body.uploadedFileIds : []),
+    body.uploadedFileId,
+  ].filter(Boolean);
+  const uniqueFileIds = [...new Set(uploadedFileIds.map(String))];
   const projectUrl = body.projectUrl?.trim() || null;
 
   const task = await repo.findTaskById(taskId);
   if (!task) throw new ApiError(404, 'Task not found');
-  if (!task.requires_ai_self_evaluation) {
-    throw new ApiError(400, 'هذه المهمة لا تتطلب تقييمًا ذاتيًا بالذكاء الاصطناعي');
+  const { requiresAiSelfEvaluation, resolveGradingMode } = require('./fieldTraining.gradingMode');
+  if (!requiresAiSelfEvaluation(task)) {
+    throw new ApiError(400, 'هذه المهمة لا تستخدم التصحيح بالذكاء الاصطناعي');
   }
   if (!task.ai_self_evaluation_prompt?.trim()) {
     throw new ApiError(400, 'لم يتم إعداد برومبت التقييم لهذه المهمة', null, 'AI_PROMPT_NOT_CONFIGURED');
@@ -628,30 +675,68 @@ async function runTaskAiSelfEvaluate(taskId, body, user) {
     throw new ApiError(403, 'التدريب غير نشط بعد');
   }
 
-  if (!uploadedFileId && !projectUrl) {
+  if (!uniqueFileIds.length && !projectUrl) {
     throw new ApiError(400, 'أرفق ملفًا أو أدخل رابطًا عامًا للعمل مع الوصف');
   }
 
   const contentExtract = require('./fieldTraining.contentExtract');
   const urlFetch = require('./fieldTraining.urlFetch');
   const filesService = require('../files/files.service');
+  const { isArchiveFile } = require('./fieldTraining.submissionFileRules');
 
-  let fileExtraction = { status: 'skipped', text: null, error: null };
-  let fileMeta = { fileName: null, mimeType: null, fileId: null };
+  const fileExtractions = [];
+  const warnings = [];
+  let primaryFileMeta = { fileName: null, mimeType: null, fileId: null };
 
-  if (uploadedFileId) {
-    const record = await filesService.getFileByIdForUser(uploadedFileId, user);
-    fileMeta = {
-      fileName: record.originalName,
-      mimeType: record.mimeType,
-      fileId: record.id,
-    };
-    fileExtraction = await contentExtract.extractTextFromStorageKey({
-      storageKey: record.storageKey,
-      mimeType: record.mimeType,
-      fileName: record.originalName,
-    });
+  for (const uploadedFileId of uniqueFileIds) {
+    try {
+      const record = await filesService.getFileByIdForUser(uploadedFileId, user);
+      if (!primaryFileMeta.fileId) {
+        primaryFileMeta = {
+          fileName: record.originalName,
+          mimeType: record.mimeType,
+          fileId: record.id,
+        };
+      }
+      const extraction = await contentExtract.extractTextFromStorageKey({
+        storageKey: record.storageKey,
+        mimeType: record.mimeType,
+        fileName: record.originalName,
+      });
+      fileExtractions.push({
+        fileId: record.id,
+        fileName: record.originalName,
+        mimeType: record.mimeType,
+        ...extraction,
+        isArchive: isArchiveFile(record.originalName, record.mimeType),
+      });
+      if (extraction.status === 'unsupported' || extraction.status === 'failed' || extraction.status === 'empty') {
+        warnings.push(
+          extraction.error ||
+            `الملف ${record.originalName} غير قابل للتحليل تلقائيًا`
+        );
+      } else if (extraction.status === 'partial') {
+        warnings.push(extraction.error || `تحليل جزئي للملف ${record.originalName}`);
+      }
+    } catch (err) {
+      warnings.push(err?.message || 'تعذر قراءة أحد الملفات المرفقة.');
+      fileExtractions.push({
+        fileId: uploadedFileId,
+        status: 'failed',
+        text: null,
+        error: 'تعذر قراءة الملف المرفق.',
+      });
+    }
   }
+
+  const readableFile = combineFileExtracedText(fileExtractions);
+  const fileExtraction = readableFile || {
+    status: uniqueFileIds.length ? 'unsupported' : 'skipped',
+    text: null,
+    error: uniqueFileIds.length
+      ? warnings[0] || 'تعذر تحليل الملفات المرفقة.'
+      : null,
+  };
 
   let urlExtraction = { status: 'skipped', text: null, error: null };
   if (projectUrl) {
@@ -671,6 +756,14 @@ async function runTaskAiSelfEvaluate(taskId, body, user) {
     throw new ApiError(400, msg, {
       file_extraction_status: fileExtraction.status,
       url_extraction_status: urlExtraction.status,
+      file_extractions: fileExtractions.map((f) => ({
+        fileId: f.fileId,
+        fileName: f.fileName,
+        status: f.status,
+        error: f.error,
+        isArchive: f.isArchive,
+      })),
+      warnings,
     }, 'CONTENT_UNREADABLE');
   }
 
@@ -691,13 +784,14 @@ async function runTaskAiSelfEvaluate(taskId, body, user) {
     studentDescription,
     fileContent: fileExtraction.text,
     fileStatus: fileExtraction.status,
-    fileName: fileMeta.fileName,
+    fileName: primaryFileMeta.fileName,
     urlContent: urlExtraction.text,
     urlStatus: urlExtraction.status,
     projectUrl,
   });
 
-  const extractionErrors = [fileExtraction.error, urlExtraction.error].filter(Boolean).join(' | ') || null;
+  const extractionErrors =
+    [fileExtraction.error, urlExtraction.error, ...warnings].filter(Boolean).join(' | ') || null;
 
   return {
     ai_response: result.text,
@@ -707,22 +801,43 @@ async function runTaskAiSelfEvaluate(taskId, body, user) {
     evaluated_at: new Date().toISOString(),
     student_description: studentDescription,
     project_url: projectUrl,
-    analysis_file_id: fileMeta.fileId,
-    analysis_file_name: fileMeta.fileName,
-    analysis_file_mime_type: fileMeta.mimeType,
+    analysis_file_id: primaryFileMeta.fileId,
+    analysis_file_name: primaryFileMeta.fileName,
+    analysis_file_mime_type: primaryFileMeta.mimeType,
     file_extraction_status: fileExtraction.status,
     file_extracted_text: fileExtraction.text,
     url_extraction_status: urlExtraction.status,
     url_extracted_text: urlExtraction.text,
     extraction_errors: extractionErrors,
+    file_extractions: fileExtractions.map((f) => ({
+      fileId: f.fileId,
+      fileName: f.fileName,
+      status: f.status,
+      error: f.error,
+      isArchive: Boolean(f.isArchive),
+    })),
+    grading_mode: resolveGradingMode(task),
     warnings: [
-      fileExtraction.status !== 'ok' && fileExtraction.status !== 'skipped'
-        ? fileExtraction.error || `ملف: ${fileExtraction.status}`
-        : null,
+      ...warnings,
       urlExtraction.status !== 'ok' && urlExtraction.status !== 'skipped'
         ? urlExtraction.error || `رابط: ${urlExtraction.status}`
         : null,
     ].filter(Boolean),
+  };
+}
+
+function combineFileExtracedText(fileExtractions) {
+  const readable = fileExtractions.filter((f) => f.status === 'ok' || f.status === 'partial');
+  if (!readable.length) return null;
+  const text = readable
+    .map((f) => (f.text ? `--- ${f.fileName || 'file'} ---\n${f.text}` : null))
+    .filter(Boolean)
+    .join('\n\n');
+  const hasPartial = readable.some((f) => f.status === 'partial');
+  return {
+    status: hasPartial ? 'partial' : 'ok',
+    text: text || null,
+    error: null,
   };
 }
 
@@ -1373,7 +1488,17 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
 }
 
 async function getSessionAttendance(sessionId, user) {
-  return getSessionParticipants(sessionId, user);
+  const data = await getSessionParticipants(sessionId, user);
+  return {
+    ...data,
+    records: (data.participants || [])
+      .filter((p) => p.attendance)
+      .map((p) => ({
+        ...p.attendance,
+        application_id: p.id || p.application_id,
+        student_name: p.student_name,
+      })),
+  };
 }
 
 async function listOpportunityAssessments(opportunityId, user) {
