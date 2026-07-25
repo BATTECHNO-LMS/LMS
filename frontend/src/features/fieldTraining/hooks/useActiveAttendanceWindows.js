@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchActiveAttendanceWindows } from './fieldTraining.service.js';
+import { fetchActiveAttendanceWindows } from '../fieldTraining.service.js';
 
 export const ACTIVE_ATTENDANCE_WINDOW_KEY = ['fieldTraining', 'attendance-window', 'active'];
 

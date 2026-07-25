@@ -9,7 +9,6 @@ const { prisma } = require('./config/db');
 const { errorMiddleware } = require('./middlewares/error.middleware');
 const { requestIdMiddleware } = require('./middlewares/requestId.middleware');
 const { createRequestLogger } = require('./middlewares/requestLogger.middleware');
-const { apiLimiter, authLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
 
@@ -95,8 +94,8 @@ app.use(
   express.static(path.join(__dirname, '..', env.UPLOAD_DIR))
 );
 
-app.use('/api/auth', authLimiter, authRoutes);
-app.use(`/api/${env.API_VERSION}`, apiLimiter, routes);
+app.use('/api/auth', authRoutes);
+app.use(`/api/${env.API_VERSION}`, routes);
 
 app.use(errorMiddleware);
 
