@@ -84,7 +84,7 @@ export function ManageAttendanceTab({
     queryFn: () => fetchAttendanceWindow(sessionId, { asInstructor: isInstructor }),
     enabled: Boolean(sessionId),
     refetchInterval: (query) =>
-      query.state.data?.window?.status === 'open' ? 3000 : false,
+      query.state.data?.window?.status === 'open' ? 5000 : false,
   });
 
   useEffect(() => {

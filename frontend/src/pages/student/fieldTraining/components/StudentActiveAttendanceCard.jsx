@@ -1,20 +1,14 @@
 import { useMemo, useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { fetchActiveAttendanceWindows } from '../../../../features/fieldTraining/fieldTraining.service.js';
+import { useActiveAttendanceWindows } from '../../../../features/fieldTraining/hooks/useActiveAttendanceWindows.js';
 
 /**
  * Inline card (not only the global popup) for an open attendance window
- * belonging to this opportunity.
+ * belonging to this opportunity. Reuses the shared poll query (no extra requests).
  */
 export function StudentActiveAttendanceCard({ opportunityId }) {
   const { t } = useTranslation('fieldTraining');
-  const { data } = useQuery({
-    queryKey: ['field-training', 'attendance-window', 'active'],
-    queryFn: fetchActiveAttendanceWindows,
-    refetchInterval: 5000,
-    staleTime: 2000,
-  });
+  const { data } = useActiveAttendanceWindows();
 
   const windowRow = useMemo(() => {
     const windows = data?.windows ?? [];

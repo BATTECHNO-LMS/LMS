@@ -8,7 +8,8 @@ export const queryClient = new QueryClient({
       gcTime: 10 * 60 * 1000,
       retry: (failureCount, error) => {
         const status = error?.response?.status ?? error?.status;
-        if (status >= 400 && status < 500 && status !== 408 && status !== 429) {
+        // Never retry client errors — especially 429 (retries worsen rate limits).
+        if (status === 429 || (status >= 400 && status < 500 && status !== 408)) {
           return false;
         }
         return failureCount < 2;

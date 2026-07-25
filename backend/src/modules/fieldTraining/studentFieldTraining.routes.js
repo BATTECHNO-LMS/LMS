@@ -24,6 +24,7 @@ const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
 const { attendanceConfirmLimiter } = require('./fieldTraining.attendanceRateLimit.middleware');
 const attendanceWindowService = require('./fieldTraining.attendanceWindow.service');
 const { success } = require('../../utils/apiResponse');
+const { attendancePollLimiter } = require('../../middlewares/rateLimit.middleware');
 
 const router = express.Router();
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
@@ -53,6 +54,7 @@ router.get(
 
 router.get(
   '/attendance-window/active',
+  attendancePollLimiter,
   authenticate,
   studentOnly,
   async (req, res, next) => {

@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../common/Button.jsx';
 import { FormInput } from '../forms/FormInput.jsx';
+import { confirmAttendanceWindow } from '../../features/fieldTraining/fieldTraining.service.js';
 import {
-  confirmAttendanceWindow,
-  fetchActiveAttendanceWindows,
-} from '../../features/fieldTraining/fieldTraining.service.js';
+  ACTIVE_ATTENDANCE_WINDOW_KEY,
+  useActiveAttendanceWindows,
+} from '../../features/fieldTraining/hooks/useActiveAttendanceWindows.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
-const POLL_MS = 5000;
 const NOTIFIED_KEY = 'ft_attendance_window_notified';
 
 function loadNotifiedSet() {
@@ -54,7 +54,7 @@ function playSoftChime(enabled) {
 
 /**
  * Global student popup for open electronic attendance windows.
- * Uses lightweight polling (no WebSocket in this codebase).
+ * Uses lightweight adaptive polling (no WebSocket in this codebase).
  */
 export function StudentAttendanceWindowPopup() {
   const { t } = useTranslation('fieldTraining');
@@ -66,12 +66,7 @@ export function StudentAttendanceWindowPopup() {
   const [soundEnabled] = useState(true);
   const notifiedRef = useRef(loadNotifiedSet());
 
-  const { data, refetch } = useQuery({
-    queryKey: ['field-training', 'attendance-window', 'active'],
-    queryFn: fetchActiveAttendanceWindows,
-    refetchInterval: POLL_MS,
-    staleTime: 2000,
-  });
+  const { data, refetch } = useActiveAttendanceWindows();
 
   const windows = data?.windows ?? [];
   const active = useMemo(
@@ -94,7 +89,10 @@ export function StudentAttendanceWindowPopup() {
       return undefined;
     }
     const tick = () => {
-      const left = Math.max(0, Math.floor((new Date(active.expires_at).getTime() - Date.now()) / 1000));
+      const left = Math.max(
+        0,
+        Math.floor((new Date(active.expires_at).getTime() - Date.now()) / 1000)
+      );
       setRemaining(left);
     };
     tick();
@@ -109,7 +107,7 @@ export function StudentAttendanceWindowPopup() {
       setError('');
       setCode('');
       qc.invalidateQueries({ queryKey: ['fieldTraining'] });
-      qc.invalidateQueries({ queryKey: ['field-training'] });
+      qc.invalidateQueries({ queryKey: ACTIVE_ATTENDANCE_WINDOW_KEY });
       setTimeout(() => {
         setDismissed((prev) => new Set([...prev, active.id]));
         setSuccess('');
@@ -120,7 +118,10 @@ export function StudentAttendanceWindowPopup() {
       const codeErr = err?.response?.data?.code;
       if (codeErr === 'ATTENDANCE_CODE_INVALID') {
         setError(t('attendance.codeInvalid'));
-      } else if (codeErr === 'ATTENDANCE_WINDOW_EXPIRED' || codeErr === 'ATTENDANCE_WINDOW_CLOSED') {
+      } else if (
+        codeErr === 'ATTENDANCE_WINDOW_EXPIRED' ||
+        codeErr === 'ATTENDANCE_WINDOW_CLOSED'
+      ) {
         setError(t('attendance.windowExpired'));
       } else {
         setError(getApiErrorMessage(err, t('attendance.confirmError')));
@@ -162,7 +163,9 @@ export function StudentAttendanceWindowPopup() {
             <>
               <p>{t('attendance.popupHint')}</p>
               <p role="timer">
-                {t('attendance.remaining', { seconds: remaining ?? active.remaining_seconds ?? '—' })}
+                {t('attendance.remaining', {
+                  seconds: remaining ?? active.remaining_seconds ?? '—',
+                })}
               </p>
               <FormInput
                 label={t('attendance.codeLabel')}

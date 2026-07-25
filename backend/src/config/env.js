@@ -58,8 +58,11 @@ const env = {
   /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
   TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 300,
-  AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 30,
+  /** SPA dashboards issue many GETs; 300/15m is too low with attendance polling. */
+  RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 1200,
+  AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 40,
+  /** Soft cap for GET attendance-window/active (excluded from main apiLimiter). */
+  ATTENDANCE_POLL_RATE_LIMIT_MAX: Number(process.env.ATTENDANCE_POLL_RATE_LIMIT_MAX) || 240,
   /** DB `roles.code` for student registration (must exist in `roles` table). */
   STUDENT_ROLE_CODE: process.env.STUDENT_ROLE_CODE || 'student',
   /** Role code that grants global admin scope in JWT (`isGlobal`). */
