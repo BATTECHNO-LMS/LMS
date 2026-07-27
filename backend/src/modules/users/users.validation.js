@@ -5,7 +5,7 @@ const uuidParamSchema = z.object({
   id: z.string().uuid('معرّف المستخدم غير صالح'),
 });
 
-const userStatusEnum = z.enum(['active', 'inactive', 'suspended'], {
+const userStatusEnum = z.enum(['active', 'inactive', 'suspended', 'rejected'], {
   errorMap: () => ({ message: 'حالة الحساب غير صالحة' }),
 });
 
@@ -63,6 +63,7 @@ const createUserBodySchema = z
     specialty_id: optionalUuid,
     role_codes: z.array(z.string().min(1).max(80)).min(1, 'يجب اختيار دور واحد على الأقل'),
     university_relationship_type: z.string().min(1).max(100).optional(),
+    status_public_message: z.string().max(500).optional().nullable(),
   })
   .strict()
   .transform((b) => ({
@@ -77,6 +78,8 @@ const createUserBodySchema = z
     specialty_id: b.specialty_id,
     role_codes: [...new Set(b.role_codes.map((c) => c.trim().toLowerCase()))],
     university_relationship_type: b.university_relationship_type?.trim() || undefined,
+    status_public_message:
+      b.status_public_message == null ? null : String(b.status_public_message).trim() || null,
   }));
 
 const updateUserBodySchema = z
@@ -91,6 +94,7 @@ const updateUserBodySchema = z
     specialty_id: optionalUuid,
     role_codes: z.array(z.string().min(1).max(80)).min(1).optional(),
     university_relationship_type: z.string().min(1).max(100).optional(),
+    status_public_message: z.string().max(500).optional().nullable(),
   })
   .strict()
   .refine(
@@ -104,7 +108,8 @@ const updateUserBodySchema = z
       b.university_specialty_id !== undefined ||
       b.specialty_id !== undefined ||
       b.role_codes !== undefined ||
-      b.university_relationship_type !== undefined,
+      b.university_relationship_type !== undefined ||
+      b.status_public_message !== undefined,
     { message: 'يجب إدخال حقل واحد على الأقل للتحديث' }
   )
   .transform((b) => ({
@@ -118,6 +123,12 @@ const updateUserBodySchema = z
     specialty_id: b.specialty_id,
     role_codes: b.role_codes ? [...new Set(b.role_codes.map((c) => c.trim().toLowerCase()))] : undefined,
     university_relationship_type: b.university_relationship_type?.trim() || undefined,
+    status_public_message:
+      b.status_public_message === undefined
+        ? undefined
+        : b.status_public_message == null
+          ? null
+          : String(b.status_public_message).trim() || null,
   }));
 
 const adminResetPasswordBodySchema = z

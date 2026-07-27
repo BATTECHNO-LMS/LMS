@@ -12,6 +12,7 @@ import { VerifyEmailOtpPage } from '../../pages/auth/VerifyEmailOtpPage.jsx';
 import { ForgotPasswordPage } from '../../pages/auth/ForgotPasswordPage.jsx';
 import { VerifyPasswordResetOtpPage } from '../../pages/auth/VerifyPasswordResetOtpPage.jsx';
 import { NewPasswordPage } from '../../pages/auth/NewPasswordPage.jsx';
+import { AccountStatusPage } from '../../pages/auth/AccountStatusPage.jsx';
 import {
   AdminLoginPage,
   InstructorLoginPage,
@@ -64,6 +65,10 @@ export function AppRouter() {
       <Route path="/reset-password" element={<AuthLayout />}>
         <Route path="verify" element={<VerifyPasswordResetOtpPage />} />
         <Route path="new" element={<NewPasswordPage />} />
+      </Route>
+
+      <Route path="/account-status" element={<AuthLayout />}>
+        <Route index element={<AccountStatusPage />} />
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />

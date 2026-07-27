@@ -9,10 +9,12 @@ export function unwrapApiData(res) {
     throw new Error('Invalid API response');
   }
   if (body.success === false) {
-    const msg = typeof body.message === 'string' ? body.message : 'Request failed';
+    const msg = typeof body.message === 'string' ? body.message : 'تعذر إكمال العملية.';
     const err = new Error(msg);
-    err.code = 'API_ERROR';
+    err.code = body.code || 'API_ERROR';
     err.status = res.status;
+    err.details = body.details ?? null;
+    err.requestId = body.requestId ?? null;
     throw err;
   }
   return body.data;
@@ -24,18 +26,7 @@ export function unwrapApiData(res) {
  */
 export function getApiErrorMessage(err, fallback = 'Request failed') {
   if (!err?.response) {
-    const code = err?.code || err?.cause?.code;
-    const msg = typeof err?.message === 'string' ? err.message : '';
-    if (
-      code === 'ERR_NETWORK' ||
-      code === 'ECONNREFUSED' ||
-      code === 'ECONNABORTED' ||
-      msg.includes('Network Error') ||
-      msg.includes('ECONNREFUSED')
-    ) {
-      return 'تعذر الاتصال بالخادم. تأكد من تشغيل الـ Backend على المنفذ الصحيح ثم أعد المحاولة.';
-    }
-    return fallback;
+    return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
   }
   const body = err?.response?.data;
   if (body && typeof body === 'object' && typeof body.message === 'string' && body.message) {
@@ -50,7 +41,11 @@ export function getApiErrorMessage(err, fallback = 'Request failed') {
     return body.message;
   }
   if (err && typeof err === 'object' && 'message' in err && typeof err.message === 'string') {
-    return err.message || fallback;
+    const msg = err.message || '';
+    if (/axioserror|network error|econnrefused|internal server|forbidden|unauthorized|p20\d{2}/i.test(msg)) {
+      return 'تعذر إكمال العملية. حاول مرة أخرى بعد قليل.';
+    }
+    return msg || fallback;
   }
   return fallback;
 }

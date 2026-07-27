@@ -9,6 +9,7 @@ const API_V = `${API_ROOT}/${API_VERSION}`;
 export const endpoints = {
   auth: {
     login: `${API_ROOT}/auth/login`,
+    accountStatus: `${API_ROOT}/auth/account-status`,
     logout: `${API_ROOT}/auth/logout`,
     register: `${API_ROOT}/auth/register`,
     registerUniversities: `${API_ROOT}/auth/register/universities`,

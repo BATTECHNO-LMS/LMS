@@ -17,6 +17,12 @@ export async function login(credentials) {
   return { data: { token } };
 }
 
+export async function fetchAccountStatus(credentials) {
+  const { email, password } = credentials;
+  const res = await apiClient.post(endpoints.auth.accountStatus, { email, password });
+  return unwrapApiData(res);
+}
+
 /**
  * Student self-registration (backend validates email domain per university).
  * @param {{ full_name: string, email: string, password: string, university_id: string, university_specialty_id: string, phone?: string }} body

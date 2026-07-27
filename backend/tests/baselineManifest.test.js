@@ -333,6 +333,7 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260727020000_field_training_attendance_bulk_manual',
       '20260727030000_user_guide_onboarding_help',
       '20260727040000_unify_reviewer_role',
+      '20260727050000_user_status_rejected',
     ]);
   });
 

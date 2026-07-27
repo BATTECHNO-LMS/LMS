@@ -18,6 +18,7 @@ const {
 const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignmentGuard');
 const { canonicalizeRoleCode, normalizeRoleCodes, ASSIGNABLE_ROLE_CODES, pickPrimaryRoleCode, CANONICAL_ROLE_CODES } = require('../../utils/roleCanon');
 const reviewerAssignment = require('./reviewerAssignment.service');
+const { createNotificationForUser } = require('../../shared/services/notification.service');
 
 /** Roles that require a primary university assignment. */
 const UNIVERSITY_SCOPED_ROLES = new Set([
@@ -378,6 +379,7 @@ async function createUser(body, requester = {}, meta = {}) {
         specialty_id: specialtyFields.specialty_id,
         email_verified_at,
         activated_at,
+        status_public_message: body.status_public_message ?? null,
       },
       tx
     );
@@ -522,6 +524,9 @@ async function updateUser(id, body, requester = {}, meta = {}) {
     if (body.status === 'active' && !existing.activated_at) {
       data.activated_at = new Date();
     }
+  }
+  if (body.status_public_message !== undefined) {
+    data.status_public_message = body.status_public_message;
   }
   if (body.email_verified !== undefined) {
     if (body.email_verified === true && !existing.email_verified_at) {
@@ -722,6 +727,9 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
   if (existing.status === 'suspended') {
     throw new ApiError(400, 'Suspended accounts cannot be activated via this endpoint');
   }
+  if (existing.status === 'rejected') {
+    throw new ApiError(400, 'الحساب مرفوض ولا يمكن تفعيله قبل تعديل الحالة.');
+  }
   if (existing.status === 'active') {
     return getUserById(id, requester);
   }
@@ -761,6 +769,14 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
     newValues: { status: 'active', activated_at: now.toISOString() },
     ipAddress,
   });
+
+  await createNotificationForUser({
+    userId: id,
+    title: 'تم تفعيل حسابك',
+    body: 'يمكنك الآن تسجيل الدخول إلى منصة التدريب الميداني.',
+    type: 'system',
+    actionUrl: '/login/student',
+  }).catch(() => null);
 
   return getUserById(id, requester);
 }

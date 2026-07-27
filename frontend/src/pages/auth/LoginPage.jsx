@@ -17,6 +17,8 @@ import { BrandLogo } from '../../components/common/BrandLogo.jsx';
 import { AuthVisualPanel } from './AuthVisualPanel.jsx';
 import { AuthBackgroundDecor } from './AuthBackgroundDecor.jsx';
 import { AUTH_MOTION_EASE } from './authMotion.js';
+import { AccountStatusModal } from './AccountStatusModal.jsx';
+import { resendEmailOtp } from '../../features/auth/auth.service.js';
 import loginIllustration from '../../assets/landing/illustrations/hero-student-learning.svg';
 
 const EASE = AUTH_MOTION_EASE;
@@ -34,6 +36,15 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
 
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState('');
+  const [statusModal, setStatusModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    note: '',
+    variant: 'pending',
+    details: null,
+    code: '',
+  });
 
   const loginSchema = useMemo(
     () =>
@@ -71,11 +82,44 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
       const { redirectTo } = await login({ email: values.email.trim(), password: values.password });
       navigate(from && from !== '/login' ? from : redirectTo, { replace: true });
     } catch (err) {
-      if (!err?.response) {
-        setServerError(t('login.errors.network'));
+      const code = err?.response?.data?.code;
+      const details = err?.response?.data?.details || null;
+      if (code === 'ACCOUNT_PENDING_ACTIVATION' || code === 'EMAIL_NOT_VERIFIED') {
+        const overdue = Boolean(details?.overdue48h);
+        setStatusModal({
+          open: true,
+          code,
+          details,
+          variant: overdue ? 'warning' : 'pending',
+          title: overdue ? 'تأخر تفعيل حسابك' : 'حسابك لم يُفعّل بعد',
+          message: overdue
+            ? 'مرّت أكثر من 48 ساعة على طلب التفعيل. يمكنك التواصل مع فريق الدعم لمراجعة حالة حسابك.'
+            : 'بيانات تسجيل الدخول صحيحة، لكن حسابك ما زال بانتظار تفعيل الإدارة. سيتم التفعيل خلال مدة لا تتجاوز 48 ساعة.',
+          note:
+            'تأكد من توثيق بريدك الإلكتروني ومراجعة البريد الوارد والرسائل غير المرغوب فيها.',
+        });
+        setServerError('');
+      } else if (code === 'ACCOUNT_DISABLED' || code === 'ACCOUNT_REJECTED') {
+        setStatusModal({
+          open: true,
+          code,
+          details,
+          variant: 'error',
+          title: code === 'ACCOUNT_REJECTED' ? 'تعذر تفعيل الحساب' : 'الحساب معطل مؤقتًا',
+          message:
+            code === 'ACCOUNT_REJECTED'
+              ? 'لم تتم الموافقة على الحساب. راجع بياناتك أو تواصل مع الدعم لمعرفة السبب.'
+              : 'لا يمكنك تسجيل الدخول حاليًا. تواصل مع الدعم لمعرفة حالة الحساب.',
+          note: '',
+        });
+        setServerError('');
       } else {
-        const raw = getApiErrorMessage(err, t('login.errors.generic'));
-        setServerError(mapAuthErrorToLoginMessage(raw, t, err));
+        if (!err?.response) {
+          setServerError(t('login.errors.network'));
+        } else {
+          const raw = getApiErrorMessage(err, t('login.errors.generic'));
+          setServerError(mapAuthErrorToLoginMessage(raw, t, err));
+        }
       }
     } finally {
       setSubmitting(false);
@@ -104,6 +148,61 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
 
   return (
     <div className="auth-page auth-page--split auth-page--login">
+      <AccountStatusModal
+        open={statusModal.open}
+        title={statusModal.title}
+        message={statusModal.message}
+        note={`${statusModal.details?.maskedEmail ? `البريد: ${statusModal.details.maskedEmail}\n` : ''}${
+          statusModal.details?.emailVerified ? 'حالة البريد: موثق' : 'حالة البريد: غير موثق'
+        }`}
+        variant={statusModal.variant}
+        onClose={() => setStatusModal((s) => ({ ...s, open: false }))}
+        actions={[
+          {
+            key: 'ok',
+            label: 'حسنًا',
+            variant: 'outline',
+            onClick: () => setStatusModal((s) => ({ ...s, open: false })),
+          },
+          {
+            key: 'resend',
+            label: 'إعادة إرسال رمز التحقق',
+            hidden: !statusModal.details || statusModal.details.emailVerified,
+            onClick: async () => {
+              const email = statusModal.details?.maskedEmail ? null : null;
+              const rawEmail = (document.getElementById('email')?.value || '').trim().toLowerCase();
+              if (!rawEmail) return;
+              try {
+                await resendEmailOtp(rawEmail);
+                setServerError('تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.');
+              } catch {
+                setServerError('تم إرسال عدة طلبات خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.');
+              }
+            },
+          },
+          {
+            key: 'why',
+            label: 'لماذا يحتاج الحساب إلى التفعيل؟',
+            variant: 'outline',
+            onClick: () => navigate('/student/user-guide/articles/account-inactive'),
+          },
+          {
+            key: 'status-page',
+            label: 'حالة حسابك',
+            variant: 'outline',
+            onClick: () =>
+              navigate('/account-status', {
+                state: { details: statusModal.details },
+              }),
+          },
+          {
+            key: 'support',
+            label: 'التواصل مع الدعم',
+            hidden: !statusModal.details?.overdue48h,
+            onClick: () => navigate('/student/user-guide/support'),
+          },
+        ]}
+      />
       <AuthBackgroundDecor />
 
       <div className="auth-split-wrap">

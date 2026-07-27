@@ -12,8 +12,9 @@ const {
 } = require('../../utils/emailOtp');
 const { sendEmailVerificationOtp } = require('../../shared/services/email.service');
 const otpRepository = require('./emailVerificationOtp.repository');
+const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
 
-const GENERIC_OTP_ERROR = 'رمز التحقق غير صحيح أو منتهي الصلاحية.';
+const GENERIC_OTP_ERROR = messageForCode(AUTH_ERROR_CODES.INVALID_OTP);
 const RESEND_SUCCESS = 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.';
 const RESEND_GENERIC_SUCCESS = 'إذا كان البريد مسجلاً لدينا، سيتم إرسال رمز تحقق جديد.';
 const ALREADY_VERIFIED = 'البريد الإلكتروني موثّق مسبقًا.';
@@ -62,7 +63,7 @@ async function verifyEmailOtpForUser(email, otp) {
   });
 
   if (!user) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   if (user.email_verified_at) {
@@ -75,21 +76,26 @@ async function verifyEmailOtpForUser(email, otp) {
 
   const record = await otpRepository.findLatestActiveOtp(user.id, normalizedEmail);
   if (!record) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   if (isOtpExpired(record.expires_at)) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, messageForCode(AUTH_ERROR_CODES.OTP_EXPIRED), null, AUTH_ERROR_CODES.OTP_EXPIRED);
   }
 
   if (record.attempts_count >= env.EMAIL_OTP_MAX_ATTEMPTS) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(
+      429,
+      messageForCode(AUTH_ERROR_CODES.OTP_RATE_LIMITED),
+      null,
+      AUTH_ERROR_CODES.OTP_RATE_LIMITED
+    );
   }
 
   const isValid = verifyEmailOtpCode(otp, normalizedEmail, record.code_hash);
   if (!isValid) {
     await otpRepository.incrementOtpAttempts(record.id);
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -121,7 +127,7 @@ async function resendEmailVerificationOtp(email) {
   }
 
   if (user.email_verified_at) {
-    throw new ApiError(400, ALREADY_VERIFIED);
+    throw new ApiError(400, 'البريد الإلكتروني موثّق مسبقًا.', null, AUTH_ERROR_CODES.VALIDATION_ERROR);
   }
 
   const latest = await otpRepository.findLatestOtpForCooldown(user.id, normalizedEmail);
@@ -129,9 +135,9 @@ async function resendEmailVerificationOtp(email) {
     const seconds = resendCooldownRemainingSeconds(latest.last_sent_at);
     throw new ApiError(
       429,
-      `يمكنك إعادة الإرسال بعد ${seconds} ثانية`,
+      messageForCode(AUTH_ERROR_CODES.OTP_RESEND_COOLDOWN),
       { cooldownSeconds: seconds },
-      'OTP_RESEND_COOLDOWN'
+      AUTH_ERROR_CODES.OTP_RESEND_COOLDOWN
     );
   }
 

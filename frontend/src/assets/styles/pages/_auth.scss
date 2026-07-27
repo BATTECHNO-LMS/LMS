@@ -918,3 +918,42 @@
     margin: 0;
   }
 }
+
+.auth-status-modal {
+  position: relative;
+  text-align: start;
+
+  &__close {
+    position: absolute;
+    inset-inline-end: 0.75rem;
+    top: 0.65rem;
+    border: 0;
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  &__icon--success {
+    background: rgba($color-success, 0.18);
+    color: var(--color-success-text, #0f7f48);
+  }
+  &__icon--pending {
+    background: rgba($color-warning, 0.18);
+    color: var(--color-warning-text);
+  }
+  &__icon--warning {
+    background: rgba($color-warning, 0.2);
+    color: var(--color-warning-text);
+  }
+  &__icon--error {
+    background: rgba($color-danger, 0.18);
+    color: $color-danger;
+  }
+
+  &__note {
+    margin: -0.35rem 0 1rem;
+    font-size: 0.84rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+  }
+}

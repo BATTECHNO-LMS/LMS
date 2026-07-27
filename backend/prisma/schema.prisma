@@ -617,6 +617,7 @@ model users {
   specialty_id            String?     @db.Uuid
   activated_at            DateTime?   @db.Timestamptz(6)
   email_verified_at       DateTime?   @db.Timestamptz(6)
+  status_public_message   String?     @db.VarChar(500)
   last_login_at           DateTime?   @db.Timestamptz(6)
   created_at              DateTime    @default(now()) @db.Timestamptz(6)
   updated_at              DateTime    @default(now()) @db.Timestamptz(6)
@@ -984,6 +985,7 @@ enum user_status {
   active
   inactive
   suspended
+  rejected
 }
 
 /// Standalone LMS courses; visibility to students via course_cohorts (optional).

@@ -4,6 +4,7 @@ const { verifyToken } = require('../utils/jwt');
 const { ApiError } = require('../utils/apiError');
 const { loadCurrentAuthContext } = require('../modules/auth/currentAuthContext');
 const { enforceAcademicReviewerReadOnly } = require('./permission.middleware');
+const { AUTH_ERROR_CODES, messageForCode } = require('../utils/authErrorCatalog');
 
 /**
  * Verify JWT, then build req.user from current database authorization state.
@@ -12,7 +13,11 @@ const { enforceAcademicReviewerReadOnly } = require('./permission.middleware');
 async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
+    return res.status(401).json({
+      success: false,
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
+      code: AUTH_ERROR_CODES.UNAUTHORIZED,
+    });
   }
 
   const token = header.slice(7);
@@ -22,7 +27,7 @@ async function authMiddleware(req, res, next) {
   } catch {
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
       code: 'TOKEN_INVALID',
     });
   }
@@ -31,7 +36,7 @@ async function authMiddleware(req, res, next) {
   if (!userId || typeof userId !== 'string') {
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
       code: 'TOKEN_INVALID',
     });
   }

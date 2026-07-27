@@ -305,6 +305,45 @@ const ARTICLES = [
     content_ar:
       'قبل فتح تذكرة، ابحث في دليل المستخدم. إذا لم تجد الحل، أنشئ طلب دعم واختر نوع المشكلة واكتب وصفًا واضحًا مع ربط الفرصة/الجلسة/المهمة عند الحاجة. لا تحتاج لإعادة إدخال بيانات حسابك؛ تُؤخذ من الجلسة تلقائيًا.',
   }),
+  article({
+    category_slug: 'getting-started',
+    slug: 'how-account-activation-works',
+    title_ar: 'كيف يتم تفعيل الحساب؟',
+    summary_ar: 'خطوات: تسجيل، توثيق بريد، مراجعة الإدارة، ثم التفعيل.',
+    keywords: ['تفعيل الحساب', 'توثيق البريد', 'الإدارة'],
+    related_route: '/account-status',
+    contextual_key: 'account_activation_flow',
+    sort_order: 20,
+    is_faq: true,
+    content_ar:
+      'بعد إنشاء الحساب يصل رمز توثيق إلى بريدك. بعد التوثيق يدخل الحساب مرحلة مراجعة الإدارة. عادةً يتم التفعيل خلال 48 ساعة. قبل التفعيل لا يمكن الدخول إلى لوحة الطالب.',
+  }),
+  article({
+    category_slug: 'getting-started',
+    slug: 'why-account-pending-activation',
+    title_ar: 'لماذا حسابي بانتظار التفعيل؟',
+    summary_ar: 'الحسابات الجديدة تحتاج مراجعة إدارية قبل الدخول.',
+    keywords: ['بانتظار التفعيل', 'pending'],
+    related_route: '/account-status',
+    contextual_key: 'account_pending_activation',
+    sort_order: 21,
+    is_faq: true,
+    content_ar:
+      'هذه حالة طبيعية للحسابات الجديدة. النظام يفصل بين إنشاء الحساب وبين اعتماد الإدارة. إذا تم توثيق البريد وما زال الحساب بانتظار التفعيل، تابع من صفحة حالة الحساب.',
+  }),
+  article({
+    category_slug: 'common-problems',
+    slug: 'activation-delayed-over-48h',
+    title_ar: 'مر أكثر من 48 ساعة ولم يتم التفعيل',
+    summary_ar: 'خطوات المتابعة عند تأخر التفعيل.',
+    keywords: ['48 ساعة', 'تأخر التفعيل'],
+    related_route: '/student/user-guide/support',
+    contextual_key: 'activation_delayed_48h',
+    sort_order: 12,
+    is_faq: true,
+    content_ar:
+      'إذا تجاوزت مدة الانتظار 48 ساعة، افتح طلب دعم بعنوان \"تأخر تفعيل الحساب\". أرفق وصفًا موجزًا وتأكد من صحة البريد والجامعة والتخصص.',
+  }),
 ];
 
 async function seedHelpContent() {

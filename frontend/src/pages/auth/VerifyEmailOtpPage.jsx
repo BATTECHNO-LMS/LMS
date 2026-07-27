@@ -15,6 +15,7 @@ import { verifyEmailOtp, resendEmailOtp } from '../../features/auth/auth.service
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { storageKeys, getStorageItem, setStorageItem, removeStorageItem } from '../../utils/storage.js';
 import registerIllustration from '../../assets/landing/illustrations/journey-flow.svg';
+import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
 
 const COOLDOWN_SECONDS = 60;
 
@@ -100,7 +101,11 @@ export function VerifyEmailOtpPage() {
         );
         removeStorageItem(storageKeys.pendingVerificationEmail);
       } catch (err) {
-        setError(getApiErrorMessage(err, t('verifyEmail.errors.generic')));
+        const code = err?.response?.data?.code;
+        if (code === 'INVALID_OTP') setError(t('verifyEmail.errors.invalidOtp'));
+        else if (code === 'OTP_EXPIRED') setError(t('verifyEmail.errors.otpExpired'));
+        else if (code === 'OTP_RATE_LIMITED') setError(t('verifyEmail.errors.rateLimited'));
+        else setError(getApiErrorMessage(err, t('verifyEmail.errors.generic')));
       } finally {
         setSubmitting(false);
       }
@@ -117,8 +122,12 @@ export function VerifyEmailOtpPage() {
       setCooldown(COOLDOWN_SECONDS);
       setSuccess(t('verifyEmail.resendSuccess'));
     } catch (err) {
-      const msg = getApiErrorMessage(err, t('verifyEmail.errors.resendFailed'));
-      setError(msg);
+      const mapped = mapAuthErrorToLoginMessage(
+        getApiErrorMessage(err, t('verifyEmail.errors.resendFailed')),
+        t,
+        err
+      );
+      setError(mapped || t('verifyEmail.errors.resendFailed'));
       const remaining = err?.response?.data?.details?.cooldownSeconds;
       if (typeof remaining === 'number' && remaining > 0) {
         setCooldown(remaining);

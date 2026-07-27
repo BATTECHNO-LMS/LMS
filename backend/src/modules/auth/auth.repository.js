@@ -24,6 +24,7 @@ async function findUserByEmail(email) {
       password_hash: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       email_verified_at: true,
       last_login_at: true,
@@ -43,6 +44,7 @@ async function findUserById(id) {
       password_hash: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       email_verified_at: true,
       last_login_at: true,
@@ -62,6 +64,7 @@ async function findUserProfileById(id) {
       email: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       university_specialty_id: true,
       specialty_id: true,
@@ -85,6 +88,19 @@ async function findUserProfileById(id) {
 async function findRoleByCode(code) {
   return prisma.roles.findFirst({
     where: { code },
+  });
+}
+
+async function findUserByPhone(phone) {
+  if (!phone) return null;
+  return prisma.users.findFirst({
+    where: { phone },
+    select: {
+      id: true,
+      email: true,
+      phone: true,
+      status: true,
+    },
   });
 }
 
@@ -223,6 +239,7 @@ module.exports = {
   findUserById,
   findUserProfileById,
   findRoleByCode,
+  findUserByPhone,
   loadRolesAndPermissions,
   createStudentUser,
   touchLastLogin,

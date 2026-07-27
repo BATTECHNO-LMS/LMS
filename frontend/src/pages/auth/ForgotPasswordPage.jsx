@@ -67,7 +67,12 @@ export function ForgotPasswordPage() {
         navigate('/reset-password/verify', { state: { email: normalizedEmail } });
       }, 1200);
     } catch (err) {
-      setError(getApiErrorMessage(err, t('forgotPassword.errors.generic')));
+      const code = err?.response?.data?.code;
+      if (code === 'OTP_RESEND_COOLDOWN') {
+        setError('تم إرسال عدة طلبات خلال وقت قصير. انتظر قليلًا قبل طلب رمز جديد.');
+      } else {
+        setError(getApiErrorMessage(err, t('forgotPassword.errors.generic')));
+      }
     } finally {
       setSubmitting(false);
     }

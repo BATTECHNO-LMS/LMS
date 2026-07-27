@@ -5,6 +5,7 @@ const {
   registerSchema,
   universityIdParamSchema,
   loginSchema,
+  accountStatusSchema,
   verifyEmailOtpSchema,
   resendEmailOtpSchema,
   forgotPasswordSchema,
@@ -39,6 +40,7 @@ router.post(
 );
 router.post('/reset-password', validateBody(resetPasswordSchema), authController.resetPassword);
 router.post('/login', validateBody(loginSchema), authController.login);
+router.post('/account-status', validateBody(accountStatusSchema), authController.accountStatus);
 router.get('/me', authMiddleware, authController.me);
 router.post('/logout', authController.logout);
 

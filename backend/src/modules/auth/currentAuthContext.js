@@ -10,6 +10,7 @@ const { ApiError } = require('../../utils/apiError');
 const { isGlobalFromRoleRecords } = require('./auth.service');
 const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCanon');
 const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
+const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
 
 /**
  * Official university scope for non-global users:
@@ -50,7 +51,12 @@ async function loadPermissionCodesForRoleIds(roleIds) {
  */
 async function loadCurrentAuthContextFromDb(userId) {
   if (!userId || typeof userId !== 'string') {
-    throw new ApiError(401, 'Unauthorized', null, 'UNAUTHORIZED');
+    throw new ApiError(
+      401,
+      messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
+      null,
+      AUTH_ERROR_CODES.UNAUTHORIZED
+    );
   }
 
   const user = await prisma.users.findUnique({
@@ -63,11 +69,19 @@ async function loadCurrentAuthContextFromDb(userId) {
   });
 
   if (!user) {
-    throw new ApiError(401, 'Unauthorized', null, 'USER_NOT_FOUND');
+    throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED), null, 'USER_NOT_FOUND');
   }
 
   if (user.status !== 'active') {
-    throw new ApiError(403, 'Account is inactive or suspended', null, 'ACCOUNT_INACTIVE');
+    const code =
+      user.status === 'inactive'
+        ? AUTH_ERROR_CODES.ACCOUNT_PENDING_ACTIVATION
+        : user.status === 'rejected'
+          ? AUTH_ERROR_CODES.ACCOUNT_REJECTED
+          : user.status === 'suspended'
+            ? AUTH_ERROR_CODES.ACCOUNT_DISABLED
+            : AUTH_ERROR_CODES.ACCOUNT_INACTIVE;
+    throw new ApiError(403, messageForCode(code), null, code);
   }
 
   const links = await prisma.user_roles.findMany({

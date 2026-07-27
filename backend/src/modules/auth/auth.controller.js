@@ -15,7 +15,7 @@ async function register(req, res, next) {
 async function login(req, res, next) {
   try {
     const data = await authService.login(req.validated);
-    return success(res, data, { message: 'Login successful' });
+    return success(res, data, { message: 'تم تسجيل الدخول بنجاح.' });
   } catch (e) {
     return next(e);
   }
@@ -24,7 +24,7 @@ async function login(req, res, next) {
 async function me(req, res, next) {
   try {
     const user = await authService.me(req.user.userId);
-    return success(res, { user }, { message: 'Profile loaded' });
+    return success(res, { user }, { message: 'تم تحميل بيانات الحساب.' });
   } catch (e) {
     return next(e);
   }
@@ -38,7 +38,7 @@ function logout(_req, res) {
 async function registrationUniversities(_req, res, next) {
   try {
     const data = await authService.universitiesForRegistration();
-    return success(res, data, { message: 'Universities retrieved' });
+    return success(res, data, { message: 'تم تحميل الجامعات المتاحة.' });
   } catch (e) {
     return next(e);
   }
@@ -47,7 +47,7 @@ async function registrationUniversities(_req, res, next) {
 async function registrationSpecialties(_req, res, next) {
   try {
     const data = await authService.specialtiesForRegistration();
-    return success(res, data, { message: 'Specialties retrieved' });
+    return success(res, data, { message: 'تم تحميل التخصصات.' });
   } catch (e) {
     return next(e);
   }
@@ -58,7 +58,7 @@ async function registrationUniversitySpecialties(req, res, next) {
     const specialties = await authService.universitySpecialtiesForRegistration(
       req.validated.params.universityId
     );
-    return success(res, specialties, { message: 'University specialties retrieved' });
+    return success(res, specialties, { message: 'تم تحميل تخصصات الجامعة.' });
   } catch (e) {
     return next(e);
   }
@@ -121,6 +121,15 @@ async function resetPassword(req, res, next) {
   }
 }
 
+async function accountStatus(req, res, next) {
+  try {
+    const data = await authService.accountStatus(req.validated);
+    return success(res, data, { message: 'تم تحميل حالة الحساب.' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -135,4 +144,5 @@ module.exports = {
   verifyPasswordResetOtp,
   resendPasswordResetOtp,
   resetPassword,
+  accountStatus,
 };
