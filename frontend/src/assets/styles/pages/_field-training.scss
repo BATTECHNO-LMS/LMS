@@ -6049,6 +6049,52 @@
   max-width: 28rem;
 }
 
+.ft-mark-all-present-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ft-mark-all-present-stats {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  border-radius: var(--radius-md, 10px);
+  background: rgba($color-primary, 0.04);
+  border: 1px solid var(--color-border-tinted, rgba(19, 45, 74, 0.08));
+
+  li {
+    margin: 0.25rem 0;
+    font-size: 0.92rem;
+  }
+}
+
+.ft-mark-all-present-modes {
+  margin: 0 0 0.85rem;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ft-mark-all-present-mode,
+.ft-mark-all-present-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  cursor: pointer;
+
+  input {
+    margin-top: 0.2rem;
+  }
+}
+
+.ft-mark-all-present-ack {
+  margin-bottom: 0.85rem;
+}
+
 .ft-attendance-table {
   display: grid;
   gap: 0.25rem;

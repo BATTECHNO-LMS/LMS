@@ -264,14 +264,14 @@ async function notifyAdminsStudentRegistrationPending(params) {
 }
 
 /**
- * super_admin (all) + admin, academic_reviewer scoped to the cohort university.
+ * super_admin (all) + admin, reviewer scoped to the cohort university.
  * @param {string} universityId
  * @returns {Promise<string[]>}
  */
 async function findStakeholdersForEnrollmentRequest(universityId) {
   if (!universityId) return [];
   const roles = await prisma.roles.findMany({
-    where: { code: { in: ['super_admin', 'admin', 'academic_reviewer'] } },
+    where: { code: { in: ['super_admin', 'admin', 'reviewer'] } },
     select: { id: true, code: true },
   });
   const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
@@ -295,7 +295,7 @@ async function findStakeholdersForEnrollmentRequest(universityId) {
 
   const scopedRoleIds = [
     roleIdByCode.get('admin'),
-    roleIdByCode.get('academic_reviewer'),
+    roleIdByCode.get('reviewer'),
   ].filter(Boolean);
   if (scopedRoleIds.length) {
     const memberships = await prisma.university_users.findMany({
@@ -347,7 +347,7 @@ async function resolveEnrollmentRequestActionUrl(userId) {
   const { normalizeRoleCodes } = require('../../utils/roleCanon');
   const codes = normalizeRoleCodes(roleRows.map((r) => r.code));
   const isElevated = codes.some((c) => ['super_admin', 'admin'].includes(c));
-  if (codes.includes('academic_reviewer') && !isElevated) {
+  if (codes.includes('reviewer') && !isElevated) {
     return '/reviewer/enrollment-requests?status=pending';
   }
   return '/admin/enrollments?status=pending';

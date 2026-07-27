@@ -1,4 +1,4 @@
-﻿const { ApiError } = require('../../utils/apiError');
+const { ApiError } = require('../../utils/apiError');
 const { recordAudit } = require('../../utils/auditRecorder');
 const repo = require('./roles.repository');
 const {
@@ -106,11 +106,11 @@ async function updateRolePermissions(roleIdOrCode, permissionCodes, actor = {}, 
   }
 
   if (roleCode === 'super_admin') {
-    // Always keep full locked set — cannot strip core super_admin powers.
+    // Always keep full locked set � cannot strip core super_admin powers.
     nextCodes = [...SUPER_ADMIN_LOCKED_CODES];
   }
 
-  if (roleCode === 'academic_reviewer') {
+  if (roleCode === 'reviewer') {
     const allowed = new Set(reviewerAllowedCodes());
     const illegal = nextCodes.filter((c) => !allowed.has(c) || isWritePermissionCode(c));
     if (illegal.length) {

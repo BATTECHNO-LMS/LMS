@@ -8,7 +8,7 @@ export function getNotificationsPathForUser(user) {
   if (!role) return '/admin/notifications';
   if (role === ROLES.INSTRUCTOR) return '/instructor/notifications';
   if (role === ROLES.STUDENT) return '/student/notifications';
-  if (role === ROLES.ACADEMIC_REVIEWER) return '/reviewer/notifications';
+  if (role === ROLES.REVIEWER) return '/reviewer/notifications';
   if (ADMIN_ROLE_SET.includes(role)) return '/admin/notifications';
   return '/admin/notifications';
 }

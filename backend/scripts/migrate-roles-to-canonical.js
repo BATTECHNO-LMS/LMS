@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Safe role remapping: legacy → canonical (admin / academic_reviewer).
+ * Safe role remapping: legacy → canonical (admin / reviewer).
  *
  * Usage:
  *   node scripts/migrate-roles-to-canonical.js           # dry-run (default)

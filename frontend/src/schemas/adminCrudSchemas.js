@@ -30,7 +30,7 @@ export const userCreateFormSchema = z
         message: 'كلمتا المرور غير متطابقتين',
       });
     }
-    const needsUni = ['student', 'instructor', 'admin', 'academic_reviewer'].includes(
+    const needsUni = ['student', 'instructor', 'admin', 'reviewer'].includes(
       data.role
     );
     if (needsUni && !data.primary_university_id) {
@@ -61,7 +61,7 @@ export const userUpdateFormSchema = z
     university_specialty_id: z.string().uuid('تخصص الجامعة مطلوب').optional().or(z.literal('')),
   })
   .superRefine((data, ctx) => {
-    const needsUni = ['student', 'instructor', 'admin', 'academic_reviewer'].includes(
+    const needsUni = ['student', 'instructor', 'admin', 'reviewer'].includes(
       data.role
     );
     if (needsUni && !data.primary_university_id) {

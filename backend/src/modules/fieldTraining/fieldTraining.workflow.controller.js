@@ -421,6 +421,21 @@ async function finalizeAttendanceAbsences(req, res, next) {
   }
 }
 
+async function markAllPresent(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.markAllPresent(
+      req.validated.params.sessionId,
+      req.validated.body,
+      req.user,
+      requestMeta(req)
+    );
+    return success(res, data, { message: data.message || 'تم تسجيل جميع الطلاب المؤهلين كحاضرين' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function patchStudentAttendance(req, res, next) {
   try {
     const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
@@ -450,6 +465,7 @@ module.exports = {
   getAttendanceWindow,
   closeAttendanceWindow,
   finalizeAttendanceAbsences,
+  markAllPresent,
   patchStudentAttendance,
   upsertAssessment,
   publishAssessment,

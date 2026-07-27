@@ -10,7 +10,7 @@ const { LEGACY_CATALOG_ROLE_CODES } = require('../../utils/roleCanon');
 
 const DEPRECATED_CODE = 'LEGACY_ROLE_DEPRECATED';
 const DEPRECATED_MESSAGE =
-  'This legacy role cannot be newly assigned. Use admin or academic_reviewer instead.';
+  'This legacy role cannot be newly assigned. Use admin or reviewer instead.';
 
 const legacySet = new Set(LEGACY_CATALOG_ROLE_CODES);
 

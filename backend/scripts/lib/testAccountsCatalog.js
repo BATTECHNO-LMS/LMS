@@ -27,7 +27,7 @@ const TEST_ACCOUNT_USERS = [
   { email: 'university.admin@batuni.edu', full_name: 'BATUNI University Admin', role: 'admin' },
   { email: 'instructor@batuni.edu', full_name: 'BATUNI Instructor', role: 'instructor' },
   { email: 'student@batuni.edu', full_name: 'BATUNI Student', role: 'student', specialtyCode: 'CYB' },
-  { email: 'reviewer@batuni.edu', full_name: 'BATUNI Academic Reviewer', role: 'academic_reviewer' },
+  { email: 'reviewer@batuni.edu', full_name: 'BATUNI Academic Reviewer', role: 'reviewer' },
 ];
 
 function buildTestUniversityNotes({ nameEn, city, country, website }) {
@@ -37,7 +37,7 @@ function buildTestUniversityNotes({ nameEn, city, country, website }) {
 function relationshipTypeForRole(roleCode) {
   if (roleCode === 'student') return 'student';
   if (roleCode === 'instructor') return 'instructor';
-  if (roleCode === 'academic_reviewer') return 'reviewer';
+  if (roleCode === 'reviewer') return 'reviewer';
   if (roleCode === 'admin') return 'admin';
   return 'staff';
 }

@@ -130,7 +130,7 @@ const env = {
   /** Evidence list/read (staff + instructor + university reviewer portal). */
   EVIDENCE_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.EVIDENCE_READ_ROLE_CODES,
-    'super_admin,admin,instructor,academic_reviewer',
+    'super_admin,admin,instructor,reviewer',
     'EVIDENCE_READ_ROLE_CODES'
   ),
   /** Evidence create/update. */
@@ -154,7 +154,7 @@ const env = {
   /** Recognition requests + documents (read). */
   RECOGNITION_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.RECOGNITION_READ_ROLE_CODES,
-    'super_admin,admin,academic_reviewer',
+    'super_admin,admin,reviewer',
     'RECOGNITION_READ_ROLE_CODES'
   ),
   /** Recognition requests create/update/status. */
@@ -172,7 +172,7 @@ const env = {
   /** List/view certificates (staff + student for self-scoped list). */
   CERTIFICATE_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.CERTIFICATE_READ_ROLE_CODES,
-    'super_admin,admin,instructor,student,academic_reviewer',
+    'super_admin,admin,instructor,student,reviewer',
     'CERTIFICATE_READ_ROLE_CODES'
   ),
   /** Audit log read (restricted). */
@@ -184,7 +184,7 @@ const env = {
   /** Reports read/export access. */
   REPORT_READ_ROLE_CODES: parseRoleCodesWithFallback(
     process.env.REPORT_READ_ROLE_CODES,
-    'super_admin,admin,academic_reviewer',
+    'super_admin,admin,reviewer',
     'REPORT_READ_ROLE_CODES'
   ),
   /** Approve/reject student enrollment requests (pending → enrolled/rejected). */

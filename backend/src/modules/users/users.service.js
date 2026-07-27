@@ -17,13 +17,14 @@ const {
 } = require('./superAdminPrivilegeBoundary');
 const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignmentGuard');
 const { canonicalizeRoleCode, normalizeRoleCodes, ASSIGNABLE_ROLE_CODES, pickPrimaryRoleCode, CANONICAL_ROLE_CODES } = require('../../utils/roleCanon');
+const reviewerAssignment = require('./reviewerAssignment.service');
 
 /** Roles that require a primary university assignment. */
 const UNIVERSITY_SCOPED_ROLES = new Set([
   'student',
   'instructor',
   'admin',
-  'academic_reviewer',
+  'reviewer',
 ]);
 
 function normalizeAssignedRoleCodes(roleCodes) {
@@ -39,13 +40,13 @@ function relationshipTypeForRoles(roleCodes = []) {
   const codes = normalizeRoleCodes(roleCodes);
   if (codes.includes('student')) return 'student';
   if (codes.includes('instructor')) return 'instructor';
-  if (codes.includes('academic_reviewer')) return 'reviewer';
+  if (codes.includes('reviewer')) return 'reviewer';
   return 'staff';
 }
 
 function rolesRequireUniversity(roleCodes = []) {
   return normalizeRoleCodes(roleCodes).some((c) =>
-    ['student', 'instructor', 'admin', 'academic_reviewer'].includes(c)
+    ['student', 'instructor', 'admin', 'reviewer'].includes(c)
   );
 }
 
@@ -280,12 +281,26 @@ async function getUserById(id, requester = {}) {
     usersRepository.findRecentAuditForUser(id, 25),
   ]);
 
+  const roleCodes = normalizeRoleCodes(withRoles.roles || []);
+  let reviewer_university_assignment = null;
+  if (roleCodes.includes('reviewer')) {
+    const assignment = await reviewerAssignment.getActiveReviewerAssignment(id);
+    if (assignment) {
+      const uni = await usersRepository.findUniversityById(assignment.university_id);
+      reviewer_university_assignment = {
+        ...assignment,
+        university: uni || null,
+      };
+    }
+  }
+
   return {
     ...withRoles,
     primary_university: primaryUniversity,
     university_specialty: uniSpec,
     specialty: globalSpec,
     university_relationships,
+    reviewer_university_assignment,
     activity,
     recent_audits: recentAudits,
   };
@@ -386,6 +401,21 @@ async function createUser(body, requester = {}, meta = {}) {
 
   if (!body.primary_university_id) {
     await ensureUserLinkedToUniversityFromEmail(user.id, body.email);
+  }
+
+  if (roleCodes.includes('reviewer')) {
+    if (body.primary_university_id) {
+      await reviewerAssignment.assignReviewerUniversity({
+        reviewerUserId: user.id,
+        universityId: body.primary_university_id,
+        source: 'MANUAL',
+        assignedById: meta.actorUserId ?? requester.userId ?? null,
+      });
+    } else {
+      await reviewerAssignment.tryAutoAssignFromEmail(user.id, body.email, {
+        assignedById: meta.actorUserId ?? requester.userId ?? null,
+      });
+    }
   }
 
   await recordAudit({
@@ -571,6 +601,28 @@ async function updateUser(id, body, requester = {}, meta = {}) {
       );
     }
   });
+
+  if (nextRoleCodes.includes('reviewer')) {
+    if (nextUniversityId) {
+      await reviewerAssignment.assignReviewerUniversity({
+        reviewerUserId: id,
+        universityId: nextUniversityId,
+        source: 'MANUAL',
+        assignedById: meta.actorUserId ?? requester.userId ?? null,
+      });
+    } else {
+      const email = body.email || existing.email;
+      await reviewerAssignment.tryAutoAssignFromEmail(id, email, {
+        assignedById: meta.actorUserId ?? requester.userId ?? null,
+      });
+    }
+  } else if (
+    requestedRoleCodes &&
+    normalizeRoleCodes(currentRoleCodes).includes('reviewer') &&
+    !nextRoleCodes.includes('reviewer')
+  ) {
+    await reviewerAssignment.deactivateReviewerAssignments(id);
+  }
 
   await recordAudit({
     userId: meta.actorUserId ?? requester.userId ?? null,

@@ -33,7 +33,7 @@
     "instructor": "Instructor",
     "student": "Student",
     "admin": "Admin",
-    "academicReviewer": "Academic reviewer",
+    "reviewer": "Reviewer",
     "emailVerification": "Email verification",
     "emailVerificationAll": "All"
   },

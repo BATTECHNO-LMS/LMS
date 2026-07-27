@@ -12,7 +12,9 @@ const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCa
 const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
 
 /**
- * Official university scope for non-global users: `users.primary_university_id`.
+ * Official university scope for non-global users:
+ * - `reviewer`: active row in `reviewer_university_assignments` (fallback: primary_university_id)
+ * - others: `users.primary_university_id`
  * Exposed on the request user as `universityId` (and mirrored as primaryUniversityId).
  *
  * @typedef {{
@@ -95,7 +97,28 @@ async function loadCurrentAuthContextFromDb(userId) {
     permissions = [...ALL_PERMISSION_CODES];
   }
 
-  const primaryUniversityId = user.primary_university_id ?? null;
+  let primaryUniversityId = user.primary_university_id ?? null;
+  let reviewerAssignment = null;
+  if (roles.includes('reviewer') && !isGlobal) {
+    reviewerAssignment = await prisma.reviewer_university_assignments.findFirst({
+      where: { reviewer_user_id: user.id, is_active: true },
+      orderBy: { assigned_at: 'desc' },
+      select: {
+        id: true,
+        university_id: true,
+        assignment_source: true,
+        is_active: true,
+        assigned_at: true,
+      },
+    });
+    if (reviewerAssignment?.university_id) {
+      primaryUniversityId = reviewerAssignment.university_id;
+    } else {
+      // No active assignment → block university scope (do not grant global access).
+      primaryUniversityId = null;
+    }
+  }
+
   let university = null;
   if (primaryUniversityId) {
     university = await prisma.universities.findUnique({
@@ -116,6 +139,7 @@ async function loadCurrentAuthContextFromDb(userId) {
     universityId: primaryUniversityId,
     primaryUniversityId,
     university,
+    reviewerAssignment,
     scope,
     isGlobal,
     permissions,

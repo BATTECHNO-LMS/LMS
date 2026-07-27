@@ -16,7 +16,7 @@ export function StudentLoginPage() {
 export function ReviewerLoginPage() {
   return (
     <LoginPage
-      forcedRole={ROLES.ACADEMIC_REVIEWER}
+      forcedRole={ROLES.REVIEWER}
       forcedRoleLabelAr="مراجع أكاديمي"
       forcedRoleLabelEn="Academic reviewer"
     />

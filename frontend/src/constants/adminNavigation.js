@@ -30,6 +30,7 @@ import {
   LineChart,
   Bell,
   UserPlus,
+  BookOpenCheck,
 } from 'lucide-react';
 import { ROLES, canonicalizeRoleCode } from './roles.js';
 
@@ -57,6 +58,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
       entry('/admin/courses', 'admin.items.courses', BookMarked, [S, Ad]),
       entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, Ad]),
+      entry('/admin/help', 'admin.items.userGuide', BookOpenCheck, [S]),
       entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, Ad]),
       entry('/admin/field-training/reports/students', 'admin.items.fieldTrainingStudents', Users, [S, Ad]),
       entry('/admin/users', 'admin.items.users', Users, [S, Ad]),

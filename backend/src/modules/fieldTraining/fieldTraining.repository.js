@@ -1146,7 +1146,15 @@ async function findSessionById(sessionId) {
   return prisma.field_training_sessions.findUnique({
     where: { id: sessionId },
     include: {
-      field_training_opportunities: { select: { id: true, assigned_instructor_id: true, university_id: true } },
+      field_training_opportunities: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          assigned_instructor_id: true,
+          university_id: true,
+        },
+      },
       _count: { select: { field_training_attendance: true } },
     },
   });
@@ -1315,6 +1323,24 @@ async function findActiveParticipants(opportunityId) {
       expelled_at: null,
     },
   });
+}
+
+/**
+ * Eligible attendance participants: approved, not expelled, and active student accounts only.
+ * Scoped to the opportunity of the session (never accepts client-supplied studentIds).
+ */
+async function findEligibleAttendanceParticipants(opportunityId) {
+  const apps = await findActiveParticipants(opportunityId);
+  if (!apps.length) return [];
+  const activeUsers = await prisma.users.findMany({
+    where: {
+      id: { in: apps.map((a) => a.student_id) },
+      status: 'active',
+    },
+    select: { id: true },
+  });
+  const activeIds = new Set(activeUsers.map((u) => u.id));
+  return apps.filter((a) => activeIds.has(a.student_id));
 }
 
 async function countApprovedReadyForTraining(opportunityId) {
@@ -1751,6 +1777,7 @@ module.exports = {
   upsertAssessmentAttempt,
   updateAssessmentAttempt,
   findActiveParticipants,
+  findEligibleAttendanceParticipants,
   countApprovedReadyForTraining,
   upsertSubmissionExtended,
   findCompletionLetterByApplication,

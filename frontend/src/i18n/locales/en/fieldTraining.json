@@ -1047,7 +1047,8 @@
     "methods": {
       "electronic": "Electronic",
       "manual": "Manual",
-      "auto_finalize": "Finalized after review"
+      "auto_finalize": "Finalized after review",
+      "bulk_manual": "Bulk mark present"
     },
     "windowStatuses": {
       "pending": "Pending",
@@ -1058,6 +1059,30 @@
     "modes": {
       "normal": "Normal",
       "late": "Late"
+    },
+    "refreshList": "Refresh list",
+    "markAllPresent": {
+      "button": "Mark all present",
+      "confirmTitle": "Confirm mark all present",
+      "confirmBody": "Are you sure you want to mark all students in this session as present?",
+      "sessionLabel": "Session",
+      "opportunityLabel": "Training opportunity",
+      "eligible": "Eligible students",
+      "presentNow": "Currently present",
+      "absentNow": "Absent",
+      "unconfirmedNow": "Unconfirmed / no record",
+      "willChange": "Records that will change",
+      "modeLabel": "Application scope",
+      "modeSafe": "Mark only students with no record or unconfirmed as present",
+      "modeReplace": "Mark all students present and replace current statuses",
+      "replaceWarning": "This action will convert absent, late, and excused statuses to present for all included students.",
+      "ackReplace": "I understand this will replace current attendance statuses for included students.",
+      "reasonLabel": "Reason for mark all present",
+      "reasonPlaceholder": "Full session attendance approved by the instructor",
+      "confirmButton": "Confirm mark all present",
+      "loading": "Processing…",
+      "success": "All eligible students were marked present successfully.",
+      "summary": "Created {{created}} record(s) and updated {{updated}} record(s); {{alreadyPresent}} student(s) were already present."
     }
   },
   "close": "Close"

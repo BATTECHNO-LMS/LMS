@@ -29,7 +29,7 @@ describe('academic reviewer university scope contract', () => {
     const uni = '00ae388d-4f99-4855-a1cc-42f6cd417e63';
     assert.equal(
       resolveAuthUniversityId({
-        roles: ['academic_reviewer'],
+        roles: ['reviewer'],
         primary_university_id: uni,
         university: { id: uni, name: 'جامعة باتيوني' },
       }),
@@ -48,6 +48,6 @@ describe('academic reviewer university scope contract', () => {
   });
 
   it('returns null when no university fields', () => {
-    assert.equal(resolveAuthUniversityId({ roles: ['academic_reviewer'] }), null);
+    assert.equal(resolveAuthUniversityId({ roles: ['reviewer'] }), null);
   });
 });

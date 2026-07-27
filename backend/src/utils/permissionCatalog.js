@@ -132,7 +132,7 @@ function defaultRolePermissionMap() {
     admin: [...new Set(adminCodes)],
     instructor: instructorCodes,
     student: studentCodes,
-    academic_reviewer: reviewerAllowedCodes(),
+    reviewer: reviewerAllowedCodes(),
   };
 }
 

@@ -474,6 +474,184 @@ async function updateStudentAttendanceManual(sessionId, studentId, body, user, r
   return { attendance: repo.mapAttendanceRow(row) };
 }
 
+const MARK_ALL_PRESENT_SAFE_STATUSES = Object.freeze(['unconfirmed']);
+const MARK_ALL_PRESENT_REPLACE_STATUSES = Object.freeze([
+  'unconfirmed',
+  'absent',
+  'late',
+  'excused',
+]);
+
+/**
+ * Pure classifier for mark-all-present (safe | replace_all).
+ * @returns {{ toCreate: object[], toUpdate: object[], alreadyPresent: object[], skipped: object[] }}
+ */
+function classifyMarkAllPresentTargets(eligibleApps, attendanceByAppId, mode = 'safe') {
+  const replaceMode = mode === 'replace_all';
+  const updatable = replaceMode ? MARK_ALL_PRESENT_REPLACE_STATUSES : MARK_ALL_PRESENT_SAFE_STATUSES;
+  const toCreate = [];
+  const toUpdate = [];
+  const alreadyPresent = [];
+  const skipped = [];
+
+  for (const app of eligibleApps) {
+    const row = attendanceByAppId.get(app.id) || attendanceByAppId.get(String(app.id));
+    if (!row) {
+      toCreate.push(app);
+      continue;
+    }
+    if (row.status === 'present') {
+      alreadyPresent.push({ app, row });
+      continue;
+    }
+    if (updatable.includes(row.status)) {
+      toUpdate.push({ app, row });
+      continue;
+    }
+    skipped.push({ app, row });
+  }
+
+  return { toCreate, toUpdate, alreadyPresent, skipped };
+}
+
+function summarizePreviousStatuses(toUpdate) {
+  const counts = {};
+  for (const item of toUpdate) {
+    const status = item.row?.status || 'unknown';
+    counts[status] = (counts[status] || 0) + 1;
+  }
+  return counts;
+}
+
+/**
+ * Mark all eligible session participants as present (bulk manual).
+ * Does not open/close electronic windows or accept client studentIds.
+ *
+ * @param {string} sessionId
+ * @param {{ reason?: string, manual_reason?: string, mode?: 'safe'|'replace_all' }} body
+ * @param {object} user
+ * @param {{ ipAddress?: string|null }} [reqMeta]
+ */
+async function markAllPresent(sessionId, body, user, reqMeta = {}) {
+  const mode = body?.mode === 'replace_all' ? 'replace_all' : 'safe';
+  const reason = String(body?.reason || body?.manual_reason || '').trim();
+  if (!reason) {
+    throw new ApiError(400, 'سبب وضع الكل حاضر مطلوب', null, 'MANUAL_REASON_REQUIRED');
+  }
+
+  const session = await repo.findSessionById(sessionId);
+  if (!session) throw new ApiError(404, 'Session not found');
+
+  const opportunity = session.field_training_opportunities;
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  if (opportunity.status === 'archived') {
+    throw new ApiError(400, 'لا يمكن تعديل الحضور لفرصة مؤرشفة', null, 'OPPORTUNITY_ARCHIVED');
+  }
+
+  await assertManageOpportunityAccess(user, opportunity);
+
+  const eligibleApps = await repo.findEligibleAttendanceParticipants(session.opportunity_id);
+  const existingRows = eligibleApps.length
+    ? await prisma.field_training_attendance.findMany({
+        where: {
+          session_id: sessionId,
+          application_id: { in: eligibleApps.map((a) => a.id) },
+        },
+      })
+    : [];
+  const attendanceByAppId = new Map(existingRows.map((row) => [row.application_id, row]));
+
+  const { toCreate, toUpdate, alreadyPresent } = classifyMarkAllPresentTargets(
+    eligibleApps,
+    attendanceByAppId,
+    mode
+  );
+  const previousStatuses = summarizePreviousStatuses(toUpdate);
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    if (toCreate.length) {
+      await tx.field_training_attendance.createMany({
+        data: toCreate.map((app) => ({
+          session_id: sessionId,
+          application_id: app.id,
+          student_id: app.student_id,
+          status: 'present',
+          method: 'bulk_manual',
+          manual_reason: reason,
+          recorded_by_id: user.userId,
+          recorded_at: now,
+          confirmed_at: now,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (toUpdate.length) {
+      await tx.field_training_attendance.updateMany({
+        where: { id: { in: toUpdate.map((item) => item.row.id) } },
+        data: {
+          status: 'present',
+          method: 'bulk_manual',
+          manual_reason: reason,
+          recorded_by_id: user.userId,
+          recorded_at: now,
+          confirmed_at: now,
+          updated_at: now,
+        },
+      });
+    }
+  });
+
+  const affectedApplicationIds = [
+    ...toCreate.map((app) => app.id),
+    ...toUpdate.map((item) => item.app.id),
+  ];
+  for (const applicationId of affectedApplicationIds) {
+    await workflow.refreshAttendancePercentage(applicationId);
+    await workflow.persistEligibility(applicationId);
+  }
+
+  await recordAudit({
+    userId: user.userId,
+    actionType: 'FIELD_TRAINING_ATTENDANCE_MARK_ALL_PRESENT',
+    entityType: 'field_training_session',
+    entityId: sessionId,
+    oldValues: {
+      previous_statuses: previousStatuses,
+      mode,
+    },
+    newValues: {
+      session_id: sessionId,
+      opportunity_id: session.opportunity_id,
+      opportunity_title: opportunity.title ?? null,
+      session_title: session.title ?? null,
+      mode,
+      reason,
+      eligible_students: eligibleApps.length,
+      created: toCreate.length,
+      updated: toUpdate.length,
+      already_present: alreadyPresent.length,
+      previous_statuses_changed: previousStatuses,
+      method: 'bulk_manual',
+      marked_by: user.userId,
+      confirmed_at: now.toISOString(),
+    },
+    ipAddress: reqMeta.ipAddress || null,
+  });
+
+  return {
+    message: 'تم تسجيل جميع الطلاب المؤهلين كحاضرين',
+    eligibleStudents: eligibleApps.length,
+    created: toCreate.length,
+    updated: toUpdate.length,
+    alreadyPresent: alreadyPresent.length,
+    mode,
+    sessionTitle: session.title ?? null,
+    opportunityTitle: opportunity.title ?? null,
+  };
+}
+
 async function listActiveWindowsForStudent(studentId) {
   const apps = await prisma.field_training_applications.findMany({
     where: {
@@ -691,6 +869,10 @@ module.exports = {
   closeAttendanceWindow,
   finalizeUnconfirmedAbsences,
   updateStudentAttendanceManual,
+  markAllPresent,
+  classifyMarkAllPresentTargets,
+  MARK_ALL_PRESENT_SAFE_STATUSES,
+  MARK_ALL_PRESENT_REPLACE_STATUSES,
   listActiveWindowsForStudent,
   confirmAttendanceWithCode,
 };

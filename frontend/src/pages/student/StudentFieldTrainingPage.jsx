@@ -36,6 +36,7 @@ import {
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 
 const TABS = ['all', 'not_applied', 'pending', 'approved', 'rejected'];
 
@@ -108,8 +109,11 @@ export function StudentFieldTrainingPage() {
 
   return (
     <PagePermissionGate permission={UI_PERMISSION.canViewFieldTraining}>
-      <div className="page page--dashboard page--student ft-page">
-        <StudentPageHeader title={t('student.title')} description={t('student.heroDescription')} />
+      <div className="page page--dashboard page--student ft-page" data-tour-id="training-opportunities">
+        <div className="ug-page-tools">
+          <StudentPageHeader title={t('student.title')} description={t('student.heroDescription')} />
+          <ContextualHelpButton contextualKey="opportunities" route="/student/field-training" />
+        </div>
         {!profileIncomplete ? (
           <p className="ft-hero__scope-info" role="status">
             {t('student.scopeInfo')}

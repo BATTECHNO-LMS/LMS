@@ -23,7 +23,7 @@ const NOT_ELIGIBLE_MSG = 'هذه الفرصة غير متاحة للجامعة �
 const UNIVERSITY_FORBIDDEN_MSG = 'غير مصرح بالوصول إلى بيانات طلاب جامعة أخرى';
 const STUDENT_INACTIVE_MSG = 'حسابك غير مفعّل. لا يمكن عرض فرص التدريب حتى يتم تفعيل الحساب.';
 
-const UNIVERSITY_SCOPED_FT_ROLES = ['admin', 'academic_reviewer'];
+const UNIVERSITY_SCOPED_FT_ROLES = ['admin', 'reviewer'];
 
 function normalizeRoles(user) {
   const { normalizeRoleCodes } = require('../../utils/roleCanon');

@@ -13,6 +13,7 @@
       "analytics": "Analytics & statistics",
       "courses": "Course management",
       "fieldTraining": "Field training management",
+      "userGuide": "User guide",
       "fieldTrainingReports": "Field training reports",
       "fieldTrainingStudents": "Field training student follow-up",
       "users": "Users",
@@ -68,6 +69,7 @@
     "availableCohorts": "Browse cohorts",
     "courses": "Courses",
     "fieldTraining": "Field training",
+    "userGuide": "User guide",
     "programs": "My enrolled credentials",
     "semesterSchedule": "Registered training programs",
     "content": "Content",
@@ -80,13 +82,16 @@
     "notifications": "Notifications"
   },
   "reviewer": {
-    "home": "Home",
+    "home": "University reviewer dashboard",
     "recognition": "Recognition requests",
-    "universityReports": "University reports",
-    "fieldTraining": "Field training",
+    "universityReports": "Reports",
+    "fieldTraining": "Progress & hours",
+    "fieldTrainingStudents": "University students",
+    "fieldTrainingOpportunities": "Training opportunities",
     "evidence": "Evidence and attachments",
-    "certificates": "Linked certificates",
+    "certificates": "Certificates",
     "enrollmentRequests": "Enrollment requests",
+    "userGuide": "User guide",
     "notifications": "Notifications"
   }
 }

@@ -154,7 +154,7 @@ export function UsersListPage() {
     admin: roleCounts.admin ?? 0,
     instructor: roleCounts.instructor ?? 0,
     student: roleCounts.student ?? 0,
-    academicReviewer: roleCounts.academic_reviewer ?? 0,
+    reviewer: roleCounts.reviewer ?? 0,
   };
 
   async function handleActivateAll() {
@@ -346,7 +346,7 @@ export function UsersListPage() {
           <option value="admin">{t('filters.admin')}</option>
           <option value="instructor">{t('filters.instructor')}</option>
           <option value="student">{t('filters.student')}</option>
-          <option value="academic_reviewer">{t('filters.academicReviewer')}</option>
+          <option value="reviewer">{t('filters.reviewer')}</option>
         </SelectField>
         <SelectField
           id="status-filter"
@@ -384,7 +384,7 @@ export function UsersListPage() {
         <StatCard label={t('filters.admin')} value={String(stats.admin)} icon={Users} />
         <StatCard label={t('filters.instructor')} value={String(stats.instructor)} icon={Users} />
         <StatCard label={t('filters.student')} value={String(stats.student)} icon={Users} />
-        <StatCard label={t('filters.academicReviewer')} value={String(stats.academicReviewer)} icon={Users} />
+        <StatCard label={t('filters.reviewer')} value={String(stats.reviewer)} icon={Users} />
       </AdminStatsGrid>
       <SectionCard
         title={<>{t('listTitle')}</>}

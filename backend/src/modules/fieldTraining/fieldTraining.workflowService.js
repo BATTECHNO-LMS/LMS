@@ -292,7 +292,7 @@ async function getSessionParticipants(sessionId, user) {
   if (!session) throw new ApiError(404, 'Session not found');
   await assertManageOpportunityAccess(user, session.field_training_opportunities);
 
-  const apps = await repo.findActiveParticipants(session.opportunity_id);
+  const apps = await repo.findEligibleAttendanceParticipants(session.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds(apps.map((a) => a.student_id));
   const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
 

@@ -31,7 +31,7 @@ const ACTIVE_ROLES = Object.freeze([
   'admin',
   'instructor',
   'student',
-  'academic_reviewer',
+  'reviewer',
 ]);
 
 /**
@@ -56,56 +56,56 @@ const EXPECTED = Object.freeze({
     admin: false,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   UNIVERSITY_WRITE: {
     super_admin: true,
     admin: false,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   ADMIN_READ: {
     super_admin: true,
     admin: true,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   ACADEMIC_WRITE: {
     super_admin: true,
     admin: true,
     instructor: true,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   CERTIFICATE_WRITE: {
     super_admin: true,
     admin: true,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   QA_OVERSIGHT: {
     super_admin: true,
     admin: true,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
   REPORT_READ: {
     super_admin: true,
     admin: true,
     instructor: false,
     student: false,
-    academic_reviewer: true,
+    reviewer: true,
   },
   FIELD_TRAINING_ADMIN: {
     super_admin: true,
     admin: true,
     instructor: false,
     student: false,
-    academic_reviewer: false,
+    reviewer: false,
   },
 });
 
@@ -200,7 +200,7 @@ describe('active-role authorization regression (five-role model)', () => {
       'admin',
       'instructor',
       'student',
-      'academic_reviewer',
+      'reviewer',
     ]);
     assert.equal(filtered.includes('program_admin'), false);
 
@@ -213,7 +213,7 @@ describe('active-role authorization regression (five-role model)', () => {
     assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('instructor'));
     assert.ok(env.QA_OVERSIGHT_ROLE_CODES.includes('admin'));
     assert.ok(env.CERTIFICATE_WRITE_ROLE_CODES.includes('admin'));
-    assert.ok(env.REPORT_READ_ROLE_CODES.includes('academic_reviewer'));
+    assert.ok(env.REPORT_READ_ROLE_CODES.includes('reviewer'));
     assert.equal(
       isSystemWideAdmin(makeRequester({ roles: ['admin'], isGlobal: false })),
       false

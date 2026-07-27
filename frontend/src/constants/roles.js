@@ -2,9 +2,13 @@
 
  * Application roles — canonical five-role model.
 
+ * Official reviewer role code is `reviewer` only.
+
  * Legacy codes may still appear in old JWTs; canonicalize at the auth / UI boundary.
 
  */
+
+
 
 export const ROLES = {
 
@@ -16,7 +20,7 @@ export const ROLES = {
 
   STUDENT: 'student',
 
-  ACADEMIC_REVIEWER: 'academic_reviewer',
+  REVIEWER: 'reviewer',
 
 };
 
@@ -34,7 +38,9 @@ export const LEGACY_ROLE_ALIASES = {
 
   qa_officer: ROLES.ADMIN,
 
-  university_reviewer: ROLES.ACADEMIC_REVIEWER,
+  university_reviewer: ROLES.REVIEWER,
+
+  academic_reviewer: ROLES.REVIEWER,
 
 };
 
@@ -50,7 +56,7 @@ export const CANONICAL_ROLE_CODES = [
 
   ROLES.STUDENT,
 
-  ROLES.ACADEMIC_REVIEWER,
+  ROLES.REVIEWER,
 
 ];
 
@@ -76,7 +82,7 @@ export const ASSIGNABLE_USER_ROLE_CODES = [
 
   ROLES.ADMIN,
 
-  ROLES.ACADEMIC_REVIEWER,
+  ROLES.REVIEWER,
 
 ];
 
@@ -92,7 +98,7 @@ export const UNIVERSITY_REQUIRED_ROLE_CODES = [
 
   ROLES.ADMIN,
 
-  ROLES.ACADEMIC_REVIEWER,
+  ROLES.REVIEWER,
 
 ];
 
@@ -171,5 +177,4 @@ export function roleRequiresUniversitySpecialty(role) {
   return canonicalizeRoleCode(role) === ROLES.STUDENT;
 
 }
-
 

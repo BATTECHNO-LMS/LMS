@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 router.use('/users', require('../modules/users/users.routes'));
+router.use('/admin/reviewers', require('../modules/users/adminReviewers.routes'));
 router.use('/roles', require('../modules/roles/roles.routes'));
 router.use('/universities', require('../modules/universities/universities.routes'));
 router.use('/specialties', require('../modules/specialties/specialties.routes'));
@@ -45,5 +46,14 @@ router.use('/mobile/push', require('../modules/mobilePush/mobilePush.routes'));
 router.use('/files', require('../modules/files/files.routes'));
 router.use('/ai', require('../modules/ai/ai.routes'));
 router.use('/public', require('../modules/public/public.routes'));
+
+const {
+  helpCatalogRouter,
+  studentHelpRouter,
+  adminHelpRouter,
+} = require('../modules/help/help.routes');
+router.use('/help', helpCatalogRouter);
+router.use('/student', studentHelpRouter);
+router.use('/admin/help', adminHelpRouter);
 
 module.exports = router;

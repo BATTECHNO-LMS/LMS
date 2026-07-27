@@ -1399,6 +1399,7 @@ enum field_training_attendance_method {
   electronic
   manual
   auto_finalize
+  bulk_manual
 }
 
 enum field_training_assessment_type {
@@ -1729,4 +1730,190 @@ model files {
   @@index([created_by_id], map: "idx_files_created_by_id")
   @@index([related_entity_type, related_entity_id], map: "idx_files_related_entity")
   @@index([deleted_at], map: "idx_files_deleted_at")
+}
+
+/// Student/staff onboarding tour progress per guide version.
+enum user_onboarding_status {
+  not_started
+  in_progress
+  completed
+  dismissed
+}
+
+model user_onboarding_progress {
+  id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String                  @db.Uuid
+  guide_key    String                  @db.VarChar(100)
+  guide_version String                 @db.VarChar(100)
+  status       user_onboarding_status  @default(not_started)
+  last_step    Int                     @default(0)
+  started_at   DateTime?               @db.Timestamptz(6)
+  completed_at DateTime?               @db.Timestamptz(6)
+  dismissed_at DateTime?               @db.Timestamptz(6)
+  created_at   DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, guide_key, guide_version], map: "uq_user_onboarding_progress_user_guide_version")
+  @@index([user_id], map: "idx_user_onboarding_progress_user")
+  @@index([guide_key], map: "idx_user_onboarding_progress_guide_key")
+  @@index([guide_version], map: "idx_user_onboarding_progress_guide_version")
+  @@index([status], map: "idx_user_onboarding_progress_status")
+}
+
+model help_categories {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title_ar       String   @db.VarChar(255)
+  title_en       String?  @db.VarChar(255)
+  slug           String   @unique @db.VarChar(120)
+  description_ar String?
+  description_en String?
+  icon           String?  @db.VarChar(64)
+  sort_order     Int      @default(0)
+  is_active      Boolean  @default(true)
+  target_roles   String[] @default(["student"])
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  help_articles help_articles[]
+
+  @@index([is_active], map: "idx_help_categories_active")
+  @@index([sort_order], map: "idx_help_categories_sort")
+}
+
+model help_articles {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id    String   @db.Uuid
+  title_ar       String   @db.VarChar(500)
+  title_en       String?  @db.VarChar(500)
+  slug           String   @unique @db.VarChar(200)
+  summary_ar     String?
+  summary_en     String?
+  content_ar     String
+  content_en     String?
+  keywords       String[] @default([])
+  sort_order     Int      @default(0)
+  is_published   Boolean  @default(true)
+  target_roles   String[] @default(["student"])
+  related_route  String?  @db.VarChar(255)
+  contextual_key String?  @db.VarChar(100)
+  guide_version  String?  @db.VarChar(100)
+  is_faq         Boolean  @default(false)
+  view_count     Int      @default(0)
+  created_by_id  String?  @db.Uuid
+  updated_by_id  String?  @db.Uuid
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  help_categories    help_categories     @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  help_article_views help_article_views[]
+
+  @@index([category_id], map: "idx_help_articles_category")
+  @@index([is_published], map: "idx_help_articles_published")
+  @@index([sort_order], map: "idx_help_articles_sort")
+  @@index([contextual_key], map: "idx_help_articles_contextual_key")
+  @@index([guide_version], map: "idx_help_articles_guide_version")
+  @@index([created_at], map: "idx_help_articles_created")
+}
+
+model help_article_views {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  article_id String   @db.Uuid
+  user_id    String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  help_articles help_articles @relation(fields: [article_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([article_id], map: "idx_help_article_views_article")
+  @@index([user_id], map: "idx_help_article_views_user")
+  @@index([created_at], map: "idx_help_article_views_created")
+}
+
+model help_search_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?  @db.Uuid
+  query         String   @db.VarChar(500)
+  results_count Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_help_search_logs_user")
+  @@index([created_at], map: "idx_help_search_logs_created")
+  @@index([query], map: "idx_help_search_logs_query")
+}
+
+enum support_ticket_status {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum support_ticket_category {
+  ACCOUNT
+  EMAIL_VERIFICATION
+  PROFILE
+  OPPORTUNITY
+  APPLICATION
+  SESSION
+  ATTENDANCE
+  ZOOM_LINK
+  PRE_TEST
+  POST_TEST
+  TASK
+  SUBMISSION
+  AI_EVALUATION
+  PROGRESS
+  TRAINING_HOURS
+  CERTIFICATE
+  TECHNICAL
+  OTHER
+}
+
+model support_tickets {
+  id                   String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference_code       String                  @unique @db.VarChar(32)
+  user_id              String                  @db.Uuid
+  category             support_ticket_category
+  title                String                  @db.VarChar(255)
+  description          String
+  status               support_ticket_status   @default(open)
+  opportunity_id       String?                 @db.Uuid
+  session_id           String?                 @db.Uuid
+  task_id              String?                 @db.Uuid
+  assessment_id        String?                 @db.Uuid
+  browser_info         String?                 @db.VarChar(500)
+  device_info          String?                 @db.VarChar(500)
+  attachment_file_id   String?                 @db.Uuid
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_support_tickets_user")
+  @@index([status], map: "idx_support_tickets_status")
+  @@index([category], map: "idx_support_tickets_category")
+  @@index([created_at], map: "idx_support_tickets_created")
+  @@index([opportunity_id], map: "idx_support_tickets_opportunity")
+}
+
+enum reviewer_assignment_source {
+  EMAIL_DOMAIN
+  MANUAL
+  MIGRATION
+}
+
+/// Active university assignment for role `reviewer` (source of truth for scope).
+model reviewer_university_assignments {
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewer_user_id   String                       @db.Uuid
+  university_id      String                       @db.Uuid
+  assignment_source  reviewer_assignment_source   @default(MANUAL)
+  assigned_by_id     String?                      @db.Uuid
+  assigned_at        DateTime                     @default(now()) @db.Timestamptz(6)
+  is_active          Boolean                      @default(true)
+  created_at         DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                     @default(now()) @db.Timestamptz(6)
+
+  @@unique([reviewer_user_id, university_id], map: "uq_reviewer_university_assignments")
+  @@index([reviewer_user_id], map: "idx_reviewer_university_assignments_reviewer")
+  @@index([university_id], map: "idx_reviewer_university_assignments_university")
+  @@index([is_active], map: "idx_reviewer_university_assignments_active")
+  @@index([reviewer_user_id, is_active], map: "idx_reviewer_university_assignments_reviewer_active")
 }

@@ -13,6 +13,7 @@
       "analytics": "الإحصائيات والتحليلات",
       "courses": "إدارة الكورسات",
       "fieldTraining": "إدارة التدريب الميداني",
+      "userGuide": "دليل المستخدم",
       "fieldTrainingReports": "تقارير التدريب الميداني",
       "fieldTrainingStudents": "متابعة طلاب التدريب الميداني",
       "users": "المستخدمون",
@@ -68,6 +69,7 @@
     "availableCohorts": "الدفعات المتاحة",
     "courses": "الكورسات",
     "fieldTraining": "التدريب الميداني",
+    "userGuide": "دليل المستخدم",
     "programs": "شهاداتي المسجل بها",
     "semesterSchedule": "البرامج التدريبية المسجلة",
     "content": "المحتوى",
@@ -80,13 +82,16 @@
     "notifications": "الإشعارات"
   },
   "reviewer": {
-    "home": "الرئيسية",
+    "home": "لوحة مراجع الجامعة",
     "recognition": "طلبات الاعتراف الأكاديمي",
-    "universityReports": "تقارير الجامعة",
-    "fieldTraining": "التدريب الميداني",
+    "universityReports": "التقارير",
+    "fieldTraining": "التقدم والساعات",
+    "fieldTrainingStudents": "طلاب الجامعة",
+    "fieldTrainingOpportunities": "فرص التدريب",
     "evidence": "الأدلة والمرفقات",
-    "certificates": "الشهادات المرتبطة",
+    "certificates": "الشهادات",
     "enrollmentRequests": "طلبات التسجيل",
+    "userGuide": "دليل المستخدم",
     "notifications": "الإشعارات"
   }
 }

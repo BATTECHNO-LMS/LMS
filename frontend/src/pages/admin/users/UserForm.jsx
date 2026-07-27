@@ -100,7 +100,7 @@ export function UserForm({
   const needsUniversity = roleRequiresUniversity(form.role);
   const needsSpecialty = roleRequiresUniversitySpecialty(form.role);
   const showInstructorHints = form.role === ROLES.INSTRUCTOR;
-  const showReviewerHints = form.role === ROLES.ACADEMIC_REVIEWER;
+  const showReviewerHints = form.role === ROLES.REVIEWER;
   const showAcademicCard =
     needsUniversity || needsSpecialty || showInstructorHints || showReviewerHints || form.role === ROLES.SUPER_ADMIN;
 
@@ -251,12 +251,12 @@ export function UserForm({
               </option>
             ))}
           </FormSelect>
-          {form.role === ROLES.ACADEMIC_REVIEWER ? (
+          {form.role === ROLES.REVIEWER ? (
             <p className="user-form__hint user-form__span-2">
               {tr(
                 isArabic,
-                'المراجع الأكاديمي يعمل ضمن نطاق جامعته فقط وبصلاحيات عرض.',
-                'Academic reviewer is scoped to their university with view-only access.'
+                'تنسيب المراجع إلى الجامعة: المراجع يعمل ضمن نطاق جامعته فقط وبصلاحيات عرض فقط.',
+                'Assign reviewer to university: reviewers are scoped to one university with view-only access.'
               )}
             </p>
           ) : null}
@@ -280,7 +280,11 @@ export function UserForm({
             {(needsUniversity || form.role === ROLES.SUPER_ADMIN) && (
               <FormSelect
                 id="primary_university_id"
-                label={tr(isArabic, 'الجامعة المرتبطة', 'Linked university')}
+                label={
+                  form.role === ROLES.REVIEWER
+                    ? tr(isArabic, 'تنسيب المراجع إلى الجامعة', 'Assign reviewer to university')
+                    : tr(isArabic, 'الجامعة المرتبطة', 'Linked university')
+                }
                 value={form.primary_university_id}
                 onChange={(e) => setField('primary_university_id', e.target.value)}
                 error={errors.primary_university_id}
@@ -341,13 +345,24 @@ export function UserForm({
             ) : null}
 
             {showReviewerHints ? (
-              <p className="user-form__hint user-form__span-2">
-                {tr(
-                  isArabic,
-                  'بيانات الطلاب والتقارير تُحصر لاحقًا حسب الجامعة المرتبطة بهذا الحساب.',
-                  'Student data and reports are later scoped to this account’s university.'
-                )}
-              </p>
+              <>
+                <p className="user-form__hint user-form__span-2">
+                  {tr(
+                    isArabic,
+                    'بيانات الطلاب والتقارير تُحصر حسب الجامعة المنسّب إليها هذا المراجع. مصدر الربط اليدوي يتفوق على الاستنتاج من دومين البريد.',
+                    'Student data and reports are scoped to this reviewer’s assigned university. Manual assignment overrides email-domain inference.'
+                  )}
+                </p>
+                {!form.primary_university_id ? (
+                  <p className="form-field__error user-form__span-2">
+                    {tr(
+                      isArabic,
+                      'هذا المراجع غير مرتبط بجامعة، ولن يستطيع عرض بيانات الطلاب حتى يتم تنسيبه.',
+                      'This reviewer is not linked to a university and cannot view student data until assigned.'
+                    )}
+                  </p>
+                ) : null}
+              </>
             ) : null}
 
             {!needsUniversity && !needsSpecialty && form.role === ROLES.SUPER_ADMIN ? (

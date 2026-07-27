@@ -22,7 +22,9 @@ describe('roleCanon', () => {
     assert.equal(canonicalizeRoleCode('academic_admin'), 'admin');
     assert.equal(canonicalizeRoleCode('qa_officer'), 'admin');
     assert.equal(canonicalizeRoleCode('program_admin'), 'admin');
-    assert.equal(canonicalizeRoleCode('university_reviewer'), 'academic_reviewer');
+    assert.equal(canonicalizeRoleCode('university_reviewer'), 'reviewer');
+    assert.equal(canonicalizeRoleCode('academic_reviewer'), 'reviewer');
+    assert.equal(canonicalizeRoleCode('reviewer'), 'reviewer');
     assert.equal(canonicalizeRoleCode('super_admin'), 'super_admin');
   });
 
@@ -41,7 +43,7 @@ describe('roleCanon', () => {
 
   it('picks primary role with admin priority', () => {
     assert.equal(pickPrimaryRoleCode(['student', 'admin']), 'admin');
-    assert.equal(pickPrimaryRoleCode(['university_reviewer']), 'academic_reviewer');
+    assert.equal(pickPrimaryRoleCode(['university_reviewer']), 'reviewer');
   });
 
   it('canonical set is exactly five roles', () => {
@@ -50,7 +52,7 @@ describe('roleCanon', () => {
       'admin',
       'instructor',
       'student',
-      'academic_reviewer',
+      'reviewer',
     ]);
   });
 });
@@ -69,11 +71,11 @@ describe('authorizeRoles with legacy allowlists', () => {
     assert.equal(nextCalled, true);
   });
 
-  it('allows academic_reviewer when route lists university_reviewer', () => {
+  it('allows reviewer when route lists university_reviewer', () => {
     const mw = authorizeRoles('university_reviewer');
     let nextCalled = false;
     mw(
-      { user: { roles: ['academic_reviewer'], isGlobal: false } },
+      { user: { roles: ['reviewer'], isGlobal: false } },
       { status: () => ({ json: () => {} }) },
       () => {
         nextCalled = true;
@@ -87,6 +89,6 @@ describe('authorizeRoles with legacy allowlists', () => {
       ['super_admin', 'university_admin', 'university_reviewer'],
       'test_allowlist'
     );
-    assert.deepEqual(list, ['super_admin', 'admin', 'academic_reviewer']);
+    assert.deepEqual(list, ['super_admin', 'admin', 'reviewer']);
   });
 });

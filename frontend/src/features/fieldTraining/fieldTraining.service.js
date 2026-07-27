@@ -328,6 +328,16 @@ export async function finalizeAttendanceAbsences(sessionId, { asInstructor = fal
   return unwrapApiData(res);
 }
 
+export async function markAllPresent(
+  sessionId,
+  body,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance/mark-all-present`, body);
+  return unwrapApiData(res);
+}
+
 export async function patchStudentAttendance(
   sessionId,
   studentId,

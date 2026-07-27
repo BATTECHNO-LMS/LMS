@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorizeRoles } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
@@ -13,8 +13,8 @@ const {
 
 const router = express.Router();
 
-/** Reviewer portal lists evidence by university — always allow this role for GET even if env CSV omits it. */
-const EVIDENCE_READ_CODES = [...new Set([...env.EVIDENCE_READ_ROLE_CODES, 'academic_reviewer'])];
+/** Reviewer portal lists evidence by university � always allow this role for GET even if env CSV omits it. */
+const EVIDENCE_READ_CODES = [...new Set([...env.EVIDENCE_READ_ROLE_CODES, 'reviewer'])];
 const evidenceRead = authorizeRoles(...EVIDENCE_READ_CODES);
 const evidenceWrite = authorizeRoles(...env.EVIDENCE_WRITE_ROLE_CODES);
 

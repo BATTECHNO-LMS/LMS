@@ -10,7 +10,7 @@ const CANONICAL_ROLES = Object.freeze([
   'admin',
   'instructor',
   'student',
-  'academic_reviewer',
+  'reviewer',
 ]);
 
 const SYNTH_UNI_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';

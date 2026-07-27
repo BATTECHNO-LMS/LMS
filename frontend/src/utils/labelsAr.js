@@ -14,7 +14,7 @@ export const ROLE_LABELS_AR = {
 
   super_admin: 'سوبر أدمن',
 
-  academic_reviewer: 'مراجع أكاديمي',
+  reviewer: 'مراجع',
 
 };
 
@@ -44,7 +44,7 @@ const ROLE_LABELS_EN = {
 
   super_admin: 'Super admin',
 
-  academic_reviewer: 'Academic reviewer',
+  reviewer: 'Reviewer',
 
 };
 

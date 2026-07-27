@@ -2,7 +2,7 @@
 
 /**
  * Canonical LMS roles (single source of truth for runtime AuthZ).
- * Legacy role codes are mapped here and remapped in DB by migrate-roles script.
+ * Official reviewer role code is `reviewer` only.
  */
 
 const CANONICAL_ROLE_CODES = Object.freeze([
@@ -10,7 +10,7 @@ const CANONICAL_ROLE_CODES = Object.freeze([
   'admin',
   'instructor',
   'student',
-  'academic_reviewer',
+  'reviewer',
 ]);
 
 const CANONICAL_ROLE_SET = new Set(CANONICAL_ROLE_CODES);
@@ -21,7 +21,8 @@ const LEGACY_ROLE_ALIASES = Object.freeze({
   university_admin: 'admin',
   academic_admin: 'admin',
   qa_officer: 'admin',
-  university_reviewer: 'academic_reviewer',
+  university_reviewer: 'reviewer',
+  academic_reviewer: 'reviewer',
 });
 
 /** Catalog rows retained for history / audits; not assignable. */
@@ -31,6 +32,7 @@ const LEGACY_CATALOG_ROLE_CODES = Object.freeze([
   'academic_admin',
   'qa_officer',
   'university_reviewer',
+  'academic_reviewer',
 ]);
 
 const LEGACY_CATALOG_SET = new Set(LEGACY_CATALOG_ROLE_CODES);
@@ -60,11 +62,12 @@ const ROLE_META = Object.freeze({
     scope: 'university',
     assignable: true,
   },
-  academic_reviewer: {
-    name: 'Academic Reviewer',
-    name_ar: 'مراجع أكاديمي',
+  reviewer: {
+    name: 'Reviewer',
+    name_ar: 'مراجع',
     scope: 'university',
     assignable: true,
+    description: 'University-scoped read-only reviewer.',
   },
 });
 
@@ -126,7 +129,7 @@ const UNIVERSITY_SCOPED_ROLE_CODES = Object.freeze([
   'admin',
   'instructor',
   'student',
-  'academic_reviewer',
+  'reviewer',
 ]);
 
 /**
@@ -137,7 +140,7 @@ function pickPrimaryRoleCode(roles) {
   const normalized = normalizeRoleCodes(roles);
   if (normalized.includes('super_admin')) return 'super_admin';
   if (normalized.includes('admin')) return 'admin';
-  if (normalized.includes('academic_reviewer')) return 'academic_reviewer';
+  if (normalized.includes('reviewer')) return 'reviewer';
   if (normalized.includes('instructor')) return 'instructor';
   if (normalized.includes('student')) return 'student';
   return normalized[0] || null;

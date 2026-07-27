@@ -151,6 +151,7 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
         return (
           <ManageAttendanceTab
             opportunityId={id}
+            opportunityTitle={opp?.title}
             apiScope={apiScope}
             preselectedSessionId={attendanceSessionId}
             onSessionChange={(sessionId) => setTab('attendance', { session: sessionId })}

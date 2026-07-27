@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Repair university scope for university-scoped roles (academic_reviewer, admin, instructor).
+ * Repair university scope for university-scoped roles (reviewer, admin, instructor).
  *
  * Official source: users.primary_university_id
  * Membership mirror: university_users (relationship_type)
@@ -28,10 +28,10 @@ const args = new Set(process.argv.slice(2));
 const APPLY = args.has('--apply');
 const DRY = !APPLY;
 
-const SCOPED_ROLES = new Set(['academic_reviewer', 'admin', 'instructor', 'student']);
+const SCOPED_ROLES = new Set(['reviewer', 'admin', 'instructor', 'student']);
 
 function relationshipForRoles(roles) {
-  if (roles.includes('academic_reviewer')) return 'reviewer';
+  if (roles.includes('reviewer')) return 'reviewer';
   if (roles.includes('admin')) return 'admin';
   if (roles.includes('instructor')) return 'instructor';
   if (roles.includes('student')) return 'student';

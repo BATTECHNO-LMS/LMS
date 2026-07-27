@@ -34,7 +34,7 @@ describe('env role defaults characterization (five-role model)', () => {
     assert.deepEqual(env.USER_WRITE_ROLE_CODES, ['super_admin']);
     assert.deepEqual(env.USER_ACTIVATE_ROLE_CODES, ['super_admin', 'admin']);
     assert.deepEqual(env.FIELD_TRAINING_ADMIN_ROLE_CODES, ['super_admin', 'admin']);
-    assert.ok(env.REPORT_READ_ROLE_CODES.includes('academic_reviewer'));
+    assert.ok(env.REPORT_READ_ROLE_CODES.includes('reviewer'));
     assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('admin'));
     assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('instructor'));
   });
@@ -82,7 +82,7 @@ describe('env role defaults characterization (five-role model)', () => {
       'admin',
       'instructor',
       'student',
-      'academic_reviewer',
+      'reviewer',
     ]);
   });
 });

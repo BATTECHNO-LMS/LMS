@@ -62,7 +62,7 @@ const REQUIRED_ROLES = [
   { code: 'admin', name: 'Admin', scope: 'university', description: 'University or staff admin (scoped by primary_university_id).' },
   { code: 'instructor', name: 'Instructor', scope: 'university' },
   { code: 'student', name: 'Student', scope: 'university' },
-  { code: 'academic_reviewer', name: 'Academic Reviewer', scope: 'university', description: 'Read-only university reviewer.' },
+  { code: 'reviewer', name: 'Reviewer', scope: 'university', description: 'University-scoped read-only reviewer.' },
 ];
 
 const SPECIALTY_CATALOG = [

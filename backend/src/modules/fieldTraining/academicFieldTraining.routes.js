@@ -10,7 +10,7 @@ const {
 const { taskIdParamSchema, opportunityIdParamSchema } = require('./fieldTraining.validation');
 
 const router = express.Router();
-const academicRoles = authorizeRoles('admin', 'academic_reviewer');
+const academicRoles = authorizeRoles('admin', 'reviewer');
 
 router.get(
   '/dashboard',

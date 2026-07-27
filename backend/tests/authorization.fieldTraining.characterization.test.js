@@ -57,7 +57,7 @@ describe('fieldTraining.access characterization', () => {
   it('isFieldTrainingAdmin: student / instructor / reviewer false (unless system-wide)', () => {
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['student'] })), false);
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['instructor'] })), false);
-    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['academic_reviewer'] })), false);
+    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['reviewer'] })), false);
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['university_reviewer'] })), false);
   });
 
@@ -66,7 +66,7 @@ describe('fieldTraining.access characterization', () => {
   });
 
   it('isUniversityScopedFieldTrainingUser: true for uni staff with universityId', () => {
-    for (const role of ['admin', 'academic_reviewer', 'university_admin', 'university_reviewer']) {
+    for (const role of ['admin', 'reviewer', 'university_admin', 'university_reviewer']) {
       assert.equal(
         isUniversityScopedFieldTrainingUser(
           makeRequester({ roles: [role], universityId: SYNTH_UNI_A, isGlobal: false })

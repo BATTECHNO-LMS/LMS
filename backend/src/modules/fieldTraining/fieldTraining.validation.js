@@ -264,6 +264,20 @@ const manualAttendanceBodySchema = z.object({
   }
 });
 
+const markAllPresentBodySchema = z.object({
+  reason: z.string().trim().min(1).max(2000).optional(),
+  manual_reason: z.string().trim().min(1).max(2000).optional(),
+  mode: z.enum(['safe', 'replace_all']).optional().default('safe'),
+}).superRefine((data, ctx) => {
+  if (!(data.reason || data.manual_reason)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'سبب وضع الكل حاضر مطلوب',
+      path: ['reason'],
+    });
+  }
+});
+
 const studentIdParamSchema = z.object({
   studentId: z.string().uuid(),
 });
@@ -455,6 +469,7 @@ module.exports = {
   openAttendanceWindowBodySchema,
   confirmAttendanceWindowBodySchema,
   manualAttendanceBodySchema,
+  markAllPresentBodySchema,
   assessmentBodySchema,
   createAssessmentBodySchema,
   updateAssessmentBodySchema,

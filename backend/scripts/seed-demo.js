@@ -62,7 +62,7 @@ const COHORT_TITLES = [
 const DEMO_USERS = [
   // Canonical five-role model — no legacy university_admin / university_reviewer.
   { full_name: 'Tafila Admin', email: 'admin@ttu.edu.jo', role: 'admin' },
-  { full_name: 'Tafila Academic Reviewer', email: 'reviewer@ttu.edu.jo', role: 'academic_reviewer' },
+  { full_name: 'Tafila Academic Reviewer', email: 'reviewer@ttu.edu.jo', role: 'reviewer' },
   { full_name: 'Tafila Student One', email: 'student1@ttu.edu.jo', role: 'student' },
   { full_name: 'Tafila Student Two', email: 'student2@ttu.edu.jo', role: 'student' },
 ];
@@ -124,7 +124,7 @@ async function resolveKeptUserIds(battechnoUniversityId) {
 function relationshipTypeForRole(roleCode) {
   if (roleCode === 'student') return 'student';
   if (roleCode === 'instructor') return 'instructor';
-  if (roleCode === 'academic_reviewer') return 'reviewer';
+  if (roleCode === 'reviewer') return 'reviewer';
   if (roleCode === 'admin') return 'admin';
   return 'staff';
 }

@@ -32,37 +32,37 @@ describe('permissionCatalog', () => {
     const map = defaultRolePermissionMap();
     assert.equal(map.super_admin.length, 77);
     assert.ok(map.admin.length > 20);
-    assert.ok(map.academic_reviewer.every((c) => !isWritePermissionCode(c)));
+    assert.ok(map.reviewer.every((c) => !isWritePermissionCode(c)));
   });
 });
 
 describe('enforceAcademicReviewerReadOnly', () => {
-  it('allows GET for academic_reviewer', () => {
+  it('allows GET for reviewer', () => {
     const req = createMockReq({
       method: 'GET',
       originalUrl: '/api/v1/academic/field-training/dashboard',
-      user: makeRequester({ roles: ['academic_reviewer'], isGlobal: false }),
+      user: makeRequester({ roles: ['reviewer'], isGlobal: false }),
     });
     const out = runMiddlewareSync(enforceAcademicReviewerReadOnly, req);
     assert.equal(out.nextCalled, true);
   });
 
-  it('blocks POST for academic_reviewer', () => {
+  it('blocks POST for reviewer', () => {
     const req = createMockReq({
       method: 'POST',
       originalUrl: '/api/v1/admin/field-training/opportunities',
-      user: makeRequester({ roles: ['academic_reviewer'], isGlobal: false }),
+      user: makeRequester({ roles: ['reviewer'], isGlobal: false }),
     });
     const out = runMiddlewareSync(enforceAcademicReviewerReadOnly, req);
     assert.equal(out.status, 403);
     assert.equal(out.body?.code, 'REVIEWER_READ_ONLY');
   });
 
-  it('allows notification PATCH for academic_reviewer', () => {
+  it('allows notification PATCH for reviewer', () => {
     const req = createMockReq({
       method: 'PATCH',
       originalUrl: '/api/v1/notifications/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/read',
-      user: makeRequester({ roles: ['academic_reviewer'], isGlobal: false }),
+      user: makeRequester({ roles: ['reviewer'], isGlobal: false }),
     });
     const out = runMiddlewareSync(enforceAcademicReviewerReadOnly, req);
     assert.equal(out.nextCalled, true);
@@ -70,11 +70,11 @@ describe('enforceAcademicReviewerReadOnly', () => {
 });
 
 describe('requirePermission', () => {
-  it('denies write permission for academic_reviewer even if listed', () => {
+  it('denies write permission for reviewer even if listed', () => {
     const mw = requirePermission('users.create');
     const req = createMockReq({
       user: makeRequester({
-        roles: ['academic_reviewer'],
+        roles: ['reviewer'],
         isGlobal: false,
         permissions: ['users.create', 'users.view'],
       }),

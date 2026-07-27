@@ -32,7 +32,7 @@ const ROLE_LABELS_AR = {
   admin: 'أدمن',
   instructor: 'مدرّس',
   student: 'طالب',
-  academic_reviewer: 'مراجع أكاديمي',
+  reviewer: 'مراجع أكاديمي',
 };
 
 const STATUS_LABELS_AR = {

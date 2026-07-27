@@ -62,7 +62,7 @@ async function assertStudentReportAccess(user, applicationId) {
 
   if (ftAccess.isAssignedInstructor(user, opp)) return { app, opp };
 
-  // University-scoped report readers (e.g. academic_reviewer): student university match only.
+  // University-scoped report readers (e.g. reviewer): student university match only.
   // Do not require FIELD_TRAINING_ADMIN — reviewers are read-only.
   await ftAccess.assertApplicationStudentAccess(user, app.student_id);
   if (ftAccess.isUniversityScopedFieldTrainingUser(user)) {

@@ -64,6 +64,9 @@ export const endpoints = {
   analytics: `${API_V}/analytics`,
   instructorFieldTraining: `${API_V}/instructor/field-training`,
   studentFieldTraining: `${API_V}/student/field-training`,
+  help: `${API_V}/help`,
+  studentHelp: `${API_V}/student`,
+  adminHelp: `${API_V}/admin/help`,
   files: {
     presignUpload: `${API_V}/files/presign-upload`,
     confirmUpload: `${API_V}/files/confirm-upload`,

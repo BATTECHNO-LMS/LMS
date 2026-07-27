@@ -40,7 +40,7 @@ export function pickPrimaryRole(roles) {
   for (const code of ADMIN_ROLE_SET) {
     if (normalized.includes(code)) return code;
   }
-  if (normalized.includes(ROLES.ACADEMIC_REVIEWER)) return ROLES.ACADEMIC_REVIEWER;
+  if (normalized.includes(ROLES.REVIEWER)) return ROLES.REVIEWER;
   if (normalized.includes(ROLES.INSTRUCTOR)) return ROLES.INSTRUCTOR;
   if (normalized.includes(ROLES.STUDENT)) return ROLES.STUDENT;
   return normalized[0];

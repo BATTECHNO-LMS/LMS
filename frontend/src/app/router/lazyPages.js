@@ -346,6 +346,26 @@ export const StudentFieldTrainingPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingPage.jsx'),
   'StudentFieldTrainingPage'
 );
+export const StudentUserGuidePage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuidePage.jsx'),
+  'StudentUserGuidePage'
+);
+export const StudentUserGuideCategoryPage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideCategoryPage.jsx'),
+  'StudentUserGuideCategoryPage'
+);
+export const StudentUserGuideArticlePage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideArticlePage.jsx'),
+  'StudentUserGuideArticlePage'
+);
+export const StudentUserGuideSupportPage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideSupportPage.jsx'),
+  'StudentUserGuideSupportPage'
+);
+export const AdminHelpCenterPage = lazyNamed(
+  () => import('../../pages/admin/help/AdminHelpCenterPage.jsx'),
+  'AdminHelpCenterPage'
+);
 export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'

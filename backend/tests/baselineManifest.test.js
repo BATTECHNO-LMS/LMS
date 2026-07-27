@@ -330,6 +330,9 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260720180000_mobile_push_registrations',
       '20260725140000_field_training_task_grading_mode',
       '20260725160000_field_training_attendance_windows',
+      '20260727020000_field_training_attendance_bulk_manual',
+      '20260727030000_user_guide_onboarding_help',
+      '20260727040000_unify_reviewer_role',
     ]);
   });
 

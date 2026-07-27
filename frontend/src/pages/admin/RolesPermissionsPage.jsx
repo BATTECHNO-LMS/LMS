@@ -64,7 +64,7 @@ export function RolesPermissionsPage() {
   }, [selectedRole?.id, selectedRole?.permission_codes?.join('|')]);
 
   const isSuperAdminRole = selectedRole?.code === 'super_admin';
-  const isReviewerRole = selectedRole?.code === 'academic_reviewer';
+  const isReviewerRole = selectedRole?.code === 'reviewer';
 
   function codeFor(moduleKey, action) {
     return `${moduleKey}.${action}`;

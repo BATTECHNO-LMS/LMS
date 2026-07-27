@@ -20,6 +20,7 @@ import {
   Users,
   ListChecks,
   ClipboardList,
+  BookOpenCheck,
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
 import { UI_PERMISSION } from './permissions.js';
@@ -40,7 +41,7 @@ function navItem(to, labelKey, icon, permission) {
 const ROLE_NAV_PREFIX = {
   [ROLES.INSTRUCTOR]: 'instructor',
   [ROLES.STUDENT]: 'student',
-  [ROLES.ACADEMIC_REVIEWER]: 'reviewer',
+  [ROLES.REVIEWER]: 'reviewer',
 };
 
 /** Non-admin roles — `{ to, labelKey, icon, permission }`. */
@@ -69,6 +70,7 @@ export const NAV_BY_ROLE = {
     navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
     navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
     navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining),
+    navItem('/student/user-guide', 'userGuide', BookOpenCheck),
     navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
     navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
     navItem('/student/content', 'content', BookOpen, P.canViewContent),
@@ -81,14 +83,17 @@ export const NAV_BY_ROLE = {
     navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
-  [ROLES.ACADEMIC_REVIEWER]: [
+  [ROLES.REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/academic/field-training/students', 'fieldTrainingStudents', Users, P.canViewUniversityReports),
+    navItem('/academic/field-training/opportunities', 'fieldTrainingOpportunities', Briefcase, P.canViewUniversityReports),
+    navItem('/academic/field-training/reports', 'fieldTraining', Briefcase, P.canViewUniversityReports),
+    navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
+    navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
     navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),
     navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),
-    navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
-    navItem('/academic/field-training/reports', 'fieldTraining', Briefcase, P.canViewUniversityReports),
     navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),
-    navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
+    navItem('/reviewer/user-guide', 'userGuide', BookOpenCheck, P.canViewDashboard),
     navItem('/reviewer/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 };

@@ -13,6 +13,6 @@ export function canWriteRecognitionRequest(user) {
 /** Matches backend PATCH /status (includes reviewer). */
 export function canPatchRecognitionStatus(user) {
   return roleCodes(user).some((r) =>
-    [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.ACADEMIC_REVIEWER].includes(r)
+    [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.REVIEWER].includes(r)
   );
 }

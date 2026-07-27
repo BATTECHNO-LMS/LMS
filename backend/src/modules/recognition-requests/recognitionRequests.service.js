@@ -1,4 +1,4 @@
-﻿const { ApiError } = require('../../utils/apiError');
+const { ApiError } = require('../../utils/apiError');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
 const cohortsRepo = require('../cohorts/cohorts.repository');
@@ -30,7 +30,7 @@ function listScopeWhere(requester) {
   }
   const roles = normalizeRoles(requester.roles);
   const uni = requester.universityId;
-  if (uni && roles.some((r) => ['admin', 'academic_reviewer'].includes(r))) {
+  if (uni && roles.some((r) => ['admin', 'reviewer'].includes(r))) {
     return { university_id: uni };
   }
   return { id: { in: [] } };
@@ -210,7 +210,7 @@ async function patchRecognitionStatus(id, body, requester) {
   const row = await repo.findById(id);
   assertCanAccessRow(requester, row);
   const roles = normalizeRoles(requester.roles);
-  if (!roles.some((r) => ['super_admin', 'admin', 'academic_reviewer'].includes(r))) {
+  if (!roles.some((r) => ['super_admin', 'admin', 'reviewer'].includes(r))) {
     throw new ApiError(403, 'Forbidden');
   }
   assertStatusTransition(row.status, body.status);

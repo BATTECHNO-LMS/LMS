@@ -104,7 +104,7 @@ test('only admin / assigned instructor can manage hours updates', () => {
   const student = { userId: 's1', roles: ['student'], universityId: opp.university_id };
   const reviewer = {
     userId: 'r1',
-    roles: ['academic_reviewer'],
+    roles: ['reviewer'],
     universityId: opp.university_id,
     isGlobal: false,
   };

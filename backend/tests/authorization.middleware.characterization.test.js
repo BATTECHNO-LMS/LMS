@@ -211,7 +211,7 @@ describe('authorizeRoles characterization', () => {
 
   it('multiple allowed roles: any match succeeds (legacy aliases included)', () => {
     const mw = authorizeRoles('academic_admin', 'university_reviewer', 'qa_officer');
-    for (const role of ['academic_admin', 'university_reviewer', 'qa_officer', 'admin', 'academic_reviewer']) {
+    for (const role of ['academic_admin', 'university_reviewer', 'qa_officer', 'admin', 'reviewer']) {
       const out = runMiddlewareSync(
         mw,
         createMockReq({ user: makeRequester({ roles: [role], isGlobal: false }) })

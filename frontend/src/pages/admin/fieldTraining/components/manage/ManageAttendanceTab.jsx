@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCheck, RefreshCw } from 'lucide-react';
 import { Button } from '../../../../../components/common/Button.jsx';
 import { FormInput } from '../../../../../components/forms/FormInput.jsx';
 import { FormTextarea } from '../../../../../components/forms/FormTextarea.jsx';
@@ -15,6 +16,7 @@ import {
   fetchAttendanceWindow,
   closeAttendanceWindow,
   finalizeAttendanceAbsences,
+  markAllPresent,
   patchStudentAttendance,
 } from '../../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
@@ -35,8 +37,55 @@ function randomCode() {
   return out;
 }
 
+function computeMarkAllPreview(participants, records, mode) {
+  let present = 0;
+  let absent = 0;
+  let late = 0;
+  let excused = 0;
+  let unconfirmed = 0;
+  let noRecord = 0;
+  let willChange = 0;
+
+  participants.forEach((p) => {
+    const appId = p.application_id;
+    const status = records[appId] || p.attendance?.status || null;
+    if (!status) {
+      noRecord += 1;
+      willChange += 1;
+      return;
+    }
+    if (status === 'present') {
+      present += 1;
+      return;
+    }
+    if (status === 'absent') absent += 1;
+    else if (status === 'late') late += 1;
+    else if (status === 'excused') excused += 1;
+    else if (status === 'unconfirmed') unconfirmed += 1;
+
+    if (mode === 'safe') {
+      if (status === 'unconfirmed') willChange += 1;
+    } else if (['unconfirmed', 'absent', 'late', 'excused'].includes(status)) {
+      willChange += 1;
+    }
+  });
+
+  return {
+    eligible: participants.length,
+    present,
+    absent,
+    late,
+    excused,
+    unconfirmed,
+    noRecord,
+    willChange,
+    hasReplaceableStatuses: absent + late + excused > 0,
+  };
+}
+
 export function ManageAttendanceTab({
   opportunityId,
+  opportunityTitle,
   preselectedSessionId,
   onSessionChange,
   apiScope = 'admin',
@@ -54,6 +103,10 @@ export function ManageAttendanceTab({
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showOpenModal, setShowOpenModal] = useState(false);
+  const [showMarkAllModal, setShowMarkAllModal] = useState(false);
+  const [markAllMode, setMarkAllMode] = useState('safe');
+  const [markAllReason, setMarkAllReason] = useState('');
+  const [markAllAck, setMarkAllAck] = useState(false);
   const [openForm, setOpenForm] = useState({
     code: randomCode(),
     duration_seconds: 120,
@@ -63,17 +116,25 @@ export function ManageAttendanceTab({
   const [announcedCode, setAnnouncedCode] = useState('');
 
   const sessions = sessionsData?.sessions ?? [];
+  const selectedSession = sessions.find((s) => s.id === sessionId);
 
   useEffect(() => {
     if (preselectedSessionId) setSessionId(preselectedSessionId);
   }, [preselectedSessionId]);
 
-  const { data: attendanceData, isLoading: attLoading } = useSessionAttendance(sessionId, {
-    enabled: Boolean(sessionId),
-    scope: apiScope,
-  });
+  const { data: attendanceData, isLoading: attLoading, refetch: refetchAttendance } = useSessionAttendance(
+    sessionId,
+    {
+      enabled: Boolean(sessionId),
+      scope: apiScope,
+    }
+  );
 
-  const { data: participantsData, isLoading: partLoading } = useQuery({
+  const {
+    data: participantsData,
+    isLoading: partLoading,
+    refetch: refetchParticipants,
+  } = useQuery({
     queryKey: fieldTrainingKeys.sessionParticipants(sessionId),
     queryFn: () => fetchSessionParticipants(sessionId, { asInstructor: isInstructor }),
     enabled: Boolean(sessionId),
@@ -120,6 +181,11 @@ export function ManageAttendanceTab({
     }));
   }, [participantsData]);
 
+  const markAllPreview = useMemo(
+    () => computeMarkAllPreview(participants, records, markAllMode),
+    [participants, records, markAllMode]
+  );
+
   const activeWindow = windowData?.window;
   const windowOpen = activeWindow?.status === 'open';
 
@@ -129,6 +195,29 @@ export function ManageAttendanceTab({
     qc.invalidateQueries({ queryKey: [...fieldTrainingKeys.all, 'attendance-window', sessionId] });
     qc.invalidateQueries({ queryKey: [...fieldTrainingKeys.all, 'student', 'progress'] });
     qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentSessions(opportunityId) });
+  }
+
+  function refreshList() {
+    setError('');
+    setSuccess('');
+    invalidateAttendance();
+    refetchAttendance();
+    refetchParticipants();
+    refetchWindow();
+  }
+
+  function openMarkAllModal() {
+    setMarkAllMode('safe');
+    setMarkAllReason(t('attendance.markAllPresent.reasonPlaceholder'));
+    setMarkAllAck(false);
+    setShowMarkAllModal(true);
+    setError('');
+  }
+
+  function closeMarkAllModal() {
+    if (markAllMut.isPending) return;
+    setShowMarkAllModal(false);
+    setMarkAllAck(false);
   }
 
   const saveMut = useMutation({
@@ -193,6 +282,32 @@ export function ManageAttendanceTab({
     onError: (err) => setError(getApiErrorMessage(err)),
   });
 
+  const markAllMut = useMutation({
+    mutationFn: () =>
+      markAllPresent(
+        sessionId,
+        {
+          reason: markAllReason.trim(),
+          mode: markAllMode,
+        },
+        { asInstructor: isInstructor }
+      ),
+    onSuccess: (data) => {
+      setShowMarkAllModal(false);
+      setMarkAllAck(false);
+      setSuccess(
+        `${t('attendance.markAllPresent.success')}\n${t('attendance.markAllPresent.summary', {
+          created: data.created ?? 0,
+          updated: data.updated ?? 0,
+          alreadyPresent: data.alreadyPresent ?? 0,
+        })}`
+      );
+      setError('');
+      invalidateAttendance();
+    },
+    onError: (err) => setError(getApiErrorMessage(err)),
+  });
+
   const patchMut = useMutation({
     mutationFn: ({ studentId, status, reason }) =>
       patchStudentAttendance(
@@ -204,6 +319,12 @@ export function ManageAttendanceTab({
     onSuccess: () => invalidateAttendance(),
     onError: (err) => setError(getApiErrorMessage(err)),
   });
+
+  const canConfirmMarkAll =
+    Boolean(markAllReason.trim()) &&
+    (markAllMode === 'safe' || markAllAck) &&
+    !markAllMut.isPending &&
+    participants.length > 0;
 
   if (sessionsLoading) return <LoadingSpinner />;
 
@@ -283,6 +404,26 @@ export function ManageAttendanceTab({
           >
             {t('attendance.finalizeAbsences')}
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="btn--sm ft-mark-all-present-btn"
+            disabled={!participants.length || markAllMut.isPending || partLoading || attLoading}
+            onClick={openMarkAllModal}
+          >
+            <CheckCheck size={16} aria-hidden />
+            {t('attendance.markAllPresent.button')}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="btn--sm"
+            disabled={partLoading || attLoading}
+            onClick={refreshList}
+          >
+            <RefreshCw size={16} aria-hidden />
+            {t('attendance.refreshList')}
+          </Button>
         </div>
       ) : null}
 
@@ -319,7 +460,11 @@ export function ManageAttendanceTab({
       ) : null}
 
       {error ? <p className="form-field__error">{error}</p> : null}
-      {success ? <p className="ft-student-task-list__success">{success}</p> : null}
+      {success ? (
+        <p className="ft-student-task-list__success" style={{ whiteSpace: 'pre-line' }}>
+          {success}
+        </p>
+      ) : null}
 
       {sessionId && (attLoading || partLoading) ? <LoadingSpinner /> : null}
 
@@ -462,6 +607,130 @@ export function ManageAttendanceTab({
                 onClick={() => openMut.mutate()}
               >
                 {openMut.isPending ? t('saving') : t('attendance.startNow')}
+              </Button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+
+      {showMarkAllModal ? (
+        <div className="ft-modal-backdrop" onClick={closeMarkAllModal} role="presentation">
+          <div
+            className="ft-modal ft-modal--wide"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ft-mark-all-title"
+          >
+            <header className="ft-modal__header">
+              <h2 className="ft-modal__title" id="ft-mark-all-title">
+                {t('attendance.markAllPresent.confirmTitle')}
+              </h2>
+            </header>
+            <div className="ft-modal__body">
+              <p>{t('attendance.markAllPresent.confirmBody')}</p>
+              <ul className="ft-mark-all-present-stats">
+                <li>
+                  <strong>{t('attendance.markAllPresent.sessionLabel')}:</strong>{' '}
+                  {selectedSession?.title || '—'}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.opportunityLabel')}:</strong>{' '}
+                  {opportunityTitle || '—'}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.eligible')}:</strong>{' '}
+                  {markAllPreview.eligible}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.presentNow')}:</strong>{' '}
+                  {markAllPreview.present}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.absentNow')}:</strong>{' '}
+                  {markAllPreview.absent}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.unconfirmedNow')}:</strong>{' '}
+                  {markAllPreview.unconfirmed + markAllPreview.noRecord}
+                </li>
+                <li>
+                  <strong>{t('attendance.markAllPresent.willChange')}:</strong>{' '}
+                  {markAllPreview.willChange}
+                </li>
+              </ul>
+
+              <fieldset className="ft-mark-all-present-modes">
+                <legend className="form-field__label">{t('attendance.markAllPresent.modeLabel')}</legend>
+                <label className="ft-mark-all-present-mode">
+                  <input
+                    type="radio"
+                    name="mark-all-mode"
+                    checked={markAllMode === 'safe'}
+                    onChange={() => {
+                      setMarkAllMode('safe');
+                      setMarkAllAck(false);
+                    }}
+                    disabled={markAllMut.isPending}
+                  />
+                  <span>{t('attendance.markAllPresent.modeSafe')}</span>
+                </label>
+                <label className="ft-mark-all-present-mode">
+                  <input
+                    type="radio"
+                    name="mark-all-mode"
+                    checked={markAllMode === 'replace_all'}
+                    onChange={() => setMarkAllMode('replace_all')}
+                    disabled={markAllMut.isPending}
+                  />
+                  <span>{t('attendance.markAllPresent.modeReplace')}</span>
+                </label>
+              </fieldset>
+
+              {markAllMode === 'replace_all' || markAllPreview.hasReplaceableStatuses ? (
+                <p className="ft-modal__warning" role="alert">
+                  {t('attendance.markAllPresent.replaceWarning')}
+                </p>
+              ) : null}
+
+              {markAllMode === 'replace_all' ? (
+                <label className="ft-mark-all-present-ack">
+                  <input
+                    type="checkbox"
+                    checked={markAllAck}
+                    onChange={(e) => setMarkAllAck(e.target.checked)}
+                    disabled={markAllMut.isPending}
+                  />
+                  <span>{t('attendance.markAllPresent.ackReplace')}</span>
+                </label>
+              ) : null}
+
+              <FormTextarea
+                label={t('attendance.markAllPresent.reasonLabel')}
+                value={markAllReason}
+                onChange={(e) => setMarkAllReason(e.target.value)}
+                rows={3}
+                disabled={markAllMut.isPending}
+              />
+            </div>
+            <footer className="ft-modal__footer">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={closeMarkAllModal}
+                disabled={markAllMut.isPending}
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!canConfirmMarkAll}
+                onClick={() => markAllMut.mutate()}
+              >
+                {markAllMut.isPending
+                  ? t('attendance.markAllPresent.loading')
+                  : t('attendance.markAllPresent.confirmButton')}
               </Button>
             </footer>
           </div>

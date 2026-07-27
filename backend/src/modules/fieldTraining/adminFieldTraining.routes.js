@@ -24,6 +24,7 @@ const {
   saveAttendanceBodySchema,
   openAttendanceWindowBodySchema,
   manualAttendanceBodySchema,
+  markAllPresentBodySchema,
   studentIdParamSchema,
   assessmentTypeParamSchema,
   assessmentIdParamSchema,
@@ -260,6 +261,14 @@ router.post(
   fieldTrainingStaff,
   validateRequest({ params: sessionIdParamSchema }),
   workflowController.finalizeAttendanceAbsences
+);
+
+router.post(
+  '/sessions/:sessionId/attendance/mark-all-present',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema, body: markAllPresentBodySchema }),
+  workflowController.markAllPresent
 );
 
 router.patch(

@@ -93,7 +93,7 @@ describe('ISS-002 academic delivery remediation (backend)', () => {
     assert.ok(write.includes('instructor'));
     assert.ok(write.includes('admin'));
     assert.equal(write.includes('student'), false);
-    assert.equal(write.includes('academic_reviewer'), false);
+    assert.equal(write.includes('reviewer'), false);
     assert.equal(write.includes('qa_officer'), false);
     assert.equal(write.includes('university_reviewer'), false);
   });
