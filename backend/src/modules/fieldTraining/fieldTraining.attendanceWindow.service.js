@@ -7,6 +7,7 @@ const { assertManageOpportunityAccess } = require('./fieldTraining.access');
 const workflow = require('./fieldTraining.workflow');
 const repo = require('./fieldTraining.repository');
 const ftNotify = require('./fieldTraining.notifications');
+const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
 
 const ALLOWED_DURATIONS = Object.freeze([60, 120, 180, 300]);
 const MAX_FAILED_ATTEMPTS = 5;
@@ -248,6 +249,21 @@ async function openAttendanceWindow(sessionId, body, user) {
     expiresAt,
     durationSeconds: duration,
   });
+
+  // Engine path (rules/templates). Never include attendance code in templateVars.
+  await emitDomainEvent('ATTENDANCE_WINDOW_OPENED', {
+    sessionId,
+    opportunityId: opp.id,
+    universityId: opp.university_id || oppFull?.university_id || null,
+    actorUserId: user.userId,
+    entityType: 'field_training_attendance_window',
+    entityId: windowRow.id,
+    templateVars: {
+      session_title: session.title || '',
+      opportunity_name: oppFull?.title || '',
+      action_url: `/student/field-training/sessions/${sessionId}`,
+    },
+  }).catch(() => null);
 
   await recordAudit({
     userId: user.userId,

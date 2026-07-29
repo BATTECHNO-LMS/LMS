@@ -7,32 +7,23 @@
   justify-content: center;
   min-height: 50vh;
   padding: 2rem 1rem;
+
+  .illustrated-status {
+    width: min(56rem, 100%);
+  }
 }
 
-.unauthorized-card {
-  max-width: 26rem;
+.unauthorized-page__hint {
+  margin-block-start: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #64748b);
   text-align: center;
-  padding: 2rem 1.5rem;
-  @include card-surface;
-  @include card-surface-lift(-3px);
+  line-height: 1.6;
 }
 
-.unauthorized-card__icon {
-  display: inline-flex;
-  color: var(--color-text-muted);
-  margin-bottom: 1rem;
-}
-
-.unauthorized-card__title {
-  margin: 0 0 0.75rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-heading);
-}
-
-.unauthorized-card__desc {
-  margin: 0 0 1.5rem;
-  font-size: 0.9375rem;
-  line-height: 1.55;
-  color: var(--color-text-muted);
+.unauthorized-page__contact {
+  color: var(--color-primary, #1d4ed8);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
 }

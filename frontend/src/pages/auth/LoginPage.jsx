@@ -31,6 +31,11 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const from = location.state?.from?.pathname;
+  const returnTo =
+    typeof location.state?.returnTo === 'string' && location.state.returnTo.startsWith('/')
+      ? location.state.returnTo
+      : null;
+  const postLoginTarget = returnTo || (from && from !== '/login' && !from.startsWith('/login/') ? from : null);
   const registrationPendingNotice = searchParams.get('registered') === 'pending';
   const reduced = useReducedMotion();
 
@@ -44,6 +49,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
     variant: 'pending',
     details: null,
     code: '',
+    systemKey: null,
   });
 
   const loginSchema = useMemo(
@@ -80,7 +86,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
     setSubmitting(true);
     try {
       const { redirectTo } = await login({ email: values.email.trim(), password: values.password });
-      navigate(from && from !== '/login' ? from : redirectTo, { replace: true });
+      navigate(postLoginTarget || redirectTo, { replace: true });
     } catch (err) {
       const code = err?.response?.data?.code;
       const details = err?.response?.data?.details || null;
@@ -90,6 +96,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
           open: true,
           code,
           details,
+          systemKey: overdue ? 'ACCOUNT_ACTIVATION_OVERDUE' : 'ACCOUNT_PENDING_ACTIVATION',
           variant: overdue ? 'warning' : 'pending',
           title: overdue ? 'تأخر تفعيل حسابك' : 'حسابك لم يُفعّل بعد',
           message: overdue
@@ -104,6 +111,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
           open: true,
           code,
           details,
+          systemKey: null,
           variant: 'error',
           title: code === 'ACCOUNT_REJECTED' ? 'تعذر تفعيل الحساب' : 'الحساب معطل مؤقتًا',
           message:
@@ -152,6 +160,7 @@ export function LoginPage({ forcedRole = null, forcedRoleLabelAr = '', forcedRol
         open={statusModal.open}
         title={statusModal.title}
         message={statusModal.message}
+        systemKey={statusModal.systemKey || null}
         note={`${statusModal.details?.maskedEmail ? `البريد: ${statusModal.details.maskedEmail}\n` : ''}${
           statusModal.details?.emailVerified ? 'حالة البريد: موثق' : 'حالة البريد: غير موثق'
         }`}

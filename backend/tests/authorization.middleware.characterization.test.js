@@ -148,7 +148,8 @@ describe('authorizeRoles characterization', () => {
     const mw = authorizeRoles('student');
     const out = runMiddlewareSync(mw, createMockReq({}));
     assert.equal(out.status, 401);
-    assert.equal(out.body.message, 'Unauthorized');
+    assert.equal(out.body.message, 'يجب تسجيل الدخول للمتابعة.');
+    assert.equal(out.body.code, 'UNAUTHORIZED');
   });
 
   it('allows when user has one of the allowed roles (case-insensitive)', () => {
@@ -163,7 +164,8 @@ describe('authorizeRoles characterization', () => {
     const req = createMockReq({ user: makeRequester({ roles: ['student'], isGlobal: false }) });
     const out = runMiddlewareSync(mw, req);
     assert.equal(out.status, 403);
-    assert.equal(out.body.message, 'Forbidden');
+    assert.equal(out.body.message, 'لا تملك صلاحية تنفيذ هذه العملية.');
+    assert.equal(out.body.code, 'FORBIDDEN');
   });
 
   it('denies empty roles array with 403', () => {

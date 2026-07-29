@@ -5,6 +5,7 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { useAuth } from '../../features/auth/index.js';
 import { useAssessments } from '../../features/assessments/index.js';
 import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
@@ -89,7 +90,10 @@ export function StudentAttendancePage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <StudentPageHeader title="الحضور" description="عرض نسب حضورك في الجلسات وفق كل مساق مسجّل." />
+      <div className="ug-page-tools">
+        <StudentPageHeader title="الحضور" description="عرض نسب حضورك في الجلسات وفق كل مساق مسجّل." />
+        <ContextualHelpButton contextualKey="attendance" route="/student/attendance" />
+      </div>
       <AdminFilterBar>
         <SearchInput placeholder="بحث بالمساق" aria-label="بحث" />
       </AdminFilterBar>

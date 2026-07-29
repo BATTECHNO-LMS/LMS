@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
+import { ContextualHelpButton } from '../../../components/help/ContextualHelpButton.jsx';
 import { AdminStatsGrid } from '../../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { StatCard } from '../../../components/common/StatCard.jsx';
@@ -105,6 +106,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
         }
         actions={
           <div className="ft-report-hub__actions">
+            <ContextualHelpButton contextualKey="progress" route={basePath} />
             {canGlobal ? (
               <Link className="btn btn--outline btn--sm" to={`${basePath}/global`}>
                 <Globe size={16} aria-hidden />

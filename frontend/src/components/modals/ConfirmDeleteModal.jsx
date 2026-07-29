@@ -1,5 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
+import { AppModal } from '../designSystem/index.js';
 import { useLocale } from '../../features/locale/index.js';
 import { translateText } from '../../utils/i18n.js';
 
@@ -15,33 +16,35 @@ export function ConfirmDeleteModal({
   busy = false,
 }) {
   const { locale } = useLocale();
-  if (!open) return null;
 
   return (
-    <div className="modal-overlay" role="presentation" onMouseDown={onClose}>
-      <div
-        className="modal modal--confirm"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-delete-title"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <div className="modal__icon">
-          <AlertTriangle size={22} aria-hidden />
-        </div>
-        <h2 id="confirm-delete-title" className="modal__title">
-          {translateText(title, locale)}
-        </h2>
-        <p className="modal__message">{translateText(message, locale)}</p>
-        <div className="modal__actions">
+    <AppModal
+      open={open}
+      onClose={onClose}
+      title={translateText(title, locale)}
+      size="sm"
+      variant="warning"
+      icon={<AlertTriangle size={20} aria-hidden />}
+      dismissible={!busy}
+      closeOnOverlay={!busy}
+      footer={
+        <>
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>
             {translateText(cancelLabel, locale)}
           </Button>
-          <Button type="button" variant={confirmVariant} onClick={onConfirm} disabled={busy}>
+          <Button
+            type="button"
+            variant={confirmVariant}
+            onClick={onConfirm}
+            loading={busy}
+            disabled={busy}
+          >
             {translateText(confirmLabel, locale)}
           </Button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="app-modal__note">{translateText(message, locale)}</p>
+    </AppModal>
   );
 }

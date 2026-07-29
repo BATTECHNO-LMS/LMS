@@ -1,16 +1,21 @@
 import { useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight } from 'lucide-react';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../../components/common/EmptyState.jsx';
+import { useAuth } from '../../../features/auth/index.js';
 import { fetchHelpArticle, recordHelpArticleView } from '../../../features/help/index.js';
+import { getUserGuideBasePath } from '../../../components/help/userGuidePaths.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 
 export function StudentUserGuideArticlePage() {
   const { slug } = useParams();
   const { t } = useTranslation('userGuide');
+  const { user } = useAuth();
+  const location = useLocation();
+  const guideBase = getUserGuideBasePath(user, location.pathname);
 
   const articleQuery = useQuery({
     queryKey: ['help', 'article', slug],
@@ -42,10 +47,10 @@ export function StudentUserGuideArticlePage() {
   return (
     <div className="page page--student ug-page">
       <nav className="ug-breadcrumbs" aria-label="breadcrumb">
-        <Link to="/student/user-guide">{t('title')}</Link>
+        <Link to={guideBase}>{t('title')}</Link>
         <span aria-hidden>/</span>
         {article.category_slug ? (
-          <Link to={`/student/user-guide/${article.category_slug}`}>{article.category_title_ar}</Link>
+          <Link to={`${guideBase}/${article.category_slug}`}>{article.category_title_ar}</Link>
         ) : null}
         <span aria-hidden>/</span>
         <span>{article.title_ar}</span>
@@ -56,7 +61,7 @@ export function StudentUserGuideArticlePage() {
             <h1 className="ug-page__title">{article.title_ar}</h1>
             {article.summary_ar ? <p className="ug-page__desc">{article.summary_ar}</p> : null}
           </div>
-          <Link className="btn btn--outline btn--sm" to="/student/user-guide">
+          <Link className="btn btn--outline btn--sm" to={guideBase}>
             <ArrowRight size={16} aria-hidden /> {t('back')}
           </Link>
         </header>
@@ -69,7 +74,7 @@ export function StudentUserGuideArticlePage() {
             ))}
         </div>
         <footer className="ug-article__footer">
-          <Link className="btn btn--outline" to="/student/user-guide/support">
+          <Link className="btn btn--outline" to={`${guideBase}/support`}>
             {t('stillNeedHelp')}
           </Link>
         </footer>

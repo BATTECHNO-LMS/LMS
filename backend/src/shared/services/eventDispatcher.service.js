@@ -250,6 +250,47 @@ async function dispatchAppEvent(type, payload) {
     default:
       break;
   }
+
+  // Thin bridge: map easy legacy events onto the notification rules catalog.
+  await bridgeLegacyEventToDomain(type, payload).catch(() => null);
+}
+
+/**
+ * Optional mapping from old dispatchAppEvent names → catalog event types.
+ * Failures never break the legacy handler path.
+ * @param {string} type
+ * @param {Record<string, unknown>} payload
+ */
+async function bridgeLegacyEventToDomain(type, payload = {}) {
+  const map = {
+    certificate_issued: 'CERTIFICATE_ISSUED',
+  };
+  const eventType = map[type];
+  if (!eventType) return;
+
+  const { emitDomainEvent } = require('../../modules/notificationEngine/notificationDispatcher.service');
+
+  if (eventType === 'CERTIFICATE_ISSUED') {
+    const certificate = /** @type {{ id?: string, student_id?: string, certificate_no?: string, status?: string } | undefined} */ (
+      payload.certificate
+    );
+    const actor = /** @type {{ userId?: string, universityId?: string } | undefined} */ (payload.actor);
+    if (!certificate?.student_id) return;
+    const certId = certificate.id || '';
+    await emitDomainEvent('CERTIFICATE_ISSUED', {
+      studentId: certificate.student_id,
+      affectedUserId: certificate.student_id,
+      universityId: actor?.universityId || null,
+      actorUserId: actor?.userId || null,
+      entityType: 'certificate',
+      entityId: certId || null,
+      reviewerActionUrl: certId ? `/reviewer/certificates/${certId}` : '/reviewer/certificates',
+      templateVars: {
+        certificate_name: certificate.certificate_no || '',
+        action_url: certId ? `/student/certificates/${certId}` : '/student/certificates',
+      },
+    });
+  }
 }
 
 module.exports = {

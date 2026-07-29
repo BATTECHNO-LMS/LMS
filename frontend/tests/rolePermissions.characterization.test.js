@@ -20,11 +20,12 @@ import {
 const CANONICAL = Object.values(ROLES);
 
 describe('FE rolePermissions characterization', () => {
-  it('exposes exactly eight canonical role codes', () => {
-    assert.equal(CANONICAL.length, 8);
+  it('exposes exactly five official role codes', () => {
+    assert.equal(CANONICAL.length, 5);
     assert.ok(ADMIN_ROLE_SET.includes(ROLES.SUPER_ADMIN));
-    assert.equal(ADMIN_ROLE_SET.includes(ROLES.PROGRAM_ADMIN), false);
+    assert.ok(ADMIN_ROLE_SET.includes(ROLES.ADMIN));
     assert.ok(!ADMIN_ROLE_SET.includes(ROLES.INSTRUCTOR));
+    assert.ok(CANONICAL.includes(ROLES.REVIEWER));
   });
 
   it('ADMIN_ROLE_SET members get ADMIN_ALL (every UI_PERMISSION true)', () => {
@@ -91,7 +92,8 @@ describe('FE rolePermissions characterization', () => {
   });
 
   it('canAccessPathWithUiPermissions: admin roles always true', () => {
-    assert.equal(canAccessPathWithUiPermissions(ROLES.QA_OFFICER, '/student/grades'), true);
+    assert.equal(canAccessPathWithUiPermissions(ROLES.ADMIN, '/student/grades'), true);
+    assert.equal(canAccessPathWithUiPermissions(ROLES.SUPER_ADMIN, '/instructor/dashboard'), true);
   });
 
   it('canAccessPathWithUiPermissions: student is NOT portal-gated (shared canViewDashboard key)', () => {
@@ -121,21 +123,28 @@ describe('FE rolePermissions characterization', () => {
     assert.equal(canAccessPathWithUiPermissionsForUser(user, '/student/programs'), true);
   });
 
-  it('program_admin fails closed (no ADMIN_ALL, no student fallback) — Phase 3', () => {
-    assert.equal(hasUiPermission(ROLES.PROGRAM_ADMIN, UI_PERMISSION.canGradeAssessments), false);
-    assert.equal(hasUiPermission(ROLES.PROGRAM_ADMIN, UI_PERMISSION.canViewDashboard), false);
-    assert.equal(canAccessPathWithUiPermissions(ROLES.PROGRAM_ADMIN, '/admin/dashboard'), false);
-    assert.equal(canAccessPathWithUiPermissions(ROLES.PROGRAM_ADMIN, '/student'), false);
+  it('canAccessPathWithUiPermissionsForUser: multi-role uses shell role (not primary alone)', () => {
+    const user = {
+      role: ROLES.INSTRUCTOR,
+      roles: [ROLES.INSTRUCTOR, ROLES.STUDENT],
+      permissions: [],
+    };
+    assert.equal(canAccessPathWithUiPermissionsForUser(user, '/student/courses'), true);
+    assert.equal(canAccessPathWithUiPermissionsForUser(user, '/instructor/dashboard'), true);
   });
 
-  it('university_reviewer cannot submit assessments in UI matrix', () => {
+  it('legacy program_admin: UI matrix via alias; path helper fails closed on deprecated code', () => {
+    assert.equal(hasUiPermission('program_admin', UI_PERMISSION.canGradeAssessments), true);
+    assert.equal(canAccessPathWithUiPermissions('program_admin', '/student/grades'), false);
+    assert.equal(canAccessPathWithUiPermissions(ROLES.ADMIN, '/student/grades'), true);
+  });
+
+  it('legacy university_reviewer canonicalizes to reviewer matrix', () => {
+    assert.equal(hasUiPermission('university_reviewer', UI_PERMISSION.canSubmitAssessments), false);
     assert.equal(
-      hasUiPermission(ROLES.UNIVERSITY_REVIEWER, UI_PERMISSION.canSubmitAssessments),
-      false
-    );
-    assert.equal(
-      hasUiPermission(ROLES.UNIVERSITY_REVIEWER, UI_PERMISSION.canViewUniversityReports),
+      hasUiPermission('university_reviewer', UI_PERMISSION.canViewUniversityReports),
       true
     );
+    assert.equal(hasUiPermission(ROLES.REVIEWER, UI_PERMISSION.canViewUniversityReports), true);
   });
 });

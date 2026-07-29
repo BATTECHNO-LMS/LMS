@@ -7,6 +7,7 @@ const authRepository = require('./auth.repository');
 const { ensureUserLinkedToUniversityFromEmail } = require('./universityEmailLink.service');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { notifyAdminsStudentRegistrationPending } = require('../../shared/services/notification.service');
+const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
 const { listActiveSpecialties, assertActiveSpecialty } = require('../specialties/specialties.service');
 const universitySpecialtiesService = require('../universitySpecialties/universitySpecialties.service');
 const { issueEmailVerificationOtp, verifyEmailOtpForUser, resendEmailVerificationOtp } = require('./emailVerification.service');
@@ -209,6 +210,19 @@ async function register(validated) {
     studentEmail: user.email,
     studentName: user.full_name,
   });
+
+  await emitDomainEvent('ACCOUNT_PENDING_ACTIVATION', {
+    affectedUserId: user.id,
+    studentId: user.id,
+    universityId: validated.university_id,
+    entityType: 'user',
+    entityId: user.id,
+    templateVars: {
+      student_name: user.full_name,
+      email: user.email,
+      action_url: '/login/student',
+    },
+  }).catch(() => null);
 
   await issueEmailVerificationOtp(user);
 

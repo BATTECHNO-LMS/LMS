@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Archive,
   Bell,
   Inbox,
   UserPlus,
@@ -13,20 +14,26 @@ import {
   AlertOctagon,
   CheckCheck,
   ChevronLeft,
+  ShieldCheck,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
+import { AlertBanner } from '../../components/designSystem/index.js';
 import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
 import { cn } from '../../utils/helpers.js';
 import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
+import { useUnreadNotificationCount } from '../../features/notifications/hooks/useUnreadNotificationCount.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
 import { useMarkAllNotificationsRead } from '../../features/notifications/hooks/useMarkAllNotificationsRead.js';
+import { useArchiveNotification } from '../../features/notifications/hooks/useArchiveNotification.js';
+import { useAcknowledgeNotification } from '../../features/notifications/hooks/useAcknowledgeNotification.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { useLocale } from '../../features/locale/index.js';
 import { useAuth } from '../../features/auth/index.js';
 import { getNotificationLink } from '../../utils/notificationDeepLink.js';
+import { getNotificationSettingsPathForUser } from '../../utils/notificationSettingsPath.js';
 
 /** Notification type → themed icon (falls back to a bell). */
 const TYPE_ICONS = {
@@ -68,6 +75,7 @@ export function NotificationsPage() {
   const location = useLocation();
   const isStudentPortal = location.pathname.startsWith('/student');
   const PageHeader = isStudentPortal ? StudentPageHeader : AdminPageHeader;
+  const settingsPath = getNotificationSettingsPathForUser(user);
 
   const [active, setActive] = useState('all');
 
@@ -86,9 +94,12 @@ export function NotificationsPage() {
     { page: 1, page_size: 100 },
     { staleTime: 15_000, enabled: needsSeparateSummary }
   );
+  const { data: unreadData } = useUnreadNotificationCount({ staleTime: 15_000 });
 
   const markOne = useMarkNotificationRead();
   const markAll = useMarkAllNotificationsRead();
+  const archiveOne = useArchiveNotification();
+  const ackOne = useAcknowledgeNotification();
 
   const items = useMemo(() => {
     const list = data?.notifications ?? [];
@@ -99,40 +110,61 @@ export function NotificationsPage() {
       type: n.type,
       action_url: n.action_url ?? null,
       is_read: n.is_read,
+      category: n.category ?? null,
+      priority: n.priority ?? null,
+      is_critical: Boolean(n.is_critical),
+      requires_acknowledgement: Boolean(n.requires_acknowledgement),
+      acknowledged_at: n.acknowledged_at ?? null,
       created_at: n.created_at ? new Date(n.created_at).toLocaleString(locale) : '—',
     }));
   }, [data, locale]);
 
   const summary = useMemo(() => {
     const list = (needsSeparateSummary ? allData : data)?.notifications ?? [];
+    const unreadFromApi =
+      typeof unreadData?.unread_count === 'number' ? unreadData.unread_count : null;
     return {
       total: list.length,
-      unread: list.filter((n) => !n.is_read).length,
+      unread: unreadFromApi ?? list.filter((n) => !n.is_read).length,
       registration: list.filter((n) => isRegistrationNotification(n)).length,
       system: list.filter((n) => n.type === 'system').length,
     };
-  }, [needsSeparateSummary, allData, data]);
+  }, [needsSeparateSummary, allData, data, unreadData]);
 
   const summaryValue = (n) => ((needsSeparateSummary ? summaryLoading : isLoading) ? '—' : String(n));
 
   return (
-    <div className={cn('page page--dashboard', isStudentPortal ? 'page--student' : 'page--admin')}>
-      <PageHeader
-        title={t('title')}
-        description={t('description')}
-        actions={
-          <button
-            type="button"
-            className="btn btn--outline"
-            disabled={markAll.isPending}
-            onClick={() => markAll.mutate()}
-          >
-            <CheckCheck size={16} strokeWidth={2} aria-hidden />
-            {t('markAllRead')}
-          </button>
-        }
-      />
+    <div
+      className={cn(
+        'page page--dashboard page-shell',
+        isStudentPortal ? 'page--student' : 'page--admin'
+      )}
+    >
+      <div className="page-shell__header">
+        <PageHeader
+          title={t('title')}
+          description={t('description')}
+          actions={
+            <div className="page-shell__actions">
+              <Link className="btn btn--outline" to={settingsPath}>
+                <Settings size={16} strokeWidth={2} aria-hidden />
+                {t('preferences', { defaultValue: 'Preferences' })}
+              </Link>
+              <button
+                type="button"
+                className="btn btn--outline"
+                disabled={markAll.isPending}
+                onClick={() => markAll.mutate()}
+              >
+                <CheckCheck size={16} strokeWidth={2} aria-hidden />
+                {t('markAllRead')}
+              </button>
+            </div>
+          }
+        />
+      </div>
 
+      <div className="page-shell__content">
       <AdminStatsGrid>
         <StatCard label={t('summary.total')} value={summaryValue(summary.total)} icon={Bell} />
         <StatCard label={t('summary.unread')} value={summaryValue(summary.unread)} icon={Inbox} />
@@ -162,13 +194,17 @@ export function NotificationsPage() {
 
       {isLoading ? <p className="notif-feedback">{tCommon('loading')}</p> : null}
       {isError ? (
-        <p className="notif-feedback" role="alert">
+        <AlertBanner variant="danger" title={t('loadError')}>
           {getApiErrorMessage(error, t('loadError'))}
-        </p>
+        </AlertBanner>
       ) : null}
 
       {!isLoading && !isError && items.length === 0 ? (
-        <EmptyState icon={Bell} title={t('emptyTitle')} description={t('emptyDescription')} />
+        <EmptyState
+          icon={Bell}
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
+        />
       ) : null}
 
       {items.length > 0 ? (
@@ -202,6 +238,15 @@ export function NotificationsPage() {
                     <span className="notif-badge notif-badge--type">
                       {t(`types.${n.type}`, { defaultValue: n.type })}
                     </span>
+                    {n.category ? (
+                      <span className="notif-badge notif-badge--type">{n.category}</span>
+                    ) : null}
+                    {n.priority ? (
+                      <span className="notif-badge notif-badge--type">{n.priority}</span>
+                    ) : null}
+                    {n.is_critical ? (
+                      <span className="notif-badge notif-badge--unread">{t('critical')}</span>
+                    ) : null}
                     <span className={cn('notif-badge', n.is_read ? 'notif-badge--read' : 'notif-badge--unread')}>
                       {n.is_read ? t('list.read') : t('unread')}
                     </span>
@@ -225,6 +270,27 @@ export function NotificationsPage() {
                         {t('markRead')}
                       </button>
                     ) : null}
+                    {n.requires_acknowledgement && !n.acknowledged_at ? (
+                      <button
+                        type="button"
+                        className="btn btn--outline btn--sm"
+                        onClick={() => ackOne.mutate(n.id)}
+                        disabled={ackOne.isPending}
+                      >
+                        <ShieldCheck size={14} aria-hidden />
+                        {t('acknowledge')}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => archiveOne.mutate(n.id)}
+                      disabled={archiveOne.isPending}
+                      title={t('archive')}
+                    >
+                      <Archive size={14} aria-hidden />
+                      {t('archive')}
+                    </button>
                   </div>
                 </div>
               </article>
@@ -232,6 +298,7 @@ export function NotificationsPage() {
           })}
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

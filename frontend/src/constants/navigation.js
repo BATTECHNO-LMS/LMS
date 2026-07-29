@@ -44,6 +44,62 @@ const ROLE_NAV_PREFIX = {
   [ROLES.REVIEWER]: 'reviewer',
 };
 
+/**
+ * Student sidebar sections — field training first, then learning / support.
+ * Each group can be collapsible in AdminSidebar when `collapsible: true`.
+ */
+export const STUDENT_NAV_GROUPS = [
+  {
+    id: 'overview',
+    titleKey: 'student.groups.overview',
+    collapsible: false,
+    defaultOpen: true,
+    items: [navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard)],
+  },
+  {
+    id: 'fieldTraining',
+    titleKey: 'student.groups.fieldTraining',
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining),
+      navItem('/student/sessions', 'sessions', CalendarDays, P.canViewSessions),
+      navItem('/student/attendance', 'attendance', ClipboardCheck, P.canViewAttendance),
+      navItem('/student/assessments', 'assessments', FileCheck, P.canViewAssessments),
+      navItem('/student/submissions', 'submissions', Upload, P.canViewSubmissionStatus),
+      navItem('/student/grades', 'grades', BarChart3, P.canViewGrades),
+      navItem('/student/certificate', 'certificate', Award, P.canViewCertificates),
+    ],
+  },
+  {
+    id: 'learning',
+    titleKey: 'student.groups.learning',
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
+      navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
+      navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
+      navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
+      navItem('/student/content', 'content', BookOpen, P.canViewContent),
+    ],
+  },
+  {
+    id: 'support',
+    titleKey: 'student.groups.support',
+    collapsible: true,
+    defaultOpen: false,
+    items: [
+      navItem('/student/user-guide', 'userGuide', BookOpenCheck),
+      navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
+    ],
+  },
+];
+
+function flattenStudentNavItems() {
+  return STUDENT_NAV_GROUPS.flatMap((g) => g.items);
+}
+
 /** Non-admin roles — `{ to, labelKey, icon, permission }`. */
 export const NAV_BY_ROLE = {
   [ROLES.INSTRUCTOR]: [
@@ -62,26 +118,11 @@ export const NAV_BY_ROLE = {
     navItem('/instructor/field-training?section=tasks', 'fieldTrainingTasks', ListChecks),
     navItem('/instructor/field-training?section=results', 'fieldTrainingResults', ClipboardList),
     navItem('/instructor/field-training?section=eligibility', 'fieldTrainingEligibility', Award),
+    navItem('/instructor/user-guide', 'userGuide', BookOpenCheck),
     navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
-  [ROLES.STUDENT]: [
-    navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
-    navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
-    navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
-    navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining),
-    navItem('/student/user-guide', 'userGuide', BookOpenCheck),
-    navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
-    navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
-    navItem('/student/content', 'content', BookOpen, P.canViewContent),
-    navItem('/student/sessions', 'sessions', CalendarDays, P.canViewSessions),
-    navItem('/student/attendance', 'attendance', ClipboardCheck, P.canViewAttendance),
-    navItem('/student/assessments', 'assessments', FileCheck, P.canViewAssessments),
-    navItem('/student/submissions', 'submissions', Upload, P.canViewSubmissionStatus),
-    navItem('/student/grades', 'grades', BarChart3, P.canViewGrades),
-    navItem('/student/certificate', 'certificate', Award, P.canViewCertificates),
-    navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
-  ],
+  [ROLES.STUDENT]: flattenStudentNavItems(),
 
   [ROLES.REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
@@ -110,7 +151,8 @@ function resolveRoleNavLabel(role, item, tNav) {
 }
 
 /**
- * Unified sidebar: admin groups unchanged; other roles filtered by UI permissions.
+ * Unified sidebar: admin groups unchanged; student uses collapsible sections;
+ * other roles filtered by UI permissions into a single group.
  * @param {{ role?: string, permissions?: string[] } | null | undefined} user
  * @param {Function} tNav - `useTranslation('navigation').t`
  */
@@ -119,6 +161,18 @@ export function getDashboardNavGroups(user, tNav) {
   if (!role) return [];
   if (ADMIN_ROLE_SET.includes(role)) {
     return getAdminNavGroupsForRole(role, tNav);
+  }
+  if (role === ROLES.STUDENT) {
+    return STUDENT_NAV_GROUPS.map((group) => ({
+      id: group.id,
+      title: tNav(group.titleKey),
+      collapsible: Boolean(group.collapsible),
+      defaultOpen: Boolean(group.defaultOpen),
+      items: filterNavItemsByUi(user, group.items).map((item) => ({
+        ...item,
+        label: resolveRoleNavLabel(role, item, tNav),
+      })),
+    })).filter((group) => group.items.length > 0);
   }
   const items = filterNavItemsByUi(user, NAV_BY_ROLE[role]).map((item) => ({
     ...item,

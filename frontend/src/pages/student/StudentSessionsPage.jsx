@@ -11,6 +11,7 @@ import {
   StudentPageHeader,
   StudentSection,
 } from '../../components/student/index.js';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { useLocale } from '../../features/locale/index.js';
 import { useAssessments } from '../../features/assessments/index.js';
 import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
@@ -77,14 +78,17 @@ export function StudentSessionsPage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <StudentPageHeader
-        title={tr(isArabic, 'الجلسات', 'Sessions')}
-        description={tr(
-          isArabic,
-          'جدول جلساتك الحضورية والافتراضية والروابط والتذكيرات.',
-          'Your onsite and online sessions schedule with links and reminders.'
-        )}
-      />
+      <div className="ug-page-tools">
+        <StudentPageHeader
+          title={tr(isArabic, 'الجلسات', 'Sessions')}
+          description={tr(
+            isArabic,
+            'جدول جلساتك الحضورية والافتراضية والروابط والتذكيرات.',
+            'Your onsite and online sessions schedule with links and reminders.'
+          )}
+        />
+        <ContextualHelpButton contextualKey="sessions" route="/student/sessions" />
+      </div>
       <AdminFilterBar>
         <SearchInput
           placeholder={tr(isArabic, 'بحث بالمساق أو التاريخ', 'Search by course or date')}

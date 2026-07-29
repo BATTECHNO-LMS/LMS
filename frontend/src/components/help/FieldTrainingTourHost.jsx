@@ -1,23 +1,36 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, X } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
+import { useAuth } from '../../features/auth/index.js';
 import {
   completeFieldTrainingOnboarding,
+  completeOnboardingByKey,
   dismissFieldTrainingOnboarding,
+  dismissOnboardingByKey,
+  fetchActiveOnboarding,
   fetchFieldTrainingOnboarding,
   progressFieldTrainingOnboarding,
+  progressOnboardingByKey,
   startFieldTrainingOnboarding,
+  startOnboardingByKey,
 } from '../../features/help/index.js';
-import { FIELD_TRAINING_TOUR_STEPS, findTourTarget } from '../../features/help/tourSteps.js';
+import {
+  FIELD_TRAINING_STUDENT_GUIDE_KEY,
+  FIELD_TRAINING_TOUR_STEPS,
+  findTourTarget,
+  guideKeyForRole,
+  mapApiTourSteps,
+  resolveVisibleStepIndex,
+} from '../../features/help/tourSteps.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
-
-const ONBOARDING_KEY = ['student', 'onboarding', 'field-training'];
+import { getUserGuideBasePath } from './userGuidePaths.js';
 
 export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) {
   const { t } = useTranslation('userGuide');
+  const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [phase, setPhase] = useState('idle'); // idle | welcome | tour | done
@@ -25,18 +38,50 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
   const [highlight, setHighlight] = useState(null);
   const [error, setError] = useState('');
 
+  const role = String(user?.role || '').toLowerCase();
+  const guideKey = guideKeyForRole(role);
+  const guideBase = getUserGuideBasePath(user);
+  const isStudentFallback = role === 'student';
+
+  const onboardingKey = useMemo(
+    () => ['onboarding', guideKey || 'none', role],
+    [guideKey, role]
+  );
+
   const { data: onboarding } = useQuery({
-    queryKey: ONBOARDING_KEY,
-    queryFn: fetchFieldTrainingOnboarding,
+    queryKey: onboardingKey,
+    queryFn: async () => {
+      if (!guideKey) return null;
+      try {
+        return await fetchActiveOnboarding({ guide_key: guideKey });
+      } catch {
+        try {
+          return await fetchActiveOnboarding();
+        } catch {
+          if (isStudentFallback) return fetchFieldTrainingOnboarding();
+          return null;
+        }
+      }
+    },
+    enabled: Boolean(guideKey),
     staleTime: 60_000,
     retry: 1,
   });
 
-  const shouldAutoOpen = Boolean(onboarding?.should_show);
+  const apiSteps = useMemo(() => mapApiTourSteps(onboarding?.steps), [onboarding?.steps]);
+  const useApiSteps = apiSteps.length > 0;
+  const steps = useApiSteps
+    ? apiSteps
+    : isStudentFallback
+      ? FIELD_TRAINING_TOUR_STEPS
+      : [];
+
+  const shouldAutoOpen = Boolean(onboarding?.should_show) && steps.length > 0;
   const updateAvailable = Boolean(onboarding?.update_available);
+  const activeGuideKey = onboarding?.guide_key || guideKey || FIELD_TRAINING_STUDENT_GUIDE_KEY;
 
   useEffect(() => {
-    if (forceOpen) {
+    if (forceOpen && steps.length) {
       setPhase('welcome');
       setStepIndex(0);
       return;
@@ -44,56 +89,79 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
     if (shouldAutoOpen && phase === 'idle') {
       setPhase('welcome');
     }
-  }, [forceOpen, shouldAutoOpen, phase]);
+  }, [forceOpen, shouldAutoOpen, phase, steps.length]);
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: onboardingKey });
 
   const startMut = useMutation({
-    mutationFn: startFieldTrainingOnboarding,
+    mutationFn: async () => {
+      if (useApiSteps || !isStudentFallback) {
+        return startOnboardingByKey(activeGuideKey);
+      }
+      return startFieldTrainingOnboarding();
+    },
     onSuccess: () => {
-      qc.setQueryData(ONBOARDING_KEY, (prev) => ({ ...(prev || {}), status: 'in_progress' }));
+      invalidate();
+      const first = resolveVisibleStepIndex(steps, 0);
       setPhase('tour');
-      setStepIndex(0);
+      setStepIndex(first >= 0 ? first : 0);
     },
     onError: (err) => setError(getApiErrorMessage(err)),
   });
 
   const progressMut = useMutation({
-    mutationFn: (last_step) => progressFieldTrainingOnboarding({ last_step }),
+    mutationFn: (last_step) => {
+      if (useApiSteps || !isStudentFallback) {
+        return progressOnboardingByKey(activeGuideKey, { last_step });
+      }
+      return progressFieldTrainingOnboarding({ last_step });
+    },
   });
 
   const completeMut = useMutation({
-    mutationFn: completeFieldTrainingOnboarding,
-    onSuccess: (data) => {
-      qc.setQueryData(ONBOARDING_KEY, data);
+    mutationFn: () => {
+      if (useApiSteps || !isStudentFallback) {
+        return completeOnboardingByKey(activeGuideKey);
+      }
+      return completeFieldTrainingOnboarding();
+    },
+    onSuccess: () => {
+      invalidate();
       setPhase('done');
       setHighlight(null);
     },
   });
 
   const dismissMut = useMutation({
-    mutationFn: dismissFieldTrainingOnboarding,
-    onSuccess: (data) => {
-      qc.setQueryData(ONBOARDING_KEY, data);
+    mutationFn: () => {
+      if (useApiSteps || !isStudentFallback) {
+        return dismissOnboardingByKey(activeGuideKey);
+      }
+      return dismissFieldTrainingOnboarding();
+    },
+    onSuccess: () => {
+      invalidate();
       setPhase('idle');
       setHighlight(null);
       onCloseForce?.();
     },
   });
 
-  const step = FIELD_TRAINING_TOUR_STEPS[stepIndex];
-  const total = FIELD_TRAINING_TOUR_STEPS.length;
+  const step = steps[stepIndex];
+  const total = steps.length;
 
   const updateHighlight = useCallback(() => {
     if (phase !== 'tour' || !step) {
       setHighlight(null);
       return;
     }
+    if (!step.tourId) {
+      setHighlight(null);
+      return;
+    }
     const el = findTourTarget(step.tourId);
     if (!el) {
       setHighlight(null);
-      if (import.meta.env.DEV) {
-        // eslint-disable-next-line no-console
-        console.debug('[tour] missing target', step.tourId);
-      }
       return;
     }
     const rect = el.getBoundingClientRect();
@@ -105,6 +173,20 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
     });
     el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
   }, [phase, step]);
+
+  useEffect(() => {
+    if (phase !== 'tour' || !steps.length) return;
+    const visible = resolveVisibleStepIndex(steps, stepIndex);
+    if (visible < 0) {
+      if (phase === 'tour') completeMut.mutate();
+      return;
+    }
+    if (visible !== stepIndex) {
+      setStepIndex(visible);
+    }
+    // intentionally omit completeMut/progressMut from deps to avoid re-entry loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, stepIndex, steps]);
 
   useEffect(() => {
     updateHighlight();
@@ -121,13 +203,13 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
   };
 
   const goNext = () => {
-    if (stepIndex >= total - 1) {
+    const nextVisible = resolveVisibleStepIndex(steps, stepIndex + 1);
+    if (nextVisible < 0) {
       completeMut.mutate();
       return;
     }
-    const next = stepIndex + 1;
-    setStepIndex(next);
-    progressMut.mutate(next + 1);
+    setStepIndex(nextVisible);
+    progressMut.mutate(nextVisible + 1);
   };
 
   const goPrev = () => {
@@ -135,13 +217,25 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
       setPhase('welcome');
       return;
     }
-    const prev = stepIndex - 1;
+    let prev = stepIndex - 1;
+    while (prev >= 0) {
+      const s = steps[prev];
+      if (!s?.tourId || findTourTarget(s.tourId)) break;
+      prev -= 1;
+    }
+    if (prev < 0) {
+      setPhase('welcome');
+      return;
+    }
     setStepIndex(prev);
     progressMut.mutate(prev + 1);
   };
 
   const open = phase === 'welcome' || phase === 'tour' || phase === 'done';
-  if (!open) return null;
+  if (!guideKey || !steps.length || !open) return null;
+
+  const stepTitle = step?.fromApi ? step.title : step ? t(step.titleKey) : '';
+  const stepBody = step?.fromApi ? step.body : step ? t(step.bodyKey) : '';
 
   return (
     <div className="ug-tour-root" role="presentation">
@@ -170,7 +264,7 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
               ? t('tour.welcomeTitle')
               : phase === 'done'
                 ? t('tour.doneTitle')
-                : t(step.titleKey)}
+                : stepTitle}
           </h2>
           <button
             type="button"
@@ -191,7 +285,7 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
           ) : null}
 
           {phase === 'welcome' ? <p>{t('tour.welcomeBody')}</p> : null}
-          {phase === 'tour' ? <p>{t(step.bodyKey)}</p> : null}
+          {phase === 'tour' ? <p>{stepBody}</p> : null}
           {phase === 'done' ? <p>{t('tour.doneBody')}</p> : null}
 
           {phase === 'tour' ? (
@@ -209,7 +303,7 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
               <Button type="button" variant="ghost" disabled={busy} onClick={() => dismissMut.mutate()}>
                 {t('tour.skip')}
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/student/user-guide')}>
+              <Button type="button" variant="outline" onClick={() => navigate(guideBase)}>
                 <BookOpen size={16} aria-hidden /> {t('tour.openGuide')}
               </Button>
               <Button
@@ -231,27 +325,27 @@ export function FieldTrainingTourHost({ forceOpen = false, onCloseForce } = {}) 
               <Button type="button" variant="outline" disabled={busy} onClick={goPrev}>
                 {t('tour.prev')}
               </Button>
-              {step.actionTo ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate(step.actionTo)}
-                >
-                  {t(step.actionLabelKey || 'tour.openGuide')}
+              {step?.actionTo ? (
+                <Button type="button" variant="outline" onClick={() => navigate(step.actionTo)}>
+                  {step.fromApi
+                    ? t('tour.openGuide')
+                    : t(step.actionLabelKey || 'tour.openGuide')}
                 </Button>
               ) : null}
               <Button type="button" variant="primary" disabled={busy} onClick={goNext}>
-                {stepIndex >= total - 1 ? t('tour.finish') : t('tour.next')}
+                {resolveVisibleStepIndex(steps, stepIndex + 1) < 0 ? t('tour.finish') : t('tour.next')}
               </Button>
             </>
           ) : null}
 
           {phase === 'done' ? (
             <>
-              <Button type="button" variant="outline" onClick={() => navigate('/student/field-training')}>
-                {t('tour.goOpportunities')}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => navigate('/student/user-guide')}>
+              {isStudentFallback ? (
+                <Button type="button" variant="outline" onClick={() => navigate('/student/field-training')}>
+                  {t('tour.goOpportunities')}
+                </Button>
+              ) : null}
+              <Button type="button" variant="outline" onClick={() => navigate(guideBase)}>
                 {t('tour.openGuide')}
               </Button>
               <Button type="button" variant="primary" onClick={closeAll}>

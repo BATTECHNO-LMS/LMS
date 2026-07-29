@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Award } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -50,7 +51,10 @@ export function CertificatesReviewPage() {
 
   return (
     <div className="page page--dashboard page--reviewer">
-      <AdminPageHeader title={t('list.title')} description={t('list.description')} />
+      <div className="ug-page-tools">
+        <AdminPageHeader title={t('list.title')} description={t('list.description')} />
+        <ContextualHelpButton contextualKey="certificates" route="/reviewer/certificates" />
+      </div>
       <AdminFilterBar>
         <SearchInput value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('list.searchPlaceholder')} aria-label={tCommon('actions.search')} />
       </AdminFilterBar>

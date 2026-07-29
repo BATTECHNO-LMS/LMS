@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { AlertCircle, CheckCircle2, Clock3, TriangleAlert, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, CheckCircle2, Clock3, TriangleAlert } from 'lucide-react';
 import { Button } from '../../components/common/Button.jsx';
+import { AppModal } from '../../components/designSystem/index.js';
+import { fetchSystemPopupByKey } from '../../features/popups/index.js';
 
 const ICON_BY_VARIANT = {
   success: CheckCircle2,
@@ -15,90 +17,69 @@ export function AccountStatusModal({
   message,
   note = '',
   variant = 'pending',
+  systemKey = null,
   onClose,
   actions = [],
 }) {
-  const panelRef = useRef(null);
-  const closeBtnRef = useRef(null);
   const Icon = ICON_BY_VARIANT[variant] || AlertCircle;
+  const [apiCopy, setApiCopy] = useState(null);
 
   const enabledActions = useMemo(() => actions.filter((a) => a && !a.hidden), [actions]);
 
   useEffect(() => {
-    if (!open) return undefined;
-    const prev = document.activeElement;
-    window.setTimeout(() => closeBtnRef.current?.focus(), 0);
-    function onKeyDown(e) {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose?.();
-      }
-      if (e.key !== 'Tab') return;
-      const root = panelRef.current;
-      if (!root) return;
-      const focusables = root.querySelectorAll(
-        'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'
-      );
-      if (!focusables.length) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+    if (!open || !systemKey) {
+      setApiCopy(null);
+      return undefined;
     }
-    document.addEventListener('keydown', onKeyDown);
+    let cancelled = false;
+    fetchSystemPopupByKey(systemKey)
+      .then((popup) => {
+        if (cancelled || !popup) return;
+        setApiCopy({
+          title: popup.title_ar || null,
+          message: popup.body_ar || null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setApiCopy(null);
+      });
     return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      if (prev && typeof prev.focus === 'function') prev.focus();
+      cancelled = true;
     };
-  }, [open, onClose]);
+  }, [open, systemKey]);
 
-  if (!open) return null;
+  const displayTitle = apiCopy?.title || title;
+  const displayMessage = apiCopy?.message || message;
 
   return (
-    <div className="modal-overlay" role="presentation" onMouseDown={onClose}>
-      <div
-        ref={panelRef}
-        className="modal modal--confirm auth-status-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <button
-          ref={closeBtnRef}
-          type="button"
-          className="auth-status-modal__close"
-          aria-label="إغلاق"
-          onClick={onClose}
-        >
-          <X size={18} />
-        </button>
-        <div className={`modal__icon auth-status-modal__icon auth-status-modal__icon--${variant}`}>
-          <Icon size={22} aria-hidden />
-        </div>
-        <h2 className="modal__title">{title}</h2>
-        <p className="modal__message">{message}</p>
-        {note ? <p className="auth-status-modal__note">{note}</p> : null}
-        <div className="modal__actions">
-          {enabledActions.map((action) => (
-            <Button
-              key={action.key}
-              type="button"
-              variant={action.variant || 'outline'}
-              onClick={action.onClick}
-              disabled={Boolean(action.disabled)}
-            >
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-    </div>
+    <AppModal
+      open={open}
+      onClose={onClose}
+      title={displayTitle}
+      description={displayMessage}
+      size="sm"
+      variant={variant}
+      icon={<Icon size={20} aria-hidden />}
+      className="app-modal--status"
+      footer={
+        enabledActions.length ? (
+          <>
+            {enabledActions.map((action) => (
+              <Button
+                key={action.key}
+                type="button"
+                variant={action.variant || 'outline'}
+                onClick={action.onClick}
+                disabled={Boolean(action.disabled)}
+              >
+                {action.label}
+              </Button>
+            ))}
+          </>
+        ) : null
+      }
+    >
+      {note ? <p className="app-modal__note">{note}</p> : null}
+    </AppModal>
   );
 }
-

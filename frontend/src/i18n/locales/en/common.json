@@ -79,9 +79,18 @@
     "hide": "Hide password"
   },
   "unauthorized": {
+    "badge": "Unauthorized",
     "title": "You are not authorized to access this page",
-    "description": "You do not have enough permissions to view this content. If you should have access, contact an administrator.",
-    "backToDashboard": "Back to dashboard"
+    "description": "You do not have the permission required to view this content with your current account. You can return to your dashboard or go to a page available to you.",
+    "backToDashboard": "Back to dashboard",
+    "goBack": "Go to previous page",
+    "currentRoleLabel": "Current role",
+    "contactHint": "If you believe this access should be available for your account:",
+    "contactAdmin": "Contact administration",
+    "goToLogin": "Sign in",
+    "sessionRequired": "You must sign in to access this page.",
+    "unknownRoleTitle": "Could not determine your account permissions",
+    "unknownRoleDescription": "Could not determine your account permissions. Please sign in again."
   },
   "evidencePage": {
     "title": "Evidence",

@@ -13,13 +13,19 @@ const {
   contextualHelpQuerySchema,
   slugParamSchema,
   uuidParamSchema,
+  guideKeyParamSchema,
+  versionParamSchema,
+  stepIdParamSchema,
   adminCategoryBodySchema,
   adminArticleBodySchema,
   reorderBodySchema,
+  adminGuideBodySchema,
+  adminGuidePublishBodySchema,
+  adminGuideStepBodySchema,
 } = require('./help.validation');
 
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
-const superAdminOnly = authorizeRoles('super_admin');
+const contentAdmin = authorizeRoles('super_admin', 'admin');
 
 const helpCatalogRouter = express.Router();
 helpCatalogRouter.get('/categories', authenticate, ctrl.listCategories);
@@ -41,6 +47,12 @@ helpCatalogRouter.get(
   authenticate,
   validateRequest({ query: helpSearchQuerySchema }),
   ctrl.search
+);
+helpCatalogRouter.get(
+  '/contextual-help',
+  authenticate,
+  validateRequest({ query: contextualHelpQuerySchema }),
+  ctrl.contextualHelp
 );
 
 const studentHelpRouter = express.Router();
@@ -79,7 +91,6 @@ studentHelpRouter.post(
 studentHelpRouter.get(
   '/contextual-help',
   authenticate,
-  studentOnly,
   validateRequest({ query: contextualHelpQuerySchema }),
   ctrl.contextualHelp
 );
@@ -100,68 +111,197 @@ studentHelpRouter.get(
 );
 
 const adminHelpRouter = express.Router();
-adminHelpRouter.get('/categories', authenticate, superAdminOnly, ctrl.adminListCategories);
+adminHelpRouter.get('/categories', authenticate, contentAdmin, ctrl.adminListCategories);
 adminHelpRouter.post(
   '/categories',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ body: adminCategoryBodySchema }),
   ctrl.adminCreateCategory
 );
 adminHelpRouter.patch(
   '/categories/:id',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ params: uuidParamSchema, body: adminCategoryBodySchema.partial() }),
   ctrl.adminUpdateCategory
 );
 adminHelpRouter.delete(
   '/categories/:id',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ params: uuidParamSchema }),
   ctrl.adminDeleteCategory
 );
-adminHelpRouter.get('/articles', authenticate, superAdminOnly, ctrl.adminListArticles);
+adminHelpRouter.get('/articles', authenticate, contentAdmin, ctrl.adminListArticles);
 adminHelpRouter.post(
   '/articles',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ body: adminArticleBodySchema }),
   ctrl.adminCreateArticle
 );
 adminHelpRouter.patch(
   '/articles/:id',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ params: uuidParamSchema, body: adminArticleBodySchema.partial() }),
   ctrl.adminUpdateArticle
 );
 adminHelpRouter.post(
   '/articles/:id/publish',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ params: uuidParamSchema }),
   ctrl.adminPublishArticle
+);
+adminHelpRouter.post(
+  '/articles/:id/archive',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema }),
+  ctrl.adminArchiveArticle
 );
 adminHelpRouter.delete(
   '/articles/:id',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ params: uuidParamSchema }),
   ctrl.adminDeleteArticle
+);
+adminHelpRouter.get(
+  '/articles/:id/versions',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema }),
+  ctrl.adminListVersions
+);
+adminHelpRouter.post(
+  '/articles/:id/versions/:version/restore',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: versionParamSchema }),
+  ctrl.adminRestoreVersion
 );
 adminHelpRouter.post(
   '/articles/reorder',
   authenticate,
-  superAdminOnly,
+  contentAdmin,
   validateRequest({ body: reorderBodySchema }),
   ctrl.adminReorderArticles
 );
-adminHelpRouter.get('/analytics', authenticate, superAdminOnly, ctrl.adminAnalytics);
+adminHelpRouter.get('/analytics', authenticate, contentAdmin, ctrl.adminAnalytics);
+
+const adminUserGuidesRouter = express.Router();
+adminUserGuidesRouter.get('/', authenticate, contentAdmin, ctrl.adminListGuides);
+adminUserGuidesRouter.post(
+  '/',
+  authenticate,
+  contentAdmin,
+  validateRequest({ body: adminGuideBodySchema }),
+  ctrl.adminCreateGuide
+);
+adminUserGuidesRouter.get(
+  '/:id',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema }),
+  ctrl.adminGetGuide
+);
+adminUserGuidesRouter.patch(
+  '/:id',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema, body: adminGuideBodySchema.partial() }),
+  ctrl.adminUpdateGuide
+);
+adminUserGuidesRouter.post(
+  '/:id/publish',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema, body: adminGuidePublishBodySchema.partial() }),
+  ctrl.adminPublishGuide
+);
+adminUserGuidesRouter.post(
+  '/:id/preview',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema }),
+  ctrl.adminPreviewGuide
+);
+adminUserGuidesRouter.post(
+  '/:id/reorder',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema, body: reorderBodySchema }),
+  ctrl.adminReorderSteps
+);
+adminUserGuidesRouter.post(
+  '/:id/archive',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema }),
+  ctrl.adminArchiveGuide
+);
+adminUserGuidesRouter.post(
+  '/:id/steps',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: uuidParamSchema, body: adminGuideStepBodySchema }),
+  ctrl.adminCreateGuideStep
+);
+adminUserGuidesRouter.patch(
+  '/:id/steps/:stepId',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: stepIdParamSchema, body: adminGuideStepBodySchema.partial() }),
+  ctrl.adminUpdateGuideStep
+);
+adminUserGuidesRouter.delete(
+  '/:id/steps/:stepId',
+  authenticate,
+  contentAdmin,
+  validateRequest({ params: stepIdParamSchema }),
+  ctrl.adminDeleteGuideStep
+);
+
+const onboardingRouter = express.Router();
+onboardingRouter.get('/active', authenticate, ctrl.getActiveOnboarding);
+onboardingRouter.get(
+  '/:guideKey',
+  authenticate,
+  validateRequest({ params: guideKeyParamSchema }),
+  ctrl.getOnboardingByKey
+);
+onboardingRouter.patch(
+  '/:guideKey/progress',
+  authenticate,
+  validateRequest({ params: guideKeyParamSchema, body: onboardingProgressBodySchema }),
+  ctrl.progressOnboardingByKey
+);
+onboardingRouter.post(
+  '/:guideKey/complete',
+  authenticate,
+  validateRequest({ params: guideKeyParamSchema }),
+  ctrl.completeOnboardingByKey
+);
+onboardingRouter.post(
+  '/:guideKey/dismiss',
+  authenticate,
+  validateRequest({ params: guideKeyParamSchema }),
+  ctrl.dismissOnboardingByKey
+);
+onboardingRouter.post(
+  '/:guideKey/restart',
+  authenticate,
+  validateRequest({ params: guideKeyParamSchema }),
+  ctrl.restartOnboardingByKey
+);
 
 module.exports = {
   helpCatalogRouter,
   studentHelpRouter,
   adminHelpRouter,
+  adminUserGuidesRouter,
+  onboardingRouter,
 };

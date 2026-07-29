@@ -47,13 +47,35 @@ router.use('/files', require('../modules/files/files.routes'));
 router.use('/ai', require('../modules/ai/ai.routes'));
 router.use('/public', require('../modules/public/public.routes'));
 
+const { adminPopupsRouter, userPopupsRouter } = require('../modules/popups/popups.routes');
+const {
+  adminAnnouncementsRouter,
+  userAnnouncementsRouter,
+} = require('../modules/announcements/announcements.routes');
 const {
   helpCatalogRouter,
   studentHelpRouter,
   adminHelpRouter,
+  adminUserGuidesRouter,
+  onboardingRouter,
 } = require('../modules/help/help.routes');
 router.use('/help', helpCatalogRouter);
 router.use('/student', studentHelpRouter);
 router.use('/admin/help', adminHelpRouter);
+router.use('/admin/user-guides', adminUserGuidesRouter);
+router.use('/onboarding', onboardingRouter);
+router.use('/admin/popups', adminPopupsRouter);
+router.use('/popups', userPopupsRouter);
+router.use('/admin/announcements', adminAnnouncementsRouter);
+router.use('/announcements', userAnnouncementsRouter);
+
+const {
+  adminNotificationRulesRouter,
+  adminNotificationTemplatesRouter,
+  adminNotificationsOpsRouter,
+} = require('../modules/notificationEngine/notificationRules.routes');
+router.use('/admin/notification-rules', adminNotificationRulesRouter);
+router.use('/admin/notification-templates', adminNotificationTemplatesRouter);
+router.use('/admin/notifications', adminNotificationsOpsRouter);
 
 module.exports = router;

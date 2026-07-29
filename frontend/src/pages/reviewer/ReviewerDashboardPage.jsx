@@ -3,6 +3,7 @@ import { FileBadge, BarChart3, FolderOpen, Bell, Briefcase } from 'lucide-react'
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatCard } from '../../components/common/StatCard.jsx';
@@ -78,15 +79,18 @@ export function ReviewerDashboardPage() {
 
   return (
     <div className="page page--dashboard page--reviewer">
-      <AdminPageHeader
-        title={<>{t('reviewer.title')}</>}
-        description={
-          <>
-            {t('reviewer.description')}
-            {universityName ? ` — ${universityName}` : ''}
-          </>
-        }
-      />
+      <div className="ug-page-tools">
+        <AdminPageHeader
+          title={<>{t('reviewer.title')}</>}
+          description={
+            <>
+              {t('reviewer.description')}
+              {universityName ? ` — ${universityName}` : ''}
+            </>
+          }
+        />
+        <ContextualHelpButton contextualKey="progress" route="/reviewer/dashboard" />
+      </div>
       {!universityId ? (
         <SectionCard title={<>{tFt('hub.universityRequiredTitle')}</>}>
           <p className="crud-muted" role="alert">

@@ -1,22 +1,22 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../features/auth/index.js';
-import {
-  getRouteUiPermission,
-  hasUiPermission,
-  UI_ROUTE_DENY,
-} from '../../utils/rolePermissions.js';
+import { canAccessPathWithUiPermissionsForUser } from '../../utils/rolePermissions.js';
+import { LoadingSpinner } from '../common/LoadingSpinner.jsx';
 import { UnauthorizedPage } from './UnauthorizedPage.jsx';
 
 /**
  * Enforces UI permission map for each pathname inside student / instructor / reviewer shells.
+ * Waits for auth hydrate; evaluates multi-role users against the shell role they hold.
  */
 export function RoleShellPermissionOutlet() {
   const { pathname } = useLocation();
-  const { user } = useAuth();
-  const role = user?.role;
+  const { user, isAuthReady } = useAuth();
 
-  const perm = getRouteUiPermission(pathname);
-  if (perm === UI_ROUTE_DENY || (perm && !hasUiPermission(role, perm))) {
+  if (!isAuthReady) {
+    return <LoadingSpinner />;
+  }
+
+  if (!canAccessPathWithUiPermissionsForUser(user, pathname)) {
     return <UnauthorizedPage />;
   }
 

@@ -13,6 +13,7 @@ import { useLocale } from '../../features/locale/index.js';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 
 export function CertificatePage() {
   const P = UI_PERMISSION;
@@ -37,7 +38,10 @@ export function CertificatePage() {
 
   return (
     <div className="page page--dashboard page--student">
-      <StudentPageHeader title={t('list.title')} description={t('list.description')} />
+      <div className="ug-page-tools">
+        <StudentPageHeader title={t('list.title')} description={t('list.description')} />
+        <ContextualHelpButton contextualKey="certificates" route="/student/certificate" />
+      </div>
       <AdminStatsGrid>
         <StatCard label={t('list.stats.issued')} value={String(issued)} icon={Award} />
         <StatCard label={t('list.stats.total')} value={String(rows.length)} icon={ShieldCheck} />

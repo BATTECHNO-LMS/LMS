@@ -9,10 +9,12 @@ export function EmptyState({ title, description, action, icon: Icon = Inbox, cla
     <div className={cn('empty-state', className)}>
       {Icon ? (
         <span className="empty-state__icon" aria-hidden>
-          <Icon size={26} strokeWidth={1.75} />
+          <Icon size={28} strokeWidth={1.75} />
         </span>
       ) : null}
-      <p className="empty-state__title">{typeof title === 'string' ? translateText(title, locale) : title}</p>
+      <p className="empty-state__title">
+        {typeof title === 'string' ? translateText(title, locale) : title}
+      </p>
       {description ? (
         <p className="empty-state__desc">
           {typeof description === 'string' ? translateText(description, locale) : description}

@@ -19,6 +19,7 @@ const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignment
 const { canonicalizeRoleCode, normalizeRoleCodes, ASSIGNABLE_ROLE_CODES, pickPrimaryRoleCode, CANONICAL_ROLE_CODES } = require('../../utils/roleCanon');
 const reviewerAssignment = require('./reviewerAssignment.service');
 const { createNotificationForUser } = require('../../shared/services/notification.service');
+const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
 
 /** Roles that require a primary university assignment. */
 const UNIVERSITY_SCOPED_ROLES = new Set([
@@ -776,6 +777,20 @@ async function activateUser(id, { actorUserId, ipAddress, requester } = {}) {
     body: 'يمكنك الآن تسجيل الدخول إلى منصة التدريب الميداني.',
     type: 'system',
     actionUrl: '/login/student',
+  }).catch(() => null);
+
+  await emitDomainEvent('ACCOUNT_ACTIVATED', {
+    affectedUserId: id,
+    studentId: id,
+    universityId: refreshed?.primary_university_id ?? existing.primary_university_id ?? null,
+    actorUserId: actorUserId ?? null,
+    entityType: 'user',
+    entityId: id,
+    templateVars: {
+      student_name: refreshed?.full_name || existing.full_name || '',
+      email: refreshed?.email || existing.email || '',
+      action_url: '/login/student',
+    },
   }).catch(() => null);
 
   return getUserById(id, requester);

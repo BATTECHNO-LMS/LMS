@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../utils/helpers.js';
 import { AppNavbar, AppFooter } from '../components/common/index.js';
 import { AdminSidebar } from '../components/navigation/AdminSidebar.jsx';
+import { ContentCmsHosts } from '../components/contentCms/index.js';
+import { FieldTrainingTourHost } from '../components/help/FieldTrainingTourHost.jsx';
 import { useAuth } from '../features/auth/index.js';
 import { getPageTitleForPath, getDashboardNavGroups } from '../constants/navigation.js';
 import { useMediaQuery } from '../hooks/useMediaQuery.js';
@@ -92,11 +94,13 @@ export function BaseDashboardLayout({ brand }) {
           mobileSidebarOpen={sidebarOpen}
           onToggleMobileSidebar={toggleSidebar}
         />
+        <ContentCmsHosts />
         <main className="layout-dashboard__content">
           <Outlet />
         </main>
         <AppFooter />
       </div>
+      <FieldTrainingTourHost />
     </div>
   );
 }

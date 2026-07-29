@@ -1,5 +1,12 @@
-import { ROLES, ADMIN_ROLE_SET, isLegacyDeprecatedRole, canonicalizeRoleCode } from '../constants/roles.js';
+import {
+  ROLES,
+  ADMIN_ROLE_SET,
+  isLegacyDeprecatedRole,
+  canonicalizeRoleCode,
+  normalizeRoleCodes,
+} from '../constants/roles.js';
 import { UI_PERMISSION } from '../constants/permissions.js';
+import { resolveAccessRoleForPath, getUserRoleCodes, getActiveRoleCode } from './authRouting.js';
 
 const P = UI_PERMISSION;
 
@@ -120,18 +127,25 @@ export function hasUiPermission(role, key) {
  * UI permission check using `/api/auth/me` payload when present: backend `permissions`
  * codes can match a {@link UI_PERMISSION} value; `*` / `ui.all` grant the full role matrix.
  * Otherwise falls back to role-only {@link hasUiPermission}.
- * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * @param {{ role?: string, roles?: string[], permissions?: string[] } | null | undefined} user
  * @param {string} key
+ * @param {string | null | undefined} [accessRole] role to evaluate matrix for (e.g. shell role)
  */
-export function hasUiPermissionForUser(user, key) {
+export function hasUiPermissionForUser(user, key, accessRole = null) {
   if (!key) return true;
   if (key === UI_ROUTE_DENY) return false;
+  const role = canonicalizeRoleCode(accessRole) || canonicalizeRoleCode(user?.role);
   const codes = Array.isArray(user?.permissions) ? user.permissions.map(String) : [];
   if (codes.includes('*') || codes.includes('ui.all')) {
-    return Boolean(getUiPermissions(user?.role)[key]);
+    return Boolean(getUiPermissions(role)[key]);
   }
   if (codes.includes(key)) return true;
-  return hasUiPermission(user?.role, key);
+  // Multi-role: grant if any held role has the UI capability
+  const roles = Array.isArray(user?.roles) ? normalizeRoleCodes(user.roles.map(String)) : [];
+  if (roles.length > 1) {
+    if (roles.some((r) => hasUiPermission(r, key))) return true;
+  }
+  return hasUiPermission(role, key);
 }
 
 /**
@@ -215,16 +229,22 @@ export function canAccessPathWithUiPermissions(role, pathname) {
 
 /**
  * Same as {@link canAccessPathWithUiPermissions} but uses `/me` permissions when present.
- * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * Uses shell role when the user holds it (multi-role safe).
+ * @param {{ role?: string, roles?: string[], permissions?: string[] } | null | undefined} user
  * @param {string} pathname
  */
 export function canAccessPathWithUiPermissionsForUser(user, pathname) {
-  const role = user?.role;
-  if (!role) return false;
-  if (isLegacyDeprecatedRole(role)) return false;
-  if (ADMIN_ROLE_SET.includes(role)) return true;
+  const codes = getUserRoleCodes(user);
+  if (!codes.length) return false;
+  if (codes.some((r) => isLegacyDeprecatedRole(r)) && !codes.some((r) => !isLegacyDeprecatedRole(r))) {
+    return false;
+  }
+  if (codes.some((r) => ADMIN_ROLE_SET.includes(r))) return true;
+  const accessRole = resolveAccessRoleForPath(user, pathname) || getActiveRoleCode(user);
+  if (!accessRole) return false;
+  if (isLegacyDeprecatedRole(accessRole)) return false;
   const perm = getRouteUiPermission(pathname);
   if (perm === null) return true;
-  if (perm === UI_ROUTE_DENY || !hasUiPermissionForUser(user, perm)) return false;
+  if (perm === UI_ROUTE_DENY || !hasUiPermissionForUser(user, perm, accessRole)) return false;
   return true;
 }

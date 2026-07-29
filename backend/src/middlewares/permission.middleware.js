@@ -12,7 +12,11 @@ function requirePermission(...permissionCodes) {
   const needed = permissionCodes.map((c) => String(c).toLowerCase()).filter(Boolean);
   return function requirePermissionMiddleware(req, res, next) {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
+      return res.status(401).json({
+        success: false,
+        message: 'يجب تسجيل الدخول للمتابعة.',
+        code: 'UNAUTHORIZED',
+      });
     }
     if (req.user.isGlobal) return next();
 
@@ -25,8 +29,8 @@ function requirePermission(...permissionCodes) {
     if (isReviewerScoped && needed.some(isWritePermissionCode)) {
       return res.status(403).json({
         success: false,
-        message: 'Reviewer is read-only',
-        code: 'REVIEWER_READ_ONLY',
+        message: 'لا تملك صلاحية تنفيذ هذه العملية.',
+        code: 'FORBIDDEN',
       });
     }
 
@@ -38,7 +42,11 @@ function requirePermission(...permissionCodes) {
     if (have.has('*') || have.has('ui.all')) return next();
     const ok = needed.some((code) => have.has(code));
     if (!ok) {
-      return res.status(403).json({ success: false, message: 'Forbidden', code: 'FORBIDDEN' });
+      return res.status(403).json({
+        success: false,
+        message: 'لا تملك صلاحية تنفيذ هذه العملية.',
+        code: 'FORBIDDEN',
+      });
     }
     return next();
   };

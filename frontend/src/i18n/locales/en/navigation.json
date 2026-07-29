@@ -3,6 +3,7 @@
   "admin": {
     "groups": {
       "general": "General management",
+      "contentHelp": "Content & help management",
       "orgs": "Organizations and programs",
       "delivery": "Delivery and teaching",
       "quality": "Quality and monitoring",
@@ -14,6 +15,15 @@
       "courses": "Course management",
       "fieldTraining": "Field training management",
       "userGuide": "User guide",
+      "contentHubHelp": "User guide",
+      "contentHubTours": "Onboarding tours",
+      "contentHubPopups": "Pop-ups",
+      "contentHubAnnouncements": "Announcements & alerts",
+      "contentHubNotifications": "Notification rules",
+      "contentHubNotificationsSend": "Send notification",
+      "contentHubContextual": "Contextual help",
+      "contentHubAnalytics": "Usage analytics",
+      "contentHubAudit": "Change history",
       "fieldTrainingReports": "Field training reports",
       "fieldTrainingStudents": "Field training student follow-up",
       "users": "Users",
@@ -62,13 +72,20 @@
     "fieldTrainingTasks": "Tasks & submissions",
     "fieldTrainingResults": "Student results",
     "fieldTrainingEligibility": "Eligibility & follow-up",
+    "userGuide": "User guide",
     "notifications": "Notifications"
   },
   "student": {
+    "groups": {
+      "overview": "Overview",
+      "fieldTraining": "Field training",
+      "learning": "Programs & courses",
+      "support": "Help"
+    },
     "home": "Home",
     "availableCohorts": "Browse cohorts",
     "courses": "Courses",
-    "fieldTraining": "Field training",
+    "fieldTraining": "Field training opportunities",
     "userGuide": "User guide",
     "programs": "My enrolled credentials",
     "semesterSchedule": "Registered training programs",

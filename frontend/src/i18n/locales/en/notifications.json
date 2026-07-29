@@ -41,5 +41,30 @@
     "action_required": "Action required",
     "user_pending_activation": "Activation required"
   },
-  "loadError": "Could not load notifications."
+  "loadError": "Could not load notifications.",
+  "preferences": "Preferences",
+  "archive": "Archive",
+  "acknowledge": "Acknowledge",
+  "critical": "Critical",
+  "categories": {
+    "ACCOUNT": "Account",
+    "OPPORTUNITY": "Opportunity",
+    "APPLICATION": "Application",
+    "SESSION": "Session",
+    "ATTENDANCE": "Attendance",
+    "TASK": "Task",
+    "TEST": "Test",
+    "PROGRESS": "Progress",
+    "CERTIFICATE": "Certificate",
+    "REPORT": "Report",
+    "SUPPORT": "Support",
+    "ANNOUNCEMENT": "Announcement",
+    "SYSTEM": "System"
+  },
+  "priorities": {
+    "LOW": "Low",
+    "NORMAL": "Normal",
+    "HIGH": "High",
+    "URGENT": "Urgent"
+  }
 }

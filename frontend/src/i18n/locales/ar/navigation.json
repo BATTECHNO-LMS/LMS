@@ -3,6 +3,7 @@
   "admin": {
     "groups": {
       "general": "الإدارة العامة",
+      "contentHelp": "إدارة المحتوى والمساعدة",
       "orgs": "المؤسسات والبرامج",
       "delivery": "التنفيذ والتعليم",
       "quality": "الجودة والمتابعة",
@@ -14,6 +15,15 @@
       "courses": "إدارة الكورسات",
       "fieldTraining": "إدارة التدريب الميداني",
       "userGuide": "دليل المستخدم",
+      "contentHubHelp": "دليل المستخدم",
+      "contentHubTours": "الجولات التعريفية",
+      "contentHubPopups": "البوب أب",
+      "contentHubAnnouncements": "الإعلانات والتنبيهات",
+      "contentHubNotifications": "إدارة الإشعارات والقواعد",
+      "contentHubNotificationsSend": "إرسال إشعار",
+      "contentHubContextual": "المساعدة السياقية",
+      "contentHubAnalytics": "إحصائيات الاستخدام",
+      "contentHubAudit": "سجل التعديلات",
       "fieldTrainingReports": "تقارير التدريب الميداني",
       "fieldTrainingStudents": "متابعة طلاب التدريب الميداني",
       "users": "المستخدمون",
@@ -62,13 +72,20 @@
     "fieldTrainingTasks": "المهام والتسليمات",
     "fieldTrainingResults": "نتائج الطلاب",
     "fieldTrainingEligibility": "الأهلية والمتابعة",
+    "userGuide": "دليل المستخدم",
     "notifications": "الإشعارات"
   },
   "student": {
+    "groups": {
+      "overview": "نظرة عامة",
+      "fieldTraining": "التدريب الميداني",
+      "learning": "البرامج والكورسات",
+      "support": "المساعدة"
+    },
     "home": "الرئيسية",
     "availableCohorts": "الدفعات المتاحة",
     "courses": "الكورسات",
-    "fieldTraining": "التدريب الميداني",
+    "fieldTraining": "فرص التدريب الميداني",
     "userGuide": "دليل المستخدم",
     "programs": "شهاداتي المسجل بها",
     "semesterSchedule": "البرامج التدريبية المسجلة",

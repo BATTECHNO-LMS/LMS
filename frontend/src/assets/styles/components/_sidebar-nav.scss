@@ -9,10 +9,73 @@
   margin-bottom: 1rem;
 }
 
+.sidebar-nav-group--collapsible {
+  margin-bottom: 0.65rem;
+}
+
+.sidebar-nav-group__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: calc(100% - 1rem);
+  margin: 0.35rem 0.5rem 0.25rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: $radius-md;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: start;
+  cursor: pointer;
+  @include transition(background-color color, 0.15s);
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+.sidebar-nav-group__toggle-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar-nav-group__chevron {
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: transform 0.18s ease;
+  transform: rotate(0deg);
+
+  [dir='rtl'] & {
+    transform: rotate(0deg);
+  }
+
+  &--open {
+    transform: rotate(180deg);
+
+    [dir='rtl'] & {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.sidebar-nav-group--open .sidebar-nav-group__toggle {
+  background: rgba($color-accent, 0.14);
+  color: #fff;
+}
+
 .sidebar-nav-group__list {
   list-style: none;
   margin: 0;
   padding: 0;
+}
+
+.sidebar-nav-group--collapsible .sidebar-nav-group__list {
+  padding-inline-start: 0.15rem;
 }
 
 .sidebar-nav-group__item {

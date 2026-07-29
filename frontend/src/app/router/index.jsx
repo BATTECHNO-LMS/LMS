@@ -89,7 +89,20 @@ export function AppRouter() {
               }
             />
             <Route path="field-training" element={<Pages.SuperAdminFieldTrainingRoute />} />
-            <Route path="help" element={<Pages.AdminHelpCenterPage />} />
+            <Route path="help" element={<Navigate to="/admin/content-hub/help" replace />} />
+            <Route path="content-hub/help" element={<Pages.HelpArticlesPage />} />
+            <Route path="content-hub/help/create" element={<Pages.HelpArticleFormPage />} />
+            <Route path="content-hub/help/:id/edit" element={<Pages.HelpArticleFormPage />} />
+            <Route path="content-hub/tours" element={<Pages.ToursPage />} />
+            <Route path="content-hub/popups" element={<Pages.PopupsPage />} />
+            <Route path="content-hub/announcements" element={<Pages.AnnouncementsPage />} />
+            <Route path="content-hub/notifications" element={<Pages.NotificationRulesPage />} />
+            <Route path="content-hub/notifications/send" element={<Pages.NotificationSendPage />} />
+            <Route path="content-hub/notifications/deliveries" element={<Pages.NotificationDeliveriesPage />} />
+            <Route path="content-hub/notifications/analytics" element={<Pages.NotificationAnalyticsPage />} />
+            <Route path="content-hub/contextual" element={<Pages.ContextualHelpAdminPage />} />
+            <Route path="content-hub/analytics" element={<Pages.ContentAnalyticsPage />} />
+            <Route path="content-hub/audit" element={<Pages.ContentAuditPage />} />
             <Route
               path="field-training/:id/applications"
               element={
@@ -180,6 +193,7 @@ export function AppRouter() {
             <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
             <Route path="certificates" element={<Pages.CertificatesPage />} />
             <Route path="notifications" element={<Pages.NotificationsPage />} />
+            <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
             <Route path="reports" element={<Pages.ReportsPage />} />
             <Route path="audit-logs/:id" element={<Pages.AuditLogDetailsPage />} />
             <Route path="audit-logs" element={<Pages.AuditLogsPage />} />
@@ -227,7 +241,12 @@ export function AppRouter() {
               <Route path="field-training/:id/submissions" element={<Pages.InstructorFieldTrainingSubmissionsPage />} />
               <Route path="field-training/:id/results" element={<Pages.InstructorFieldTrainingResultsPage />} />
               <Route path="field-training/:id/eligibility" element={<Pages.InstructorFieldTrainingEligibilityPage />} />
+              <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
+              <Route path="user-guide/support" element={<Pages.StudentUserGuideSupportPage />} />
+              <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
+              <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
               <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>
@@ -268,6 +287,7 @@ export function AppRouter() {
               <Route path="grades" element={<Pages.StudentGradesPage />} />
               <Route path="certificate" element={<Pages.CertificatePage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
               <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>
@@ -312,6 +332,7 @@ export function AppRouter() {
               <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
               <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
+              <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
               <Route path="*" element={<Pages.ModulePlaceholderPage />} />
             </Route>
           </Route>

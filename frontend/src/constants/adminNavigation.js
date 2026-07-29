@@ -31,6 +31,12 @@ import {
   Bell,
   UserPlus,
   BookOpenCheck,
+  Map,
+  MessageSquare,
+  Megaphone,
+  CircleHelp,
+  History,
+  Send,
 } from 'lucide-react';
 import { ROLES, canonicalizeRoleCode } from './roles.js';
 
@@ -58,12 +64,26 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
       entry('/admin/courses', 'admin.items.courses', BookMarked, [S, Ad]),
       entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, Ad]),
-      entry('/admin/help', 'admin.items.userGuide', BookOpenCheck, [S]),
       entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, Ad]),
       entry('/admin/field-training/reports/students', 'admin.items.fieldTrainingStudents', Users, [S, Ad]),
       entry('/admin/users', 'admin.items.users', Users, [S, Ad]),
       entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
       entry('/admin/settings', 'admin.items.settings', Settings, [S]),
+    ],
+  },
+  {
+    id: 'contentHelp',
+    titleKey: 'admin.groups.contentHelp',
+    items: [
+      entry('/admin/content-hub/help', 'admin.items.contentHubHelp', BookOpenCheck, [S, Ad]),
+      entry('/admin/content-hub/tours', 'admin.items.contentHubTours', Map, [S, Ad]),
+      entry('/admin/content-hub/popups', 'admin.items.contentHubPopups', MessageSquare, [S, Ad]),
+      entry('/admin/content-hub/announcements', 'admin.items.contentHubAnnouncements', Megaphone, [S, Ad]),
+      entry('/admin/content-hub/notifications', 'admin.items.contentHubNotifications', Bell, [S, Ad]),
+      entry('/admin/content-hub/notifications/send', 'admin.items.contentHubNotificationsSend', Send, [S, Ad]),
+      entry('/admin/content-hub/contextual', 'admin.items.contentHubContextual', CircleHelp, [S, Ad]),
+      entry('/admin/content-hub/analytics', 'admin.items.contentHubAnalytics', BarChart3, [S, Ad]),
+      entry('/admin/content-hub/audit', 'admin.items.contentHubAudit', History, [S, Ad]),
     ],
   },
   {

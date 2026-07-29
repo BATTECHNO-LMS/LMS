@@ -14,7 +14,11 @@ function authorizeRoles(...allowedRoleCodes) {
   );
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized' });
+      return res.status(401).json({
+        success: false,
+        message: 'يجب تسجيل الدخول للمتابعة.',
+        code: 'UNAUTHORIZED',
+      });
     }
     /** JWT marks super-admin scope; allow all role-gated admin routes regardless of misconfigured env CSVs. */
     if (req.user.isGlobal) {
@@ -25,7 +29,11 @@ function authorizeRoles(...allowedRoleCodes) {
     );
     const ok = userRoles.some((r) => normalized.includes(r));
     if (!ok) {
-      return res.status(403).json({ success: false, message: 'Forbidden' });
+      return res.status(403).json({
+        success: false,
+        message: 'لا تملك صلاحية تنفيذ هذه العملية.',
+        code: 'FORBIDDEN',
+      });
     }
     return next();
   };

@@ -1,56 +1,74 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Clock3, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/common/Button.jsx';
-import { BrandLogo } from '../../components/common/BrandLogo.jsx';
+import { IllustratedStatusLayout } from '../../components/designSystem/index.js';
 
 export function AccountStatusPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const details = location.state?.details || null;
+  const overdue48h = Boolean(details?.overdue48h);
+
+  const statusDetails = [
+    {
+      key: 'email',
+      icon: <Mail size={16} aria-hidden />,
+      label: 'البريد الإلكتروني',
+      value: details?.maskedEmail || 'غير متاح',
+    },
+    {
+      key: 'emailVerified',
+      icon: <ShieldCheck size={16} aria-hidden />,
+      label: 'حالة البريد',
+      value: details?.emailVerified ? 'موثق' : 'غير موثق',
+      badge: details?.emailVerified ? 'موثق' : 'بانتظار',
+    },
+    {
+      key: 'accountStatus',
+      icon: <Clock3 size={16} aria-hidden />,
+      label: 'حالة الحساب',
+      value:
+        details?.accountStatus === 'inactive'
+          ? 'بانتظار التفعيل'
+          : details?.accountStatus || 'غير متاح',
+    },
+    {
+      key: 'eta',
+      icon: <Clock3 size={16} aria-hidden />,
+      label: 'المدة المتوقعة',
+      value: 'خلال 48 ساعة',
+    },
+  ];
 
   return (
     <div className="auth-page auth-page--split auth-page--login">
-      <div className="auth-split-wrap">
-        <div className="auth-split">
-          <section className="auth-split__form">
-            <div className="auth-split__form-inner">
-              <BrandLogo variant="auth" className="auth-split__logo" />
-              <header className="auth-split__header">
-                <h1 className="auth-split__title">حالة حسابك</h1>
-                <p className="auth-split__subtitle">
-                  يمكنك متابعة حالة التفعيل من هذه الصفحة.
-                </p>
-              </header>
-
-              <div className="auth-form">
-                <p className="auth-register__helper">
-                  البريد الإلكتروني: {details?.maskedEmail || 'غير متاح'}
-                </p>
-                <p className="auth-register__helper">
-                  حالة البريد: {details?.emailVerified ? 'موثق' : 'غير موثق'}
-                </p>
-                <p className="auth-register__helper">
-                  حالة الحساب: {details?.accountStatus === 'inactive' ? 'بانتظار التفعيل' : details?.accountStatus || 'غير متاح'}
-                </p>
-                <p className="auth-register__helper">المدة المتوقعة: خلال 48 ساعة</p>
-                {details?.overdue48h ? (
-                  <p className="auth-form__error">
-                    مرّت أكثر من 48 ساعة على طلب التفعيل. يمكنك التواصل مع الدعم.
-                  </p>
-                ) : null}
-                <div className="auth-form__actions">
-                  <Button type="button" variant="outline" onClick={() => navigate('/login/student')}>
-                    تحديث الحالة
-                  </Button>
-                  <Button type="button" onClick={() => navigate('/student/user-guide/support')}>
-                    التواصل مع الدعم
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
+      <div className="auth-split-wrap illustrated-status-page">
+        <IllustratedStatusLayout
+          statusType={overdue48h ? 'warning' : 'pending'}
+          title={overdue48h ? 'تأخر تفعيل الحساب' : 'حالة حسابك'}
+          description={
+            overdue48h
+              ? 'مرّت أكثر من 48 ساعة على طلب التفعيل. يمكنك تحديث الحالة أو التواصل مع الدعم.'
+              : 'يمكنك متابعة حالة التفعيل من هذه الصفحة.'
+          }
+          details={statusDetails}
+          infoMessage={
+            overdue48h
+              ? 'مرّت أكثر من 48 ساعة على طلب التفعيل. يمكنك التواصل مع الدعم.'
+              : 'عادةً ما يتم تفعيل الحساب خلال 48 ساعة من إتمام التسجيل.'
+          }
+          secondaryAction={
+            <Button type="button" variant="outline" onClick={() => navigate('/login/student')}>
+              تحديث الحالة
+            </Button>
+          }
+          primaryAction={
+            <Button type="button" onClick={() => navigate('/student/user-guide/support')}>
+              التواصل مع الدعم
+            </Button>
+          }
+        />
       </div>
     </div>
   );
 }
-

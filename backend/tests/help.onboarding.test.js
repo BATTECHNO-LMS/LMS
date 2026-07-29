@@ -39,8 +39,8 @@ test('scoreArticle ranks title and keywords higher', () => {
   assert.ok(high >= 10);
 });
 
-test('seed content has unique slugs and nine categories', () => {
-  assert.strictEqual(CATEGORIES.length, 9);
+test('seed content has unique slugs and twelve categories', () => {
+  assert.strictEqual(CATEGORIES.length, 12);
   const catSlugs = new Set(CATEGORIES.map((c) => c.slug));
   assert.strictEqual(catSlugs.size, CATEGORIES.length);
   const artSlugs = new Set(ARTICLES.map((a) => a.slug));

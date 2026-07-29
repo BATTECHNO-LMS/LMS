@@ -1,3 +1,7 @@
+export const FIELD_TRAINING_STUDENT_GUIDE_KEY = 'field_training_student';
+export const FIELD_TRAINING_INSTRUCTOR_GUIDE_KEY = 'field_training_instructor';
+export const FIELD_TRAINING_REVIEWER_GUIDE_KEY = 'field_training_reviewer';
+
 export const FIELD_TRAINING_TOUR_STEPS = [
   {
     id: 'profile',
@@ -63,7 +67,48 @@ export const FIELD_TRAINING_TOUR_STEPS = [
   },
 ];
 
+/** Map role → onboarding guide_key. */
+export function guideKeyForRole(role) {
+  const r = String(role || '').toLowerCase();
+  if (r === 'instructor') return FIELD_TRAINING_INSTRUCTOR_GUIDE_KEY;
+  if (r === 'reviewer') return FIELD_TRAINING_REVIEWER_GUIDE_KEY;
+  if (r === 'student') return FIELD_TRAINING_STUDENT_GUIDE_KEY;
+  return null;
+}
+
+/**
+ * Map API onboarding steps (tour_target) into host step shape.
+ * @param {Array<{ id?: string, title_ar?: string, body_ar?: string, tour_target?: string, related_route?: string }>|null|undefined} apiSteps
+ */
+export function mapApiTourSteps(apiSteps) {
+  if (!Array.isArray(apiSteps) || !apiSteps.length) return [];
+  return apiSteps.map((s, index) => ({
+    id: s.id || `api-step-${index}`,
+    tourId: s.tour_target || null,
+    title: s.title_ar || '',
+    body: s.body_ar || '',
+    actionTo: s.related_route || null,
+    fromApi: true,
+  }));
+}
+
 export function findTourTarget(tourId) {
   if (!tourId || typeof document === 'undefined') return null;
   return document.querySelector(`[data-tour-id="${tourId}"]`);
+}
+
+/**
+ * Advance past steps whose tour target is missing in the DOM.
+ * Returns the next index that either has no target or whose target exists.
+ */
+export function resolveVisibleStepIndex(steps, fromIndex) {
+  if (!Array.isArray(steps) || !steps.length) return -1;
+  let i = Math.max(0, fromIndex);
+  while (i < steps.length) {
+    const step = steps[i];
+    if (!step?.tourId) return i;
+    if (findTourTarget(step.tourId)) return i;
+    i += 1;
+  }
+  return -1;
 }

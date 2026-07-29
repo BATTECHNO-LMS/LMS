@@ -366,6 +366,58 @@ export const AdminHelpCenterPage = lazyNamed(
   () => import('../../pages/admin/help/AdminHelpCenterPage.jsx'),
   'AdminHelpCenterPage'
 );
+export const HelpArticlesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/HelpArticlesPage.jsx'),
+  'HelpArticlesPage'
+);
+export const HelpArticleFormPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/HelpArticleFormPage.jsx'),
+  'HelpArticleFormPage'
+);
+export const ToursPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ToursPage.jsx'),
+  'ToursPage'
+);
+export const PopupsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/PopupsPage.jsx'),
+  'PopupsPage'
+);
+export const AnnouncementsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/AnnouncementsPage.jsx'),
+  'AnnouncementsPage'
+);
+export const ContextualHelpAdminPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContextualHelpAdminPage.jsx'),
+  'ContextualHelpAdminPage'
+);
+export const ContentAnalyticsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContentAnalyticsPage.jsx'),
+  'ContentAnalyticsPage'
+);
+export const ContentAuditPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContentAuditPage.jsx'),
+  'ContentAuditPage'
+);
+export const NotificationRulesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationRulesPage'
+);
+export const NotificationSendPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationSendPage'
+);
+export const NotificationDeliveriesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationDeliveriesPage'
+);
+export const NotificationAnalyticsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationAnalyticsPage'
+);
+export const NotificationPreferencesPage = lazyNamed(
+  () => import('../../pages/common/NotificationPreferencesPage.jsx'),
+  'NotificationPreferencesPage'
+);
 export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'

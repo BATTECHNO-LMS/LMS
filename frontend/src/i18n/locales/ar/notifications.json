@@ -41,5 +41,30 @@
     "action_required": "يتطلب إجراء",
     "user_pending_activation": "بانتظار تفعيل الحساب"
   },
-  "loadError": "تعذر تحميل الإشعارات."
+  "loadError": "تعذر تحميل الإشعارات.",
+  "preferences": "التفضيلات",
+  "archive": "أرشفة",
+  "acknowledge": "إقرار",
+  "critical": "حرج",
+  "categories": {
+    "ACCOUNT": "الحساب",
+    "OPPORTUNITY": "الفرص",
+    "APPLICATION": "الطلبات",
+    "SESSION": "الجلسات",
+    "ATTENDANCE": "الحضور",
+    "TASK": "المهام",
+    "TEST": "الاختبارات",
+    "PROGRESS": "التقدم",
+    "CERTIFICATE": "الشهادات",
+    "REPORT": "التقارير",
+    "SUPPORT": "الدعم",
+    "ANNOUNCEMENT": "الإعلانات",
+    "SYSTEM": "النظام"
+  },
+  "priorities": {
+    "LOW": "منخفضة",
+    "NORMAL": "عادية",
+    "HIGH": "عالية",
+    "URGENT": "عاجلة"
+  }
 }
