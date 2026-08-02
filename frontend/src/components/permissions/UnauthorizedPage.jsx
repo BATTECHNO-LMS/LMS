@@ -19,7 +19,7 @@ export function UnauthorizedPage({ title, description, showContactAdmin = true }
 
   const roleCode = getActiveRoleCode(user);
   const dashboard = getDefaultDashboardPath(user);
-  const roleLabel = getRoleLabelAr(roleCode);
+  const roleLabel = getRoleLabelAr(roleCode, user?.organizationType);
 
   const details = useMemo(() => {
     if (!user || !roleCode) return [];

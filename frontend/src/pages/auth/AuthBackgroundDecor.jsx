@@ -1,7 +1,10 @@
 /**
  * Branded ambient background for auth pages — decorative only, no interaction.
+ * @param {{ variant?: 'default' | 'institution' }} props
  */
-export function AuthBackgroundDecor() {
+export function AuthBackgroundDecor({ variant = 'default' }) {
+  const isInstitution = variant === 'institution';
+
   return (
     <div className="auth-bg" aria-hidden>
       <div className="auth-bg__gradient" />
@@ -35,22 +38,43 @@ export function AuthBackgroundDecor() {
         />
       </svg>
 
-      <div className="auth-bg__icon auth-bg__icon--tl">
-        <AuthDecorShield />
-      </div>
-      <div className="auth-bg__icon auth-bg__icon--tr">
-        <AuthDecorCertificate />
-      </div>
-      <div className="auth-bg__icon auth-bg__icon--bl auth-bg__icon--hide-mobile">
-        <AuthDecorGraduation />
-      </div>
-      <div className="auth-bg__icon auth-bg__icon--br auth-bg__icon--hide-mobile">
-        <AuthDecorChart />
-      </div>
-
-      <div className="auth-bg__icon auth-bg__icon--mid auth-bg__icon--hide-tablet">
-        <AuthDecorQuality />
-      </div>
+      {isInstitution ? (
+        <>
+          <div className="auth-bg__icon auth-bg__icon--tl">
+            <AuthDecorBuilding />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--tr">
+            <AuthDecorCertificate />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--bl auth-bg__icon--hide-mobile">
+            <AuthDecorBriefcase />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--br auth-bg__icon--hide-mobile">
+            <AuthDecorChart />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--mid auth-bg__icon--hide-tablet">
+            <AuthDecorCalendar />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="auth-bg__icon auth-bg__icon--tl">
+            <AuthDecorShield />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--tr">
+            <AuthDecorCertificate />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--bl auth-bg__icon--hide-mobile">
+            <AuthDecorGraduation />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--br auth-bg__icon--hide-mobile">
+            <AuthDecorChart />
+          </div>
+          <div className="auth-bg__icon auth-bg__icon--mid auth-bg__icon--hide-tablet">
+            <AuthDecorQuality />
+          </div>
+        </>
+      )}
 
       <ul className="auth-bg__particles">
         {PARTICLE_OFFSETS.map((p) => (
@@ -130,6 +154,39 @@ function AuthDecorQuality() {
       <circle cx="24" cy="24" r="14" stroke="currentColor" strokeWidth="1.3" strokeDasharray="3 5" />
       <path d="M24 14v10l7 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M18 32h12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.55" />
+    </svg>
+  );
+}
+
+function AuthDecorBuilding() {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+      <rect x="10" y="14" width="28" height="26" rx="2" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M18 14V10h12v4" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <path d="M16 22h4M24 22h4M32 22h4M16 28h4M24 28h4M32 28h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M22 40v-8h4v8" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AuthDecorBriefcase() {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+      <rect x="8" y="18" width="32" height="22" rx="3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M18 18v-4a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v4" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 28h32" stroke="currentColor" strokeWidth="1.2" opacity="0.7" />
+      <path d="M22 26h4v4h-4z" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+
+function AuthDecorCalendar() {
+  return (
+    <svg viewBox="0 0 48 48" fill="none" aria-hidden>
+      <rect x="10" y="12" width="28" height="26" rx="3" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M10 20h28" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M18 8v8M30 8v8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M16 26h4M24 26h4M32 26h2M16 32h4M24 32h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.75" />
     </svg>
   );
 }

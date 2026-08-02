@@ -156,7 +156,7 @@ async function mapUsersWithRoles(userRows) {
 
 async function listUsers(query, requester = {}) {
   const scopedUniversityId = resolveUniversityIdFilter(requester, query.university_id);
-  const where = await usersRepository.buildListWhere({
+  let where = await usersRepository.buildListWhere({
     status: query.status,
     university_id: scopedUniversityId,
     search: query.search,

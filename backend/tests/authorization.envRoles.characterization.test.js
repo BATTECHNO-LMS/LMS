@@ -76,11 +76,12 @@ describe('env role defaults characterization (five-role model)', () => {
     assertRoleAllowed(env.ADMIN_READ_ROLE_CODES, 'admin', true);
   });
 
-  it('canonical role set is exactly five', () => {
+  it('canonical role set includes trainer', () => {
     assert.deepEqual([...CANONICAL_ROLE_CODES], [
       'super_admin',
       'admin',
       'instructor',
+      'trainer',
       'student',
       'reviewer',
     ]);

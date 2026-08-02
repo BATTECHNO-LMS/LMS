@@ -12,6 +12,17 @@ async function register(req, res, next) {
   }
 }
 
+async function registerInstitution(req, res, next) {
+  try {
+    const data = await authService.registerInstitution(req.validated);
+    return created(res, data, {
+      message: 'تم إنشاء الحساب. يرجى توثيق البريد الإلكتروني باستخدام الرمز المرسل.',
+    });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function login(req, res, next) {
   try {
     const data = await authService.login(req.validated);
@@ -25,6 +36,27 @@ async function me(req, res, next) {
   try {
     const user = await authService.me(req.user.userId);
     return success(res, { user }, { message: 'تم تحميل بيانات الحساب.' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function listMyAssignments(req, res, next) {
+  try {
+    const data = await authService.listMyAssignments(req.user.userId);
+    return success(res, data, { message: 'تم تحميل الجهات المرتبطة.' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function setActiveOrganization(req, res, next) {
+  try {
+    const user = await authService.setActiveOrganization(
+      req.user.userId,
+      req.validated.body.organization_id
+    );
+    return success(res, { user }, { message: 'تم تفعيل الجهة المحددة.' });
   } catch (e) {
     return next(e);
   }
@@ -132,8 +164,11 @@ async function accountStatus(req, res, next) {
 
 module.exports = {
   register,
+  registerInstitution,
   login,
   me,
+  listMyAssignments,
+  setActiveOrganization,
   logout,
   registrationUniversities,
   registrationSpecialties,

@@ -1,0 +1,312 @@
+.portal-selection {
+  --portal-card-bg: #fff;
+  --portal-card-border: rgba(15, 40, 70, 0.08);
+  --portal-ink: #13253a;
+  --portal-muted: #5b6b7c;
+  --portal-accent: var(--bat-primary, #0b3d5c);
+  --portal-soft: rgba(11, 61, 92, 0.06);
+
+  padding: 2.5rem 1.25rem;
+  background:
+    radial-gradient(1200px 420px at 10% -10%, rgba(212, 175, 55, 0.12), transparent 55%),
+    radial-gradient(900px 380px at 90% 0%, rgba(11, 61, 92, 0.08), transparent 50%),
+    linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+  color: var(--portal-ink);
+
+  &--page {
+    min-height: min(100vh, 920px);
+    display: flex;
+    align-items: center;
+  }
+
+  &--section {
+    border-radius: 0;
+  }
+
+  &__inner {
+    width: min(960px, 100%);
+    margin-inline: auto;
+  }
+
+  &__brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: 1.75rem;
+  }
+
+  &__title {
+    margin: 0 0 0.5rem;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  &__subtitle {
+    margin: 0 auto;
+    max-width: 40rem;
+    color: var(--portal-muted);
+    line-height: 1.7;
+    font-size: 0.98rem;
+  }
+
+  &__session {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+  }
+
+  &__dashboard-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: 999px;
+    background: var(--portal-soft);
+    color: var(--portal-accent);
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid rgba(11, 61, 92, 0.12);
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(11, 61, 92, 0.12);
+      outline: none;
+    }
+  }
+
+  &__status {
+    text-align: center;
+    color: var(--portal-muted);
+    margin-bottom: 1rem;
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+
+    @media (min-width: 768px) {
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+  }
+
+  &__footer {
+    margin: 1.75rem 0 0;
+    text-align: center;
+
+    a {
+      color: var(--portal-accent);
+      font-weight: 600;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-height: 100%;
+  padding: 1.5rem 1.35rem 1.35rem;
+  border-radius: 1.25rem;
+  background: var(--portal-card-bg, #fff);
+  border: 1px solid var(--portal-card-border);
+  box-shadow: 0 10px 30px rgba(19, 37, 58, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+
+  &:hover,
+  &:focus-within {
+    transform: translateY(-2px);
+    box-shadow: 0 16px 36px rgba(19, 37, 58, 0.1);
+    border-color: rgba(11, 61, 92, 0.18);
+  }
+
+  &__icon {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--portal-soft);
+    color: var(--portal-accent);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  &__desc {
+    margin: 0;
+    flex: 1;
+    color: var(--portal-muted);
+    line-height: 1.7;
+    font-size: 0.95rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.35rem;
+  }
+
+  &__btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  &__secondary-link {
+    text-align: center;
+    font-weight: 700;
+    color: var(--portal-accent);
+    text-decoration: none;
+    padding: 0.35rem;
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+      outline: none;
+    }
+  }
+}
+
+.portal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(11, 61, 92, 0.06);
+  color: var(--bat-primary, #0b3d5c);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.portal-login-menu {
+  position: relative;
+
+  &__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    cursor: pointer;
+    border-radius: 999px;
+    background: var(--bat-primary, #0b3d5c);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+    &:hover,
+    &:focus-visible {
+      filter: brightness(1.05);
+      outline: 2px solid rgba(212, 175, 55, 0.55);
+      outline-offset: 2px;
+    }
+  }
+
+  &__panel {
+    position: absolute;
+    inset-inline-end: 0;
+    top: calc(100% + 0.4rem);
+    z-index: 60;
+    min-width: 16.5rem;
+    padding: 0.4rem;
+    border-radius: 0.9rem;
+    background: #fff;
+    border: 1px solid rgba(15, 40, 70, 0.1);
+    box-shadow: 0 16px 40px rgba(19, 37, 58, 0.16);
+
+    &--start {
+      inset-inline-end: auto;
+      inset-inline-start: 0;
+    }
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.7rem 0.75rem;
+    border-radius: 0.7rem;
+    text-decoration: none;
+    color: #13253a;
+
+    strong {
+      display: block;
+      font-size: 0.9rem;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.15rem;
+      color: #5b6b7c;
+      font-size: 0.75rem;
+    }
+
+    &:hover,
+    &:focus-visible {
+      background: rgba(11, 61, 92, 0.06);
+      outline: none;
+    }
+  }
+
+  &__all {
+    display: block;
+    margin-top: 0.15rem;
+    padding: 0.55rem 0.75rem;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #0b3d5c;
+    text-decoration: none;
+    border-top: 1px solid rgba(15, 40, 70, 0.08);
+
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+}
+
+.portal-login-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(11, 61, 92, 0.08);
+  color: #0b3d5c;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.portal-mismatch-banner {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.75rem;
+  background: #eef7f0;
+  border: 1px solid rgba(34, 120, 70, 0.2);
+  color: #1f5c35;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}

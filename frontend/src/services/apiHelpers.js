@@ -20,15 +20,53 @@ export function unwrapApiData(res) {
   return body.data;
 }
 
+const TRAINING_ERROR_AR = {
+  PORTAL_MISMATCH: 'هذا الحساب لا ينتمي إلى بوابة الدخول المحددة.',
+  ROLE_NOT_ALLOWED: 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
+  ORGANIZATION_ASSIGNMENT_REQUIRED: 'يلزم ارتباط نشط بمؤسسة للوصول.',
+  ORGANIZATION_SCOPE_VIOLATION: 'لا يمكنك الوصول إلى بيانات خارج نطاق مؤسستك.',
+  TRAINING_PROGRAM_NOT_FOUND: 'الدورة التدريبية غير موجودة.',
+  TRAINING_PROGRAM_NOT_AVAILABLE: 'الدورة التدريبية غير متاحة حاليًا.',
+  TRAINER_ASSIGNMENT_REQUIRED: 'يلزم تعيينك كمدرب على هذه الدورة.',
+  TRAINER_PERMISSION_REQUIRED: 'لا تملك صلاحية المدرب المطلوبة لهذا الإجراء.',
+  COURSE_ENROLLMENT_REQUIRED: 'يلزم التسجيل في الدورة للوصول إلى هذا المحتوى.',
+  ENROLLMENT_PENDING: 'تسجيلك بانتظار الموافقة.',
+  ENROLLMENT_REJECTED: 'تم رفض طلب التسجيل.',
+  ATTENDANCE_WINDOW_CLOSED: 'لا توجد نافذة حضور مفتوحة.',
+  ATTENDANCE_CODE_INVALID: 'رمز الحضور غير صحيح.',
+  ATTENDANCE_CODE_EXPIRED: 'انتهت صلاحية رمز الحضور.',
+  TASK_NOT_AVAILABLE: 'المهمة غير متاحة حاليًا.',
+  ASSESSMENT_NOT_AVAILABLE: 'الاختبار غير متاح حاليًا.',
+  ASSESSMENT_NOT_FOUND: 'الاختبار غير موجود.',
+  ASSESSMENT_NOT_PUBLISHED: 'الاختبار غير منشور.',
+  ASSESSMENT_NOT_STARTED: 'لم يبدأ الاختبار بعد.',
+  ASSESSMENT_CLOSED: 'انتهت فترة إتاحة الاختبار.',
+  ASSESSMENT_PREREQUISITES_INCOMPLETE:
+    'الاختبار البعدي غير متاح حاليًا. أكمل متطلبات الدورة المطلوبة أولًا.',
+  ASSESSMENT_ATTEMPTS_EXHAUSTED: 'أكملت جميع المحاولات المتاحة.',
+  ASSESSMENT_ATTEMPT_ALREADY_SUBMITTED: 'تم إرسال هذه المحاولة مسبقًا.',
+  ASSESSMENT_ATTEMPT_EXPIRED: 'انتهت مدة المحاولة.',
+  ASSESSMENT_MANUAL_GRADING_PENDING: 'نتيجتك بانتظار مراجعة المدرب.',
+  COURSE_REQUIREMENTS_INCOMPLETE: 'متطلبات الدورة غير مكتملة بعد.',
+  CERTIFICATE_NOT_ELIGIBLE: 'الشهادة غير متاحة لهذا التسجيل.',
+};
+
 /**
  * @param {unknown} err
  * @param {string} [fallback]
  */
 export function getApiErrorMessage(err, fallback = 'Request failed') {
   if (!err?.response) {
+    if (err && typeof err === 'object' && err.code && TRAINING_ERROR_AR[err.code]) {
+      return TRAINING_ERROR_AR[err.code];
+    }
     return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
   }
   const body = err?.response?.data;
+  const code = body?.code || err?.code;
+  if (code && TRAINING_ERROR_AR[code]) {
+    return TRAINING_ERROR_AR[code];
+  }
   if (body && typeof body === 'object' && typeof body.message === 'string' && body.message) {
     const fields = body.details?.fields;
     if (fields && typeof fields === 'object') {

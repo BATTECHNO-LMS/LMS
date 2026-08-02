@@ -416,6 +416,15 @@ async function resolveRecipients(eventType, context = {}) {
       return uniqueRecipients([...reviewers, ...admins]);
     }
 
+    case 'TRAINER_ASSIGNED':
+    case 'TRAINER_ASSIGNMENT_UPDATED': {
+      const trainerUserId =
+        (context.trainerId && String(context.trainerId)) ||
+        (context.affectedUserId && String(context.affectedUserId)) ||
+        null;
+      return uniqueRecipients(singleRecipient(trainerUserId, 'trainer'));
+    }
+
     default: {
       // Conservative fallback: affected student if present, else empty (rules alone do not invent recipients).
       if (studentId) return uniqueRecipients(singleRecipient(studentId, 'student'));

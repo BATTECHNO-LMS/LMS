@@ -40,6 +40,8 @@ function navItem(to, labelKey, icon, permission) {
 
 const ROLE_NAV_PREFIX = {
   [ROLES.INSTRUCTOR]: 'instructor',
+  [ROLES.TRAINER]: 'trainer',
+  [ROLES.TRAINEE]: 'trainee',
   [ROLES.STUDENT]: 'student',
   [ROLES.REVIEWER]: 'reviewer',
 };
@@ -77,6 +79,7 @@ export const STUDENT_NAV_GROUPS = [
     collapsible: true,
     defaultOpen: false,
     items: [
+      navItem('/student/training-programs', 'trainingPrograms', Briefcase, P.canViewEnrolledPrograms),
       navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
       navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
       navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
@@ -122,6 +125,24 @@ export const NAV_BY_ROLE = {
     navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 
+  [ROLES.TRAINER]: [
+    navItem('/trainer', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/trainer/courses', 'courses', BookOpen, P.canViewDashboard),
+    navItem('/trainer/notifications', 'notifications', Bell, P.canViewNotifications),
+    navItem('/trainer/user-guide', 'userGuide', BookOpenCheck, P.canViewDashboard),
+    navItem('/trainer/profile', 'profile', Users, P.canViewDashboard),
+  ],
+
+  [ROLES.TRAINEE]: [
+    navItem('/trainee', 'home', LayoutDashboard, P.canViewDashboard),
+    navItem('/trainee/courses', 'courses', BookOpen, P.canViewEnrolledPrograms),
+    navItem('/trainee/certificates', 'certificates', Award, P.canViewCertificates),
+    navItem('/trainee/notifications', 'notifications', Bell, P.canViewNotifications),
+    navItem('/trainee/user-guide', 'userGuide', BookOpenCheck, P.canViewDashboard),
+    navItem('/trainee/user-guide/support', 'support', BookOpenCheck, P.canViewDashboard),
+    navItem('/trainee/profile', 'profile', Users, P.canViewDashboard),
+  ],
+
   [ROLES.STUDENT]: flattenStudentNavItems(),
 
   [ROLES.REVIEWER]: [
@@ -156,35 +177,124 @@ function resolveRoleNavLabel(role, item, tNav) {
  * @param {{ role?: string, permissions?: string[] } | null | undefined} user
  * @param {Function} tNav - `useTranslation('navigation').t`
  */
+function applyInstitutionLabelOverrides(role, items, organizationType) {
+  if (organizationType !== 'INSTITUTION') return items;
+  const overrides = {
+    [ROLES.TRAINEE]: {
+      home: 'لوحة التحكم',
+      courses: 'دوراتي التدريبية',
+      certificates: 'الشهادات',
+      notifications: 'الإشعارات',
+      userGuide: 'دليل المتدرب',
+      support: 'الدعم',
+      profile: 'الملف الشخصي',
+    },
+    [ROLES.STUDENT]: {
+      home: 'لوحة المتدرب',
+      trainingPrograms: 'الدورات التدريبية',
+      availableCohorts: 'الدفعات',
+      fieldTraining: 'الدورات التدريبية',
+      sessions: 'الجلسات',
+      attendance: 'الحضور',
+      assessments: 'الاختبارات',
+      submissions: 'المهمات',
+      grades: 'التقدم والساعات',
+      certificate: 'الشهادات',
+    },
+    [ROLES.TRAINER]: {
+      home: 'لوحة التحكم',
+      courses: 'الدورات التدريبية',
+      notifications: 'الإشعارات',
+      userGuide: 'دليل المدرب',
+      profile: 'الملف الشخصي',
+    },
+    [ROLES.INSTRUCTOR]: {
+      home: 'لوحة المدرب',
+      cohorts: 'الدفعات',
+      sessions: 'الجلسات',
+      attendance: 'الحضور',
+      assessments: 'الاختبارات',
+      submissions: 'المهمات',
+      grades: 'التقدم والساعات',
+      fieldTraining: 'الدورات التدريبية',
+      fieldTrainingAssigned: 'دوراتي المسندة',
+      fieldTrainingSessions: 'الجلسات والحضور',
+      fieldTrainingTasks: 'المهمات والتسليمات',
+      fieldTrainingResults: 'نتائج المتدربين',
+    },
+    [ROLES.REVIEWER]: {
+      home: 'لوحة مراجع المؤسسة',
+      universityReports: 'تقارير المؤسسة',
+      fieldTraining: 'التقدم والساعات',
+      fieldTrainingStudents: 'المتدربون',
+      fieldTrainingOpportunities: 'الدورات التدريبية',
+      certificates: 'الشهادات',
+    },
+  };
+  const map = overrides[role] || {};
+  return items.map((item) =>
+    map[item.labelKey] ? { ...item, label: map[item.labelKey] } : item
+  );
+}
+
 export function getDashboardNavGroups(user, tNav) {
   const role = user?.role;
   if (!role) return [];
   if (ADMIN_ROLE_SET.includes(role)) {
-    return getAdminNavGroupsForRole(role, tNav);
+    return getAdminNavGroupsForRole(role, tNav, user);
   }
-  if (role === ROLES.STUDENT) {
-    return STUDENT_NAV_GROUPS.map((group) => ({
-      id: group.id,
-      title: tNav(group.titleKey),
-      collapsible: Boolean(group.collapsible),
-      defaultOpen: Boolean(group.defaultOpen),
-      items: filterNavItemsByUi(user, group.items).map((item) => ({
+  // Institution learners use dedicated TRAINEE nav (not university student groups).
+  if (role === ROLES.TRAINEE || (role === ROLES.STUDENT && user?.organizationType === 'INSTITUTION')) {
+    const traineeRole = ROLES.TRAINEE;
+    const items = applyInstitutionLabelOverrides(
+      traineeRole,
+      filterNavItemsByUi(
+        { ...user, role: traineeRole },
+        NAV_BY_ROLE[ROLES.TRAINEE]
+      ).map((item) => ({
         ...item,
-        label: resolveRoleNavLabel(role, item, tNav),
+        label: resolveRoleNavLabel(traineeRole, item, tNav),
       })),
-    })).filter((group) => group.items.length > 0);
+      'INSTITUTION'
+    );
+    return items.length ? [{ id: 'main', title: tNav('mainMenu'), items }] : [];
   }
-  const items = filterNavItemsByUi(user, NAV_BY_ROLE[role]).map((item) => ({
-    ...item,
-    label: resolveRoleNavLabel(role, item, tNav),
-  }));
+
+  if (role === ROLES.STUDENT) {
+    const groups = STUDENT_NAV_GROUPS;
+
+    return groups
+      .map((group) => ({
+        id: group.id,
+        title: tNav(group.titleKey),
+        collapsible: Boolean(group.collapsible),
+        defaultOpen: Boolean(group.defaultOpen),
+        items: applyInstitutionLabelOverrides(
+          role,
+          filterNavItemsByUi(user, group.items).map((item) => ({
+            ...item,
+            label: resolveRoleNavLabel(role, item, tNav),
+          })),
+          user?.organizationType
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+  }
+  const items = applyInstitutionLabelOverrides(
+    role,
+    filterNavItemsByUi(user, NAV_BY_ROLE[role]).map((item) => ({
+      ...item,
+      label: resolveRoleNavLabel(role, item, tNav),
+    })),
+    user?.organizationType
+  );
   if (!items.length) return [];
   return [{ id: 'main', title: tNav('mainMenu'), items }];
 }
 
 export function getNavItemsForRole(role, tNav, user = null) {
   if (role && ADMIN_ROLE_SET.includes(role)) {
-    return flattenAdminNavItems(role, tNav);
+    return flattenAdminNavItems(role, tNav, user);
   }
   const u = user && user.role === role ? user : { role };
   return filterNavItemsByUi(u, NAV_BY_ROLE[role] ?? NAV_BY_ROLE[ROLES.STUDENT]).map((item) => ({
@@ -267,7 +377,7 @@ export function canAccessPath(user, pathname) {
   const role = user?.role;
   if (!role) return false;
   if (ADMIN_ROLE_SET.includes(role)) {
-    const paths = flattenAdminNavPaths(role);
+    const paths = flattenAdminNavPaths(role, user);
     return paths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }
   if (!canAccessPathWithUiPermissionsForUser(user, pathname)) return false;

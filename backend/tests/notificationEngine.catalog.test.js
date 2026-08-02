@@ -83,6 +83,8 @@ describe('notificationEngine shared', () => {
       'super_admin',
       'admin',
       'instructor',
+      'trainer',
+      'trainee',
       'student',
       'reviewer',
     ]);

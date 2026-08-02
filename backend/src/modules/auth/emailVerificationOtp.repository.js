@@ -73,12 +73,13 @@ async function markOtpUsed(id, tx = prisma) {
   });
 }
 
-async function markUserEmailVerified(userId, tx = prisma) {
+async function markUserEmailVerified(userId, tx = prisma, method = 'OTP') {
   const now = new Date();
   return tx.users.update({
     where: { id: userId },
     data: {
       email_verified_at: now,
+      email_verification_method: method,
       updated_at: now,
     },
     select: {
@@ -86,6 +87,7 @@ async function markUserEmailVerified(userId, tx = prisma) {
       email: true,
       status: true,
       email_verified_at: true,
+      email_verification_method: true,
     },
   });
 }

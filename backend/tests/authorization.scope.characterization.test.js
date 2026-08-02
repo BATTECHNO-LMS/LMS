@@ -155,7 +155,7 @@ describe('universityScope characterization', () => {
   });
 
   it('canonical role set used by fixtures has five codes', () => {
-    assert.equal(CANONICAL_ROLES.length, 5);
+    assert.equal(CANONICAL_ROLES.length, 6);
     assert.ok(CANONICAL_ROLES.includes('admin'));
     assert.ok(CANONICAL_ROLES.includes('reviewer'));
     assert.ok(CANONICAL_ROLES.includes('super_admin'));

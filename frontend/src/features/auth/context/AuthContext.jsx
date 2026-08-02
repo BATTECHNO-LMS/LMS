@@ -6,14 +6,16 @@ import {
   logout as logoutRequest,
   registerStudent as registerStudentRequest,
   fetchCurrentUser,
+  setActiveOrganization as setActiveOrganizationRequest,
 } from '../auth.service.js';
 import { mapAuthUser, pickPrimaryRole } from '../authUserMapper.js';
 import { storageKeys, getStorageItem, setStorageItem, removeStorageItem } from '../../../utils/storage.js';
-import { getDefaultDashboardPath } from '../../../utils/authRouting.js';
 import { ROLES } from '../../../constants/roles.js';
 import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
 import { setOnUnauthorized } from '../../../services/authSessionBridge.js';
-import { getLoginPathForCurrentPortal } from '../../../utils/portal.js';
+import { getRememberedPortalLoginPath } from '../../../utils/portal.js';
+import { resolveAuthenticatedLandingRoute } from '../../../utils/resolveAuthenticatedLandingRoute.js';
+import { PORTAL_SELECTION_PATH } from '../../../constants/portalConfig.js';
 
 export const AuthContext = createContext(null);
 
@@ -87,20 +89,18 @@ export function AuthProvider({ children }) {
     const cached = getStorageItem(storageKeys.authUser);
     const normalizedCached = token && cached ? normalizeUser(cached) : null;
 
-    if (normalizedCached) {
-      setUser(normalizedCached);
-      setIsAuthReady(true);
-    }
-
     if (!token) {
       setUser(null);
       setIsAuthReady(true);
       return;
     }
 
-    if (!normalizedCached) {
-      setIsAuthReady(false);
+    // Keep a soft cache for paint, but do not mark auth ready until /me rebuilds
+    // roles/org from the database (avoids stale student → trainee 403 flashes).
+    if (normalizedCached) {
+      setUser(normalizedCached);
     }
+    setIsAuthReady(false);
 
     try {
       const { data } = await fetchCurrentUser();
@@ -126,20 +126,33 @@ export function AuthProvider({ children }) {
     const handler = () => {
       clearSession();
       setIsAuthReady(true);
-      navigate(getLoginPathForCurrentPortal(), { replace: true });
+      navigate(getRememberedPortalLoginPath(), { replace: true });
     };
     setOnUnauthorized(handler);
     return () => setOnUnauthorized(null);
   }, [clearSession, navigate]);
 
   const login = useCallback(
-    async ({ email, password }) => {
-      // Drop prior-role caches so admin FT queries do not refetch under a student/instructor token.
+    async ({ email, password, portalType, preferredReturnTo } = {}) => {
       qc.clear();
-      const { data } = await loginRequest({ email, password });
+      const { data } = await loginRequest({ email, password, portalType });
       const normalized = await persistTokenAndHydrate(data.token);
       setIsAuthReady(true);
-      return { redirectTo: getDefaultDashboardPath(normalized) };
+      if (!normalized) {
+        throw new Error('تعذر تحميل بيانات حسابك حاليًا. حاول تسجيل الدخول مرة أخرى.');
+      }
+      const resolution = resolveAuthenticatedLandingRoute(normalized, {
+        selectedPortal: portalType || null,
+        preferredReturnTo: preferredReturnTo || null,
+      });
+      // Portal mismatch is enforced by Backend before a token is issued.
+      // Soft post-login redirects are no longer used for cross-portal access.
+      return {
+        redirectTo: resolution.path,
+        portalMismatch: false,
+        resolution,
+        user: normalized,
+      };
     },
     [persistTokenAndHydrate, qc]
   );
@@ -152,7 +165,8 @@ export function AuthProvider({ children }) {
         qc.invalidateQueries({ queryKey: ['users'] });
         qc.invalidateQueries({ queryKey: ['universities'] });
         setIsAuthReady(true);
-        return { redirectTo: getDefaultDashboardPath(normalized) };
+        const resolution = resolveAuthenticatedLandingRoute(normalized, {});
+        return { redirectTo: resolution.path };
       }
       if (data?.requiresEmailVerification) {
         qc.invalidateQueries({ queryKey: ['users'] });
@@ -176,21 +190,42 @@ export function AuthProvider({ children }) {
     await logoutRequest();
     clearSession();
     setIsAuthReady(true);
-  }, [clearSession]);
+    navigate(PORTAL_SELECTION_PATH, { replace: true });
+  }, [clearSession, navigate]);
 
   const refreshProfile = useCallback(async () => {
     const token = getStorageItem(storageKeys.authToken);
     if (!token) return null;
-    const { data } = await fetchCurrentUser();
-    const normalized = normalizeUser(data?.user);
-    if (normalized) {
+    try {
+      const { data } = await fetchCurrentUser();
+      const normalized = normalizeUser(data?.user);
+      if (normalized) {
+        setStorageItem(storageKeys.authUser, normalized);
+        setUser(normalized);
+        return normalized;
+      }
+      clearSession();
+      return null;
+    } catch {
+      clearSession();
+      return null;
+    }
+  }, [clearSession]);
+
+  const setActiveOrganization = useCallback(
+    async (organizationId) => {
+      const { data } = await setActiveOrganizationRequest(organizationId);
+      const normalized = normalizeUser(data?.user);
+      if (!normalized) {
+        throw new Error('تعذر تحميل بيانات حسابك حاليًا. حاول تسجيل الدخول مرة أخرى.');
+      }
       setStorageItem(storageKeys.authUser, normalized);
       setUser(normalized);
+      qc.clear();
       return normalized;
-    }
-    clearSession();
-    return null;
-  }, [clearSession]);
+    },
+    [qc]
+  );
 
   const value = useMemo(
     () => ({
@@ -204,8 +239,20 @@ export function AuthProvider({ children }) {
       logout,
       refreshProfile,
       clearSession,
+      setActiveOrganization,
     }),
-    [user, isAuthReady, applySession, persistTokenAndHydrate, login, signUp, logout, refreshProfile, clearSession]
+    [
+      user,
+      isAuthReady,
+      applySession,
+      persistTokenAndHydrate,
+      login,
+      signUp,
+      logout,
+      refreshProfile,
+      clearSession,
+      setActiveOrganization,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -9,6 +9,8 @@ const CANONICAL_ROLE_CODES = Object.freeze([
   'super_admin',
   'admin',
   'instructor',
+  'trainer',
+  'trainee',
   'student',
   'reviewer',
 ]);
@@ -55,6 +57,21 @@ const ROLE_META = Object.freeze({
     name_ar: 'مدرس',
     scope: 'university',
     assignable: true,
+    description: 'University / field-training instructor.',
+  },
+  trainer: {
+    name: 'Trainer',
+    name_ar: 'المدرب',
+    scope: 'university',
+    assignable: true,
+    description: 'Institution training-course trainer.',
+  },
+  trainee: {
+    name: 'Trainee',
+    name_ar: 'متدرب',
+    scope: 'university',
+    assignable: true,
+    description: 'Institution training-course trainee (not university student).',
   },
   student: {
     name: 'Student',
@@ -132,6 +149,14 @@ const UNIVERSITY_SCOPED_ROLE_CODES = Object.freeze([
   'reviewer',
 ]);
 
+/** Roles that belong to institution portal workflows (not university field-training). */
+const INSTITUTION_SCOPED_ROLE_CODES = Object.freeze([
+  'admin',
+  'trainer',
+  'trainee',
+  'reviewer',
+]);
+
 /**
  * Pick primary UI role from normalized codes.
  * @param {string[]} roles
@@ -142,6 +167,8 @@ function pickPrimaryRoleCode(roles) {
   if (normalized.includes('admin')) return 'admin';
   if (normalized.includes('reviewer')) return 'reviewer';
   if (normalized.includes('instructor')) return 'instructor';
+  if (normalized.includes('trainer')) return 'trainer';
+  if (normalized.includes('trainee')) return 'trainee';
   if (normalized.includes('student')) return 'student';
   return normalized[0] || null;
 }
@@ -169,6 +196,7 @@ module.exports = {
   ROLE_META,
   ASSIGNABLE_ROLE_CODES,
   UNIVERSITY_SCOPED_ROLE_CODES,
+  INSTITUTION_SCOPED_ROLE_CODES,
   canonicalizeRoleCode,
   normalizeRoleCodes,
   isCanonicalRoleCode,

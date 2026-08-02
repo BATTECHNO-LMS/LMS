@@ -65,6 +65,7 @@ async function loadCurrentAuthContextFromDb(userId) {
       id: true,
       status: true,
       primary_university_id: true,
+      preferred_organization_id: true,
     },
   });
 
@@ -137,22 +138,106 @@ async function loadCurrentAuthContextFromDb(userId) {
   if (primaryUniversityId) {
     university = await prisma.universities.findUnique({
       where: { id: primaryUniversityId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, organization_id: true },
     });
   }
 
+  const assignmentSelect = {
+    id: true,
+    organization_id: true,
+    role_code: true,
+    branch_id: true,
+    department_id: true,
+    job_title: true,
+    employee_number: true,
+    organizations: {
+      select: { id: true, type: true, name: true, status: true },
+    },
+  };
+
+  let organizationAssignment = null;
+  if (user.preferred_organization_id) {
+    organizationAssignment = await prisma.user_organization_assignments.findFirst({
+      where: {
+        user_id: user.id,
+        organization_id: user.preferred_organization_id,
+        is_active: true,
+      },
+      select: assignmentSelect,
+    });
+  }
+  if (!organizationAssignment) {
+    organizationAssignment = await prisma.user_organization_assignments.findFirst({
+      where: { user_id: user.id, is_active: true },
+      orderBy: { assigned_at: 'desc' },
+      select: assignmentSelect,
+    });
+  }
+
+  let organizationId =
+    organizationAssignment?.organization_id || university?.organization_id || null;
+  let organizationType = organizationAssignment?.organizations?.type || null;
+  let organization = organizationAssignment?.organizations
+    ? {
+        id: organizationAssignment.organizations.id,
+        type: organizationAssignment.organizations.type,
+        name: organizationAssignment.organizations.name,
+        status: organizationAssignment.organizations.status,
+      }
+    : null;
+
+  if (!organization && university?.organization_id) {
+    const org = await prisma.organizations.findUnique({
+      where: { id: university.organization_id },
+      select: { id: true, type: true, name: true, status: true },
+    });
+    if (org) {
+      organizationId = org.id;
+      organizationType = org.type;
+      organization = org;
+    }
+  }
+
+  // Reviewer institution scope from assignment when no university assignment.
+  if (roles.includes('reviewer') && !isGlobal && organizationAssignment?.organizations?.type === 'INSTITUTION') {
+    organizationId = organizationAssignment.organization_id;
+    organizationType = 'INSTITUTION';
+    organization = {
+      id: organizationAssignment.organizations.id,
+      type: 'INSTITUTION',
+      name: organizationAssignment.organizations.name,
+      status: organizationAssignment.organizations.status,
+    };
+  }
+
   const scope = isGlobal
-    ? { type: 'global', universityId: null }
-    : primaryUniversityId
-      ? { type: 'university', universityId: primaryUniversityId }
-      : { type: 'none', universityId: null };
+    ? { type: 'global', universityId: null, organizationId: null }
+    : organizationType === 'INSTITUTION' && organizationId
+      ? { type: 'organization', universityId: null, organizationId }
+      : primaryUniversityId
+        ? { type: 'university', universityId: primaryUniversityId, organizationId }
+        : { type: 'none', universityId: null, organizationId: null };
 
   return {
     userId: user.id,
     roles,
     universityId: primaryUniversityId,
     primaryUniversityId,
-    university,
+    university: university ? { id: university.id, name: university.name } : null,
+    organizationId,
+    organizationType,
+    organization,
+    organizationAssignment: organizationAssignment
+      ? {
+          id: organizationAssignment.id,
+          organizationId: organizationAssignment.organization_id,
+          roleCode: organizationAssignment.role_code,
+          branchId: organizationAssignment.branch_id,
+          departmentId: organizationAssignment.department_id,
+          jobTitle: organizationAssignment.job_title,
+          employeeNumber: organizationAssignment.employee_number,
+        }
+      : null,
     reviewerAssignment,
     scope,
     isGlobal,

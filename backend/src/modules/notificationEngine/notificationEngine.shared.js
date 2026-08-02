@@ -14,6 +14,8 @@ const OFFICIAL_ROLES = Object.freeze([
   'super_admin',
   'admin',
   'instructor',
+  'trainer',
+  'trainee',
   'student',
   'reviewer',
 ]);

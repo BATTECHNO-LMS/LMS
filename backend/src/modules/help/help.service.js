@@ -838,6 +838,7 @@ async function createSupportTicket(user, body) {
     data: {
       reference_code: makeReferenceCode(),
       user_id: user.userId,
+      organization_id: user.organizationId || null,
       category: body.category,
       title: body.title.trim(),
       description: stripHtml(body.description),

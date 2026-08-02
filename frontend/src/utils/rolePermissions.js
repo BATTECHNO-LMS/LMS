@@ -96,8 +96,14 @@ const REVIEWER = {
   [P.canViewNotifications]: true,
 };
 
+const TRAINEE = {
+  ...STUDENT,
+  [P.canViewFieldTraining]: false,
+};
+
 const BY_ROLE = {
   [ROLES.STUDENT]: STUDENT,
+  [ROLES.TRAINEE]: TRAINEE,
   [ROLES.INSTRUCTOR]: INSTRUCTOR,
   [ROLES.REVIEWER]: REVIEWER,
 };
@@ -155,6 +161,7 @@ export function hasUiPermissionForUser(user, key, accessRole = null) {
 const ROUTE_RULES = [
   [/^\/instructor\/assessments\/create\/?$/, P.canCreateAssessments],
   [/^\/instructor\/assessments\/[^/]+\/edit\/?$/, P.canEditAssessments],
+  [/^\/student\/training-programs\/?$/, P.canViewEnrolledPrograms],
   [/^\/student\/programs\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
   [/^\/student\/available-cohorts\/?$/, P.canViewEnrolledPrograms],
   [/^\/student\/semester-schedule\/?$/, P.canViewEnrolledPrograms],
@@ -170,6 +177,14 @@ const ROUTE_RULES = [
   [/^\/student\/grades(\/|$)/, P.canViewGrades],
   [/^\/student\/certificate(\/|$)/, P.canViewCertificates],
   [/^\/student\/dashboard\/?$/, P.canViewDashboard],
+
+  [/^\/trainee\/courses\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
+  [/^\/trainee\/courses\/?$/, P.canViewEnrolledPrograms],
+  [/^\/trainee\/certificates(\/|$)/, P.canViewCertificates],
+  [/^\/trainee\/notifications(\/|$)/, P.canViewNotifications],
+  [/^\/trainee\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/trainee\/profile\/?$/, P.canViewDashboard],
+  [/^\/trainee\/?$/, P.canViewDashboard],
 
   [/^\/instructor\/field-training(\/|$)/, P.canViewFieldTraining],
   [/^\/instructor\/risk-students(\/|$)/, P.canManageRiskStudents],
@@ -203,7 +218,7 @@ const ROUTE_RULES = [
  */
 export function getRouteUiPermission(pathname) {
   const path = pathname.replace(/\/+$/, '') || '/';
-  if (!/^\/(student|instructor|reviewer)(\/|$)/.test(path)) {
+  if (!/^\/(student|trainee|instructor|reviewer)(\/|$)/.test(path)) {
     return null;
   }
   for (const [re, perm] of ROUTE_RULES) {

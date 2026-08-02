@@ -3,7 +3,7 @@
 async function findUniversityById(id) {
   return prisma.universities.findFirst({
     where: { id, status: 'active' },
-    select: { id: true, name: true, status: true },
+    select: { id: true, name: true, status: true, organization_id: true },
   });
 }
 
@@ -68,6 +68,8 @@ async function findUserProfileById(id) {
       primary_university_id: true,
       university_specialty_id: true,
       specialty_id: true,
+      email_verified_at: true,
+      preferred_organization_id: true,
       specialties: {
         select: { id: true, name_ar: true, name_en: true, code: true, status: true },
       },

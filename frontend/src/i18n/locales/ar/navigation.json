@@ -3,6 +3,7 @@
   "admin": {
     "groups": {
       "general": "الإدارة العامة",
+      "institutionTraining": "إدارة التدريب",
       "contentHelp": "إدارة المحتوى والمساعدة",
       "orgs": "المؤسسات والبرامج",
       "delivery": "التنفيذ والتعليم",
@@ -13,6 +14,7 @@
       "dashboard": "الرئيسية",
       "analytics": "الإحصائيات والتحليلات",
       "courses": "إدارة الكورسات",
+      "trainingCourses": "الدورات التدريبية",
       "fieldTraining": "إدارة التدريب الميداني",
       "userGuide": "دليل المستخدم",
       "contentHubHelp": "دليل المستخدم",
@@ -30,6 +32,7 @@
       "roles": "الأدوار والصلاحيات",
       "settings": "الإعدادات",
       "universities": "الجامعات",
+      "institutions": "المؤسسات",
       "tracks": "المسارات",
       "microCredentials": "الشهادات المصغرة",
       "learningOutcomes": "مخرجات التعلم",
@@ -75,6 +78,22 @@
     "userGuide": "دليل المستخدم",
     "notifications": "الإشعارات"
   },
+  "trainer": {
+    "home": "لوحة التحكم",
+    "courses": "الدورات التدريبية",
+    "notifications": "الإشعارات",
+    "userGuide": "دليل المدرب",
+    "profile": "الملف الشخصي"
+  },
+  "trainee": {
+    "home": "لوحة التحكم",
+    "courses": "دوراتي التدريبية",
+    "certificates": "الشهادات",
+    "notifications": "الإشعارات",
+    "userGuide": "دليل المتدرب",
+    "support": "الدعم",
+    "profile": "الملف الشخصي"
+  },
   "student": {
     "groups": {
       "overview": "نظرة عامة",
@@ -83,6 +102,7 @@
       "support": "المساعدة"
     },
     "home": "الرئيسية",
+    "trainingPrograms": "دوراتي التدريبية",
     "availableCohorts": "الدفعات المتاحة",
     "courses": "الكورسات",
     "fieldTraining": "فرص التدريب الميداني",

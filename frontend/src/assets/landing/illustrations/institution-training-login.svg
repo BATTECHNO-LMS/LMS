@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 520" fill="none" role="img" aria-labelledby="instTrainingTitle">
+  <title id="instTrainingTitle">13E *H6J-J D%/'1) 'D(1'E, 'D*/1J(J) /'.D 'DE$33'*</title>
+  <!-- soft backdrop -->
+  <ellipse cx="330" cy="420" rx="250" ry="36" fill="#132D4A" opacity="0.06"/>
+  <path d="M48 300c40-120 120-180 220-180s190 70 250 150c40 55 50 120 20 150H80c-40-20-52-70-32-120Z" fill="#F3EAD4" opacity="0.9"/>
+  <path d="M48 300c40-120 120-180 220-180s190 70 250 150c40 55 50 120 20 150H80c-40-20-52-70-32-120Z" fill="#fff" opacity="0.45"/>
+
+  <!-- institution building -->
+  <g stroke="#132D4A" stroke-width="1.6" stroke-linejoin="round">
+    <rect x="72" y="168" width="148" height="214" rx="8" fill="#fff"/>
+    <rect x="88" y="148" width="116" height="24" rx="4" fill="#F3EAD4"/>
+    <path d="M96 148V136h100v12" fill="#fff"/>
+    <rect x="96" y="192" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="128" y="192" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="160" y="192" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="96" y="226" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="128" y="226" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="160" y="226" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="96" y="260" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="128" y="260" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="160" y="260" width="22" height="18" rx="2" fill="#F3EAD4"/>
+    <rect x="122" y="318" width="48" height="64" rx="4" fill="#132D4A" opacity="0.12"/>
+    <path d="M146 318v64" stroke-width="1.4"/>
+  </g>
+
+  <!-- presentation board -->
+  <g stroke="#132D4A" stroke-width="1.6" stroke-linejoin="round">
+    <rect x="268" y="96" width="236" height="148" rx="12" fill="#fff"/>
+    <rect x="284" y="112" width="204" height="104" rx="8" fill="#F7FAFC"/>
+    <!-- chart bars -->
+    <rect x="312" y="168" width="22" height="32" rx="3" fill="#132D4A" opacity="0.75"/>
+    <rect x="348" y="150" width="22" height="50" rx="3" fill="#0B3D5C"/>
+    <rect x="384" y="140" width="22" height="60" rx="3" fill="#C9A227" opacity="0.85"/>
+    <rect x="420" y="156" width="22" height="44" rx="3" fill="#132D4A" opacity="0.45"/>
+    <!-- progress ring -->
+    <circle cx="468" cy="150" r="22" stroke="#132D4A" stroke-opacity="0.15" stroke-width="5" fill="none"/>
+    <path d="M468 128a22 22 0 1 1-18.5 10.2" stroke="#0B3D5C" stroke-width="5" stroke-linecap="round"/>
+    <path d="M348 244h76" stroke-width="1.4" opacity="0.35"/>
+  </g>
+
+  <!-- trainer -->
+  <g stroke="#132D4A" stroke-width="1.5" stroke-linejoin="round">
+    <circle cx="318" cy="292" r="18" fill="#F3EAD4"/>
+    <path d="M292 372c4-34 14-48 26-48s22 14 26 48" fill="#132D4A" opacity="0.88"/>
+    <path d="M292 336c10-8 22-10 34-2" fill="none" stroke-linecap="round"/>
+    <path d="M344 308l28-18" stroke-linecap="round"/>
+    <rect x="368" y="278" width="34" height="24" rx="3" fill="#fff"/>
+  </g>
+
+  <!-- trainees -->
+  <g stroke="#132D4A" stroke-width="1.45" stroke-linejoin="round">
+    <circle cx="404" cy="318" r="14" fill="#F3EAD4"/>
+    <path d="M384 380c3-24 10-34 20-34s17 10 20 34" fill="#5C6675" opacity="0.85"/>
+    <circle cx="454" cy="322" r="14" fill="#F3EAD4"/>
+    <path d="M434 380c3-22 10-32 20-32s17 10 20 32" fill="#0B3D5C" opacity="0.8"/>
+    <circle cx="504" cy="324" r="14" fill="#F3EAD4"/>
+    <path d="M484 380c3-20 10-30 20-30s17 10 20 30" fill="#5C6675" opacity="0.75"/>
+  </g>
+
+  <!-- table / desks -->
+  <g stroke="#132D4A" stroke-width="1.5" stroke-linejoin="round">
+    <rect x="360" y="372" width="180" height="14" rx="4" fill="#fff"/>
+    <path d="M380 386v24M520 386v24" stroke-linecap="round"/>
+    <rect x="392" y="352" width="48" height="22" rx="3" fill="#F3EAD4"/>
+    <rect x="456" y="352" width="48" height="22" rx="3" fill="#F3EAD4"/>
+  </g>
+
+  <!-- floating badges: certificate, attendance, briefcase, calendar -->
+  <g stroke="#132D4A" stroke-width="1.4" stroke-linejoin="round">
+    <rect x="520" y="88" width="64" height="52" rx="10" fill="#fff"/>
+    <rect x="532" y="100" width="40" height="28" rx="3" fill="#F3EAD4"/>
+    <circle cx="564" cy="124" r="7" fill="#fff"/>
+    <path d="M561 124l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="540" y="168" width="56" height="56" rx="12" fill="#fff"/>
+    <rect x="552" y="180" width="32" height="28" rx="3" fill="#F3EAD4"/>
+    <path d="M558 188h20M558 196h14" stroke-linecap="round" opacity="0.7"/>
+    <circle cx="582" cy="208" r="6" fill="#fff"/>
+    <path d="M580 208l1.5 1.5 3-3" stroke-linecap="round"/>
+
+    <rect x="248" y="280" width="48" height="40" rx="8" fill="#fff"/>
+    <path d="M260 296h24M260 304h16" stroke-linecap="round" opacity="0.7"/>
+    <rect x="258" y="288" width="28" height="6" rx="2" fill="#F3EAD4"/>
+
+    <rect x="228" y="340" width="44" height="44" rx="10" fill="#fff"/>
+    <rect x="238" y="352" width="24" height="20" rx="2" fill="#F3EAD4"/>
+    <path d="M246 348v-4M254 348v-4" stroke-linecap="round"/>
+  </g>
+
+  <!-- department nodes -->
+  <g stroke="#132D4A" stroke-width="1.3" opacity="0.55">
+    <circle cx="160" cy="420" r="8" fill="#fff"/>
+    <circle cx="210" cy="408" r="8" fill="#fff"/>
+    <circle cx="250" cy="424" r="8" fill="#fff"/>
+    <path d="M168 420h34M218 412l24 8" stroke-linecap="round"/>
+  </g>
+</svg>

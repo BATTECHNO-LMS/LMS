@@ -58,8 +58,8 @@ export function AccountStatusPage() {
               : 'عادةً ما يتم تفعيل الحساب خلال 48 ساعة من إتمام التسجيل.'
           }
           secondaryAction={
-            <Button type="button" variant="outline" onClick={() => navigate('/login/student')}>
-              تحديث الحالة
+            <Button type="button" variant="outline" onClick={() => navigate('/portals')}>
+              العودة إلى البوابات
             </Button>
           }
           primaryAction={

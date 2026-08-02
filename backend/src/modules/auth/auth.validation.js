@@ -30,6 +30,20 @@ const loginSchema = z
   .object({
     email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
     password: z.string().min(1, 'كلمة المرور مطلوبة'),
+    /** Non-authoritative UI hint only — never used for authorization. */
+    portalType: z.enum(['UNIVERSITY', 'INSTITUTION']).optional(),
+  })
+  .strict()
+  .transform((b) => ({
+    email: b.email.trim().toLowerCase(),
+    password: b.password,
+    portalType: b.portalType || undefined,
+  }));
+
+const accountStatusSchema = z
+  .object({
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(1, 'كلمة المرور مطلوبة'),
   })
   .strict()
   .transform((b) => ({
@@ -37,7 +51,11 @@ const loginSchema = z
     password: b.password,
   }));
 
-const accountStatusSchema = loginSchema;
+const activeOrganizationBodySchema = z
+  .object({
+    organization_id: z.string().uuid('الجهة المحددة غير صالحة'),
+  })
+  .strict();
 
 const verifyEmailOtpSchema = z
   .object({
@@ -102,10 +120,40 @@ const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 
+/**
+ * Public institution trainee self-registration only.
+ * Role is never accepted from the client (.strict() rejects role/admin injection).
+ * Employment fields are intentionally omitted from public registration.
+ */
+const institutionRegisterSchema = z
+  .object({
+    full_name: z.string().min(1, 'يرجى إدخال الاسم الكامل.').max(255),
+    phone: z
+      .string({ required_error: 'يرجى إدخال رقم الهاتف.' })
+      .trim()
+      .min(1, 'يرجى إدخال رقم الهاتف.')
+      .max(50, 'رقم الهاتف غير صحيح.'),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(8, 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.'),
+    organization_id: z.string().uuid('يرجى اختيار المؤسسة.'),
+    branch_id: z.string().uuid('يرجى اختيار الفرع.'),
+  })
+  .strict()
+  .transform((b) => ({
+    full_name: b.full_name.trim(),
+    phone: b.phone.trim(),
+    email: b.email.trim().toLowerCase(),
+    password: b.password,
+    organization_id: b.organization_id,
+    branch_id: b.branch_id,
+  }));
+
 module.exports = {
   registerSchema,
+  institutionRegisterSchema,
   loginSchema,
   accountStatusSchema,
+  activeOrganizationBodySchema,
   universityIdParamSchema,
   verifyEmailOtpSchema,
   resendEmailOtpSchema,

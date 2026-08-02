@@ -56,10 +56,10 @@ export function HomeFooter() {
           <div className="landing-footer__col landing-footer__col--actions">
             <p className="landing-footer__label">{t('header.login')}</p>
             <div className="landing-footer__actions">
-              <LandingCtaButton to="/login" variant="secondary" className="landing-footer__btn">
+              <LandingCtaButton to="/portals" variant="secondary" className="landing-footer__btn">
                 {t('header.login')}
               </LandingCtaButton>
-              <LandingCtaButton to="/register" variant="primary" className="landing-footer__btn">
+              <LandingCtaButton to="/institutions/register" variant="primary" className="landing-footer__btn">
                 {t('header.register')}
               </LandingCtaButton>
             </div>

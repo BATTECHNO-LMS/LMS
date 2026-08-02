@@ -10,6 +10,8 @@ export const ROLE_HOME_ROUTES = Object.freeze({
   [ROLES.SUPER_ADMIN]: '/admin/dashboard',
   [ROLES.ADMIN]: '/admin/dashboard',
   [ROLES.INSTRUCTOR]: '/instructor/dashboard',
+  [ROLES.TRAINER]: '/trainer',
+  [ROLES.TRAINEE]: '/trainee',
   [ROLES.STUDENT]: '/student/dashboard',
   [ROLES.REVIEWER]: '/reviewer/dashboard',
 });
@@ -18,8 +20,20 @@ const ROLE_LABELS_AR = Object.freeze({
   [ROLES.SUPER_ADMIN]: 'سوبر أدمن',
   [ROLES.ADMIN]: 'مسؤول',
   [ROLES.INSTRUCTOR]: 'مدرس',
+  [ROLES.TRAINER]: 'المدرب',
+  [ROLES.TRAINEE]: 'متدرب',
   [ROLES.STUDENT]: 'طالب',
   [ROLES.REVIEWER]: 'مراجع الجامعة',
+});
+
+/** Institution portal display labels. */
+export const INSTITUTION_ROLE_LABELS_AR = Object.freeze({
+  [ROLES.SUPER_ADMIN]: 'إدارة المنصة',
+  [ROLES.ADMIN]: 'مسؤول المؤسسة',
+  [ROLES.TRAINER]: 'المدرب',
+  [ROLES.TRAINEE]: 'متدرب',
+  [ROLES.STUDENT]: 'متدرب',
+  [ROLES.REVIEWER]: 'مراجع المؤسسة',
 });
 
 /**
@@ -64,22 +78,35 @@ export function getRoleHomePath(role) {
 }
 
 /**
- * Home route after authentication — uses active/primary role when multiple roles exist.
+ * Home route after authentication — uses centralized landing resolver (org + role aware).
  * @param {{ role?: string, roles?: string[], activeRole?: string } | null | undefined} user
  */
 export function getDefaultDashboardPath(user) {
-  if (!user || typeof user !== 'object') return '/login';
+  if (!user || typeof user !== 'object') return '/portals';
+  // Lazy import avoided — keep sync map for simple role home; org-aware callers use resolveAuthenticatedLandingRoute.
   const role = getActiveRoleCode(user);
-  if (!role) return '/login';
+  if (!role) return '/portals';
+  if (user.organizationType === 'INSTITUTION') {
+    if (role === ROLES.ADMIN && user.organizationId) {
+      return `/admin/institutions/${user.organizationId}`;
+    }
+    if (role === ROLES.ADMIN) return '/admin/institutions';
+    if (role === ROLES.TRAINER) return '/trainer';
+    if (role === ROLES.TRAINEE || role === ROLES.STUDENT) return '/trainee';
+  }
   return getRoleHomePath(role);
 }
 
 /**
  * Arabic label for display on forbidden page (never technical codes alone).
  * @param {string | null | undefined} role
+ * @param {'UNIVERSITY'|'INSTITUTION'|null|undefined} [organizationType]
  */
-export function getRoleLabelAr(role) {
+export function getRoleLabelAr(role, organizationType) {
   const code = canonicalizeRoleCode(role);
+  if (organizationType === 'INSTITUTION' && code && INSTITUTION_ROLE_LABELS_AR[code]) {
+    return INSTITUTION_ROLE_LABELS_AR[code];
+  }
   return ROLE_LABELS_AR[code] || (code ? String(code) : 'غير محدد');
 }
 
@@ -90,7 +117,9 @@ export function getRoleLabelAr(role) {
  */
 export function getShellRoleFromPath(pathname) {
   const path = String(pathname || '').replace(/\/+$/, '') || '/';
+  if (/^\/trainee(\/|$)/.test(path)) return ROLES.TRAINEE;
   if (/^\/student(\/|$)/.test(path)) return ROLES.STUDENT;
+  if (/^\/trainer(\/|$)/.test(path)) return ROLES.TRAINER;
   if (/^\/instructor(\/|$)/.test(path)) return ROLES.INSTRUCTOR;
   if (/^\/reviewer(\/|$)/.test(path)) return ROLES.REVIEWER;
   if (/^\/admin(\/|$)/.test(path)) return null;
@@ -126,7 +155,10 @@ export function isSafeBackPath(pathname) {
   return (
     path.startsWith('/admin') ||
     path.startsWith('/student') ||
+    path.startsWith('/trainee') ||
+    path.startsWith('/trainer') ||
     path.startsWith('/instructor') ||
-    path.startsWith('/reviewer')
+    path.startsWith('/reviewer') ||
+    path.startsWith('/academic')
   );
 }

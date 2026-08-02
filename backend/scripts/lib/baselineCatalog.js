@@ -60,7 +60,9 @@ const REAL_UNIVERSITIES = [
 const REQUIRED_ROLES = [
   { code: 'super_admin', name: 'Super Admin', scope: 'global' },
   { code: 'admin', name: 'Admin', scope: 'university', description: 'University or staff admin (scoped by primary_university_id).' },
-  { code: 'instructor', name: 'Instructor', scope: 'university' },
+  { code: 'instructor', name: 'Instructor', scope: 'university', description: 'University / field-training instructor.' },
+  { code: 'trainer', name: 'Trainer', scope: 'university', description: 'Institution training-course trainer.' },
+  { code: 'trainee', name: 'Trainee', scope: 'university', description: 'Institution training-course trainee.' },
   { code: 'student', name: 'Student', scope: 'university' },
   { code: 'reviewer', name: 'Reviewer', scope: 'university', description: 'University-scoped read-only reviewer.' },
 ];

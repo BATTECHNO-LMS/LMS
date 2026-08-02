@@ -3,6 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../../layouts/AuthLayout.jsx';
 import { AdminLayout } from '../../layouts/AdminLayout.jsx';
 import { InstructorLayout } from '../../layouts/InstructorLayout.jsx';
+import { TrainerLayout } from '../../layouts/TrainerLayout.jsx';
+import { TraineeLayout } from '../../layouts/TraineeLayout.jsx';
 import { StudentLayout } from '../../layouts/StudentLayout.jsx';
 import { ReviewerLayout } from '../../layouts/ReviewerLayout.jsx';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
@@ -19,6 +21,13 @@ import {
   StudentLoginPage,
   ReviewerLoginPage,
 } from '../../pages/auth/portalLogins.jsx';
+import { PortalPickerPage } from '../../pages/auth/PortalPickerPage.jsx';
+import {
+  InstitutionLoginPage,
+  UniversitiesLoginPage,
+} from '../../pages/auth/InstitutionLoginPage.jsx';
+import { InstitutionRegisterPage } from '../../pages/auth/InstitutionRegisterPage.jsx';
+import { SelectOrganizationPage } from '../../pages/auth/SelectOrganizationPage.jsx';
 import * as Pages from './lazyPages.js';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute.jsx';
 import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
@@ -33,7 +42,9 @@ function SubdomainLoginRedirect() {
   if (portal === 'instructor') return <Navigate to="/login/instructor" replace />;
   if (portal === 'student') return <Navigate to="/login/student" replace />;
   if (portal === 'reviewer') return <Navigate to="/login/reviewer" replace />;
-  return <LoginPage />;
+  if (portal === 'institutions') return <Navigate to="/institutions/login" replace />;
+  if (portal === 'universities') return <Navigate to="/universities/login" replace />;
+  return <PortalPickerPage />;
 }
 
 export function AppRouter() {
@@ -42,12 +53,25 @@ export function AppRouter() {
     <Routes>
       <Route path="/" element={<RootRedirect />} />
 
+      <Route path="/portals" element={<AuthLayout />}>
+        <Route index element={<PortalPickerPage />} />
+      </Route>
+
       <Route path="/login" element={<AuthLayout />}>
         <Route index element={<SubdomainLoginRedirect />} />
         <Route path="admin" element={<AdminLoginPage />} />
         <Route path="instructor" element={<InstructorLoginPage />} />
         <Route path="student" element={<StudentLoginPage />} />
         <Route path="reviewer" element={<ReviewerLoginPage />} />
+      </Route>
+
+      <Route path="/institutions" element={<AuthLayout />}>
+        <Route path="login" element={<InstitutionLoginPage />} />
+        <Route path="register" element={<InstitutionRegisterPage />} />
+      </Route>
+
+      <Route path="/universities" element={<AuthLayout />}>
+        <Route path="login" element={<UniversitiesLoginPage />} />
       </Route>
 
       <Route path="/register" element={<AuthLayout />}>
@@ -69,6 +93,10 @@ export function AppRouter() {
 
       <Route path="/account-status" element={<AuthLayout />}>
         <Route index element={<AccountStatusPage />} />
+      </Route>
+
+      <Route path="/select-organization" element={<AuthLayout />}>
+        <Route index element={<SelectOrganizationPage />} />
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
@@ -146,6 +174,12 @@ export function AppRouter() {
             <Route path="universities/:id/edit" element={<Pages.UniversityEditPage />} />
             <Route path="universities/:id" element={<Pages.UniversityViewPage />} />
             <Route path="universities" element={<Pages.UniversitiesListPage />} />
+            <Route path="institutions" element={<Pages.AdminInstitutionsPage />} />
+            <Route path="institutions/:id" element={<Pages.AdminInstitutionDetailPage />} />
+            <Route path="training-courses" element={<Pages.AdminTrainingCoursesPage />} />
+            <Route path="training-courses/create" element={<Pages.AdminTrainingCourseCreatePage />} />
+            <Route path="training-courses/:programId/edit" element={<Pages.AdminTrainingCourseEditPage />} />
+            <Route path="training-courses/:programId" element={<Pages.AdminTrainingCourseDetailPage />} />
             <Route path="tracks/create" element={<Pages.TrackCreatePage />} />
             <Route path="tracks/:id/edit" element={<Pages.TrackEditPage />} />
             <Route path="tracks/:id" element={<Pages.TrackViewPage />} />
@@ -198,6 +232,41 @@ export function AppRouter() {
             <Route path="audit-logs/:id" element={<Pages.AuditLogDetailsPage />} />
             <Route path="audit-logs" element={<Pages.AuditLogsPage />} />
             <Route path="settings" element={<Pages.SettingsPage />} />
+            <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+          </Route>
+        </Route>
+
+        <Route path="/trainer" element={<TrainerLayout />}>
+          <Route index element={<Pages.TrainerDashboardPage />} />
+          <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINER]} />}>
+            <Route path="courses" element={<Pages.TrainerCoursesPage />} />
+            <Route path="courses/:programId" element={<Pages.TrainerCoursePage />} />
+            <Route path="courses/:programId/:tab" element={<Pages.TrainerCoursePage />} />
+            <Route path="notifications" element={<Pages.NotificationsPage />} />
+            <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
+            <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
+            <Route path="user-guide/support" element={<Pages.StudentUserGuideSupportPage />} />
+            <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
+            <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
+            <Route path="profile" element={<Pages.TrainerProfilePage />} />
+            <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+          </Route>
+        </Route>
+
+        <Route path="/trainee" element={<TraineeLayout />}>
+          <Route index element={<Pages.TraineeDashboardPage />} />
+          <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINEE]} />}>
+            <Route path="courses" element={<Pages.TraineeCoursesPage />} />
+            <Route path="courses/:programId" element={<Pages.TraineeCourseDetailPage />} />
+            <Route path="courses/:programId/:tab" element={<Pages.TraineeCourseDetailPage />} />
+            <Route path="certificates" element={<Pages.CertificatePage />} />
+            <Route path="notifications" element={<Pages.NotificationsPage />} />
+            <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
+            <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
+            <Route path="user-guide/support" element={<Pages.StudentUserGuideSupportPage />} />
+            <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
+            <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
+            <Route path="profile" element={<Pages.TrainerProfilePage />} />
             <Route path="*" element={<Pages.ModulePlaceholderPage />} />
           </Route>
         </Route>
@@ -260,6 +329,14 @@ export function AppRouter() {
               <Route path="dashboard" element={<Pages.StudentDashboardPage />} />
               <Route path="courses" element={<Pages.StudentCoursesPage />} />
               <Route path="courses/:id" element={<Pages.StudentCourseDetailPage />} />
+              <Route
+                path="training-programs"
+                element={
+                  <Pages.TraineeTrainingProgramsRedirect
+                    universityFallback={<Pages.StudentInstitutionProgramsPage />}
+                  />
+                }
+              />
               <Route path="field-training" element={<Pages.StudentFieldTrainingPage />} />
               <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
               <Route path="user-guide/support" element={<Pages.StudentUserGuideSupportPage />} />

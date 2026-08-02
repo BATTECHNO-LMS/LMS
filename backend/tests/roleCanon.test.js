@@ -46,14 +46,20 @@ describe('roleCanon', () => {
     assert.equal(pickPrimaryRoleCode(['university_reviewer']), 'reviewer');
   });
 
-  it('canonical set is exactly five roles', () => {
+  it('canonical set includes trainer and trainee alongside instructor/student', () => {
     assert.deepEqual(CANONICAL_ROLE_CODES, [
       'super_admin',
       'admin',
       'instructor',
+      'trainer',
+      'trainee',
       'student',
       'reviewer',
     ]);
+  });
+
+  it('picks trainer when present without instructor', () => {
+    assert.equal(pickPrimaryRoleCode(['student', 'trainer']), 'trainer');
   });
 });
 

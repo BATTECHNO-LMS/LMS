@@ -94,11 +94,16 @@ export function VerifyEmailOtpPage() {
       const normalizedEmail = values.email.trim().toLowerCase();
       try {
         const result = await verifyEmailOtp(normalizedEmail, values.otp.trim());
-        setSuccess(
-          result?.requiresAdminApproval
-            ? t('verifyEmail.successPendingAdmin')
-            : t('verifyEmail.successCanLogin')
-        );
+        const isInstitutionPortal = searchParams.get('portal') === 'institutions';
+        if (isInstitutionPortal || result?.requiresAdminApproval) {
+          setSuccess(
+            isInstitutionPortal
+              ? 'INSTITUTION_PENDING'
+              : 'تم توثيق بريدك الإلكتروني. حسابك بانتظار التفعيل.'
+          );
+        } else {
+          setSuccess(t('verifyEmail.successCanLogin'));
+        }
         removeStorageItem(storageKeys.pendingVerificationEmail);
       } catch (err) {
         const code = err?.response?.data?.code;
@@ -110,7 +115,7 @@ export function VerifyEmailOtpPage() {
         setSubmitting(false);
       }
     },
-    [t]
+    [t, searchParams]
   );
 
   async function handleResend() {
@@ -154,10 +159,37 @@ export function VerifyEmailOtpPage() {
 
               {success ? (
                 <div className="auth-form" role="status">
-                  <p className="auth-register__helper">{success}</p>
+                  {success === 'INSTITUTION_PENDING' ? (
+                    <>
+                      <h2 className="auth-split__title" style={{ fontSize: '1.35rem' }}>
+                        تم توثيق بريدك الإلكتروني
+                      </h2>
+                      <p className="auth-split__subtitle">حسابك بانتظار التفعيل</p>
+                      <p className="auth-register__helper">
+                        تم توثيق بياناتك بنجاح، وحسابك الآن بانتظار مراجعة وتفعيل مسؤول المؤسسة.
+                        سيتم تفعيل الحساب خلال مدة لا تتجاوز 48 ساعة.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="auth-register__helper">{success}</p>
+                  )}
                   <div className="auth-form__actions">
-                    <Button type="button" onClick={() => navigate('/login/student', { replace: true })}>
-                      {t('verifyEmail.goToLogin')}
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          success === 'INSTITUTION_PENDING'
+                            ? '/account-status'
+                            : searchParams.get('portal') === 'institutions'
+                              ? '/institutions/login'
+                              : '/universities/login',
+                          { replace: true }
+                        )
+                      }
+                    >
+                      {success === 'INSTITUTION_PENDING'
+                        ? 'حالة حسابك'
+                        : t('verifyEmail.goToLogin')}
                     </Button>
                   </div>
                 </div>

@@ -27,6 +27,7 @@ const AUTH_ERROR_CODES = Object.freeze({
   NETWORK_ERROR: 'NETWORK_ERROR',
   SERVER_ERROR: 'SERVER_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
+  PORTAL_MISMATCH: 'PORTAL_MISMATCH',
 });
 
 const AUTH_MESSAGES = Object.freeze({
@@ -70,6 +71,12 @@ const AUTH_MESSAGES = Object.freeze({
     'انتهت جلستك أو غير مصرح لك. سجّل الدخول مرة أخرى.',
   [AUTH_ERROR_CODES.VALIDATION_ERROR]:
     'يرجى مراجعة الحقول المظللة وتصحيحها.',
+  [AUTH_ERROR_CODES.PORTAL_MISMATCH]:
+    'هذا الحساب مرتبط ببوابة مختلفة. يرجى تسجيل الدخول من البوابة المناسبة.',
+  PORTAL_MISMATCH_UNIVERSITY:
+    'هذا الحساب مرتبط ببوابة الجامعات. يرجى تسجيل الدخول من بوابة الجامعات.',
+  PORTAL_MISMATCH_INSTITUTION:
+    'هذا الحساب مرتبط ببوابة المؤسسات. يرجى تسجيل الدخول من بوابة المؤسسات.',
 });
 
 const ACTIVATION_SLA_HOURS = 48;

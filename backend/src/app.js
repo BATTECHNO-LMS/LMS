@@ -65,9 +65,22 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
+app.get('/health', async (req, res) => {
+  let database = 'unknown';
+  try {
+    if (!env.DATABASE_URL) {
+      database = 'unconfigured';
+    } else {
+      await prisma.$queryRaw`SELECT 1`;
+      database = 'connected';
+    }
+  } catch {
+    database = 'disconnected';
+  }
+  const ok = database === 'connected';
+  return res.status(ok ? 200 : 503).json({
+    status: ok ? 'ok' : 'degraded',
+    database,
     service: 'battechno-lms-api',
     timestamp: new Date().toISOString(),
   });
@@ -77,15 +90,16 @@ app.get('/health/ready', async (req, res) => {
   if (!env.DATABASE_URL) {
     return res.status(503).json({
       status: 'not_ready',
+      database: 'unconfigured',
       db: false,
       reason: 'DATABASE_URL not configured',
     });
   }
   try {
     await prisma.$queryRaw`SELECT 1`;
-    return res.status(200).json({ status: 'ready', db: true });
+    return res.status(200).json({ status: 'ready', database: 'connected', db: true });
   } catch {
-    return res.status(503).json({ status: 'not_ready', db: false });
+    return res.status(503).json({ status: 'not_ready', database: 'disconnected', db: false });
   }
 });
 

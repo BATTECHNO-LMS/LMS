@@ -3,6 +3,7 @@
   "admin": {
     "groups": {
       "general": "General management",
+      "institutionTraining": "Training management",
       "contentHelp": "Content & help management",
       "orgs": "Organizations and programs",
       "delivery": "Delivery and teaching",
@@ -13,6 +14,7 @@
       "dashboard": "Home",
       "analytics": "Analytics & statistics",
       "courses": "Course management",
+      "trainingCourses": "Training courses",
       "fieldTraining": "Field training management",
       "userGuide": "User guide",
       "contentHubHelp": "User guide",
@@ -30,6 +32,7 @@
       "roles": "Roles and permissions",
       "settings": "Settings",
       "universities": "Universities",
+      "institutions": "Institutions",
       "tracks": "Tracks",
       "microCredentials": "Micro-credentials",
       "learningOutcomes": "Learning outcomes",
@@ -75,6 +78,22 @@
     "userGuide": "User guide",
     "notifications": "Notifications"
   },
+  "trainer": {
+    "home": "Dashboard",
+    "courses": "Training courses",
+    "notifications": "Notifications",
+    "userGuide": "Trainer guide",
+    "profile": "Profile"
+  },
+  "trainee": {
+    "home": "Dashboard",
+    "courses": "My training courses",
+    "certificates": "Certificates",
+    "notifications": "Notifications",
+    "userGuide": "Trainee guide",
+    "support": "Support",
+    "profile": "Profile"
+  },
   "student": {
     "groups": {
       "overview": "Overview",
@@ -83,6 +102,7 @@
       "support": "Help"
     },
     "home": "Home",
+    "trainingPrograms": "My training courses",
     "availableCohorts": "Browse cohorts",
     "courses": "Courses",
     "fieldTraining": "Field training opportunities",

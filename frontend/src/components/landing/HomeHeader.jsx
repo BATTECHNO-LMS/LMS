@@ -53,14 +53,14 @@ export function HomeHeader({ variant = 'default' }) {
   const authBlock = (
     <div className="flex flex-shrink-0 items-center gap-2">
       <Link
-        to="/login"
+        to="/portals"
         className="hidden rounded-xl border border-bat-accent bg-bat-accent-soft px-4 py-2.5 text-sm font-semibold text-bat-primary shadow-sm transition hover:border-bat-accent-hover hover:bg-bat-accent sm:inline-flex"
         onClick={close}
       >
         {t('header.login')}
       </Link>
       <Link
-        to="/register"
+        to="/portals"
         className="hidden rounded-xl bg-bat-primary px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-bat-primary-hover sm:inline-flex"
         onClick={close}
       >
@@ -130,18 +130,18 @@ export function HomeHeader({ variant = 'default' }) {
             <nav className="flex flex-col gap-1 px-4 py-4" aria-label="Mobile">
               <div className="flex flex-col gap-1 rounded-2xl border border-bat-border/80 bg-bat-surface-light/90 p-2">{centerLinks}</div>
               <Link
-                to="/login"
+                to="/universities/login"
                 className="mt-2 rounded-xl border border-bat-accent bg-bat-accent-soft px-4 py-3 text-center text-sm font-semibold text-bat-primary shadow-sm"
                 onClick={close}
               >
-                {t('header.login')}
+                بوابة الجامعات
               </Link>
               <Link
-                to="/register"
+                to="/institutions/login"
                 className="rounded-xl bg-bat-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-md transition hover:bg-bat-primary-hover"
                 onClick={close}
               >
-                {t('header.register')}
+                بوابة المؤسسات
               </Link>
             </nav>
           </motion.div>

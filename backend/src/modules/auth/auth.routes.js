@@ -3,9 +3,11 @@ const { validateBody, validateRequest } = require('../../middlewares/validate.mi
 const { authMiddleware } = require('../../middlewares/auth.middleware');
 const {
   registerSchema,
+  institutionRegisterSchema,
   universityIdParamSchema,
   loginSchema,
   accountStatusSchema,
+  activeOrganizationBodySchema,
   verifyEmailOtpSchema,
   resendEmailOtpSchema,
   forgotPasswordSchema,
@@ -25,6 +27,11 @@ router.get(
   authController.registrationUniversitySpecialties
 );
 router.post('/register', validateBody(registerSchema), authController.register);
+router.post(
+  '/institutions/register',
+  validateBody(institutionRegisterSchema),
+  authController.registerInstitution
+);
 router.post('/verify-email-otp', validateBody(verifyEmailOtpSchema), authController.verifyEmailOtp);
 router.post('/resend-email-otp', validateBody(resendEmailOtpSchema), authController.resendEmailOtp);
 router.post('/forgot-password', validateBody(forgotPasswordSchema), authController.forgotPassword);
@@ -42,6 +49,13 @@ router.post('/reset-password', validateBody(resetPasswordSchema), authController
 router.post('/login', validateBody(loginSchema), authController.login);
 router.post('/account-status', validateBody(accountStatusSchema), authController.accountStatus);
 router.get('/me', authMiddleware, authController.me);
+router.get('/me/assignments', authMiddleware, authController.listMyAssignments);
+router.post(
+  '/me/active-organization',
+  authMiddleware,
+  validateBody(activeOrganizationBodySchema),
+  authController.setActiveOrganization
+);
 router.post('/logout', authController.logout);
 
 module.exports = router;

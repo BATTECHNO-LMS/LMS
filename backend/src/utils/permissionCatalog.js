@@ -127,10 +127,46 @@ function defaultRolePermissionMap() {
     'reports.view',
   ];
 
+  const trainerCodes = [
+    'courses.view',
+    'courses.update',
+    'sessions.view',
+    'sessions.create',
+    'sessions.update',
+    'sessions.manage',
+    'tasks.view',
+    'tasks.create',
+    'tasks.update',
+    'tasks.manage',
+    'assessments.view',
+    'assessments.create',
+    'assessments.update',
+    'assessments.manage',
+    'reports.view',
+    'notifications.view',
+    'notifications.update',
+  ];
+
+  // Institution learner — training courses only (no field_training.*).
+  const traineeCodes = [
+    'courses.view',
+    'sessions.view',
+    'tasks.view',
+    'tasks.create',
+    'assessments.view',
+    'assessments.create',
+    'certificates.view',
+    'notifications.view',
+    'notifications.update',
+    'reports.view',
+  ];
+
   return {
     super_admin: all,
     admin: [...new Set(adminCodes)],
     instructor: instructorCodes,
+    trainer: trainerCodes,
+    trainee: traineeCodes,
     student: studentCodes,
     reviewer: reviewerAllowedCodes(),
   };
