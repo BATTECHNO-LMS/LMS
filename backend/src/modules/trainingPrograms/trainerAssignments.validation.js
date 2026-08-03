@@ -45,6 +45,7 @@ const assignTrainerBody = z
     can_view_trainees: z.boolean().optional(),
     can_view_progress: z.boolean().optional(),
     can_view_reports: z.boolean().optional(),
+    can_finalize_training: z.boolean().optional(),
     can_send_course_announcements: z.boolean().optional(),
   })
   .strict();

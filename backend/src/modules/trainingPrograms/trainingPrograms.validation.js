@@ -12,6 +12,8 @@ const assessmentIdParam = z.object({ assessmentId: z.string().uuid() });
 const attemptIdParam = z.object({ attemptId: z.string().uuid() });
 const enrollmentIdParam = z.object({ enrollmentId: z.string().uuid() });
 const submissionIdParam = z.object({ submissionId: z.string().uuid() });
+const responseIdParam = z.object({ responseId: z.string().uuid() });
+const evaluationAssignmentIdParam = z.object({ assignmentId: z.string().uuid() });
 const assessmentKindParam = z.object({
   programId: z.string().uuid(),
   kind: z.enum(['pre', 'post', 'PRE_TEST', 'POST_TEST']),
@@ -163,6 +165,28 @@ const sessionBody = z.object({
   status: z.enum(['SCHEDULED', 'LIVE', 'COMPLETED', 'CANCELLED', 'RESCHEDULED']).optional(),
 });
 
+const evaluationAnswersBody = z.object({
+  answers: z.record(z.string(), z.any()).optional(),
+});
+
+const reopenEvaluationBody = z.object({
+  reason: z.string().trim().min(3).max(2000),
+});
+
+const cohortIdQuery = z.object({ cohortId: z.string().uuid().optional() });
+
+const finalizeTrainingBody = z.object({
+  cohortId: z.string().uuid().optional().nullable(),
+  enrollmentIds: z.array(z.string().uuid()).optional(),
+  mode: z.enum(['ELIGIBLE_ONLY', 'EXCEPTIONAL']).optional(),
+  reason: z.string().trim().max(2000).optional().nullable(),
+});
+
+const reopenTrainingBody = z.object({
+  reason: z.string().trim().min(3).max(2000),
+  enrollmentIds: z.array(z.string().uuid()).optional(),
+});
+
 module.exports = {
   uuidParam,
   orgIdParam,
@@ -175,6 +199,8 @@ module.exports = {
   assessmentKindParam,
   enrollmentIdParam,
   submissionIdParam,
+  responseIdParam,
+  evaluationAssignmentIdParam,
   listCoursesQuery,
   createProgramBody,
   updateProgramBody,
@@ -182,4 +208,9 @@ module.exports = {
   enrollBody,
   importBody,
   sessionBody,
+  evaluationAnswersBody,
+  reopenEvaluationBody,
+  cohortIdQuery,
+  finalizeTrainingBody,
+  reopenTrainingBody,
 };

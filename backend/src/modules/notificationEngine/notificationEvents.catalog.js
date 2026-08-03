@@ -155,6 +155,13 @@ const EVENT_META = Object.freeze({
   TRAINING_REQUIREMENTS_COMPLETED: { category: 'PROGRESS', priority: 'HIGH' },
   TRAINING_COMPLETED: { category: 'PROGRESS', priority: 'HIGH' },
   TRAINING_APPROVED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
+  TRAINING_READY_TO_COMPLETE: { category: 'PROGRESS', priority: 'HIGH' },
+  TRAINING_NOT_COMPLETED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
+  TRAINING_REOPENED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
+
+  FINAL_EVALUATION_AVAILABLE: { category: 'TEST', priority: 'HIGH' },
+  FINAL_EVALUATION_STARTED: { category: 'TEST', priority: 'LOW' },
+  FINAL_EVALUATION_SUBMITTED: { category: 'TEST', priority: 'NORMAL' },
 
   CERTIFICATE_ELIGIBLE: { category: 'CERTIFICATE', priority: 'HIGH' },
   CERTIFICATE_ISSUED: { category: 'CERTIFICATE', priority: 'HIGH', isCritical: true },
@@ -169,6 +176,8 @@ const EVENT_META = Object.freeze({
   UNIVERSITY_STUDENTS_AT_RISK: { category: 'REPORT', priority: 'HIGH' },
   UNIVERSITY_RESULTS_APPROVED: { category: 'REPORT', priority: 'NORMAL' },
   UNIVERSITY_CERTIFICATES_ISSUED: { category: 'REPORT', priority: 'NORMAL' },
+  INDIVIDUAL_REPORT_GENERATED: { category: 'REPORT', priority: 'NORMAL' },
+  COURSE_REPORT_GENERATED: { category: 'REPORT', priority: 'NORMAL' },
 
   SUPPORT_TICKET_CREATED: { category: 'SUPPORT', priority: 'NORMAL' },
   SUPPORT_TICKET_UPDATED: { category: 'SUPPORT', priority: 'NORMAL' },

@@ -15,6 +15,7 @@ const TRAINER_PERMISSION_KEYS = Object.freeze([
   'can_view_trainees',
   'can_view_progress',
   'can_view_reports',
+  'can_finalize_training',
   'can_send_course_announcements',
 ]);
 
@@ -43,6 +44,7 @@ function mapAssignment(row) {
       canViewTrainees: row.can_view_trainees,
       canViewProgress: row.can_view_progress,
       canViewReports: row.can_view_reports,
+      canFinalizeTraining: row.can_finalize_training,
       canSendCourseAnnouncements: row.can_send_course_announcements,
     },
     isActive: row.is_active,
@@ -176,6 +178,7 @@ const PERMISSION_CAMEL = Object.freeze({
   can_view_trainees: 'canViewTrainees',
   can_view_progress: 'canViewProgress',
   can_view_reports: 'canViewReports',
+  can_finalize_training: 'canFinalizeTraining',
   can_send_course_announcements: 'canSendCourseAnnouncements',
 });
 

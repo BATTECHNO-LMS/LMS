@@ -310,8 +310,12 @@ async function syncRequirements(programId) {
     {
       code: 'POST_TEST',
       label: 'الاختبار البعدي',
-      is_required: false,
-      threshold_json: null,
+      is_required: true,
+      threshold_json: {
+        pass_score: 70,
+        passing_required: true,
+        require_submission: true,
+      },
     },
     {
       code: 'TASKS',

@@ -1055,12 +1055,56 @@ async function getTraineeAssessmentStatus(requester, programId) {
   return trainingAssessment.getTraineeAssessmentStatus(requester, programId);
 }
 
+const trainingEvaluation = require('./trainingEvaluation.service');
+const trainingCompletion = require('./trainingCompletion.service');
+
+async function getProgramEvaluation(requester, programId) {
+  return trainingEvaluation.getProgramEvaluation(requester, programId);
+}
+async function getEnrollmentEvaluation(requester, enrollmentId) {
+  return trainingEvaluation.getEnrollmentEvaluation(requester, enrollmentId);
+}
+async function saveEvaluationDraft(requester, responseId, answers) {
+  return trainingEvaluation.saveDraft(requester, responseId, answers);
+}
+async function submitEvaluation(requester, responseId, answers) {
+  return trainingEvaluation.submitEvaluation(requester, responseId, answers);
+}
+async function reopenEvaluation(requester, assignmentId, reason) {
+  return trainingEvaluation.reopenEvaluation(requester, assignmentId, reason);
+}
+
+async function getProgramCompletionReadiness(requester, programId, query) {
+  return trainingCompletion.getProgramCompletionReadiness(requester, programId, query);
+}
+async function finalizeTraining(requester, payload) {
+  return trainingCompletion.finalizeTraining(requester, payload);
+}
+async function reopenTraining(requester, programId, payload) {
+  return trainingCompletion.reopenTraining(requester, programId, payload);
+}
+async function getIndividualReport(requester, enrollmentId) {
+  return trainingCompletion.getIndividualReport(requester, enrollmentId);
+}
+async function generateIndividualReport(requester, enrollmentId) {
+  return trainingCompletion.generateIndividualReport(requester, enrollmentId);
+}
+async function getCourseReport(requester, programId, query) {
+  return trainingCompletion.getCourseReport(requester, programId, query);
+}
+async function generateCourseReport(requester, programId, payload) {
+  return trainingCompletion.generateCourseReport(requester, programId, payload);
+}
+
+/**
+ * Auth-checked entry point used by API routes: verifies the requester may see
+ * this enrollment's progress, then delegates the actual computation to
+ * computeAndPersistProgress (also used internally by trainingCompletion.service.js
+ * without a requester).
+ */
 async function recomputeProgress(requester, enrollmentId) {
   const enrollment = await prisma.training_enrollments.findUnique({
     where: { id: enrollmentId },
-    include: {
-      training_cohorts: { include: { training_programs: true } },
-    },
   });
   if (!enrollment) throw new ApiError(404, 'Enrollment not found');
   assertOrganizationAccess(requester, enrollment.organization_id);
@@ -1068,6 +1112,17 @@ async function recomputeProgress(requester, enrollmentId) {
   if (!isOwner) {
     await assertTrainerCohortAccess(requester, enrollment.cohort_id, 'can_view_progress');
   }
+  return computeAndPersistProgress(enrollmentId);
+}
+
+async function computeAndPersistProgress(enrollmentId) {
+  const enrollment = await prisma.training_enrollments.findUnique({
+    where: { id: enrollmentId },
+    include: {
+      training_cohorts: { include: { training_programs: true } },
+    },
+  });
+  if (!enrollment) throw new ApiError(404, 'Enrollment not found');
 
   const program = enrollment.training_cohorts.training_programs;
   const sessions = await prisma.training_sessions.findMany({
@@ -1128,6 +1183,40 @@ async function recomputeProgress(requester, enrollmentId) {
     };
   }
 
+  let finalTaskCheck = { required: false, ok: true };
+  if (reqByCode.FINAL_TASK?.is_required) {
+    const finalTaskRow = await prisma.training_tasks.findFirst({
+      where: { program_id: program.id, is_final_task: true },
+    });
+    if (!finalTaskRow) {
+      finalTaskCheck = { required: true, ok: false, reason: 'NO_FINAL_TASK_CONFIGURED' };
+    } else {
+      const submission = await prisma.training_task_submissions.findFirst({
+        where: { task_id: finalTaskRow.id, enrollment_id: enrollmentId, status: { in: ['ACCEPTED', 'GRADED'] } },
+        orderBy: { submitted_at: 'desc' },
+      });
+      finalTaskCheck = {
+        required: true,
+        ok: Boolean(submission),
+        submitted: Boolean(submission),
+        score: submission?.score != null ? Number(submission.score) : null,
+      };
+    }
+  }
+
+  let evaluationCheck = { required: false, ok: true };
+  if (reqByCode.EVALUATION?.is_required) {
+    const evaluationAssignment = await prisma.training_evaluation_assignments.findUnique({
+      where: { enrollment_id: enrollmentId },
+    });
+    evaluationCheck = {
+      required: true,
+      ok: evaluationAssignment?.status === 'SUBMITTED',
+      submitted: evaluationAssignment?.status === 'SUBMITTED',
+      status: evaluationAssignment?.status || 'LOCKED',
+    };
+  }
+
   const requirements = {
     attendance: { value: attendancePct, required: requiredAttendance, ok: attendancePct >= requiredAttendance },
     hours: { value: hoursCompleted, required: hoursRequired, ok: !hoursRequired || hoursCompleted >= hoursRequired },
@@ -1138,6 +1227,8 @@ async function recomputeProgress(requester, enrollmentId) {
     },
     preTest: assessmentOk('PRE_TEST'),
     postTest: assessmentOk('POST_TEST'),
+    finalTask: finalTaskCheck,
+    evaluation: evaluationCheck,
   };
   const allOk = Object.values(requirements).every((r) => r.ok);
   const requirementChecks = Object.values(requirements);
@@ -1170,11 +1261,38 @@ async function recomputeProgress(requester, enrollmentId) {
     },
   });
 
+  const wasAlreadyReadyOrDone = ['COMPLETED', 'REQUIREMENTS_COMPLETED'].includes(enrollment.status);
   if (allOk && enrollment.status !== 'COMPLETED') {
     await prisma.training_enrollments.update({
       where: { id: enrollmentId },
       data: { status: 'REQUIREMENTS_COMPLETED', updated_at: new Date() },
     });
+  }
+  if (allOk && !wasAlreadyReadyOrDone) {
+    await emitDomainEvent('TRAINING_REQUIREMENTS_COMPLETED', {
+      organizationId: enrollment.organization_id,
+      affectedUserId: enrollment.user_id,
+      entityType: 'training_enrollment',
+      entityId: enrollmentId,
+    }).catch(() => null);
+    await emitDomainEvent('TRAINING_READY_TO_COMPLETE', {
+      organizationId: enrollment.organization_id,
+      affectedUserId: enrollment.user_id,
+      entityType: 'training_enrollment',
+      entityId: enrollmentId,
+      templateVars: { course_title: program.title },
+    }).catch(() => null);
+    const existingCertificate = await prisma.training_certificates.findFirst({
+      where: { enrollment_id: enrollmentId },
+    });
+    if (!existingCertificate) {
+      await emitDomainEvent('CERTIFICATE_ELIGIBLE', {
+        organizationId: enrollment.organization_id,
+        affectedUserId: enrollment.user_id,
+        entityType: 'training_enrollment',
+        entityId: enrollmentId,
+      }).catch(() => null);
+    }
   }
 
   return {
@@ -1438,7 +1556,7 @@ async function getTraineeProgramDetail(requester, programId) {
       code: a.code || null,
       durationMinutes: a.duration_minutes,
       maxAttempts: a.max_attempts,
-      passScore: a.pass_score,
+      passScore: a.pass_score != null ? Number(a.pass_score) : null,
       questions: (a.training_assessment_questions || []).map((q) => ({
         id: q.id,
         prompt: q.prompt,
@@ -1592,7 +1710,13 @@ async function publishProgram(requester, programId) {
   return { id: row.id, status: row.status, title: row.title };
 }
 
-async function issueCertificate(requester, enrollmentId) {
+/**
+ * Idempotent certificate issuance core: returns the existing ISSUED certificate
+ * when present instead of creating a duplicate. No requester/permission checks —
+ * callers (issueCertificate route handler, trainingCompletion finalize flow)
+ * are responsible for authorization.
+ */
+async function issueCertificateCore(enrollmentId, issuedByUserId) {
   const enrollment = await prisma.training_enrollments.findUnique({
     where: { id: enrollmentId },
     include: {
@@ -1601,11 +1725,21 @@ async function issueCertificate(requester, enrollmentId) {
     },
   });
   if (!enrollment) throw new ApiError(404, 'Enrollment not found');
-  requireOrgWrite(requester);
-  assertOrganizationAccess(requester, enrollment.organization_id);
-  if (isTrainerOnly(requester)) {
-    throw new ApiError(403, 'إصدار الشهادات متاح لمسؤول المؤسسة فقط.');
+
+  const existing = await prisma.training_certificates.findFirst({
+    where: { enrollment_id: enrollmentId, status: 'ISSUED' },
+    orderBy: { issued_at: 'desc' },
+  });
+  if (existing) {
+    return {
+      id: existing.id,
+      certificateNumber: existing.certificate_number,
+      verificationCode: existing.verification_code,
+      status: existing.status,
+      alreadyIssued: true,
+    };
   }
+
   if (enrollment.status !== 'COMPLETED' && enrollment.training_progress?.status !== 'COMPLETED') {
     throw new ApiError(400, 'التسجيل غير مكتمل لإصدار الشهادة', null, 'CERTIFICATE_NOT_ELIGIBLE');
   }
@@ -1620,7 +1754,7 @@ async function issueCertificate(requester, enrollmentId) {
       verification_code: verificationCode,
       status: 'ISSUED',
       issued_at: new Date(),
-      issued_by: requester.userId,
+      issued_by: issuedByUserId || null,
       hours: enrollment.training_progress?.hours_completed ?? null,
       metadata_json: {
         programTitle: enrollment.training_cohorts.training_programs.title,
@@ -1639,7 +1773,19 @@ async function issueCertificate(requester, enrollmentId) {
     certificateNumber: row.certificate_number,
     verificationCode: row.verification_code,
     status: row.status,
+    alreadyIssued: false,
   };
+}
+
+async function issueCertificate(requester, enrollmentId) {
+  const enrollment = await prisma.training_enrollments.findUnique({ where: { id: enrollmentId } });
+  if (!enrollment) throw new ApiError(404, 'Enrollment not found');
+  requireOrgWrite(requester);
+  assertOrganizationAccess(requester, enrollment.organization_id);
+  if (isTrainerOnly(requester)) {
+    throw new ApiError(403, 'إصدار الشهادات متاح لمسؤول المؤسسة فقط.');
+  }
+  return issueCertificateCore(enrollmentId, requester.userId);
 }
 
 async function verifyCertificate(code) {
@@ -1718,9 +1864,11 @@ module.exports = {
   getPrePostComparison,
   getTraineeAssessmentStatus,
   recomputeProgress,
+  computeAndPersistProgress,
   getEnrollmentProgress,
   approveCompletion,
   issueCertificate,
+  issueCertificateCore,
   getEnrollmentCertificate,
   verifyCertificate,
   listStudentPrograms,
@@ -1729,4 +1877,16 @@ module.exports = {
   listProgramMaterials,
   createProgramMaterial,
   publishProgram,
+  getProgramEvaluation,
+  getEnrollmentEvaluation,
+  saveEvaluationDraft,
+  submitEvaluation,
+  reopenEvaluation,
+  getProgramCompletionReadiness,
+  finalizeTraining,
+  reopenTraining,
+  getIndividualReport,
+  generateIndividualReport,
+  getCourseReport,
+  generateCourseReport,
 };

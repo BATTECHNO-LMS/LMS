@@ -218,6 +218,69 @@ export async function getTraineeProgramDetail(programId) {
   return unwrapApiData(res);
 }
 
+/** Institutional final evaluation (end-of-course reaction survey). */
+export async function getProgramEvaluation(programId) {
+  const res = await apiClient.get(`${base}/programs/${programId}/evaluation`);
+  return unwrapApiData(res);
+}
+
+export async function getEnrollmentEvaluation(enrollmentId) {
+  const res = await apiClient.get(`${base}/enrollments/${enrollmentId}/evaluation`);
+  return unwrapApiData(res);
+}
+
+export async function saveEvaluationDraft(responseId, answers) {
+  const res = await apiClient.patch(`${base}/evaluation-responses/${responseId}`, { answers });
+  return unwrapApiData(res);
+}
+
+export async function submitEvaluation(responseId, answers) {
+  const res = await apiClient.post(`${base}/evaluation-responses/${responseId}/submit`, { answers });
+  return unwrapApiData(res);
+}
+
+/** Completion readiness, finalization, and reporting. */
+export async function getCompletionReadiness(programId, { cohortId } = {}) {
+  const res = await apiClient.get(`${base}/programs/${programId}/completion-readiness`, {
+    params: cohortId ? { cohortId } : undefined,
+  });
+  return unwrapApiData(res);
+}
+
+export async function finalizeTraining(programId, body) {
+  const res = await apiClient.post(`${base}/programs/${programId}/finalize`, body);
+  return unwrapApiData(res);
+}
+
+export async function reopenTraining(programId, body) {
+  const res = await apiClient.post(`${base}/programs/${programId}/reopen`, body);
+  return unwrapApiData(res);
+}
+
+export async function getIndividualReport(enrollmentId) {
+  const res = await apiClient.get(`${base}/enrollments/${enrollmentId}/individual-report`);
+  return unwrapApiData(res);
+}
+
+export async function generateIndividualReport(enrollmentId) {
+  const res = await apiClient.post(`${base}/enrollments/${enrollmentId}/individual-report/generate`);
+  return unwrapApiData(res);
+}
+
+export async function getCourseReport(programId, { cohortId } = {}) {
+  const res = await apiClient.get(`${base}/programs/${programId}/course-report`, {
+    params: cohortId ? { cohortId } : undefined,
+  });
+  return unwrapApiData(res);
+}
+
+export async function generateCourseReport(programId, { cohortId } = {}) {
+  const res = await apiClient.post(`${base}/programs/${programId}/course-report/generate`, null, {
+    params: cohortId ? { cohortId } : undefined,
+  });
+  return unwrapApiData(res);
+}
+
 export async function getOrgReport(organizationId) {
   const res = await apiClient.get(`${endpoints.kpi}/organizations/${organizationId}/report`);
   return unwrapApiData(res);

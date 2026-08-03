@@ -63,12 +63,35 @@ async function main() {
   const assessments = await req('GET', `/api/v1/training/programs/${PROGRAM_ID}/assessments`, {
     token: superToken,
   });
-  const pre = (Array.isArray(assessments.data) ? assessments.data : []).find((a) => a.kind === 'PRE_TEST');
+  const listAssessments = Array.isArray(assessments.data) ? assessments.data : [];
+  const pre = listAssessments.find((a) => a.kind === 'PRE_TEST');
   out.push({
     step: 'pre_test_visible',
     ok: Boolean(pre?.isPublished) && (pre?.questionCount === 20 || pre?.questions?.length === 20),
     questionCount: pre?.questionCount ?? pre?.questions?.length,
     code: pre?.code,
+  });
+
+  const post = listAssessments.find((a) => a.kind === 'POST_TEST');
+  out.push({
+    step: 'post_test_visible',
+    ok:
+      Boolean(post?.isPublished) &&
+      post?.code === 'CPF-JOB-INTERVIEW-2026-POST' &&
+      (post?.questionCount === 20 || post?.questions?.length === 20) &&
+      Number(post?.passScore ?? post?.passingScore) === 70 &&
+      Number(post?.durationMinutes) === 25 &&
+      Number(post?.maxAttempts) === 1,
+    questionCount: post?.questionCount ?? post?.questions?.length,
+    code: post?.code,
+    passScore: post?.passScore ?? post?.passingScore,
+    durationMinutes: post?.durationMinutes,
+    maxAttempts: post?.maxAttempts,
+  });
+  out.push({
+    step: 'requires_post_test',
+    ok: detail.data?.requiresPostTest === true,
+    requiresPostTest: detail.data?.requiresPostTest,
   });
 
   const trainerToken = await login(

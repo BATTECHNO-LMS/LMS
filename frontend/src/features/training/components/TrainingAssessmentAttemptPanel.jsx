@@ -14,6 +14,7 @@ import {
   TraineeAssessmentDetailsCard,
   TraineeAssessmentDetailsSkeleton,
 } from '../assessmentPresentation/index.js';
+import { PostTestSuccessGate } from './evaluation/PostTestSuccessGate.jsx';
 
 function QuestionField({ question, value, onChange, disabled }) {
   const type = question.question_type === 'short_answer' ? 'short_text' : question.question_type;
@@ -110,7 +111,7 @@ function QuestionField({ question, value, onChange, disabled }) {
   );
 }
 
-function AttemptForm({ assessmentPayload, attempt, onDone }) {
+function AttemptForm({ assessmentPayload, attempt, onDone, evaluationLinkTo }) {
   const questions = assessmentPayload?.questions || [];
   const [answers, setAnswers] = useState(() => attempt?.answers || {});
   const [error, setError] = useState('');
@@ -162,6 +163,18 @@ function AttemptForm({ assessmentPayload, attempt, onDone }) {
   }
 
   if (result) {
+    const isPostTest = assessmentPayload?.kind === 'POST_TEST' || assessmentPayload?.type === 'post';
+    const showEvaluationGate =
+      isPostTest && (result.pendingManual || result.nextAction === 'FINAL_EVALUATION' || result.finalEvaluationAvailable);
+
+    if (showEvaluationGate) {
+      return (
+        <div className="ta-assessment-card" dir="rtl">
+          <PostTestSuccessGate result={result} evaluationLinkTo={evaluationLinkTo} onContinue={() => onDone?.(result)} />
+        </div>
+      );
+    }
+
     return (
       <div className="ta-assessment-card" dir="rtl">
         <StatusBadge variant={result.passed ? 'success' : 'warning'}>
@@ -236,6 +249,7 @@ export function TrainingAssessmentAttemptPanel({
   courseTitle,
   programType = 'TRAINING_COURSE',
   onChanged,
+  evaluationLinkTo,
 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -303,6 +317,7 @@ export function TrainingAssessmentAttemptPanel({
         <AttemptForm
           assessmentPayload={active.assessment}
           attempt={active.attempt}
+          evaluationLinkTo={evaluationLinkTo}
           onDone={async () => {
             setActive(null);
             await refresh();

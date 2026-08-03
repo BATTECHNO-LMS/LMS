@@ -2757,6 +2757,11 @@ model training_programs {
   training_requirements         training_requirements[]
   training_trainer_assignments  training_trainer_assignments[]
   training_materials            training_materials[]
+  training_program_evaluation_links training_program_evaluation_links[]
+  training_evaluation_assignments   training_evaluation_assignments[]
+  training_individual_reports       training_individual_reports[]
+  training_course_reports           training_course_reports[]
+  training_finalization_events      training_finalization_events[]
 
   @@index([organization_id], map: "idx_training_programs_org")
   @@index([status], map: "idx_training_programs_status")
@@ -2826,6 +2831,7 @@ model training_trainer_assignments {
   can_view_trainees             Boolean   @default(true)
   can_view_progress             Boolean   @default(true)
   can_view_reports              Boolean   @default(true)
+  can_finalize_training         Boolean   @default(false)
   can_send_course_announcements Boolean   @default(false)
   is_active                     Boolean   @default(true)
   assigned_by                   String?   @db.Uuid
@@ -2874,6 +2880,9 @@ model training_enrollments {
   training_assessment_attempts  training_assessment_attempts[]
   training_progress             training_progress?
   training_certificates         training_certificates[]
+  training_evaluation_assignments training_evaluation_assignments?
+  training_evaluation_responses   training_evaluation_responses[]
+  training_individual_reports     training_individual_reports[]
 
   @@unique([cohort_id, user_id], map: "uq_training_enrollments_cohort_user")
   @@index([organization_id], map: "idx_training_enrollments_org")
@@ -3116,6 +3125,235 @@ model training_certificates {
 
   @@index([organization_id], map: "idx_training_certificates_org")
   @@index([status], map: "idx_training_certificates_status")
+}
+
+enum training_evaluation_assignment_status {
+  LOCKED
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  REOPENED
+  CLOSED
+}
+
+enum training_evaluation_question_type {
+  RATING_SCALE
+  NPS
+  OPEN_TEXT
+}
+
+enum training_evaluation_section_code {
+  TRAINER
+  CONTENT
+  ACTIVITIES
+  VENUE_ORG
+  IMPACT
+  NPS_FEEDBACK
+}
+
+model training_evaluation_templates {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?  @db.Uuid
+  code            String?  @unique(map: "uq_training_evaluation_templates_code") @db.VarChar(80)
+  title           String   @db.VarChar(255)
+  description     String?
+  delivery_mode   String?  @db.VarChar(40)
+  is_active       Boolean  @default(true)
+  version         Int      @default(1)
+  created_by      String?  @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_sections      training_evaluation_sections[]
+  training_program_evaluation_links training_program_evaluation_links[]
+  training_evaluation_assignments   training_evaluation_assignments[]
+
+  @@index([organization_id], map: "idx_training_evaluation_templates_org")
+}
+
+model training_evaluation_sections {
+  id            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id   String                          @db.Uuid
+  code          training_evaluation_section_code
+  title         String                          @db.VarChar(255)
+  description   String?
+  sort_order    Int                             @default(0)
+  indicator_key String?                         @db.VarChar(80)
+  created_at    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime                        @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_templates training_evaluation_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_questions training_evaluation_questions[]
+
+  @@unique([template_id, code], map: "uq_training_evaluation_sections_template_code")
+  @@index([template_id], map: "idx_training_evaluation_sections_template")
+}
+
+model training_evaluation_questions {
+  id                  String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  section_id          String                           @db.Uuid
+  code                String                           @db.VarChar(80)
+  prompt              String
+  question_type       training_evaluation_question_type
+  is_required         Boolean                          @default(true)
+  sort_order          Int                              @default(0)
+  scale_min           Int?
+  scale_max           Int?
+  scale_labels_json   Json?
+  delivery_modes_json Json?
+  max_length          Int?
+  created_at          DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime                         @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_sections training_evaluation_sections @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_answers  training_evaluation_answers[]
+
+  @@unique([section_id, code], map: "uq_training_evaluation_questions_section_code")
+  @@index([section_id], map: "idx_training_evaluation_questions_section")
+}
+
+model training_program_evaluation_links {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id  String   @unique(map: "uq_training_program_evaluation_links_program") @db.Uuid
+  template_id String   @db.Uuid
+  is_required Boolean  @default(true)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs             training_programs             @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_templates training_evaluation_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([template_id], map: "idx_training_program_evaluation_links_template")
+}
+
+model training_evaluation_assignments {
+  id                      String                               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id              String                               @db.Uuid
+  enrollment_id           String                               @unique(map: "uq_training_evaluation_assignments_enrollment") @db.Uuid
+  template_id             String                               @db.Uuid
+  user_id                 String                               @db.Uuid
+  organization_id         String                               @db.Uuid
+  status                  training_evaluation_assignment_status @default(LOCKED)
+  available_at            DateTime?                            @db.Timestamptz(6)
+  started_at              DateTime?                            @db.Timestamptz(6)
+  submitted_at            DateTime?                            @db.Timestamptz(6)
+  reopened_at             DateTime?                            @db.Timestamptz(6)
+  reopen_reason           String?
+  reopened_by             String?                              @db.Uuid
+  delivery_mode_effective String?                              @db.VarChar(40)
+  created_at              DateTime                             @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                             @default(now()) @db.Timestamptz(6)
+
+  training_programs             training_programs              @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments          training_enrollments           @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_templates training_evaluation_templates  @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_responses training_evaluation_responses?
+
+  @@index([program_id], map: "idx_training_evaluation_assignments_program")
+  @@index([user_id], map: "idx_training_evaluation_assignments_user")
+  @@index([status], map: "idx_training_evaluation_assignments_status")
+}
+
+model training_evaluation_responses {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id          String    @unique(map: "uq_training_evaluation_responses_assignment") @db.Uuid
+  enrollment_id          String    @db.Uuid
+  user_id                String    @db.Uuid
+  status                 String    @default("DRAFT") @db.VarChar(40)
+  answers_json           Json?
+  scores_json            Json?
+  nps_score              Int?
+  nps_category           String?   @db.VarChar(20)
+  overall_reaction_score Decimal?  @db.Decimal(8, 2)
+  submitted_at           DateTime? @db.Timestamptz(6)
+  created_at             DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_assignments training_evaluation_assignments @relation(fields: [assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments            training_enrollments            @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_answers     training_evaluation_answers[]
+
+  @@index([enrollment_id], map: "idx_training_evaluation_responses_enrollment")
+}
+
+model training_evaluation_answers {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  response_id   String   @db.Uuid
+  question_id   String   @db.Uuid
+  numeric_value Decimal? @db.Decimal(8, 2)
+  text_value    String?
+  nps_category  String?  @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_responses training_evaluation_responses @relation(fields: [response_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_questions training_evaluation_questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([response_id, question_id], map: "uq_training_evaluation_answers_response_question")
+  @@index([response_id], map: "idx_training_evaluation_answers_response")
+}
+
+model training_individual_reports {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id   String   @db.Uuid
+  program_id      String   @db.Uuid
+  organization_id String   @db.Uuid
+  version         Int      @default(1)
+  status          String   @default("GENERATED") @db.VarChar(40)
+  snapshot_json   Json
+  summary_text    String?
+  generated_by    String?  @db.Uuid
+  generated_at    DateTime @default(now()) @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_programs    training_programs    @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([enrollment_id, version], map: "uq_training_individual_reports_enrollment_version")
+  @@index([program_id], map: "idx_training_individual_reports_program")
+}
+
+model training_course_reports {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id          String   @db.Uuid
+  organization_id     String   @db.Uuid
+  cohort_id           String?  @db.Uuid
+  version             Int      @default(1)
+  status              String   @default("GENERATED") @db.VarChar(40)
+  snapshot_json       Json
+  generated_by        String?  @db.Uuid
+  generated_at        DateTime @default(now()) @db.Timestamptz(6)
+  finalization_mode   String?  @db.VarChar(40)
+  finalization_reason String?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([program_id, cohort_id, version], map: "uq_training_course_reports_program_cohort_version")
+  @@index([organization_id], map: "idx_training_course_reports_org")
+}
+
+model training_finalization_events {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id          String   @db.Uuid
+  organization_id     String   @db.Uuid
+  cohort_id           String?  @db.Uuid
+  mode                String   @db.VarChar(40)
+  reason              String?
+  acted_by            String   @db.Uuid
+  eligible_count      Int      @default(0)
+  completed_count     Int      @default(0)
+  exceptional_count   Int      @default(0)
+  enrollment_ids_json Json?
+  result_json         Json?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([program_id], map: "idx_training_finalization_events_program")
 }
 
 /// Institution course learning materials (URL or uploaded file metadata).

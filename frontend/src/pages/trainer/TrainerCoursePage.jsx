@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -15,11 +15,18 @@ import {
   createSession,
   createTask,
   getPrePostComparison,
+  getCompletionReadiness,
   listProgramAssessments,
   listSessionAttendance,
   openAttendanceWindow,
 } from '../../features/training/training.service.js';
 import { TrainingAssessmentEditor } from '../../features/training/components/TrainingAssessmentEditor.jsx';
+import { TrainingReadinessCard } from '../../features/training/components/completion/TrainingReadinessCard.jsx';
+import { CompletionStatusBadge } from '../../features/training/components/completion/CompletionStatusBadge.jsx';
+import { TrainingFinalizationModal } from '../../features/training/components/completion/TrainingFinalizationModal.jsx';
+import { CourseReportDashboard } from '../../features/training/components/reports/CourseReportDashboard.jsx';
+import { IndividualReportView } from '../../features/training/components/reports/IndividualReportView.jsx';
+import { AppModal } from '../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 const TABS = [
@@ -68,6 +75,11 @@ export function TrainerCoursePage() {
   const [assessments, setAssessments] = useState([]);
   const [assessmentKind, setAssessmentKind] = useState('pre');
   const [comparison, setComparison] = useState(null);
+  const [readiness, setReadiness] = useState(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState('');
+  const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+  const [reportEnrollmentId, setReportEnrollmentId] = useState(null);
 
   async function refresh() {
     if (!programId) return;
@@ -100,6 +112,28 @@ export function TrainerCoursePage() {
   }, [tab, programId]);
 
   const permissions = data?.permissions || {};
+
+  const loadReadiness = useCallback(async () => {
+    if (!programId) return;
+    setReadinessLoading(true);
+    setReadinessError('');
+    try {
+      const readinessData = await getCompletionReadiness(programId);
+      setReadiness(readinessData);
+    } catch (err) {
+      setReadinessError(getApiErrorMessage(err, 'تعذر تحميل جاهزية إنهاء التدريب.'));
+      setReadiness(null);
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, [programId]);
+
+  useEffect(() => {
+    if (tab === 'reports' && permissions.canViewReports) {
+      loadReadiness();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, programId, permissions.canViewReports]);
   const visibleTabs = useMemo(
     () =>
       TABS.filter((item) => {
@@ -654,36 +688,109 @@ export function TrainerCoursePage() {
       ) : null}
 
       {activeTab === 'reports' ? (
-        <SectionCard title="تقارير الدورة">
+        <>
+          <SectionCard title="تقارير الدورة">
+            {data?.reportsSummary ? (
+              <dl className="detail-list">
+                <div className="detail-list__row">
+                  <dt>المتدربون</dt>
+                  <dd>{data.reportsSummary.traineeCount}</dd>
+                </div>
+                <div className="detail-list__row">
+                  <dt>الجلسات</dt>
+                  <dd>
+                    {data.reportsSummary.completedSessions} / {data.reportsSummary.totalSessions}
+                  </dd>
+                </div>
+                <div className="detail-list__row">
+                  <dt>تسليمات معلقة</dt>
+                  <dd>{data.reportsSummary.pendingSubmissions}</dd>
+                </div>
+                <div className="detail-list__row">
+                  <dt>حضور غير مؤكد</dt>
+                  <dd>{data.reportsSummary.unconfirmedAttendance}</dd>
+                </div>
+                <div className="detail-list__row">
+                  <dt>يحتاجون متابعة</dt>
+                  <dd>{data.reportsSummary.atRiskCount}</dd>
+                </div>
+              </dl>
+            ) : (
+              <EmptyState title="التقارير غير متاحة" description="لا تملك صلاحية عرض تقارير هذه الدورة." />
+            )}
+          </SectionCard>
+
           {data?.reportsSummary ? (
-            <dl className="detail-list">
-              <div className="detail-list__row">
-                <dt>المتدربون</dt>
-                <dd>{data.reportsSummary.traineeCount}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>الجلسات</dt>
-                <dd>
-                  {data.reportsSummary.completedSessions} / {data.reportsSummary.totalSessions}
-                </dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>تسليمات معلقة</dt>
-                <dd>{data.reportsSummary.pendingSubmissions}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>حضور غير مؤكد</dt>
-                <dd>{data.reportsSummary.unconfirmedAttendance}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>يحتاجون متابعة</dt>
-                <dd>{data.reportsSummary.atRiskCount}</dd>
-              </div>
-            </dl>
-          ) : (
-            <EmptyState title="التقارير غير متاحة" description="لا تملك صلاحية عرض تقارير هذه الدورة." />
-          )}
-        </SectionCard>
+            <>
+              <SectionCard
+                title="إنهاء التدريب والتقارير"
+                actions={
+                  permissions.canFinalizeTraining ? (
+                    <Button type="button" variant="primary" onClick={() => setFinalizeModalOpen(true)}>
+                      إنهاء التدريب
+                    </Button>
+                  ) : null
+                }
+              >
+                {readinessLoading ? (
+                  <LoadingSpinner label="جاري تحميل الجاهزية" />
+                ) : readinessError ? (
+                  <p className="form-field__error" role="alert">
+                    {readinessError}
+                  </p>
+                ) : readiness ? (
+                  <>
+                    <TrainingReadinessCard counts={readiness.counts} />
+                    <ul className="simple-list">
+                      {(readiness.trainees || []).map((t) => (
+                        <li key={t.enrollmentId}>
+                          <strong>{t.fullName}</strong> <CompletionStatusBadge status={t.lifecycleStatus} />
+                          <div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="btn--sm"
+                              onClick={() => setReportEnrollmentId(t.enrollmentId)}
+                            >
+                              التقرير الفردي
+                            </Button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+              </SectionCard>
+
+              <SectionCard title="تقرير الدورة">
+                <CourseReportDashboard programId={programId} canGenerate={Boolean(permissions.canViewReports)} />
+              </SectionCard>
+
+              <TrainingFinalizationModal
+                open={finalizeModalOpen}
+                onClose={() => setFinalizeModalOpen(false)}
+                programId={programId}
+                cohorts={data?.cohorts || []}
+                canExceptional={false}
+                onFinalized={() => {
+                  setMessage('تم تنفيذ إجراء إنهاء التدريب.');
+                  loadReadiness();
+                }}
+              />
+
+              <AppModal
+                open={Boolean(reportEnrollmentId)}
+                onClose={() => setReportEnrollmentId(null)}
+                title="التقرير الفردي"
+                size="lg"
+              >
+                {reportEnrollmentId ? (
+                  <IndividualReportView enrollmentId={reportEnrollmentId} canGenerate={Boolean(permissions.canViewReports)} />
+                ) : null}
+              </AppModal>
+            </>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

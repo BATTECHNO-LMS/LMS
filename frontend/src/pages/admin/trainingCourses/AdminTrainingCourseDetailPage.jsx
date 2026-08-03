@@ -10,6 +10,7 @@ import {
   ListChecks,
   BarChart3,
   Settings,
+  FileBarChart2,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
@@ -41,6 +42,7 @@ import {
   publishProgram,
   recomputeProgress,
   updateProgram,
+  getCompletionReadiness,
 } from '../../../features/training/training.service.js';
 import {
   assignTrainerToCourse,
@@ -48,7 +50,14 @@ import {
   revokeTrainerAssignment,
 } from '../../../features/training/trainer.service.js';
 import { listBranches, listMembers } from '../../../features/organizations/organizations.service.js';
+import { isAdminRole } from '../../../utils/helpers.js';
 import { TrainingAssessmentEditor } from '../../../features/training/components/TrainingAssessmentEditor.jsx';
+import { TrainingReadinessCard } from '../../../features/training/components/completion/TrainingReadinessCard.jsx';
+import { CompletionStatusBadge } from '../../../features/training/components/completion/CompletionStatusBadge.jsx';
+import { TrainingFinalizationModal } from '../../../features/training/components/completion/TrainingFinalizationModal.jsx';
+import { CourseReportDashboard } from '../../../features/training/components/reports/CourseReportDashboard.jsx';
+import { IndividualReportView } from '../../../features/training/components/reports/IndividualReportView.jsx';
+import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
 
@@ -63,6 +72,7 @@ const TABS = [
   { id: 'pretest', label: 'الاختبار القبلي', icon: FileCheck },
   { id: 'posttest', label: 'الاختبار البعدي', icon: FileCheck },
   { id: 'progress', label: 'التقدم والساعات', icon: BarChart3 },
+  { id: 'finalization', label: 'إنهاء التدريب والتقارير', icon: FileBarChart2 },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
 
@@ -71,7 +81,13 @@ export function AdminTrainingCourseDetailPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const readOnly = Boolean(user?.role === 'reviewer');
+  const isAdmin = isAdminRole(user?.role);
   const [tab, setTab] = useState('overview');
+  const [readiness, setReadiness] = useState(null);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState('');
+  const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
+  const [reportEnrollmentId, setReportEnrollmentId] = useState(null);
   const [course, setCourse] = useState(null);
   const [cohorts, setCohorts] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -177,6 +193,27 @@ export function AdminTrainingCourseDetailPage() {
       cancelled = true;
     };
   }, [selectedCohortId]);
+
+  const loadReadiness = useCallback(async () => {
+    if (!programId) return;
+    setReadinessLoading(true);
+    setReadinessError('');
+    try {
+      const data = await getCompletionReadiness(programId, { cohortId: selectedCohortId || undefined });
+      setReadiness(data);
+    } catch (err) {
+      setReadinessError(getApiErrorMessage(err, 'تعذر تحميل جاهزية إنهاء التدريب.'));
+      setReadiness(null);
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, [programId, selectedCohortId]);
+
+  useEffect(() => {
+    if (tab === 'finalization') {
+      loadReadiness();
+    }
+  }, [tab, loadReadiness]);
 
   const preAssessment = useMemo(
     () => assessments.find((a) => a.kind === 'PRE_TEST') || null,
@@ -990,6 +1027,102 @@ export function AdminTrainingCourseDetailPage() {
             emptyDescription="أضف متدربين من تبويب المتدربون."
           />
         </SectionCard>
+      ) : null}
+
+      {tab === 'finalization' ? (
+        <>
+          <SectionCard
+            title="جاهزية إنهاء التدريب"
+            actions={
+              !readOnly ? (
+                <Button type="button" variant="primary" onClick={() => setFinalizeModalOpen(true)}>
+                  إنهاء التدريب
+                </Button>
+              ) : null
+            }
+          >
+            <FormSelect
+              id="finalization-cohort"
+              label="الدفعة"
+              value={selectedCohortId}
+              onChange={(e) => setSelectedCohortId(e.target.value)}
+            >
+              <option value="">كل الدفعات</option>
+              {cohorts.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </FormSelect>
+            {readinessLoading ? (
+              <LoadingSpinner label="جاري تحميل الجاهزية" />
+            ) : readinessError ? (
+              <p className="form-field__error" role="alert">
+                {readinessError}
+              </p>
+            ) : readiness ? (
+              <>
+                <TrainingReadinessCard counts={readiness.counts} />
+                <DataTable
+                  columns={[
+                    { key: 'name', label: 'المتدرب', mobileTitle: true },
+                    { key: 'cohort', label: 'الدفعة' },
+                    { key: 'enrollmentStatus', label: 'حالة التسجيل' },
+                    { key: 'eligibility', label: 'الجاهزية', render: (row) => <CompletionStatusBadge status={row.lifecycleStatus} /> },
+                    {
+                      key: 'actions',
+                      label: 'إجراءات',
+                      render: (row) => (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="btn--sm"
+                          onClick={() => setReportEnrollmentId(row.id)}
+                        >
+                          التقرير الفردي
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  rows={(readiness.trainees || []).map((t) => ({
+                    id: t.enrollmentId,
+                    name: t.fullName,
+                    cohort: t.cohortName || '—',
+                    enrollmentStatus: t.enrollmentStatus,
+                    lifecycleStatus: t.lifecycleStatus,
+                  }))}
+                  emptyTitle="لا يوجد متدربون"
+                  emptyDescription="أضف متدربين إلى هذه الدورة أولًا."
+                />
+              </>
+            ) : null}
+          </SectionCard>
+
+          <SectionCard title="تقرير الدورة">
+            <CourseReportDashboard programId={programId} cohortId={selectedCohortId || undefined} canGenerate={!readOnly} />
+          </SectionCard>
+
+          <TrainingFinalizationModal
+            open={finalizeModalOpen}
+            onClose={() => setFinalizeModalOpen(false)}
+            programId={programId}
+            cohorts={cohorts}
+            canExceptional={isAdmin}
+            onFinalized={() => {
+              setMessage('تم تنفيذ إجراء إنهاء التدريب.');
+              loadReadiness();
+            }}
+          />
+
+          <AppModal
+            open={Boolean(reportEnrollmentId)}
+            onClose={() => setReportEnrollmentId(null)}
+            title="التقرير الفردي"
+            size="lg"
+          >
+            {reportEnrollmentId ? <IndividualReportView enrollmentId={reportEnrollmentId} canGenerate={!readOnly} /> : null}
+          </AppModal>
+        </>
       ) : null}
 
       {tab === 'settings' ? (

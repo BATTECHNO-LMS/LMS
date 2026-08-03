@@ -49,6 +49,25 @@ const TRAINING_ERROR_AR = {
   ASSESSMENT_MANUAL_GRADING_PENDING: 'نتيجتك بانتظار مراجعة المدرب.',
   COURSE_REQUIREMENTS_INCOMPLETE: 'متطلبات الدورة غير مكتملة بعد.',
   CERTIFICATE_NOT_ELIGIBLE: 'الشهادة غير متاحة لهذا التسجيل.',
+  FINAL_EVALUATION_LOCKED: 'التقييم النهائي مقفل حتى استيفاء متطلبات الدورة (اجتياز الاختبار البعدي).',
+  FINAL_EVALUATION_NOT_AVAILABLE: 'التقييم النهائي غير متاح حاليًا لهذه الدورة.',
+  FINAL_EVALUATION_ALREADY_SUBMITTED: 'تم إرسال التقييم النهائي بالفعل ولا يمكن تعديله.',
+  FINAL_EVALUATION_VALIDATION_FAILED: 'يرجى الإجابة على جميع الأسئلة المطلوبة قبل إرسال التقييم.',
+  POST_TEST_GRADING_PENDING: 'نتيجة الاختبار البعدي بانتظار مراجعة المدرب.',
+  TRAINING_REQUIREMENTS_INCOMPLETE: 'متطلبات إنهاء الدورة غير مكتملة بعد لهذا المتدرب.',
+  TRAINING_NOT_READY_TO_CLOSE: 'لا يوجد متدربون مؤهلون لإنهاء الدورة حاليًا وفق المعايير المحددة.',
+  TRAINING_ALREADY_FINALIZED: 'تم إنهاء هذا التسجيل مسبقًا.',
+  TRAINING_FINALIZATION_FORBIDDEN: 'لا تملك صلاحية إنهاء التدريب لهذه الدورة.',
+  EXCEPTIONAL_FINALIZATION_REASON_REQUIRED: 'يجب إدخال سبب واضح للإنهاء الاستثنائي.',
+  REPORT_NOT_READY: 'التقرير غير جاهز بعد. حاول توليده أولًا.',
+  // Actual backend codes for the same flows (kept alongside the names above for full coverage).
+  FINALIZATION_MODE_INVALID: 'وضع الإنهاء غير صالح.',
+  FINALIZATION_REASON_REQUIRED: 'يجب إدخال سبب للإنهاء الاستثنائي.',
+  NO_ELIGIBLE_ENROLLMENTS: 'لا يوجد متدربون مؤهلون للإنهاء وفق المعايير المحددة.',
+  NO_COMPLETED_ENROLLMENTS: 'لا يوجد متدربون مكتملون لإعادة فتحهم.',
+  INDIVIDUAL_REPORT_NOT_FOUND: 'لا يوجد تقرير فردي لهذا المتدرب بعد.',
+  COURSE_REPORT_NOT_FOUND: 'لا يوجد تقرير للدورة بعد.',
+  ENROLLMENT_NOT_FOUND: 'التسجيل غير موجود.',
 };
 
 /**

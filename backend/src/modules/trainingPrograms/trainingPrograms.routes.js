@@ -366,4 +366,94 @@ router.get(
   c.getEnrollmentCertificate
 );
 
+const reportRoles = authorizeRoles('super_admin', 'admin', 'trainer', 'reviewer');
+
+/** Final evaluation (end-of-course survey). */
+router.get(
+  '/programs/:programId/evaluation',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.programIdParam }),
+  c.getProgramEvaluation
+);
+router.get(
+  '/enrollments/:enrollmentId/evaluation',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.enrollmentIdParam }),
+  c.getEnrollmentEvaluation
+);
+router.patch(
+  '/evaluation-responses/:responseId',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.responseIdParam, body: v.evaluationAnswersBody }),
+  c.saveEvaluationDraft
+);
+router.post(
+  '/evaluation-responses/:responseId/submit',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.responseIdParam, body: v.evaluationAnswersBody }),
+  c.submitEvaluation
+);
+router.post(
+  '/evaluation-assignments/:assignmentId/reopen',
+  authenticate,
+  orgAdmin,
+  validateRequest({ params: v.evaluationAssignmentIdParam, body: v.reopenEvaluationBody }),
+  c.reopenEvaluation
+);
+
+/** Completion readiness, finalization, and reporting. */
+router.get(
+  '/programs/:programId/completion-readiness',
+  authenticate,
+  reportRoles,
+  validateRequest({ params: v.programIdParam, query: v.cohortIdQuery }),
+  c.getProgramCompletionReadiness
+);
+router.post(
+  '/programs/:programId/finalize',
+  authenticate,
+  manage,
+  validateRequest({ params: v.programIdParam, body: v.finalizeTrainingBody }),
+  c.finalizeTraining
+);
+router.post(
+  '/programs/:programId/reopen',
+  authenticate,
+  orgAdmin,
+  validateRequest({ params: v.programIdParam, body: v.reopenTrainingBody }),
+  c.reopenTraining
+);
+router.get(
+  '/enrollments/:enrollmentId/individual-report',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.enrollmentIdParam }),
+  c.getIndividualReport
+);
+router.post(
+  '/enrollments/:enrollmentId/individual-report/generate',
+  authenticate,
+  manage,
+  validateRequest({ params: v.enrollmentIdParam }),
+  c.generateIndividualReport
+);
+router.get(
+  '/programs/:programId/course-report',
+  authenticate,
+  reportRoles,
+  validateRequest({ params: v.programIdParam, query: v.cohortIdQuery }),
+  c.getCourseReport
+);
+router.post(
+  '/programs/:programId/course-report/generate',
+  authenticate,
+  manage,
+  validateRequest({ params: v.programIdParam, query: v.cohortIdQuery }),
+  c.generateCourseReport
+);
+
 module.exports = router;

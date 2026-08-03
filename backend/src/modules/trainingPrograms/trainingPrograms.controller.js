@@ -337,6 +337,116 @@ async function publishProgram(req, res, next) {
   }
 }
 
+async function getProgramEvaluation(req, res, next) {
+  try {
+    return success(res, await service.getProgramEvaluation(R(req), req.validated.params.programId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getEnrollmentEvaluation(req, res, next) {
+  try {
+    return success(res, await service.getEnrollmentEvaluation(R(req), req.validated.params.enrollmentId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function saveEvaluationDraft(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.saveEvaluationDraft(R(req), req.validated.params.responseId, req.validated?.body?.answers)
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function submitEvaluation(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.submitEvaluation(R(req), req.validated.params.responseId, req.validated?.body?.answers)
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function reopenEvaluation(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.reopenEvaluation(R(req), req.validated.params.assignmentId, req.validated.body.reason)
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getProgramCompletionReadiness(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.getProgramCompletionReadiness(R(req), req.validated.params.programId, req.validated?.query || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function finalizeTraining(req, res, next) {
+  try {
+    const body = req.validated?.body || {};
+    return success(
+      res,
+      await service.finalizeTraining(R(req), { programId: req.validated.params.programId, ...body })
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function reopenTraining(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.reopenTraining(R(req), req.validated.params.programId, req.validated?.body || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getIndividualReport(req, res, next) {
+  try {
+    return success(res, await service.getIndividualReport(R(req), req.validated.params.enrollmentId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function generateIndividualReport(req, res, next) {
+  try {
+    return created(res, await service.generateIndividualReport(R(req), req.validated.params.enrollmentId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getCourseReport(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.getCourseReport(R(req), req.validated.params.programId, req.validated?.query || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function generateCourseReport(req, res, next) {
+  try {
+    return created(
+      res,
+      await service.generateCourseReport(R(req), req.validated.params.programId, req.validated?.query || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   listPrograms,
   listTrainingCourses,
@@ -382,4 +492,16 @@ module.exports = {
   getTraineeProgramDetail,
   listProgramMaterials,
   createProgramMaterial,
+  getProgramEvaluation,
+  getEnrollmentEvaluation,
+  saveEvaluationDraft,
+  submitEvaluation,
+  reopenEvaluation,
+  getProgramCompletionReadiness,
+  finalizeTraining,
+  reopenTraining,
+  getIndividualReport,
+  generateIndividualReport,
+  getCourseReport,
+  generateCourseReport,
 };

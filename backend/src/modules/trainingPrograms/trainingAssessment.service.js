@@ -71,6 +71,7 @@ function mapAssessmentOut(row, { includeQuestions = false, includeCorrect = fals
     id: row.id,
     programId: row.program_id,
     kind: row.kind,
+    code: row.code || null,
     type: row.kind === 'PRE_TEST' ? 'pre' : 'post',
     title: row.title,
     description: row.instructions,
@@ -594,6 +595,19 @@ async function submitAttempt(requester, attemptId, answers) {
     /* progress best-effort */
   }
 
+  let finalEvaluationAvailable = false;
+  let nextAction = null;
+  if (assessment.kind === 'POST_TEST') {
+    try {
+      const evaluation = require('./trainingEvaluation.service');
+      const unlock = await evaluation.unlockEvaluationAfterPostTest(attempt.enrollment_id, { pendingManual });
+      finalEvaluationAvailable = unlock?.available === true;
+      nextAction = finalEvaluationAvailable ? 'FINAL_EVALUATION' : pendingManual ? 'WAIT_MANUAL_GRADING' : null;
+    } catch {
+      /* evaluation unlock is best-effort */
+    }
+  }
+
   return {
     ...mapAttempt(row),
     scorePercent: graded.scorePercent,
@@ -603,6 +617,10 @@ async function submitAttempt(requester, attemptId, answers) {
         : graded.scorePercent >= Number(assessment.pass_score),
     pendingManual,
     showResults: assessment.show_results,
+    postTestSubmitted: assessment.kind === 'POST_TEST',
+    manualGradingPending: pendingManual,
+    finalEvaluationAvailable,
+    nextAction,
   };
 }
 
@@ -700,6 +718,15 @@ async function gradeAttempt(requester, attemptId, body = {}) {
 
   const { recomputeProgress } = require('./trainingPrograms.service');
   await recomputeProgress(requester, attempt.enrollment_id).catch(() => null);
+
+  if (attempt.training_assessments.kind === 'POST_TEST') {
+    try {
+      const evaluation = require('./trainingEvaluation.service');
+      await evaluation.unlockEvaluationAfterPostTest(attempt.enrollment_id, { pendingManual: false });
+    } catch {
+      /* evaluation unlock is best-effort */
+    }
+  }
 
   return mapAttempt(row);
 }

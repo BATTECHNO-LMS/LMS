@@ -220,6 +220,7 @@ async function assignTrainerToCourse(requester, organizationId, body) {
     can_view_trainees: body.can_view_trainees ?? true,
     can_view_progress: body.can_view_progress ?? true,
     can_view_reports: body.can_view_reports ?? true,
+    can_finalize_training: body.can_finalize_training ?? false,
     can_send_course_announcements: body.can_send_course_announcements ?? false,
   };
 
@@ -347,6 +348,7 @@ async function getTrainerCourse(requester, programId) {
         can_view_trainees: 'canViewTrainees',
         can_view_progress: 'canViewProgress',
         can_view_reports: 'canViewReports',
+        can_finalize_training: 'canFinalizeTraining',
         can_send_course_announcements: 'canSendCourseAnnouncements',
       }[k];
       return [camel, mergedFlags[k]];

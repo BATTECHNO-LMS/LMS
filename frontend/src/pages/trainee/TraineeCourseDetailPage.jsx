@@ -15,6 +15,9 @@ import {
   submitTask,
 } from '../../features/training/training.service.js';
 import { TrainingAssessmentAttemptPanel } from '../../features/training/components/TrainingAssessmentAttemptPanel.jsx';
+import { EvaluationWizard } from '../../features/training/components/evaluation/EvaluationWizard.jsx';
+import { IndividualReportView } from '../../features/training/components/reports/IndividualReportView.jsx';
+import { CompletionRequirementList } from '../../features/training/components/completion/CompletionRequirementList.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 const TABS = [
@@ -23,7 +26,9 @@ const TABS = [
   { id: 'materials', label: 'المواد' },
   { id: 'tasks', label: 'المهمات' },
   { id: 'assessments', label: 'الاختبارات' },
+  { id: 'evaluation', label: 'التقييم النهائي' },
   { id: 'progress', label: 'التقدم' },
+  { id: 'report', label: 'التقرير الفردي' },
   { id: 'certificate', label: 'الشهادة' },
 ];
 
@@ -64,6 +69,10 @@ export function TraineeCourseDetailPage() {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (tabParam) setTab(tabParam);
+  }, [tabParam]);
 
   if (loading) {
     return (
@@ -316,6 +325,7 @@ export function TraineeCourseDetailPage() {
             courseTitle={data.program?.title}
             programType={data.program?.type || 'TRAINING_COURSE'}
             onChanged={refresh}
+            evaluationLinkTo={`/trainee/courses/${programId}/evaluation`}
           />
           <div className="ta-assessment-panel" style={{ marginTop: '1rem' }}>
             <Button
@@ -365,6 +375,16 @@ export function TraineeCourseDetailPage() {
         </>
       ) : null}
 
+      {tab === 'evaluation' ? (
+        <SectionCard title="التقييم النهائي للدورة">
+          {data.enrollmentId ? (
+            <EvaluationWizard enrollmentId={data.enrollmentId} onSubmitted={refresh} />
+          ) : (
+            <EmptyState title="غير متاح" description="تعذر تحديد تسجيلك في هذه الدورة." />
+          )}
+        </SectionCard>
+      ) : null}
+
       {tab === 'progress' ? (
         <SectionCard title="التقدم">
           <dl className="detail-list">
@@ -411,10 +431,40 @@ export function TraineeCourseDetailPage() {
               </dd>
             </div>
             <div className="detail-list__row">
+              <dt>التقييم النهائي</dt>
+              <dd>
+                {data.progress?.requirements?.evaluation?.required
+                  ? data.progress.requirements.evaluation.submitted
+                    ? 'تم الإرسال'
+                    : data.progress.requirements.evaluation.status === 'LOCKED'
+                      ? 'مقفل حتى اجتياز الاختبار البعدي'
+                      : 'بانتظار التعبئة'
+                  : 'غير مطلوب'}
+              </dd>
+            </div>
+            <div className="detail-list__row">
               <dt>الحالة</dt>
               <dd>{data.progress?.status || data.status}</dd>
             </div>
           </dl>
+          {data.progress?.requirements ? (
+            <>
+              <h3 className="ta-section-title" style={{ marginTop: '1.25rem' }}>
+                ملخص متطلبات إنهاء الدورة
+              </h3>
+              <CompletionRequirementList requirements={data.progress.requirements} />
+            </>
+          ) : null}
+        </SectionCard>
+      ) : null}
+
+      {tab === 'report' ? (
+        <SectionCard title="التقرير الفردي">
+          {data.enrollmentId ? (
+            <IndividualReportView enrollmentId={data.enrollmentId} />
+          ) : (
+            <EmptyState title="غير متاح" description="تعذر تحديد تسجيلك في هذه الدورة." />
+          )}
         </SectionCard>
       ) : null}
 
