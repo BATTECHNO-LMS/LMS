@@ -187,6 +187,39 @@ const reopenTrainingBody = z.object({
   enrollmentIds: z.array(z.string().uuid()).optional(),
 });
 
+const reportIdParam = z.object({ reportId: z.string().uuid() });
+const verificationCodeParam = z.object({ verificationCode: z.string().min(8).max(128) });
+
+const reportTypeEnum = z.enum([
+  'INDIVIDUAL',
+  'COURSE',
+  'COHORT',
+  'TRAINER',
+  'EVALUATION',
+  'ATTENDANCE',
+  'LEARNING_IMPACT',
+  'CERTIFICATES',
+]);
+
+const generateOfficialReportBody = z.object({
+  reportType: reportTypeEnum,
+  cohortId: z.string().uuid().optional().nullable(),
+  trainerUserId: z.string().uuid().optional().nullable(),
+  mode: z.enum(['ELIGIBLE_ONLY', 'EXCEPTIONAL']).optional().nullable(),
+  reason: z.string().trim().max(2000).optional().nullable(),
+});
+
+const listOfficialReportsQuery = z.object({
+  reportType: reportTypeEnum.optional(),
+  cohortId: z.string().uuid().optional(),
+  trainerUserId: z.string().uuid().optional(),
+});
+
+const generateCohortReportBody = z.object({
+  reportType: reportTypeEnum.optional().default('COHORT'),
+  trainerUserId: z.string().uuid().optional().nullable(),
+});
+
 module.exports = {
   uuidParam,
   orgIdParam,
@@ -213,4 +246,10 @@ module.exports = {
   cohortIdQuery,
   finalizeTrainingBody,
   reopenTrainingBody,
+  reportIdParam,
+  verificationCodeParam,
+  reportTypeEnum,
+  generateOfficialReportBody,
+  generateCohortReportBody,
+  listOfficialReportsQuery,
 };

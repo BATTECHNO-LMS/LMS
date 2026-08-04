@@ -12,8 +12,9 @@ const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { recordAudit } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
-const { average } = require('./trainingEvaluation.scoring');
-const evaluationService = require('./trainingEvaluation.service');
+const { buildIndividualTrainingReportData } = require('./trainingReportBuilders.service');
+const officialReports = require('./trainingReports.service');
+const { REPORT_TYPES } = require('./trainingReportMetrics.service');
 
 const FINALIZATION_MODES = Object.freeze(['ELIGIBLE_ONLY', 'EXCEPTIONAL']);
 
@@ -225,23 +226,33 @@ async function completeEnrollmentAndReport(requester, enrollmentId, { mode, reas
     },
   });
 
-  const snapshot = await buildIndividualReportSnapshot(enrollmentId);
-  const lastReport = await prisma.training_individual_reports.findFirst({
-    where: { enrollment_id: enrollmentId },
-    orderBy: { version: 'desc' },
-  });
-  const report = await prisma.training_individual_reports.create({
-    data: {
-      enrollment_id: enrollmentId,
-      program_id: program.id,
-      organization_id: enrollment.organization_id,
-      version: (lastReport?.version || 0) + 1,
-      status: 'GENERATED',
-      snapshot_json: snapshot,
-      summary_text: snapshot.summary,
-      generated_by: requester.userId,
-    },
-  });
+  let reportId = null;
+  try {
+    const official = await officialReports.generateOfficialReport(requester, {
+      reportType: REPORT_TYPES.INDIVIDUAL,
+      enrollmentId,
+    });
+    reportId = official.id;
+  } catch {
+    const snapshot = await buildIndividualReportSnapshot(enrollmentId);
+    const lastReport = await prisma.training_individual_reports.findFirst({
+      where: { enrollment_id: enrollmentId },
+      orderBy: { version: 'desc' },
+    });
+    const report = await prisma.training_individual_reports.create({
+      data: {
+        enrollment_id: enrollmentId,
+        program_id: program.id,
+        organization_id: enrollment.organization_id,
+        version: (lastReport?.version || 0) + 1,
+        status: 'GENERATED',
+        snapshot_json: snapshot,
+        summary_text: snapshot.summary,
+        generated_by: requester.userId,
+      },
+    });
+    reportId = report.id;
+  }
 
   const settings = program.settings_json && typeof program.settings_json === 'object' ? program.settings_json : {};
   let certificate = null;
@@ -260,10 +271,10 @@ async function completeEnrollmentAndReport(requester, enrollmentId, { mode, reas
     organizationId: enrollment.organization_id,
     affectedUserId: enrollment.user_id,
     entityType: 'training_individual_report',
-    entityId: report.id,
+    entityId: reportId,
   }).catch(() => null);
 
-  return { enrollmentId, reportId: report.id, certificate };
+  return { enrollmentId, reportId, certificate };
 }
 
 /**
@@ -403,132 +414,7 @@ async function finalizeTraining(requester, { programId, cohortId, enrollmentIds,
 
 /** Rules-based Arabic summary + structured snapshot for one trainee's final report (no LLM). */
 async function buildIndividualReportSnapshot(enrollmentId) {
-  const enrollment = await prisma.training_enrollments.findUnique({
-    where: { id: enrollmentId },
-    include: { training_cohorts: { include: { training_programs: true } }, training_progress: true },
-  });
-  if (!enrollment) throw new ApiError(404, 'التسجيل غير موجود', null, 'ENROLLMENT_NOT_FOUND');
-  const program = enrollment.training_cohorts.training_programs;
-
-  const [user, sessions, attendanceRecords, tasks, submissions, assessments, evaluationAssignment, certificate] =
-    await Promise.all([
-      prisma.users.findUnique({ where: { id: enrollment.user_id }, select: { id: true, full_name: true, email: true, phone: true } }),
-      prisma.training_sessions.findMany({ where: { cohort_id: enrollment.cohort_id } }),
-      prisma.training_attendance_records.findMany({ where: { enrollment_id: enrollmentId } }),
-      prisma.training_tasks.findMany({ where: { program_id: program.id } }),
-      prisma.training_task_submissions.findMany({ where: { enrollment_id: enrollmentId } }),
-      prisma.training_assessments.findMany({
-        where: { program_id: program.id, kind: { in: ['PRE_TEST', 'POST_TEST'] } },
-        include: { training_assessment_attempts: { where: { enrollment_id: enrollmentId } } },
-      }),
-      prisma.training_evaluation_assignments.findUnique({ where: { enrollment_id: enrollmentId } }),
-      prisma.training_certificates.findFirst({ where: { enrollment_id: enrollmentId, status: 'ISSUED' }, orderBy: { issued_at: 'desc' } }),
-    ]);
-
-  const presentLike = attendanceRecords.filter((a) => ['present', 'late', 'excused'].includes(String(a.status).toLowerCase()));
-  const attendancePct = sessions.length ? Math.round((presentLike.length / sessions.length) * 10000) / 100 : null;
-  const hoursCompleted = presentLike.reduce((sum, a) => {
-    const session = sessions.find((s) => s.id === a.session_id);
-    return sum + Number(session?.hours || 0);
-  }, 0);
-
-  function bestGradedScore(assessment) {
-    const graded = (assessment?.training_assessment_attempts || []).filter((a) => a.status === 'GRADED');
-    if (!graded.length) return null;
-    return Math.max(...graded.map((a) => Number(a.score || 0)));
-  }
-  const preTest = assessments.find((a) => a.kind === 'PRE_TEST');
-  const postTest = assessments.find((a) => a.kind === 'POST_TEST');
-  const preScore = bestGradedScore(preTest);
-  const postScore = bestGradedScore(postTest);
-
-  const requiredTasks = tasks.filter((t) => t.is_required);
-  const completedTaskIds = new Set(
-    submissions.filter((s) => ['ACCEPTED', 'GRADED'].includes(s.status)).map((s) => s.task_id)
-  );
-  const finalTask = tasks.find((t) => t.is_final_task);
-  const finalTaskSubmission = finalTask ? submissions.find((s) => s.task_id === finalTask.id) : null;
-  const evaluationSubmitted = evaluationAssignment?.status === 'SUBMITTED';
-
-  const summaryParts = [];
-  summaryParts.push(
-    `أكمل المتدرب نسبة حضور ${attendancePct != null ? attendancePct + '%' : 'غير محددة'} من الجلسات المقررة.`
-  );
-  if (preScore != null && postScore != null) {
-    const diff = Math.round((postScore - preScore) * 100) / 100;
-    if (diff > 0) {
-      summaryParts.push(`أظهر تحسنًا في الاختبار البعدي بمقدار ${diff} نقطة مقارنة بالاختبار القبلي.`);
-    } else if (diff < 0) {
-      summaryParts.push('لم يظهر تحسنًا ملحوظًا في الاختبار البعدي مقارنة بالاختبار القبلي.');
-    } else {
-      summaryParts.push('حافظ على نفس مستوى الأداء بين الاختبارين القبلي والبعدي.');
-    }
-  } else if (postScore != null) {
-    summaryParts.push(`حصل المتدرب على ${postScore}% في الاختبار البعدي.`);
-  }
-  summaryParts.push(
-    requiredTasks.length
-      ? `أنجز المتدرب ${completedTaskIds.size} من أصل ${requiredTasks.length} من المهمات المطلوبة.`
-      : 'لا توجد مهمات مطلوبة في هذه الدورة.'
-  );
-  summaryParts.push(
-    evaluationSubmitted
-      ? 'أرسل المتدرب استبيان التقييم النهائي للدورة.'
-      : 'لم يرسل المتدرب استبيان التقييم النهائي للدورة.'
-  );
-  summaryParts.push(
-    enrollment.status === 'COMPLETED'
-      ? 'تم اعتماد إكمال المتدرب لمتطلبات الدورة التدريبية.'
-      : 'لم يتم بعد اعتماد إكمال المتدرب لجميع متطلبات الدورة التدريبية.'
-  );
-
-  return {
-    identity: {
-      userId: user?.id || enrollment.user_id,
-      fullName: user?.full_name || null,
-      email: user?.email || null,
-      phone: user?.phone || null,
-      enrollmentId,
-      cohortId: enrollment.cohort_id,
-      cohortName: enrollment.training_cohorts.name,
-      programId: program.id,
-      programTitle: program.title,
-    },
-    attendance: {
-      totalSessions: sessions.length,
-      attendedSessions: presentLike.length,
-      attendancePct,
-      hoursCompleted,
-      hoursRequired: program.required_hours != null ? Number(program.required_hours) : null,
-    },
-    learning: {
-      preTestScore: preScore,
-      postTestScore: postScore,
-      improvement: preScore != null && postScore != null ? Math.round((postScore - preScore) * 100) / 100 : null,
-    },
-    tasks: {
-      requiredCount: requiredTasks.length,
-      completedCount: completedTaskIds.size,
-      finalTask: finalTask
-        ? {
-            title: finalTask.title,
-            submitted: Boolean(finalTaskSubmission),
-            score: finalTaskSubmission?.score != null ? Number(finalTaskSubmission.score) : null,
-          }
-        : null,
-    },
-    evaluation: { submitted: evaluationSubmitted },
-    completion: {
-      status: enrollment.status,
-      completedAt: enrollment.completed_at,
-      completionPct: enrollment.training_progress ? Number(enrollment.training_progress.completion_pct) : null,
-    },
-    certificate: certificate
-      ? { issued: true, certificateNumber: certificate.certificate_number, issuedAt: certificate.issued_at }
-      : { issued: false },
-    summary: summaryParts.join(' '),
-    generatedAt: new Date().toISOString(),
-  };
+  return buildIndividualTrainingReportData(enrollmentId);
 }
 
 function mapIndividualReportOut(report) {
@@ -555,7 +441,53 @@ async function assertEnrollmentReportAccess(requester, enrollment) {
   assertManagerAccess(requester);
 }
 
+async function generateIndividualReport(requester, enrollmentId) {
+  const official = await officialReports.generateOfficialReport(requester, {
+    reportType: REPORT_TYPES.INDIVIDUAL,
+    enrollmentId,
+  });
+  return {
+    id: official.id,
+    enrollmentId: official.enrollmentId,
+    programId: official.programId,
+    version: official.version,
+    status: official.status,
+    snapshot: official.snapshot,
+    summary: official.summary,
+    generatedAt: official.generatedAt,
+    referenceCode: official.referenceCode,
+    verificationCode: official.verificationCode,
+  };
+}
+
 async function getIndividualReport(requester, enrollmentId) {
+  try {
+    const official = await officialReports.getLatestReport(requester, {
+      reportType: REPORT_TYPES.INDIVIDUAL,
+      programId: (
+        await prisma.training_enrollments.findUnique({
+          where: { id: enrollmentId },
+          include: { training_cohorts: true },
+        })
+      )?.training_cohorts?.program_id,
+      enrollmentId,
+    });
+    return {
+      id: official.id,
+      enrollmentId: official.enrollmentId || enrollmentId,
+      programId: official.programId,
+      version: official.version,
+      status: official.status,
+      snapshot: official.snapshot,
+      summary: official.summary,
+      generatedAt: official.generatedAt,
+      referenceCode: official.referenceCode,
+      verificationCode: official.verificationCode,
+    };
+  } catch (err) {
+    if (err?.code !== 'REPORT_NOT_FOUND') throw err;
+  }
+
   const enrollment = await prisma.training_enrollments.findUnique({
     where: { id: enrollmentId },
     include: { training_cohorts: { include: { training_programs: true } } },
@@ -568,45 +500,6 @@ async function getIndividualReport(requester, enrollmentId) {
     orderBy: { version: 'desc' },
   });
   if (!report) throw new ApiError(404, 'لا يوجد تقرير فردي لهذا المتدرب بعد.', null, 'INDIVIDUAL_REPORT_NOT_FOUND');
-  return mapIndividualReportOut(report);
-}
-
-async function generateIndividualReport(requester, enrollmentId) {
-  const enrollment = await prisma.training_enrollments.findUnique({
-    where: { id: enrollmentId },
-    include: { training_cohorts: { include: { training_programs: true } } },
-  });
-  if (!enrollment) throw new ApiError(404, 'التسجيل غير موجود', null, 'ENROLLMENT_NOT_FOUND');
-  assertOrganizationAccess(requester, enrollment.organization_id);
-  if (isTrainerOnly(requester)) {
-    await assertTrainerProgramAccess(requester, enrollment.training_cohorts.training_programs.id, 'can_view_reports');
-  } else {
-    assertManagerAccess(requester);
-  }
-
-  const snapshot = await buildIndividualReportSnapshot(enrollmentId);
-  const lastReport = await prisma.training_individual_reports.findFirst({
-    where: { enrollment_id: enrollmentId },
-    orderBy: { version: 'desc' },
-  });
-  const report = await prisma.training_individual_reports.create({
-    data: {
-      enrollment_id: enrollmentId,
-      program_id: enrollment.training_cohorts.training_programs.id,
-      organization_id: enrollment.organization_id,
-      version: (lastReport?.version || 0) + 1,
-      status: 'GENERATED',
-      snapshot_json: snapshot,
-      summary_text: snapshot.summary,
-      generated_by: requester.userId,
-    },
-  });
-  await emitDomainEvent('INDIVIDUAL_REPORT_GENERATED', {
-    organizationId: enrollment.organization_id,
-    affectedUserId: enrollment.user_id,
-    entityType: 'training_individual_report',
-    entityId: report.id,
-  }).catch(() => null);
   return mapIndividualReportOut(report);
 }
 
@@ -635,98 +528,52 @@ async function assertProgramReportAccess(requester, program, programId) {
 
 /** Builds and persists a versioned course-level report snapshot with rules-based recommendations. */
 async function generateCourseReport(requester, programId, { cohortId, mode, reason } = {}) {
-  const program = await prisma.training_programs.findUnique({ where: { id: programId } });
-  if (!program || program.type !== 'TRAINING_COURSE') {
-    throw new ApiError(404, 'الدورة التدريبية غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');
-  }
-  await assertProgramReportAccess(requester, program, programId);
-
-  const enrollments = await prisma.training_enrollments.findMany({
-    where: { training_cohorts: { program_id: programId, ...(cohortId ? { id: cohortId } : {}) } },
-  });
-  const total = enrollments.length;
-  const completed = enrollments.filter((e) => e.status === 'COMPLETED').length;
-  const notCompleted = enrollments.filter((e) => e.status === 'NOT_COMPLETED').length;
-  const withdrawn = enrollments.filter((e) => e.status === 'WITHDRAWN').length;
-  const active = enrollments.filter((e) => ['ACTIVE', 'APPROVED', 'REQUIREMENTS_COMPLETED'].includes(e.status)).length;
-
-  const progressRows = await prisma.training_progress.findMany({
-    where: { training_enrollments: { training_cohorts: { program_id: programId, ...(cohortId ? { id: cohortId } : {}) } } },
-    select: { attendance_pct: true },
-  });
-  const avgAttendance = average(progressRows.map((p) => (p.attendance_pct != null ? Number(p.attendance_pct) : null)));
-
-  const evaluationAggregates = await evaluationService.getEvaluationAggregates(programId);
-
-  const recommendations = [];
-  if (avgAttendance != null && avgAttendance < REPORT_THRESHOLDS.LOW_ATTENDANCE_PCT) {
-    recommendations.push('يوصى بمراجعة جدولة الجلسات وأساليب التحفيز لرفع نسبة الحضور العامة.');
-  }
-  if (evaluationAggregates.nps.index != null && evaluationAggregates.nps.index < REPORT_THRESHOLDS.LOW_NPS_INDEX) {
-    recommendations.push('مؤشر صافي الترويج سلبي؛ يوصى بمراجعة تجربة المتدربين العامة قبل الدفعة القادمة.');
-  }
-  if (
-    evaluationAggregates.averages.trainer_score != null &&
-    evaluationAggregates.averages.trainer_score < REPORT_THRESHOLDS.LOW_TRAINER_SCORE
-  ) {
-    recommendations.push('تقييم المدرب أقل من المستوى المستهدف؛ يوصى بمراجعة أداء المدرب أو تزويده بدعم إضافي.');
-  }
-  if (
-    evaluationAggregates.averages.content_score != null &&
-    evaluationAggregates.averages.content_score < REPORT_THRESHOLDS.LOW_CONTENT_SCORE
-  ) {
-    recommendations.push('تقييم المحتوى التدريبي أقل من المستوى المستهدف؛ يوصى بتحديث المادة العلمية.');
-  }
-  const dropoutPct = total ? Math.round((withdrawn / total) * 10000) / 100 : 0;
-  if (dropoutPct > REPORT_THRESHOLDS.HIGH_DROPOUT_PCT) {
-    recommendations.push('نسبة الانسحاب من الدورة مرتفعة؛ يوصى بمراجعة أسباب الانسحاب مع المتدربين.');
-  }
-  if (!recommendations.length) {
-    recommendations.push('مؤشرات الدورة ضمن المستوى المستهدف ولا توجد ملاحظات جوهرية حاليًا.');
-  }
-
-  const snapshot = {
+  const official = await officialReports.generateOfficialReport(requester, {
+    reportType: REPORT_TYPES.COURSE,
     programId,
-    programTitle: program.title,
-    cohortId: cohortId || null,
-    counts: { total, completed, notCompleted, withdrawn, active },
-    completionRate: total ? Math.round((completed / total) * 10000) / 100 : 0,
-    dropoutRate: dropoutPct,
-    averageAttendancePct: avgAttendance,
-    evaluation: evaluationAggregates,
-    recommendations,
-    generatedAt: new Date().toISOString(),
+    cohortId,
+    mode,
+    reason,
+  });
+  return {
+    id: official.id,
+    programId: official.programId,
+    cohortId: official.cohortId,
+    version: official.version,
+    status: official.status,
+    snapshot: official.snapshot,
+    finalizationMode: mode || null,
+    finalizationReason: reason || null,
+    generatedAt: official.generatedAt,
+    referenceCode: official.referenceCode,
+    verificationCode: official.verificationCode,
   };
-
-  const lastReport = await prisma.training_course_reports.findFirst({
-    where: { program_id: programId, cohort_id: cohortId || null },
-    orderBy: { version: 'desc' },
-  });
-  const report = await prisma.training_course_reports.create({
-    data: {
-      program_id: programId,
-      organization_id: program.organization_id,
-      cohort_id: cohortId || null,
-      version: (lastReport?.version || 0) + 1,
-      status: 'GENERATED',
-      snapshot_json: snapshot,
-      generated_by: requester.userId,
-      finalization_mode: mode || null,
-      finalization_reason: reason || null,
-    },
-  });
-
-  await emitDomainEvent('COURSE_REPORT_GENERATED', {
-    organizationId: program.organization_id,
-    entityType: 'training_course_report',
-    entityId: report.id,
-    templateVars: { course_title: program.title },
-  }).catch(() => null);
-
-  return mapCourseReportOut(report);
 }
 
 async function getCourseReport(requester, programId, { cohortId } = {}) {
+  try {
+    const official = await officialReports.getLatestReport(requester, {
+      reportType: REPORT_TYPES.COURSE,
+      programId,
+      cohortId,
+    });
+    return {
+      id: official.id,
+      programId: official.programId,
+      cohortId: official.cohortId,
+      version: official.version,
+      status: official.status,
+      snapshot: official.snapshot,
+      finalizationMode: official.finalizationMode || null,
+      finalizationReason: official.finalizationReason || null,
+      generatedAt: official.generatedAt,
+      referenceCode: official.referenceCode,
+      verificationCode: official.verificationCode,
+    };
+  } catch (err) {
+    if (err?.code !== 'REPORT_NOT_FOUND' && err?.errorCode !== 'REPORT_NOT_FOUND') throw err;
+  }
+
   const program = await prisma.training_programs.findUnique({ where: { id: programId } });
   if (!program || program.type !== 'TRAINING_COURSE') {
     throw new ApiError(404, 'الدورة التدريبية غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');

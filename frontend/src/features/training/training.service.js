@@ -290,3 +290,118 @@ export async function listKpiAlerts(organizationId) {
   const res = await apiClient.get(`${endpoints.kpi}/organizations/${organizationId}/alerts`);
   return asList(unwrapApiData(res));
 }
+
+/** Official branded reports */
+export const OFFICIAL_REPORT_TYPES = [
+  { type: 'COURSE', title: 'التقرير الشامل للدورة التدريبية' },
+  { type: 'INDIVIDUAL', title: 'التقرير الفردي لنتائج المتدرب' },
+  { type: 'COHORT', title: 'تقرير الدفعة التدريبية' },
+  { type: 'TRAINER', title: 'تقرير أداء المدرب' },
+  { type: 'EVALUATION', title: 'تقرير التقييم النهائي للدورة' },
+  { type: 'ATTENDANCE', title: 'تقرير الحضور والساعات التدريبية' },
+  { type: 'LEARNING_IMPACT', title: 'تقرير قياس أثر التعلّم' },
+  { type: 'CERTIFICATES', title: 'تقرير الإكمال والشهادات' },
+];
+
+function parseFilename(contentDisposition, fallback) {
+  if (!contentDisposition) return fallback;
+  const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(contentDisposition);
+  const raw = decodeURIComponent(match?.[1] || match?.[2] || '');
+  return raw || fallback;
+}
+
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+export async function listOfficialReports(programId, params = {}) {
+  const res = await apiClient.get(`${base}/programs/${programId}/reports`, { params });
+  return asList(unwrapApiData(res));
+}
+
+export async function getLatestOfficialReport(programId, params = {}) {
+  const res = await apiClient.get(`${base}/programs/${programId}/reports/latest`, { params });
+  return unwrapApiData(res);
+}
+
+export async function generateOfficialReport(programId, body) {
+  const res = await apiClient.post(`${base}/programs/${programId}/reports/generate`, body);
+  return unwrapApiData(res);
+}
+
+export async function getOfficialReport(reportId) {
+  const res = await apiClient.get(`${base}/reports/${reportId}`);
+  return unwrapApiData(res);
+}
+
+export async function getOfficialReportStatus(reportId) {
+  const res = await apiClient.get(`${base}/reports/${reportId}/status`);
+  return unwrapApiData(res);
+}
+
+export async function downloadOfficialReportPdf(reportId) {
+  const res = await apiClient.get(`${base}/reports/${reportId}/pdf`, {
+    responseType: 'blob',
+    timeout: 120000,
+  });
+  const filename = parseFilename(res.headers['content-disposition'], `training-report-${reportId}.pdf`);
+  saveBlob(res.data, filename);
+}
+
+export async function downloadOfficialReportExcel(reportId) {
+  const res = await apiClient.get(`${base}/reports/${reportId}/excel`, {
+    responseType: 'blob',
+    timeout: 120000,
+  });
+  const filename = parseFilename(res.headers['content-disposition'], `training-report-${reportId}.xlsx`);
+  saveBlob(res.data, filename);
+}
+
+export function openOfficialReportPrintable(reportId) {
+  const root = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+  const token = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('battechno_auth_token') || 'null');
+    } catch {
+      return localStorage.getItem('battechno_auth_token');
+    }
+  })();
+  // Open HTML via authenticated fetch then blob URL so Authorization header is sent.
+  return apiClient
+    .get(`${base}/reports/${reportId}/html`, { responseType: 'text', transformResponse: [(d) => d] })
+    .then((res) => {
+      const blob = new Blob([res.data], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      return true;
+    })
+    .catch(() => {
+      if (root && token) {
+        window.open(`${root}${base}/reports/${reportId}/html`, '_blank', 'noopener,noreferrer');
+      }
+      return false;
+    });
+}
+
+export async function getEnrollmentOfficialReport(enrollmentId) {
+  const res = await apiClient.get(`${base}/enrollments/${enrollmentId}/report`);
+  return unwrapApiData(res);
+}
+
+export async function generateEnrollmentOfficialReport(enrollmentId) {
+  const res = await apiClient.post(`${base}/enrollments/${enrollmentId}/report/generate`);
+  return unwrapApiData(res);
+}
+
+export async function verifyOfficialReportPublic(verificationCode) {
+  const res = await apiClient.get(`/api/v1/public/reports/${verificationCode}/verify`);
+  return unwrapApiData(res);
+}

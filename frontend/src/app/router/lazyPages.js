@@ -626,3 +626,7 @@ export const CertificateVerifyPage = lazyNamed(
   () => import('../../pages/public/CertificateVerifyPage.jsx'),
   'CertificateVerifyPage'
 );
+export const ReportVerificationPage = lazyNamed(
+  () => import('../../pages/public/ReportVerificationPage.jsx'),
+  'ReportVerificationPage'
+);

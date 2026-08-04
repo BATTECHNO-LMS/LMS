@@ -456,4 +456,99 @@ router.post(
   c.generateCourseReport
 );
 
+/** Official branded reports registry (PDF / Excel / printable HTML). */
+const reportsCtrl = require('./trainingReports.controller');
+
+router.get(
+  '/programs/:programId/reports',
+  authenticate,
+  reportRoles,
+  validateRequest({ params: v.programIdParam, query: v.listOfficialReportsQuery }),
+  reportsCtrl.listProgramReports
+);
+router.get(
+  '/programs/:programId/reports/latest',
+  authenticate,
+  reportRoles,
+  validateRequest({ params: v.programIdParam, query: v.listOfficialReportsQuery }),
+  reportsCtrl.getProgramReportLatest
+);
+router.post(
+  '/programs/:programId/reports/generate',
+  authenticate,
+  manage,
+  validateRequest({ params: v.programIdParam, body: v.generateOfficialReportBody }),
+  reportsCtrl.generateProgramReport
+);
+router.get(
+  '/reports/:reportId',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.reportIdParam }),
+  reportsCtrl.getReportById
+);
+router.get(
+  '/reports/:reportId/status',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.reportIdParam }),
+  reportsCtrl.getReportStatus
+);
+router.get(
+  '/reports/:reportId/pdf',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.reportIdParam }),
+  reportsCtrl.downloadReportPdf
+);
+router.get(
+  '/reports/:reportId/excel',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.reportIdParam }),
+  reportsCtrl.downloadReportExcel
+);
+router.get(
+  '/reports/:reportId/html',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.reportIdParam }),
+  reportsCtrl.getReportHtml
+);
+router.get(
+  '/cohorts/:cohortId/reports',
+  authenticate,
+  reportRoles,
+  validateRequest({ params: v.cohortIdParam, query: v.listOfficialReportsQuery }),
+  reportsCtrl.listCohortReports
+);
+router.post(
+  '/cohorts/:cohortId/reports/generate',
+  authenticate,
+  manage,
+  validateRequest({ params: v.cohortIdParam, body: v.generateCohortReportBody }),
+  reportsCtrl.generateCohortReport
+);
+router.get(
+  '/enrollments/:enrollmentId/report',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.enrollmentIdParam }),
+  reportsCtrl.getEnrollmentReport
+);
+router.post(
+  '/enrollments/:enrollmentId/report/generate',
+  authenticate,
+  manage,
+  validateRequest({ params: v.enrollmentIdParam }),
+  reportsCtrl.generateEnrollmentReport
+);
+router.get(
+  '/enrollments/:enrollmentId/report/pdf',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.enrollmentIdParam }),
+  reportsCtrl.downloadEnrollmentReportPdf
+);
+
 module.exports = router;

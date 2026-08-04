@@ -1,15 +1,37 @@
 import { useCallback, useEffect, useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { Button } from '../../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../../../components/common/EmptyState.jsx';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
-import { getIndividualReport, generateIndividualReport } from '../../training.service.js';
+import {
+  generateEnrollmentOfficialReport,
+  getEnrollmentOfficialReport,
+  getIndividualReport,
+  generateIndividualReport,
+} from '../../training.service.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 import { ReportExportActions } from './ReportExportActions.jsx';
 
+function Kpi({ label, value, tone }) {
+  return (
+    <div className={`training-report-kpi${tone ? ` training-report-kpi--${tone}` : ''}`}>
+      <span className="training-report-kpi__label">{label}</span>
+      <strong className="training-report-kpi__value">{value ?? 'غير متوفر'}</strong>
+    </div>
+  );
+}
+
 /**
- * Trainee-facing / manager-facing view of the versioned individual completion report.
- * @param {{ enrollmentId: string, canGenerate?: boolean }} props
+ * Detailed individual trainee report view from backend snapshot.
  */
 export function IndividualReportView({ enrollmentId, canGenerate = false }) {
   const [loading, setLoading] = useState(true);
@@ -24,16 +46,21 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
     setError('');
     setNotFound(false);
     try {
-      const data = await getIndividualReport(enrollmentId);
+      let data;
+      try {
+        data = await getEnrollmentOfficialReport(enrollmentId);
+      } catch {
+        data = await getIndividualReport(enrollmentId);
+      }
       setReport(data);
     } catch (err) {
       const code = err?.response?.data?.code || err?.code;
-      if (code === 'INDIVIDUAL_REPORT_NOT_FOUND') {
+      if (code === 'REPORT_NOT_FOUND' || code === 'INDIVIDUAL_REPORT_NOT_FOUND') {
         setNotFound(true);
+        setReport(null);
       } else {
         setError(getApiErrorMessage(err, 'تعذر تحميل التقرير الفردي.'));
       }
-      setReport(null);
     } finally {
       setLoading(false);
     }
@@ -47,7 +74,12 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
     setGenerating(true);
     setError('');
     try {
-      const data = await generateIndividualReport(enrollmentId);
+      let data;
+      try {
+        data = await generateEnrollmentOfficialReport(enrollmentId);
+      } catch {
+        data = await generateIndividualReport(enrollmentId);
+      }
       setReport(data);
       setNotFound(false);
     } catch (err) {
@@ -57,15 +89,13 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
     }
   }
 
-  if (loading) {
-    return <LoadingSpinner label="جاري تحميل التقرير الفردي" />;
-  }
+  if (loading) return <LoadingSpinner label="جاري تجهيز التقرير الفردي..." />;
 
   if (notFound) {
     return (
       <EmptyState
         title="لا يوجد تقرير فردي بعد"
-        description="يتم توليد التقرير الفردي تلقائيًا عند اعتماد إكمال المتدرب، أو يمكن توليده يدويًا."
+        description="يُنشأ التقرير من بيانات الإكمال والحضور والاختبارات المعتمدة في الخادم."
         action={
           canGenerate ? (
             <Button type="button" variant="primary" loading={generating} onClick={handleGenerate}>
@@ -77,7 +107,7 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
     );
   }
 
-  if (error) {
+  if (error && !report) {
     return (
       <div>
         <p className="form-field__error" role="alert">
@@ -92,98 +122,149 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
 
   if (!report) return null;
   const snap = report.snapshot || {};
+  const id = snap.identity || {};
+  const exec = snap.executiveSummary || {};
+  const improvement = snap.learningImprovement || snap.learning || {};
+  const chartData = [
+    { name: 'قبلي', value: improvement.preTestScore ?? exec.preTestScore ?? snap.learning?.preTestScore },
+    { name: 'بعدي', value: improvement.postTestScore ?? exec.postTestScore ?? snap.learning?.postTestScore },
+  ].filter((d) => d.value != null);
 
   return (
-    <div className="individual-report" dir="rtl">
-      <div className="individual-report__head">
+    <div className="training-report-hub individual-report" dir="rtl">
+      <header className="training-report-hub__header">
         <div>
-          <h3 className="individual-report__name">{snap.identity?.fullName || '—'}</h3>
-          <p className="individual-report__sub">
-            {snap.identity?.programTitle || '—'} — {snap.identity?.cohortName || '—'}
-          </p>
+          <p className="training-report-hub__eyebrow">{id.institution || snap.meta?.institutionName}</p>
+          <h3 className="training-report-hub__title">التقرير الفردي لنتائج المتدرب</h3>
+          <p className="training-report-hub__course">{id.fullName || 'متدرب'} — {id.course || snap.meta?.courseName}</p>
+          <div className="training-report-hub__meta-row">
+            {report.referenceCode ? <StatusBadge variant="info">{report.referenceCode}</StatusBadge> : null}
+            <StatusBadge variant="success">الإصدار {report.version}</StatusBadge>
+          </div>
         </div>
-        <div className="individual-report__actions">
+        <div className="training-report-hub__actions">
           {canGenerate ? (
             <Button type="button" variant="outline" size="sm" loading={generating} onClick={handleGenerate}>
-              إعادة توليد
+              إعادة التوليد
             </Button>
           ) : null}
-          <ReportExportActions data={report} filenameBase={`individual-report-${enrollmentId}`} title="التقرير الفردي" />
+          {!report.legacy && report.id ? <ReportExportActions reportId={report.id} /> : null}
         </div>
-      </div>
+      </header>
 
-      {report.summary || snap.summary ? (
-        <p className="individual-report__summary">{report.summary || snap.summary}</p>
+      <section className="training-report-kpi-grid">
+        <Kpi label="الحالة النهائية" value={exec.finalStatus || snap.completion?.status} tone="navy" />
+        <Kpi label="نسبة الحضور" value={exec.attendancePct != null ? `${exec.attendancePct}%` : snap.attendance?.attendancePctLabel} />
+        <Kpi label="الساعات" value={`${exec.hoursCompleted ?? snap.attendance?.hoursCompleted ?? '—'} / ${exec.hoursRequired ?? snap.attendance?.hoursRequired ?? '—'}`} />
+        <Kpi label="قبلي" value={exec.preTestScore != null ? `${exec.preTestScore}%` : null} />
+        <Kpi label="بعدي" value={exec.postTestScore != null ? `${exec.postTestScore}%` : null} />
+        <Kpi
+          label="التحسن (ن.م)"
+          value={exec.improvementPp ?? improvement.percentagePointDifference ?? improvement.improvement}
+          tone={(exec.improvementPp ?? improvement.percentagePointDifference) < 0 ? 'danger' : 'success'}
+        />
+        <Kpi label="التقييم النهائي" value={exec.evaluationSubmitted || snap.evaluation?.submitted ? 'مكتمل' : 'غير مكتمل'} />
+        <Kpi label="الشهادة" value={exec.certificateStatus || snap.certificate?.status || (snap.certificate?.issued ? 'صادرة' : 'غير صادرة')} />
+      </section>
+
+      {chartData.length ? (
+        <div className="training-report-chart-card">
+          <h4>مقارنة الاختبارين</h4>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+              <Bar dataKey="value" fill="#1e5a8a" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          {improvement.note ? <p className="muted">{improvement.note}</p> : null}
+        </div>
       ) : null}
 
-      <div className="eval-metrics-grid">
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">نسبة الحضور</p>
-            <p className="eval-metric-card__value">
-              {snap.attendance?.attendancePct != null ? `${snap.attendance.attendancePct}%` : '—'}
-            </p>
-          </div>
+      <section className="training-report-section">
+        <h4>هوية المتدرب</h4>
+        <div className="training-report-table-wrap">
+          <table className="training-report-table">
+            <tbody>
+              {[
+                ['الاسم', id.fullName],
+                ['المؤسسة', id.institution],
+                ['الفرع', id.branch],
+                ['الدفعة', id.cohort],
+                ['حالة التسجيل', id.enrollmentStatus],
+                ['بداية الدورة', id.courseStart],
+                ['نهاية الدورة', id.courseEnd],
+              ].map(([k, v]) => (
+                <tr key={k}>
+                  <th>{k}</th>
+                  <td>{v ?? 'غير متوفر'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">الساعات</p>
-            <p className="eval-metric-card__value">
-              {snap.attendance?.hoursCompleted ?? 0}
-              {snap.attendance?.hoursRequired != null ? ` / ${snap.attendance.hoursRequired}` : ''}
-            </p>
-          </div>
-        </div>
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">الاختبار القبلي</p>
-            <p className="eval-metric-card__value">
-              {snap.learning?.preTestScore != null ? `${snap.learning.preTestScore}%` : '—'}
-            </p>
-          </div>
-        </div>
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">الاختبار البعدي</p>
-            <p className="eval-metric-card__value">
-              {snap.learning?.postTestScore != null ? `${snap.learning.postTestScore}%` : '—'}
-            </p>
-          </div>
-        </div>
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">المهمات</p>
-            <p className="eval-metric-card__value">
-              {snap.tasks?.completedCount ?? 0} / {snap.tasks?.requiredCount ?? 0}
-            </p>
-          </div>
-        </div>
-        <div className="eval-metric-card">
-          <div className="eval-metric-card__text">
-            <p className="eval-metric-card__label">التقييم النهائي</p>
-            <p className="eval-metric-card__value">{snap.evaluation?.submitted ? 'أُرسل' : 'لم يُرسل'}</p>
-          </div>
-        </div>
-      </div>
+      </section>
 
-      <dl className="detail-list">
-        <div className="detail-list__row">
-          <dt>حالة الإكمال</dt>
-          <dd>
-            <StatusBadge variant={snap.completion?.status === 'COMPLETED' ? 'success' : 'muted'}>
-              {snap.completion?.status || '—'}
-            </StatusBadge>
-          </dd>
-        </div>
-        <div className="detail-list__row">
-          <dt>الشهادة</dt>
-          <dd>{snap.certificate?.issued ? `صادرة — ${snap.certificate.certificateNumber}` : 'غير صادرة'}</dd>
-        </div>
-        <div className="detail-list__row">
-          <dt>تاريخ التوليد</dt>
-          <dd>{report.generatedAt ? String(report.generatedAt).slice(0, 16).replace('T', ' ') : '—'}</dd>
-        </div>
-      </dl>
+      {snap.requirements?.length ? (
+        <section className="training-report-section">
+          <h4>متطلبات الإكمال</h4>
+          <ul className="training-report-req-list">
+            {snap.requirements.map((r) => (
+              <li key={r.code}>
+                <span>{r.title}</span>
+                <StatusBadge variant={r.state === 'completed' ? 'success' : r.state === 'not_required' ? 'muted' : 'warning'}>
+                  {r.label}
+                </StatusBadge>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {snap.attendance?.sessions?.length ? (
+        <section className="training-report-section">
+          <h4>تفاصيل الحضور</h4>
+          <div className="training-report-table-wrap">
+            <table className="training-report-table">
+              <thead>
+                <tr>
+                  <th>الجلسة</th>
+                  <th>التاريخ</th>
+                  <th>المدة</th>
+                  <th>الحالة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {snap.attendance.sessions.map((s) => (
+                  <tr key={s.sessionId}>
+                    <td>{s.title}</td>
+                    <td>{s.dateLabel || '—'}</td>
+                    <td>{s.durationHours ?? '—'}</td>
+                    <td>{s.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
+      {snap.recommendation || snap.summary ? (
+        <section className="training-report-section">
+          <h4>التوصية</h4>
+          <div className="training-report-callout">{snap.recommendation || snap.summary}</div>
+        </section>
+      ) : null}
+
+      {snap.certificate?.verificationUrl || snap.certificate?.verificationCode ? (
+        <section className="training-report-section">
+          <h4>الشهادة</h4>
+          <p>رقم الشهادة: {snap.certificate.certificateNumber || 'غير متوفر'}</p>
+          <p>رمز التحقق: {snap.certificate.verificationCode || 'غير متوفر'}</p>
+        </section>
+      ) : null}
     </div>
   );
 }

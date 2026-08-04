@@ -100,6 +100,7 @@ export function AppRouter() {
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
+      <Route path="/verify/report/:verificationCode" element={<Pages.ReportVerificationPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/admin" element={<AdminLayout />}>

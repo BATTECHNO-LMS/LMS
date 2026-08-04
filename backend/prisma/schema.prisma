@@ -2762,6 +2762,7 @@ model training_programs {
   training_individual_reports       training_individual_reports[]
   training_course_reports           training_course_reports[]
   training_finalization_events      training_finalization_events[]
+  training_official_reports         training_official_reports[]
 
   @@index([organization_id], map: "idx_training_programs_org")
   @@index([status], map: "idx_training_programs_status")
@@ -3354,6 +3355,43 @@ model training_finalization_events {
   training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([program_id], map: "idx_training_finalization_events_program")
+}
+
+/// Versioned branded institutional training reports (individual, course, cohort, trainer, evaluation, attendance, impact, certificates).
+model training_official_reports {
+  id                           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  report_type                  String   @db.VarChar(40)
+  program_id                   String   @db.Uuid
+  organization_id              String   @db.Uuid
+  cohort_id                    String?  @db.Uuid
+  enrollment_id                String?  @db.Uuid
+  trainer_user_id              String?  @db.Uuid
+  /// Deterministic scope fingerprint for unique(type, scope_key, version).
+  scope_key                    String   @db.VarChar(255)
+  version                      Int      @default(1)
+  status                       String   @default("READY") @db.VarChar(40)
+  snapshot_json                Json
+  summary_text                 String?
+  reference_code               String   @unique(map: "uq_training_official_reports_reference") @db.VarChar(80)
+  verification_code            String   @unique(map: "uq_training_official_reports_verification") @db.VarChar(64)
+  is_latest                    Boolean  @default(true)
+  generated_by                 String?  @db.Uuid
+  generated_at                 DateTime @default(now()) @db.Timestamptz(6)
+  source_finalization_event_id String?  @db.Uuid
+  pdf_path                     String?  @db.VarChar(500)
+  excel_path                   String?  @db.VarChar(500)
+  checksum                     String?  @db.VarChar(128)
+  created_at                   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([report_type, scope_key, version], map: "uq_training_official_reports_scope_version")
+  @@index([organization_id], map: "idx_training_official_reports_org")
+  @@index([program_id], map: "idx_training_official_reports_program")
+  @@index([report_type], map: "idx_training_official_reports_type")
+  @@index([enrollment_id], map: "idx_training_official_reports_enrollment")
+  @@index([program_id, report_type, is_latest], map: "idx_training_official_reports_latest")
 }
 
 /// Institution course learning materials (URL or uploaded file metadata).
