@@ -220,6 +220,19 @@ class NotificationNavigator {
       return '/reviewer/recognition';
     }
 
+    if (segments.length >= 2 &&
+        segments[0] == 'student' &&
+        segments[1] == 'courses') {
+      if (segments.length >= 4 && segments[3] == 'lessons') {
+        // /student/courses/:id/lessons/:lessonId — detail only on mobile
+        return '/student/courses/${segments[2]}';
+      }
+      if (segments.length >= 3) {
+        return '/student/courses/${segments[2]}';
+      }
+      return '/student/courses';
+    }
+
     if (segments.any((s) => s == 'enrollments' || s == 'enrollment-requests')) {
       return '/reviewer/enrollments';
     }

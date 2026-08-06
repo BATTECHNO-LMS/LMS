@@ -6,6 +6,7 @@ import '../../../../core/widgets/bat_widgets.dart';
 import '../../domain/assessment_models.dart';
 import '../../domain/field_training_models.dart';
 import '../../domain/session_models.dart';
+import 'field_training_widgets.dart';
 
 class SessionCard extends StatelessWidget {
   const SessionCard({
@@ -22,53 +23,96 @@ class SessionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timing = session.timing();
-    return Card(
+    final present = session.attendanceStatus == AttendanceStatus.present;
+    final timingColor = timing == SessionTiming.upcoming
+        ? BatColors.accentHover
+        : timing == SessionTiming.ongoing
+        ? BatColors.successText
+        : const Color(0xFF8B93A0);
+    final timingBg = timing == SessionTiming.upcoming
+        ? BatColors.accentSoft
+        : timing == SessionTiming.ongoing
+        ? BatColors.success.withValues(alpha: 0.12)
+        : const Color(0xFFEEF0F3);
+
+    return FtSoftCard(
       margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(BatRadii.lg),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      session.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  StatusChip(
-                    label: SessionLabels.timingAr(timing),
-                    color: timing == SessionTiming.upcoming
-                        ? BatColors.accent
-                        : timing == SessionTiming.ongoing
-                        ? BatColors.success
-                        : BatColors.muted,
-                  ),
-                ],
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: BatColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.event_outlined,
+                  color: BatColors.primary,
+                  size: 22,
+                ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                _dateLine(),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  session.title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
               ),
-              const SizedBox(height: 8),
-              StatusChip(
-                label: SessionLabels.attendanceAr(session.attendanceStatus),
-                color: session.attendanceStatus == AttendanceStatus.present
-                    ? BatColors.success
-                    : BatColors.info,
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: timingBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  SessionLabels.timingAr(timing),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: timingColor,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(
+            _dateLine(),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: present
+                  ? BatColors.success.withValues(alpha: 0.12)
+                  : const Color(0xFFEEF0F3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              SessionLabels.attendanceAr(session.attendanceStatus),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: present
+                    ? BatColors.successText
+                    : const Color(0xFF8B93A0),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -100,56 +144,61 @@ class AttendanceSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.attendanceSummary,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+    return FtSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.attendanceSummary,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
                   ),
                 ),
-                if (onViewSessions != null)
-                  TextButton(
-                    onPressed: onViewSessions,
-                    child: Text(l10n.viewAllSessions),
+              ),
+              if (onViewSessions != null)
+                TextButton(
+                  onPressed: onViewSessions,
+                  style: TextButton.styleFrom(
+                    foregroundColor: BatColors.primaryLight,
                   ),
-              ],
+                  child: Text(l10n.viewAllSessions),
+                ),
+            ],
+          ),
+          if (percentage != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.attendancePercentageLabel(percentage!),
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: BatColors.heading,
+              ),
             ),
-            if (percentage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                l10n.attendancePercentageLabel(percentage!),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ],
-            if (sessionsAttended != null && requiredCount != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                l10n.sessionsAttendedLabel(sessionsAttended!, requiredCount!),
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
-              ),
-            ],
-            if (percentage == null &&
-                sessionsAttended == null &&
-                requiredCount == null)
-              Text(
-                l10n.attendanceSummaryUnavailable,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
-              ),
           ],
-        ),
+          if (sessionsAttended != null && requiredCount != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              l10n.sessionsAttendedLabel(sessionsAttended!, requiredCount!),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+            ),
+          ],
+          if (percentage == null &&
+              sessionsAttended == null &&
+              requiredCount == null)
+            Text(
+              l10n.attendanceSummaryUnavailable,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+            ),
+        ],
       ),
     );
   }
@@ -198,8 +247,14 @@ class FieldTrainingJourneySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        AcademicSectionHeader(title: l10n.trainingJourney),
-        const SizedBox(height: 8),
+        Text(
+          l10n.trainingJourney,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w800,
+            color: BatColors.heading,
+          ),
+        ),
+        const SizedBox(height: 10),
         if (requiresPre)
           _compactTile(
             context,
@@ -234,11 +289,28 @@ class FieldTrainingJourneySection extends StatelessWidget {
             onTap: () => onOpenAssessment('post'),
           ),
         if (nextAction?['label_ar'] != null)
-          InfoBanner(message: nextAction!['label_ar'].toString()),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: onOpenAssessments,
-          child: Text(l10n.viewAssessments),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: InfoBanner(message: nextAction!['label_ar'].toString()),
+          ),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: onOpenAssessments,
+            style: FilledButton.styleFrom(
+              backgroundColor: BatColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            child: Text(
+              l10n.viewAssessments,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
         ),
       ],
     );
@@ -251,14 +323,45 @@ class FieldTrainingJourneySection extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: BatColors.primary),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: onTap,
+    return FtSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: BatColors.primary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }

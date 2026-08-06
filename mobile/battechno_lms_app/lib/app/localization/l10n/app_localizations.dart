@@ -1208,6 +1208,66 @@ abstract class AppLocalizations {
   /// **'حالة الحساب'**
   String get accountStatus;
 
+  /// No description provided for @yourProfile.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابك'**
+  String get yourProfile;
+
+  /// No description provided for @profileOverviewTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص حسابك'**
+  String get profileOverviewTitle;
+
+  /// No description provided for @profileOverviewSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتمال بيانات الملف الشخصي'**
+  String get profileOverviewSubtitle;
+
+  /// No description provided for @profileShortcutsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختصارات سريعة'**
+  String get profileShortcutsTitle;
+
+  /// No description provided for @profileShortcutsSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعدادات والشهادات والتدريب في مكان واحد'**
+  String get profileShortcutsSubtitle;
+
+  /// No description provided for @profileViewAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض الكل'**
+  String get profileViewAll;
+
+  /// No description provided for @profileFieldEmail.
+  ///
+  /// In ar, this message translates to:
+  /// **'البريد'**
+  String get profileFieldEmail;
+
+  /// No description provided for @profileFieldUniversity.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجامعة'**
+  String get profileFieldUniversity;
+
+  /// No description provided for @profileFieldSpecialty.
+  ///
+  /// In ar, this message translates to:
+  /// **'التخصص'**
+  String get profileFieldSpecialty;
+
+  /// No description provided for @profileFieldPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'الهاتف'**
+  String get profileFieldPhone;
+
   /// No description provided for @language.
   ///
   /// In ar, this message translates to:
@@ -2899,6 +2959,264 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لتغيير هذا الإذن يجب فتح إعدادات النظام لهذا التطبيق.'**
   String get pushPermissionOpenSystemSettingsHint;
+
+  /// No description provided for @courses.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكورسات'**
+  String get courses;
+
+  /// No description provided for @coursesSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تابع كورساتك التعليمية وتقدّمك الأكاديمي'**
+  String get coursesSubtitle;
+
+  /// No description provided for @searchCourses.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث في الكورسات'**
+  String get searchCourses;
+
+  /// No description provided for @searchLessons.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث في الدروس'**
+  String get searchLessons;
+
+  /// No description provided for @coursesFilterAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get coursesFilterAll;
+
+  /// No description provided for @coursesFilterInProgress.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيد الدراسة'**
+  String get coursesFilterInProgress;
+
+  /// No description provided for @coursesFilterNotStarted.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تبدأ'**
+  String get coursesFilterNotStarted;
+
+  /// No description provided for @coursesFilterCompleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتملة'**
+  String get coursesFilterCompleted;
+
+  /// No description provided for @coursesEmptyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد كورسات متاحة لك حالياً'**
+  String get coursesEmptyTitle;
+
+  /// No description provided for @coursesEmptyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستظهر هنا الكورسات التي تنشرها إدارة المنصة لك أو لمجموعتك.'**
+  String get coursesEmptyBody;
+
+  /// No description provided for @coursesFilterEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد كورسات ضمن هذا التصفية'**
+  String get coursesFilterEmpty;
+
+  /// No description provided for @courseOfflineWriteBlocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'يتطلب هذا الإجراء اتصالًا بالإنترنت.'**
+  String get courseOfflineWriteBlocked;
+
+  /// No description provided for @courseLinkUnsafe.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن فتح هذا الرابط بأمان.'**
+  String get courseLinkUnsafe;
+
+  /// No description provided for @courseLinkMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يتوفر رابط لهذا الدرس.'**
+  String get courseLinkMissing;
+
+  /// No description provided for @courseAccessDenied.
+  ///
+  /// In ar, this message translates to:
+  /// **'ليس لديك صلاحية للوصول إلى هذا الكورس.'**
+  String get courseAccessDenied;
+
+  /// No description provided for @courseNotFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكورس غير موجود'**
+  String get courseNotFound;
+
+  /// No description provided for @courseCompletedLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكورس مكتمل'**
+  String get courseCompletedLabel;
+
+  /// No description provided for @courseStatusInProgress.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيد الدراسة'**
+  String get courseStatusInProgress;
+
+  /// No description provided for @courseStatusCompleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتمل'**
+  String get courseStatusCompleted;
+
+  /// No description provided for @courseStatusNotStarted.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يبدأ'**
+  String get courseStatusNotStarted;
+
+  /// No description provided for @courseStatusUnknown.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة غير معروفة'**
+  String get courseStatusUnknown;
+
+  /// No description provided for @courseProgressLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'{percent}% · {completed} / {total} درس'**
+  String courseProgressLabel(int percent, int completed, int total);
+
+  /// No description provided for @courseProgressPercent.
+  ///
+  /// In ar, this message translates to:
+  /// **'{percent}%'**
+  String courseProgressPercent(int percent);
+
+  /// No description provided for @continueLearning.
+  ///
+  /// In ar, this message translates to:
+  /// **'متابعة التعلّم'**
+  String get continueLearning;
+
+  /// No description provided for @startCourse.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدء الكورس'**
+  String get startCourse;
+
+  /// No description provided for @courseSections.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقسام الكورس'**
+  String get courseSections;
+
+  /// No description provided for @courseLessons.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدروس'**
+  String get courseLessons;
+
+  /// No description provided for @courseNoSections.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد أقسام منشورة بعد'**
+  String get courseNoSections;
+
+  /// No description provided for @courseNoLessonsMatch.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد دروس مطابقة للبحث'**
+  String get courseNoLessonsMatch;
+
+  /// No description provided for @courseSectionLessonCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} دروس'**
+  String courseSectionLessonCount(int count);
+
+  /// No description provided for @courseLessonDuration.
+  ///
+  /// In ar, this message translates to:
+  /// **'{minutes}د'**
+  String courseLessonDuration(int minutes);
+
+  /// No description provided for @courseDurationTotalHours.
+  ///
+  /// In ar, this message translates to:
+  /// **'{hours}س {minutes}د إجمالاً'**
+  String courseDurationTotalHours(int hours, int minutes);
+
+  /// No description provided for @courseDurationTotalMinutes.
+  ///
+  /// In ar, this message translates to:
+  /// **'{minutes}د إجمالاً'**
+  String courseDurationTotalMinutes(int minutes);
+
+  /// No description provided for @courseNoNextLesson.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد درس تالٍ'**
+  String get courseNoNextLesson;
+
+  /// No description provided for @courseLesson.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدرس'**
+  String get courseLesson;
+
+  /// No description provided for @lessonNotFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدرس غير موجود'**
+  String get lessonNotFound;
+
+  /// No description provided for @openLessonVideo.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح الفيديو'**
+  String get openLessonVideo;
+
+  /// No description provided for @openLessonResource.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح المورد'**
+  String get openLessonResource;
+
+  /// No description provided for @markLessonComplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعليم الدرس مكتملًا'**
+  String get markLessonComplete;
+
+  /// No description provided for @lessonMarkedComplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تعليم الدرس مكتملًا'**
+  String get lessonMarkedComplete;
+
+  /// No description provided for @lessonCompleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتمل'**
+  String get lessonCompleted;
+
+  /// No description provided for @courseVideoNotYoutube.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الفيديو ليس رابط يوتيوب مدعومًا للتشغيل داخل التطبيق.'**
+  String get courseVideoNotYoutube;
+
+  /// No description provided for @lessonTrainingWebOnlyHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمرين الدرس التفصيلي (رفع ملف / اختبار) متاح عبر موقع الويب عند الحاجة.'**
+  String get lessonTrainingWebOnlyHint;
 }
 
 class _AppLocalizationsDelegate

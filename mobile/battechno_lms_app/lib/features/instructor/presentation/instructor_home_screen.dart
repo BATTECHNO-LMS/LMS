@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
+import '../../../core/widgets/home_mosaic.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../dashboard/presentation/home_shell_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../data/instructor_repository.dart';
 import '../domain/instructor_models.dart';
 import 'widgets/instructor_widgets.dart';
@@ -92,89 +95,111 @@ class _InstructorHomeScreenState extends ConsumerState<InstructorHomeScreen> {
     final firstOpp = data?.list.opportunities.isNotEmpty == true
         ? data!.list.opportunities.first
         : null;
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
 
-    return RefreshIndicator(
+    return HomeMosaicScaffold(
       onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      header: HomeMosaicHeader(
+        greeting: l10n.greetingMorning,
+        fullName: widget.user.fullName,
+        subtitle: widget.user.universityName,
+        profileActionLabel: l10n.profile,
+        onProfileTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        notificationsTooltip: l10n.notifications,
+        unreadCount: unread,
+        onNotificationsTap: () => context.push('/notifications'),
+      ),
+      banner: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.instructorGreeting(widget.user.fullName),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          if (data?.fromCache == true) ...[
-            const SizedBox(height: 8),
+          if (data?.fromCache == true)
             InfoBanner(
               message:
                   '${l10n.offlineCachedBanner}'
                   '${data?.cachedAt != null ? ' · ${l10n.lastUpdatedAt(data!.cachedAt!.toLocal().toString().split('.').first)}' : ''}',
             ),
-          ],
-          const SizedBox(height: 16),
           if (priority != null) ...[
+            const SizedBox(height: 8),
             InstructorPriorityCard(
               action: priority,
               onTap: () => _openPriority(priority),
             ),
-            const SizedBox(height: 16),
           ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _summaryChip(
-                l10n.activeTrainingsCount(data?.activeCount ?? 0),
-                Icons.hiking_outlined,
-              ),
-              _summaryChip(
-                l10n.activeStudentsCount(data?.list.totalParticipants ?? 0),
-                Icons.groups_outlined,
-              ),
-              if ((data?.list.totalPendingSubmissions ?? 0) > 0)
-                _summaryChip(
-                  l10n.pendingSubmissionsCount(
-                    data!.list.totalPendingSubmissions,
-                  ),
-                  Icons.assignment_late_outlined,
-                ),
-              if ((data?.list.totalAtRisk ?? 0) > 0)
-                _summaryChip(
-                  l10n.atRiskStudentsCount(data!.list.totalAtRisk),
-                  Icons.warning_amber_outlined,
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.quickActions,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/instructor/field-training'),
-            icon: const Icon(Icons.work_outline),
-            label: Text(l10n.myTrainings),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: firstOpp == null
-                ? null
-                : () => context.push(
-                    '/instructor/field-training/${firstOpp.id}/participants',
-                  ),
-            icon: const Icon(Icons.groups_outlined),
-            label: Text(l10n.students),
-          ),
         ],
       ),
+      tiles: [
+        HomeMosaicTileData(
+          label: l10n.myTrainings,
+          icon: Icons.hiking_outlined,
+          tone: HomeMosaicTone.primary,
+          size: HomeMosaicSize.tall,
+          subtitle: l10n.activeTrainingsCount(data?.activeCount ?? 0),
+          onTap: () => context.push('/instructor/field-training'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.students,
+          icon: Icons.groups_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          subtitle: l10n.activeStudentsCount(data?.list.totalParticipants ?? 0),
+          enabled: firstOpp != null,
+          onTap: firstOpp == null
+              ? null
+              : () => context.push(
+                  '/instructor/field-training/${firstOpp.id}/participants',
+                ),
+        ),
+        HomeMosaicTileData(
+          label: l10n.pendingSubmissionsCount(
+            data?.list.totalPendingSubmissions ?? 0,
+          ),
+          icon: Icons.assignment_late_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          enabled: firstOpp != null,
+          onTap: firstOpp == null
+              ? null
+              : () => context.push(
+                  '/instructor/field-training/${firstOpp.id}/submissions',
+                ),
+        ),
+        HomeMosaicTileData(
+          label: l10n.viewSessions,
+          icon: Icons.event_outlined,
+          tone: HomeMosaicTone.accent,
+          size: HomeMosaicSize.tall,
+          enabled: firstOpp != null,
+          onTap: firstOpp == null
+              ? null
+              : () => context.push(
+                  '/instructor/field-training/${firstOpp.id}/sessions',
+                ),
+        ),
+        HomeMosaicTileData(
+          label: l10n.atRiskStudentsCount(data?.list.totalAtRisk ?? 0),
+          icon: Icons.warning_amber_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 2,
+        ),
+        HomeMosaicTileData(
+          label: l10n.profile,
+          icon: Icons.person_outline,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        ),
+      ],
     );
-  }
-
-  Widget _summaryChip(String label, IconData icon) {
-    return Chip(avatar: Icon(icon, size: 18), label: Text(label));
   }
 }

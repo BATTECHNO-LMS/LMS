@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/field_training_repository.dart';
 import '../domain/field_training_models.dart';
@@ -27,6 +28,8 @@ class AssessmentResultScreen extends ConsumerStatefulWidget {
 
 class _AssessmentResultScreenState
     extends ConsumerState<AssessmentResultScreen> {
+  static const _pageBg = Color(0xFFF2F3F5);
+
   Map<String, dynamic>? _attempt;
   Map<String, dynamic>? _progress;
   bool _loading = true;
@@ -82,8 +85,13 @@ class _AssessmentResultScreenState
     final nextAction = JsonHelpers.map(_progress?['next_action']);
 
     return Scaffold(
+      backgroundColor: _pageBg,
       appBar: AppBar(
         title: Text(l10n.assessmentResult),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
@@ -95,7 +103,7 @@ class _AssessmentResultScreenState
             : RefreshIndicator(
                 onRefresh: _refresh,
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                   children: [
                     AssessmentResultHero(
                       l10n: l10n,
@@ -106,22 +114,128 @@ class _AssessmentResultScreenState
                     ),
                     if (submittedAt != null) ...[
                       const SizedBox(height: 12),
-                      Text('${l10n.submittedAt}: $submittedAt'),
+                      _SoftMetaCard(
+                        icon: Icons.schedule_outlined,
+                        label: l10n.submittedAt,
+                        value: submittedAt,
+                      ),
                     ],
                     if (nextAction?['label_ar'] != null) ...[
-                      const SizedBox(height: 16),
-                      InfoBanner(message: nextAction!['label_ar'].toString()),
+                      const SizedBox(height: 12),
+                      _SoftMetaCard(
+                        icon: Icons.flag_outlined,
+                        label: nextAction!['label_ar'].toString(),
+                        accent: true,
+                      ),
                     ],
                     const SizedBox(height: 20),
-                    PrimaryButton(
-                      label: l10n.backToTraining,
-                      onPressed: () => context.go(
-                        '/student/field-training/${widget.opportunityId}',
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => context.go(
+                          '/student/field-training/${widget.opportunityId}',
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BatColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: Text(
+                          l10n.backToTraining,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _SoftMetaCard extends StatelessWidget {
+  const _SoftMetaCard({
+    required this.icon,
+    required this.label,
+    this.value,
+    this.accent = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? value;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE6E8EC)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1A2330).withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: accent ? BatColors.accentSoft : BatColors.primarySoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: accent ? BatColors.accentHover : BatColors.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: value == null
+                          ? BatColors.heading
+                          : BatColors.muted,
+                      fontWeight: value == null
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
+                  if (value != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      value!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: BatColors.heading,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

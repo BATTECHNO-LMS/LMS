@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/reviewer_repository.dart';
@@ -121,128 +123,215 @@ class _QaReviewDetailScreenState extends ConsumerState<QaReviewDetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final review = _review;
+    final reviewItem = review != null ? QaReviewItem(review) : null;
+    final title = reviewItem?.cohortTitle ?? l10n.qaReviewsTitle;
+    final status = review?['status']?.toString();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.qaReviewsTitle)),
-      body: _loading && review == null
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingSkeleton(lines: 6),
-            )
-          : _error != null && review == null
-          ? RetryView(
-              title: l10n.networkErrorTitle,
-              message: _error == 'forbidden'
-                  ? l10n.forbiddenAccess
-                  : _error == 'not_found'
-                  ? l10n.resourceNotFound
-                  : l10n.networkErrorBody,
-              onRetry: _load,
-            )
-          : review == null
-          ? EmptyState(title: l10n.resourceNotFound)
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          QaReviewItem(review).cohortTitle ??
-                              l10n.qaReviewsTitle,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
+      backgroundColor: kReviewerPageBg,
+      appBar: AppBar(
+        title: Text(l10n.qaReviewsTitle),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
+      body: SafeArea(
+        child: _loading && review == null
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: LoadingSkeleton(lines: 6),
+              )
+            : _error != null && review == null
+            ? RetryView(
+                title: l10n.networkErrorTitle,
+                message: _error == 'forbidden'
+                    ? l10n.forbiddenAccess
+                    : _error == 'not_found'
+                    ? l10n.resourceNotFound
+                    : l10n.networkErrorBody,
+                onRetry: _load,
+              )
+            : review == null
+            ? EmptyState(title: l10n.resourceNotFound)
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    ReviewerSoftCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: BatColors.primarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.rate_review_outlined,
+                              color: BatColors.primary,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: BatColors.heading,
+                                        height: 1.25,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                ReviewerStatusChip(
+                                  label: ReviewerLabels.qaStatus(l10n, status),
+                                  status: status,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _section(l10n.qaReviewTypeLabel, [
+                      Text(
+                        ReviewerLabels.reviewType(
+                          l10n,
+                          review['review_type']?.toString(),
+                        ),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ]),
+                    _section(l10n.qaReviewDateLabel, [
+                      Text(
+                        review['review_date']?.toString() ?? '—',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ]),
+                    _section(l10n.assignedReviewerLabel, [
+                      Text(
+                        reviewItem?.reviewerName ?? '—',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ]),
+                    _section(l10n.qaFindingsLabel, [
+                      Text(
+                        review['findings']?.toString().isNotEmpty == true
+                            ? review['findings'].toString()
+                            : '—',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ]),
+                    _section(l10n.qaActionRequiredLabel, [
+                      Text(
+                        review['action_required']?.toString().isNotEmpty == true
+                            ? review['action_required'].toString()
+                            : '—',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ]),
+                    if (_corrective.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.relatedCorrectiveActions,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BatColors.heading,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final action in _corrective)
+                        ReviewerQueueCard(
+                          title:
+                              action['action_text']?.toString() ??
+                              l10n.correctiveActionsTitle,
+                          statusLabel: ReviewerLabels.correctiveStatus(
+                            l10n,
+                            action['status']?.toString(),
+                          ),
+                          status: action['status']?.toString(),
+                          onTap: () {},
+                        ),
+                    ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _acting ? null : _changeStatus,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BatColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                      ),
-                      ReviewerStatusChip(
-                        label: ReviewerLabels.qaStatus(
-                          l10n,
-                          review['status']?.toString(),
-                        ),
-                        status: review['status']?.toString(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _section(l10n.qaReviewTypeLabel, [
-                    Text(
-                      ReviewerLabels.reviewType(
-                        l10n,
-                        review['review_type']?.toString(),
+                        child: _acting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.changeStatus,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                       ),
                     ),
-                  ]),
-                  _section(l10n.qaReviewDateLabel, [
-                    Text(review['review_date']?.toString() ?? '—'),
-                  ]),
-                  _section(l10n.assignedReviewerLabel, [
-                    Text(QaReviewItem(review).reviewerName ?? '—'),
-                  ]),
-                  _section(l10n.qaFindingsLabel, [
-                    Text(
-                      review['findings']?.toString().isNotEmpty == true
-                          ? review['findings'].toString()
-                          : '—',
-                    ),
-                  ]),
-                  _section(l10n.qaActionRequiredLabel, [
-                    Text(
-                      review['action_required']?.toString().isNotEmpty == true
-                          ? review['action_required'].toString()
-                          : '—',
-                    ),
-                  ]),
-                  if (_corrective.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.relatedCorrectiveActions,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    for (final action in _corrective) ...[
-                      ReviewerQueueCard(
-                        title:
-                            action['action_text']?.toString() ??
-                            l10n.correctiveActionsTitle,
-                        statusLabel: ReviewerLabels.correctiveStatus(
-                          l10n,
-                          action['status']?.toString(),
-                        ),
-                        status: action['status']?.toString(),
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 8),
-                    ],
                   ],
-                  const SizedBox(height: 16),
-                  PrimaryButton(
-                    label: l10n.changeStatus,
-                    isLoading: _acting,
-                    onPressed: _acting ? null : _changeStatus,
-                  ),
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
   Widget _section(String title, List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            ...children,
-          ],
-        ),
+    return ReviewerSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...children,
+        ],
       ),
     );
   }

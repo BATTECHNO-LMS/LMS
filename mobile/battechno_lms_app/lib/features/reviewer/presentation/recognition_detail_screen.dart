@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/files/secure_file_service.dart';
 import '../../../core/widgets/bat_widgets.dart';
@@ -147,93 +149,207 @@ class _RecognitionDetailScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final request = _request;
+    final item = request != null ? RecognitionRequestItem(request) : null;
+    final title = item?.microCredentialTitle ?? l10n.recognitionRequestsTitle;
+    final status = request?['status']?.toString();
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.recognitionRequestsTitle)),
-      body: _loading && request == null
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingSkeleton(lines: 6),
-            )
-          : _error != null && request == null
-          ? RetryView(
-              title: l10n.networkErrorTitle,
-              message: _error == 'forbidden'
-                  ? l10n.forbiddenAccess
-                  : _error == 'not_found'
-                  ? l10n.resourceNotFound
-                  : l10n.networkErrorBody,
-              onRetry: _load,
-            )
-          : request == null
-          ? EmptyState(title: l10n.resourceNotFound)
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
+      backgroundColor: kReviewerPageBg,
+      appBar: AppBar(
+        title: Text(l10n.recognitionRequestsTitle),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
+      body: SafeArea(
+        child: _loading && request == null
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: LoadingSkeleton(lines: 6),
+              )
+            : _error != null && request == null
+            ? RetryView(
+                title: l10n.networkErrorTitle,
+                message: _error == 'forbidden'
+                    ? l10n.forbiddenAccess
+                    : _error == 'not_found'
+                    ? l10n.resourceNotFound
+                    : l10n.networkErrorBody,
+                onRetry: _load,
+              )
+            : request == null
+            ? EmptyState(title: l10n.resourceNotFound)
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    ReviewerSoftCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: BatColors.primarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: const Icon(
+                              Icons.workspace_premium_outlined,
+                              color: BatColors.primary,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  title,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: BatColors.heading,
+                                        height: 1.25,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                ReviewerStatusChip(
+                                  label: ReviewerLabels.recognitionStatus(
+                                    l10n,
+                                    status,
+                                  ),
+                                  status: status,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ReviewerSoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.opportunityInfo,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: BatColors.heading,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          ReviewerMetaRow(
+                            icon: Icons.groups_outlined,
+                            label: l10n.cohortLabel,
+                            value: item?.cohortTitle ?? '—',
+                          ),
+                          const SizedBox(height: 12),
+                          ReviewerMetaRow(
+                            icon: Icons.school_outlined,
+                            label: l10n.university,
+                            value: item?.universityName ?? '—',
+                          ),
+                          const SizedBox(height: 12),
+                          ReviewerMetaRow(
+                            icon: Icons.badge_outlined,
+                            label: l10n.recognitionMicroCredentialLabel,
+                            value: item?.microCredentialTitle ?? '—',
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (request['decision_notes']?.toString().isNotEmpty ==
+                        true) ...[
+                      const SizedBox(height: 12),
+                      ReviewerSoftCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.qaFindingsLabel,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: BatColors.heading,
+                                  ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              request['decision_notes'].toString(),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: BatColors.heading,
+                                    height: 1.4,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    Text(
+                      l10n.recognitionDocumentsTitle,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: BatColors.heading,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_documents.isEmpty)
+                      ReviewerSoftCard(
                         child: Text(
-                          RecognitionRequestItem(
-                                request,
-                              ).microCredentialTitle ??
-                              l10n.recognitionRequestsTitle,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
+                          l10n.noRecognitionDocuments,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: BatColors.muted),
+                        ),
+                      )
+                    else
+                      for (final doc in _documents) ...[
+                        _documentCard(l10n, doc),
+                        const SizedBox(height: 10),
+                      ],
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _acting ? null : _decide,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BatColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
+                        child: _acting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.decideRecognition,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                       ),
-                      ReviewerStatusChip(
-                        label: ReviewerLabels.recognitionStatus(
-                          l10n,
-                          request['status']?.toString(),
-                        ),
-                        status: request['status']?.toString(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _section(l10n.cohortLabel, [
-                    Text(RecognitionRequestItem(request).cohortTitle ?? '—'),
-                  ]),
-                  _section(l10n.university, [
-                    Text(RecognitionRequestItem(request).universityName ?? '—'),
-                  ]),
-                  _section(l10n.recognitionMicroCredentialLabel, [
-                    Text(
-                      RecognitionRequestItem(request).microCredentialTitle ??
-                          '—',
                     ),
-                  ]),
-                  if (request['decision_notes']?.toString().isNotEmpty == true)
-                    _section(l10n.qaFindingsLabel, [
-                      Text(request['decision_notes'].toString()),
-                    ]),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.recognitionDocumentsTitle,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 8),
-                  if (_documents.isEmpty)
-                    EmptyState(title: l10n.noRecognitionDocuments, subtitle: '')
-                  else
-                    for (final doc in _documents) ...[
-                      _documentCard(l10n, doc),
-                      const SizedBox(height: 8),
-                    ],
-                  const SizedBox(height: 16),
-                  PrimaryButton(
-                    label: l10n.decideRecognition,
-                    isLoading: _acting,
-                    onPressed: _acting ? null : _decide,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -241,44 +357,63 @@ class _RecognitionDetailScreenState
     final doc = RecognitionDocumentItem(raw);
     final canOpen = SecureFileService.isSafeHttpsUrl(doc.fileUrl);
     final busy = _openingDocId == doc.id;
-    return Card(
-      child: ListTile(
-        title: Text(
-          doc.title?.isNotEmpty == true
-              ? doc.title!
-              : ReviewerLabels.humanizeSnakeCase(doc.documentType),
-        ),
-        subtitle: Text(ReviewerLabels.humanizeSnakeCase(doc.documentType)),
-        trailing: canOpen
-            ? IconButton(
-                icon: busy
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.open_in_new),
-                onPressed: busy ? null : () => _openDocument(doc),
-                tooltip: l10n.openDocument,
-              )
-            : null,
-      ),
-    );
-  }
+    final docTitle = doc.title?.isNotEmpty == true
+        ? doc.title!
+        : ReviewerLabels.humanizeSnakeCase(doc.documentType);
 
-  Widget _section(String title, List<Widget> children) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            ...children,
-          ],
-        ),
+    return ReviewerSoftCard(
+      onTap: canOpen && !busy ? () => _openDocument(doc) : null,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.description_outlined,
+              color: BatColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  docTitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  ReviewerLabels.humanizeSnakeCase(doc.documentType),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+          if (canOpen)
+            busy
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(
+                    Icons.open_in_new,
+                    color: BatColors.primary,
+                    size: 20,
+                  ),
+        ],
       ),
     );
   }

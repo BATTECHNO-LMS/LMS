@@ -2,8 +2,58 @@ import 'package:flutter/material.dart';
 
 import '../../../../app/localization/l10n/app_localizations.dart';
 import '../../../../app/theme/bat_colors.dart';
-import '../../../../core/widgets/bat_widgets.dart';
 import '../../domain/instructor_models.dart';
+
+const Color kInstructorPageBg = Color(0xFFF2F3F5);
+
+class InstSoftCard extends StatelessWidget {
+  const InstSoftCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.padding = const EdgeInsets.all(16),
+    this.margin = EdgeInsets.zero,
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry padding;
+  final EdgeInsetsGeometry margin;
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(22);
+    final content = Padding(padding: padding, child: child);
+    return Padding(
+      padding: margin,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: radius,
+          border: Border.all(color: const Color(0xFFE6E8EC)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1A2330).withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: onTap == null
+            ? content
+            : Material(
+                color: Colors.transparent,
+                borderRadius: radius,
+                child: InkWell(
+                  onTap: onTap,
+                  borderRadius: radius,
+                  child: content,
+                ),
+              ),
+      ),
+    );
+  }
+}
 
 class InstructorPriorityCard extends StatelessWidget {
   const InstructorPriorityCard({
@@ -19,40 +69,47 @@ class InstructorPriorityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final (title, subtitle, icon) = _copy(l10n);
-    return Card(
-      color: BatColors.primary.withValues(alpha: 0.06),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: BatColors.accent.withValues(alpha: 0.25),
-                child: Icon(icon, color: BatColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_left),
-            ],
+    return InstSoftCard(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: BatColors.accentSoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: BatColors.accentHover, size: 24),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: BatColors.muted,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }
@@ -106,84 +163,154 @@ class AssignedTrainingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+    return InstSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: BatColors.primarySoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.hiking_outlined,
+                  color: BatColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       opportunity.title,
-                      style: const TextStyle(
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                        color: BatColors.heading,
+                        height: 1.25,
                       ),
                     ),
-                  ),
-                  StatusChip(
-                    label: InstructorLabels.statusAr(opportunity.status),
+                    if (opportunity.specialtyName != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        opportunity.specialtyName!,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: BatColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  InstructorLabels.statusAr(opportunity.status),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: BatColors.primary,
+                    fontWeight: FontWeight.w700,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (opportunity.specialtyName != null)
-                Text(opportunity.specialtyName!),
-              Text(
-                '${InstructorLabels.modeAr(opportunity.trainingMode)}'
-                '${opportunity.startDate != null ? ' · ${opportunity.startDate}' : ''}',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  _meta(
-                    Icons.groups_outlined,
-                    '${opportunity.participantsCount} ${l10n.students}',
-                  ),
-                  _meta(
-                    Icons.event_outlined,
-                    '${opportunity.sessionsCount} ${l10n.sessions}',
-                  ),
-                  if (opportunity.pendingSubmissionsCount > 0)
-                    _meta(
-                      Icons.assignment_late_outlined,
-                      l10n.pendingSubmissionsCount(
-                        opportunity.pendingSubmissionsCount,
-                      ),
-                    ),
-                  if (opportunity.requiredHours != null)
-                    _meta(
-                      Icons.schedule_outlined,
-                      '${opportunity.requiredHours} ${l10n.hours}',
-                    )
-                  else
-                    _meta(Icons.schedule_outlined, l10n.hoursNotSpecified),
-                ],
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(
+            '${InstructorLabels.modeAr(opportunity.trainingMode)}'
+            '${opportunity.startDate != null ? ' · ${opportunity.startDate}' : ''}',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _MetaChip(
+                icon: Icons.groups_outlined,
+                text: '${opportunity.participantsCount} ${l10n.students}',
+              ),
+              _MetaChip(
+                icon: Icons.event_outlined,
+                text: '${opportunity.sessionsCount} ${l10n.sessions}',
+              ),
+              if (opportunity.pendingSubmissionsCount > 0)
+                _MetaChip(
+                  icon: Icons.assignment_late_outlined,
+                  text: l10n.pendingSubmissionsCount(
+                    opportunity.pendingSubmissionsCount,
+                  ),
+                  accent: true,
+                ),
+              _MetaChip(
+                icon: Icons.schedule_outlined,
+                text: opportunity.requiredHours != null
+                    ? '${opportunity.requiredHours} ${l10n.hours}'
+                    : l10n.hoursNotSpecified,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _meta(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16),
-        const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 12)),
-      ],
+class _MetaChip extends StatelessWidget {
+  const _MetaChip({
+    required this.icon,
+    required this.text,
+    this.accent = false,
+  });
+
+  final IconData icon;
+  final String text;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: accent ? BatColors.accentSoft : const Color(0xFFF7F8FA),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: accent ? BatColors.accentHover : BatColors.primaryLight,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: accent ? BatColors.accentHover : BatColors.heading,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -214,17 +341,53 @@ class ParticipantProgressCard extends StatelessWidget {
         ? '${attendance is num ? attendance.toStringAsFixed(0) : attendance}%'
         : '—';
 
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        leading: CircleAvatar(
-          child: Text(name.isNotEmpty ? name.characters.first : '?'),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          '${InstructorLabels.statusAr(trainingStatus)} · ${l10n.attendance}: $attendanceLabel',
-        ),
-        trailing: const Icon(Icons.chevron_left),
+    return InstSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                name.isNotEmpty ? name.characters.first : '?',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${InstructorLabels.statusAr(trainingStatus)} · ${l10n.attendance}: $attendanceLabel',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }
@@ -249,14 +412,34 @@ class AttendanceStatusSelector extends StatelessWidget {
       AttendanceStatus.excused,
     ];
     return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+      spacing: 8,
+      runSpacing: 8,
       children: [
         for (final status in options)
-          ChoiceChip(
-            label: Text(InstructorLabels.attendanceAr(status)),
-            selected: value == status,
-            onSelected: (_) => onChanged(status),
+          GestureDetector(
+            onTap: () => onChanged(status),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: value == status
+                    ? BatColors.primary
+                    : const Color(0xFFF7F8FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: value == status
+                      ? BatColors.primary
+                      : const Color(0xFFE6E8EC),
+                ),
+              ),
+              child: Text(
+                InstructorLabels.attendanceAr(status),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: value == status ? Colors.white : BatColors.heading,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ),
       ],
     );
@@ -291,16 +474,51 @@ class SubmissionReviewCard extends StatelessWidget {
       submission['review_status']?.toString() ??
           submission['status']?.toString(),
     );
+    final pending = status == SubmissionReviewStatus.pending;
 
-    return Card(
-      child: ListTile(
-        onTap: onTap,
-        title: Text(
-          taskTitle,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        subtitle: Text('$student · ${InstructorLabels.reviewStatusAr(status)}'),
-        trailing: const Icon(Icons.chevron_left),
+    return InstSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: pending ? BatColors.accentSoft : BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.assignment_outlined,
+              color: pending ? BatColors.accentHover : BatColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  taskTitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$student · ${InstructorLabels.reviewStatusAr(status)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }

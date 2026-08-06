@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/instructor_repository.dart';
@@ -161,6 +163,9 @@ class _InstructorAttendanceScreenState
     });
   }
 
+  int get _presentCount =>
+      _rows.where((r) => r.status == AttendanceStatus.present).length;
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -173,75 +178,215 @@ class _InstructorAttendanceScreenState
         if (leave && mounted) navigator.pop();
       },
       child: Scaffold(
+        backgroundColor: kInstructorPageBg,
         appBar: AppBar(
           title: Text(l10n.recordAttendance),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: BatColors.heading,
+          elevation: 0,
+          leading: BackButton(
+            onPressed: () async {
+              if (await _confirmLeave() && context.mounted) context.pop();
+            },
+          ),
           actions: [
             TextButton(
               onPressed: _rows.isEmpty ? null : _markAllPresent,
-              child: Text(l10n.markAllPresent),
+              style: TextButton.styleFrom(
+                foregroundColor: BatColors.primaryLight,
+              ),
+              child: Text(
+                l10n.markAllPresent,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
           ],
         ),
-        body: _loading
-            ? const Padding(
-                padding: EdgeInsets.all(16),
-                child: LoadingSkeleton(lines: 5),
-              )
-            : _error != null && _rows.isEmpty
-            ? RetryView(
-                title: l10n.networkErrorTitle,
-                message: _error == 'forbidden'
-                    ? l10n.forbiddenAccess
-                    : l10n.networkErrorBody,
-                onRetry: _load,
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: _rows.length,
-                itemBuilder: (context, index) {
-                  final row = _rows[index];
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            row.studentName,
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 8),
-                          AttendanceStatusSelector(
-                            value: row.status,
-                            onChanged: (status) {
-                              setState(() {
-                                _rows = [
-                                  for (var i = 0; i < _rows.length; i++)
-                                    if (i == index)
-                                      row.copyWith(status: status)
-                                    else
-                                      _rows[i],
-                                ];
-                                _dirty = true;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+        body: SafeArea(child: _buildBody(l10n)),
         bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: PrimaryButton(
-              label: l10n.saveAttendance,
-              onPressed: _saving || !_dirty ? null : _save,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Color(0xFFE6E8EC))),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _saving || !_dirty ? null : _save,
+                style: FilledButton.styleFrom(
+                  backgroundColor: BatColors.primary,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFFE9EBEE),
+                  disabledForegroundColor: const Color(0xFF8B93A0),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        l10n.saveAttendance,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+              ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBody(AppLocalizations l10n) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: LoadingSkeleton(lines: 5),
+      );
+    }
+    if (_error != null && _rows.isEmpty) {
+      return RetryView(
+        title: l10n.networkErrorTitle,
+        message: _error == 'forbidden'
+            ? l10n.forbiddenAccess
+            : l10n.networkErrorBody,
+        onRetry: _load,
+      );
+    }
+
+    if (_rows.isEmpty) {
+      return EmptyState(
+        title: l10n.noParticipants,
+        icon: Icons.groups_outlined,
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      itemCount: _rows.length + 1,
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 14),
+            child: InstSoftCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: BatColors.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.how_to_reg_outlined,
+                      color: BatColors.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.recordAttendance,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: BatColors.heading,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${l10n.attendance}: $_presentCount / ${_rows.length}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BatColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final row = _rows[index - 1];
+        final rowIndex = index - 1;
+        final initial = row.studentName.isNotEmpty
+            ? row.studentName.characters.first
+            : '?';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: InstSoftCard(
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BatColors.primarySoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: BatColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        row.studentName,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BatColors.heading,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                AttendanceStatusSelector(
+                  value: row.status,
+                  onChanged: (status) {
+                    setState(() {
+                      _rows = [
+                        for (var i = 0; i < _rows.length; i++)
+                          if (i == rowIndex)
+                            row.copyWith(status: status)
+                          else
+                            _rows[i],
+                      ];
+                      _dirty = true;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

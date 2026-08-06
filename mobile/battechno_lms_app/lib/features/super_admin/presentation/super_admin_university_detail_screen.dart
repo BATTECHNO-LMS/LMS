@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/super_admin_repository.dart';
 import '../domain/super_admin_models.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// University detail with activate/deactivate/archive confirm sheet, an
 /// edit-basic-fields shortcut, and a link into the users list filtered to
@@ -120,9 +122,10 @@ class _SuperAdminUniversityDetailScreenState
     final uni = _university;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(uni?.name ?? l10n.universityDetail),
-        leading: BackButton(onPressed: () => context.pop()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: uni?.name ?? l10n.universityDetail,
         actions: [
           if (uni != null)
             IconButton(
@@ -160,79 +163,177 @@ class _SuperAdminUniversityDetailScreenState
 
     return RefreshIndicator(
       onRefresh: _load,
+      color: BatColors.primary,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          SaSoftCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: BatColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_outlined,
+                    color: BatColors.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          uni.name,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
+                      Text(
+                        uni.name,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                              height: 1.25,
+                            ),
                       ),
-                      StatusChip(
+                      const SizedBox(height: 8),
+                      SaStatusBadge(
                         label: SuperAdminLabels.universityStatusAr(uni.status),
-                        color: Theme.of(context).colorScheme.primary,
+                        tone: _statusTone(uni.status),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  if (uni.contactPerson != null)
-                    _kv(l10n.contactPersonLabel, uni.contactPerson!),
-                  if (uni.contactEmail != null)
-                    _kv(l10n.email, uni.contactEmail!),
-                  if (uni.contactPhone != null)
-                    _kv(l10n.phoneOptional, uni.contactPhone!),
-                  if (uni.linkedUsersCount != null)
-                    _kv(l10n.users, '${uni.linkedUsersCount}'),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.changeStatus),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final s in ['active', 'inactive', 'archived'])
-                if (s != uni.status)
-                  OutlinedButton(
-                    onPressed: _saving ? null : () => _confirmStatusChange(s),
-                    child: Text(SuperAdminLabels.universityStatusAr(s)),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.universityDetail,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
                   ),
-            ],
+                ),
+                const SizedBox(height: 14),
+                if (uni.contactPerson != null) ...[
+                  SaMetaRow(
+                    icon: Icons.person_outline,
+                    label: l10n.contactPersonLabel,
+                    value: uni.contactPerson!,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (uni.contactEmail != null) ...[
+                  SaMetaRow(
+                    icon: Icons.email_outlined,
+                    label: l10n.email,
+                    value: uni.contactEmail!,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (uni.contactPhone != null) ...[
+                  SaMetaRow(
+                    icon: Icons.phone_outlined,
+                    label: l10n.phoneOptional,
+                    value: uni.contactPhone!,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (uni.linkedUsersCount != null)
+                  SaMetaRow(
+                    icon: Icons.group_outlined,
+                    label: l10n.users,
+                    value: '${uni.linkedUsersCount}',
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () =>
-                context.push('/super/universities/${uni.id}/users'),
-            icon: const Icon(Icons.group_outlined),
-            label: Text(l10n.users),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.changeStatus,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final s in ['active', 'inactive', 'archived'])
+                      if (s != uni.status)
+                        OutlinedButton(
+                          style: saOutlinedButtonStyle(),
+                          onPressed: _saving
+                              ? null
+                              : () => _confirmStatusChange(s),
+                          child: Text(SuperAdminLabels.universityStatusAr(s)),
+                        ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            onTap: () => context.push('/super/universities/${uni.id}/users'),
+            padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: BatColors.primarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.group_outlined,
+                    color: BatColors.primary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.users,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: BatColors.heading,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.chevron_left, color: BatColors.muted),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _kv(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
+  SaBadgeTone _statusTone(String status) {
+    switch (status) {
+      case 'active':
+        return SaBadgeTone.success;
+      case 'inactive':
+        return SaBadgeTone.accent;
+      case 'archived':
+        return SaBadgeTone.neutral;
+      default:
+        return SaBadgeTone.primary;
+    }
   }
 }

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/instructor_repository.dart';
 import '../domain/instructor_models.dart';
+import 'widgets/instructor_widgets.dart';
 
 class InstructorTrainingDetailScreen extends ConsumerStatefulWidget {
   const InstructorTrainingDetailScreen({
@@ -76,12 +78,24 @@ class _InstructorTrainingDetailScreenState
     }
   }
 
+  PreferredSizeWidget _appBar(String title) {
+    return AppBar(
+      title: Text(title),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: BatColors.heading,
+      elevation: 0,
+      leading: BackButton(onPressed: () => context.pop()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.myTrainings)),
+        backgroundColor: kInstructorPageBg,
+        appBar: _appBar(l10n.myTrainings),
         body: const Padding(
           padding: EdgeInsets.all(16),
           child: LoadingSkeleton(lines: 6),
@@ -90,7 +104,8 @@ class _InstructorTrainingDetailScreenState
     }
     if (_error != null && _opportunity == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.myTrainings)),
+        backgroundColor: kInstructorPageBg,
+        appBar: _appBar(l10n.myTrainings),
         body: RetryView(
           title: l10n.networkErrorTitle,
           message: _mapError(l10n),
@@ -103,98 +118,289 @@ class _InstructorTrainingDetailScreenState
     final id = widget.opportunityId;
 
     return Scaffold(
-      appBar: AppBar(title: Text(opp.title)),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+      backgroundColor: kInstructorPageBg,
+      appBar: _appBar(opp.title),
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+            children: [
+              InstSoftCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: BatColors.primarySoft,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.hiking_outlined,
+                        color: BatColors.primary,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            opp.title,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: BatColors.heading,
+                                  height: 1.25,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: BatColors.primarySoft,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              InstructorLabels.statusAr(opp.status),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: BatColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              InstSoftCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       l10n.opportunityInfo,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    const SizedBox(height: 8),
-                    _row(
-                      l10n.certificateStatus,
-                      InstructorLabels.statusAr(opp.status),
-                    ),
-                    _row(l10n.specialty, opp.specialtyName ?? '—'),
-                    _row('', InstructorLabels.modeAr(opp.trainingMode)),
-                    _row(
-                      l10n.requiredHoursLabel,
-                      opp.requiredHours?.toString() ?? l10n.hoursNotSpecified,
-                    ),
-                    if (opp.startDate != null || opp.endDate != null)
-                      _row(
-                        '',
-                        '${opp.startDate ?? '—'} → ${opp.endDate ?? '—'}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: BatColors.heading,
                       ),
+                    ),
+                    const SizedBox(height: 14),
+                    _InfoRow(
+                      icon: Icons.category_outlined,
+                      label: l10n.specialty,
+                      value: opp.specialtyName ?? '—',
+                    ),
+                    const SizedBox(height: 12),
+                    _InfoRow(
+                      icon: Icons.school_outlined,
+                      label: InstructorLabels.modeAr(opp.trainingMode),
+                      value: '',
+                      valueAsLabel: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _InfoRow(
+                      icon: Icons.schedule_outlined,
+                      label: l10n.requiredHoursLabel,
+                      value:
+                          opp.requiredHours?.toString() ??
+                          l10n.hoursNotSpecified,
+                    ),
+                    if (opp.startDate != null || opp.endDate != null) ...[
+                      const SizedBox(height: 12),
+                      _InfoRow(
+                        icon: Icons.date_range_outlined,
+                        label: l10n.trainingDates,
+                        value:
+                            '${opp.startDate ?? '—'} → ${opp.endDate ?? '—'}',
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            InfoBanner(message: l10n.hoursRecordedPerStudentHint),
-            const SizedBox(height: 16),
-            Text(
-              l10n.quickActions,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            _nav(l10n.viewParticipants, Icons.groups_outlined, () {
-              context.push('/instructor/field-training/$id/participants');
-            }),
-            _nav(l10n.viewSessions, Icons.event_outlined, () {
-              context.push('/instructor/field-training/$id/sessions');
-            }),
-            _nav(l10n.viewSubmissions, Icons.assignment_outlined, () {
-              context.push('/instructor/field-training/$id/submissions');
-            }),
-            _nav(l10n.viewAssessmentResults, Icons.quiz_outlined, () {
-              context.push('/instructor/field-training/$id/assessments');
-            }),
-          ],
+              const SizedBox(height: 12),
+              InstSoftCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BatColors.accentSoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
+                        color: BatColors.accentHover,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.hoursRecordedPerStudentHint,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.quickActions,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.heading,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _ActionTile(
+                icon: Icons.groups_outlined,
+                label: l10n.viewParticipants,
+                onTap: () =>
+                    context.push('/instructor/field-training/$id/participants'),
+              ),
+              _ActionTile(
+                icon: Icons.event_outlined,
+                label: l10n.viewSessions,
+                onTap: () =>
+                    context.push('/instructor/field-training/$id/sessions'),
+              ),
+              _ActionTile(
+                icon: Icons.assignment_outlined,
+                label: l10n.viewSubmissions,
+                onTap: () =>
+                    context.push('/instructor/field-training/$id/submissions'),
+              ),
+              _ActionTile(
+                icon: Icons.quiz_outlined,
+                label: l10n.viewAssessmentResults,
+                onTap: () =>
+                    context.push('/instructor/field-training/$id/assessments'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueAsLabel = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool valueAsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    if (valueAsLabel || value.isEmpty) {
+      return Row(
         children: [
-          if (label.isNotEmpty) ...[
-            Expanded(child: Text(label)),
-            Expanded(
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+          Icon(icon, size: 18, color: BatColors.primaryLight),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: BatColors.heading,
               ),
             ),
-          ] else
-            Expanded(child: Text(value)),
+          ),
         ],
-      ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: BatColors.primaryLight),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: BatColors.muted),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _nav(String label, IconData icon, VoidCallback onTap) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(label),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: onTap,
+class _ActionTile extends StatelessWidget {
+  const _ActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InstSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: BatColors.primary, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: BatColors.heading,
+              ),
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }

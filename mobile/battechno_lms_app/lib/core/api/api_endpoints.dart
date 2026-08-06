@@ -47,6 +47,18 @@ class ApiEndpoints {
       '${config.apiRoot}/notifications/$id/read';
   String get notificationsReadAll => '${config.apiRoot}/notifications/read-all';
 
+  // —— Student LMS courses (academic كورسات) ——
+  String get studentCourses => '${config.apiRoot}/student/courses';
+  String studentCourse(String id) => '${config.apiRoot}/student/courses/$id';
+  String studentCourseStart(String id) =>
+      '${config.apiRoot}/student/courses/$id/start';
+  String studentCourseProgress(String id) =>
+      '${config.apiRoot}/student/courses/$id/progress';
+  String studentCourseLessonComplete(String courseId, String lessonId) =>
+      '${config.apiRoot}/student/courses/$courseId/lessons/$lessonId/complete';
+  String studentCourseLessonTraining(String courseId, String lessonId) =>
+      '${config.apiRoot}/student/courses/$courseId/lessons/$lessonId/training';
+
   String get certificates => '${config.apiRoot}/certificates';
   String certificateDetail(String id) => '${config.apiRoot}/certificates/$id';
   String get certificateVerify => '${config.apiRoot}/certificates/verify';

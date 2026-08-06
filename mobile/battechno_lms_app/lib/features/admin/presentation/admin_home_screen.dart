@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
+import '../../../core/widgets/home_mosaic.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../dashboard/presentation/home_shell_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_models.dart';
 import 'widgets/admin_widgets.dart';
@@ -84,101 +87,100 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
     final data = _data;
     final priority = data?.priorityAction;
     final ftStats = data?.ftStats;
-    final dashboardStats = data?.dashboardStats;
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
 
-    return RefreshIndicator(
+    return HomeMosaicScaffold(
       onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      header: HomeMosaicHeader(
+        greeting: l10n.greetingMorning,
+        fullName: widget.user.fullName,
+        subtitle: widget.user.universityName,
+        profileActionLabel: l10n.profile,
+        onProfileTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 4,
+        notificationsTooltip: l10n.notifications,
+        unreadCount: unread,
+        onNotificationsTap: () => context.push('/notifications'),
+      ),
+      banner: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.instructorGreeting(widget.user.fullName),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          if (data?.fromCache == true) ...[
-            const SizedBox(height: 8),
+          if (data?.fromCache == true)
             InfoBanner(
               message:
                   '${l10n.offlineCachedBanner}'
                   '${data?.cachedAt != null ? ' · ${l10n.lastUpdatedAt(data!.cachedAt!.toLocal().toString().split('.').first)}' : ''}',
             ),
-          ],
-          const SizedBox(height: 16),
           if (priority != null) ...[
+            const SizedBox(height: 8),
             AdminPriorityCard(
               action: priority,
               onTap: () => _openPriority(priority),
             ),
-            const SizedBox(height: 16),
           ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                l10n.adminOpportunitiesCount(ftStats?.totalOpportunities ?? 0),
-                Icons.work_outline,
-              ),
-              _chip(
-                l10n.adminPublishedOpportunitiesCount(
-                  ftStats?.publishedOpportunities ?? 0,
-                ),
-                Icons.check_circle_outline,
-              ),
-              if ((ftStats?.pendingApplications ?? 0) > 0)
-                _chip(
-                  l10n.adminPendingApplicationsCount(
-                    ftStats!.pendingApplications,
-                  ),
-                  Icons.fact_check_outlined,
-                ),
-              if ((data?.list.totalPendingSubmissions ?? 0) > 0)
-                _chip(
-                  l10n.pendingSubmissionsCount(
-                    data!.list.totalPendingSubmissions,
-                  ),
-                  Icons.assignment_late_outlined,
-                ),
-              if (dashboardStats != null)
-                _chip(
-                  l10n.adminPendingUsersCount(data?.pendingUsersCount ?? 0),
-                  Icons.person_add_alt_outlined,
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.quickActions,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/home/opportunities'),
-            icon: const Icon(Icons.work_outline),
-            label: Text(l10n.opportunities),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/admin/field-training/new'),
-            icon: const Icon(Icons.add_circle_outline),
-            label: Text(l10n.createOpportunity),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/home/trainees'),
-            icon: const Icon(Icons.groups_outlined),
-            label: Text(l10n.trainees),
-          ),
         ],
       ),
+      tiles: [
+        HomeMosaicTileData(
+          label: l10n.opportunities,
+          icon: Icons.work_outline,
+          tone: HomeMosaicTone.primary,
+          size: HomeMosaicSize.tall,
+          subtitle: l10n.adminOpportunitiesCount(
+            ftStats?.totalOpportunities ?? 0,
+          ),
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 1,
+        ),
+        HomeMosaicTileData(
+          label: l10n.createOpportunity,
+          icon: Icons.add_circle_outline,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => context.push('/admin/field-training/new'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.trainees,
+          icon: Icons.groups_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 2,
+        ),
+        HomeMosaicTileData(
+          label: l10n.adminPendingApplicationsCount(
+            ftStats?.pendingApplications ?? 0,
+          ),
+          icon: Icons.fact_check_outlined,
+          tone: HomeMosaicTone.accent,
+          size: HomeMosaicSize.tall,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 1,
+        ),
+        HomeMosaicTileData(
+          label: l10n.reports,
+          icon: Icons.analytics_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        ),
+        HomeMosaicTileData(
+          label: l10n.adminPendingUsersCount(data?.pendingUsersCount ?? 0),
+          icon: Icons.person_add_alt_outlined,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 4,
+        ),
+      ],
     );
-  }
-
-  Widget _chip(String label, IconData icon) {
-    return Chip(avatar: Icon(icon, size: 18), label: Text(label));
   }
 }

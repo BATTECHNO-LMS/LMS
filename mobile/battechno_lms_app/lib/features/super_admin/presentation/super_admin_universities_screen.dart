@@ -9,6 +9,7 @@ import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/providers/auth_controller.dart';
 import '../data/super_admin_repository.dart';
 import '../domain/super_admin_models.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// Searchable universities list (`super_admin` shell tab 2).
 class SuperAdminUniversitiesScreen extends ConsumerStatefulWidget {
@@ -64,13 +65,28 @@ class _SuperAdminUniversitiesScreenState
               )
               .toList();
 
-    return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/super/universities/new'),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.createUniversity),
+    return ColoredBox(
+      color: kSaPageBg,
+      child: Stack(
+        children: [
+          SafeArea(child: _buildBody(l10n, filtered)),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () => context.push('/super/universities/new'),
+              backgroundColor: BatColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 2,
+              icon: const Icon(Icons.add),
+              label: Text(
+                l10n.createUniversity,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
       ),
-      body: SafeArea(child: _buildBody(l10n, filtered)),
     );
   }
 
@@ -91,54 +107,53 @@ class _SuperAdminUniversitiesScreenState
 
     return RefreshIndicator(
       onRefresh: _load,
+      color: BatColors.primary,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         children: [
           TextField(
-            decoration: InputDecoration(
-              hintText: l10n.searchUniversities,
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-            ),
+            decoration:
+                saSoftFieldDecoration(
+                  l10n.searchUniversities,
+                  hint: l10n.searchUniversities,
+                ).copyWith(
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: BatColors.primaryLight,
+                  ),
+                ),
             onChanged: (v) => setState(() => _search = v),
           ),
           const SizedBox(height: 12),
           if (filtered.isEmpty)
             EmptyState(title: l10n.noUniversitiesFound)
           else
-            for (final uni in filtered) ...[
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.account_balance_outlined),
-                  title: Text(uni.name),
-                  subtitle: Text(
-                    SuperAdminLabels.universityStatusAr(uni.status),
-                  ),
-                  trailing: StatusChip(
-                    label: SuperAdminLabels.universityStatusAr(uni.status),
-                    color: _statusColor(uni.status),
-                  ),
-                  onTap: () => context.push('/super/universities/${uni.id}'),
+            for (final uni in filtered)
+              SaListTileCard(
+                title: uni.name,
+                subtitle: SuperAdminLabels.universityStatusAr(uni.status),
+                leadingIcon: Icons.account_balance_outlined,
+                badge: SaStatusBadge(
+                  label: SuperAdminLabels.universityStatusAr(uni.status),
+                  tone: _statusTone(uni.status),
                 ),
+                onTap: () => context.push('/super/universities/${uni.id}'),
               ),
-              const SizedBox(height: 8),
-            ],
-          const SizedBox(height: 72),
         ],
       ),
     );
   }
 
-  Color _statusColor(String status) {
+  SaBadgeTone _statusTone(String status) {
     switch (status) {
       case 'active':
-        return BatColors.success;
+        return SaBadgeTone.success;
       case 'inactive':
-        return BatColors.warning;
+        return SaBadgeTone.accent;
       case 'archived':
-        return BatColors.muted;
+        return SaBadgeTone.neutral;
       default:
-        return BatColors.info;
+        return SaBadgeTone.primary;
     }
   }
 }

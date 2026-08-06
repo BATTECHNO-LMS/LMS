@@ -5,14 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
+import '../../../core/widgets/home_mosaic.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../dashboard/presentation/home_shell_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../data/super_admin_repository.dart';
 import '../domain/super_admin_models.dart';
 
-/// `super_admin` home — system-wide stat chips, a priority action, and
-/// contextual links into universities, users, field training, QA oversight,
-/// audit, system status, and certificates. This screen assumes the caller
-/// has already gated entry with `SuperAdminCapabilities.canAccess`.
 class SuperAdminHomeScreen extends ConsumerStatefulWidget {
   const SuperAdminHomeScreen({super.key, required this.user});
 
@@ -72,117 +71,97 @@ class _SuperAdminHomeScreenState extends ConsumerState<SuperAdminHomeScreen> {
     }
 
     final stats = _stats;
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
 
-    return RefreshIndicator(
+    return HomeMosaicScaffold(
       onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            '${_greeting(l10n)}، ${widget.user.fullName.split(' ').first}',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          InfoBanner(message: l10n.superAdminGlobalScopeNotice),
-          const SizedBox(height: 16),
-          if (stats != null) ...[
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 8,
-              crossAxisSpacing: 8,
-              childAspectRatio: 1.6,
-              children: [
-                _statCard(l10n.universities, stats.universities),
-                _statCard(l10n.users, stats.users),
-                _statCard(l10n.superAdminCohortsLabel, stats.cohorts),
-                _statCard(
-                  l10n.superAdminPendingEnrollmentsLabel,
-                  stats.pendingEnrollments,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-          ] else if (_error != null)
-            InfoBanner(message: l10n.networkErrorBody),
-          AcademicSectionHeader(title: l10n.quickActions),
-          const SizedBox(height: 8),
-          _actionTile(
-            icon: Icons.account_balance_outlined,
-            label: l10n.universities,
-            onTap: () => context.push('/home/universities'),
-          ),
-          _actionTile(
-            icon: Icons.group_outlined,
-            label: l10n.users,
-            onTap: () => context.push('/home/users'),
-          ),
-          _actionTile(
-            icon: Icons.hiking_outlined,
-            label: l10n.superAdminFieldTrainingOversight,
-            onTap: () => context.push('/super/field-training'),
-          ),
-          _actionTile(
-            icon: Icons.fact_check_outlined,
-            label: l10n.superAdminQaOversight,
-            onTap: () => context.push('/super/qa'),
-          ),
-          _actionTile(
-            icon: Icons.receipt_long_outlined,
-            label: l10n.auditLogsTitle,
-            onTap: () => context.push('/super/audit'),
-          ),
-          _actionTile(
-            icon: Icons.monitor_heart_outlined,
-            label: l10n.systemStatusTitle,
-            onTap: () => context.push('/super/system-status'),
-          ),
-          _actionTile(
-            icon: Icons.workspace_premium_outlined,
-            label: l10n.certificatesTitle,
-            onTap: () => context.push('/super/certificates'),
-          ),
-        ],
+      header: HomeMosaicHeader(
+        greeting: _greeting(l10n),
+        fullName: widget.user.fullName,
+        subtitle: l10n.superAdminGlobalScopeNotice,
+        profileActionLabel: l10n.profile,
+        onProfileTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 4,
+        notificationsTooltip: l10n.notifications,
+        unreadCount: unread,
+        onNotificationsTap: () => context.push('/notifications'),
       ),
-    );
-  }
-
-  Widget _statCard(String label, int value) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '$value',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
-            ),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12)),
-          ],
+      banner: _error != null && stats == null
+          ? InfoBanner(message: l10n.networkErrorBody)
+          : null,
+      tiles: [
+        HomeMosaicTileData(
+          label: l10n.universities,
+          icon: Icons.account_balance_outlined,
+          tone: HomeMosaicTone.primary,
+          size: HomeMosaicSize.tall,
+          subtitle: stats != null ? '${stats.universities}' : null,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 1,
         ),
-      ),
-    );
-  }
-
-  Widget _actionTile({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(label),
-        trailing: const Icon(Icons.chevron_left),
-        onTap: onTap,
-      ),
+        HomeMosaicTileData(
+          label: l10n.users,
+          icon: Icons.group_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          subtitle: stats != null ? '${stats.users}' : null,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 2,
+        ),
+        HomeMosaicTileData(
+          label: l10n.superAdminFieldTrainingOversight,
+          icon: Icons.hiking_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => context.push('/super/field-training'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.superAdminQaOversight,
+          icon: Icons.fact_check_outlined,
+          tone: HomeMosaicTone.accent,
+          size: HomeMosaicSize.tall,
+          onTap: () => context.push('/super/qa'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.auditLogsTitle,
+          icon: Icons.receipt_long_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.medium,
+          onTap: () => context.push('/super/audit'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.systemStatusTitle,
+          icon: Icons.monitor_heart_outlined,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.medium,
+          onTap: () => context.push('/super/system-status'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.certificatesTitle,
+          icon: Icons.workspace_premium_outlined,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.short,
+          onTap: () => context.push('/super/certificates'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.reports,
+          icon: Icons.analytics_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.short,
+          subtitle: stats != null
+              ? l10n.superAdminPendingEnrollmentsLabel
+              : null,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        ),
+      ],
     );
   }
 

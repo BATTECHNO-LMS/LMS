@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/domain/auth_user.dart';
 import '../data/reviewer_repository.dart';
+import 'widgets/reviewer_widgets.dart';
 
 /// University-scoped academic field-training report summary — shared by
 /// `qa_officer` and `university_reviewer` (`canReadFtReports`), matching the
@@ -68,8 +70,9 @@ class _ReviewerReportsScreenState extends ConsumerState<ReviewerReportsScreen> {
     final summary = _report?['summary'];
     final university = _report?['university'];
 
-    return Scaffold(
-      body: _loading && _report == null
+    return ColoredBox(
+      color: kReviewerPageBg,
+      child: _loading && _report == null
           ? const Padding(
               padding: EdgeInsets.all(16),
               child: LoadingSkeleton(lines: 5),
@@ -85,24 +88,61 @@ class _ReviewerReportsScreenState extends ConsumerState<ReviewerReportsScreen> {
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  if (university is Map && university['name'] != null)
-                    Text(
-                      university['name'].toString(),
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  ReviewerSoftCard(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: BatColors.primarySoft,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.analytics_outlined,
+                            color: BatColors.primary,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.reports,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: BatColors.heading,
+                                    ),
+                              ),
+                              if (university is Map &&
+                                  university['name'] != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  university['name'].toString(),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: BatColors.muted),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  const SizedBox(height: 12),
+                  ),
+                  const SizedBox(height: 14),
                   if (summary is Map) ...[
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 1.6,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.55,
                       children: [
                         _statCard(
                           l10n.adminReportEligibleOpportunities,
@@ -132,18 +172,60 @@ class _ReviewerReportsScreenState extends ConsumerState<ReviewerReportsScreen> {
                     ),
                     if (summary['average_attendance'] != null) ...[
                       const SizedBox(height: 12),
-                      InfoBanner(
-                        message:
-                            '${l10n.attendance}: ${summary['average_attendance']}%',
+                      ReviewerSoftCard(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: BatColors.accentSoft,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.how_to_reg_outlined,
+                                color: BatColors.accentHover,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '${l10n.attendance}: ${summary['average_attendance']}%',
+                                style: Theme.of(context).textTheme.bodyMedium
+                                    ?.copyWith(
+                                      color: BatColors.heading,
+                                      height: 1.4,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ] else
                     EmptyState(title: l10n.emptyDashboard, subtitle: ''),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => context.push('/reviewer/students'),
-                    icon: const Icon(Icons.groups_outlined),
-                    label: Text(l10n.trainees),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => context.push('/reviewer/students'),
+                      icon: const Icon(Icons.groups_outlined, size: 18),
+                      label: Text(
+                        l10n.trainees,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: BatColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -152,21 +234,28 @@ class _ReviewerReportsScreenState extends ConsumerState<ReviewerReportsScreen> {
   }
 
   Widget _statCard(String label, int? value) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              value?.toString() ?? '—',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
+    return ReviewerSoftCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            value?.toString() ?? '—',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: BatColors.primary,
             ),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 12)),
-          ],
-        ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: BatColors.muted,
+              height: 1.3,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../reviewer/presentation/qa_reviews_hub_screen.dart';
 import '../../reviewer/presentation/reviewer_reviews_hub_screen.dart';
+import 'widgets/super_admin_widgets.dart';
 
 enum _SuperAdminQaDomain { qa, recognition }
 
@@ -32,26 +34,40 @@ class _SuperAdminQaOversightScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.superAdminQaOversight)),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: l10n.superAdminQaOversight,
+        onBack: () => context.pop(),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: SegmentedButton<_SuperAdminQaDomain>(
-                segments: [
-                  ButtonSegment(
-                    value: _SuperAdminQaDomain.qa,
-                    label: Text(l10n.qaReviewsTitle),
-                  ),
-                  ButtonSegment(
-                    value: _SuperAdminQaDomain.recognition,
-                    label: Text(l10n.recognitionRequestsTitle),
-                  ),
-                ],
-                selected: {_domain},
-                onSelectionChanged: (s) => setState(() => _domain = s.first),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SaScopeBanner(message: l10n.superAdminGlobalScopeNotice),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SaSoftCard(
+                padding: const EdgeInsets.all(4),
+                child: SegmentedButton<_SuperAdminQaDomain>(
+                  segments: [
+                    ButtonSegment(
+                      value: _SuperAdminQaDomain.qa,
+                      label: Text(l10n.qaReviewsTitle),
+                    ),
+                    ButtonSegment(
+                      value: _SuperAdminQaDomain.recognition,
+                      label: Text(l10n.recognitionRequestsTitle),
+                    ),
+                  ],
+                  selected: {_domain},
+                  onSelectionChanged: (s) => setState(() => _domain = s.first),
+                  style: saSegmentedButtonStyle(),
+                  showSelectedIcon: false,
+                ),
               ),
             ),
             Expanded(

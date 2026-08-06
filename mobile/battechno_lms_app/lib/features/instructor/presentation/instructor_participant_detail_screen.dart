@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/instructor_repository.dart';
 import '../domain/instructor_models.dart';
 import 'widgets/instructor_hours_section.dart';
+import 'widgets/instructor_widgets.dart';
 
 class InstructorParticipantDetailScreen extends ConsumerStatefulWidget {
   const InstructorParticipantDetailScreen({
@@ -71,74 +74,236 @@ class _InstructorParticipantDetailScreenState
             ? (_data!['student'] as Map)['full_name']?.toString()
             : null) ??
         l10n.students;
+    final status = InstructorLabels.statusAr(
+      _readProgressField('training_status') ?? _readProgressField('status'),
+    );
+    final attendance = _formatAttendance(_data);
+    final initial = name.isNotEmpty ? name.characters.first : '?';
 
     return Scaffold(
-      appBar: AppBar(title: Text(name)),
-      body: _loading
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingSkeleton(lines: 6),
-            )
-          : _error != null
-          ? RetryView(
-              title: l10n.networkErrorTitle,
-              message: _error == 'forbidden'
-                  ? l10n.forbiddenAccess
-                  : _error == 'not_found'
-                  ? l10n.resourceNotFound
-                  : l10n.networkErrorBody,
-              onRetry: _load,
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _section(l10n.opportunityInfo, [
-                    _kv(
-                      l10n.accountStatus,
-                      InstructorLabels.statusAr(
-                        _readProgressField('training_status') ??
-                            _readProgressField('status'),
-                      ),
-                    ),
-                    _kv(l10n.attendance, _formatAttendance(_data)),
-                  ]),
-                  const SizedBox(height: 8),
-                  InstructorHoursSection(
-                    applicationId: widget.applicationId,
-                    hours: _hoursMap(),
-                    onUpdated: _load,
-                  ),
-                  const SizedBox(height: 16),
-                  _section(l10n.preAssessment, [
-                    _kv(l10n.score, _assessmentScore('pre') ?? '—'),
-                  ]),
-                  _section(l10n.postAssessment, [
-                    _kv(l10n.score, _assessmentScore('post') ?? '—'),
-                  ]),
-                  if (_tasks().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      l10n.viewSubmissions,
-                      style: const TextStyle(fontWeight: FontWeight.w800),
-                    ),
-                    for (final task in _tasks())
-                      ListTile(
-                        title: Text(task['title']?.toString() ?? '—'),
-                        subtitle: Text(
-                          InstructorLabels.reviewStatusAr(
-                            SubmissionReviewStatus.fromApi(
-                              task['submission_status']?.toString() ??
-                                  task['review_status']?.toString(),
+      backgroundColor: kInstructorPageBg,
+      appBar: AppBar(
+        title: Text(name),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
+      body: SafeArea(
+        child: _loading
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: LoadingSkeleton(lines: 6),
+              )
+            : _error != null
+            ? RetryView(
+                title: l10n.networkErrorTitle,
+                message: _error == 'forbidden'
+                    ? l10n.forbiddenAccess
+                    : _error == 'not_found'
+                    ? l10n.resourceNotFound
+                    : l10n.networkErrorBody,
+                onRetry: _load,
+              )
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    InstSoftCard(
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 56,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: BatColors.primarySoft,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 22,
+                                  color: BatColors.primary,
+                                ),
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: BatColors.heading,
+                                        height: 1.25,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: BatColors.primarySoft,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    status,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: BatColors.primary,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InstSoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.opportunityInfo,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: BatColors.heading,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          _MetaRow(
+                            icon: Icons.info_outline,
+                            label: l10n.accountStatus,
+                            value: status,
+                          ),
+                          const SizedBox(height: 12),
+                          _MetaRow(
+                            icon: Icons.how_to_reg_outlined,
+                            label: l10n.attendance,
+                            value: attendance,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    InstructorHoursSection(
+                      applicationId: widget.applicationId,
+                      hours: _hoursMap(),
+                      onUpdated: _load,
+                    ),
+                    const SizedBox(height: 12),
+                    InstSoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.assessmentsTitle,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: BatColors.heading,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          _MetaRow(
+                            icon: Icons.quiz_outlined,
+                            label: l10n.preAssessment,
+                            value: _assessmentScore('pre') ?? '—',
+                          ),
+                          const SizedBox(height: 12),
+                          _MetaRow(
+                            icon: Icons.assignment_turned_in_outlined,
+                            label: l10n.postAssessment,
+                            value: _assessmentScore('post') ?? '—',
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_tasks().isNotEmpty) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        l10n.viewSubmissions,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BatColors.heading,
                         ),
                       ),
+                      const SizedBox(height: 10),
+                      for (final task in _tasks())
+                        InstSoftCard(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: BatColors.primarySoft,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.task_outlined,
+                                  color: BatColors.primary,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      task['title']?.toString() ?? '—',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: BatColors.heading,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      InstructorLabels.reviewStatusAr(
+                                        SubmissionReviewStatus.fromApi(
+                                          task['submission_status']
+                                                  ?.toString() ??
+                                              task['review_status']?.toString(),
+                                        ),
+                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: BatColors.muted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -199,32 +364,46 @@ class _InstructorParticipantDetailScreenState
     }
     return const [];
   }
+}
 
-  Widget _section(String title, List<Widget> children) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-            const SizedBox(height: 8),
-            ...children,
-          ],
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: BatColors.primaryLight),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: BatColors.muted),
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _kv(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-        ],
-      ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

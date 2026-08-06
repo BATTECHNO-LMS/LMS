@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/localization/l10n/app_localizations.dart';
+import '../../../../app/theme/bat_colors.dart';
 import '../../../../core/errors/api_exception.dart';
 import '../../../../core/widgets/bat_widgets.dart';
 import '../../../auth/domain/auth_user.dart';
@@ -68,82 +69,126 @@ class _RecognitionRequestsSectionState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: l10n.searchRecognitionRequests,
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-            ),
-            onChanged: (v) => _search = v,
-            onSubmitted: (_) => _load(),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ChoiceChip(
-                label: Text(l10n.statusLabel),
-                selected: _status == null,
-                onSelected: (_) {
-                  setState(() => _status = null);
-                  _load();
-                },
+    return ColoredBox(
+      color: kReviewerPageBg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: ReviewerSoftCard(
+              padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+              child: TextField(
+                decoration:
+                    reviewerSoftFieldDecoration(
+                      '',
+                      hint: l10n.searchRecognitionRequests,
+                    ).copyWith(
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: BatColors.primaryLight,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                onChanged: (v) => _search = v,
+                onSubmitted: (_) => _load(),
               ),
-              for (final s in ReviewerStatusOptions.recognitionStatuses)
-                ChoiceChip(
-                  label: Text(ReviewerLabels.recognitionStatus(l10n, s)),
-                  selected: _status == s,
-                  onSelected: (_) {
-                    setState(() => _status = s);
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _statusFilterChip(
+                  label: l10n.statusLabel,
+                  selected: _status == null,
+                  onTap: () {
+                    setState(() => _status = null);
                     _load();
                   },
                 ),
-            ],
+                for (final s in ReviewerStatusOptions.recognitionStatuses)
+                  _statusFilterChip(
+                    label: ReviewerLabels.recognitionStatus(l10n, s),
+                    selected: _status == s,
+                    onTap: () {
+                      setState(() => _status = s);
+                      _load();
+                    },
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: _loading && _items.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: LoadingSkeleton(lines: 4),
+                  )
+                : _error != null && _items.isEmpty
+                ? RetryView(
+                    title: l10n.networkErrorTitle,
+                    message: _error == 'forbidden'
+                        ? l10n.forbiddenAccess
+                        : l10n.networkErrorBody,
+                    onRetry: _load,
+                  )
+                : RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
+                      children: [
+                        if (_items.isEmpty)
+                          EmptyState(
+                            title: l10n.noRecognitionRequests,
+                            subtitle: '',
+                          )
+                        else
+                          for (final item in _items) _buildCard(l10n, item),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusFilterChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: selected ? BatColors.primarySoft : const Color(0xFFF7F8FA),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected
+                  ? BatColors.primary.withValues(alpha: 0.25)
+                  : const Color(0xFFE6E8EC),
+            ),
+          ),
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: selected ? BatColors.primary : const Color(0xFF8B93A0),
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: _loading && _items.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: LoadingSkeleton(lines: 4),
-                )
-              : _error != null && _items.isEmpty
-              ? RetryView(
-                  title: l10n.networkErrorTitle,
-                  message: _error == 'forbidden'
-                      ? l10n.forbiddenAccess
-                      : l10n.networkErrorBody,
-                  onRetry: _load,
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      if (_items.isEmpty)
-                        EmptyState(
-                          title: l10n.noRecognitionRequests,
-                          subtitle: '',
-                        )
-                      else
-                        for (final item in _items) ...[
-                          _buildCard(l10n, item),
-                          const SizedBox(height: 8),
-                        ],
-                    ],
-                  ),
-                ),
-        ),
-      ],
+      ),
     );
   }
 

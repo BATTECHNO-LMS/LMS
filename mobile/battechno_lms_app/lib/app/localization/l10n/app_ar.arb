@@ -257,6 +257,16 @@
   "documentDownloadFailed": "تعذّر تنزيل الوثيقة",
   "profileReadOnlyNotice": "تحديث الملف الشخصي غير متاح حاليًا من التطبيق. تواصل مع إدارة الجامعة عند الحاجة.",
   "accountStatus": "حالة الحساب",
+  "yourProfile": "حسابك",
+  "profileOverviewTitle": "ملخص حسابك",
+  "profileOverviewSubtitle": "اكتمال بيانات الملف الشخصي",
+  "profileShortcutsTitle": "اختصارات سريعة",
+  "profileShortcutsSubtitle": "الإعدادات والشهادات والتدريب في مكان واحد",
+  "profileViewAll": "عرض الكل",
+  "profileFieldEmail": "البريد",
+  "profileFieldUniversity": "الجامعة",
+  "profileFieldSpecialty": "التخصص",
+  "profileFieldPhone": "الهاتف",
   "language": "اللغة",
   "languageArabic": "العربية",
   "languageEnglish": "English",
@@ -664,5 +674,81 @@
   "pushPermissionStatusNotDetermined": "لم يتم السؤال بعد",
   "pushPermissionStatusUnsupported": "غير متاحة في هذا الإصدار",
   "pushPermissionSettingsAction": "تفعيل الإشعارات",
-  "pushPermissionOpenSystemSettingsHint": "لتغيير هذا الإذن يجب فتح إعدادات النظام لهذا التطبيق."
+  "pushPermissionOpenSystemSettingsHint": "لتغيير هذا الإذن يجب فتح إعدادات النظام لهذا التطبيق.",
+  "courses": "الكورسات",
+  "coursesSubtitle": "تابع كورساتك التعليمية وتقدّمك الأكاديمي",
+  "searchCourses": "ابحث في الكورسات",
+  "searchLessons": "ابحث في الدروس",
+  "coursesFilterAll": "الكل",
+  "coursesFilterInProgress": "قيد الدراسة",
+  "coursesFilterNotStarted": "لم تبدأ",
+  "coursesFilterCompleted": "مكتملة",
+  "coursesEmptyTitle": "لا توجد كورسات متاحة لك حالياً",
+  "coursesEmptyBody": "ستظهر هنا الكورسات التي تنشرها إدارة المنصة لك أو لمجموعتك.",
+  "coursesFilterEmpty": "لا توجد كورسات ضمن هذا التصفية",
+  "courseOfflineWriteBlocked": "يتطلب هذا الإجراء اتصالًا بالإنترنت.",
+  "courseLinkUnsafe": "لا يمكن فتح هذا الرابط بأمان.",
+  "courseLinkMissing": "لا يتوفر رابط لهذا الدرس.",
+  "courseAccessDenied": "ليس لديك صلاحية للوصول إلى هذا الكورس.",
+  "courseNotFound": "الكورس غير موجود",
+  "courseCompletedLabel": "الكورس مكتمل",
+  "courseStatusInProgress": "قيد الدراسة",
+  "courseStatusCompleted": "مكتمل",
+  "courseStatusNotStarted": "لم يبدأ",
+  "courseStatusUnknown": "حالة غير معروفة",
+  "courseProgressLabel": "{percent}% · {completed} / {total} درس",
+  "@courseProgressLabel": {
+    "placeholders": {
+      "percent": { "type": "int" },
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "courseProgressPercent": "{percent}%",
+  "@courseProgressPercent": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "continueLearning": "متابعة التعلّم",
+  "startCourse": "بدء الكورس",
+  "courseSections": "أقسام الكورس",
+  "courseLessons": "الدروس",
+  "courseNoSections": "لا توجد أقسام منشورة بعد",
+  "courseNoLessonsMatch": "لا توجد دروس مطابقة للبحث",
+  "courseSectionLessonCount": "{count} دروس",
+  "@courseSectionLessonCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "courseLessonDuration": "{minutes}د",
+  "@courseLessonDuration": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseDurationTotalHours": "{hours}س {minutes}د إجمالاً",
+  "@courseDurationTotalHours": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseDurationTotalMinutes": "{minutes}د إجمالاً",
+  "@courseDurationTotalMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseNoNextLesson": "لا يوجد درس تالٍ",
+  "courseLesson": "الدرس",
+  "lessonNotFound": "الدرس غير موجود",
+  "openLessonVideo": "فتح الفيديو",
+  "openLessonResource": "فتح المورد",
+  "markLessonComplete": "تعليم الدرس مكتملًا",
+  "lessonMarkedComplete": "تم تعليم الدرس مكتملًا",
+  "lessonCompleted": "مكتمل",
+  "courseVideoNotYoutube": "هذا الفيديو ليس رابط يوتيوب مدعومًا للتشغيل داخل التطبيق.",
+  "lessonTrainingWebOnlyHint": "تمرين الدرس التفصيلي (رفع ملف / اختبار) متاح عبر موقع الويب عند الحاجة."
 }

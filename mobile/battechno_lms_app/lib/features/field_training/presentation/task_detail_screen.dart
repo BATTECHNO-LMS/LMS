@@ -9,6 +9,7 @@ import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/field_training_repository.dart';
 import '../domain/field_training_models.dart';
+import 'widgets/field_training_widgets.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
   const TaskDetailScreen({
@@ -142,8 +143,13 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      backgroundColor: kFtPageBg,
       appBar: AppBar(
         title: Text(l10n.taskDetails),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(child: _buildBody(l10n)),
@@ -172,105 +178,381 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
     final submission = JsonHelpers.map(task['submission']);
     final requiresAi = task['requires_ai_self_evaluation'] == true;
+    final reviewStatus = submission?['review_status']?.toString();
+    final approved = reviewStatus == 'approved';
+    final hasSubmission = submission != null;
+    final dueDate = task['due_date']?.toString();
+    final description = task['description']?.toString();
+    final aiPrompt = task['ai_self_evaluation_prompt']?.toString();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            task['title']?.toString() ?? l10n.taskUntitled,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          if (task['due_date'] != null)
-            Text('${l10n.dueDate}: ${task['due_date']}'),
-          const SizedBox(height: 16),
-          if (task['description'] != null)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Text(task['description'].toString()),
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FtSoftCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: BatColors.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      hasSubmission
+                          ? Icons.task_alt_rounded
+                          : Icons.task_outlined,
+                      color: BatColors.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task['title']?.toString() ?? l10n.taskUntitled,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: BatColors.heading,
+                                height: 1.25,
+                              ),
+                        ),
+                        if (dueDate != null && dueDate.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(
+                            '${l10n.dueDate}: $dueDate',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: BatColors.muted),
+                          ),
+                        ],
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: approved
+                                ? BatColors.success.withValues(alpha: 0.12)
+                                : const Color(0xFFEEF0F3),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            FieldTrainingLabels.reviewStatusAr(
+                              hasSubmission ? reviewStatus : null,
+                            ),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: approved
+                                      ? BatColors.successText
+                                      : const Color(0xFF8B93A0),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          if (task['ai_self_evaluation_prompt'] != null) ...[
-            const SizedBox(height: 12),
-            InfoBanner(message: task['ai_self_evaluation_prompt'].toString()),
-          ],
-          if (submission != null) ...[
-            const SizedBox(height: 16),
-            AcademicSectionHeader(title: l10n.previousSubmission),
-            const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
+            if (description != null && description.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              Text(
+                l10n.description,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.heading,
+                ),
+              ),
+              const SizedBox(height: 10),
+              FtSoftCard(
+                child: Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: BatColors.heading,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+            if (aiPrompt != null && aiPrompt.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              FtSoftCard(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      FieldTrainingLabels.reviewStatusAr(
-                        submission['review_status']?.toString(),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BatColors.accentSoft,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      child: const Icon(
+                        Icons.auto_awesome_outlined,
+                        color: BatColors.accentHover,
+                        size: 20,
+                      ),
                     ),
-                    if (submission['submitted_at'] != null)
-                      Text(
-                        '${l10n.submittedAt}: ${submission['submitted_at']}',
-                      ),
-                    if (submission['project_url'] != null)
-                      Text(submission['project_url'].toString()),
-                    if (submission['instructor_feedback'] != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          submission['instructor_feedback'].toString(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        aiPrompt,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
                         ),
                       ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
-          const SizedBox(height: 20),
-          AcademicSectionHeader(title: l10n.submitTask),
-          const SizedBox(height: 8),
-          if (requiresAi)
-            InfoBanner(message: l10n.aiTaskMobileLimited)
-          else ...[
-            AppTextField(
-              controller: _urlController,
-              label: l10n.projectUrl,
-              keyboardType: TextInputType.url,
-            ),
-            const SizedBox(height: 12),
-            AppTextField(
-              controller: _notesController,
-              label: l10n.submissionNotes,
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _pickFile,
-              icon: const Icon(Icons.attach_file),
-              label: Text(_pickedFileName ?? l10n.attachFileOptional),
-            ),
-            const SizedBox(height: 8),
+            ],
+            if (submission != null) ...[
+              const SizedBox(height: 18),
+              Text(
+                l10n.previousSubmission,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.heading,
+                ),
+              ),
+              const SizedBox(height: 10),
+              FtSoftCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: approved
+                            ? BatColors.success.withValues(alpha: 0.12)
+                            : const Color(0xFFEEF0F3),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        FieldTrainingLabels.reviewStatusAr(reviewStatus),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: approved
+                              ? BatColors.successText
+                              : const Color(0xFF8B93A0),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (submission['submitted_at'] != null) ...[
+                      const SizedBox(height: 12),
+                      _MetaRow(
+                        icon: Icons.schedule_outlined,
+                        label: l10n.submittedAt,
+                        value: submission['submitted_at'].toString(),
+                      ),
+                    ],
+                    if (submission['project_url'] != null) ...[
+                      const SizedBox(height: 10),
+                      _MetaRow(
+                        icon: Icons.link_outlined,
+                        label: l10n.projectUrl,
+                        value: submission['project_url'].toString(),
+                      ),
+                    ],
+                    if (submission['instructor_feedback'] != null &&
+                        submission['instructor_feedback']
+                            .toString()
+                            .isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F8FA),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          submission['instructor_feedback'].toString(),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: BatColors.heading, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 18),
             Text(
-              l10n.fileUploadHint,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+              l10n.submitTask,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: BatColors.heading,
+              ),
             ),
-            const SizedBox(height: 16),
-            PrimaryButton(
-              label: l10n.submitTask,
-              isLoading: _submitting,
-              onPressed: _submit,
-            ),
+            const SizedBox(height: 10),
+            if (requiresAi)
+              FtSoftCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BatColors.accentSoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.info_outline,
+                        color: BatColors.accentHover,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.aiTaskMobileLimited,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              FtSoftCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AppTextField(
+                      controller: _urlController,
+                      label: l10n.projectUrl,
+                      keyboardType: TextInputType.url,
+                    ),
+                    const SizedBox(height: 12),
+                    AppTextField(
+                      controller: _notesController,
+                      label: l10n.submissionNotes,
+                    ),
+                    const SizedBox(height: 14),
+                    OutlinedButton.icon(
+                      onPressed: _pickFile,
+                      icon: const Icon(Icons.attach_file),
+                      label: Text(_pickedFileName ?? l10n.attachFileOptional),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: BatColors.primary,
+                        side: const BorderSide(color: Color(0xFFE6E8EC)),
+                        backgroundColor: const Color(0xFFF7F8FA),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.fileUploadHint,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _submitting ? null : _submit,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BatColors.primary,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: BatColors.primary.withValues(
+                            alpha: 0.5,
+                          ),
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.submitTask,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _MetaRow extends StatelessWidget {
+  const _MetaRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: BatColors.primaryLight),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: BatColors.heading,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

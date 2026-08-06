@@ -3,8 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
-import '../../../core/widgets/bat_widgets.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../dashboard/presentation/home_shell_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// `super_admin` profile — shows the backend-verified `isGlobal` badge so
 /// the user can see at a glance that global scope is active.
@@ -21,82 +24,142 @@ class SuperAdminProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
+    final subtitle = user.isGlobal
+        ? l10n.isGlobalBadge
+        : l10n.superAdminRoleLabel;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Center(
-          child: CircleAvatar(
-            radius: 42,
-            child: Text(
-              user.fullName.isNotEmpty ? user.fullName.characters.first : '?',
-              style: const TextStyle(fontSize: 28),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: Text(
-            user.fullName,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Center(child: Text(l10n.superAdminRoleLabel)),
-        const SizedBox(height: 8),
-        if (user.isGlobal)
-          Center(
-            child: Chip(
-              avatar: const Icon(Icons.public, size: 16, color: Colors.white),
-              label: Text(l10n.isGlobalBadge),
-              backgroundColor: Colors.green.shade700,
-              labelStyle: const TextStyle(color: Colors.white),
-            ),
-          ),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _row(l10n.email, user.email),
-                _row(l10n.accountStatus, user.status),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        InfoBanner(message: l10n.profileReadOnlyNotice),
-        const SizedBox(height: 12),
-        OutlinedButton(
-          onPressed: () => context.push('/super/settings'),
-          child: Text(l10n.settings),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => context.push('/super/system-status'),
-          icon: const Icon(Icons.monitor_heart_outlined),
-          label: Text(l10n.systemStatusTitle),
-        ),
-        const SizedBox(height: 24),
-        PrimaryButton(label: l10n.logout, onPressed: onLogout),
-      ],
-    );
-  }
-
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+    return ColoredBox(
+      color: kSaPageBg,
+      child: ListView(
+        padding: EdgeInsets.zero,
         children: [
-          Expanded(child: Text(label)),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+          SaProfileHero(
+            title: l10n.yourProfile,
+            name: user.fullName,
+            roleLabel: l10n.superAdminRoleLabel,
+            subtitle: subtitle,
+            unreadCount: unread,
+            onNotifications: () => context.push('/notifications'),
+            onBack: () =>
+                ref.read(shellTabIndexRequestProvider.notifier).state = 0,
+          ),
+          Transform.translate(
+            offset: const Offset(0, -18),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              child: Column(
+                children: [
+                  SaSoftCard(
+                    child: Column(
+                      children: [
+                        SaInfoRow(label: l10n.email, value: user.email),
+                        const SizedBox(height: 12),
+                        SaInfoRow(
+                          label: l10n.accountStatus,
+                          value: user.status,
+                        ),
+                        if (user.isGlobal) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.isGlobalBadge,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(color: BatColors.muted),
+                                ),
+                              ),
+                              SaStatusBadge(
+                                label: l10n.isGlobalBadge,
+                                tone: SaBadgeTone.success,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SaSoftCard(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: BatColors.accentSoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline,
+                            color: BatColors.accentHover,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            l10n.profileReadOnlyNotice,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: BatColors.heading,
+                                  height: 1.4,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/super/settings'),
+                      icon: const Icon(Icons.settings_outlined, size: 18),
+                      label: Text(
+                        l10n.settings,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: saOutlinedButtonStyle(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/super/system-status'),
+                      icon: const Icon(Icons.monitor_heart_outlined, size: 18),
+                      label: Text(
+                        l10n.systemStatusTitle,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: saOutlinedButtonStyle(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: onLogout,
+                      style: saPrimaryButtonStyle(),
+                      child: Text(
+                        l10n.logout,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: MediaQuery.paddingOf(context).bottom + 88),
+                ],
+              ),
             ),
           ),
         ],

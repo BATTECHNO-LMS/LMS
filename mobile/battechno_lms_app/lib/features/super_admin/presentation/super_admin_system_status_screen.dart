@@ -6,6 +6,7 @@ import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../app/theme/bat_colors.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/super_admin_repository.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// API availability probe only (`GET /health`) — never the database URL or
 /// any other environment detail. Web-only `/settings` and `/analytics/*`
@@ -47,53 +48,79 @@ class _SuperAdminSystemStatusScreenState
     final isUp = _health?['status']?.toString() == 'ok';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.systemStatusTitle),
-        leading: BackButton(onPressed: () => context.pop()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: l10n.systemStatusTitle,
+        onBack: () => context.pop(),
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _check,
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             children: [
               if (_loading && !_checked)
                 const LoadingSkeleton(lines: 2)
               else
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(
+                SaSoftCard(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isUp
+                              ? BatColors.success.withValues(alpha: 0.12)
+                              : BatColors.danger.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
                           isUp
                               ? Icons.check_circle_outline
                               : Icons.error_outline,
                           color: isUp ? BatColors.success : BatColors.danger,
-                          size: 32,
+                          size: 28,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isUp ? l10n.apiAvailable : l10n.apiUnavailable,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: BatColors.heading,
+                                  ),
+                            ),
+                            if (_health?['service'] != null) ...[
+                              const SizedBox(height: 4),
                               Text(
-                                isUp ? l10n.apiAvailable : l10n.apiUnavailable,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                _health!['service'].toString(),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: BatColors.muted),
                               ),
-                              if (_health?['service'] != null)
-                                Text(_health!['service'].toString()),
                             ],
-                          ),
+                            const SizedBox(height: 8),
+                            SaStatusBadge(
+                              label: isUp
+                                  ? l10n.apiAvailable
+                                  : l10n.apiUnavailable,
+                              tone: isUp
+                                  ? SaBadgeTone.success
+                                  : SaBadgeTone.accent,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               const SizedBox(height: 16),
-              InfoBanner(message: l10n.systemStatusApiOnlyNotice),
+              SaInfoNotice(message: l10n.systemStatusApiOnlyNotice),
             ],
           ),
         ),

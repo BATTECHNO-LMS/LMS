@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/providers/auth_controller.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_models.dart';
+import 'widgets/admin_widgets.dart';
 
 /// Sectioned create/edit form for a field-training opportunity.
 /// Creation requires resolving eligibility from the university's eligibility
@@ -178,13 +180,33 @@ class _AdminOpportunityFormScreenState
     }
   }
 
+  PreferredSizeWidget _appBar(String title) {
+    return AppBar(
+      title: Text(title),
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      foregroundColor: BatColors.heading,
+      elevation: 0,
+      leading: BackButton(onPressed: () => Navigator.of(context).pop()),
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+        fontWeight: FontWeight.w800,
+        color: BatColors.heading,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEdit ? l10n.editOpportunity : l10n.createOpportunity),
-      ),
+      backgroundColor: kAdminPageBg,
+      appBar: _appBar(isEdit ? l10n.editOpportunity : l10n.createOpportunity),
       body: _loading
           ? const Padding(
               padding: EdgeInsets.all(16),
@@ -201,150 +223,225 @@ class _AdminOpportunityFormScreenState
           : Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  AppTextField(
-                    controller: _titleCtrl,
-                    label: l10n.opportunityTitleLabel,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? l10n.validationError
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _descriptionCtrl,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      labelText: l10n.description,
-                      border: const OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _locationCtrl,
-                    label: l10n.locationLabel,
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? l10n.validationError
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _trainingMode,
-                    decoration: InputDecoration(
-                      labelText: l10n.trainingModeLabel,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: 'onsite',
-                        child: Text(AdminLabels.modeAr('onsite')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'remote',
-                        child: Text(AdminLabels.modeAr('remote')),
-                      ),
-                      DropdownMenuItem(
-                        value: 'hybrid',
-                        child: Text(AdminLabels.modeAr('hybrid')),
-                      ),
-                    ],
-                    onChanged: (v) =>
-                        setState(() => _trainingMode = v ?? 'onsite'),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _startDateCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.startDateLabel,
-                            hintText: 'YYYY-MM-DD',
-                            border: const OutlineInputBorder(),
+                  AdminSoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _sectionTitle(context, l10n.opportunityInfo),
+                        const SizedBox(height: 14),
+                        TextFormField(
+                          controller: _titleCtrl,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.opportunityTitleLabel,
+                          ),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? l10n.validationError
+                              : null,
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _descriptionCtrl,
+                          maxLines: 4,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.description,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _endDateCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.endDateLabel,
-                            hintText: 'YYYY-MM-DD',
-                            border: const OutlineInputBorder(),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _locationCtrl,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.locationLabel,
                           ),
+                          validator: (v) => (v == null || v.trim().isEmpty)
+                              ? l10n.validationError
+                              : null,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _requiredHoursCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: l10n.requiredHoursLabel,
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (v) => AdminLabels.isValidRequiredHours(v ?? '')
-                        ? null
-                        : l10n.invalidRequiredHours,
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _assignedInstructorId,
-                    decoration: InputDecoration(
-                      labelText: l10n.assignedInstructorLabel,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: null,
-                        child: Text(l10n.hoursNotSpecified),
-                      ),
-                      for (final ins in _instructors)
-                        DropdownMenuItem(
-                          value: ins['id']?.toString(),
-                          child: Text(ins['full_name']?.toString() ?? '—'),
+                  AdminSoftCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _sectionTitle(context, l10n.trainingModeLabel),
+                        const SizedBox(height: 14),
+                        DropdownButtonFormField<String>(
+                          initialValue: _trainingMode,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.trainingModeLabel,
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: 'onsite',
+                              child: Text(AdminLabels.modeAr('onsite')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'remote',
+                              child: Text(AdminLabels.modeAr('remote')),
+                            ),
+                            DropdownMenuItem(
+                              value: 'hybrid',
+                              child: Text(AdminLabels.modeAr('hybrid')),
+                            ),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _trainingMode = v ?? 'onsite'),
                         ),
-                    ],
-                    onChanged: (v) => setState(() => _assignedInstructorId = v),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _startDateCtrl,
+                                decoration: adminSoftFieldDecoration(
+                                  l10n.startDateLabel,
+                                  hint: 'YYYY-MM-DD',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextFormField(
+                                controller: _endDateCtrl,
+                                decoration: adminSoftFieldDecoration(
+                                  l10n.endDateLabel,
+                                  hint: 'YYYY-MM-DD',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _requiredHoursCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.requiredHoursLabel,
+                          ),
+                          validator: (v) =>
+                              AdminLabels.isValidRequiredHours(v ?? '')
+                              ? null
+                              : l10n.invalidRequiredHours,
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _assignedInstructorId,
+                          decoration: adminSoftFieldDecoration(
+                            l10n.assignedInstructorLabel,
+                          ),
+                          items: [
+                            DropdownMenuItem(
+                              value: null,
+                              child: Text(l10n.hoursNotSpecified),
+                            ),
+                            for (final ins in _instructors)
+                              DropdownMenuItem(
+                                value: ins['id']?.toString(),
+                                child: Text(
+                                  ins['full_name']?.toString() ?? '—',
+                                ),
+                              ),
+                          ],
+                          onChanged: (v) =>
+                              setState(() => _assignedInstructorId = v),
+                        ),
+                      ],
+                    ),
                   ),
                   if (!isEdit) ...[
                     const SizedBox(height: 12),
-                    if (_catalogUniversity == null)
-                      InfoBanner(message: l10n.specialtyCatalogUnavailable)
-                    else
-                      DropdownButtonFormField<Map<String, dynamic>>(
-                        initialValue: _selectedSpecialtyEntry,
-                        decoration: InputDecoration(
-                          labelText: l10n.specialty,
-                          border: const OutlineInputBorder(),
-                        ),
-                        items: [
-                          for (final s
-                              in (_catalogUniversity!['specialties'] as List? ??
-                                      const [])
-                                  .whereType<Map<String, dynamic>>())
-                            DropdownMenuItem(
-                              value: s,
-                              child: Text(
-                                s['nameAr']?.toString() ??
-                                    s['nameEn']?.toString() ??
-                                    '—',
+                    AdminSoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _sectionTitle(context, l10n.specialty),
+                          const SizedBox(height: 14),
+                          if (_catalogUniversity == null)
+                            AdminSoftCard(
+                              padding: const EdgeInsets.fromLTRB(
+                                14,
+                                12,
+                                14,
+                                12,
                               ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    size: 18,
+                                    color: BatColors.accentHover,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      l10n.specialtyCatalogUnavailable,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(color: BatColors.heading),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          else
+                            DropdownButtonFormField<Map<String, dynamic>>(
+                              initialValue: _selectedSpecialtyEntry,
+                              decoration: adminSoftFieldDecoration(
+                                l10n.specialty,
+                              ),
+                              items: [
+                                for (final s
+                                    in (_catalogUniversity!['specialties']
+                                                as List? ??
+                                            const [])
+                                        .whereType<Map<String, dynamic>>())
+                                  DropdownMenuItem(
+                                    value: s,
+                                    child: Text(
+                                      s['nameAr']?.toString() ??
+                                          s['nameEn']?.toString() ??
+                                          '—',
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _selectedSpecialtyEntry = v),
+                              validator: (v) =>
+                                  v == null ? l10n.specialtyRequired : null,
                             ),
                         ],
-                        onChanged: (v) =>
-                            setState(() => _selectedSpecialtyEntry = v),
-                        validator: (v) =>
-                            v == null ? l10n.specialtyRequired : null,
                       ),
+                    ),
                   ],
                   const SizedBox(height: 24),
-                  PrimaryButton(
-                    label: l10n.save,
-                    isLoading: _saving,
-                    onPressed: _submit,
+                  FilledButton(
+                    onPressed: _saving ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: BatColors.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            height: 22,
+                            width: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            l10n.save,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                   ),
                 ],
               ),

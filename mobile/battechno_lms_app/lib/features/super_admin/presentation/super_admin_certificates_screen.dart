@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/providers/auth_controller.dart';
 import '../../certificates/domain/certificate_models.dart';
 import '../data/super_admin_repository.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// Read-only certificate listing. Issuing certificates and status changes
 /// remain staff-role actions (`university_admin`/`academic_admin`) and are
@@ -60,9 +62,11 @@ class _SuperAdminCertificatesScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.certificatesTitle),
-        leading: BackButton(onPressed: () => context.pop()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: l10n.certificatesTitle,
+        onBack: () => context.pop(),
       ),
       body: SafeArea(child: _buildBody(l10n)),
     );
@@ -94,20 +98,127 @@ class _SuperAdminCertificatesScreenState
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          for (final cert in _items) ...[
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.verified_outlined),
-                title: Text(cert.displayTitle),
-                subtitle: Text(
-                  '${l10n.issuedAt}: ${cert.issuedAt.isNotEmpty ? cert.issuedAt.substring(0, 10) : '—'}',
+          SaSoftCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: BatColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.workspace_premium_outlined,
+                    color: BatColors.primary,
+                    size: 26,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.certificatesTitle,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.superAdminGlobalScopeNotice,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BatColors.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_items.length}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: BatColors.accentHover,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-          ],
+          ),
+          const SizedBox(height: 18),
+          SaSectionHeader(title: l10n.certificatesTitle, count: _items.length),
+          const SizedBox(height: 10),
+          for (final cert in _items) _certCard(l10n, cert),
+        ],
+      ),
+    );
+  }
+
+  Widget _certCard(AppLocalizations l10n, StudentCertificate cert) {
+    final issued = cert.status == 'issued';
+    final issuedDate = cert.issuedAt.isNotEmpty && cert.issuedAt.length >= 10
+        ? cert.issuedAt.substring(0, 10)
+        : (cert.issuedAt.isNotEmpty ? cert.issuedAt : '—');
+
+    return SaSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.verified_outlined,
+              color: BatColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  cert.displayTitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${l10n.issuedAt}: $issuedDate',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+                const SizedBox(height: 8),
+                SaStatusBadge(
+                  label: CertificateLabels.statusAr(cert.status),
+                  tone: issued ? SaBadgeTone.success : SaBadgeTone.neutral,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

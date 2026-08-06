@@ -604,6 +604,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountStatus => 'Account status';
 
   @override
+  String get yourProfile => 'Your Profile';
+
+  @override
+  String get profileOverviewTitle => 'Your overview';
+
+  @override
+  String get profileOverviewSubtitle => 'Profile completeness';
+
+  @override
+  String get profileShortcutsTitle => 'Quick shortcuts';
+
+  @override
+  String get profileShortcutsSubtitle =>
+      'Settings, certificates, and training in one place';
+
+  @override
+  String get profileViewAll => 'View all';
+
+  @override
+  String get profileFieldEmail => 'Email';
+
+  @override
+  String get profileFieldUniversity => 'University';
+
+  @override
+  String get profileFieldSpecialty => 'Specialty';
+
+  @override
+  String get profileFieldPhone => 'Phone';
+
+  @override
   String get language => 'Language';
 
   @override
@@ -1518,4 +1549,150 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get pushPermissionOpenSystemSettingsHint =>
       'Changing this permission requires opening this app\'s system settings.';
+
+  @override
+  String get courses => 'Courses';
+
+  @override
+  String get coursesSubtitle =>
+      'Follow your academic courses and learning progress';
+
+  @override
+  String get searchCourses => 'Search courses';
+
+  @override
+  String get searchLessons => 'Search lessons';
+
+  @override
+  String get coursesFilterAll => 'All';
+
+  @override
+  String get coursesFilterInProgress => 'In progress';
+
+  @override
+  String get coursesFilterNotStarted => 'Not started';
+
+  @override
+  String get coursesFilterCompleted => 'Completed';
+
+  @override
+  String get coursesEmptyTitle => 'No courses available for you yet';
+
+  @override
+  String get coursesEmptyBody =>
+      'Courses published by the platform for you or your cohort group will appear here.';
+
+  @override
+  String get coursesFilterEmpty => 'No courses match this filter';
+
+  @override
+  String get courseOfflineWriteBlocked =>
+      'This action needs an internet connection.';
+
+  @override
+  String get courseLinkUnsafe => 'This link cannot be opened securely.';
+
+  @override
+  String get courseLinkMissing => 'No link is available for this lesson.';
+
+  @override
+  String get courseAccessDenied => 'You do not have access to this course.';
+
+  @override
+  String get courseNotFound => 'Course not found';
+
+  @override
+  String get courseCompletedLabel => 'Course completed';
+
+  @override
+  String get courseStatusInProgress => 'In progress';
+
+  @override
+  String get courseStatusCompleted => 'Completed';
+
+  @override
+  String get courseStatusNotStarted => 'Not started';
+
+  @override
+  String get courseStatusUnknown => 'Unknown status';
+
+  @override
+  String courseProgressLabel(int percent, int completed, int total) {
+    return '$percent% · $completed / $total lessons';
+  }
+
+  @override
+  String courseProgressPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get continueLearning => 'Continue learning';
+
+  @override
+  String get startCourse => 'Start course';
+
+  @override
+  String get courseSections => 'Course sections';
+
+  @override
+  String get courseLessons => 'Lessons';
+
+  @override
+  String get courseNoSections => 'No published sections yet';
+
+  @override
+  String get courseNoLessonsMatch => 'No lessons match your search';
+
+  @override
+  String courseSectionLessonCount(int count) {
+    return '$count lessons';
+  }
+
+  @override
+  String courseLessonDuration(int minutes) {
+    return '${minutes}min';
+  }
+
+  @override
+  String courseDurationTotalHours(int hours, int minutes) {
+    return '${hours}h ${minutes}min in total';
+  }
+
+  @override
+  String courseDurationTotalMinutes(int minutes) {
+    return '${minutes}min in total';
+  }
+
+  @override
+  String get courseNoNextLesson => 'No next lesson';
+
+  @override
+  String get courseLesson => 'Lesson';
+
+  @override
+  String get lessonNotFound => 'Lesson not found';
+
+  @override
+  String get openLessonVideo => 'Open video';
+
+  @override
+  String get openLessonResource => 'Open resource';
+
+  @override
+  String get markLessonComplete => 'Mark lesson complete';
+
+  @override
+  String get lessonMarkedComplete => 'Lesson marked complete';
+
+  @override
+  String get lessonCompleted => 'Completed';
+
+  @override
+  String get courseVideoNotYoutube =>
+      'This video is not a supported in-app YouTube link.';
+
+  @override
+  String get lessonTrainingWebOnlyHint =>
+      'Detailed lesson training (file upload / quiz) is available on the web when required.';
 }

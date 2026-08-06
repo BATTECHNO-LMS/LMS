@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/localization/l10n/app_localizations.dart';
+import '../../app/theme/bat_colors.dart';
 import '../../core/auth/lms_roles.dart';
 
 class ShellNavItem {
@@ -30,9 +31,9 @@ List<ShellNavItem> shellNavForRole(String role, AppLocalizations l10n) {
           route: '/home/training',
         ),
         ShellNavItem(
-          label: l10n.notifications,
-          icon: Icons.notifications_outlined,
-          route: '/home/notifications',
+          label: l10n.courses,
+          icon: Icons.menu_book_outlined,
+          route: '/home/courses',
         ),
         ShellNavItem(
           label: l10n.profile,
@@ -233,13 +234,90 @@ class AppBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NavigationBar(
-      selectedIndex: currentIndex,
-      onDestinationSelected: onTap,
-      destinations: [
-        for (final item in items)
-          NavigationDestination(icon: Icon(item.icon), label: item.label),
-      ],
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Material(
+        elevation: 10,
+        shadowColor: BatColors.primary.withValues(alpha: 0.25),
+        color: BatColors.cream,
+        borderRadius: BorderRadius.circular(36),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++)
+                Expanded(
+                  child: _PillNavItem(
+                    item: items[i],
+                    selected: i == currentIndex,
+                    onTap: () => onTap(i),
+                    compact: items.length >= 5,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PillNavItem extends StatelessWidget {
+  const _PillNavItem({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+    required this.compact,
+  });
+
+  final ShellNavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: item.label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: EdgeInsets.symmetric(
+            vertical: compact ? 8 : 6,
+            horizontal: 4,
+          ),
+          decoration: BoxDecoration(
+            color: selected ? BatColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                item.icon,
+                size: compact ? 20 : 22,
+                color: selected ? Colors.white : BatColors.primary,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: compact ? 9 : 10,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? Colors.white : BatColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
