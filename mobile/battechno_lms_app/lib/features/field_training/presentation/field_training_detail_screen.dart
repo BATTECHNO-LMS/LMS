@@ -93,8 +93,13 @@ class _FieldTrainingDetailScreenState
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      backgroundColor: kFtPageBg,
       appBar: AppBar(
         title: Text(l10n.trainingDetails),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(child: _buildBody(l10n)),
@@ -131,43 +136,156 @@ class _FieldTrainingDetailScreenState
         opp['my_training_status']?.toString() ??
         opp['my_application_status']?.toString() ??
         opp['status']?.toString();
+    final title = opp['title']?.toString() ?? l10n.trainingDetails;
+    final statusLabel = FieldTrainingLabels.trainingStatusAr(status);
 
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
-          Text(
-            opp['title']?.toString() ?? l10n.trainingDetails,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: BatColors.heading,
+          FtSoftCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: BatColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.hiking,
+                    color: BatColors.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                              height: 1.25,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: BatColors.accentSoft,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          statusLabel,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: BatColors.accentHover,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 8),
-          StatusChip(
-            label: FieldTrainingLabels.trainingStatusAr(status),
-            color: BatColors.info,
-          ),
-          const SizedBox(height: 16),
-          UniversityIdentityCard(
-            university: uni?['name']?.toString() ?? '—',
-            specialty:
-                specialty?['name_ar']?.toString() ??
-                specialty?['name_en']?.toString() ??
-                '',
           ),
           const SizedBox(height: 12),
-          if (opp['start_date'] != null || opp['end_date'] != null)
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.date_range_outlined),
-                title: Text(l10n.trainingDates),
-                subtitle: Text(
-                  '${opp['start_date'] ?? '—'} → ${opp['end_date'] ?? '—'}',
+          FtSoftCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: BatColors.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_outlined,
+                    color: BatColors.primary,
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        uni?['name']?.toString() ?? '—',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BatColors.heading,
+                        ),
+                      ),
+                      if ((specialty?['name_ar'] ?? specialty?['name_en']) !=
+                          null)
+                        Text(
+                          specialty?['name_ar']?.toString() ??
+                              specialty?['name_en']?.toString() ??
+                              '',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BatColors.muted),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (opp['start_date'] != null || opp['end_date'] != null) ...[
+            const SizedBox(height: 12),
+            FtSoftCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: BatColors.primarySoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.date_range_outlined,
+                      color: BatColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.trainingDates,
+                          style: Theme.of(context).textTheme.titleSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: BatColors.heading,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${opp['start_date'] ?? '—'} → ${opp['end_date'] ?? '—'}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BatColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
+          ],
           const SizedBox(height: 12),
           TrainingProgressSection(
             progress: bundle.progress,
@@ -190,17 +308,32 @@ class _FieldTrainingDetailScreenState
           if (opp['description'] != null &&
               opp['description'].toString().isNotEmpty) ...[
             const SizedBox(height: 16),
-            AcademicSectionHeader(title: l10n.description),
+            Text(
+              l10n.description,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: BatColors.heading,
+              ),
+            ),
             const SizedBox(height: 8),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Text(opp['description'].toString()),
+            FtSoftCard(
+              child: Text(
+                opp['description'].toString(),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: BatColors.muted,
+                  height: 1.45,
+                ),
               ),
             ),
           ],
           const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.tasks),
+          Text(
+            l10n.tasks,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
           const SizedBox(height: 8),
           TaskListSection(tasks: bundle.tasks, onTaskTap: _openTask),
         ],

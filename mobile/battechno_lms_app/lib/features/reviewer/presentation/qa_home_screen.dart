@@ -5,13 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
+import '../../../core/widgets/home_mosaic.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../dashboard/presentation/home_shell_screen.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../data/reviewer_repository.dart';
+import '../domain/reviewer_labels.dart';
 import '../domain/reviewer_models.dart';
+import 'widgets/reviewer_widgets.dart';
 
-/// `qa_officer` home — chips for open QA reviews / corrective / risk, a
-/// priority action pointing at the oldest open QA review, and a recent
-/// list. No desktop KPI grid.
 class QaHomeScreen extends ConsumerStatefulWidget {
   const QaHomeScreen({super.key, required this.user});
 
@@ -78,106 +80,105 @@ class _QaHomeScreenState extends ConsumerState<QaHomeScreen> {
 
     final data = _data;
     final priority = data?.qaPriorityAction;
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
 
-    return RefreshIndicator(
+    return HomeMosaicScaffold(
       onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      header: HomeMosaicHeader(
+        greeting: l10n.greetingMorning,
+        fullName: widget.user.fullName,
+        subtitle: widget.user.universityName,
+        profileActionLabel: l10n.profile,
+        onProfileTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 4,
+        notificationsTooltip: l10n.notifications,
+        unreadCount: unread,
+        onNotificationsTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+      ),
+      banner: Column(
         children: [
-          Text(
-            l10n.instructorGreeting(widget.user.fullName),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          if (data?.fromCache == true) ...[
-            const SizedBox(height: 8),
+          if (data?.fromCache == true)
             InfoBanner(
               message:
                   '${l10n.offlineCachedBanner}'
                   '${data?.cachedAt != null ? ' · ${l10n.lastUpdatedAt(data!.cachedAt!.toLocal().toString().split('.').first)}' : ''}',
             ),
-          ],
-          const SizedBox(height: 16),
           if (priority != null) ...[
-            Card(
-              child: InkWell(
-                onTap: () => context.push('/qa/reviews/${priority.targetId}'),
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.rate_review_outlined),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(l10n.qaPriorityOpenReview)),
-                      const Icon(Icons.chevron_left),
-                    ],
-                  ),
-                ),
-              ),
+            const SizedBox(height: 8),
+            ReviewerPriorityCard(
+              title: l10n.qaPriorityOpenReview,
+              icon: Icons.rate_review_outlined,
+              onTap: () => context.push('/qa/reviews/${priority.targetId}'),
             ),
-            const SizedBox(height: 16),
           ],
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _chip(
-                l10n.openQaReviewsCount(data?.openQaReviewsCount ?? 0),
-                Icons.rate_review_outlined,
-              ),
-              _chip(
-                l10n.openCorrectiveActionsCount(data?.openCorrectiveCount ?? 0),
-                Icons.assignment_late_outlined,
-              ),
-              _chip(
-                l10n.openRiskCasesCount(data?.openRiskCount ?? 0),
-                Icons.warning_amber_outlined,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.quickActions,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/qa/reviews'),
-            icon: const Icon(Icons.rate_review_outlined),
-            label: Text(l10n.reviews),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => context.push('/reviewer/evidence'),
-            icon: const Icon(Icons.folder_open_outlined),
-            label: Text(l10n.evidenceTitle),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            l10n.qaReviewsTitle,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          if (_recent.isEmpty)
-            EmptyState(title: l10n.noQaReviews, subtitle: '')
-          else
-            for (final item in _recent) ...[
-              _RecentReviewTile(item: item),
-              const SizedBox(height: 8),
-            ],
         ],
       ),
+      tiles: [
+        HomeMosaicTileData(
+          label: l10n.reviews,
+          icon: Icons.rate_review_outlined,
+          tone: HomeMosaicTone.primary,
+          size: HomeMosaicSize.tall,
+          subtitle: l10n.openQaReviewsCount(data?.openQaReviewsCount ?? 0),
+          onTap: () => context.push('/qa/reviews'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.openCorrectiveActionsCount(
+            data?.openCorrectiveCount ?? 0,
+          ),
+          icon: Icons.assignment_late_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => context.push('/qa/reviews'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.openRiskCasesCount(data?.openRiskCount ?? 0),
+          icon: Icons.warning_amber_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => context.push('/qa/reviews'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.evidenceTitle,
+          icon: Icons.folder_open_outlined,
+          tone: HomeMosaicTone.accent,
+          size: HomeMosaicSize.tall,
+          onTap: () => context.push('/reviewer/evidence'),
+        ),
+        HomeMosaicTileData(
+          label: l10n.reports,
+          icon: Icons.analytics_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 2,
+        ),
+        HomeMosaicTileData(
+          label: l10n.notifications,
+          icon: Icons.notifications_outlined,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        ),
+      ],
+      footer: [
+        AcademicSectionHeader(title: l10n.qaReviewsTitle),
+        const SizedBox(height: 8),
+        if (_recent.isEmpty)
+          EmptyState(title: l10n.noQaReviews, subtitle: '')
+        else
+          for (final item in _recent) _RecentReviewTile(item: item),
+      ],
     );
-  }
-
-  Widget _chip(String label, IconData icon) {
-    return Chip(avatar: Icon(icon, size: 18), label: Text(label));
   }
 }
 
@@ -188,14 +189,18 @@ class _RecentReviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final review = QaReviewItem(item);
-    return Card(
-      child: ListTile(
-        onTap: () => context.push('/qa/reviews/${review.id}'),
-        title: Text(review.cohortTitle ?? review.reviewType),
-        subtitle: Text(review.reviewDate ?? ''),
-        trailing: const Icon(Icons.chevron_left),
-      ),
+    return ReviewerQueueCard(
+      title: review.cohortTitle ?? review.reviewType,
+      statusLabel: ReviewerLabels.qaStatus(l10n, review.status),
+      status: review.status,
+      subtitle: review.reviewDate,
+      metaChips: [
+        ReviewerLabels.reviewType(l10n, review.reviewType),
+        if (review.reviewerName != null) review.reviewerName!,
+      ],
+      onTap: () => context.push('/qa/reviews/${review.id}'),
     );
   }
 }

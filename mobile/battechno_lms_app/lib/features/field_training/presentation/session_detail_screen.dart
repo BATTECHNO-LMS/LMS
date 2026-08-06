@@ -6,6 +6,7 @@ import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../app/theme/bat_colors.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../domain/session_models.dart';
+import 'widgets/field_training_widgets.dart';
 
 class SessionDetailScreen extends StatelessWidget {
   const SessionDetailScreen({
@@ -70,104 +71,288 @@ class SessionDetailScreen extends StatelessWidget {
 
     if (initialSession == null) {
       return Scaffold(
-        appBar: AppBar(title: Text(l10n.sessionDetails)),
+        backgroundColor: kFtPageBg,
+        appBar: AppBar(
+          title: Text(l10n.sessionDetails),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: BatColors.heading,
+          elevation: 0,
+          leading: BackButton(onPressed: () => context.pop()),
+        ),
         body: EmptyState(title: l10n.sessionNotFound),
       );
     }
 
+    final present = session.attendanceStatus == AttendanceStatus.present;
+    final timingColor = timing == SessionTiming.upcoming
+        ? BatColors.accentHover
+        : timing == SessionTiming.ongoing
+        ? BatColors.successText
+        : const Color(0xFF8B93A0);
+    final timingBg = timing == SessionTiming.upcoming
+        ? BatColors.accentSoft
+        : timing == SessionTiming.ongoing
+        ? BatColors.success.withValues(alpha: 0.12)
+        : const Color(0xFFEEF0F3);
+
     return Scaffold(
+      backgroundColor: kFtPageBg,
       appBar: AppBar(
         title: Text(l10n.sessionDetails),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
           children: [
-            Text(
-              session.title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            FtSoftCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: BatColors.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.event_outlined,
+                      color: BatColors.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.title,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: BatColors.heading,
+                                height: 1.25,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: timingBg,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            SessionLabels.timingAr(timing),
+                            style: Theme.of(context).textTheme.labelSmall
+                                ?.copyWith(
+                                  color: timingColor,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            StatusChip(
-              label: SessionLabels.timingAr(timing),
-              color: timing == SessionTiming.upcoming
-                  ? BatColors.accent
-                  : BatColors.info,
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _row(l10n.trainingDates, session.sessionDate ?? '—'),
-                    _row(
-                      l10n.sessionTime,
-                      '${session.startTime ?? '—'} – ${session.endTime ?? '—'}',
-                    ),
-                    _row(
-                      l10n.sessionRequired,
-                      session.isRequired ? l10n.yes : l10n.no,
-                    ),
-                    _row(
-                      l10n.attendanceStatus,
-                      SessionLabels.attendanceAr(session.attendanceStatus),
-                    ),
-                  ],
-                ),
+            const SizedBox(height: 12),
+            FtSoftCard(
+              child: Column(
+                children: [
+                  _InfoRow(
+                    icon: Icons.calendar_today_outlined,
+                    label: l10n.trainingDates,
+                    value: session.sessionDate ?? '—',
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.schedule_outlined,
+                    label: l10n.sessionTime,
+                    value:
+                        '${session.startTime ?? '—'} – ${session.endTime ?? '—'}',
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.flag_outlined,
+                    label: l10n.sessionRequired,
+                    value: session.isRequired ? l10n.yes : l10n.no,
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow(
+                    icon: Icons.how_to_reg_outlined,
+                    label: l10n.attendanceStatus,
+                    value: SessionLabels.attendanceAr(session.attendanceStatus),
+                    valueColor: present
+                        ? BatColors.successText
+                        : BatColors.heading,
+                  ),
+                ],
               ),
             ),
             if (session.description != null &&
                 session.description!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              AcademicSectionHeader(title: l10n.description),
-              const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Text(session.description!),
+              const SizedBox(height: 18),
+              Text(
+                l10n.description,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.heading,
+                ),
+              ),
+              const SizedBox(height: 10),
+              FtSoftCard(
+                child: Text(
+                  session.description!,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: BatColors.heading,
+                    height: 1.45,
+                  ),
                 ),
               ),
             ],
             if (session.attendance?['note'] != null &&
                 session.attendance!['note'].toString().isNotEmpty) ...[
-              const SizedBox(height: 16),
-              InfoBanner(message: session.attendance!['note'].toString()),
+              const SizedBox(height: 12),
+              FtSoftCard(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: BatColors.accentSoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.sticky_note_2_outlined,
+                        color: BatColors.accentHover,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        session.attendance!['note'].toString(),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.heading,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             if (SessionLabels.isSafeExternalUrl(session.zoomLink))
-              PrimaryButton(
-                label: l10n.joinSession,
-                onPressed: () => _openMeetingLink(context, l10n),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _openMeetingLink(context, l10n),
+                  icon: const Icon(Icons.videocam_outlined, size: 20),
+                  label: Text(
+                    l10n.joinSession,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BatColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
               )
             else
-              InfoBanner(message: l10n.noMeetingLink),
+              FtSoftCard(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF0F3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.link_off_outlined,
+                        color: Color(0xFF8B93A0),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        l10n.noMeetingLink,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: BatColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _row(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: Text(label)),
-          Expanded(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: BatColors.primaryLight),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: BatColors.muted),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: valueColor ?? BatColors.heading,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

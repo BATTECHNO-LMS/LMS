@@ -166,6 +166,20 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  /// Leaves pending / inactive / unsupported gates and allows `/auth/login`.
+  ///
+  /// Must flip status to [AuthStatus.unauthenticated] *before* navigation:
+  /// the router redirects those gate statuses away from `/auth/login`.
+  Future<void> dismissToLogin() async {
+    state = const AuthState(status: AuthStatus.unauthenticated);
+    await _storage.clearAll();
+    try {
+      await _authRepository.logout();
+    } catch (_) {
+      // Best-effort; local session is already cleared.
+    }
+  }
+
   Future<void> handleUnauthorized() async {
     await _storage.clearAll();
     state = const AuthState(status: AuthStatus.unauthenticated);

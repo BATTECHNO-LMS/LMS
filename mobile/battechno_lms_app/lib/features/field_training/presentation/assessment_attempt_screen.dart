@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/field_training_repository.dart';
@@ -26,6 +27,8 @@ class AssessmentAttemptScreen extends ConsumerStatefulWidget {
 
 class _AssessmentAttemptScreenState
     extends ConsumerState<AssessmentAttemptScreen> {
+  static const _pageBg = Color(0xFFF2F3F5);
+
   AssessmentDetailBundle? _bundle;
   bool _loading = true;
   bool _submitting = false;
@@ -160,8 +163,13 @@ class _AssessmentAttemptScreenState
         if (await _confirmLeave() && context.mounted) context.pop();
       },
       child: Scaffold(
+        backgroundColor: _pageBg,
         appBar: AppBar(
           title: Text(l10n.assessmentAttempt),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          foregroundColor: BatColors.heading,
+          elevation: 0,
           leading: BackButton(
             onPressed: () async {
               if (await _confirmLeave() && context.mounted) context.pop();
@@ -207,7 +215,7 @@ class _AssessmentAttemptScreenState
     final isLast = _currentIndex >= _questions.length - 1;
 
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -216,19 +224,35 @@ class _AssessmentAttemptScreenState
             total: _questions.length,
             l10n: l10n,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           Expanded(
             child: SingleChildScrollView(
-              child: Card(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFE6E8EC)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1A2330).withValues(alpha: 0.05),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         question['question_text']?.toString() ?? '',
                         style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                              height: 1.35,
+                            ),
                       ),
                       const SizedBox(height: 16),
                       AssessmentQuestionField(
@@ -246,23 +270,33 @@ class _AssessmentAttemptScreenState
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Row(
             children: [
               if (_currentIndex > 0)
                 Expanded(
-                  child: SecondaryButton(
-                    label: l10n.previousQuestion,
+                  child: OutlinedButton(
                     onPressed: _submitting
                         ? null
                         : () => setState(() => _currentIndex -= 1),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: BatColors.primary,
+                      side: const BorderSide(color: Color(0xFFE6E8EC)),
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      l10n.previousQuestion,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                   ),
                 ),
               if (_currentIndex > 0) const SizedBox(width: 12),
               Expanded(
-                child: PrimaryButton(
-                  label: isLast ? l10n.submitAssessment : l10n.nextQuestion,
-                  isLoading: _submitting && isLast,
+                child: FilledButton(
                   onPressed: _submitting
                       ? null
                       : () {
@@ -272,6 +306,31 @@ class _AssessmentAttemptScreenState
                             setState(() => _currentIndex += 1);
                           }
                         },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: BatColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: BatColors.primary.withValues(
+                      alpha: 0.5,
+                    ),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _submitting && isLast
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          isLast ? l10n.submitAssessment : l10n.nextQuestion,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
                 ),
               ),
             ],

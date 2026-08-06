@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/providers/auth_controller.dart';
 import '../data/super_admin_repository.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// Read-only audit log list — safe display fields only (action type, entity
 /// type, actor name, timestamp). Never renders `old_values`/`new_values`,
@@ -60,9 +62,11 @@ class _SuperAdminAuditScreenState extends ConsumerState<SuperAdminAuditScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.auditLogsTitle),
-        leading: BackButton(onPressed: () => context.pop()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: l10n.auditLogsTitle,
+        onBack: () => context.pop(),
       ),
       body: SafeArea(child: _buildBody(l10n)),
     );
@@ -88,40 +92,89 @@ class _SuperAdminAuditScreenState extends ConsumerState<SuperAdminAuditScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           TextField(
-            decoration: InputDecoration(
-              hintText: l10n.searchAuditLogs,
-              prefixIcon: const Icon(Icons.search),
-              border: const OutlineInputBorder(),
-            ),
+            decoration:
+                saSoftFieldDecoration(
+                  l10n.searchAuditLogs,
+                  hint: l10n.searchAuditLogs,
+                ).copyWith(
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    color: BatColors.primaryLight,
+                  ),
+                ),
             onChanged: (v) => _search = v,
             onSubmitted: (_) => _load(),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           if (_items.isEmpty)
             EmptyState(title: l10n.noAuditLogs)
           else
-            for (final row in _items) ...[
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.receipt_long_outlined),
-                  title: Text(row['action_type']?.toString() ?? '—'),
-                  subtitle: Text(
-                    [
-                      row['entity_type']?.toString(),
-                      (row['user'] as Map?)?['full_name']?.toString(),
-                    ].whereType<String>().join(' • '),
-                  ),
-                  trailing: Text(
-                    _shortDate(row['created_at']?.toString()),
-                    style: Theme.of(context).textTheme.bodySmall,
+            for (final row in _items) _auditCard(row),
+        ],
+      ),
+    );
+  }
+
+  Widget _auditCard(Map<String, dynamic> row) {
+    final subtitle = [
+      row['entity_type']?.toString(),
+      (row['user'] as Map?)?['full_name']?.toString(),
+    ].whereType<String>().join(' • ');
+
+    return SaSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              color: BatColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  row['action_type']?.toString() ?? '—',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-            ],
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _shortDate(row['created_at']?.toString()),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: BatColors.muted,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

@@ -133,6 +133,10 @@ class StudentDashboardRepository {
   }
 
   String? _readId(Map<String, dynamic> row) {
+    final nested = row['opportunity'];
+    if (nested is Map && nested['id'] != null) {
+      return nested['id'].toString();
+    }
     return row['opportunity_id']?.toString() ??
         row['field_training_opportunity_id']?.toString() ??
         row['id']?.toString();

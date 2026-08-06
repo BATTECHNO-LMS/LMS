@@ -257,6 +257,16 @@
   "documentDownloadFailed": "Could not download document",
   "profileReadOnlyNotice": "Profile updates are not available in the app yet. Contact your university if needed.",
   "accountStatus": "Account status",
+  "yourProfile": "Your Profile",
+  "profileOverviewTitle": "Your overview",
+  "profileOverviewSubtitle": "Profile completeness",
+  "profileShortcutsTitle": "Quick shortcuts",
+  "profileShortcutsSubtitle": "Settings, certificates, and training in one place",
+  "profileViewAll": "View all",
+  "profileFieldEmail": "Email",
+  "profileFieldUniversity": "University",
+  "profileFieldSpecialty": "Specialty",
+  "profileFieldPhone": "Phone",
   "language": "Language",
   "languageArabic": "Arabic",
   "languageEnglish": "English",
@@ -664,5 +674,81 @@
   "pushPermissionStatusNotDetermined": "Not asked yet",
   "pushPermissionStatusUnsupported": "Not available in this build",
   "pushPermissionSettingsAction": "Enable notifications",
-  "pushPermissionOpenSystemSettingsHint": "Changing this permission requires opening this app's system settings."
+  "pushPermissionOpenSystemSettingsHint": "Changing this permission requires opening this app's system settings.",
+  "courses": "Courses",
+  "coursesSubtitle": "Follow your academic courses and learning progress",
+  "searchCourses": "Search courses",
+  "searchLessons": "Search lessons",
+  "coursesFilterAll": "All",
+  "coursesFilterInProgress": "In progress",
+  "coursesFilterNotStarted": "Not started",
+  "coursesFilterCompleted": "Completed",
+  "coursesEmptyTitle": "No courses available for you yet",
+  "coursesEmptyBody": "Courses published by the platform for you or your cohort group will appear here.",
+  "coursesFilterEmpty": "No courses match this filter",
+  "courseOfflineWriteBlocked": "This action needs an internet connection.",
+  "courseLinkUnsafe": "This link cannot be opened securely.",
+  "courseLinkMissing": "No link is available for this lesson.",
+  "courseAccessDenied": "You do not have access to this course.",
+  "courseNotFound": "Course not found",
+  "courseCompletedLabel": "Course completed",
+  "courseStatusInProgress": "In progress",
+  "courseStatusCompleted": "Completed",
+  "courseStatusNotStarted": "Not started",
+  "courseStatusUnknown": "Unknown status",
+  "courseProgressLabel": "{percent}% · {completed} / {total} lessons",
+  "@courseProgressLabel": {
+    "placeholders": {
+      "percent": { "type": "int" },
+      "completed": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "courseProgressPercent": "{percent}%",
+  "@courseProgressPercent": {
+    "placeholders": {
+      "percent": { "type": "int" }
+    }
+  },
+  "continueLearning": "Continue learning",
+  "startCourse": "Start course",
+  "courseSections": "Course sections",
+  "courseLessons": "Lessons",
+  "courseNoSections": "No published sections yet",
+  "courseNoLessonsMatch": "No lessons match your search",
+  "courseSectionLessonCount": "{count} lessons",
+  "@courseSectionLessonCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "courseLessonDuration": "{minutes}min",
+  "@courseLessonDuration": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseDurationTotalHours": "{hours}h {minutes}min in total",
+  "@courseDurationTotalHours": {
+    "placeholders": {
+      "hours": { "type": "int" },
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseDurationTotalMinutes": "{minutes}min in total",
+  "@courseDurationTotalMinutes": {
+    "placeholders": {
+      "minutes": { "type": "int" }
+    }
+  },
+  "courseNoNextLesson": "No next lesson",
+  "courseLesson": "Lesson",
+  "lessonNotFound": "Lesson not found",
+  "openLessonVideo": "Open video",
+  "openLessonResource": "Open resource",
+  "markLessonComplete": "Mark lesson complete",
+  "lessonMarkedComplete": "Lesson marked complete",
+  "lessonCompleted": "Completed",
+  "courseVideoNotYoutube": "This video is not a supported in-app YouTube link.",
+  "lessonTrainingWebOnlyHint": "Detailed lesson training (file upload / quiz) is available on the web when required."
 }

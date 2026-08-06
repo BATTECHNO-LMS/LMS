@@ -86,6 +86,17 @@ Versioned API: `/api/v1/*`
 
 See [docs/PHASE_18_ASSESSMENTS_SESSIONS.md](docs/PHASE_18_ASSESSMENTS_SESSIONS.md).
 
+### MOBILE-STUDENT-COURSES-001 — Student LMS courses
+
+- Student bottom nav: Home, Training, **Courses (الكورسات)**, Profile
+- Notifications via app-bar bell only (inbox route preserved)
+- Course list / detail / lessons against `/api/v1/student/courses*`
+- Progress from Backend; simple lesson completion; training quiz web-hint
+- Offline read cache for list/detail; cleared on logout
+- Home compact “continue learning” summary
+
+See [docs/STUDENT_COURSES_IMPLEMENTATION.md](docs/STUDENT_COURSES_IMPLEMENTATION.md).
+
 ### Phase 19 — Student completion
 
 - Real student training list (available, applications, current, completed)
@@ -95,7 +106,8 @@ See [docs/PHASE_18_ASSESSMENTS_SESSIONS.md](docs/PHASE_18_ASSESSMENTS_SESSIONS.m
 - Student profile (read-only) and account settings
 - Secure file download/open service
 - Read-only offline cache for training list
-- Bottom navigation: Home, Training, Notifications, Profile
+- Bottom navigation: Home, Training, Courses (الكورسات), Profile
+- Notifications remain available from the app-bar / home-header bell (`/notifications`)
 
 See [docs/PHASE_19_STUDENT_COMPLETION.md](docs/PHASE_19_STUDENT_COMPLETION.md).
 

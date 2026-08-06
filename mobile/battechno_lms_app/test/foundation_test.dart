@@ -71,6 +71,14 @@ void main() {
       expect(user.isSupported, isFalse);
       expect(user.hasProgramAdmin, isTrue);
     });
+
+    test(
+      'legacy server role code admin is unsupported (not university_admin)',
+      () {
+        expect(LmsRoles.isSupported(['admin']), isFalse);
+        expect(LmsRoles.isSupported([LmsRoles.universityAdmin]), isTrue);
+      },
+    );
   });
 
   group('AppConfig', () {

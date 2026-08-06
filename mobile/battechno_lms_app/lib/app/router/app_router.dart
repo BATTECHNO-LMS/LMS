@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/auth/lms_roles.dart';
 import '../../features/auth/domain/auth_user.dart';
 import '../../features/auth/providers/auth_controller.dart';
 import '../../features/auth/presentation/account_state_screens.dart';
@@ -18,6 +19,8 @@ import '../../features/field_training/presentation/field_training_detail_screen.
 import '../../features/field_training/presentation/session_detail_screen.dart';
 import '../../features/field_training/presentation/sessions_list_screen.dart';
 import '../../features/field_training/presentation/task_detail_screen.dart';
+import '../../features/courses/presentation/student_course_detail_screen.dart';
+import '../../features/courses/presentation/student_courses_list_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/notifications/presentation/notifications_inbox_screen.dart';
 import '../../features/instructor/presentation/instructor_assessments_screen.dart';
@@ -76,6 +79,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       if (status == AuthStatus.authenticated) {
         if (isAuthRoute || isSplash) return '/home';
+        // Student LMS courses are student-only.
+        if (location.startsWith('/student/courses')) {
+          final role = authState.user?.primaryRole;
+          if (role != LmsRoles.student) return '/home';
+        }
         return null;
       }
       if (status == AuthStatus.pendingApproval) {
@@ -209,20 +217,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             CertificateDetailScreen(certificateId: state.pathParameters['id']!),
       ),
       GoRoute(
+        path: '/student/courses',
+        builder: (_, __) =>
+            const Scaffold(body: SafeArea(child: StudentCoursesListScreen())),
+      ),
+      GoRoute(
+        path: '/student/courses/:id',
+        builder: (_, state) =>
+            StudentCourseDetailScreen(courseId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/student/courses/:id/lessons/:lessonId',
+        builder: (_, state) => StudentCourseLessonScreen(
+          courseId: state.pathParameters['id']!,
+          lessonId: state.pathParameters['lessonId']!,
+        ),
+      ),
+      GoRoute(
         path: '/student/settings',
         builder: (_, __) => const SettingsScreen(),
       ),
       GoRoute(
         path: '/notifications',
-        builder: (_, __) => Scaffold(
-          appBar: AppBar(
-            title: Builder(
-              builder: (context) =>
-                  Text(AppLocalizations.of(context).notifications),
-            ),
-          ),
-          body: const NotificationsInboxScreen(),
-        ),
+        builder: (_, __) => const NotificationsInboxScreen(),
       ),
       GoRoute(
         path: '/instructor/settings',
@@ -230,8 +247,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/instructor/field-training',
-        builder: (_, __) =>
-            const Scaffold(body: SafeArea(child: InstructorTrainingsScreen())),
+        builder: (_, __) => Scaffold(
+          backgroundColor: const Color(0xFFF2F3F5),
+          appBar: AppBar(
+            title: Builder(
+              builder: (context) =>
+                  Text(AppLocalizations.of(context).myTrainings),
+            ),
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+          ),
+          body: const SafeArea(child: InstructorTrainingsScreen()),
+        ),
       ),
       GoRoute(
         path: '/instructor/field-training/:id/participants/:applicationId',

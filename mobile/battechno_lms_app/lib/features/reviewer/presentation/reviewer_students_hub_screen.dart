@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/domain/auth_user.dart';
 import '../data/reviewer_repository.dart';
+import 'widgets/reviewer_widgets.dart';
 
 /// University-scoped academic student roster — shared by `qa_officer` and
 /// `university_reviewer` (`canReadFtReports`). Read-only: taps drill into
@@ -61,8 +63,9 @@ class _ReviewerStudentsHubScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return Scaffold(
-      body: _loading && _students.isEmpty
+    return ColoredBox(
+      color: kReviewerPageBg,
+      child: _loading && _students.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(16),
               child: LoadingSkeleton(lines: 5),
@@ -78,25 +81,33 @@ class _ReviewerStudentsHubScreenState
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: l10n.reviewerSearchStudents,
-                      prefixIcon: const Icon(Icons.search),
-                      border: const OutlineInputBorder(),
+                  ReviewerSoftCard(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+                    child: TextField(
+                      decoration:
+                          reviewerSoftFieldDecoration(
+                            '',
+                            hint: l10n.reviewerSearchStudents,
+                          ).copyWith(
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: BatColors.primaryLight,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                      onChanged: (v) => _search = v,
+                      onSubmitted: (_) => _load(),
                     ),
-                    onChanged: (v) => _search = v,
-                    onSubmitted: (_) => _load(),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   if (_students.isEmpty)
                     EmptyState(title: l10n.noParticipants, subtitle: '')
                   else
-                    for (final s in _students) ...[
-                      _studentCard(l10n, s),
-                      const SizedBox(height: 8),
-                    ],
+                    for (final s in _students) _studentCard(l10n, s),
                 ],
               ),
             ),
@@ -108,28 +119,66 @@ class _ReviewerStudentsHubScreenState
     final opportunityTitle = s['opportunity_title']?.toString();
     final completed = s['completed_training_hours'];
     final required = s['required_training_hours'];
-    return Card(
-      child: ListTile(
-        onTap: () {
-          final appId = s['application_id']?.toString();
-          if (appId == null) return;
-          context.push('/reviewer/students/$appId');
-        },
-        leading: CircleAvatar(
-          child: Text(name.isNotEmpty ? name.characters.first : '?'),
-        ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(
-          [
-            if (opportunityTitle != null && opportunityTitle.isNotEmpty)
-              opportunityTitle,
-            if (completed != null)
-              '${l10n.completedHoursLabel}: $completed${required != null ? '/$required' : ''}',
-          ].join(' · '),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(Icons.chevron_left),
+    final initial = name.isNotEmpty ? name.characters.first : '?';
+
+    return ReviewerSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: () {
+        final appId = s['application_id']?.toString();
+        if (appId == null) return;
+        context.push('/reviewer/students/$appId');
+      },
+      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                initial,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: BatColors.primary,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  [
+                    if (opportunityTitle != null && opportunityTitle.isNotEmpty)
+                      opportunityTitle,
+                    if (completed != null)
+                      '${l10n.completedHoursLabel}: $completed${required != null ? '/$required' : ''}',
+                  ].join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_left, color: BatColors.muted),
+        ],
       ),
     );
   }

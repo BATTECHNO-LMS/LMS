@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../admin/presentation/admin_opportunities_screen.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// Field-training oversight for `super_admin` — reuses the existing
 /// university/academic admin opportunities screen and its `/admin/
@@ -16,8 +18,24 @@ class SuperAdminFieldTrainingHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.superAdminFieldTrainingOversight)),
-      body: const SafeArea(child: AdminOpportunitiesScreen()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: l10n.superAdminFieldTrainingOversight,
+        onBack: () => context.pop(),
+      ),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: SaScopeBanner(message: l10n.superAdminGlobalScopeNotice),
+            ),
+            const Expanded(child: AdminOpportunitiesScreen()),
+          ],
+        ),
+      ),
     );
   }
 }

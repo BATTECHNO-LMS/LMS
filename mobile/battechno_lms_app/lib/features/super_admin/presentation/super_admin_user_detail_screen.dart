@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/auth/lms_roles.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/super_admin_repository.dart';
 import '../domain/super_admin_models.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// User detail with activate, status change, and a role-assignment sheet.
 ///
@@ -142,70 +143,131 @@ class _SuperAdminUserDetailScreenState
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (ctx, setModal) {
             return Padding(
               padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.assignRolesTitle,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 18,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: kSaPageBg,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDDE3EB),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        SaSoftCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                l10n.assignRolesTitle,
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: BatColors.heading,
+                                    ),
+                              ),
+                              const SizedBox(height: 8),
+                              for (final role
+                                  in SuperAdminCapabilities.assignableRoles)
+                                CheckboxListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity:
+                                      ListTileControlAffinity.leading,
+                                  activeColor: BatColors.primary,
+                                  value: selected.contains(role),
+                                  title: Text(
+                                    SuperAdminLabels.roleAr(role),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: BatColors.heading,
+                                        ),
+                                  ),
+                                  subtitle: role == LmsRoles.superAdmin
+                                      ? Text(
+                                          l10n.superAdminRoleWarning,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: BatColors.muted,
+                                              ),
+                                        )
+                                      : null,
+                                  onChanged: (v) {
+                                    setModal(() {
+                                      if (v == true) {
+                                        selected.add(role);
+                                      } else {
+                                        selected.remove(role);
+                                      }
+                                    });
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton(
+                          style: saPrimaryButtonStyle(),
+                          onPressed: _saving
+                              ? null
+                              : () async {
+                                  if (selected.isEmpty) return;
+                                  final wasSuper = user.roleCodes.contains(
+                                    LmsRoles.superAdmin,
+                                  );
+                                  final willBeSuper = selected.contains(
+                                    LmsRoles.superAdmin,
+                                  );
+                                  Navigator.pop(ctx);
+                                  if (wasSuper != willBeSuper) {
+                                    final confirmed =
+                                        await _confirmSuperAdminChange(
+                                          adding: willBeSuper,
+                                        );
+                                    if (confirmed != true) return;
+                                  }
+                                  await _submitRoles(selected.toList());
+                                },
+                          child: _saving
+                              ? const SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(l10n.save),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  for (final role in SuperAdminCapabilities.assignableRoles)
-                    CheckboxListTile(
-                      value: selected.contains(role),
-                      title: Text(SuperAdminLabels.roleAr(role)),
-                      subtitle: role == LmsRoles.superAdmin
-                          ? Text(l10n.superAdminRoleWarning)
-                          : null,
-                      onChanged: (v) {
-                        setModal(() {
-                          if (v == true) {
-                            selected.add(role);
-                          } else {
-                            selected.remove(role);
-                          }
-                        });
-                      },
-                    ),
-                  const SizedBox(height: 12),
-                  PrimaryButton(
-                    label: l10n.save,
-                    isLoading: _saving,
-                    onPressed: _saving
-                        ? null
-                        : () async {
-                            if (selected.isEmpty) return;
-                            final wasSuper = user.roleCodes.contains(
-                              LmsRoles.superAdmin,
-                            );
-                            final willBeSuper = selected.contains(
-                              LmsRoles.superAdmin,
-                            );
-                            Navigator.pop(ctx);
-                            if (wasSuper != willBeSuper) {
-                              final confirmed = await _confirmSuperAdminChange(
-                                adding: willBeSuper,
-                              );
-                              if (confirmed != true) return;
-                            }
-                            await _submitRoles(selected.toList());
-                          },
-                  ),
-                ],
+                ),
               ),
             );
           },
@@ -271,10 +333,8 @@ class _SuperAdminUserDetailScreenState
     final user = _user;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(user?.fullName ?? l10n.userDetail),
-        leading: BackButton(onPressed: () => context.pop()),
-      ),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(context, title: user?.fullName ?? l10n.userDetail),
       body: SafeArea(child: _buildBody(l10n, user)),
     );
   }
@@ -299,116 +359,194 @@ class _SuperAdminUserDetailScreenState
       return EmptyState(title: l10n.resourceNotFound);
     }
 
+    final initial = user.fullName.isNotEmpty ? user.fullName[0] : '?';
+
     return RefreshIndicator(
       onRefresh: _load,
+      color: BatColors.primary,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          user.fullName,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      StatusChip(
-                        label: SuperAdminLabels.userStatusAr(user.status),
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ],
+          SaSoftCard(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: BatColors.primarySoft,
+                  foregroundColor: BatColors.primary,
+                  child: Text(
+                    initial,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  if (user.isSuperAdmin) ...[
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.verified_user,
-                          size: 16,
-                          color: Colors.red,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          l10n.superAdminBadge,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.w700,
-                          ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.fullName,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                              height: 1.25,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      SaStatusBadge(
+                        label: SuperAdminLabels.userStatusAr(user.status),
+                        tone: _statusTone(user.status),
+                      ),
+                      if (user.isSuperAdmin) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.verified_user,
+                              size: 16,
+                              color: BatColors.danger,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              l10n.superAdminBadge,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: BatColors.danger,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ],
                         ),
                       ],
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  _kv(l10n.email, user.email),
-                  if (user.universityName != null)
-                    _kv(l10n.university, user.universityName!),
-                  _kv(
-                    l10n.roleAssignmentLabel,
-                    user.roleCodes.map(SuperAdminLabels.roleAr).join('، '),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.userDetail,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                SaMetaRow(
+                  icon: Icons.email_outlined,
+                  label: l10n.email,
+                  value: user.email,
+                ),
+                if (user.universityName != null) ...[
+                  const SizedBox(height: 12),
+                  SaMetaRow(
+                    icon: Icons.account_balance_outlined,
+                    label: l10n.university,
+                    value: user.universityName!,
                   ),
                 ],
-              ),
+                const SizedBox(height: 12),
+                SaMetaRow(
+                  icon: Icons.badge_outlined,
+                  label: l10n.roleAssignmentLabel,
+                  value: user.roleCodes.map(SuperAdminLabels.roleAr).join('، '),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 16),
           if (user.status == 'inactive' && user.emailVerified) ...[
-            PrimaryButton(
-              label: l10n.activateUserAction,
-              isLoading: _saving,
-              onPressed: _saving ? null : _activate,
-            ),
             const SizedBox(height: 12),
+            FilledButton(
+              style: saPrimaryButtonStyle(),
+              onPressed: _saving ? null : _activate,
+              child: _saving
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(l10n.activateUserAction),
+            ),
           ],
-          AcademicSectionHeader(title: l10n.changeStatus),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final s in ['active', 'inactive', 'suspended'])
-                if (s != user.status)
-                  OutlinedButton(
-                    onPressed: _saving ? null : () => _confirmStatusChange(s),
-                    child: Text(SuperAdminLabels.userStatusAr(s)),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.changeStatus,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
                   ),
-            ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final s in ['active', 'inactive', 'suspended'])
+                      if (s != user.status)
+                        OutlinedButton(
+                          style: saOutlinedButtonStyle(),
+                          onPressed: _saving
+                              ? null
+                              : () => _confirmStatusChange(s),
+                          child: Text(SuperAdminLabels.userStatusAr(s)),
+                        ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.roleAssignmentLabel),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _saving ? null : _openRoleSheet,
-            icon: const Icon(Icons.badge_outlined),
-            label: Text(l10n.assignRolesTitle),
+          const SizedBox(height: 12),
+          SaSoftCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.roleAssignmentLabel,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  style: saOutlinedButtonStyle(),
+                  onPressed: _saving ? null : _openRoleSheet,
+                  icon: const Icon(Icons.badge_outlined),
+                  label: Text(l10n.assignRolesTitle),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _kv(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
+  SaBadgeTone _statusTone(String status) {
+    switch (status) {
+      case 'active':
+        return SaBadgeTone.success;
+      case 'suspended':
+        return SaBadgeTone.accent;
+      default:
+        return SaBadgeTone.neutral;
+    }
   }
 }

@@ -39,7 +39,7 @@ void main() {
 
     expect(find.text('الرئيسية'), findsOneWidget);
     expect(find.text('التدريب'), findsOneWidget);
-    expect(find.text('الإشعارات'), findsOneWidget);
+    expect(find.text('الكورسات'), findsOneWidget);
     expect(find.text('حسابي'), findsOneWidget);
   });
 

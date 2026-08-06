@@ -358,26 +358,32 @@ class QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return Material(
+      color: BatColors.primarySoft,
       borderRadius: BorderRadius.circular(BatRadii.lg),
-      child: Container(
-        width: 96,
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: BatColors.primarySoft,
-          borderRadius: BorderRadius.circular(BatRadii.lg),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: BatColors.primary),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelSmall,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(BatRadii.lg),
+        child: SizedBox(
+          width: 96,
+          height: 108,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: BatColors.primary),
+                const SizedBox(height: 8),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -460,45 +466,98 @@ class TrainingProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final clamped = progress.clamp(0.0, 1.0);
+    final hoursLabel = completedHours != null
+        ? '$completedHours${requiredHours != null ? ' / $requiredHours' : ''}'
+        : null;
+
+    return Material(
+      color: BatColors.cream,
+      borderRadius: BorderRadius.circular(28),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.hiking,
+                    color: BatColors.accentHover,
+                    size: 22,
                   ),
                 ),
-                StatusChip(label: statusLabel, color: BatColors.info),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: BatColors.heading,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: BatColors.primarySoft,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          statusLabel,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: BatColors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hoursLabel != null)
+                  Text(
+                    hoursLabel,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: BatColors.accentHover,
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             ClipRRect(
-              borderRadius: BorderRadius.circular(BatRadii.pill),
+              borderRadius: BorderRadius.circular(999),
               child: LinearProgressIndicator(
-                value: progress.clamp(0, 1),
-                minHeight: 8,
+                value: clamped,
+                minHeight: 10,
                 color: BatColors.accent,
-                backgroundColor: BatColors.primarySoft,
+                backgroundColor: Colors.white,
               ),
             ),
-            if (completedHours != null) ...[
+            if (nextAction != null && nextAction!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text(
-                '$completedHours ${requiredHours != null ? '/ $requiredHours' : ''}',
-                style: Theme.of(context).textTheme.bodyMedium,
+                nextAction!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: BatColors.muted,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ],
-            if (nextAction != null) ...[
-              const SizedBox(height: 12),
-              InfoBanner(message: nextAction!),
             ],
           ],
         ),
@@ -507,24 +566,188 @@ class TrainingProgressCard extends StatelessWidget {
   }
 }
 
+/// Shell / secondary-page header:
+/// [Back] · page title · [Notifications] — circular actions on soft surface.
 class BattechnoAppBar extends StatelessWidget implements PreferredSizeWidget {
   const BattechnoAppBar({
     super.key,
     required this.title,
+    this.onBack,
+    this.onNotifications,
+    this.unreadCount = 0,
+    this.notificationsTooltip,
     this.actions,
     this.leading,
   });
 
   final String title;
+  final VoidCallback? onBack;
+  final VoidCallback? onNotifications;
+  final int unreadCount;
+  final String? notificationsTooltip;
+
+  /// Optional override — used when a screen needs custom trailing widgets.
   final List<Widget>? actions;
   final Widget? leading;
 
   @override
-  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+  Size get preferredSize => const Size.fromHeight(64);
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(title: Text(title), leading: leading, actions: actions);
+    final canPop = Navigator.of(context).canPop();
+    final resolveBack =
+        onBack ?? (canPop ? () => Navigator.of(context).maybePop() : null);
+
+    return Material(
+      color: BatColors.background,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 64,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Title — always centered
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 56),
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: BatColors.heading,
+                    ),
+                  ),
+                ),
+                // Start (right in RTL) = back
+                PositionedDirectional(
+                  start: 0,
+                  child:
+                      leading ??
+                      (resolveBack != null
+                          ? _HeaderCircleButton(
+                              background: Colors.white,
+                              icon: Icons.chevron_right,
+                              iconColor: BatColors.heading,
+                              onTap: resolveBack,
+                              semanticLabel: MaterialLocalizations.of(
+                                context,
+                              ).backButtonTooltip,
+                            )
+                          : const SizedBox(width: 44)),
+                ),
+                // End (left in RTL) = notifications or custom actions
+                PositionedDirectional(
+                  end: 0,
+                  child: actions != null
+                      ? Row(mainAxisSize: MainAxisSize.min, children: actions!)
+                      : (onNotifications != null
+                            ? Tooltip(
+                                message: notificationsTooltip ?? '',
+                                child: _HeaderCircleButton(
+                                  background: BatColors.primaryLight,
+                                  icon: Icons.notifications_outlined,
+                                  iconColor: Colors.white,
+                                  bordered: true,
+                                  onTap: onNotifications!,
+                                  badgeCount: unreadCount,
+                                ),
+                              )
+                            : const SizedBox(width: 44)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderCircleButton extends StatelessWidget {
+  const _HeaderCircleButton({
+    required this.background,
+    required this.icon,
+    required this.iconColor,
+    required this.onTap,
+    this.bordered = false,
+    this.badgeCount = 0,
+    this.semanticLabel,
+  });
+
+  final Color background;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback onTap;
+  final bool bordered;
+  final int badgeCount;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    // Keep chevrons from auto-mirroring in RTL so back always points
+    // outward on the start edge (→ in Arabic, ← in English).
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
+    final resolvedIcon = icon == Icons.chevron_right
+        ? (isRtl ? Icons.chevron_right : Icons.chevron_left)
+        : icon;
+    final lockDirection = icon == Icons.chevron_right;
+
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Ink(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+              border: bordered
+                  ? Border.all(color: Colors.white, width: 1.5)
+                  : null,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(
+                  resolvedIcon,
+                  color: iconColor,
+                  size: 22,
+                  textDirection: lockDirection ? TextDirection.ltr : null,
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    top: 8,
+                    right: 10,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: BatColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

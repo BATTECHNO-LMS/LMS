@@ -3,11 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
+import '../../../core/widgets/home_mosaic.dart';
+import '../../courses/data/student_courses_repository.dart';
+import '../../courses/domain/student_course_models.dart';
 import '../../field_training/domain/assessment_models.dart';
 import '../../field_training/domain/session_models.dart';
 import '../../auth/domain/auth_user.dart';
+import '../../notifications/data/notifications_repository.dart';
 import '../data/student_dashboard_repository.dart';
 import 'home_shell_screen.dart';
 
@@ -98,24 +103,36 @@ class _StudentHomeScreenState extends ConsumerState<StudentHomeScreen> {
         progress?['nextAction']?.toString() ??
         progress?['next_action']?.toString();
     final priority = _priorityAction(data, l10n);
+    final hoursSubtitle = requiredHours != null
+        ? '${completedHours ?? 0} / $requiredHours'
+        : (completedHours?.toString() ?? statusLabel);
+    final unread =
+        ref
+            .watch(notificationsControllerProvider)
+            .valueOrNull
+            ?.notifications
+            .where((n) => !n.isRead)
+            .length ??
+        0;
 
-    return RefreshIndicator(
+    return HomeMosaicScaffold(
       onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
+      header: HomeMosaicHeader(
+        greeting: _greeting(l10n),
+        fullName: widget.user.fullName,
+        subtitle: [
+          widget.user.universityName,
+          widget.user.specialtyLabel(isArabic: isArabic),
+        ].where((s) => s != null && s.isNotEmpty).join(' · '),
+        profileActionLabel: l10n.profile,
+        onProfileTap: () =>
+            ref.read(shellTabIndexRequestProvider.notifier).state = 3,
+        notificationsTooltip: l10n.notifications,
+        unreadCount: unread,
+        onNotificationsTap: () => context.push('/notifications'),
+      ),
+      banner: Column(
         children: [
-          Text(
-            '${_greeting(l10n)}، ${widget.user.fullName.split(' ').first}',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 12),
-          UniversityIdentityCard(
-            university: widget.user.universityName ?? '—',
-            specialty: widget.user.specialtyLabel(isArabic: isArabic),
-          ),
-          const SizedBox(height: 16),
           TrainingProgressCard(
             title: l10n.fieldTrainingStatus,
             statusLabel: statusLabel,
@@ -124,143 +141,141 @@ class _StudentHomeScreenState extends ConsumerState<StudentHomeScreen> {
             requiredHours: requiredHours,
             nextAction: nextAction,
           ),
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.quickActions),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 108,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                QuickActionButton(
-                  icon: Icons.hiking,
-                  label: l10n.training,
-                  onTap: () {
-                    final id = data?.activeOpportunityId;
-                    if (id != null) context.push('/student/field-training/$id');
-                  },
-                ),
-                const SizedBox(width: 12),
-                QuickActionButton(
-                  icon: Icons.quiz_outlined,
-                  label: l10n.assessmentsTitle,
-                  onTap: () {
-                    final id = data?.activeOpportunityId;
-                    if (id != null) {
-                      context.push('/student/field-training/$id/assessments');
-                    }
-                  },
-                ),
-                const SizedBox(width: 12),
-                QuickActionButton(
-                  icon: Icons.event_outlined,
-                  label: l10n.trainingSessions,
-                  onTap: () {
-                    final id = data?.activeOpportunityId;
-                    if (id != null) {
-                      context.push('/student/field-training/$id/sessions');
-                    }
-                  },
-                ),
-                const SizedBox(width: 12),
-                QuickActionButton(
-                  icon: Icons.workspace_premium_outlined,
-                  label: l10n.certificatesTitle,
-                  onTap: () => context.push('/student/certificates'),
-                ),
-              ],
-            ),
-          ),
-          if (_hasCompletionLetter(data)) ...[
+          if (priority.onTap != null) ...[
             const SizedBox(height: 12),
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.description_outlined),
-                title: Text(l10n.certificateReady),
-                subtitle: Text(l10n.viewCertificatesHint),
-                trailing: const Icon(Icons.chevron_left),
-                onTap: () => context.push('/student/certificates'),
+            Material(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(28),
+              child: InkWell(
+                onTap: priority.onTap,
+                borderRadius: BorderRadius.circular(28),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          priority.icon,
+                          color: BatColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              priority.title,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: BatColors.heading,
+                                  ),
+                            ),
+                            if (priority.subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                priority.subtitle!,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: BatColors.muted),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.chevron_left, color: BatColors.primary),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.nextAction),
-          const SizedBox(height: 8),
-          Card(
-            child: ListTile(
-              leading: Icon(priority.icon),
-              title: Text(priority.title),
-              subtitle: priority.subtitle != null
-                  ? Text(priority.subtitle!)
-                  : null,
-              trailing: priority.onTap != null
-                  ? const Icon(Icons.chevron_left)
-                  : null,
-              onTap: priority.onTap,
-            ),
-          ),
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.eligibleOpportunities),
-          const SizedBox(height: 8),
-          if (data?.opportunities.isEmpty ?? true)
-            EmptyState(title: l10n.emptyDashboard)
-          else
-            ...data!.opportunities
-                .take(4)
-                .map(
-                  (item) => Card(
-                    child: ListTile(
-                      onTap: () {
-                        final id = _readOpportunityId(item);
-                        if (id != null) {
-                          context.push('/student/field-training/$id');
-                        }
-                      },
-                      title: Text(
-                        item['title']?.toString() ??
-                            item['name']?.toString() ??
-                            '—',
-                      ),
-                      subtitle: Text(item['university_name']?.toString() ?? ''),
-                      trailing: const Icon(Icons.chevron_left),
-                    ),
-                  ),
-                ),
-          const SizedBox(height: 16),
-          AcademicSectionHeader(title: l10n.recentActivity),
-          const SizedBox(height: 8),
-          if ((data?.tasks ?? []).isEmpty)
-            EmptyState(
-              title: l10n.emptyDashboard,
-              icon: Icons.notifications_none_outlined,
-            )
-          else
-            ...data!.tasks!
-                .take(3)
-                .map(
-                  (task) => ListTile(
-                    onTap: () {
-                      final taskId = task['id']?.toString();
-                      final opportunityId =
-                          _readOpportunityId(task) ??
-                          _activeOpportunityId(data);
-                      if (taskId != null && opportunityId != null) {
-                        context.push(
-                          '/student/tasks/$taskId?opportunityId=${Uri.encodeComponent(opportunityId)}',
-                          extra: task,
-                        );
-                      }
-                    },
-                    leading: const Icon(Icons.assignment_outlined),
-                    title: Text(
-                      task['title']?.toString() ??
-                          task['name']?.toString() ??
-                          '—',
-                    ),
-                  ),
-                ),
         ],
       ),
+      tiles: [
+        // Col A: tall (Balance) · Col B: short (Tickets)
+        HomeMosaicTileData(
+          label: l10n.training,
+          icon: Icons.hiking,
+          tone: HomeMosaicTone.primary,
+          size: HomeMosaicSize.tall,
+          subtitle: hoursSubtitle,
+          onTap: () => _openTrainingRelated(
+            data,
+            l10n,
+            (id) => '/student/field-training/$id',
+          ),
+        ),
+        HomeMosaicTileData(
+          label: l10n.assessmentsTitle,
+          icon: Icons.quiz_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => _openTrainingRelated(
+            data,
+            l10n,
+            (id) => '/student/field-training/$id/assessments',
+          ),
+        ),
+        // Col A: short (Addresses) · Col B: tall (Saved Cards)
+        HomeMosaicTileData(
+          label: l10n.trainingSessions,
+          icon: Icons.event_outlined,
+          tone: HomeMosaicTone.secondary,
+          size: HomeMosaicSize.short,
+          onTap: () => _openTrainingRelated(
+            data,
+            l10n,
+            (id) => '/student/field-training/$id/sessions',
+          ),
+        ),
+        HomeMosaicTileData(
+          label: l10n.certificatesTitle,
+          icon: Icons.workspace_premium_outlined,
+          tone: HomeMosaicTone.accent,
+          size: HomeMosaicSize.tall,
+          onTap: () => context.push('/student/certificates'),
+        ),
+        // Col A: medium (Contact) · Col B: medium (Payout)
+        HomeMosaicTileData(
+          label: l10n.courses,
+          icon: Icons.menu_book_outlined,
+          tone: HomeMosaicTone.soft,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 2,
+        ),
+        HomeMosaicTileData(
+          label: l10n.eligibleOpportunities,
+          icon: Icons.travel_explore_outlined,
+          tone: HomeMosaicTone.cream,
+          size: HomeMosaicSize.medium,
+          onTap: () =>
+              ref.read(shellTabIndexRequestProvider.notifier).state = 1,
+        ),
+      ],
+      footer: [
+        _StudentCoursesHomeSummary(userId: widget.user.id),
+        if (_hasCompletionLetter(data)) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: Text(l10n.certificateReady),
+              subtitle: Text(l10n.viewCertificatesHint),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => context.push('/student/certificates'),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -309,6 +324,22 @@ class _StudentHomeScreenState extends ConsumerState<StudentHomeScreen> {
     if (data?.activeOpportunityId != null) return data!.activeOpportunityId;
     if (data == null || data.applications.isEmpty) return null;
     return _readOpportunityId(data.applications.first);
+  }
+
+  void _openTrainingRelated(
+    StudentDashboardData? data,
+    AppLocalizations l10n,
+    String Function(String opportunityId) pathFor,
+  ) {
+    final id = _activeOpportunityId(data);
+    if (id != null && id.isNotEmpty) {
+      context.push(pathFor(id));
+      return;
+    }
+    ref.read(shellTabIndexRequestProvider.notifier).state = 1;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.noActiveTraining)));
   }
 
   Map<String, dynamic>? _readMap(Map<String, dynamic>? map, List<String> keys) {
@@ -405,4 +436,110 @@ class _HomePriorityAction {
   final String title;
   final String? subtitle;
   final VoidCallback? onTap;
+}
+
+/// Compact academic summary on Student Home — one active course + continue.
+class _StudentCoursesHomeSummary extends ConsumerStatefulWidget {
+  const _StudentCoursesHomeSummary({required this.userId});
+
+  final String userId;
+
+  @override
+  ConsumerState<_StudentCoursesHomeSummary> createState() =>
+      _StudentCoursesHomeSummaryState();
+}
+
+class _StudentCoursesHomeSummaryState
+    extends ConsumerState<_StudentCoursesHomeSummary> {
+  StudentCourse? _course;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final data = await ref
+          .read(studentCoursesRepositoryProvider)
+          .loadList(userId: widget.userId);
+      StudentCourse? pick;
+      for (final c in data.courses) {
+        if (c.enrollmentStatus == StudentCourseEnrollmentStatus.active) {
+          pick = c;
+          break;
+        }
+      }
+      pick ??= data.courses.isNotEmpty ? data.courses.first : null;
+      if (mounted) setState(() => _course = pick);
+    } catch (_) {
+      // Home remains usable without courses summary.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final course = _course;
+    if (course == null) return const SizedBox.shrink();
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: BatColors.primarySoft,
+      borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: () => context.push('/student/courses/${course.id}'),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.menu_book_outlined,
+                  color: BatColors.primary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.continueLearning,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: BatColors.muted,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      course.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: BatColors.heading,
+                      ),
+                    ),
+                    Text(
+                      l10n.courseProgressPercent(course.progressPercent),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: BatColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_left, color: BatColors.primary),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

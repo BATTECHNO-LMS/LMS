@@ -14,6 +14,10 @@ class ApiException implements Exception {
   bool get isUnauthorized =>
       statusCode == 401 || code == 'UNAUTHORIZED' || code == 'TOKEN_INVALID';
 
+  bool get isForbidden => statusCode == 403 || code == 'FORBIDDEN';
+  bool get isNotFound => statusCode == 404 || code == 'NOT_FOUND';
+  bool get isConflict => statusCode == 409 || code == 'CONFLICT';
+
   bool get isEmailNotVerified => code == 'EMAIL_NOT_VERIFIED';
   bool get isAccountPending => code == 'ACCOUNT_PENDING_ACTIVATION';
   bool get isAccountInactive => code == 'ACCOUNT_INACTIVE';

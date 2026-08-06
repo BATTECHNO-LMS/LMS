@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/field_training_repository.dart';
 import '../domain/session_models.dart';
+import 'widgets/field_training_widgets.dart';
 import 'widgets/session_widgets.dart';
 
 class SessionsListScreen extends ConsumerStatefulWidget {
@@ -58,8 +60,13 @@ class _SessionsListScreenState extends ConsumerState<SessionsListScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: kFtPageBg,
       appBar: AppBar(
         title: Text(l10n.trainingSessions),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(child: _buildBody(l10n)),
@@ -100,15 +107,81 @@ class _SessionsListScreenState extends ConsumerState<SessionsListScreen> {
     final past = _sorted(
       _sessions.where((s) => s.timing() == SessionTiming.past).toList(),
     );
+    final presentCount = _sessions
+        .where((s) => s.attendanceStatus == AttendanceStatus.present)
+        .length;
 
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
+          FtSoftCard(
+            child: Row(
+              children: [
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: BatColors.primarySoft,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.event_available_outlined,
+                    color: BatColors.primary,
+                    size: 26,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.trainingSessions,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: BatColors.heading,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.sessionsAttendedLabel(
+                          presentCount,
+                          _sessions.length,
+                        ),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BatColors.accentSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_sessions.length}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: BatColors.accentHover,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (upcoming.isNotEmpty) ...[
-            AcademicSectionHeader(title: l10n.upcomingSessions),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
+            _SectionLabel(title: l10n.upcomingSessions, count: upcoming.length),
+            const SizedBox(height: 10),
             for (final session in upcoming)
               SessionCard(
                 session: session,
@@ -117,9 +190,9 @@ class _SessionsListScreenState extends ConsumerState<SessionsListScreen> {
               ),
           ],
           if (past.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            AcademicSectionHeader(title: l10n.pastSessions),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
+            _SectionLabel(title: l10n.pastSessions, count: past.length),
+            const SizedBox(height: 10),
             for (final session in past)
               SessionCard(
                 session: session,
@@ -136,6 +209,37 @@ class _SessionsListScreenState extends ConsumerState<SessionsListScreen> {
     context.push(
       '/student/field-training/${widget.opportunityId}/sessions/${session.id}',
       extra: session.raw,
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.title, required this.count});
+
+  final String title;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            title,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
+        ),
+        Text(
+          '$count',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: BatColors.muted,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

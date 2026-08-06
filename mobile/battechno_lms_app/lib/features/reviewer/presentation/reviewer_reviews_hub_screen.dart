@@ -27,27 +27,30 @@ class _ReviewerReviewsHubScreenState extends State<ReviewerReviewsHubScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: DomainFilterChips(
-            labels: [
-              l10n.recognitionRequestsTitle,
-              l10n.pendingEnrollmentsTitle,
-            ],
-            selectedIndex: _ReviewerDomain.values.indexOf(_domain),
-            onSelected: (i) =>
-                setState(() => _domain = _ReviewerDomain.values[i]),
+    return ColoredBox(
+      color: kReviewerPageBg,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: DomainFilterChips(
+              labels: [
+                l10n.recognitionRequestsTitle,
+                l10n.pendingEnrollmentsTitle,
+              ],
+              selectedIndex: _ReviewerDomain.values.indexOf(_domain),
+              onSelected: (i) =>
+                  setState(() => _domain = _ReviewerDomain.values[i]),
+            ),
           ),
-        ),
-        Expanded(
-          child: _domain == _ReviewerDomain.recognition
-              ? RecognitionRequestsSection(user: widget.user)
-              : PendingEnrollmentsSection(user: widget.user),
-        ),
-      ],
+          Expanded(
+            child: _domain == _ReviewerDomain.recognition
+                ? RecognitionRequestsSection(user: widget.user)
+                : PendingEnrollmentsSection(user: widget.user),
+          ),
+        ],
+      ),
     );
   }
 }

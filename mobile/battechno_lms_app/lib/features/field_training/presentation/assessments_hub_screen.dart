@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/field_training_repository.dart';
@@ -32,6 +33,8 @@ class _AssessmentsHubScreenState extends ConsumerState<AssessmentsHubScreen> {
   List<StudentAssessmentSummary> _assessments = const [];
   bool _loading = true;
   String? _error;
+
+  static const _pageBg = Color(0xFFF2F3F5);
 
   @override
   void initState() {
@@ -75,8 +78,13 @@ class _AssessmentsHubScreenState extends ConsumerState<AssessmentsHubScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
+      backgroundColor: _pageBg,
       appBar: AppBar(
         title: Text(l10n.assessmentsTitle),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
         leading: BackButton(onPressed: () => context.pop()),
       ),
       body: SafeArea(child: _buildBody(l10n)),
@@ -115,16 +123,17 @@ class _AssessmentsHubScreenState extends ConsumerState<AssessmentsHubScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         children: [
           if (widget.opportunityTitle != null) ...[
             Text(
               widget.opportunityTitle!,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: BatColors.heading,
+              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
           ],
           if (widget.requiresPre)
             AssessmentSummaryCard(

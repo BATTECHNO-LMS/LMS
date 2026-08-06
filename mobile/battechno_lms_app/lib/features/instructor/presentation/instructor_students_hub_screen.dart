@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/providers/auth_controller.dart';
@@ -90,75 +91,163 @@ class _InstructorStudentsHubScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_loading && _data == null) {
-      return const Padding(
-        padding: EdgeInsets.all(16),
-        child: LoadingSkeleton(lines: 5),
+      return const ColoredBox(
+        color: kInstructorPageBg,
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: LoadingSkeleton(lines: 5),
+        ),
       );
     }
     if (_error == 'network' && _data == null) {
-      return RetryView(
-        title: l10n.networkErrorTitle,
-        message: l10n.networkErrorBody,
-        onRetry: _load,
+      return ColoredBox(
+        color: kInstructorPageBg,
+        child: RetryView(
+          title: l10n.networkErrorTitle,
+          message: l10n.networkErrorBody,
+          onRetry: _load,
+        ),
       );
     }
 
     final opps = _data?.opportunities ?? const [];
     if (opps.isEmpty) {
-      return EmptyState(
-        title: l10n.instructorStudentsHub,
-        subtitle: l10n.noAssignedTrainings,
+      return ColoredBox(
+        color: kInstructorPageBg,
+        child: EmptyState(
+          title: l10n.instructorStudentsHub,
+          subtitle: l10n.noAssignedTrainings,
+          icon: Icons.groups_outlined,
+        ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            l10n.instructorStudentsHub,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 8),
-          Text(l10n.selectTrainingForStudents),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _selectedId,
-            decoration: const InputDecoration(border: OutlineInputBorder()),
-            items: [
-              for (final o in opps)
-                DropdownMenuItem(value: o.id, child: Text(o.title)),
-            ],
-            onChanged: (id) {
-              if (id == null) return;
-              setState(() => _selectedId = id);
-              _loadApps(id);
-            },
-          ),
-          const SizedBox(height: 16),
-          if (_loadingApps)
-            const LoadingSkeleton(lines: 3)
-          else if (_apps.isEmpty)
-            EmptyState(title: l10n.noParticipants, subtitle: '')
-          else
-            for (final app in _apps) ...[
-              ParticipantProgressCard(
-                application: app,
-                onTap: () {
-                  final appId = app['id']?.toString();
-                  final oppId = _selectedId;
-                  if (appId == null || oppId == null) return;
-                  context.push(
-                    '/instructor/field-training/$oppId/participants/$appId',
-                  );
+    return ColoredBox(
+      color: kInstructorPageBg,
+      child: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+          children: [
+            InstSoftCard(
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: BatColors.primarySoft,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.groups_outlined,
+                      color: BatColors.primary,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.instructorStudentsHub,
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: BatColors.heading,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.selectTrainingForStudents,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: BatColors.muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: BatColors.accentSoft,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_apps.length}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: BatColors.accentHover,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            InstSoftCard(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+              child: DropdownButtonFormField<String>(
+                initialValue: _selectedId,
+                decoration: InputDecoration(
+                  labelText: l10n.myTrainings,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: BatColors.primary,
+                ),
+                dropdownColor: Colors.white,
+                items: [
+                  for (final o in opps)
+                    DropdownMenuItem(
+                      value: o.id,
+                      child: Text(
+                        o.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: BatColors.heading,
+                        ),
+                      ),
+                    ),
+                ],
+                onChanged: (id) {
+                  if (id == null) return;
+                  setState(() => _selectedId = id);
+                  _loadApps(id);
                 },
               ),
-              const SizedBox(height: 8),
-            ],
-        ],
+            ),
+            const SizedBox(height: 14),
+            if (_loadingApps)
+              const LoadingSkeleton(lines: 3)
+            else if (_apps.isEmpty)
+              EmptyState(
+                title: l10n.noParticipants,
+                icon: Icons.person_off_outlined,
+              )
+            else
+              for (final app in _apps)
+                ParticipantProgressCard(
+                  application: app,
+                  onTap: () {
+                    final appId = app['id']?.toString();
+                    final oppId = _selectedId;
+                    if (appId == null || oppId == null) return;
+                    context.push(
+                      '/instructor/field-training/$oppId/participants/$appId',
+                    );
+                  },
+                ),
+          ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/auth/lms_roles.dart';
 import '../../../core/push/push_config.dart';
 import '../../../core/push/push_message.dart';
@@ -14,6 +15,7 @@ import '../../../core/widgets/app_shell.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../../auth/domain/auth_user.dart';
 import '../../auth/providers/auth_controller.dart';
+import '../../courses/presentation/student_courses_list_screen.dart';
 import '../../notifications/data/notifications_repository.dart';
 import '../../notifications/presentation/notifications_inbox_screen.dart';
 import '../../profile/presentation/student_profile_screen.dart';
@@ -50,6 +52,10 @@ import 'student_home_screen.dart';
 final studentDashboardRepositoryProvider = Provider<StudentDashboardRepository>(
   (ref) => StudentDashboardRepository(ref.watch(apiClientProvider)),
 );
+
+/// Nested pages request a bottom-nav tab by writing an index here.
+/// [HomeShellScreen] listens and applies it, then clears the request.
+final shellTabIndexRequestProvider = StateProvider<int?>((ref) => null);
 
 class HomeShellScreen extends ConsumerStatefulWidget {
   const HomeShellScreen({super.key});
@@ -190,43 +196,64 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
             .length ??
         0;
 
+    ref.listen<int?>(shellTabIndexRequestProvider, (previous, next) {
+      if (next == null) return;
+      final clamped = next.clamp(0, navItems.length - 1);
+      if (clamped != _index) {
+        setState(() => _index = clamped);
+      }
+      Future.microtask(() {
+        if (ref.read(shellTabIndexRequestProvider) != null) {
+          ref.read(shellTabIndexRequestProvider.notifier).state = null;
+        }
+      });
+    });
+
+    final isHomeTab = _index == 0;
+    final isStudentProfileTab =
+        user.primaryRole == LmsRoles.student && _index == 3;
+    final isInstructorProfileTab =
+        user.primaryRole == LmsRoles.instructor && _index == 3;
+    final isAdminProfileTab =
+        (user.primaryRole == LmsRoles.universityAdmin ||
+            user.primaryRole == LmsRoles.academicAdmin) &&
+        _index == 4;
+    final isReviewerProfileTab =
+        user.primaryRole == LmsRoles.universityReviewer && _index == 4;
+    final isQaProfileTab =
+        user.primaryRole == LmsRoles.qaOfficer && _index == 4;
+    final isSuperAdminProfileTab =
+        user.primaryRole == LmsRoles.superAdmin && _index == 4;
+    final isImmersiveProfileTab =
+        isStudentProfileTab ||
+        isInstructorProfileTab ||
+        isAdminProfileTab ||
+        isReviewerProfileTab ||
+        isQaProfileTab ||
+        isSuperAdminProfileTab;
+
+    final isQaNotificationsTab =
+        user.primaryRole == LmsRoles.qaOfficer && _index == 3;
+
     return Scaffold(
-      appBar: BattechnoAppBar(
-        title: navItems[_index.clamp(0, navItems.length - 1)].label,
-        actions: [
-          IconButton(
-            icon: Badge(
-              isLabelVisible: unread > 0,
-              label: Text('$unread'),
-              child: const Icon(Icons.notifications_outlined),
-            ),
-            onPressed: () {
-              final notifIndex = navItems.indexWhere(
-                (item) => item.route == '/home/notifications',
-              );
-              if (notifIndex != -1) {
-                setState(() => _index = notifIndex);
-              } else {
+      extendBody: true,
+      backgroundColor: isImmersiveProfileTab ? BatColors.primary : null,
+      appBar: (isHomeTab || isImmersiveProfileTab || isQaNotificationsTab)
+          ? null
+          : BattechnoAppBar(
+              title: navItems[_index.clamp(0, navItems.length - 1)].label,
+              onBack: () => setState(() => _index = 0),
+              notificationsTooltip: l10n.notifications,
+              unreadCount: unread,
+              onNotifications: () {
                 context.push('/notifications');
-              }
-            },
-            tooltip: l10n.notifications,
-          ),
-          IconButton(
-            icon: CircleAvatar(
-              radius: 14,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.12),
-              child: Text(
-                user.fullName.isNotEmpty ? user.fullName.characters.first : '?',
-              ),
+              },
             ),
-            onPressed: () => setState(() => _index = navItems.length - 1),
-          ),
-        ],
+      body: SafeArea(
+        top: !isImmersiveProfileTab,
+        bottom: false,
+        child: pages[_index.clamp(0, pages.length - 1)],
       ),
-      body: SafeArea(child: pages[_index.clamp(0, pages.length - 1)]),
       bottomNavigationBar: AppBottomNavigation(
         items: navItems,
         currentIndex: _index,
@@ -241,7 +268,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
         return [
           StudentHomeScreen(user: user),
           const StudentTrainingListScreen(),
-          const NotificationsInboxScreen(),
+          const StudentCoursesListScreen(),
           StudentProfileScreen(user: user, onLogout: _logout),
         ];
       case LmsRoles.instructor:
@@ -265,7 +292,7 @@ class _HomeShellScreenState extends ConsumerState<HomeShellScreen> {
           QaHomeScreen(user: user),
           const QaReviewsHubScreen(),
           ReviewerReportsScreen(user: user),
-          const NotificationsInboxScreen(),
+          const NotificationsInboxScreen(embeddedInShell: true),
           ReviewerProfileScreen(user: user, onLogout: _logout),
         ];
       case LmsRoles.universityReviewer:

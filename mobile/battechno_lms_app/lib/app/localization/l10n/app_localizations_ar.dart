@@ -600,6 +600,37 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accountStatus => 'حالة الحساب';
 
   @override
+  String get yourProfile => 'حسابك';
+
+  @override
+  String get profileOverviewTitle => 'ملخص حسابك';
+
+  @override
+  String get profileOverviewSubtitle => 'اكتمال بيانات الملف الشخصي';
+
+  @override
+  String get profileShortcutsTitle => 'اختصارات سريعة';
+
+  @override
+  String get profileShortcutsSubtitle =>
+      'الإعدادات والشهادات والتدريب في مكان واحد';
+
+  @override
+  String get profileViewAll => 'عرض الكل';
+
+  @override
+  String get profileFieldEmail => 'البريد';
+
+  @override
+  String get profileFieldUniversity => 'الجامعة';
+
+  @override
+  String get profileFieldSpecialty => 'التخصص';
+
+  @override
+  String get profileFieldPhone => 'الهاتف';
+
+  @override
   String get language => 'اللغة';
 
   @override
@@ -1509,4 +1540,149 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get pushPermissionOpenSystemSettingsHint =>
       'لتغيير هذا الإذن يجب فتح إعدادات النظام لهذا التطبيق.';
+
+  @override
+  String get courses => 'الكورسات';
+
+  @override
+  String get coursesSubtitle => 'تابع كورساتك التعليمية وتقدّمك الأكاديمي';
+
+  @override
+  String get searchCourses => 'ابحث في الكورسات';
+
+  @override
+  String get searchLessons => 'ابحث في الدروس';
+
+  @override
+  String get coursesFilterAll => 'الكل';
+
+  @override
+  String get coursesFilterInProgress => 'قيد الدراسة';
+
+  @override
+  String get coursesFilterNotStarted => 'لم تبدأ';
+
+  @override
+  String get coursesFilterCompleted => 'مكتملة';
+
+  @override
+  String get coursesEmptyTitle => 'لا توجد كورسات متاحة لك حالياً';
+
+  @override
+  String get coursesEmptyBody =>
+      'ستظهر هنا الكورسات التي تنشرها إدارة المنصة لك أو لمجموعتك.';
+
+  @override
+  String get coursesFilterEmpty => 'لا توجد كورسات ضمن هذا التصفية';
+
+  @override
+  String get courseOfflineWriteBlocked =>
+      'يتطلب هذا الإجراء اتصالًا بالإنترنت.';
+
+  @override
+  String get courseLinkUnsafe => 'لا يمكن فتح هذا الرابط بأمان.';
+
+  @override
+  String get courseLinkMissing => 'لا يتوفر رابط لهذا الدرس.';
+
+  @override
+  String get courseAccessDenied => 'ليس لديك صلاحية للوصول إلى هذا الكورس.';
+
+  @override
+  String get courseNotFound => 'الكورس غير موجود';
+
+  @override
+  String get courseCompletedLabel => 'الكورس مكتمل';
+
+  @override
+  String get courseStatusInProgress => 'قيد الدراسة';
+
+  @override
+  String get courseStatusCompleted => 'مكتمل';
+
+  @override
+  String get courseStatusNotStarted => 'لم يبدأ';
+
+  @override
+  String get courseStatusUnknown => 'حالة غير معروفة';
+
+  @override
+  String courseProgressLabel(int percent, int completed, int total) {
+    return '$percent% · $completed / $total درس';
+  }
+
+  @override
+  String courseProgressPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get continueLearning => 'متابعة التعلّم';
+
+  @override
+  String get startCourse => 'بدء الكورس';
+
+  @override
+  String get courseSections => 'أقسام الكورس';
+
+  @override
+  String get courseLessons => 'الدروس';
+
+  @override
+  String get courseNoSections => 'لا توجد أقسام منشورة بعد';
+
+  @override
+  String get courseNoLessonsMatch => 'لا توجد دروس مطابقة للبحث';
+
+  @override
+  String courseSectionLessonCount(int count) {
+    return '$count دروس';
+  }
+
+  @override
+  String courseLessonDuration(int minutes) {
+    return '$minutesد';
+  }
+
+  @override
+  String courseDurationTotalHours(int hours, int minutes) {
+    return '$hoursس $minutesد إجمالاً';
+  }
+
+  @override
+  String courseDurationTotalMinutes(int minutes) {
+    return '$minutesد إجمالاً';
+  }
+
+  @override
+  String get courseNoNextLesson => 'لا يوجد درس تالٍ';
+
+  @override
+  String get courseLesson => 'الدرس';
+
+  @override
+  String get lessonNotFound => 'الدرس غير موجود';
+
+  @override
+  String get openLessonVideo => 'فتح الفيديو';
+
+  @override
+  String get openLessonResource => 'فتح المورد';
+
+  @override
+  String get markLessonComplete => 'تعليم الدرس مكتملًا';
+
+  @override
+  String get lessonMarkedComplete => 'تم تعليم الدرس مكتملًا';
+
+  @override
+  String get lessonCompleted => 'مكتمل';
+
+  @override
+  String get courseVideoNotYoutube =>
+      'هذا الفيديو ليس رابط يوتيوب مدعومًا للتشغيل داخل التطبيق.';
+
+  @override
+  String get lessonTrainingWebOnlyHint =>
+      'تمرين الدرس التفصيلي (رفع ملف / اختبار) متاح عبر موقع الويب عند الحاجة.';
 }

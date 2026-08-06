@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/admin_repository.dart';
 import '../domain/admin_models.dart';
+import 'widgets/admin_widgets.dart';
 
 /// Read-only submissions overview (review happens on the instructor/web portal).
 class AdminSubmissionsScreen extends ConsumerStatefulWidget {
@@ -57,46 +59,100 @@ class _AdminSubmissionsScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.viewSubmissions)),
-      body: _loading && _submissions.isEmpty
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingSkeleton(lines: 4),
-            )
-          : _error != null && _submissions.isEmpty
-          ? RetryView(
-              title: l10n.networkErrorTitle,
-              message: _error == 'forbidden'
-                  ? l10n.forbiddenAccess
-                  : l10n.networkErrorBody,
-              onRetry: _load,
-            )
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  if (_submissions.isEmpty)
-                    EmptyState(title: l10n.noSubmissions, subtitle: '')
-                  else
-                    for (final s in _submissions) ...[
-                      Card(
-                        child: ListTile(
-                          title: Text(
-                            s['task_title']?.toString() ?? '—',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                          subtitle: Text(
-                            '${s['student_name']?.toString() ?? '—'} · '
-                            '${AdminLabels.statusAr(s['review_status']?.toString())}',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                ],
+      backgroundColor: kAdminPageBg,
+      appBar: AppBar(
+        title: Text(l10n.viewSubmissions),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: _loading && _submissions.isEmpty
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: LoadingSkeleton(lines: 4),
+              )
+            : _error != null && _submissions.isEmpty
+            ? RetryView(
+                title: l10n.networkErrorTitle,
+                message: _error == 'forbidden'
+                    ? l10n.forbiddenAccess
+                    : l10n.networkErrorBody,
+                onRetry: _load,
+              )
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    if (_submissions.isEmpty)
+                      EmptyState(title: l10n.noSubmissions, subtitle: '')
+                    else
+                      for (final s in _submissions)
+                        _AdminSubmissionCard(submission: s),
+                  ],
+                ),
               ),
+      ),
+    );
+  }
+}
+
+class _AdminSubmissionCard extends StatelessWidget {
+  const _AdminSubmissionCard({required this.submission});
+
+  final Map<String, dynamic> submission;
+
+  @override
+  Widget build(BuildContext context) {
+    final taskTitle = submission['task_title']?.toString() ?? '—';
+    final studentName = submission['student_name']?.toString() ?? '—';
+    final status = submission['review_status']?.toString();
+    final pending = status == 'pending';
+
+    return AdminSoftCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.fromLTRB(14, 14, 12, 14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: pending ? BatColors.accentSoft : BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(
+              Icons.assignment_outlined,
+              color: pending ? BatColors.accentHover : BatColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  taskTitle,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$studentName · ${AdminLabels.statusAr(status)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: BatColors.muted),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

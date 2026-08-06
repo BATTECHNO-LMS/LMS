@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/push/push_config.dart';
 import '../../../core/push/push_message.dart';
 import '../providers/push_permission_controller.dart';
@@ -48,18 +49,18 @@ class _PushPermissionSettingsTileState
     final state = ref.watch(pushPermissionControllerProvider);
 
     if (!PushConfig.isConfigured) {
-      return ListTile(
-        leading: const Icon(Icons.notifications_outlined),
-        title: Text(l10n.pushPermissionSettingsTitle),
-        subtitle: Text(l10n.pushPermissionStatusUnsupported),
+      return SettingsSoftTile(
+        icon: Icons.notifications_outlined,
+        title: l10n.pushPermissionSettingsTitle,
+        subtitle: l10n.pushPermissionStatusUnsupported,
       );
     }
 
     final canRequest = state.status != PushPermissionStatus.granted;
-    return ListTile(
-      leading: const Icon(Icons.notifications_outlined),
-      title: Text(l10n.pushPermissionSettingsTitle),
-      subtitle: Text(_statusLabel(l10n, state.status)),
+    return SettingsSoftTile(
+      icon: Icons.notifications_outlined,
+      title: l10n.pushPermissionSettingsTitle,
+      subtitle: _statusLabel(l10n, state.status),
       trailing: !canRequest
           ? null
           : TextButton(
@@ -68,8 +69,106 @@ class _PushPermissionSettingsTileState
                   : () => ref
                         .read(pushPermissionControllerProvider.notifier)
                         .requestAndSync(),
-              child: Text(l10n.pushPermissionSettingsAction),
+              style: TextButton.styleFrom(
+                foregroundColor: BatColors.primaryLight,
+              ),
+              child: Text(
+                l10n.pushPermissionSettingsAction,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
+    );
+  }
+}
+
+/// Soft settings row used by [SettingsScreen] and push permission tile.
+class SettingsSoftTile extends StatelessWidget {
+  const SettingsSoftTile({
+    super.key,
+    required this.icon,
+    required this.title,
+    this.subtitle,
+    this.onTap,
+    this.trailing,
+    this.showDivider = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback? onTap;
+  final Widget? trailing;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: BatColors.primarySoft,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: BatColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BatColors.heading,
+                  ),
+                ),
+                if (subtitle != null && subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: BatColors.muted,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) ...[const SizedBox(width: 4), trailing!],
+          if (trailing == null && onTap != null)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Icon(Icons.chevron_left, color: BatColors.muted),
+            ),
+        ],
+      ),
+    );
+
+    return Column(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: onTap == null
+              ? content
+              : InkWell(
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(12),
+                  child: content,
+                ),
+        ),
+        if (showDivider)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14),
+            child: Divider(height: 1, color: Color(0xFFE6E8EC)),
+          ),
+      ],
     );
   }
 }

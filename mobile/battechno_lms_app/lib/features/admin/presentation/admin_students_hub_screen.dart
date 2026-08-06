@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/admin_repository.dart';
@@ -69,8 +70,9 @@ class _AdminStudentsHubScreenState
     final l10n = AppLocalizations.of(context);
     final items = _filtered;
 
-    return Scaffold(
-      body: _loading && _students.isEmpty
+    return ColoredBox(
+      color: kAdminPageBg,
+      child: _loading && _students.isEmpty
           ? const Padding(
               padding: EdgeInsets.all(16),
               child: LoadingSkeleton(lines: 5),
@@ -86,21 +88,95 @@ class _AdminStudentsHubScreenState
           : RefreshIndicator(
               onRefresh: _load,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  TextField(
-                    decoration: InputDecoration(
-                      hintText: l10n.searchAssignedTrainings,
-                      prefixIcon: const Icon(Icons.search),
-                      border: const OutlineInputBorder(),
+                  AdminSoftCard(
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: BatColors.primarySoft,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.groups_outlined,
+                            color: BatColors.primary,
+                            size: 26,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.trainees,
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: BatColors.heading,
+                                    ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                l10n.searchAssignedTrainings,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: BatColors.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: BatColors.accentSoft,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${items.length}',
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                  color: BatColors.accentHover,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: (v) => setState(() => _search = v),
                   ),
                   const SizedBox(height: 12),
+                  AdminSoftCard(
+                    padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
+                    child: TextField(
+                      decoration:
+                          adminSoftFieldDecoration(
+                            l10n.searchAssignedTrainings,
+                          ).copyWith(
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              color: BatColors.primaryLight,
+                            ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                          ),
+                      onChanged: (v) => setState(() => _search = v),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
                   if (items.isEmpty)
-                    EmptyState(title: l10n.noParticipants, subtitle: '')
+                    EmptyState(
+                      title: l10n.noParticipants,
+                      subtitle: '',
+                      icon: Icons.person_off_outlined,
+                    )
                   else
-                    for (final s in items) ...[
+                    for (final s in items)
                       AdminStudentSummaryCard(
                         application: s,
                         onTap: () {
@@ -109,8 +185,6 @@ class _AdminStudentsHubScreenState
                           context.push('/admin/applications/$appId');
                         },
                       ),
-                      const SizedBox(height: 8),
-                    ],
                 ],
               ),
             ),

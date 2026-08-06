@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../app/localization/l10n/app_localizations.dart';
+import '../../../app/theme/bat_colors.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/reviewer_repository.dart';
@@ -99,6 +101,29 @@ class _QaCaseDetailScreenState extends ConsumerState<QaCaseDetailScreen> {
     }
   }
 
+  IconData _heroIcon() {
+    switch (widget.kind) {
+      case QaCaseKind.corrective:
+        return Icons.assignment_late_outlined;
+      case QaCaseKind.risk:
+        return Icons.warning_amber_outlined;
+      case QaCaseKind.integrity:
+        return Icons.gavel_outlined;
+    }
+  }
+
+  String _heroTitle(AppLocalizations l10n, Map<String, dynamic> item) {
+    switch (widget.kind) {
+      case QaCaseKind.corrective:
+        return CorrectiveActionItem(item).actionText ??
+            l10n.correctiveActionsTitle;
+      case QaCaseKind.risk:
+        return RiskCaseItem(item).studentName ?? l10n.riskCasesTitle;
+      case QaCaseKind.integrity:
+        return IntegrityCaseItem(item).studentName ?? l10n.integrityCasesTitle;
+    }
+  }
+
   Future<Map<String, dynamic>> _patchStatus(String status) {
     final repo = ref.read(reviewerRepositoryProvider);
     switch (widget.kind) {
@@ -174,50 +199,117 @@ class _QaCaseDetailScreenState extends ConsumerState<QaCaseDetailScreen> {
       case QaCaseKind.corrective:
         final action = CorrectiveActionItem(item);
         return [
-          _kv(l10n.dueDate, action.dueDate ?? '—'),
-          _kv(l10n.correctiveAssigneeLabel, action.assigneeName ?? '—'),
+          ReviewerMetaRow(
+            icon: Icons.event_outlined,
+            label: l10n.dueDate,
+            value: action.dueDate ?? '—',
+          ),
+          const SizedBox(height: 12),
+          ReviewerMetaRow(
+            icon: Icons.person_outline,
+            label: l10n.correctiveAssigneeLabel,
+            value: action.assigneeName ?? '—',
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.correctiveActionsTitle,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(action.actionText ?? '—'),
+          Text(
+            action.actionText ?? '—',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: BatColors.heading,
+              height: 1.4,
+            ),
+          ),
         ];
       case QaCaseKind.risk:
         final risk = RiskCaseItem(item);
         return [
-          _kv(l10n.students, risk.studentName ?? '—'),
-          _kv(
-            l10n.riskTypeLabel,
-            ReviewerLabels.humanizeSnakeCase(risk.riskType),
+          ReviewerMetaRow(
+            icon: Icons.person_outline,
+            label: l10n.students,
+            value: risk.studentName ?? '—',
           ),
-          _kv(
-            l10n.riskLevelLabel,
-            ReviewerLabels.humanizeSnakeCase(risk.riskLevel),
+          const SizedBox(height: 12),
+          ReviewerMetaRow(
+            icon: Icons.category_outlined,
+            label: l10n.riskTypeLabel,
+            value: ReviewerLabels.humanizeSnakeCase(risk.riskType),
+          ),
+          const SizedBox(height: 12),
+          ReviewerMetaRow(
+            icon: Icons.speed_outlined,
+            label: l10n.riskLevelLabel,
+            value: ReviewerLabels.humanizeSnakeCase(risk.riskLevel),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.riskActionPlanLabel,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            l10n.riskActionPlanLabel,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            risk.actionPlan ?? '—',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: BatColors.heading,
+              height: 1.4,
+            ),
           ),
-          Text(risk.actionPlan ?? '—'),
         ];
       case QaCaseKind.integrity:
         final integrity = IntegrityCaseItem(item);
         return [
-          _kv(l10n.students, integrity.studentName ?? '—'),
-          _kv(
-            l10n.integrityCaseTypeLabel,
-            ReviewerLabels.humanizeSnakeCase(integrity.caseType),
+          ReviewerMetaRow(
+            icon: Icons.person_outline,
+            label: l10n.students,
+            value: integrity.studentName ?? '—',
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          ReviewerMetaRow(
+            icon: Icons.gavel_outlined,
+            label: l10n.integrityCaseTypeLabel,
+            value: ReviewerLabels.humanizeSnakeCase(integrity.caseType),
+          ),
+          const SizedBox(height: 14),
           Text(
             l10n.integrityEvidenceNotesLabel,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
           ),
-          Text(integrity.evidenceNotes ?? '—'),
           const SizedBox(height: 8),
           Text(
-            l10n.integrityDecisionLabel,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            integrity.evidenceNotes ?? '—',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: BatColors.heading,
+              height: 1.4,
+            ),
           ),
-          Text(integrity.decision ?? '—'),
+          const SizedBox(height: 14),
+          Text(
+            l10n.integrityDecisionLabel,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: BatColors.heading,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            integrity.decision ?? '—',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: BatColors.heading,
+              height: 1.4,
+            ),
+          ),
         ];
     }
   }
@@ -228,76 +320,135 @@ class _QaCaseDetailScreenState extends ConsumerState<QaCaseDetailScreen> {
     final item = _item;
 
     return Scaffold(
-      appBar: AppBar(title: Text(_title(l10n))),
-      body: _loading && item == null
-          ? const Padding(
-              padding: EdgeInsets.all(16),
-              child: LoadingSkeleton(lines: 6),
-            )
-          : _error != null && item == null
-          ? RetryView(
-              title: l10n.networkErrorTitle,
-              message: _error == 'forbidden'
-                  ? l10n.forbiddenAccess
-                  : _error == 'not_found'
-                  ? l10n.resourceNotFound
-                  : l10n.networkErrorBody,
-              onRetry: _load,
-            )
-          : item == null
-          ? EmptyState(title: l10n.resourceNotFound)
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _title(l10n),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ),
-                      ReviewerStatusChip(
-                        label: _statusLabel(l10n, item['status']?.toString()),
-                        status: item['status']?.toString(),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
+      backgroundColor: kReviewerPageBg,
+      appBar: AppBar(
+        title: Text(_title(l10n)),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        foregroundColor: BatColors.heading,
+        elevation: 0,
+        leading: BackButton(onPressed: () => context.pop()),
+      ),
+      body: SafeArea(
+        child: _loading && item == null
+            ? const Padding(
+                padding: EdgeInsets.all(16),
+                child: LoadingSkeleton(lines: 6),
+              )
+            : _error != null && item == null
+            ? RetryView(
+                title: l10n.networkErrorTitle,
+                message: _error == 'forbidden'
+                    ? l10n.forbiddenAccess
+                    : _error == 'not_found'
+                    ? l10n.resourceNotFound
+                    : l10n.networkErrorBody,
+                onRetry: _load,
+              )
+            : item == null
+            ? EmptyState(title: l10n.resourceNotFound)
+            : RefreshIndicator(
+                onRefresh: _load,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                  children: [
+                    ReviewerSoftCard(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: _fields(l10n, item),
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: BatColors.primarySoft,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              _heroIcon(),
+                              color: BatColors.primary,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _heroTitle(l10n, item),
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: BatColors.heading,
+                                        height: 1.25,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                ReviewerStatusChip(
+                                  label: _statusLabel(
+                                    l10n,
+                                    item['status']?.toString(),
+                                  ),
+                                  status: item['status']?.toString(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  PrimaryButton(
-                    label: l10n.changeStatus,
-                    isLoading: _acting,
-                    onPressed: _acting ? null : _changeStatus,
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    ReviewerSoftCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _title(l10n),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: BatColors.heading,
+                                ),
+                          ),
+                          const SizedBox(height: 14),
+                          ..._fields(l10n, item),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: _acting ? null : _changeStatus,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: BatColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: _acting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Text(
+                                l10n.changeStatus,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-    );
-  }
-
-  Widget _kv(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-        ],
       ),
     );
   }

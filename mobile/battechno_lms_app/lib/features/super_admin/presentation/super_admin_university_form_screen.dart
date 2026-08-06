@@ -6,6 +6,7 @@ import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../core/errors/api_exception.dart';
 import '../../../core/widgets/bat_widgets.dart';
 import '../data/super_admin_repository.dart';
+import 'widgets/super_admin_widgets.dart';
 
 /// Minimal create/edit form: name (required), contact person/email/phone
 /// (optional). Kept deliberately simple — the web app owns the full
@@ -131,9 +132,10 @@ class _SuperAdminUniversityFormScreenState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? l10n.editUniversity : l10n.createUniversity),
-        leading: BackButton(onPressed: () => context.pop()),
+      backgroundColor: kSaPageBg,
+      appBar: saAppBar(
+        context,
+        title: _isEdit ? l10n.editUniversity : l10n.createUniversity,
       ),
       body: SafeArea(child: _buildBody(l10n)),
     );
@@ -161,34 +163,50 @@ class _SuperAdminUniversityFormScreenState
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          AppTextField(
-            controller: _nameCtrl,
-            label: l10n.universityNameLabel,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? l10n.nameRequired : null,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _contactPersonCtrl,
-            label: l10n.contactPersonLabel,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _contactEmailCtrl,
-            label: l10n.email,
-            keyboardType: TextInputType.emailAddress,
-          ),
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _contactPhoneCtrl,
-            label: l10n.phoneOptional,
-            keyboardType: TextInputType.phone,
+          SaSoftCard(
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: _nameCtrl,
+                  decoration: saSoftFieldDecoration(l10n.universityNameLabel),
+                  validator: (v) => (v == null || v.trim().isEmpty)
+                      ? l10n.nameRequired
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _contactPersonCtrl,
+                  decoration: saSoftFieldDecoration(l10n.contactPersonLabel),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _contactEmailCtrl,
+                  decoration: saSoftFieldDecoration(l10n.email),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _contactPhoneCtrl,
+                  decoration: saSoftFieldDecoration(l10n.phoneOptional),
+                  keyboardType: TextInputType.phone,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
-          PrimaryButton(
-            label: l10n.save,
-            isLoading: _saving,
+          FilledButton(
+            style: saPrimaryButtonStyle(),
             onPressed: _saving ? null : _submit,
+            child: _saving
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(l10n.save),
           ),
         ],
       ),
