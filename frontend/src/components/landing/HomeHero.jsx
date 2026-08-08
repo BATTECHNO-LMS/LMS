@@ -74,7 +74,7 @@ export function HomeHero() {
                   className="mt-8 flex w-full flex-col items-center gap-3 sm:mt-9"
                 >
                   <motion.div variants={staggerItem(10)} className="w-full max-w-xs sm:max-w-none sm:w-auto">
-                    <LandingCtaButton to="/login" variant="primary" showArrow rtl={dir === 'rtl'}>
+                    <LandingCtaButton to="/portals" variant="primary" showArrow rtl={dir === 'rtl'}>
                       {t('hero.ctaLogin')}
                     </LandingCtaButton>
                   </motion.div>

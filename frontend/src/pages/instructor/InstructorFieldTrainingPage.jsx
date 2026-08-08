@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
@@ -54,10 +55,13 @@ export function InstructorFieldTrainingPage() {
 
   return (
     <div className="page page--dashboard page--instructor ft-page">
-      <AdminPageHeader
-        title={t('instructor.listTitle')}
-        description={t('instructor.listDescription')}
-      />
+      <div className="ug-page-tools">
+        <AdminPageHeader
+          title={t('instructor.listTitle')}
+          description={t('instructor.listDescription')}
+        />
+        <ContextualHelpButton contextualKey="opportunities" route="/instructor/field-training" />
+      </div>
 
       {section ? (
         <p className="ft-instructor-section-hint">{t(`instructor.sectionHints.${section}`, '')}</p>

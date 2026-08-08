@@ -81,6 +81,8 @@ import arUploads from './locales/ar/uploads.json';
 import enUploads from './locales/en/uploads.json';
 import arLegal from './locales/ar/legal.json';
 import enLegal from './locales/en/legal.json';
+import arUserGuide from './locales/ar/userGuide.json';
+import enUserGuide from './locales/en/userGuide.json';
 
 export const I18N_NAMESPACES = [
   'common',
@@ -120,6 +122,7 @@ export const I18N_NAMESPACES = [
   'fieldTrainingReports',
   'uploads',
   'legal',
+  'userGuide',
 ];
 
 const resources = {
@@ -161,6 +164,7 @@ const resources = {
     fieldTrainingReports: arFieldTrainingReports,
     uploads: arUploads,
     legal: arLegal,
+    userGuide: arUserGuide,
   },
   en: {
     common: enCommon,
@@ -200,6 +204,7 @@ const resources = {
     fieldTrainingReports: enFieldTrainingReports,
     uploads: enUploads,
     legal: enLegal,
+    userGuide: enUserGuide,
   },
 };
 

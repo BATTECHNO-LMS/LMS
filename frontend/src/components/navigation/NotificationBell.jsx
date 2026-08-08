@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '../../utils/helpers.js';
 import { useAuth } from '../../features/auth/index.js';
 import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
+import { useUnreadNotificationCount } from '../../features/notifications/hooks/useUnreadNotificationCount.js';
 import { useMarkNotificationRead } from '../../features/notifications/hooks/useMarkNotificationRead.js';
 import { getNotificationsPathForUser } from '../../utils/notificationsPath.js';
 import { getNotificationLink } from '../../utils/notificationDeepLink.js';
@@ -22,10 +23,17 @@ export function NotificationBell({ className }) {
     staleTime: 30_000,
     enabled: Boolean(user),
   });
+  const { data: unreadData } = useUnreadNotificationCount({
+    staleTime: 30_000,
+    enabled: Boolean(user),
+    refetchInterval: 60_000,
+  });
   const markRead = useMarkNotificationRead();
 
   const notifications = data?.notifications ?? [];
-  const unreadCount = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
+  const unreadFromList = useMemo(() => notifications.filter((n) => !n.is_read).length, [notifications]);
+  const unreadCount =
+    typeof unreadData?.unread_count === 'number' ? unreadData.unread_count : unreadFromList;
   const preview = useMemo(() => notifications.slice(0, 8), [notifications]);
 
   const notifPath = getNotificationsPathForUser(user);
@@ -83,6 +91,17 @@ export function NotificationBell({ className }) {
                     <div className="notification-bell__item-title">{n.title}</div>
                   )}
                   {n.body ? <div className="notification-bell__item-body crud-muted">{n.body}</div> : null}
+                  <div className="notification-bell__meta">
+                    {n.category ? (
+                      <span className="notif-badge notif-badge--type">{n.category}</span>
+                    ) : null}
+                    {n.priority ? (
+                      <span className="notif-badge notif-badge--type">{n.priority}</span>
+                    ) : null}
+                    {n.is_critical ? (
+                      <span className="notif-badge notif-badge--unread">{t('critical', { defaultValue: 'Critical' })}</span>
+                    ) : null}
+                  </div>
                   {!n.is_read ? (
                     <button
                       type="button"

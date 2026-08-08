@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { isAcademicSubmissionEditable } from '../../features/assessments/academicStatusMap.js';
 import { StudentPageHeader } from '../../components/student/StudentPageHeader.jsx';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { AdminFilterBar } from '../../components/admin/AdminFilterBar.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -62,7 +63,10 @@ export function StudentSubmissionsPage() {
   return (
     <PagePermissionGate permission={P.canViewSubmissionStatus}>
       <div className="page page--dashboard page--student">
-        <StudentPageHeader title={<>{t('student.title')}</>} description={<>{t('student.description')}</>} />
+        <div className="ug-page-tools">
+          <StudentPageHeader title={<>{t('student.title')}</>} description={<>{t('student.description')}</>} />
+          <ContextualHelpButton contextualKey="tasks" route="/student/submissions" />
+        </div>
         <AdminFilterBar>
           <SearchInput placeholder={t('student.searchPlaceholder')} aria-label={t('student.searchAria')} />
         </AdminFilterBar>

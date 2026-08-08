@@ -28,7 +28,7 @@ export function StudentProfileHeader({ user }) {
   const status = user?.status || null;
 
   return (
-    <section className="student-profile-header section-card">
+    <section className="student-profile-header section-card" data-tour-id="student-profile">
       <div className="student-profile-header__main">
         <div className="student-profile-header__avatar" aria-hidden>
           <User size={36} strokeWidth={1.5} />

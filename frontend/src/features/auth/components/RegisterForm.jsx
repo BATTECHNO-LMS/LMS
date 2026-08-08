@@ -17,6 +17,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { storageKeys, setStorageItem } from '../../../utils/storage.js';
 import { AUTH_MOTION_EASE } from '../../../pages/auth/authMotion.js';
+import { AccountStatusModal } from '../../../pages/auth/AccountStatusModal.jsx';
 
 export function RegisterForm() {
   const { t, i18n } = useTranslation('auth');
@@ -24,6 +25,13 @@ export function RegisterForm() {
   const { signUp } = useAuth();
   const reduced = useReducedMotion();
   const [formError, setFormError] = useState('');
+  const [successModal, setSuccessModal] = useState({
+    open: false,
+    title: '',
+    message: '',
+    note: '',
+    redirectTo: '/login/student',
+  });
 
   const schema = useMemo(() => createRegisterStudentSchema(t), [t, i18n.language]);
 
@@ -38,7 +46,10 @@ export function RegisterForm() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const universityOptions = useMemo(() => mapUniversitiesForSelect(universityRows), [universityRows]);
+  const universityOptions = useMemo(
+    () => mapUniversitiesForSelect(universityRows, { locale: i18n.language }),
+    [universityRows, i18n.language]
+  );
 
   const {
     register,
@@ -46,6 +57,7 @@ export function RegisterForm() {
     control,
     watch,
     setValue,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(schema),
@@ -108,22 +120,70 @@ export function RegisterForm() {
       if (result?.requiresEmailVerification) {
         const email = result.email || payload.email;
         setStorageItem(storageKeys.pendingVerificationEmail, email);
-        navigate(`/verify-email?email=${encodeURIComponent(email)}`, { replace: true });
+        setSuccessModal({
+          open: true,
+          title: 'تم إنشاء حسابك بنجاح',
+          message:
+            'أرسلنا رمز تحقق إلى بريدك الإلكتروني. بعد توثيق البريد سيبقى الحساب بانتظار تفعيل الإدارة، ويتم التفعيل عادةً خلال 48 ساعة.',
+          note: 'تأكد من توثيق بريدك الإلكتروني ومراجعة البريد الوارد والرسائل غير المرغوب فيها.',
+          redirectTo: `/verify-email?email=${encodeURIComponent(email)}`,
+        });
         return;
       }
       if (result?.pendingApproval) {
-        navigate('/login/student?registered=pending', { replace: true });
+        setSuccessModal({
+          open: true,
+          title: 'حسابك بانتظار التفعيل',
+          message:
+            'تم توثيق بريدك بنجاح، وحسابك الآن بانتظار تفعيل الإدارة خلال 48 ساعة.',
+          note: 'يمكنك العودة لاحقًا لتسجيل الدخول بعد اكتمال التفعيل.',
+          redirectTo: '/login/student?registered=pending',
+        });
         return;
       }
       if (result?.redirectTo) {
         navigate(result.redirectTo, { replace: true });
       }
     } catch (err) {
-      setFormError(getApiErrorMessage(err, t('register.submitFailed')));
+      const code = err?.response?.data?.code;
+      const fields = err?.response?.data?.details?.fields || null;
+      if (fields && typeof fields === 'object') {
+        Object.entries(fields).forEach(([key, msgs]) => {
+          if (Array.isArray(msgs) && msgs[0]) {
+            setError(key, { type: 'server', message: msgs[0] });
+          }
+        });
+      }
+      if (code === 'EMAIL_ALREADY_EXISTS') {
+        setFormError('البريد الإلكتروني مستخدم مسبقًا. يمكنك تسجيل الدخول أو استعادة كلمة المرور.');
+      } else if (code === 'PHONE_ALREADY_EXISTS') {
+        setFormError('رقم الهاتف مستخدم مسبقًا. تحقق من الرقم أو تواصل مع الدعم.');
+      } else {
+        setFormError(getApiErrorMessage(err, t('register.submitFailed')));
+      }
     }
   }
 
   return (
+    <>
+      <AccountStatusModal
+        open={successModal.open}
+        title={successModal.title}
+        message={successModal.message}
+        note={successModal.note}
+        variant="success"
+        onClose={() => setSuccessModal((s) => ({ ...s, open: false }))}
+        actions={[
+          {
+            key: 'ok',
+            label: 'حسنًا',
+            onClick: () => {
+              setSuccessModal((s) => ({ ...s, open: false }));
+              navigate(successModal.redirectTo || '/login/student', { replace: true });
+            },
+          },
+        ]}
+      />
     <form className="auth-form auth-form--register" onSubmit={handleSubmit(onSubmit)} noValidate>
       {formError ? <p className="auth-form__error">{formError}</p> : null}
 
@@ -273,5 +333,6 @@ export function RegisterForm() {
         </Link>
       </motion.p>
     </form>
+    </>
   );
 }

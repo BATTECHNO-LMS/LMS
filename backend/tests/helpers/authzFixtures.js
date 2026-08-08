@@ -7,13 +7,12 @@
 
 const CANONICAL_ROLES = Object.freeze([
   'super_admin',
-  'program_admin',
-  'university_admin',
-  'academic_admin',
-  'qa_officer',
+  'admin',
   'instructor',
+  'trainer',
+  'trainee',
   'student',
-  'university_reviewer',
+  'reviewer',
 ]);
 
 const SYNTH_UNI_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -31,6 +30,7 @@ function makeRequester(overrides = {}) {
     roles: overrides.roles ?? ['student'],
     universityId: overrides.universityId === undefined ? SYNTH_UNI_A : overrides.universityId,
     isGlobal: Boolean(overrides.isGlobal),
+    permissions: Array.isArray(overrides.permissions) ? overrides.permissions : [],
   };
 }
 

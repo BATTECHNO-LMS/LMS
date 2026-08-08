@@ -4,17 +4,48 @@ import { unwrapApiData } from '../../services/apiHelpers.js';
 import { mapAuthUser } from './authUserMapper.js';
 
 /**
- * @param {{ email: string, password: string }} credentials
+ * @param {{ email: string, password: string, portalType?: 'UNIVERSITY'|'INSTITUTION' }} credentials
  */
 export async function login(credentials) {
-  const { email, password } = credentials;
-  const res = await apiClient.post(endpoints.auth.login, { email, password });
+  const { email, password, portalType } = credentials;
+  const body = { email, password };
+  if (portalType === 'UNIVERSITY' || portalType === 'INSTITUTION') {
+    body.portalType = portalType;
+  }
+  const res = await apiClient.post(endpoints.auth.login, body);
   const payload = unwrapApiData(res);
   const token = payload?.token;
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid login response: missing token');
   }
   return { data: { token } };
+}
+
+export async function fetchMyAssignments() {
+  const res = await apiClient.get(endpoints.auth.myAssignments);
+  return unwrapApiData(res);
+}
+
+/**
+ * Persist preferred active organization (validated server-side).
+ * @param {string} organizationId
+ */
+export async function setActiveOrganization(organizationId) {
+  const res = await apiClient.post(endpoints.auth.activeOrganization, {
+    organization_id: organizationId,
+  });
+  const payload = unwrapApiData(res);
+  const user = mapAuthUser(payload?.user ?? payload);
+  if (!user) {
+    throw new Error('Invalid active organization response');
+  }
+  return { data: { user } };
+}
+
+export async function fetchAccountStatus(credentials) {
+  const { email, password } = credentials;
+  const res = await apiClient.post(endpoints.auth.accountStatus, { email, password });
+  return unwrapApiData(res);
 }
 
 /**

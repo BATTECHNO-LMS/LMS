@@ -24,8 +24,20 @@
     .app-sidebar__brand-text,
     .app-sidebar__link span:not(.app-sidebar__icon),
     .sidebar-nav__label,
-    .sidebar-nav__section-title {
+    .sidebar-nav__section-title,
+    .sidebar-nav-group__toggle-label {
       display: none;
+    }
+
+    .sidebar-nav-group__toggle {
+      justify-content: center;
+      width: calc(100% - 0.5rem);
+      margin-inline: 0.25rem;
+      padding: 0.45rem;
+    }
+
+    .sidebar-nav-group__chevron {
+      margin: 0;
     }
   }
 }

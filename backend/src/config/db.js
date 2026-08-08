@@ -24,7 +24,9 @@ function isTransientDbError(err) {
     /Closed? the connection/i.test(msg) ||
     /ECONNRESET|ETIMEDOUT|EPIPE/i.test(msg) ||
     /connection.*(terminated|closed|reset)/i.test(msg) ||
-    /Client has encountered a connection error/i.test(msg)
+    /Client has encountered a connection error/i.test(msg) ||
+    /Transaction not found/i.test(msg) ||
+    /Transaction API error/i.test(msg)
   );
 }
 

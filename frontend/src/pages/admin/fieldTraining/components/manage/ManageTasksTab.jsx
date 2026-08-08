@@ -17,13 +17,18 @@ import {
 import { TaskInstructionFileField } from '../TaskInstructionFileField.jsx';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabEmpty, ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
+import {
+  GRADING_MODES,
+  resolveTaskGradingMode,
+  gradingModeLabelKey,
+} from '../../../../../features/fieldTraining/fieldTrainingGrading.js';
 
 const emptyForm = {
   title: '',
   description: '',
   dueDate: '',
   isFinalTask: false,
-  requiresAi: false,
+  gradingMode: 'AI',
   aiPrompt: '',
   instructionFileId: null,
 };
@@ -78,7 +83,7 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
       description: task.description || '',
       dueDate: task.due_date ? String(task.due_date).slice(0, 10) : '',
       isFinalTask: Boolean(task.is_final_task),
-      requiresAi: Boolean(task.requires_ai_self_evaluation),
+      gradingMode: resolveTaskGradingMode(task),
       aiPrompt: task.ai_self_evaluation_prompt || '',
       instructionFileId: null,
     });
@@ -94,8 +99,10 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
         description: form.description.trim() || null,
         due_date: form.dueDate || null,
         is_final_task: form.isFinalTask,
-        requires_ai_self_evaluation: form.requiresAi,
-        ai_self_evaluation_prompt: form.requiresAi ? form.aiPrompt.trim() || null : null,
+        grading_mode: form.gradingMode,
+        requires_ai_self_evaluation: form.gradingMode === GRADING_MODES.AI,
+        ai_self_evaluation_prompt:
+          form.gradingMode === GRADING_MODES.AI ? form.aiPrompt.trim() || null : null,
       };
       if (form.instructionFileId) body.instruction_file_id = form.instructionFileId;
       if (editingId && removeInstructionFile) body.remove_instruction_file = true;
@@ -207,15 +214,28 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
             />
             {t('tasks.finalTask')}
           </label>
-          <label className="ft-manage-check">
-            <input
-              type="checkbox"
-              checked={form.requiresAi}
-              onChange={(e) => setForm((f) => ({ ...f, requiresAi: e.target.checked }))}
-            />
-            {t('tasks.requiresAi')}
-          </label>
-          {form.requiresAi ? (
+          <div className="form-field">
+            <label className="form-field__label" htmlFor="ft-grading-mode">
+              {t('tasks.gradingMode')}
+            </label>
+            <select
+              id="ft-grading-mode"
+              className="form-field__control"
+              value={form.gradingMode}
+              onChange={(e) => setForm((f) => ({ ...f, gradingMode: e.target.value }))}
+            >
+              <option value={GRADING_MODES.AI}>{t('tasks.gradingModes.AI')}</option>
+              <option value={GRADING_MODES.MANUAL}>{t('tasks.gradingModes.MANUAL')}</option>
+              <option value={GRADING_MODES.NONE}>{t('tasks.gradingModes.NONE')}</option>
+            </select>
+            <p className="form-field__hint">{t('tasks.gradingModeHelp')}</p>
+          </div>
+          {form.gradingMode === GRADING_MODES.NONE ? (
+            <p className="ft-manage-panel__desc" role="note">
+              {t('tasks.noGradingNotice')}
+            </p>
+          ) : null}
+          {form.gradingMode === GRADING_MODES.AI ? (
             <FormTextarea
               label={t('tasks.aiPrompt')}
               value={form.aiPrompt}
@@ -279,9 +299,9 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
                     {task.is_final_task ? (
                       <StatusBadge variant="warning">{t('tasks.finalTaskBadge')}</StatusBadge>
                     ) : null}
-                    {task.requires_ai_self_evaluation ? (
-                      <StatusBadge variant="warning">{t('tasks.aiBadge')}</StatusBadge>
-                    ) : null}
+                    <StatusBadge variant="info">
+                      {t(gradingModeLabelKey(resolveTaskGradingMode(task)))}
+                    </StatusBadge>
                     {task.has_instruction_file ? (
                       <StatusBadge variant="muted">{t('tasks.instructionFileBadge')}</StatusBadge>
                     ) : null}

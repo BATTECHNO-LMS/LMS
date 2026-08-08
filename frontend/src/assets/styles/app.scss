@@ -9,6 +9,8 @@
 @use './components/cards';
 @use './components/tables';
 @use './components/modals';
+@use './components/design-system';
+@use './components/portal-selection';
 @use './components/spinner';
 @use './components/sidebar-nav';
 @use './components/admin-filters';
@@ -16,6 +18,9 @@
 @use './components/table-actions';
 @use './components/permission-gate';
 @use './components/assessment-ui';
+@use './components/trainee-assessment';
+@use './components/training-evaluation';
+@use './components/training-reports';
 @use './components/submission-ui';
 @use './components/analytics-cards';
 @use './components/analytics-filters';
@@ -31,6 +36,7 @@
 @use './pages/instructor';
 @use './pages/student';
 @use './pages/field-training';
+@use './pages/user-guide';
 @use './pages/assessment-builder';
 @use './pages/reviewer';
 @use './pages/analytics';

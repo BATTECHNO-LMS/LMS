@@ -1,7 +1,7 @@
 ﻿const { z } = require('zod');
 
 const universityIdParamSchema = z.object({
-  universityId: z.string().uuid('Invalid university'),
+  universityId: z.string().uuid('الجامعة المحددة غير صالحة'),
 });
 
 /**
@@ -9,12 +9,12 @@ const universityIdParamSchema = z.object({
  */
 const registerSchema = z
   .object({
-    full_name: z.string().min(1, 'Full name is required').max(255),
-    email: z.string().email('Invalid email').max(255),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
-    university_id: z.string().uuid('Invalid university'),
-    university_specialty_id: z.string().uuid('Invalid university specialty'),
-    phone: z.string().max(50).optional(),
+    full_name: z.string().min(1, 'يرجى إدخال الاسم الرباعي.').max(255),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(8, 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.'),
+    university_id: z.string().uuid('يرجى اختيار الجامعة.'),
+    university_specialty_id: z.string().uuid('يرجى إدخال التخصص.'),
+    phone: z.string().max(50, 'رقم الهاتف غير صحيح.').optional(),
   })
   .strict()
   .transform((b) => ({
@@ -28,8 +28,22 @@ const registerSchema = z
 
 const loginSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
-    password: z.string().min(1, 'Password is required'),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(1, 'كلمة المرور مطلوبة'),
+    /** Non-authoritative UI hint only — never used for authorization. */
+    portalType: z.enum(['UNIVERSITY', 'INSTITUTION']).optional(),
+  })
+  .strict()
+  .transform((b) => ({
+    email: b.email.trim().toLowerCase(),
+    password: b.password,
+    portalType: b.portalType || undefined,
+  }));
+
+const accountStatusSchema = z
+  .object({
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(1, 'كلمة المرور مطلوبة'),
   })
   .strict()
   .transform((b) => ({
@@ -37,12 +51,18 @@ const loginSchema = z
     password: b.password,
   }));
 
+const activeOrganizationBodySchema = z
+  .object({
+    organization_id: z.string().uuid('الجهة المحددة غير صالحة'),
+  })
+  .strict();
+
 const verifyEmailOtpSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
     otp: z
       .string()
-      .regex(/^\d{6}$/, 'OTP must be 6 digits'),
+      .regex(/^\d{6}$/, 'رمز التحقق يجب أن يتكون من 6 أرقام.'),
   })
   .strict()
   .transform((b) => ({
@@ -52,7 +72,7 @@ const verifyEmailOtpSchema = z
 
 const resendEmailOtpSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
   })
   .strict()
   .transform((b) => ({
@@ -61,7 +81,7 @@ const resendEmailOtpSchema = z
 
 const forgotPasswordSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
   })
   .strict()
   .transform((b) => ({
@@ -70,8 +90,8 @@ const forgotPasswordSchema = z
 
 const verifyPasswordResetOtpSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
-    otp: z.string().regex(/^\d{6}$/, 'OTP must be 6 digits'),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    otp: z.string().regex(/^\d{6}$/, 'رمز التحقق يجب أن يتكون من 6 أرقام.'),
   })
   .strict()
   .transform((b) => ({
@@ -83,10 +103,10 @@ const resendPasswordResetOtpSchema = forgotPasswordSchema;
 
 const resetPasswordSchema = z
   .object({
-    email: z.string().email('Invalid email').max(255),
-    resetToken: z.string().min(1, 'Reset token is required'),
-    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(8, 'Password confirmation is required'),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    resetToken: z.string().min(1, 'جلسة إعادة التعيين غير صالحة أو منتهية الصلاحية.'),
+    newPassword: z.string().min(8, 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.'),
+    confirmPassword: z.string().min(8, 'تأكيد كلمة المرور مطلوب'),
   })
   .strict()
   .transform((b) => ({
@@ -96,13 +116,44 @@ const resetPasswordSchema = z
     confirmPassword: b.confirmPassword,
   }))
   .refine((b) => b.newPassword === b.confirmPassword, {
-    message: 'Passwords do not match',
+    message: 'كلمتا المرور غير متطابقتين.',
     path: ['confirmPassword'],
   });
 
+/**
+ * Public institution trainee self-registration only.
+ * Role is never accepted from the client (.strict() rejects role/admin injection).
+ * Employment fields are intentionally omitted from public registration.
+ */
+const institutionRegisterSchema = z
+  .object({
+    full_name: z.string().min(1, 'يرجى إدخال الاسم الكامل.').max(255),
+    phone: z
+      .string({ required_error: 'يرجى إدخال رقم الهاتف.' })
+      .trim()
+      .min(1, 'يرجى إدخال رقم الهاتف.')
+      .max(50, 'رقم الهاتف غير صحيح.'),
+    email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
+    password: z.string().min(8, 'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.'),
+    organization_id: z.string().uuid('يرجى اختيار المؤسسة.'),
+    branch_id: z.string().uuid('يرجى اختيار الفرع.'),
+  })
+  .strict()
+  .transform((b) => ({
+    full_name: b.full_name.trim(),
+    phone: b.phone.trim(),
+    email: b.email.trim().toLowerCase(),
+    password: b.password,
+    organization_id: b.organization_id,
+    branch_id: b.branch_id,
+  }));
+
 module.exports = {
   registerSchema,
+  institutionRegisterSchema,
   loginSchema,
+  accountStatusSchema,
+  activeOrganizationBodySchema,
   universityIdParamSchema,
   verifyEmailOtpSchema,
   resendEmailOtpSchema,

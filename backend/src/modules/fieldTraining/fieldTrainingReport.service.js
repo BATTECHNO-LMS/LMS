@@ -62,7 +62,13 @@ async function assertStudentReportAccess(user, applicationId) {
 
   if (ftAccess.isAssignedInstructor(user, opp)) return { app, opp };
 
+  // University-scoped report readers (e.g. reviewer): student university match only.
+  // Do not require FIELD_TRAINING_ADMIN — reviewers are read-only.
   await ftAccess.assertApplicationStudentAccess(user, app.student_id);
+  if (ftAccess.isUniversityScopedFieldTrainingUser(user)) {
+    return { app, opp };
+  }
+
   await ftAccess.assertAdminOpportunityAccess(user, opp);
 
   return { app, opp };
@@ -214,10 +220,13 @@ function assertGlobalReportAccess(user) {
   throw new ApiError(403, 'غير مصرح بالوصول إلى التقرير الشامل', null, 'FIELD_TRAINING_FORBIDDEN');
 }
 
+const ACADEMIC_UNIVERSITY_REQUIRED_MSG =
+  'لم يتم ربط حساب المراجع الأكاديمي بجامعة. يرجى التواصل مع الإدارة.';
+
 function deriveAcademicUniversityId(user) {
   const uni = user?.universityId;
   if (!uni) {
-    throw new ApiError(400, 'يرجى إكمال بيانات الجامعة', null, 'UNIVERSITY_REQUIRED');
+    throw new ApiError(400, ACADEMIC_UNIVERSITY_REQUIRED_MSG, null, 'UNIVERSITY_REQUIRED');
   }
   return uni;
 }
@@ -257,12 +266,50 @@ async function exportGlobalReport(user, query = {}, format = 'pdf') {
   };
 }
 
+async function getAcademicDashboard(user, query = {}) {
+  return getDashboard(user, withAcademicUniversity(user, query));
+}
+
 async function getAcademicUniversityReport(user, query = {}) {
   return getUniversityReport(user, withAcademicUniversity(user, query));
 }
 
 async function listAcademicStudents(user, query = {}) {
   return listUniversityApplications(user, withAcademicUniversity(user, query));
+}
+
+async function listAcademicOpportunities(user, query = {}) {
+  assertStaffReportAccess(user);
+  const scoped = withAcademicUniversity(user, query);
+  const opportunities = await reportRepo.listUniversityEligibleOpportunities(scoped.university_id, scoped);
+  return {
+    university_id: scoped.university_id,
+    university: await reportRepo.loadUniversity(scoped.university_id),
+    opportunities,
+  };
+}
+
+async function getAcademicOpportunity(user, opportunityId, query = {}) {
+  assertStaffReportAccess(user);
+  const scoped = withAcademicUniversity(user, query);
+  const detail = await reportRepo.getUniversityOpportunityDetail(scoped.university_id, opportunityId);
+  if (!detail) {
+    throw new ApiError(404, 'الفرصة غير موجودة أو غير مرتبطة بجامعتك', null, 'FIELD_TRAINING_NOT_FOUND');
+  }
+  return detail;
+}
+
+async function getAcademicStudentReport(user, applicationId) {
+  const universityId = deriveAcademicUniversityId(user);
+  const { app } = await assertStudentReportAccess(user, applicationId);
+  const student = await prisma.users.findUnique({
+    where: { id: app.student_id },
+    select: { primary_university_id: true },
+  });
+  if (String(student?.primary_university_id || '') !== String(universityId)) {
+    throw new ApiError(403, 'غير مصرح بالوصول إلى بيانات جامعة أخرى', null, 'FIELD_TRAINING_UNIVERSITY_FORBIDDEN');
+  }
+  return getStudentReport(user, applicationId);
 }
 
 module.exports = {
@@ -274,7 +321,12 @@ module.exports = {
   exportStudentReport,
   getGlobalReport,
   exportGlobalReport,
+  getAcademicDashboard,
   getAcademicUniversityReport,
   listAcademicStudents,
+  listAcademicOpportunities,
+  getAcademicOpportunity,
+  getAcademicStudentReport,
   withAcademicUniversity,
+  ACADEMIC_UNIVERSITY_REQUIRED_MSG,
 };

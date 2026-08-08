@@ -3,6 +3,8 @@
   "admin": {
     "groups": {
       "general": "الإدارة العامة",
+      "institutionTraining": "إدارة التدريب",
+      "contentHelp": "إدارة المحتوى والمساعدة",
       "orgs": "المؤسسات والبرامج",
       "delivery": "التنفيذ والتعليم",
       "quality": "الجودة والمتابعة",
@@ -12,13 +14,25 @@
       "dashboard": "الرئيسية",
       "analytics": "الإحصائيات والتحليلات",
       "courses": "إدارة الكورسات",
+      "trainingCourses": "الدورات التدريبية",
       "fieldTraining": "إدارة التدريب الميداني",
+      "userGuide": "دليل المستخدم",
+      "contentHubHelp": "دليل المستخدم",
+      "contentHubTours": "الجولات التعريفية",
+      "contentHubPopups": "البوب أب",
+      "contentHubAnnouncements": "الإعلانات والتنبيهات",
+      "contentHubNotifications": "إدارة الإشعارات والقواعد",
+      "contentHubNotificationsSend": "إرسال إشعار",
+      "contentHubContextual": "المساعدة السياقية",
+      "contentHubAnalytics": "إحصائيات الاستخدام",
+      "contentHubAudit": "سجل التعديلات",
       "fieldTrainingReports": "تقارير التدريب الميداني",
       "fieldTrainingStudents": "متابعة طلاب التدريب الميداني",
       "users": "المستخدمون",
       "roles": "الأدوار والصلاحيات",
       "settings": "الإعدادات",
       "universities": "الجامعات",
+      "institutions": "المؤسسات",
       "tracks": "المسارات",
       "microCredentials": "الشهادات المصغرة",
       "learningOutcomes": "مخرجات التعلم",
@@ -61,13 +75,38 @@
     "fieldTrainingTasks": "المهام والتسليمات",
     "fieldTrainingResults": "نتائج الطلاب",
     "fieldTrainingEligibility": "الأهلية والمتابعة",
+    "userGuide": "دليل المستخدم",
     "notifications": "الإشعارات"
   },
+  "trainer": {
+    "home": "لوحة التحكم",
+    "courses": "الدورات التدريبية",
+    "notifications": "الإشعارات",
+    "userGuide": "دليل المدرب",
+    "profile": "الملف الشخصي"
+  },
+  "trainee": {
+    "home": "لوحة التحكم",
+    "courses": "دوراتي التدريبية",
+    "certificates": "الشهادات",
+    "notifications": "الإشعارات",
+    "userGuide": "دليل المتدرب",
+    "support": "الدعم",
+    "profile": "الملف الشخصي"
+  },
   "student": {
+    "groups": {
+      "overview": "نظرة عامة",
+      "fieldTraining": "التدريب الميداني",
+      "learning": "البرامج والكورسات",
+      "support": "المساعدة"
+    },
     "home": "الرئيسية",
+    "trainingPrograms": "دوراتي التدريبية",
     "availableCohorts": "الدفعات المتاحة",
     "courses": "الكورسات",
-    "fieldTraining": "التدريب الميداني",
+    "fieldTraining": "فرص التدريب الميداني",
+    "userGuide": "دليل المستخدم",
     "programs": "شهاداتي المسجل بها",
     "semesterSchedule": "البرامج التدريبية المسجلة",
     "content": "المحتوى",
@@ -80,13 +119,16 @@
     "notifications": "الإشعارات"
   },
   "reviewer": {
-    "home": "الرئيسية",
+    "home": "لوحة مراجع الجامعة",
     "recognition": "طلبات الاعتراف الأكاديمي",
-    "universityReports": "تقارير الجامعة",
-    "fieldTraining": "التدريب الميداني",
+    "universityReports": "التقارير",
+    "fieldTraining": "التقدم والساعات",
+    "fieldTrainingStudents": "طلاب الجامعة",
+    "fieldTrainingOpportunities": "فرص التدريب",
     "evidence": "الأدلة والمرفقات",
-    "certificates": "الشهادات المرتبطة",
+    "certificates": "الشهادات",
     "enrollmentRequests": "طلبات التسجيل",
+    "userGuide": "دليل المستخدم",
     "notifications": "الإشعارات"
   }
 }

@@ -1,8 +1,8 @@
 {
   "title": "University management",
-  "description": "Manage higher education institutions and partnerships.",
+  "description": "Manage higher education institutions, partnerships, email domains, and specialties.",
   "add": "Add university",
-  "searchPlaceholder": "Search by name, email, or contact",
+  "searchPlaceholder": "Search by name, code, email, or contact",
   "listTitle": "Universities list",
   "stats": {
     "total": "Total universities",
@@ -12,9 +12,11 @@
   },
   "table": {
     "name": "University name",
+    "code": "Code",
     "contact": "Contact",
     "email": "Email",
-    "programs": "Programs count"
+    "programs": "Specialties",
+    "domains": "Email domains"
   },
   "empty": {
     "noData": "No data",
@@ -30,5 +32,15 @@
   },
   "view": {
     "title": "University details"
+  },
+  "sections": {
+    "basic": "Basic university information",
+    "contact": "Contact & location",
+    "domains": "Approved email domains",
+    "specialties": "University specialties",
+    "settings": "Settings & status"
+  },
+  "actions": {
+    "manageSpecialties": "Manage university specialties"
   }
 }

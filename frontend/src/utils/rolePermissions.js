@@ -1,5 +1,12 @@
-import { ROLES, ADMIN_ROLE_SET, isLegacyDeprecatedRole } from '../constants/roles.js';
+import {
+  ROLES,
+  ADMIN_ROLE_SET,
+  isLegacyDeprecatedRole,
+  canonicalizeRoleCode,
+  normalizeRoleCodes,
+} from '../constants/roles.js';
 import { UI_PERMISSION } from '../constants/permissions.js';
+import { resolveAccessRoleForPath, getUserRoleCodes, getActiveRoleCode } from './authRouting.js';
 
 const P = UI_PERMISSION;
 
@@ -89,10 +96,16 @@ const REVIEWER = {
   [P.canViewNotifications]: true,
 };
 
+const TRAINEE = {
+  ...STUDENT,
+  [P.canViewFieldTraining]: false,
+};
+
 const BY_ROLE = {
   [ROLES.STUDENT]: STUDENT,
+  [ROLES.TRAINEE]: TRAINEE,
   [ROLES.INSTRUCTOR]: INSTRUCTOR,
-  [ROLES.UNIVERSITY_REVIEWER]: REVIEWER,
+  [ROLES.REVIEWER]: REVIEWER,
 };
 
 /**
@@ -100,9 +113,10 @@ const BY_ROLE = {
  * @returns {Record<string, boolean>}
  */
 export function getUiPermissions(role) {
-  if (isLegacyDeprecatedRole(role)) return { ...DENY_ALL };
-  if (role && ADMIN_ROLE_SET.includes(role)) return { ...ADMIN_ALL };
-  return BY_ROLE[role] ?? STUDENT;
+  const code = canonicalizeRoleCode(role);
+  if (!code) return { ...STUDENT };
+  if (code && ADMIN_ROLE_SET.includes(code)) return { ...ADMIN_ALL };
+  return BY_ROLE[code] ?? STUDENT;
 }
 
 /**
@@ -119,18 +133,25 @@ export function hasUiPermission(role, key) {
  * UI permission check using `/api/auth/me` payload when present: backend `permissions`
  * codes can match a {@link UI_PERMISSION} value; `*` / `ui.all` grant the full role matrix.
  * Otherwise falls back to role-only {@link hasUiPermission}.
- * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * @param {{ role?: string, roles?: string[], permissions?: string[] } | null | undefined} user
  * @param {string} key
+ * @param {string | null | undefined} [accessRole] role to evaluate matrix for (e.g. shell role)
  */
-export function hasUiPermissionForUser(user, key) {
+export function hasUiPermissionForUser(user, key, accessRole = null) {
   if (!key) return true;
   if (key === UI_ROUTE_DENY) return false;
+  const role = canonicalizeRoleCode(accessRole) || canonicalizeRoleCode(user?.role);
   const codes = Array.isArray(user?.permissions) ? user.permissions.map(String) : [];
   if (codes.includes('*') || codes.includes('ui.all')) {
-    return Boolean(getUiPermissions(user?.role)[key]);
+    return Boolean(getUiPermissions(role)[key]);
   }
   if (codes.includes(key)) return true;
-  return hasUiPermission(user?.role, key);
+  // Multi-role: grant if any held role has the UI capability
+  const roles = Array.isArray(user?.roles) ? normalizeRoleCodes(user.roles.map(String)) : [];
+  if (roles.length > 1) {
+    if (roles.some((r) => hasUiPermission(r, key))) return true;
+  }
+  return hasUiPermission(role, key);
 }
 
 /**
@@ -140,6 +161,7 @@ export function hasUiPermissionForUser(user, key) {
 const ROUTE_RULES = [
   [/^\/instructor\/assessments\/create\/?$/, P.canCreateAssessments],
   [/^\/instructor\/assessments\/[^/]+\/edit\/?$/, P.canEditAssessments],
+  [/^\/student\/training-programs\/?$/, P.canViewEnrolledPrograms],
   [/^\/student\/programs\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
   [/^\/student\/available-cohorts\/?$/, P.canViewEnrolledPrograms],
   [/^\/student\/semester-schedule\/?$/, P.canViewEnrolledPrograms],
@@ -155,6 +177,14 @@ const ROUTE_RULES = [
   [/^\/student\/grades(\/|$)/, P.canViewGrades],
   [/^\/student\/certificate(\/|$)/, P.canViewCertificates],
   [/^\/student\/dashboard\/?$/, P.canViewDashboard],
+
+  [/^\/trainee\/courses\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
+  [/^\/trainee\/courses\/?$/, P.canViewEnrolledPrograms],
+  [/^\/trainee\/certificates(\/|$)/, P.canViewCertificates],
+  [/^\/trainee\/notifications(\/|$)/, P.canViewNotifications],
+  [/^\/trainee\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/trainee\/profile\/?$/, P.canViewDashboard],
+  [/^\/trainee\/?$/, P.canViewDashboard],
 
   [/^\/instructor\/field-training(\/|$)/, P.canViewFieldTraining],
   [/^\/instructor\/risk-students(\/|$)/, P.canManageRiskStudents],
@@ -188,7 +218,7 @@ const ROUTE_RULES = [
  */
 export function getRouteUiPermission(pathname) {
   const path = pathname.replace(/\/+$/, '') || '/';
-  if (!/^\/(student|instructor|reviewer)(\/|$)/.test(path)) {
+  if (!/^\/(student|trainee|instructor|reviewer)(\/|$)/.test(path)) {
     return null;
   }
   for (const [re, perm] of ROUTE_RULES) {
@@ -214,16 +244,22 @@ export function canAccessPathWithUiPermissions(role, pathname) {
 
 /**
  * Same as {@link canAccessPathWithUiPermissions} but uses `/me` permissions when present.
- * @param {{ role?: string, permissions?: string[] } | null | undefined} user
+ * Uses shell role when the user holds it (multi-role safe).
+ * @param {{ role?: string, roles?: string[], permissions?: string[] } | null | undefined} user
  * @param {string} pathname
  */
 export function canAccessPathWithUiPermissionsForUser(user, pathname) {
-  const role = user?.role;
-  if (!role) return false;
-  if (isLegacyDeprecatedRole(role)) return false;
-  if (ADMIN_ROLE_SET.includes(role)) return true;
+  const codes = getUserRoleCodes(user);
+  if (!codes.length) return false;
+  if (codes.some((r) => isLegacyDeprecatedRole(r)) && !codes.some((r) => !isLegacyDeprecatedRole(r))) {
+    return false;
+  }
+  if (codes.some((r) => ADMIN_ROLE_SET.includes(r))) return true;
+  const accessRole = resolveAccessRoleForPath(user, pathname) || getActiveRoleCode(user);
+  if (!accessRole) return false;
+  if (isLegacyDeprecatedRole(accessRole)) return false;
   const perm = getRouteUiPermission(pathname);
   if (perm === null) return true;
-  if (perm === UI_ROUTE_DENY || !hasUiPermissionForUser(user, perm)) return false;
+  if (perm === UI_ROUTE_DENY || !hasUiPermissionForUser(user, perm, accessRole)) return false;
   return true;
 }

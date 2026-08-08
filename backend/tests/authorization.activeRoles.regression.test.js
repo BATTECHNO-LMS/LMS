@@ -1,8 +1,7 @@
 'use strict';
 
 /**
- * Phase 4 compact regression: seven active roles × representative sensitive allowlists.
- * Does not restore the former 102-case program_admin-era matrix.
+ * Compact regression: five canonical roles × representative sensitive allowlists.
  */
 
 const { describe, it, afterEach } = require('node:test');
@@ -29,18 +28,15 @@ const {
 
 const ACTIVE_ROLES = Object.freeze([
   'super_admin',
-  'university_admin',
-  'academic_admin',
-  'qa_officer',
+  'admin',
   'instructor',
   'student',
-  'university_reviewer',
+  'reviewer',
 ]);
 
 /**
- * Representative sensitive lists from live env defaults (Phase 3+).
+ * Representative sensitive lists from live env defaults.
  * Membership = role is on the allowlist (non-global requester).
- * super_admin without isGlobal is still on lists that include 'super_admin'.
  */
 const REPRESENTATIVE = Object.freeze({
   USER_WRITE: env.USER_WRITE_ROLE_CODES,
@@ -53,79 +49,63 @@ const REPRESENTATIVE = Object.freeze({
   FIELD_TRAINING_ADMIN: env.FIELD_TRAINING_ADMIN_ROLE_CODES,
 });
 
-/** Expected allow (true) for active roles — must match Phase 3 defaults; no widening. */
+/** Expected allow (true) for canonical roles — matches five-role env defaults. */
 const EXPECTED = Object.freeze({
   USER_WRITE: {
     super_admin: true,
-    university_admin: false,
-    academic_admin: false,
-    qa_officer: false,
+    admin: false,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   UNIVERSITY_WRITE: {
     super_admin: true,
-    university_admin: false,
-    academic_admin: false,
-    qa_officer: false,
+    admin: false,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   ADMIN_READ: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: false,
-    qa_officer: false,
+    admin: true,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   ACADEMIC_WRITE: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: true,
-    qa_officer: false,
+    admin: true,
     instructor: true,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   CERTIFICATE_WRITE: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: true,
-    qa_officer: false,
+    admin: true,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   QA_OVERSIGHT: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: true,
-    qa_officer: true,
+    admin: true,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
   REPORT_READ: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: true,
-    qa_officer: true,
+    admin: true,
     instructor: false,
     student: false,
-    university_reviewer: true,
+    reviewer: true,
   },
   FIELD_TRAINING_ADMIN: {
     super_admin: true,
-    university_admin: true,
-    academic_admin: true,
-    qa_officer: false,
+    admin: true,
     instructor: false,
     student: false,
-    university_reviewer: false,
+    reviewer: false,
   },
 });
 
@@ -144,25 +124,31 @@ function assertRoleOnAllowlist(allowList, role, expectedAllowed) {
   }
 }
 
-describe('active-role authorization regression (Phase 4 compact)', () => {
+describe('active-role authorization regression (five-role model)', () => {
   afterEach(() => {
     resetDeprecatedRoleWarningsForTests();
   });
 
-  it('table-driven: seven active roles vs representative sensitive allowlists', () => {
+  it('table-driven: five roles vs representative sensitive allowlists', () => {
     for (const [listName, allow] of Object.entries(REPRESENTATIVE)) {
-      assert.equal(
-        allow.includes('program_admin'),
-        false,
-        `${listName} must not list program_admin`
-      );
+      for (const legacy of [
+        'program_admin',
+        'university_admin',
+        'academic_admin',
+        'qa_officer',
+        'university_reviewer',
+      ]) {
+        assert.equal(
+          allow.includes(legacy),
+          false,
+          `${listName} must not list raw legacy code ${legacy}`
+        );
+      }
       const expected = EXPECTED[listName];
       assert.ok(expected, `missing EXPECTED for ${listName}`);
       for (const role of ACTIVE_ROLES) {
         assertRoleOnAllowlist(allow, role, expected[role]);
       }
-      // program_admin and unknown roles fail closed on every representative list
-      assertRoleOnAllowlist(allow, 'program_admin', false);
       assertRoleOnAllowlist(allow, 'employer_unknown', false);
     }
   });
@@ -176,7 +162,7 @@ describe('active-role authorization regression (Phase 4 compact)', () => {
     }
   });
 
-  it('super_admin with isGlobal retains intended bypass; program_admin does not', () => {
+  it('super_admin with isGlobal retains intended bypass; unknown roles do not', () => {
     const sa = makeGlobalSuperAdmin();
     assert.equal(isSystemWideAdmin(sa), true);
     assert.equal(isFieldTrainingAdmin(sa), true);
@@ -186,16 +172,24 @@ describe('active-role authorization regression (Phase 4 compact)', () => {
       true
     );
 
+    const unknown = makeRequester({ roles: ['employer_unknown'], isGlobal: false });
+    assert.equal(isSystemWideAdmin(unknown), false);
+    assert.equal(isFieldTrainingAdmin(unknown), false);
+    assert.equal(
+      runMiddlewareSync(settingsMw, createMockReq({ user: unknown })).status,
+      403
+    );
+
+    // Legacy JWT alias program_admin → admin (not super_admin)
     const pa = makeProgramAdmin();
     assert.equal(isSystemWideAdmin(pa), false);
-    assert.equal(isFieldTrainingAdmin(pa), false);
     assert.equal(
       runMiddlewareSync(settingsMw, createMockReq({ user: pa })).status,
       403
     );
   });
 
-  it('environment parsing keeps active roles and strips program_admin', () => {
+  it('environment parsing canonicalizes legacy CSV codes', () => {
     const filtered = parseRoleCodesWithFallback(
       'super_admin,program_admin,university_admin,academic_admin,qa_officer,instructor,student,university_reviewer',
       'super_admin',
@@ -203,12 +197,10 @@ describe('active-role authorization regression (Phase 4 compact)', () => {
     );
     assert.deepEqual(filtered, [
       'super_admin',
-      'university_admin',
-      'academic_admin',
-      'qa_officer',
+      'admin',
       'instructor',
       'student',
-      'university_reviewer',
+      'reviewer',
     ]);
     assert.equal(filtered.includes('program_admin'), false);
 
@@ -217,14 +209,13 @@ describe('active-role authorization regression (Phase 4 compact)', () => {
   });
 
   it('characterization domains remain represented (FT, academic, QA, cert, report, scope)', () => {
-    // Spot-check live env defaults still expose the domains used by characterization suites.
-    assert.ok(env.FIELD_TRAINING_ADMIN_ROLE_CODES.includes('university_admin'));
+    assert.ok(env.FIELD_TRAINING_ADMIN_ROLE_CODES.includes('admin'));
     assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('instructor'));
-    assert.ok(env.QA_OVERSIGHT_ROLE_CODES.includes('qa_officer'));
-    assert.ok(env.CERTIFICATE_WRITE_ROLE_CODES.includes('academic_admin'));
-    assert.ok(env.REPORT_READ_ROLE_CODES.includes('university_reviewer'));
+    assert.ok(env.QA_OVERSIGHT_ROLE_CODES.includes('admin'));
+    assert.ok(env.CERTIFICATE_WRITE_ROLE_CODES.includes('admin'));
+    assert.ok(env.REPORT_READ_ROLE_CODES.includes('reviewer'));
     assert.equal(
-      isSystemWideAdmin(makeRequester({ roles: ['university_admin'], isGlobal: false })),
+      isSystemWideAdmin(makeRequester({ roles: ['admin'], isGlobal: false })),
       false
     );
     assert.equal(isSystemWideAdmin(makeGlobalSuperAdmin()), true);

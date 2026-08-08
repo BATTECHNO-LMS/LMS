@@ -3,7 +3,7 @@
 async function findUniversityById(id) {
   return prisma.universities.findFirst({
     where: { id, status: 'active' },
-    select: { id: true, name: true, status: true },
+    select: { id: true, name: true, status: true, organization_id: true },
   });
 }
 
@@ -24,6 +24,7 @@ async function findUserByEmail(email) {
       password_hash: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       email_verified_at: true,
       last_login_at: true,
@@ -43,6 +44,7 @@ async function findUserById(id) {
       password_hash: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       email_verified_at: true,
       last_login_at: true,
@@ -62,9 +64,12 @@ async function findUserProfileById(id) {
       email: true,
       phone: true,
       status: true,
+      status_public_message: true,
       primary_university_id: true,
       university_specialty_id: true,
       specialty_id: true,
+      email_verified_at: true,
+      preferred_organization_id: true,
       specialties: {
         select: { id: true, name_ar: true, name_en: true, code: true, status: true },
       },
@@ -85,6 +90,19 @@ async function findUserProfileById(id) {
 async function findRoleByCode(code) {
   return prisma.roles.findFirst({
     where: { code },
+  });
+}
+
+async function findUserByPhone(phone) {
+  if (!phone) return null;
+  return prisma.users.findFirst({
+    where: { phone },
+    select: {
+      id: true,
+      email: true,
+      phone: true,
+      status: true,
+    },
   });
 }
 
@@ -203,7 +221,15 @@ async function findActiveUniversitiesForRegistration() {
         some: { is_active: true },
       },
     },
-    select: { id: true, name: true, type: true, status: true },
+    select: {
+      id: true,
+      name: true,
+      name_en: true,
+      short_name: true,
+      code: true,
+      type: true,
+      status: true,
+    },
     orderBy: { name: 'asc' },
   });
 }
@@ -215,6 +241,7 @@ module.exports = {
   findUserById,
   findUserProfileById,
   findRoleByCode,
+  findUserByPhone,
   loadRolesAndPermissions,
   createStudentUser,
   touchLastLogin,

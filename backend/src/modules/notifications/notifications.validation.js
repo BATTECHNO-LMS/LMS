@@ -1,5 +1,6 @@
 ﻿const { z } = require('zod');
 const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
+const { CATEGORIES, CHANNELS } = require('../notificationEngine/notificationEvents.catalog');
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -14,6 +15,9 @@ const notificationTypeEnum = z.enum([
   'user_pending_activation',
   'action_required',
 ]);
+
+const categoryEnum = z.enum(/** @type {[string, ...string[]]} */ ([...CATEGORIES]));
+const channelEnum = z.enum(/** @type {[string, ...string[]]} */ ([...CHANNELS]));
 
 const listNotificationsQuerySchema = z
   .object({
@@ -34,8 +38,26 @@ const listNotificationsQuerySchema = z
     };
   });
 
+const preferencesBodySchema = z
+  .object({
+    preferences: z
+      .array(
+        z.object({
+          notification_category: categoryEnum,
+          channel: channelEnum,
+          is_enabled: z.boolean(),
+        })
+      )
+      .min(1)
+      .max(100),
+  })
+  .strict();
+
 module.exports = {
   uuidParamSchema,
   listNotificationsQuerySchema,
   notificationTypeEnum,
+  preferencesBodySchema,
+  categoryEnum,
+  channelEnum,
 };

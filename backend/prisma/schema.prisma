@@ -259,20 +259,42 @@ model modules {
 }
 
 model notifications {
-  id         String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id    String            @db.Uuid
-  title      String            @db.VarChar(255)
-  body       String?
-  type       notification_type @default(info)
-  action_url String?           @db.VarChar(2000)
-  is_read    Boolean           @default(false)
-  created_at DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at DateTime          @default(now()) @db.Timestamptz(6)
+  id                       String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                  String            @db.Uuid
+  title                    String            @db.VarChar(255)
+  body                     String?
+  type                     notification_type @default(info)
+  action_url               String?           @db.VarChar(2000)
+  action_label             String?           @db.VarChar(120)
+  is_read                  Boolean           @default(false)
+  event_type               String?           @db.VarChar(100)
+  category                 String?           @db.VarChar(50)
+  priority                 String?           @db.VarChar(20)
+  entity_type              String?           @db.VarChar(80)
+  entity_id                String?           @db.Uuid
+  rule_id                  String?           @db.Uuid
+  template_id              String?           @db.Uuid
+  actor_id                 String?           @db.Uuid
+  is_critical              Boolean           @default(false)
+  requires_acknowledgement Boolean           @default(false)
+  read_at                  DateTime?         @db.Timestamptz(6)
+  acknowledged_at          DateTime?         @db.Timestamptz(6)
+  archived_at              DateTime?         @db.Timestamptz(6)
+  clicked_at               DateTime?         @db.Timestamptz(6)
+  deduplication_key        String?           @db.VarChar(300)
+  created_at               DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime          @default(now()) @db.Timestamptz(6)
 
+  notification_deliveries notification_deliveries[]
+
+  @@unique([deduplication_key], map: "uq_notifications_deduplication_key")
   @@index([is_read], map: "idx_notifications_is_read")
   @@index([user_id], map: "idx_notifications_user_id")
   @@index([user_id, created_at(sort: Desc)], map: "idx_notifications_user_created")
   @@index([user_id, is_read], map: "idx_notifications_user_read")
+  @@index([event_type], map: "idx_notifications_event_type")
+  @@index([category], map: "idx_notifications_category")
+  @@index([archived_at], map: "idx_notifications_archived")
 }
 
 /// Mobile push (FCM) device registrations. Additive; push delivery is disabled
@@ -323,19 +345,21 @@ model certificates {
 
 /// Append-only audit trail (writes via internal helpers, not public POST).
 model audit_logs {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String?  @db.Uuid
-  university_id String?  @db.Uuid
-  action_type   String   @db.VarChar(120)
-  entity_type   String   @db.VarChar(120)
-  entity_id     String?  @db.Uuid
-  old_values    Json?
-  new_values    Json?
-  ip_address    String?  @db.VarChar(64)
-  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String?  @db.Uuid
+  university_id   String?  @db.Uuid
+  organization_id String?  @db.Uuid
+  action_type     String   @db.VarChar(120)
+  entity_type     String   @db.VarChar(120)
+  entity_id       String?  @db.Uuid
+  old_values      Json?
+  new_values      Json?
+  ip_address      String?  @db.VarChar(64)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([user_id], map: "idx_audit_logs_user_id")
   @@index([university_id], map: "idx_audit_logs_university_id")
+  @@index([organization_id], map: "idx_audit_logs_organization_id")
   @@index([action_type], map: "idx_audit_logs_action_type")
   @@index([entity_type], map: "idx_audit_logs_entity_type")
   @@index([created_at], map: "idx_audit_logs_created_at")
@@ -536,20 +560,36 @@ model tracks {
 
 model universities {
   id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  /// 1:1 bridge to organizations (type=UNIVERSITY). Nullable during backfill.
+  organization_id          String?                    @unique(map: "uq_universities_organization_id") @db.Uuid
+  /// Arabic display name (legacy unique column).
   name                     String                     @unique(map: "uq_universities_name") @db.VarChar(255)
+  name_en                  String?                    @db.VarChar(255)
+  short_name               String?                    @db.VarChar(80)
+  code                     String?                    @unique(map: "uq_universities_code") @db.VarChar(50)
   type                     String?                    @db.VarChar(120)
+  website                  String?                    @db.VarChar(500)
+  country                  String?                    @db.VarChar(120)
+  city                     String?                    @db.VarChar(120)
+  address                  String?                    @db.VarChar(500)
   contact_person           String?                    @db.VarChar(255)
   contact_email            String?                    @db.VarChar(255)
   contact_phone            String?                    @db.VarChar(50)
+  logo_url                 String?                    @db.VarChar(1000)
   status                   university_status          @default(active)
   partnership_state        partnership_status         @default(active)
   notes                    String?
   created_at               DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  organizations            organizations?             @relation(fields: [organization_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   university_email_domains university_email_domains[]
   university_specialties   university_specialties[]
   field_training_opportunities field_training_opportunities[]
   field_training_opportunity_eligibility field_training_opportunity_eligibility[]
+
+  @@index([code], map: "idx_universities_code")
+  @@index([short_name], map: "idx_universities_short_name")
+  @@index([organization_id], map: "idx_universities_organization_id")
 }
 
 model university_email_domains {
@@ -557,6 +597,7 @@ model university_email_domains {
   university_id  String   @db.Uuid
   domain         String   @db.VarChar(255)
   is_active      Boolean  @default(true)
+  is_primary     Boolean  @default(false)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
   updated_at     DateTime @default(now()) @db.Timestamptz(6)
 
@@ -593,25 +634,33 @@ model user_roles {
 }
 
 model users {
-  id                      String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  full_name               String      @db.VarChar(255)
-  email                   String      @unique @db.VarChar(255)
-  password_hash           String
-  phone                   String?     @db.VarChar(50)
-  status                  user_status @default(inactive)
-  primary_university_id   String?     @db.Uuid
-  university_specialty_id String?     @db.Uuid
-  specialty_id            String?     @db.Uuid
-  activated_at            DateTime?   @db.Timestamptz(6)
-  email_verified_at       DateTime?   @db.Timestamptz(6)
-  last_login_at           DateTime?   @db.Timestamptz(6)
-  created_at              DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at              DateTime    @default(now()) @db.Timestamptz(6)
+  id                        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name                 String                     @db.VarChar(255)
+  email                     String                     @unique @db.VarChar(255)
+  password_hash             String
+  phone                     String?                    @db.VarChar(50)
+  status                    user_status                @default(inactive)
+  primary_university_id     String?                    @db.Uuid
+  university_specialty_id   String?                    @db.Uuid
+  specialty_id              String?                    @db.Uuid
+  activated_at              DateTime?                  @db.Timestamptz(6)
+  email_verified_at         DateTime?                  @db.Timestamptz(6)
+  /// OTP | ADMIN | IMPORT — set when email is verified.
+  email_verification_method email_verification_method?
+  activated_by              String?                    @db.Uuid
+  /// Preferred active organization for multi-assignment users (must match an active assignment).
+  preferred_organization_id String?                    @db.Uuid
+  status_public_message     String?                    @db.VarChar(500)
+  last_login_at             DateTime?                  @db.Timestamptz(6)
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime                   @default(now()) @db.Timestamptz(6)
 
-  specialties               specialties?               @relation(fields: [specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  university_specialty      university_specialties?    @relation(fields: [university_specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  email_verification_otps   email_verification_otps[]
-  password_reset_otps       password_reset_otps[]
+  specialties                    specialties?                     @relation(fields: [specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  university_specialty           university_specialties?          @relation(fields: [university_specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  email_verification_otps        email_verification_otps[]
+  password_reset_otps            password_reset_otps[]
+  user_organization_assignments  user_organization_assignments[] @relation("UserOrganizationAssignments")
+  assigned_organization_members  user_organization_assignments[] @relation("OrganizationAssignmentActor")
 
   @@index([primary_university_id], map: "idx_users_primary_university_id")
   @@index([university_specialty_id], map: "idx_users_university_specialty_id")
@@ -662,7 +711,7 @@ model password_reset_otps {
   @@index([reset_token_hash], map: "idx_password_reset_otps_reset_token_hash")
 }
 
-/// Global academic specialties / majors — shared across all universities.
+/// Global academic specialties / majors â€” shared across all universities.
 model specialties {
   id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name_ar       String           @db.VarChar(255)
@@ -971,6 +1020,7 @@ enum user_status {
   active
   inactive
   suspended
+  rejected
 }
 
 enum account_deletion_request_status {
@@ -1226,6 +1276,7 @@ model field_training_opportunities {
   requirements         String?
   benefits             String?
   seats_limit          Int?
+  /// Total training hours a student must complete; null = legacy / not enforced.
   required_training_hours Int?
   start_date           DateTime?                         @db.Date
   end_date             DateTime?                         @db.Date
@@ -1302,7 +1353,7 @@ model field_training_applications {
   pre_assessment_level field_training_knowledge_level?
   post_assessment_score Decimal?                    @db.Decimal(6, 2)
   attendance_percentage Decimal?                    @db.Decimal(5, 2)
-  completed_training_hours Int?
+  completed_training_hours Int                      @default(0)
   hours_updated_at DateTime?                        @db.Timestamptz(6)
   hours_updated_by_id String?                       @db.Uuid
   final_task_status field_training_final_task_status @default(not_required)
@@ -1394,6 +1445,26 @@ enum field_training_attendance_status {
   absent
   late
   excused
+  unconfirmed
+}
+
+enum field_training_attendance_window_status {
+  pending
+  open
+  closed
+  finalized
+}
+
+enum field_training_attendance_window_mode {
+  normal
+  late
+}
+
+enum field_training_attendance_method {
+  electronic
+  manual
+  auto_finalize
+  bulk_manual
 }
 
 enum field_training_assessment_type {
@@ -1418,9 +1489,18 @@ enum field_training_question_type {
 
 enum field_training_task_review_status {
   pending
+  submitted
+  under_review
+  needs_revision
   approved
   rejected
-  needs_revision
+  graded
+}
+
+enum field_training_task_grading_mode {
+  AI
+  MANUAL
+  NONE
 }
 
 enum field_training_completion_letter_status {
@@ -1437,6 +1517,7 @@ model field_training_tasks {
   due_date       DateTime? @db.Date
   ai_self_evaluation_prompt String?
   requires_ai_self_evaluation Boolean @default(false)
+  grading_mode   field_training_task_grading_mode @default(AI)
   is_final_task  Boolean  @default(false)
   instruction_file_path String? @db.VarChar(500)
   instruction_file_name String? @db.VarChar(255)
@@ -1465,6 +1546,7 @@ model field_training_task_submissions {
   ai_raw_response String?
   ai_response_inserted_text String?
   final_student_notes String?
+  solution_notes String?
   ai_evaluated_at DateTime? @db.Timestamptz(6)
   file_path      String?  @db.VarChar(500)
   file_name      String?  @db.VarChar(255)
@@ -1480,6 +1562,8 @@ model field_training_task_submissions {
   is_late        Boolean  @default(false)
   review_status  field_training_task_review_status @default(pending)
   instructor_feedback String?
+  manual_score   Float?
+  max_score      Float?
   reviewed_by_id String?  @db.Uuid
   reviewed_at    DateTime? @db.Timestamptz(6)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -1487,11 +1571,30 @@ model field_training_task_submissions {
 
   field_training_tasks        field_training_tasks        @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_task_submission_files field_training_task_submission_files[]
 
   @@unique([task_id, application_id], map: "uq_field_training_task_submissions")
   @@index([student_id], map: "idx_field_training_task_submissions_student")
   @@index([review_status], map: "idx_field_training_task_submissions_review_status")
   @@index([application_id], map: "idx_field_training_task_submissions_application")
+}
+
+model field_training_task_submission_files {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id  String   @db.Uuid
+  file_id        String?  @db.Uuid
+  file_path      String   @db.VarChar(500)
+  file_name      String   @db.VarChar(255)
+  mime_type      String?  @db.VarChar(120)
+  file_size      Int?
+  sort_order     Int      @default(0)
+  extraction_status String? @db.VarChar(40)
+  is_archive     Boolean  @default(false)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_task_submissions field_training_task_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([submission_id], map: "idx_ft_submission_files_submission")
 }
 
 model field_training_sessions {
@@ -1510,13 +1613,14 @@ model field_training_sessions {
 
   field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_attendance    field_training_attendance[]
+  field_training_attendance_windows field_training_attendance_windows[]
 
   @@index([opportunity_id], map: "idx_field_training_sessions_opportunity")
   @@index([session_date], map: "idx_field_training_sessions_date")
 }
 
 /// Attendance rule: percentage uses required sessions only.
-/// present + late + excused count as attended; absent does not.
+/// present + late + excused count as attended; absent / unconfirmed do not.
 model field_training_attendance {
   id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   session_id     String   @db.Uuid
@@ -1524,6 +1628,12 @@ model field_training_attendance {
   student_id     String   @db.Uuid
   status         field_training_attendance_status
   note           String?
+  method         field_training_attendance_method?
+  confirmed_at   DateTime? @db.Timestamptz(6)
+  manual_reason  String?
+  attendance_window_id String? @db.Uuid
+  ip_address     String?  @db.VarChar(64)
+  device_info    String?  @db.VarChar(500)
   recorded_by_id String?  @db.Uuid
   recorded_at    DateTime @default(now()) @db.Timestamptz(6)
   created_at     DateTime @default(now()) @db.Timestamptz(6)
@@ -1531,10 +1641,49 @@ model field_training_attendance {
 
   field_training_sessions     field_training_sessions     @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_attendance_windows field_training_attendance_windows? @relation(fields: [attendance_window_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([session_id, application_id], map: "uq_field_training_attendance_session_application")
   @@index([student_id], map: "idx_field_training_attendance_student")
   @@index([application_id], map: "idx_field_training_attendance_application")
+}
+
+model field_training_attendance_windows {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id       String   @db.Uuid
+  code_hash        String   @db.VarChar(128)
+  status           field_training_attendance_window_status @default(pending)
+  mode             field_training_attendance_window_mode @default(normal)
+  opened_at        DateTime? @db.Timestamptz(6)
+  expires_at       DateTime? @db.Timestamptz(6)
+  closed_at        DateTime? @db.Timestamptz(6)
+  opened_by_id     String?  @db.Uuid
+  closed_by_id     String?  @db.Uuid
+  duration_seconds Int      @default(120)
+  notes            String?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_sessions field_training_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_attendance field_training_attendance[]
+  field_training_attendance_window_attempts field_training_attendance_window_attempts[]
+
+  @@index([session_id], map: "idx_ft_attendance_windows_session")
+  @@index([status, expires_at], map: "idx_ft_attendance_windows_status_expires")
+}
+
+model field_training_attendance_window_attempts {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  window_id       String   @db.Uuid
+  student_id      String   @db.Uuid
+  attempt_count   Int      @default(0)
+  last_attempt_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_attendance_windows field_training_attendance_windows @relation(fields: [window_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([window_id, student_id], map: "uq_ft_attendance_window_attempts_student")
 }
 
 model field_training_assessments {
@@ -1647,3 +1796,1729 @@ model files {
   @@index([related_entity_type, related_entity_id], map: "idx_files_related_entity")
   @@index([deleted_at], map: "idx_files_deleted_at")
 }
+
+/// Student/staff onboarding tour progress per guide version.
+enum user_onboarding_status {
+  not_started
+  in_progress
+  completed
+  dismissed
+}
+
+model user_onboarding_progress {
+  id           String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String                  @db.Uuid
+  guide_key    String                  @db.VarChar(100)
+  guide_version String                 @db.VarChar(100)
+  status       user_onboarding_status  @default(not_started)
+  last_step    Int                     @default(0)
+  started_at   DateTime?               @db.Timestamptz(6)
+  completed_at DateTime?               @db.Timestamptz(6)
+  dismissed_at DateTime?               @db.Timestamptz(6)
+  created_at   DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, guide_key, guide_version], map: "uq_user_onboarding_progress_user_guide_version")
+  @@index([user_id], map: "idx_user_onboarding_progress_user")
+  @@index([guide_key], map: "idx_user_onboarding_progress_guide_key")
+  @@index([guide_version], map: "idx_user_onboarding_progress_guide_version")
+  @@index([status], map: "idx_user_onboarding_progress_status")
+}
+
+enum help_content_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum user_guide_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum managed_popup_type {
+  INFO
+  SUCCESS
+  WARNING
+  IMPORTANT
+  URGENT
+}
+
+enum managed_popup_display_rule {
+  ONCE
+  ONCE_PER_VERSION
+  EVERY_LOGIN
+  UNTIL_ACKNOWLEDGED
+  DATE_RANGE
+  EVENT_TRIGGERED
+}
+
+enum managed_popup_status {
+  DRAFT
+  PUBLISHED
+  PAUSED
+  ARCHIVED
+}
+
+enum announcement_type {
+  INFORMATION
+  SUCCESS
+  WARNING
+  IMPORTANT
+  URGENT
+  MAINTENANCE
+}
+
+enum announcement_status {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  PAUSED
+  EXPIRED
+  ARCHIVED
+}
+
+enum announcement_channel_code {
+  TOP_BANNER
+  DASHBOARD_CARD
+  POPUP
+  NOTIFICATION_CENTER
+  IN_APP_NOTIFICATION
+  CONTEXTUAL_BLOCK
+  EMAIL
+  PUSH_NOTIFICATION
+  SMS
+}
+
+enum announcement_target_type {
+  ALL_USERS
+  ROLE
+  UNIVERSITY
+  SPECIALTY
+  OPPORTUNITY
+  SESSION
+  USER
+  ACCOUNT_STATUS
+  APPLICATION_STATUS
+  ACTIVATION_STATUS
+  ONBOARDING_STATUS
+  PROGRESS_RANGE
+  CERTIFICATE_STATUS
+}
+
+model help_categories {
+  id                    String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title_ar              String              @db.VarChar(255)
+  title_en              String?             @db.VarChar(255)
+  slug                  String              @unique @db.VarChar(120)
+  description_ar        String?
+  description_en        String?
+  icon                  String?             @db.VarChar(64)
+  sort_order            Int                 @default(0)
+  is_active             Boolean             @default(true)
+  status                help_content_status @default(PUBLISHED)
+  target_roles          String[]            @default(["student"])
+  target_university_ids String[]            @default([])
+  created_by_id         String?             @db.Uuid
+  updated_by_id         String?             @db.Uuid
+  created_at            DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime            @default(now()) @db.Timestamptz(6)
+
+  help_articles help_articles[]
+
+  @@index([is_active], map: "idx_help_categories_active")
+  @@index([status], map: "idx_help_categories_status")
+  @@index([sort_order], map: "idx_help_categories_sort")
+}
+
+model help_articles {
+  id                     String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  category_id            String              @db.Uuid
+  title_ar               String              @db.VarChar(500)
+  title_en               String?             @db.VarChar(500)
+  slug                   String              @unique @db.VarChar(200)
+  summary_ar             String?
+  summary_en             String?
+  content_ar             String
+  content_en             String?
+  keywords               String[]            @default([])
+  sort_order             Int                 @default(0)
+  is_published           Boolean             @default(true)
+  status                 help_content_status @default(PUBLISHED)
+  version                Int                 @default(1)
+  published_at           DateTime?           @db.Timestamptz(6)
+  published_by_id        String?             @db.Uuid
+  target_roles           String[]            @default(["student"])
+  target_university_ids  String[]            @default([])
+  target_opportunity_id  String?             @db.Uuid
+  related_route          String?             @db.VarChar(255)
+  contextual_key         String?             @db.VarChar(100)
+  show_in_contextual     Boolean             @default(false)
+  guide_version          String?             @db.VarChar(100)
+  is_faq                 Boolean             @default(false)
+  view_count             Int                 @default(0)
+  created_by_id          String?             @db.Uuid
+  updated_by_id          String?             @db.Uuid
+  created_at             DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime            @default(now()) @db.Timestamptz(6)
+
+  help_categories       help_categories        @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  help_article_views    help_article_views[]
+  help_article_versions help_article_versions[]
+
+  @@index([category_id], map: "idx_help_articles_category")
+  @@index([is_published], map: "idx_help_articles_published")
+  @@index([status], map: "idx_help_articles_status")
+  @@index([sort_order], map: "idx_help_articles_sort")
+  @@index([contextual_key], map: "idx_help_articles_contextual_key")
+  @@index([guide_version], map: "idx_help_articles_guide_version")
+  @@index([created_at], map: "idx_help_articles_created")
+}
+
+model help_article_versions {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  article_id      String   @db.Uuid
+  version         Int
+  title_ar        String   @db.VarChar(500)
+  summary_ar      String?
+  content_ar      String
+  keywords        String[] @default([])
+  target_roles    String[] @default([])
+  related_route   String?  @db.VarChar(255)
+  contextual_key  String?  @db.VarChar(100)
+  is_faq          Boolean  @default(false)
+  snapshot_json   Json?
+  created_by_id   String?  @db.Uuid
+  published_by_id String?  @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  help_articles help_articles @relation(fields: [article_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([article_id, version], map: "uq_help_article_versions_article_version")
+  @@index([article_id], map: "idx_help_article_versions_article")
+  @@index([created_at], map: "idx_help_article_versions_created")
+}
+
+model help_article_views {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  article_id String   @db.Uuid
+  user_id    String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  help_articles help_articles @relation(fields: [article_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([article_id], map: "idx_help_article_views_article")
+  @@index([user_id], map: "idx_help_article_views_user")
+  @@index([created_at], map: "idx_help_article_views_created")
+}
+
+model help_search_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String?  @db.Uuid
+  query         String   @db.VarChar(500)
+  results_count Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_help_search_logs_user")
+  @@index([created_at], map: "idx_help_search_logs_created")
+  @@index([query], map: "idx_help_search_logs_query")
+}
+
+enum support_ticket_status {
+  open
+  in_progress
+  resolved
+  closed
+}
+
+enum support_ticket_category {
+  ACCOUNT
+  EMAIL_VERIFICATION
+  PROFILE
+  OPPORTUNITY
+  APPLICATION
+  SESSION
+  ATTENDANCE
+  ZOOM_LINK
+  PRE_TEST
+  POST_TEST
+  TASK
+  SUBMISSION
+  AI_EVALUATION
+  PROGRESS
+  TRAINING_HOURS
+  CERTIFICATE
+  TECHNICAL
+  OTHER
+}
+
+model support_tickets {
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reference_code     String                  @unique @db.VarChar(32)
+  user_id            String                  @db.Uuid
+  organization_id    String?                 @db.Uuid
+  category           support_ticket_category
+  title              String                  @db.VarChar(255)
+  description        String
+  status             support_ticket_status   @default(open)
+  opportunity_id     String?                 @db.Uuid
+  session_id         String?                 @db.Uuid
+  task_id            String?                 @db.Uuid
+  assessment_id      String?                 @db.Uuid
+  browser_info       String?                 @db.VarChar(500)
+  device_info        String?                 @db.VarChar(500)
+  attachment_file_id String?                 @db.Uuid
+  created_at         DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                @default(now()) @db.Timestamptz(6)
+
+  organizations organizations? @relation(fields: [organization_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_support_tickets_user")
+  @@index([organization_id], map: "idx_support_tickets_org")
+  @@index([status], map: "idx_support_tickets_status")
+  @@index([category], map: "idx_support_tickets_category")
+  @@index([created_at], map: "idx_support_tickets_created")
+  @@index([opportunity_id], map: "idx_support_tickets_opportunity")
+}
+
+enum reviewer_assignment_source {
+  EMAIL_DOMAIN
+  MANUAL
+  MIGRATION
+}
+
+/// Active university assignment for role `reviewer` (source of truth for scope).
+model reviewer_university_assignments {
+  id                String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reviewer_user_id  String                     @db.Uuid
+  university_id     String                     @db.Uuid
+  assignment_source reviewer_assignment_source @default(MANUAL)
+  assigned_by_id    String?                    @db.Uuid
+  assigned_at       DateTime                   @default(now()) @db.Timestamptz(6)
+  is_active         Boolean                    @default(true)
+  created_at        DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime                   @default(now()) @db.Timestamptz(6)
+
+  @@unique([reviewer_user_id, university_id], map: "uq_reviewer_university_assignments")
+  @@index([reviewer_user_id], map: "idx_reviewer_university_assignments_reviewer")
+  @@index([university_id], map: "idx_reviewer_university_assignments_university")
+  @@index([is_active], map: "idx_reviewer_university_assignments_active")
+  @@index([reviewer_user_id, is_active], map: "idx_reviewer_university_assignments_reviewer_active")
+}
+
+model user_guides {
+  id                    String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name_ar               String            @db.VarChar(255)
+  guide_key             String            @db.VarChar(100)
+  guide_version         String            @db.VarChar(100)
+  target_role           String            @db.VarChar(50)
+  status                user_guide_status @default(DRAFT)
+  version               Int               @default(1)
+  auto_show             Boolean           @default(true)
+  show_conditions       Json?
+  can_skip              Boolean           @default(true)
+  reshow_on_new_version Boolean           @default(false)
+  starts_at             DateTime?         @db.Timestamptz(6)
+  ends_at               DateTime?         @db.Timestamptz(6)
+  created_by_id         String?           @db.Uuid
+  updated_by_id         String?           @db.Uuid
+  published_by_id       String?           @db.Uuid
+  published_at          DateTime?         @db.Timestamptz(6)
+  created_at            DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime          @default(now()) @db.Timestamptz(6)
+
+  user_guide_steps user_guide_steps[]
+
+  @@unique([guide_key, guide_version], map: "uq_user_guides_key_version")
+  @@index([target_role], map: "idx_user_guides_target_role")
+  @@index([status], map: "idx_user_guides_status")
+}
+
+model user_guide_steps {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  guide_id      String              @db.Uuid
+  title_ar      String              @db.VarChar(255)
+  body_ar       String
+  icon          String?             @db.VarChar(64)
+  image_url     String?             @db.VarChar(1000)
+  tour_target   String?             @db.VarChar(100)
+  related_route String?             @db.VarChar(255)
+  sort_order    Int                 @default(0)
+  is_required   Boolean             @default(false)
+  can_skip      Boolean             @default(true)
+  status        help_content_status @default(PUBLISHED)
+  created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime            @default(now()) @db.Timestamptz(6)
+
+  user_guides user_guides @relation(fields: [guide_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([guide_id], map: "idx_user_guide_steps_guide")
+  @@index([sort_order], map: "idx_user_guide_steps_sort")
+}
+
+model managed_popups {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_name               String                     @db.VarChar(255)
+  title_ar                 String                     @db.VarChar(500)
+  body_ar                  String
+  icon                     String?                    @db.VarChar(64)
+  image_url                String?                    @db.VarChar(1000)
+  popup_type               managed_popup_type         @default(INFO)
+  display_rule             managed_popup_display_rule @default(ONCE)
+  cta_label                String?                    @db.VarChar(120)
+  cta_url                  String?                    @db.VarChar(1000)
+  is_dismissible           Boolean                    @default(true)
+  requires_acknowledgement Boolean                    @default(false)
+  target_roles             String[]                   @default([])
+  target_university_ids    String[]                   @default([])
+  target_specialty_ids     String[]                   @default([])
+  target_opportunity_id    String?                    @db.Uuid
+  target_session_id        String?                    @db.Uuid
+  target_user_ids          String[]                   @default([])
+  target_pages             String[]                   @default([])
+  trigger_event            String?                    @db.VarChar(100)
+  system_key               String?                    @unique @db.VarChar(100)
+  starts_at                DateTime?                  @db.Timestamptz(6)
+  ends_at                  DateTime?                  @db.Timestamptz(6)
+  priority                 Int                        @default(100)
+  max_impressions          Int?
+  status                   managed_popup_status       @default(DRAFT)
+  version                  Int                        @default(1)
+  created_by_id            String?                    @db.Uuid
+  updated_by_id            String?                    @db.Uuid
+  published_by_id          String?                    @db.Uuid
+  published_at             DateTime?                  @db.Timestamptz(6)
+  created_at               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                   @default(now()) @db.Timestamptz(6)
+
+  managed_popup_user_states managed_popup_user_states[]
+
+  @@index([status], map: "idx_managed_popups_status")
+  @@index([priority], map: "idx_managed_popups_priority")
+  @@index([starts_at, ends_at], map: "idx_managed_popups_schedule")
+}
+
+model managed_popup_user_states {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  popup_id        String    @db.Uuid
+  user_id         String    @db.Uuid
+  popup_version   Int       @default(1)
+  first_seen_at   DateTime? @db.Timestamptz(6)
+  last_seen_at    DateTime? @db.Timestamptz(6)
+  dismissed_at    DateTime? @db.Timestamptz(6)
+  acknowledged_at DateTime? @db.Timestamptz(6)
+  clicked_at      DateTime? @db.Timestamptz(6)
+  view_count      Int       @default(0)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  managed_popups managed_popups @relation(fields: [popup_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([popup_id, user_id], map: "uq_managed_popup_user_states")
+  @@index([user_id], map: "idx_managed_popup_user_states_user")
+}
+
+model announcements {
+  id                       String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_name               String              @db.VarChar(255)
+  title_ar                 String              @db.VarChar(500)
+  summary_ar               String?
+  content_ar               String
+  image_url                String?             @db.VarChar(1000)
+  icon                     String?             @db.VarChar(64)
+  announcement_type        announcement_type   @default(INFORMATION)
+  priority                 Int                 @default(100)
+  status                   announcement_status @default(DRAFT)
+  starts_at                DateTime?           @db.Timestamptz(6)
+  ends_at                  DateTime?           @db.Timestamptz(6)
+  timezone                 String              @default("Asia/Amman") @db.VarChar(64)
+  is_dismissible           Boolean             @default(true)
+  requires_acknowledgement Boolean             @default(false)
+  blocks_usage             Boolean             @default(false)
+  is_pinned                Boolean             @default(false)
+  max_impressions          Int?
+  cta_label                String?             @db.VarChar(120)
+  cta_url                  String?             @db.VarChar(1000)
+  trigger_event            String?             @db.VarChar(100)
+  version                  Int                 @default(1)
+  created_by_id            String?             @db.Uuid
+  updated_by_id            String?             @db.Uuid
+  published_by_id          String?             @db.Uuid
+  published_at             DateTime?           @db.Timestamptz(6)
+  created_at               DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime            @default(now()) @db.Timestamptz(6)
+
+  announcement_targets     announcement_targets[]
+  announcement_channels    announcement_channels[]
+  announcement_user_states announcement_user_states[]
+
+  @@index([status], map: "idx_announcements_status")
+  @@index([priority], map: "idx_announcements_priority")
+  @@index([starts_at, ends_at], map: "idx_announcements_schedule")
+  @@index([created_by_id], map: "idx_announcements_created_by")
+}
+
+model announcement_targets {
+  id                 String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  announcement_id    String                   @db.Uuid
+  target_type        announcement_target_type
+  role_code          String?                  @db.VarChar(50)
+  university_id      String?                  @db.Uuid
+  organization_id    String?                  @db.Uuid
+  specialization_id  String?                  @db.Uuid
+  opportunity_id     String?                  @db.Uuid
+  session_id         String?                  @db.Uuid
+  user_id            String?                  @db.Uuid
+  account_status     String?                  @db.VarChar(50)
+  application_status String?                  @db.VarChar(50)
+  activation_status  String?                  @db.VarChar(50)
+  onboarding_status  String?                  @db.VarChar(50)
+  progress_min       Int?
+  progress_max       Int?
+  certificate_status String?                  @db.VarChar(50)
+  created_at         DateTime                 @default(now()) @db.Timestamptz(6)
+
+  announcements announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([announcement_id], map: "idx_announcement_targets_announcement")
+  @@index([target_type], map: "idx_announcement_targets_type")
+  @@index([university_id], map: "idx_announcement_targets_university")
+  @@index([organization_id], map: "idx_announcement_targets_organization")
+  @@index([role_code], map: "idx_announcement_targets_role")
+}
+
+model announcement_channels {
+  id              String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  announcement_id String                    @db.Uuid
+  channel_code    announcement_channel_code
+  is_enabled      Boolean                   @default(true)
+  created_at      DateTime                  @default(now()) @db.Timestamptz(6)
+
+  announcements announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcement_id, channel_code], map: "uq_announcement_channels")
+  @@index([channel_code], map: "idx_announcement_channels_type")
+}
+
+model announcement_user_states {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  announcement_id      String    @db.Uuid
+  user_id              String    @db.Uuid
+  announcement_version Int       @default(1)
+  channel_code         String?   @db.VarChar(50)
+  first_seen_at        DateTime? @db.Timestamptz(6)
+  last_seen_at         DateTime? @db.Timestamptz(6)
+  dismissed_at         DateTime? @db.Timestamptz(6)
+  acknowledged_at      DateTime? @db.Timestamptz(6)
+  clicked_at           DateTime? @db.Timestamptz(6)
+  view_count           Int       @default(0)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+
+  announcements announcements @relation(fields: [announcement_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([announcement_id, user_id], map: "uq_announcement_user_states")
+  @@index([user_id], map: "idx_announcement_user_states_user")
+}
+/* -------- Central notification rules engine (aligned to DB) -------- */
+
+enum notification_rule_status {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum notification_priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum notification_aggregation_mode {
+  NONE
+  PER_ENTITY
+  HOURLY_DIGEST
+  DAILY_DIGEST
+  WEEKLY_DIGEST
+}
+
+enum notification_channel {
+  IN_APP
+  NOTIFICATION_CENTER
+  BELL
+  POPUP
+  TOP_BANNER
+  EMAIL
+  PUSH
+}
+
+enum notification_delivery_status {
+  PENDING
+  PROCESSING
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  CANCELLED
+  SKIPPED
+}
+
+enum notification_category {
+  ACCOUNT
+  OPPORTUNITY
+  APPLICATION
+  SESSION
+  ATTENDANCE
+  TASK
+  TEST
+  PROGRESS
+  CERTIFICATE
+  REPORT
+  SUPPORT
+  ANNOUNCEMENT
+  SYSTEM
+}
+
+model notification_rules {
+  id                       String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name_ar                  String                        @db.VarChar(255)
+  event_type               String                        @db.VarChar(100)
+  status                   notification_rule_status      @default(DRAFT)
+  category                 notification_category
+  priority                 notification_priority         @default(NORMAL)
+  target_roles             String[]                      @default([])
+  target_scope             Json?
+  channels                 notification_channel[]        @default([IN_APP, NOTIFICATION_CENTER, BELL])
+  is_critical              Boolean                       @default(false)
+  requires_acknowledgement Boolean                       @default(false)
+  aggregation_mode         notification_aggregation_mode @default(NONE)
+  delay_seconds            Int                           @default(0)
+  is_immediate             Boolean                       @default(true)
+  user_can_disable         Boolean                       @default(true)
+  extra_conditions         Json?
+  version                  Int                           @default(1)
+  created_by_id            String?                       @db.Uuid
+  updated_by_id            String?                       @db.Uuid
+  published_by_id          String?                       @db.Uuid
+  published_at             DateTime?                     @db.Timestamptz(6)
+  created_at               DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime                      @default(now()) @db.Timestamptz(6)
+
+  notification_templates notification_templates[]
+
+  @@index([event_type], map: "idx_notification_rules_event")
+  @@index([status], map: "idx_notification_rules_status")
+  @@index([category], map: "idx_notification_rules_category")
+}
+
+model notification_templates {
+  id                    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_id               String                   @db.Uuid
+  role_code             String                   @db.VarChar(50)
+  channel               notification_channel     @default(IN_APP)
+  title_template        String                   @db.VarChar(500)
+  body_template         String
+  action_label_template String?                  @db.VarChar(120)
+  action_url_template   String?                  @db.VarChar(1000)
+  locale                String                   @default("ar") @db.VarChar(10)
+  version               Int                      @default(1)
+  status                notification_rule_status @default(ACTIVE)
+  created_by_id         String?                  @db.Uuid
+  updated_by_id         String?                  @db.Uuid
+  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                 @default(now()) @db.Timestamptz(6)
+
+  notification_rules notification_rules @relation(fields: [rule_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([rule_id, role_code, channel, locale], map: "uq_notification_templates_rule_role_channel_locale")
+  @@index([rule_id], map: "idx_notification_templates_rule")
+  @@index([role_code], map: "idx_notification_templates_role")
+}
+
+model notification_deliveries {
+  id                   String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  notification_id      String                       @db.Uuid
+  channel              notification_channel
+  status               notification_delivery_status @default(PENDING)
+  attempt_count        Int                          @default(0)
+  provider_message_id  String?                      @db.VarChar(255)
+  sent_at              DateTime?                    @db.Timestamptz(6)
+  delivered_at         DateTime?                    @db.Timestamptz(6)
+  failed_at            DateTime?                    @db.Timestamptz(6)
+  next_retry_at        DateTime?                    @db.Timestamptz(6)
+  failure_code         String?                      @db.VarChar(80)
+  failure_message_safe String?                      @db.VarChar(500)
+  created_at           DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime                     @default(now()) @db.Timestamptz(6)
+
+  notifications notifications @relation(fields: [notification_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([notification_id], map: "idx_notification_deliveries_notification")
+  @@index([channel], map: "idx_notification_deliveries_channel")
+  @@index([status], map: "idx_notification_deliveries_status")
+}
+
+model notification_preferences {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id               String                @db.Uuid
+  notification_category notification_category
+  channel               notification_channel
+  is_enabled            Boolean               @default(true)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime              @default(now()) @db.Timestamptz(6)
+
+  @@unique([user_id, notification_category, channel], map: "uq_notification_preferences_user_cat_channel")
+  @@index([user_id], map: "idx_notification_preferences_user")
+}
+
+model notification_digests {
+  id           String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id      String                        @db.Uuid
+  digest_key   String                        @db.VarChar(200)
+  event_type   String                        @db.VarChar(100)
+  entity_type  String?                       @db.VarChar(80)
+  entity_id    String?                       @db.Uuid
+  aggregation  notification_aggregation_mode @default(DAILY_DIGEST)
+  item_count   Int                           @default(0)
+  payload_json Json?
+  status       String                        @default("OPEN") @db.VarChar(30)
+  flush_at     DateTime?                     @db.Timestamptz(6)
+  flushed_at   DateTime?                     @db.Timestamptz(6)
+  created_at   DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime                      @default(now()) @db.Timestamptz(6)
+
+  @@unique([digest_key], map: "uq_notification_digests_key")
+  @@index([user_id], map: "idx_notification_digests_user")
+  @@index([flush_at, status], map: "idx_notification_digests_flush")
+}
+
+model notification_scheduled_jobs {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  job_key      String    @unique @db.VarChar(200)
+  event_type   String    @db.VarChar(100)
+  entity_type  String?   @db.VarChar(80)
+  entity_id    String?   @db.Uuid
+  run_at       DateTime  @db.Timestamptz(6)
+  payload_json Json?
+  status       String    @default("PENDING") @db.VarChar(30)
+  processed_at DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([run_at, status], map: "idx_notification_scheduled_jobs_run")
+  @@index([event_type], map: "idx_notification_scheduled_jobs_event")
+}
+
+// ---------------------------------------------------------------------------
+// Institutional portal — Organization tenancy + training programs (Phased)
+// ---------------------------------------------------------------------------
+
+enum organization_type {
+  UNIVERSITY
+  INSTITUTION
+}
+
+enum organization_status {
+  active
+  inactive
+  archived
+}
+
+enum institution_kind {
+  government
+  private
+  association
+  organization
+  training_center
+  international
+  other
+}
+
+enum email_verification_method {
+  OTP
+  ADMIN
+  IMPORT
+}
+
+enum training_program_type {
+  FIELD_TRAINING
+  TRAINING_COURSE
+}
+
+enum training_program_status {
+  DRAFT
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum training_cohort_status {
+  DRAFT
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum training_enrollment_status {
+  INVITED
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_UPDATE
+  ACTIVE
+  WITHDRAWN
+  REQUIREMENTS_COMPLETED
+  COMPLETED
+  NOT_COMPLETED
+}
+
+enum training_session_status {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum training_assessment_kind {
+  PRE_TEST
+  POST_TEST
+}
+
+enum training_assessment_attempt_status {
+  NOT_AVAILABLE
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  EXPIRED
+}
+
+enum training_certificate_status {
+  NOT_ELIGIBLE
+  ELIGIBLE
+  PENDING_ISSUANCE
+  ISSUED
+  REVOKED
+}
+
+enum training_progress_status {
+  COMPLETED
+  INCOMPLETE
+  PENDING_REVIEW
+  NOT_REQUIRED
+  NOT_AVAILABLE
+}
+
+enum kpi_alert_status {
+  ON_TARGET
+  AT_RISK
+  OFF_TARGET
+}
+
+model organizations {
+  id               String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type             organization_type
+  name             String              @db.VarChar(255)
+  name_en          String?             @db.VarChar(255)
+  short_name       String?             @db.VarChar(80)
+  code             String?             @unique(map: "uq_organizations_code") @db.VarChar(50)
+  institution_kind institution_kind?
+  website          String?             @db.VarChar(500)
+  country          String?             @db.VarChar(120)
+  city             String?             @db.VarChar(120)
+  address          String?             @db.VarChar(500)
+  contact_email    String?             @db.VarChar(255)
+  contact_phone    String?             @db.VarChar(50)
+  logo_url                            String?             @db.VarChar(1000)
+  status                              organization_status @default(active)
+  notes                               String?
+  allows_public_trainee_registration  Boolean             @default(false)
+  created_at                          DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at                          DateTime            @default(now()) @db.Timestamptz(6)
+
+  universities                   universities[]
+  organization_email_domains     organization_email_domains[]
+  organization_branches          organization_branches[]
+  organization_departments       organization_departments[]
+  user_organization_assignments  user_organization_assignments[]
+  training_programs              training_programs[]
+  training_cohorts               training_cohorts[]
+  training_trainer_assignments    training_trainer_assignments[]
+  support_tickets                support_tickets[]
+  kpi_targets                    kpi_targets[]
+  kpi_snapshots                  kpi_snapshots[]
+  kpi_alerts                     kpi_alerts[]
+
+  @@index([type], map: "idx_organizations_type")
+  @@index([status], map: "idx_organizations_status")
+  @@index([name], map: "idx_organizations_name")
+  @@index([allows_public_trainee_registration], map: "idx_organizations_public_reg")
+}
+
+model organization_email_domains {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String   @db.Uuid
+  domain          String   @db.VarChar(255)
+  is_active       Boolean  @default(true)
+  is_primary      Boolean  @default(false)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  organizations organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, domain], map: "uq_organization_email_domains_org_domain")
+  @@index([organization_id], map: "idx_organization_email_domains_org")
+  @@index([domain], map: "idx_organization_email_domains_domain")
+}
+
+model organization_branches {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String   @db.Uuid
+  name            String   @db.VarChar(255)
+  name_en         String?  @db.VarChar(255)
+  code            String?  @db.VarChar(80)
+  city            String?  @db.VarChar(120)
+  address         String?  @db.VarChar(500)
+  sort_order      Int      @default(0)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  organizations                 organizations                  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization_departments      organization_departments[]
+  user_organization_assignments user_organization_assignments[]
+  training_cohorts              training_cohorts[]
+
+  @@index([organization_id], map: "idx_organization_branches_org")
+  @@index([organization_id, is_active, sort_order], map: "idx_organization_branches_org_active_sort")
+  @@unique([organization_id, code], map: "uq_organization_branches_org_code")
+}
+
+model organization_departments {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String   @db.Uuid
+  branch_id       String?  @db.Uuid
+  name            String   @db.VarChar(255)
+  name_en         String?  @db.VarChar(255)
+  code            String?  @db.VarChar(80)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  organizations                 organizations                  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization_branches         organization_branches?         @relation(fields: [branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user_organization_assignments user_organization_assignments[]
+  training_cohorts              training_cohorts[]
+
+  @@index([organization_id], map: "idx_organization_departments_org")
+  @@index([branch_id], map: "idx_organization_departments_branch")
+  @@unique([organization_id, code], map: "uq_organization_departments_org_code")
+}
+
+model user_organization_assignments {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @db.Uuid
+  organization_id String   @db.Uuid
+  role_code       String   @db.VarChar(50)
+  branch_id       String?  @db.Uuid
+  department_id   String?  @db.Uuid
+  job_title       String?  @db.VarChar(255)
+  employee_number String?  @db.VarChar(100)
+  is_active       Boolean  @default(true)
+  assigned_by     String?  @db.Uuid
+  assigned_at     DateTime @default(now()) @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  users         users                  @relation("UserOrganizationAssignments", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  assigned_by_user users?              @relation("OrganizationAssignmentActor", fields: [assigned_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  organizations organizations          @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization_branches organization_branches? @relation(fields: [branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  organization_departments organization_departments? @relation(fields: [department_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_org_assignments_user")
+  @@index([organization_id], map: "idx_user_org_assignments_org")
+  @@index([organization_id, role_code, is_active], map: "idx_user_org_assignments_org_role_active")
+  @@index([user_id, is_active], map: "idx_user_org_assignments_user_active")
+}
+
+model training_programs {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id         String                  @db.Uuid
+  type                    training_program_type   @default(TRAINING_COURSE)
+  /// Stable business code for idempotent seeds / integrations (e.g. CPF-JOB-INTERVIEW-2026-08).
+  code                    String?                 @unique(map: "uq_training_programs_code") @db.VarChar(80)
+  title                   String                  @db.VarChar(255)
+  description             String?
+  field                   String?                 @db.VarChar(255)
+  objectives              String?
+  outcomes                String?
+  level                   String?                 @db.VarChar(80)
+  language                String?                 @db.VarChar(40)
+  delivery_mode           String?                 @db.VarChar(40)
+  required_hours          Decimal?                @db.Decimal(8, 2)
+  required_attendance_pct Decimal?                @db.Decimal(5, 2)
+  max_participants        Int?
+  start_date              DateTime?               @db.Date
+  end_date                DateTime?               @db.Date
+  status                  training_program_status @default(DRAFT)
+  /// Extra course config (short description, enrollment policy, branch scope, etc.).
+  settings_json           Json?
+  created_by              String?                 @db.Uuid
+  created_at              DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                @default(now()) @db.Timestamptz(6)
+
+  organizations         organizations          @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_cohorts              training_cohorts[]
+  training_assessments          training_assessments[]
+  training_tasks                training_tasks[]
+  training_requirements         training_requirements[]
+  training_trainer_assignments  training_trainer_assignments[]
+  training_materials            training_materials[]
+  training_program_evaluation_links training_program_evaluation_links[]
+  training_evaluation_assignments   training_evaluation_assignments[]
+  training_individual_reports       training_individual_reports[]
+  training_course_reports           training_course_reports[]
+  training_finalization_events      training_finalization_events[]
+  training_official_reports         training_official_reports[]
+
+  @@index([organization_id], map: "idx_training_programs_org")
+  @@index([status], map: "idx_training_programs_status")
+  @@index([type], map: "idx_training_programs_type")
+}
+
+model training_cohorts {
+  id              String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String                 @db.Uuid
+  organization_id String                 @db.Uuid
+  /// Stable cohort code (e.g. CPF-JOB-INTERVIEW-2026-C1).
+  code            String?                @unique(map: "uq_training_cohorts_code") @db.VarChar(80)
+  name            String                 @db.VarChar(255)
+  branch_id       String?                @db.Uuid
+  department_id   String?                @db.Uuid
+  start_date      DateTime?              @db.Date
+  end_date        DateTime?              @db.Date
+  capacity        Int?
+  delivery_mode   String?                @db.VarChar(40)
+  status          training_cohort_status @default(DRAFT)
+  created_by      String?                @db.Uuid
+  created_at      DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime               @default(now()) @db.Timestamptz(6)
+
+  training_programs            training_programs              @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations                organizations                  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization_branches        organization_branches?         @relation(fields: [branch_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  organization_departments     organization_departments?      @relation(fields: [department_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  training_cohort_instructors  training_cohort_instructors[]
+  training_enrollments         training_enrollments[]
+  training_sessions            training_sessions[]
+  training_trainer_assignments training_trainer_assignments[]
+
+  @@index([program_id], map: "idx_training_cohorts_program")
+  @@index([organization_id], map: "idx_training_cohorts_org")
+  @@index([status], map: "idx_training_cohorts_status")
+}
+
+model training_cohort_instructors {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id   String   @db.Uuid
+  instructor_id String @db.Uuid
+  is_primary  Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  training_cohorts training_cohorts @relation(fields: [cohort_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cohort_id, instructor_id], map: "uq_training_cohort_instructors")
+  @@index([instructor_id], map: "idx_training_cohort_instructors_user")
+}
+
+/// Institution course trainer assignment (role `trainer`). Not used for university field-training instructors.
+model training_trainer_assignments {
+  id                            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  trainer_user_id               String    @db.Uuid
+  organization_id               String    @db.Uuid
+  training_program_id           String    @db.Uuid
+  training_cohort_id            String?   @db.Uuid
+  is_lead_trainer               Boolean   @default(false)
+  can_manage_sessions           Boolean   @default(true)
+  can_manage_attendance         Boolean   @default(true)
+  can_manage_materials          Boolean   @default(true)
+  can_manage_tasks              Boolean   @default(true)
+  can_grade_tasks               Boolean   @default(true)
+  can_manage_assessments        Boolean   @default(true)
+  can_grade_assessments         Boolean   @default(true)
+  can_view_trainees             Boolean   @default(true)
+  can_view_progress             Boolean   @default(true)
+  can_view_reports              Boolean   @default(true)
+  can_finalize_training         Boolean   @default(false)
+  can_send_course_announcements Boolean   @default(false)
+  is_active                     Boolean   @default(true)
+  assigned_by                   String?   @db.Uuid
+  assigned_at                   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at                    DateTime  @default(now()) @db.Timestamptz(6)
+  revoked_at                    DateTime? @db.Timestamptz(6)
+
+  organizations     organizations      @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_programs training_programs  @relation(fields: [training_program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_cohorts  training_cohorts?  @relation(fields: [training_cohort_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([trainer_user_id, is_active], map: "idx_tta_trainer_active")
+  @@index([organization_id, is_active], map: "idx_tta_org_active")
+  @@index([training_program_id, is_active], map: "idx_tta_program_active")
+  @@index([training_cohort_id, is_active], map: "idx_tta_cohort_active")
+}
+
+model trainer_profiles {
+  user_id           String   @id @db.Uuid
+  professional_bio  String?
+  training_field    String?  @db.VarChar(255)
+  specialty         String?  @db.VarChar(255)
+  cv_url            String?  @db.VarChar(1000)
+  avatar_url        String?  @db.VarChar(1000)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model training_enrollments {
+  id              String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id       String                      @db.Uuid
+  user_id         String                      @db.Uuid
+  organization_id String                      @db.Uuid
+  status          training_enrollment_status  @default(PENDING)
+  status_reason   String?
+  invited_by      String?                     @db.Uuid
+  approved_by     String?                     @db.Uuid
+  approved_at     DateTime?                   @db.Timestamptz(6)
+  completed_at    DateTime?                   @db.Timestamptz(6)
+  created_at      DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                    @default(now()) @db.Timestamptz(6)
+
+  training_cohorts              training_cohorts               @relation(fields: [cohort_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_attendance_records   training_attendance_records[]
+  training_task_submissions     training_task_submissions[]
+  training_assessment_attempts  training_assessment_attempts[]
+  training_progress             training_progress?
+  training_certificates         training_certificates[]
+  training_evaluation_assignments training_evaluation_assignments?
+  training_evaluation_responses   training_evaluation_responses[]
+  training_individual_reports     training_individual_reports[]
+
+  @@unique([cohort_id, user_id], map: "uq_training_enrollments_cohort_user")
+  @@index([organization_id], map: "idx_training_enrollments_org")
+  @@index([user_id], map: "idx_training_enrollments_user")
+  @@index([status], map: "idx_training_enrollments_status")
+}
+
+model training_sessions {
+  id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cohort_id          String                  @db.Uuid
+  title              String                  @db.VarChar(255)
+  description        String?
+  instructor_id      String?                 @db.Uuid
+  starts_at          DateTime                @db.Timestamptz(6)
+  ends_at            DateTime                @db.Timestamptz(6)
+  hours              Decimal?                @db.Decimal(6, 2)
+  session_type       String?                 @db.VarChar(40)
+  meeting_url        String?                 @db.VarChar(1000)
+  location           String?                 @db.VarChar(500)
+  attendance_required Boolean                @default(true)
+  counts_toward_hours Boolean                @default(true)
+  status             training_session_status @default(SCHEDULED)
+  created_at         DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime                @default(now()) @db.Timestamptz(6)
+
+  training_cohorts            training_cohorts             @relation(fields: [cohort_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_attendance_windows training_attendance_windows[]
+  training_attendance_records training_attendance_records[]
+
+  @@index([cohort_id], map: "idx_training_sessions_cohort")
+  @@index([starts_at], map: "idx_training_sessions_starts")
+}
+
+model training_attendance_windows {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id      String    @db.Uuid
+  code_hash       String
+  opens_at        DateTime  @db.Timestamptz(6)
+  closes_at       DateTime  @db.Timestamptz(6)
+  late_closes_at  DateTime? @db.Timestamptz(6)
+  duration_seconds Int      @default(120)
+  is_active       Boolean   @default(true)
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_sessions           training_sessions            @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_attendance_records training_attendance_records[]
+
+  @@index([session_id], map: "idx_training_attendance_windows_session")
+}
+
+model training_attendance_records {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id      String            @db.Uuid
+  enrollment_id   String            @db.Uuid
+  user_id         String            @db.Uuid
+  window_id       String?           @db.Uuid
+  status          attendance_status @default(absent)
+  marked_via      String?           @db.VarChar(40)
+  marked_by       String?           @db.Uuid
+  reason          String?
+  confirmed_at    DateTime?         @db.Timestamptz(6)
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime          @default(now()) @db.Timestamptz(6)
+
+  training_sessions           training_sessions            @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments        training_enrollments         @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_attendance_windows training_attendance_windows? @relation(fields: [window_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([session_id, enrollment_id], map: "uq_training_attendance_session_enrollment")
+  @@index([user_id], map: "idx_training_attendance_user")
+}
+
+model training_tasks {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String    @db.Uuid
+  cohort_id       String?   @db.Uuid
+  title           String    @db.VarChar(255)
+  instructions    String?
+  max_score       Decimal?  @db.Decimal(8, 2)
+  grading_mode    String    @default("MANUAL") @db.VarChar(20)
+  is_final_task   Boolean   @default(false)
+  is_required     Boolean   @default(true)
+  allow_resubmit  Boolean   @default(true)
+  max_attempts    Int       @default(3)
+  published_at    DateTime? @db.Timestamptz(6)
+  due_at          DateTime? @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_programs         training_programs          @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_task_submissions training_task_submissions[]
+
+  @@index([program_id], map: "idx_training_tasks_program")
+  @@index([cohort_id], map: "idx_training_tasks_cohort")
+}
+
+model training_task_submissions {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id         String    @db.Uuid
+  enrollment_id   String    @db.Uuid
+  user_id         String    @db.Uuid
+  attempt_no      Int       @default(1)
+  status          String    @default("SUBMITTED") @db.VarChar(40)
+  content_text    String?
+  content_url     String?   @db.VarChar(1000)
+  score           Decimal?  @db.Decimal(8, 2)
+  feedback        String?
+  graded_by       String?   @db.Uuid
+  graded_at       DateTime? @db.Timestamptz(6)
+  submitted_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_tasks       training_tasks       @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([task_id], map: "idx_training_task_submissions_task")
+  @@index([enrollment_id], map: "idx_training_task_submissions_enrollment")
+  @@index([user_id], map: "idx_training_task_submissions_user")
+}
+
+model training_assessments {
+  id              String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String                  @db.Uuid
+  kind            training_assessment_kind
+  /// Stable assessment code (e.g. CPF-JOB-INTERVIEW-2026-PRE).
+  code            String?                 @unique(map: "uq_training_assessments_code") @db.VarChar(80)
+  title           String                  @db.VarChar(255)
+  instructions    String?
+  duration_minutes Int?
+  max_attempts    Int                     @default(1)
+  pass_score      Decimal?                @db.Decimal(8, 2)
+  opens_at        DateTime?               @db.Timestamptz(6)
+  closes_at       DateTime?               @db.Timestamptz(6)
+  shuffle_questions Boolean               @default(false)
+  show_results    Boolean                 @default(true)
+  is_published    Boolean                 @default(false)
+  created_at      DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                @default(now()) @db.Timestamptz(6)
+
+  training_programs            training_programs             @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_assessment_questions training_assessment_questions[]
+  training_assessment_attempts training_assessment_attempts[]
+
+  @@unique([program_id, kind], map: "uq_training_assessments_program_kind")
+  @@index([program_id], map: "idx_training_assessments_program")
+}
+
+model training_assessment_questions {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assessment_id  String   @db.Uuid
+  prompt         String
+  question_type  String   @default("single_choice") @db.VarChar(40)
+  options_json   Json?
+  correct_answer Json?
+  points         Decimal  @default(1) @db.Decimal(8, 2)
+  sort_order     Int      @default(0)
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  training_assessments training_assessments @relation(fields: [assessment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([assessment_id], map: "idx_training_assessment_questions_assessment")
+}
+
+model training_assessment_attempts {
+  id              String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assessment_id   String                            @db.Uuid
+  enrollment_id   String                            @db.Uuid
+  user_id         String                            @db.Uuid
+  attempt_no      Int                               @default(1)
+  status          training_assessment_attempt_status @default(AVAILABLE)
+  answers_json    Json?
+  score           Decimal?                          @db.Decimal(8, 2)
+  started_at      DateTime?                         @db.Timestamptz(6)
+  submitted_at    DateTime?                         @db.Timestamptz(6)
+  graded_at       DateTime?                         @db.Timestamptz(6)
+  created_at      DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                          @default(now()) @db.Timestamptz(6)
+
+  training_assessments training_assessments @relation(fields: [assessment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([assessment_id, enrollment_id, attempt_no], map: "uq_training_assessment_attempts")
+  @@index([user_id], map: "idx_training_assessment_attempts_user")
+}
+
+model training_requirements {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String   @db.Uuid
+  code            String   @db.VarChar(80)
+  label           String   @db.VarChar(255)
+  is_required     Boolean  @default(true)
+  threshold_json  Json?
+  sort_order      Int      @default(0)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([program_id, code], map: "uq_training_requirements_program_code")
+}
+
+model training_progress {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id     String                   @unique @db.Uuid
+  completion_pct    Decimal                  @default(0) @db.Decimal(5, 2)
+  hours_completed   Decimal                  @default(0) @db.Decimal(8, 2)
+  hours_required    Decimal?                 @db.Decimal(8, 2)
+  attendance_pct    Decimal?                 @db.Decimal(5, 2)
+  status            training_progress_status @default(INCOMPLETE)
+  requirements_json Json?
+  approved_by       String?                  @db.Uuid
+  approved_at       DateTime?                @db.Timestamptz(6)
+  created_at        DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime                 @default(now()) @db.Timestamptz(6)
+
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model training_certificates {
+  id                String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id     String                      @db.Uuid
+  organization_id   String                      @db.Uuid
+  certificate_number String                     @unique @db.VarChar(80)
+  verification_code String                      @unique @db.VarChar(80)
+  status            training_certificate_status @default(NOT_ELIGIBLE)
+  issued_at         DateTime?                   @db.Timestamptz(6)
+  revoked_at        DateTime?                   @db.Timestamptz(6)
+  issued_by         String?                     @db.Uuid
+  hours             Decimal?                    @db.Decimal(8, 2)
+  metadata_json     Json?
+  created_at        DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime                    @default(now()) @db.Timestamptz(6)
+
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([organization_id], map: "idx_training_certificates_org")
+  @@index([status], map: "idx_training_certificates_status")
+}
+
+enum training_evaluation_assignment_status {
+  LOCKED
+  AVAILABLE
+  IN_PROGRESS
+  SUBMITTED
+  REOPENED
+  CLOSED
+}
+
+enum training_evaluation_question_type {
+  RATING_SCALE
+  NPS
+  OPEN_TEXT
+}
+
+enum training_evaluation_section_code {
+  TRAINER
+  CONTENT
+  ACTIVITIES
+  VENUE_ORG
+  IMPACT
+  NPS_FEEDBACK
+}
+
+model training_evaluation_templates {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String?  @db.Uuid
+  code            String?  @unique(map: "uq_training_evaluation_templates_code") @db.VarChar(80)
+  title           String   @db.VarChar(255)
+  description     String?
+  delivery_mode   String?  @db.VarChar(40)
+  is_active       Boolean  @default(true)
+  version         Int      @default(1)
+  created_by      String?  @db.Uuid
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_sections      training_evaluation_sections[]
+  training_program_evaluation_links training_program_evaluation_links[]
+  training_evaluation_assignments   training_evaluation_assignments[]
+
+  @@index([organization_id], map: "idx_training_evaluation_templates_org")
+}
+
+model training_evaluation_sections {
+  id            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id   String                          @db.Uuid
+  code          training_evaluation_section_code
+  title         String                          @db.VarChar(255)
+  description   String?
+  sort_order    Int                             @default(0)
+  indicator_key String?                         @db.VarChar(80)
+  created_at    DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime                        @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_templates training_evaluation_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_questions training_evaluation_questions[]
+
+  @@unique([template_id, code], map: "uq_training_evaluation_sections_template_code")
+  @@index([template_id], map: "idx_training_evaluation_sections_template")
+}
+
+model training_evaluation_questions {
+  id                  String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  section_id          String                           @db.Uuid
+  code                String                           @db.VarChar(80)
+  prompt              String
+  question_type       training_evaluation_question_type
+  is_required         Boolean                          @default(true)
+  sort_order          Int                              @default(0)
+  scale_min           Int?
+  scale_max           Int?
+  scale_labels_json   Json?
+  delivery_modes_json Json?
+  max_length          Int?
+  created_at          DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime                         @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_sections training_evaluation_sections @relation(fields: [section_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_answers  training_evaluation_answers[]
+
+  @@unique([section_id, code], map: "uq_training_evaluation_questions_section_code")
+  @@index([section_id], map: "idx_training_evaluation_questions_section")
+}
+
+model training_program_evaluation_links {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id  String   @unique(map: "uq_training_program_evaluation_links_program") @db.Uuid
+  template_id String   @db.Uuid
+  is_required Boolean  @default(true)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs             training_programs             @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_templates training_evaluation_templates @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([template_id], map: "idx_training_program_evaluation_links_template")
+}
+
+model training_evaluation_assignments {
+  id                      String                               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id              String                               @db.Uuid
+  enrollment_id           String                               @unique(map: "uq_training_evaluation_assignments_enrollment") @db.Uuid
+  template_id             String                               @db.Uuid
+  user_id                 String                               @db.Uuid
+  organization_id         String                               @db.Uuid
+  status                  training_evaluation_assignment_status @default(LOCKED)
+  available_at            DateTime?                            @db.Timestamptz(6)
+  started_at              DateTime?                            @db.Timestamptz(6)
+  submitted_at            DateTime?                            @db.Timestamptz(6)
+  reopened_at             DateTime?                            @db.Timestamptz(6)
+  reopen_reason           String?
+  reopened_by             String?                              @db.Uuid
+  delivery_mode_effective String?                              @db.VarChar(40)
+  created_at              DateTime                             @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime                             @default(now()) @db.Timestamptz(6)
+
+  training_programs             training_programs              @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments          training_enrollments           @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_templates training_evaluation_templates  @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_responses training_evaluation_responses?
+
+  @@index([program_id], map: "idx_training_evaluation_assignments_program")
+  @@index([user_id], map: "idx_training_evaluation_assignments_user")
+  @@index([status], map: "idx_training_evaluation_assignments_status")
+}
+
+model training_evaluation_responses {
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment_id          String    @unique(map: "uq_training_evaluation_responses_assignment") @db.Uuid
+  enrollment_id          String    @db.Uuid
+  user_id                String    @db.Uuid
+  status                 String    @default("DRAFT") @db.VarChar(40)
+  answers_json           Json?
+  scores_json            Json?
+  nps_score              Int?
+  nps_category           String?   @db.VarChar(20)
+  overall_reaction_score Decimal?  @db.Decimal(8, 2)
+  submitted_at           DateTime? @db.Timestamptz(6)
+  created_at             DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_assignments training_evaluation_assignments @relation(fields: [assignment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_enrollments            training_enrollments            @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_answers     training_evaluation_answers[]
+
+  @@index([enrollment_id], map: "idx_training_evaluation_responses_enrollment")
+}
+
+model training_evaluation_answers {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  response_id   String   @db.Uuid
+  question_id   String   @db.Uuid
+  numeric_value Decimal? @db.Decimal(8, 2)
+  text_value    String?
+  nps_category  String?  @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  training_evaluation_responses training_evaluation_responses @relation(fields: [response_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_evaluation_questions training_evaluation_questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([response_id, question_id], map: "uq_training_evaluation_answers_response_question")
+  @@index([response_id], map: "idx_training_evaluation_answers_response")
+}
+
+model training_individual_reports {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment_id   String   @db.Uuid
+  program_id      String   @db.Uuid
+  organization_id String   @db.Uuid
+  version         Int      @default(1)
+  status          String   @default("GENERATED") @db.VarChar(40)
+  snapshot_json   Json
+  summary_text    String?
+  generated_by    String?  @db.Uuid
+  generated_at    DateTime @default(now()) @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_programs    training_programs    @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([enrollment_id, version], map: "uq_training_individual_reports_enrollment_version")
+  @@index([program_id], map: "idx_training_individual_reports_program")
+}
+
+model training_course_reports {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id          String   @db.Uuid
+  organization_id     String   @db.Uuid
+  cohort_id           String?  @db.Uuid
+  version             Int      @default(1)
+  status              String   @default("GENERATED") @db.VarChar(40)
+  snapshot_json       Json
+  generated_by        String?  @db.Uuid
+  generated_at        DateTime @default(now()) @db.Timestamptz(6)
+  finalization_mode   String?  @db.VarChar(40)
+  finalization_reason String?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([program_id, cohort_id, version], map: "uq_training_course_reports_program_cohort_version")
+  @@index([organization_id], map: "idx_training_course_reports_org")
+}
+
+model training_finalization_events {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id          String   @db.Uuid
+  organization_id     String   @db.Uuid
+  cohort_id           String?  @db.Uuid
+  mode                String   @db.VarChar(40)
+  reason              String?
+  acted_by            String   @db.Uuid
+  eligible_count      Int      @default(0)
+  completed_count     Int      @default(0)
+  exceptional_count   Int      @default(0)
+  enrollment_ids_json Json?
+  result_json         Json?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([program_id], map: "idx_training_finalization_events_program")
+}
+
+/// Versioned branded institutional training reports (individual, course, cohort, trainer, evaluation, attendance, impact, certificates).
+model training_official_reports {
+  id                           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  report_type                  String   @db.VarChar(40)
+  program_id                   String   @db.Uuid
+  organization_id              String   @db.Uuid
+  cohort_id                    String?  @db.Uuid
+  enrollment_id                String?  @db.Uuid
+  trainer_user_id              String?  @db.Uuid
+  /// Deterministic scope fingerprint for unique(type, scope_key, version).
+  scope_key                    String   @db.VarChar(255)
+  version                      Int      @default(1)
+  status                       String   @default("READY") @db.VarChar(40)
+  snapshot_json                Json
+  summary_text                 String?
+  reference_code               String   @unique(map: "uq_training_official_reports_reference") @db.VarChar(80)
+  verification_code            String   @unique(map: "uq_training_official_reports_verification") @db.VarChar(64)
+  is_latest                    Boolean  @default(true)
+  generated_by                 String?  @db.Uuid
+  generated_at                 DateTime @default(now()) @db.Timestamptz(6)
+  source_finalization_event_id String?  @db.Uuid
+  pdf_path                     String?  @db.VarChar(500)
+  excel_path                   String?  @db.VarChar(500)
+  checksum                     String?  @db.VarChar(128)
+  created_at                   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([report_type, scope_key, version], map: "uq_training_official_reports_scope_version")
+  @@index([organization_id], map: "idx_training_official_reports_org")
+  @@index([program_id], map: "idx_training_official_reports_program")
+  @@index([report_type], map: "idx_training_official_reports_type")
+  @@index([enrollment_id], map: "idx_training_official_reports_enrollment")
+  @@index([program_id, report_type, is_latest], map: "idx_training_official_reports_latest")
+}
+
+/// Institution course learning materials (URL or uploaded file metadata).
+model training_materials {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String    @db.Uuid
+  organization_id String    @db.Uuid
+  cohort_id       String?   @db.Uuid
+  session_id      String?   @db.Uuid
+  title           String    @db.VarChar(255)
+  description     String?
+  material_type   String    @default("LINK") @db.VarChar(40)
+  url             String?   @db.VarChar(2000)
+  storage_key     String?   @db.VarChar(500)
+  mime_type       String?   @db.VarChar(120)
+  visibility      String    @default("ENROLLED") @db.VarChar(40)
+  is_published    Boolean   @default(true)
+  sort_order      Int       @default(0)
+  created_by      String?   @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @db.Timestamptz(6)
+
+  training_programs training_programs @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([program_id], map: "idx_training_materials_program")
+  @@index([organization_id], map: "idx_training_materials_org")
+  @@index([cohort_id], map: "idx_training_materials_cohort")
+}
+
+model kpi_definitions {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String   @unique @db.VarChar(80)
+  name_ar      String   @db.VarChar(255)
+  name_en      String?  @db.VarChar(255)
+  category     String   @db.VarChar(80)
+  formula_key  String   @db.VarChar(120)
+  description  String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  kpi_targets   kpi_targets[]
+  kpi_snapshots kpi_snapshots[]
+  kpi_alerts    kpi_alerts[]
+}
+
+model kpi_targets {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kpi_id          String   @db.Uuid
+  organization_id String?  @db.Uuid
+  program_id      String?  @db.Uuid
+  cohort_id       String?  @db.Uuid
+  target_value    Decimal  @db.Decimal(12, 4)
+  warn_value      Decimal? @db.Decimal(12, 4)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  kpi_definitions kpi_definitions @relation(fields: [kpi_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations?  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([kpi_id], map: "idx_kpi_targets_kpi")
+  @@index([organization_id], map: "idx_kpi_targets_org")
+}
+
+model kpi_snapshots {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kpi_id          String   @db.Uuid
+  organization_id String?  @db.Uuid
+  program_id      String?  @db.Uuid
+  cohort_id       String?  @db.Uuid
+  value           Decimal  @db.Decimal(12, 4)
+  sample_size     Int      @default(0)
+  computed_at     DateTime @default(now()) @db.Timestamptz(6)
+  metadata_json   Json?
+
+  kpi_definitions kpi_definitions @relation(fields: [kpi_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations?  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([kpi_id, computed_at], map: "idx_kpi_snapshots_kpi_computed")
+  @@index([organization_id], map: "idx_kpi_snapshots_org")
+}
+
+model kpi_alerts {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  kpi_id          String           @db.Uuid
+  organization_id String?          @db.Uuid
+  entity_type     String?          @db.VarChar(80)
+  entity_id       String?          @db.Uuid
+  status          kpi_alert_status
+  message         String
+  is_active       Boolean          @default(true)
+  created_at      DateTime         @default(now()) @db.Timestamptz(6)
+  resolved_at     DateTime?        @db.Timestamptz(6)
+
+  kpi_definitions kpi_definitions @relation(fields: [kpi_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organizations   organizations?  @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([organization_id, is_active], map: "idx_kpi_alerts_org_active")
+  @@index([kpi_id], map: "idx_kpi_alerts_kpi")
+}
+
+

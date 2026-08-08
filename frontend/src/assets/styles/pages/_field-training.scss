@@ -4916,6 +4916,16 @@
   color: var(--color-text-muted);
 }
 
+.ft-student-attendance__sessions {
+  margin-top: 1.25rem;
+}
+
+.ft-student-attendance__sessions-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
 .ft-attendance-eligibility {
   margin-top: 1rem;
   padding: 0.85rem 1rem;
@@ -5408,6 +5418,247 @@
   align-items: center;
 }
 
+.ft-report-metric-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 16px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-accent, #c9a227);
+    outline-offset: 2px;
+  }
+}
+
+.ft-report-error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.ft-report-view-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+
+.ft-report-search {
+  margin: 0 0 1rem;
+  max-width: 28rem;
+}
+
+.ft-report-opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.ft-report-opportunity-grid--full {
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.ft-report-opportunity-card {
+  display: block;
+  padding: 1.1rem 1.2rem;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 40, 80, 0.08);
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15, 40, 80, 0.05);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    border-color: rgba(201, 162, 39, 0.55);
+    box-shadow: 0 10px 24px rgba(15, 40, 80, 0.08);
+  }
+}
+
+.ft-report-opportunity-card__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.ft-report-opportunity-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  color: var(--color-navy, #0f2850);
+}
+
+.ft-report-opportunity-card__meta {
+  margin: 0.2rem 0;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.ft-report-opportunity-card__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0.85rem 0 0;
+
+  dt {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  dd {
+    margin: 0.1rem 0 0;
+    font-weight: 700;
+    color: var(--color-navy, #0f2850);
+  }
+}
+
+.ft-report-student-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.ft-report-student-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.15rem 1.2rem;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 40, 80, 0.08);
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(15, 40, 80, 0.05);
+}
+
+.ft-report-student-card__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.ft-report-student-card__name {
+  margin: 0;
+  font-size: 1.08rem;
+  color: var(--color-navy, #0f2850);
+}
+
+.ft-report-student-card__email {
+  margin: 0.2rem 0 0;
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+}
+
+.ft-report-student-card__progress {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+}
+
+.ft-report-student-card__foot {
+  margin-top: auto;
+}
+
+.ft-report-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ft-report-progress__track {
+  flex: 1;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 40, 80, 0.08);
+  overflow: hidden;
+}
+
+.ft-report-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f2850, #c9a227);
+}
+
+.ft-report-progress__label {
+  min-width: 2.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.ft-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(15, 40, 80, 0.08);
+  color: var(--color-navy, #0f2850);
+  white-space: nowrap;
+}
+
+.ft-status-badge--approved,
+.ft-status-badge--published,
+.ft-status-badge--in_progress,
+.ft-status-badge--completed,
+.ft-status-badge--eligible {
+  background: rgba(34, 120, 80, 0.12);
+  color: #1b6b45;
+}
+
+.ft-status-badge--pending {
+  background: rgba(201, 162, 39, 0.18);
+  color: #8a6a10;
+}
+
+.ft-status-badge--rejected,
+.ft-status-badge--expelled,
+.ft-status-badge--not_eligible {
+  background: rgba(160, 40, 40, 0.12);
+  color: #8f2a2a;
+}
+
+.ft-report-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ft-report-timeline__item {
+  display: grid;
+  grid-template-columns: 1.1rem 1fr;
+  gap: 0.75rem;
+  position: relative;
+}
+
+.ft-report-timeline__marker {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-top: 0.35rem;
+  border-radius: 50%;
+  background: #c9a227;
+  box-shadow: 0 0 0 4px rgba(201, 162, 39, 0.18);
+}
+
+.ft-report-timeline__date {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.ft-report-timeline__label {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+  color: var(--color-navy, #0f2850);
+}
+
 .ft-report-subtitle {
   margin: 0 0 1rem;
   font-size: 1.05rem;
@@ -5796,6 +6047,52 @@
   display: grid;
   gap: 0.4rem;
   max-width: 28rem;
+}
+
+.ft-mark-all-present-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ft-mark-all-present-stats {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  list-style: none;
+  border-radius: var(--radius-md, 10px);
+  background: rgba($color-primary, 0.04);
+  border: 1px solid var(--color-border-tinted, rgba(19, 45, 74, 0.08));
+
+  li {
+    margin: 0.25rem 0;
+    font-size: 0.92rem;
+  }
+}
+
+.ft-mark-all-present-modes {
+  margin: 0 0 0.85rem;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ft-mark-all-present-mode,
+.ft-mark-all-present-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  cursor: pointer;
+
+  input {
+    margin-top: 0.2rem;
+  }
+}
+
+.ft-mark-all-present-ack {
+  margin-bottom: 0.85rem;
 }
 
 .ft-attendance-table {
@@ -6313,4 +6610,93 @@
     color: var(--color-text-muted);
     font-size: 0.88rem;
   }
+}
+
+.ft-hours-progress {
+  margin-block: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid var(--color-border-tinted, rgba(27, 42, 74, 0.12));
+  background: linear-gradient(135deg, rgba(27, 42, 74, 0.04), rgba(201, 162, 39, 0.06));
+}
+
+.ft-hours-progress__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  color: var(--color-primary, #1b2a4a);
+}
+
+.ft-hours-progress__title {
+  margin: 0;
+  flex: 1;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.ft-hours-progress__badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(27, 42, 74, 0.08);
+}
+
+.ft-hours-progress__badge--not_started { color: #6b7280; }
+.ft-hours-progress__badge--in_progress { color: #b45309; background: rgba(245, 158, 11, 0.15); }
+.ft-hours-progress__badge--completed { color: #047857; background: rgba(16, 185, 129, 0.15); }
+
+.ft-hours-progress__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+
+  @media (max-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  strong {
+    font-size: 1.15rem;
+    color: var(--color-primary, #1b2a4a);
+  }
+}
+
+.ft-hours-progress__label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.ft-hours-progress__unit {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-inline-start: 0.2rem;
+}
+
+.ft-hours-progress__bar {
+  height: 0.65rem;
+  border-radius: 999px;
+  background: rgba(27, 42, 74, 0.1);
+  overflow: hidden;
+
+  > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #1b2a4a, #c9a227);
+    transition: width 0.35s ease;
+  }
+}
+
+.ft-hours-progress__empty {
+  margin: 0;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 0.9rem;
 }

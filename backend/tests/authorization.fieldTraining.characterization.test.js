@@ -36,12 +36,13 @@ const opportunity = {
 };
 
 describe('fieldTraining.access characterization', () => {
-  it('isFieldTrainingAdmin: system-wide isGlobal only; program_admin denied (Phase 3)', () => {
+  it('isFieldTrainingAdmin: system-wide isGlobal; admin allowed', () => {
     assert.equal(isFieldTrainingAdmin(makeGlobalSuperAdmin()), true);
-    assert.equal(isFieldTrainingAdmin(makeProgramAdmin()), false);
+    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['admin'], isGlobal: false })), true);
+    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['student'], isGlobal: false })), false);
   });
 
-  it('isFieldTrainingAdmin: university_admin and academic_admin (default env)', () => {
+  it('isFieldTrainingAdmin: legacy JWT aliases map to admin', () => {
     assert.equal(
       isFieldTrainingAdmin(makeRequester({ roles: ['university_admin'], isGlobal: false })),
       true
@@ -50,22 +51,22 @@ describe('fieldTraining.access characterization', () => {
       isFieldTrainingAdmin(makeRequester({ roles: ['academic_admin'], isGlobal: false })),
       true
     );
+    assert.equal(isFieldTrainingAdmin(makeProgramAdmin()), true);
   });
 
   it('isFieldTrainingAdmin: student / instructor / reviewer false (unless system-wide)', () => {
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['student'] })), false);
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['instructor'] })), false);
+    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['reviewer'] })), false);
     assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['university_reviewer'] })), false);
-    assert.equal(isFieldTrainingAdmin(makeRequester({ roles: ['qa_officer'] })), false);
   });
 
-  it('isUniversityScopedFieldTrainingUser: false for isGlobal; program_admin not FT admin (Phase 3)', () => {
-    assert.equal(isUniversityScopedFieldTrainingUser(makeProgramAdmin()), false);
+  it('isUniversityScopedFieldTrainingUser: false for isGlobal', () => {
     assert.equal(isUniversityScopedFieldTrainingUser(makeGlobalSuperAdmin()), false);
   });
 
   it('isUniversityScopedFieldTrainingUser: true for uni staff with universityId', () => {
-    for (const role of ['university_admin', 'academic_admin', 'university_reviewer', 'qa_officer']) {
+    for (const role of ['admin', 'reviewer', 'university_admin', 'university_reviewer']) {
       assert.equal(
         isUniversityScopedFieldTrainingUser(
           makeRequester({ roles: [role], universityId: SYNTH_UNI_A, isGlobal: false })
@@ -79,7 +80,7 @@ describe('fieldTraining.access characterization', () => {
   it('isUniversityScopedFieldTrainingUser: false without universityId', () => {
     assert.equal(
       isUniversityScopedFieldTrainingUser(
-        makeRequester({ roles: ['university_admin'], universityId: null })
+        makeRequester({ roles: ['admin'], universityId: null })
       ),
       false
     );
@@ -109,13 +110,13 @@ describe('fieldTraining.access characterization', () => {
     );
   });
 
-  it('canManageFieldTraining: university admin, assigned instructor, or isGlobal — not program_admin', () => {
-    assert.equal(canManageFieldTraining(makeProgramAdmin(), opportunity), false);
+  it('canManageFieldTraining: admin, assigned instructor, or isGlobal', () => {
+    assert.equal(canManageFieldTraining(makeProgramAdmin(), opportunity), true);
     assert.equal(
       canManageFieldTraining(
         makeRequester({
           userId: SYNTH_USER_A,
-          roles: ['university_admin'],
+          roles: ['admin'],
           universityId: SYNTH_UNI_A,
           isGlobal: false,
         }),
@@ -140,9 +141,16 @@ describe('fieldTraining.access characterization', () => {
     assert.equal(canManageFieldTraining(makeRequester({ roles: ['student'] }), opportunity), false);
   });
 
-  it('manageOpportunityListWhere: isGlobal unrestricted; program_admin denied list', () => {
+  it('manageOpportunityListWhere: isGlobal unrestricted; admin scoped by eligibility', () => {
     assert.deepEqual(manageOpportunityListWhere(makeGlobalSuperAdmin()), {});
-    assert.deepEqual(manageOpportunityListWhere(makeProgramAdmin()), { id: { in: [] } });
+    assert.deepEqual(manageOpportunityListWhere(makeProgramAdmin()), {
+      field_training_opportunity_eligibility: {
+        some: {
+          is_active: true,
+          university_id: SYNTH_UNI_A,
+        },
+      },
+    });
   });
 
   it('manageOpportunityListWhere: instructor scoped to assigned_instructor_id', () => {
@@ -181,12 +189,14 @@ describe('fieldTraining.access characterization', () => {
     assert.match(UNIVERSITY_FORBIDDEN_MSG, /جامعة/);
   });
 
-  it('assertStudentUniversityAccess: program_admin does not bypass (Phase 3)', () => {
+  it('assertStudentUniversityAccess: legacy program_admin aliases to admin FT scope', () => {
     const pa = makeProgramAdmin();
     assert.equal(isSystemWideAdmin(pa), false);
-    assert.equal(isFieldTrainingAdmin(pa), false);
-    // Not system-wide and not FT-scoped: no privileged cross-uni bypass path.
-    assert.equal(isUniversityScopedFieldTrainingUser(pa), false);
-    assert.doesNotThrow(() => assertStudentUniversityAccess(pa, SYNTH_UNI_B));
+    assert.equal(isFieldTrainingAdmin(pa), true);
+    assert.equal(isUniversityScopedFieldTrainingUser(pa), true);
+    assert.throws(
+      () => assertStudentUniversityAccess(pa, SYNTH_UNI_B),
+      (err) => err instanceof ApiError && err.statusCode === 403
+    );
   });
 });

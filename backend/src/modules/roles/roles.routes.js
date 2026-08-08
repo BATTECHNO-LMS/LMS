@@ -4,7 +4,11 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const rolesController = require('./roles.controller');
-const { uuidParamSchema } = require('./roles.validation');
+const {
+  uuidParamSchema,
+  roleIdOrCodeParamSchema,
+  updateRolePermissionsBodySchema,
+} = require('./roles.validation');
 
 const router = express.Router();
 
@@ -18,6 +22,17 @@ router.get(
   superAdminOnly,
   validateRequest({ params: uuidParamSchema }),
   rolesController.getById
+);
+
+router.put(
+  '/:id/permissions',
+  authenticate,
+  superAdminOnly,
+  validateRequest({
+    params: roleIdOrCodeParamSchema,
+    body: updateRolePermissionsBodySchema,
+  }),
+  rolesController.updatePermissions
 );
 
 module.exports = router;

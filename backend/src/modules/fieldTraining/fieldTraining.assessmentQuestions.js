@@ -22,6 +22,7 @@ const AUTO_GRADE_TYPES = new Set([
 function normalizeQuestionType(type) {
   const t = String(type || '').trim();
   if (t === 'short_answer') return 'short_text';
+  if (t === 'single_choice' || t === 'single_select') return 'multiple_choice';
   return t;
 }
 

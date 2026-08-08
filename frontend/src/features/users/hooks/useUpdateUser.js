@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { updateUser } from '../users.service.js';
 import { usersKeys } from './useUsers.js';
+import { fieldTrainingKeys } from '../../fieldTraining/hooks/fieldTrainingQueryKeys.js';
 
 export function useUpdateUser() {
   const qc = useQueryClient();
@@ -9,6 +10,8 @@ export function useUpdateUser() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: usersKeys.all });
       if (vars?.id) qc.invalidateQueries({ queryKey: usersKeys.detail(vars.id) });
+      // University/specialty changes must refresh student FT visibility immediately.
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.all });
     },
   });
 }

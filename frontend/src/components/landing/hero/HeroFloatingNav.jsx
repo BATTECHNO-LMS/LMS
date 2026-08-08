@@ -5,9 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useLocale } from '../../../features/locale/index.js';
 import { BrandLogo } from '../../common/BrandLogo.jsx';
+import { PortalLoginMenu } from '../../portal/PortalLoginMenu.jsx';
+import { PORTAL_ENTRIES, PORTAL_SELECTION_PATH } from '../../../constants/portalConfig.js';
 
 const NAV_LINKS = [
-  { href: '#portals', key: 'header.navPortals' },
+  { href: '#portal-entry', key: 'header.navPortals' },
   { href: '#journey', key: 'header.navJourney' },
   { href: '#capabilities', key: 'header.navCapabilities' },
   { href: '#partners', key: 'header.navPartners' },
@@ -47,14 +49,11 @@ export function HeroFloatingNav() {
           </nav>
 
           <div className="relative z-[1] flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <div className="hidden sm:block">
+              <PortalLoginMenu label={t('header.login')} />
+            </div>
             <Link
-              to="/login"
-              className="hidden rounded-full bg-bat-primary px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-bat-primary-hover sm:inline-flex"
-            >
-              {t('header.login')}
-            </Link>
-            <Link
-              to="/register"
+              to={PORTAL_SELECTION_PATH}
               className="hidden rounded-full border border-bat-accent bg-bat-accent-soft px-3 py-2 text-xs font-semibold text-bat-primary transition hover:bg-bat-accent sm:inline-flex"
             >
               {t('header.register')}
@@ -87,9 +86,9 @@ export function HeroFloatingNav() {
           <Link to="/" className="relative z-[1] flex flex-1 justify-center" onClick={close}>
             <BrandLogo variant="header" alt={t('brand')} className="!h-9" />
           </Link>
-          <Link to="/login" className="relative z-[1] rounded-full bg-bat-primary px-3 py-1.5 text-[11px] font-semibold text-white">
-            {t('header.login')}
-          </Link>
+          <div className="relative z-[1]">
+            <PortalLoginMenu label={t('header.login')} compact />
+          </div>
         </div>
       </div>
 
@@ -111,7 +110,25 @@ export function HeroFloatingNav() {
                   {t(key)}
                 </a>
               ))}
-              <Link to="/register" className="mt-1 rounded-xl border border-bat-accent bg-bat-accent-soft px-3 py-2.5 text-center text-sm font-semibold text-bat-primary" onClick={close}>
+              <Link
+                to={PORTAL_ENTRIES.UNIVERSITY.loginPath}
+                className="mt-1 rounded-xl bg-bat-primary px-3 py-2.5 text-center text-sm font-semibold text-white"
+                onClick={close}
+              >
+                {PORTAL_ENTRIES.UNIVERSITY.titleAr}
+              </Link>
+              <Link
+                to={PORTAL_ENTRIES.INSTITUTION.loginPath}
+                className="rounded-xl bg-bat-primary/90 px-3 py-2.5 text-center text-sm font-semibold text-white"
+                onClick={close}
+              >
+                {PORTAL_ENTRIES.INSTITUTION.titleAr}
+              </Link>
+              <Link
+                to={PORTAL_SELECTION_PATH}
+                className="rounded-xl border border-bat-accent bg-bat-accent-soft px-3 py-2.5 text-center text-sm font-semibold text-bat-primary"
+                onClick={close}
+              >
                 {t('header.register')}
               </Link>
               <button type="button" className="rounded-lg py-2 text-xs font-bold text-bat-muted" onClick={() => setLocale(nextLocale)}>

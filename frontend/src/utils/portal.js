@@ -4,7 +4,9 @@ const PORTAL_CONFIG = {
   admin: { role: ROLES.SUPER_ADMIN, loginPath: '/login/admin' },
   instructor: { role: ROLES.INSTRUCTOR, loginPath: '/login/instructor' },
   student: { role: ROLES.STUDENT, loginPath: '/login/student' },
-  reviewer: { role: ROLES.UNIVERSITY_REVIEWER, loginPath: '/login/reviewer' },
+  reviewer: { role: ROLES.REVIEWER, loginPath: '/login/reviewer' },
+  institutions: { role: ROLES.STUDENT, loginPath: '/institutions/login' },
+  universities: { role: ROLES.STUDENT, loginPath: '/universities/login' },
 };
 
 export function detectPortalKeyFromHostname(hostname) {
@@ -25,5 +27,33 @@ export function getCurrentPortalKey() {
 
 export function getLoginPathForCurrentPortal() {
   const portal = getPortalConfig(getCurrentPortalKey());
-  return portal?.loginPath ?? '/login';
+  return portal?.loginPath ?? '/portals';
+}
+
+/** Convenience last-portal hint (non-authoritative UI only). */
+export function rememberSelectedPortal(portalType) {
+  if (typeof window === 'undefined' || !portalType) return;
+  try {
+    window.sessionStorage.setItem('battechno_lms_last_portal', String(portalType));
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getRememberedPortal() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const value = window.sessionStorage.getItem('battechno_lms_last_portal');
+    if (value === 'INSTITUTION' || value === 'UNIVERSITY') return value;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function getRememberedPortalLoginPath() {
+  const value = getRememberedPortal();
+  if (value === 'INSTITUTION') return '/institutions/login';
+  if (value === 'UNIVERSITY') return '/universities/login';
+  return getLoginPathForCurrentPortal();
 }

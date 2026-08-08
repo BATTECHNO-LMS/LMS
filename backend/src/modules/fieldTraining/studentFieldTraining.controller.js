@@ -129,22 +129,37 @@ async function aiSelfEvaluate(req, res, next) {
 
 async function submitTask(req, res, next) {
   try {
-    const body = req.body || {};
+    const body = { ...(req.validated?.body || req.body || {}) };
+    if (Array.isArray(req.files) && req.files.length) {
+      body._multerFiles = req.files;
+    }
     const data = await fieldTrainingService.submitTaskFile(
       req.validated.params.taskId,
-      req.file,
+      req.file || null,
       req.user.userId,
       body,
       req.user
     );
     return success(res, data, { message: 'Task submitted' });
   } catch (e) {
-    if (e.message === 'FILE_TOO_LARGE') {
-      return next(new ApiError(400, 'حجم الملف يتجاوز 8 ميجابايت'));
+    if (e.message === 'FILE_TOO_LARGE' || e.code === 'FILE_TOO_LARGE') {
+      return next(new ApiError(400, 'حجم الملف يتجاوز الحد المسموح'));
     }
-    if (e.message === 'UNSUPPORTED_FILE_TYPE') {
-      return next(new ApiError(400, 'نوع الملف غير مدعوم. استخدم صورة أو PDF'));
+    if (e.message === 'TOO_MANY_FILES') {
+      return next(new ApiError(400, 'تم تجاوز الحد الأقصى لعدد الملفات'));
     }
+    if (e.message === 'UNSUPPORTED_FILE_TYPE' || e.code === 'UNSUPPORTED_FILE_TYPE') {
+      return next(new ApiError(400, 'نوع الملف غير مدعوم أو غير مسموح'));
+    }
+    return next(e);
+  }
+}
+
+async function getAiSupportedFileTypes(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getAiSupportedSubmissionFileTypes();
+    return success(res, data);
+  } catch (e) {
     return next(e);
   }
 }
@@ -229,6 +244,7 @@ module.exports = {
   submitAssessment,
   aiSelfEvaluate,
   submitTask,
+  getAiSupportedFileTypes,
   getSubmissionDownloadUrl,
   downloadSubmission,
   getTaskInstructionDownloadUrl,

@@ -1,64 +1,37 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Save, X } from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { GraduationCap } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
-import { SectionCard } from '../../../components/admin/SectionCard.jsx';
-import { FormInput, FormSelect } from '../../../components/forms/index.js';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
-import { universitySchema } from '../../../schemas/adminCrudSchemas.js';
-import { safeParse } from '../../../utils/zodErrors.js';
 import { useLocale } from '../../../features/locale/index.js';
 import { tr } from '../../../utils/i18n.js';
 import { useUniversity, useUpdateUniversity } from '../../../features/universities/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { UniversityForm, buildUniversityFormState } from './UniversityForm.jsx';
 
 export function UniversityEditPage() {
   const { locale } = useLocale();
   const isArabic = locale === 'ar';
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const justCreated = Boolean(location.state?.justCreated);
   const { data: row, isLoading, isError } = useUniversity(id);
   const updateUniversityMutation = useUpdateUniversity();
-  const [form, setForm] = useState(null);
-  const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState(null);
+  const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
-    if (!row) return;
-    setForm({
-      name: row.name ?? '',
-      contact: row.contact_person ?? '',
-      email: row.contact_email ?? '',
-      status: row.status ?? 'active',
-      programs: 0,
-    });
-  }, [row]);
+    if (row?.id) setFormKey((k) => k + 1);
+  }, [row?.id, row?.updated_at]);
 
-  function setField(key, value) {
-    setForm((f) => (f ? { ...f, [key]: value } : f));
-  }
-
-  async function onSubmit(e) {
-    e.preventDefault();
-    const res = safeParse(universitySchema, form);
-    if (!res.ok) {
-      setErrors(res.errors);
-      return;
-    }
+  async function handleSubmit(payload) {
+    setFormError(null);
     try {
-      await updateUniversityMutation.mutateAsync({
-        id,
-        body: {
-          name: res.data.name,
-          contact_person: res.data.contact,
-          contact_email: res.data.email,
-          status: res.data.status,
-        },
-      });
+      await updateUniversityMutation.mutateAsync({ id, body: payload });
       navigate(`/admin/universities/${id}`);
     } catch (err) {
-      setErrors({
-        _form: getApiErrorMessage(err, isArabic ? 'تعذّر التحديث.' : 'Could not update university.'),
-      });
+      setFormError(getApiErrorMessage(err, isArabic ? 'تعذّر التحديث.' : 'Could not update university.'));
     }
   }
 
@@ -84,72 +57,36 @@ export function UniversityEditPage() {
     );
   }
 
-  if (!form) {
-    return (
-      <div className="page page--admin crud-page">
-        <LoadingSpinner />
-      </div>
-    );
-  }
-
   return (
-    <div className="page page--dashboard page--admin crud-page">
+    <div className="page page--dashboard page--admin crud-page university-page">
       <AdminPageHeader
         title={tr(isArabic, 'تعديل جامعة', 'Edit university')}
-        description={tr(isArabic, 'تحديث بيانات الجامعة.', 'Update university details.')}
+        description={tr(isArabic, 'تحديث بيانات الجامعة والنطاقات والتخصصات.', 'Update university, domains, and specialties.')}
       />
-      <form onSubmit={onSubmit} noValidate>
-        <SectionCard
-          title={tr(isArabic, 'البيانات', 'Details')}
-          actions={
-            <>
-              <Link className="btn btn--outline" to={`/admin/universities/${id}`}>
-                <X size={18} aria-hidden /> {tr(isArabic, 'إلغاء', 'Cancel')}
-              </Link>
-              <button type="submit" className="btn btn--primary" disabled={updateUniversityMutation.isPending}>
-                <Save size={18} aria-hidden /> {tr(isArabic, 'تحديث', 'Update')}
-              </button>
-            </>
-          }
-        >
-          {errors._form ? <p className="auth-form__error">{errors._form}</p> : null}
-          <div className="crud-form-grid">
-            <FormInput
-              id="name"
-              label={tr(isArabic, 'اسم الجامعة', 'University name')}
-              value={form.name}
-              onChange={(e) => setField('name', e.target.value)}
-              error={errors.name}
-            />
-            <FormInput
-              id="contact"
-              label={tr(isArabic, 'جهة الاتصال', 'Contact')}
-              value={form.contact}
-              onChange={(e) => setField('contact', e.target.value)}
-              error={errors.contact}
-            />
-            <FormInput
-              id="email"
-              label={tr(isArabic, 'البريد الإلكتروني', 'Email')}
-              type="email"
-              value={form.email}
-              onChange={(e) => setField('email', e.target.value)}
-              error={errors.email}
-            />
-            <FormSelect
-              id="status"
-              label={tr(isArabic, 'الحالة', 'Status')}
-              value={form.status}
-              onChange={(e) => setField('status', e.target.value)}
-              error={errors.status}
-            >
-              <option value="active">{tr(isArabic, 'نشط', 'Active')}</option>
-              <option value="inactive">{tr(isArabic, 'غير نشط', 'Inactive')}</option>
-              <option value="archived">{tr(isArabic, 'مؤرشف', 'Archived')}</option>
-            </FormSelect>
-          </div>
-        </SectionCard>
-      </form>
+      {justCreated ? (
+        <div className="university-form__success-banner" role="status">
+          <p>
+            {tr(
+              isArabic,
+              'تم إنشاء الجامعة بنجاح. يمكنك الآن إدارة تخصصاتها ونطاقات بريدها من الأقسام أدناه.',
+              'University created. You can manage specialties and email domains in the sections below.'
+            )}
+          </p>
+          <a className="btn btn--primary btn--sm" href="#specialties">
+            <GraduationCap size={16} aria-hidden /> {tr(isArabic, 'إدارة تخصصات الجامعة', 'Manage university specialties')}
+          </a>
+        </div>
+      ) : null}
+      <UniversityForm
+        key={formKey}
+        initial={buildUniversityFormState(row)}
+        mode="edit"
+        universityId={id}
+        submitting={updateUniversityMutation.isPending}
+        formError={formError}
+        onSubmit={handleSubmit}
+        cancelTo={`/admin/universities/${id}`}
+      />
     </div>
   );
 }

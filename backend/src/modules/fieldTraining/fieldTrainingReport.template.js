@@ -87,6 +87,11 @@ function renderUniversityReportHtml(report) {
         <td>${esc(row.application_status)}</td>
         <td>${esc(row.training_status)}</td>
         <td>${esc(row.attendance_percentage)}</td>
+        <td>${esc(row.required_training_hours)}</td>
+        <td>${esc(row.completed_training_hours)}</td>
+        <td>${esc(row.remaining_training_hours)}</td>
+        <td>${esc(row.hours_completion_percentage)}</td>
+        <td>${esc(row.hours_completion_status_label ?? row.hours_completion_status)}</td>
         <td>${esc(row.pre_assessment_score)}</td>
         <td>${esc(row.post_assessment_score)}</td>
         <td>${esc(row.final_task_status)}</td>
@@ -112,9 +117,11 @@ function renderUniversityReportHtml(report) {
     <table>
       <thead><tr>
         <th>الطالب</th><th>التخصص</th><th>الفرصة</th><th>حالة الطلب</th><th>حالة التدريب</th>
-        <th>الحضور %</th><th>قبلي</th><th>بعدي</th><th>المهمة النهائية</th><th>الأهلية</th><th>كتاب الإنهاء</th>
+        <th>الحضور %</th><th>ساعات مطلوبة</th><th>ساعات منجزة</th><th>ساعات متبقية</th>
+        <th>إكمال الساعات %</th><th>حالة الساعات</th>
+        <th>قبلي</th><th>بعدي</th><th>المهمة النهائية</th><th>الأهلية</th><th>كتاب الإنهاء</th>
       </tr></thead>
-      <tbody>${studentsTable || '<tr><td colspan="11">لا توجد بيانات</td></tr>'}</tbody>
+      <tbody>${studentsTable || '<tr><td colspan="16">لا توجد بيانات</td></tr>'}</tbody>
     </table>
   </body></html>`;
 }
@@ -138,6 +145,7 @@ function renderStudentReportHtml(report) {
     ['تاريخ البداية', opp.start_date],
     ['تاريخ النهاية', opp.end_date],
     ['النمط / الموقع', opp.training_mode ?? opp.location],
+    ['الساعات المطلوبة', opp.required_training_hours],
   ]);
 
   const app = report.application ?? {};
@@ -162,6 +170,8 @@ function renderStudentReportHtml(report) {
     .join('');
 
   const att = report.attendance_summary ?? {};
+  const hours = report.training_hours ?? {};
+  const hoursMod = require('./fieldTraining.hours');
   const attendanceSection = renderSection('ملخص الحضور', [
     ['إجمالي الجلسات', att.total_sessions],
     ['حاضر', att.present],
@@ -170,6 +180,13 @@ function renderStudentReportHtml(report) {
     ['معذور', att.excused],
     ['نسبة الحضور %', att.attendance_percentage],
     ['أهلية الحضور', att.attendance_eligibility == null ? '—' : att.attendance_eligibility ? 'مستوفى' : 'غير مستوفى'],
+  ]);
+  const hoursSection = renderSection('تقدم الساعات التدريبية', [
+    ['الساعات المطلوبة', hours.required_training_hours],
+    ['الساعات المنجزة', hours.completed_training_hours],
+    ['الساعات المتبقية', hours.remaining_training_hours],
+    ['نسبة الإنجاز %', hours.hours_completion_percentage],
+    ['حالة إكمال الساعات', hoursMod.hoursStatusLabelAr(hours.hours_completion_status)],
   ]);
 
   const submissionsTable = (report.submissions ?? [])
@@ -210,6 +227,7 @@ function renderStudentReportHtml(report) {
       ['تاريخ الإرسال', fmtDate(report.pre_assessment?.submitted_at)],
     ])}
     ${attendanceSection}
+    ${hoursSection}
     <h2>الجلسات والحضور</h2>
     <table><thead><tr><th>الجلسة</th><th>التاريخ</th><th>الحالة</th><th>ملاحظات</th></tr></thead>
     <tbody>${sessionsTable || '<tr><td colspan="4">لا توجد جلسات</td></tr>'}</tbody></table>
@@ -224,6 +242,7 @@ function renderStudentReportHtml(report) {
     ${renderSection('أهلية الإنهاء', [
       ['الحالة', report.completion_eligibility?.status],
       ['قاعدة الحضور', report.completion_eligibility?.attendance_rule],
+      ['قاعدة الساعات', report.completion_eligibility?.hours_rule],
       ['قاعدة المهام', report.completion_eligibility?.task_rule],
       ['قاعدة التقييم البعدي', report.completion_eligibility?.post_assessment_rule],
       ['السبب', typeof report.completion_eligibility?.reason === 'object' ? JSON.stringify(report.completion_eligibility.reason) : report.completion_eligibility?.reason],

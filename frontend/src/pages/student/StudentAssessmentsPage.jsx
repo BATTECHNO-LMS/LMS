@@ -12,6 +12,7 @@ import { useSubmissions } from '../../features/submissions/index.js';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { StudentPageHeader, StudentSection } from '../../components/student/index.js';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { Eye, Upload, Pencil, MessageSquare, FileCheck, Timer, Send, ListChecks } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
@@ -72,10 +73,13 @@ export function StudentAssessmentsPage() {
   return (
     <PagePermissionGate permission={P.canViewAssessments}>
       <div className="page page--dashboard page--student">
-        <StudentPageHeader
-          title={<>{t('student.title')}</>}
-          description={<>{t('student.description')}</>}
-        />
+        <div className="ug-page-tools">
+          <StudentPageHeader
+            title={<>{t('student.title')}</>}
+            description={<>{t('student.description')}</>}
+          />
+          <ContextualHelpButton contextualKey="assessments" route="/student/assessments" />
+        </div>
         <AdminFilterBar>
           <SearchInput placeholder={t('student.searchPlaceholder')} aria-label={t('student.searchAria')} />
         </AdminFilterBar>

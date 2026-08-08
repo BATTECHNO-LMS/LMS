@@ -3,6 +3,8 @@
 const { verifyToken } = require('../utils/jwt');
 const { ApiError } = require('../utils/apiError');
 const { loadCurrentAuthContext } = require('../modules/auth/currentAuthContext');
+const { enforceAcademicReviewerReadOnly } = require('./permission.middleware');
+const { AUTH_ERROR_CODES, messageForCode } = require('../utils/authErrorCatalog');
 
 /**
  * Verify JWT, then build req.user from current database authorization state.
@@ -11,7 +13,11 @@ const { loadCurrentAuthContext } = require('../modules/auth/currentAuthContext')
 async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'Unauthorized', code: 'UNAUTHORIZED' });
+    return res.status(401).json({
+      success: false,
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
+      code: AUTH_ERROR_CODES.UNAUTHORIZED,
+    });
   }
 
   const token = header.slice(7);
@@ -21,7 +27,7 @@ async function authMiddleware(req, res, next) {
   } catch {
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
       code: 'TOKEN_INVALID',
     });
   }
@@ -30,14 +36,14 @@ async function authMiddleware(req, res, next) {
   if (!userId || typeof userId !== 'string') {
     return res.status(401).json({
       success: false,
-      message: 'Invalid or expired token',
+      message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
       code: 'TOKEN_INVALID',
     });
   }
 
   try {
     req.user = await loadCurrentAuthContext(userId);
-    return next();
+    return enforceAcademicReviewerReadOnly(req, res, next);
   } catch (err) {
     if (err instanceof ApiError) {
       return res.status(err.statusCode).json({
@@ -46,13 +52,10 @@ async function authMiddleware(req, res, next) {
         code: err.code || 'API_ERROR',
       });
     }
-    // Infrastructure / unexpected DB failure — do not treat as bad credentials
-    // and do not fall back to stale JWT claims.
     return next(err);
   }
 }
 
-/** Alias for `authMiddleware` — same JWT verification + current-state identity. */
 const authenticate = authMiddleware;
 
 module.exports = { authMiddleware, authenticate };

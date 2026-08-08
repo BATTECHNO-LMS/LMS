@@ -15,6 +15,7 @@ import { verifyEmailOtp, resendEmailOtp } from '../../features/auth/auth.service
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { storageKeys, getStorageItem, setStorageItem, removeStorageItem } from '../../utils/storage.js';
 import registerIllustration from '../../assets/landing/illustrations/journey-flow.svg';
+import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
 
 const COOLDOWN_SECONDS = 60;
 
@@ -93,19 +94,28 @@ export function VerifyEmailOtpPage() {
       const normalizedEmail = values.email.trim().toLowerCase();
       try {
         const result = await verifyEmailOtp(normalizedEmail, values.otp.trim());
-        setSuccess(
-          result?.requiresAdminApproval
-            ? t('verifyEmail.successPendingAdmin')
-            : t('verifyEmail.successCanLogin')
-        );
+        const isInstitutionPortal = searchParams.get('portal') === 'institutions';
+        if (isInstitutionPortal || result?.requiresAdminApproval) {
+          setSuccess(
+            isInstitutionPortal
+              ? 'INSTITUTION_PENDING'
+              : 'تم توثيق بريدك الإلكتروني. حسابك بانتظار التفعيل.'
+          );
+        } else {
+          setSuccess(t('verifyEmail.successCanLogin'));
+        }
         removeStorageItem(storageKeys.pendingVerificationEmail);
       } catch (err) {
-        setError(getApiErrorMessage(err, t('verifyEmail.errors.generic')));
+        const code = err?.response?.data?.code;
+        if (code === 'INVALID_OTP') setError(t('verifyEmail.errors.invalidOtp'));
+        else if (code === 'OTP_EXPIRED') setError(t('verifyEmail.errors.otpExpired'));
+        else if (code === 'OTP_RATE_LIMITED') setError(t('verifyEmail.errors.rateLimited'));
+        else setError(getApiErrorMessage(err, t('verifyEmail.errors.generic')));
       } finally {
         setSubmitting(false);
       }
     },
-    [t]
+    [t, searchParams]
   );
 
   async function handleResend() {
@@ -117,8 +127,12 @@ export function VerifyEmailOtpPage() {
       setCooldown(COOLDOWN_SECONDS);
       setSuccess(t('verifyEmail.resendSuccess'));
     } catch (err) {
-      const msg = getApiErrorMessage(err, t('verifyEmail.errors.resendFailed'));
-      setError(msg);
+      const mapped = mapAuthErrorToLoginMessage(
+        getApiErrorMessage(err, t('verifyEmail.errors.resendFailed')),
+        t,
+        err
+      );
+      setError(mapped || t('verifyEmail.errors.resendFailed'));
       const remaining = err?.response?.data?.details?.cooldownSeconds;
       if (typeof remaining === 'number' && remaining > 0) {
         setCooldown(remaining);
@@ -145,10 +159,37 @@ export function VerifyEmailOtpPage() {
 
               {success ? (
                 <div className="auth-form" role="status">
-                  <p className="auth-register__helper">{success}</p>
+                  {success === 'INSTITUTION_PENDING' ? (
+                    <>
+                      <h2 className="auth-split__title" style={{ fontSize: '1.35rem' }}>
+                        تم توثيق بريدك الإلكتروني
+                      </h2>
+                      <p className="auth-split__subtitle">حسابك بانتظار التفعيل</p>
+                      <p className="auth-register__helper">
+                        تم توثيق بياناتك بنجاح، وحسابك الآن بانتظار مراجعة وتفعيل مسؤول المؤسسة.
+                        سيتم تفعيل الحساب خلال مدة لا تتجاوز 48 ساعة.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="auth-register__helper">{success}</p>
+                  )}
                   <div className="auth-form__actions">
-                    <Button type="button" onClick={() => navigate('/login/student', { replace: true })}>
-                      {t('verifyEmail.goToLogin')}
+                    <Button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          success === 'INSTITUTION_PENDING'
+                            ? '/account-status'
+                            : searchParams.get('portal') === 'institutions'
+                              ? '/institutions/login'
+                              : '/universities/login',
+                          { replace: true }
+                        )
+                      }
+                    >
+                      {success === 'INSTITUTION_PENDING'
+                        ? 'حالة حسابك'
+                        : t('verifyEmail.goToLogin')}
                     </Button>
                   </div>
                 </div>

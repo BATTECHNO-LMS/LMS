@@ -28,14 +28,11 @@ const THIN_BORDER = {
 };
 
 const ROLE_LABELS_AR = {
-  super_admin: 'مدير عام',
-  program_admin: 'إداري البرنامج (متوقف)',
-  university_admin: 'مدير جامعة',
-  academic_admin: 'مراجع أكاديمي',
-  qa_officer: 'مسؤول جودة',
+  super_admin: 'سوبر أدمن',
+  admin: 'أدمن',
   instructor: 'مدرّس',
   student: 'طالب',
-  university_reviewer: 'مراجع جامعي',
+  reviewer: 'مراجع أكاديمي',
 };
 
 const STATUS_LABELS_AR = {
@@ -51,7 +48,9 @@ function cellText(value) {
 
 function roleLabelAr(code) {
   if (!code) return '';
-  return ROLE_LABELS_AR[String(code)] || String(code);
+  const { canonicalizeRoleCode } = require('../../utils/roleCanon');
+  const canonical = canonicalizeRoleCode(code);
+  return ROLE_LABELS_AR[canonical] || ROLE_LABELS_AR[String(code)] || String(code);
 }
 
 function statusLabelAr(status) {

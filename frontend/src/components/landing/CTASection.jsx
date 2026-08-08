@@ -41,12 +41,12 @@ export function CTASection() {
             className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4"
           >
             <motion.div variants={staggerItem(12)} className="w-full sm:w-auto">
-              <LandingCtaButton to="/login" variant="primary" showArrow rtl={dir === 'rtl'}>
+              <LandingCtaButton to="/portals" variant="primary" showArrow rtl={dir === 'rtl'}>
                 {t('cta.primary')}
               </LandingCtaButton>
             </motion.div>
             <motion.div variants={staggerItem(12)} className="w-full sm:w-auto">
-              <LandingCtaButton to="/register" variant="secondary">
+              <LandingCtaButton to="/portals" variant="secondary">
                 {t('cta.secondary')}
               </LandingCtaButton>
             </motion.div>

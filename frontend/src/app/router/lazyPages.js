@@ -22,6 +22,34 @@ export const UniversitiesListPage = lazyNamed(
   () => import('../../pages/admin/universities/UniversitiesListPage.jsx'),
   'UniversitiesListPage'
 );
+export const AdminInstitutionsPage = lazyNamed(
+  () => import('../../pages/admin/institutions/AdminInstitutionsPage.jsx'),
+  'AdminInstitutionsPage'
+);
+export const AdminInstitutionDetailPage = lazyNamed(
+  () => import('../../pages/admin/institutions/AdminInstitutionDetailPage.jsx'),
+  'AdminInstitutionDetailPage'
+);
+export const AdminTrainingCoursesPage = lazyNamed(
+  () => import('../../pages/admin/trainingCourses/AdminTrainingCoursesPage.jsx'),
+  'AdminTrainingCoursesPage'
+);
+export const AdminTrainingCourseCreatePage = lazyNamed(
+  () => import('../../pages/admin/trainingCourses/AdminTrainingCourseCreatePage.jsx'),
+  'AdminTrainingCourseCreatePage'
+);
+export const AdminTrainingCourseDetailPage = lazyNamed(
+  () => import('../../pages/admin/trainingCourses/AdminTrainingCourseDetailPage.jsx'),
+  'AdminTrainingCourseDetailPage'
+);
+export const AdminTrainingCourseEditPage = lazyNamed(
+  () => import('../../pages/admin/trainingCourses/AdminTrainingCourseEditPage.jsx'),
+  'AdminTrainingCourseEditPage'
+);
+export const StudentInstitutionProgramsPage = lazyNamed(
+  () => import('../../pages/student/StudentInstitutionProgramsPage.jsx'),
+  'StudentInstitutionProgramsPage'
+);
 export const UniversityCreatePage = lazyNamed(
   () => import('../../pages/admin/universities/UniversityCreatePage.jsx'),
   'UniversityCreatePage'
@@ -254,6 +282,38 @@ export const InstructorDashboardPage = lazyNamed(
   () => import('../../pages/instructor/InstructorDashboardPage.jsx'),
   'InstructorDashboardPage'
 );
+export const TrainerDashboardPage = lazyNamed(
+  () => import('../../pages/trainer/TrainerDashboardPage.jsx'),
+  'TrainerDashboardPage'
+);
+export const TrainerCoursesPage = lazyNamed(
+  () => import('../../pages/trainer/TrainerCoursesPage.jsx'),
+  'TrainerCoursesPage'
+);
+export const TrainerCoursePage = lazyNamed(
+  () => import('../../pages/trainer/TrainerCoursePage.jsx'),
+  'TrainerCoursePage'
+);
+export const TrainerProfilePage = lazyNamed(
+  () => import('../../pages/trainer/TrainerProfilePage.jsx'),
+  'TrainerProfilePage'
+);
+export const TraineeDashboardPage = lazyNamed(
+  () => import('../../pages/trainee/TraineeDashboardPage.jsx'),
+  'TraineeDashboardPage'
+);
+export const TraineeCoursesPage = lazyNamed(
+  () => import('../../pages/trainee/TraineeCoursesPage.jsx'),
+  'TraineeCoursesPage'
+);
+export const TraineeCourseDetailPage = lazyNamed(
+  () => import('../../pages/trainee/TraineeCourseDetailPage.jsx'),
+  'TraineeCourseDetailPage'
+);
+export const TraineeTrainingProgramsRedirect = lazyNamed(
+  () => import('../../pages/trainee/TraineeTrainingProgramsRedirect.jsx'),
+  'TraineeTrainingProgramsRedirect'
+);
 export const MyCohortsPage = lazyNamed(() => import('../../pages/instructor/MyCohortsPage.jsx'), 'MyCohortsPage');
 export const InstructorSessionsPage = lazyNamed(
   () => import('../../pages/instructor/InstructorSessionsPage.jsx'),
@@ -345,6 +405,78 @@ export const StudentCourseDetailPage = lazyNamed(
 export const StudentFieldTrainingPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingPage.jsx'),
   'StudentFieldTrainingPage'
+);
+export const StudentUserGuidePage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuidePage.jsx'),
+  'StudentUserGuidePage'
+);
+export const StudentUserGuideCategoryPage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideCategoryPage.jsx'),
+  'StudentUserGuideCategoryPage'
+);
+export const StudentUserGuideArticlePage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideArticlePage.jsx'),
+  'StudentUserGuideArticlePage'
+);
+export const StudentUserGuideSupportPage = lazyNamed(
+  () => import('../../pages/student/userGuide/StudentUserGuideSupportPage.jsx'),
+  'StudentUserGuideSupportPage'
+);
+export const AdminHelpCenterPage = lazyNamed(
+  () => import('../../pages/admin/help/AdminHelpCenterPage.jsx'),
+  'AdminHelpCenterPage'
+);
+export const HelpArticlesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/HelpArticlesPage.jsx'),
+  'HelpArticlesPage'
+);
+export const HelpArticleFormPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/HelpArticleFormPage.jsx'),
+  'HelpArticleFormPage'
+);
+export const ToursPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ToursPage.jsx'),
+  'ToursPage'
+);
+export const PopupsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/PopupsPage.jsx'),
+  'PopupsPage'
+);
+export const AnnouncementsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/AnnouncementsPage.jsx'),
+  'AnnouncementsPage'
+);
+export const ContextualHelpAdminPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContextualHelpAdminPage.jsx'),
+  'ContextualHelpAdminPage'
+);
+export const ContentAnalyticsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContentAnalyticsPage.jsx'),
+  'ContentAnalyticsPage'
+);
+export const ContentAuditPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/ContentAuditPage.jsx'),
+  'ContentAuditPage'
+);
+export const NotificationRulesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationRulesPage'
+);
+export const NotificationSendPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationSendPage'
+);
+export const NotificationDeliveriesPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationDeliveriesPage'
+);
+export const NotificationAnalyticsPage = lazyNamed(
+  () => import('../../pages/admin/contentHub/NotificationRulesPage.jsx'),
+  'NotificationAnalyticsPage'
+);
+export const NotificationPreferencesPage = lazyNamed(
+  () => import('../../pages/common/NotificationPreferencesPage.jsx'),
+  'NotificationPreferencesPage'
 );
 export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
@@ -460,6 +592,14 @@ export const AcademicFieldTrainingStudentReportPage = lazyNamed(
   () => import('../../pages/academic/AcademicFieldTrainingStudentReportPage.jsx'),
   'AcademicFieldTrainingStudentReportPage'
 );
+export const AcademicFieldTrainingOpportunitiesPage = lazyNamed(
+  () => import('../../pages/academic/AcademicFieldTrainingOpportunitiesPage.jsx'),
+  'AcademicFieldTrainingOpportunitiesPage'
+);
+export const AcademicFieldTrainingOpportunityDetailPage = lazyNamed(
+  () => import('../../pages/academic/AcademicFieldTrainingOpportunityDetailPage.jsx'),
+  'AcademicFieldTrainingOpportunityDetailPage'
+);
 export const AdminFieldTrainingApplicationsReportPage = lazyNamed(
   () => import('../../pages/admin/fieldTraining/AdminFieldTrainingApplicationsReportPage.jsx'),
   'AdminFieldTrainingApplicationsReportPage'
@@ -493,4 +633,7 @@ export const PrivacyPolicyPage = lazyNamed(
 export const AccountDeletionPage = lazyNamed(
   () => import('../../pages/public/LegalPublicPages.jsx'),
   'AccountDeletionPage'
+export const ReportVerificationPage = lazyNamed(
+  () => import('../../pages/public/ReportVerificationPage.jsx'),
+  'ReportVerificationPage'
 );

@@ -1,51 +1,103 @@
 ﻿const { ApiError } = require('../../utils/apiError');
 const universitiesRepository = require('./universities.repository');
 
-function normalizeCreatePayload(body) {
-  return {
-    name: body.name.trim(),
-    type: body.type === null || body.type === undefined ? null : String(body.type).trim() || null,
-    contact_person:
-      body.contact_person === null || body.contact_person === undefined
-        ? null
-        : String(body.contact_person).trim() || null,
-    contact_email:
-      body.contact_email === null || body.contact_email === undefined || body.contact_email === ''
-        ? null
-        : String(body.contact_email).trim().toLowerCase(),
-    contact_phone:
-      body.contact_phone === null || body.contact_phone === undefined
-        ? null
-        : String(body.contact_phone).trim() || null,
-    status: body.status ?? 'active',
-    partnership_state: body.partnership_state ?? 'active',
-    notes: body.notes === null || body.notes === undefined ? null : body.notes,
-  };
+function emptyToNull(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value === 'string' && !value.trim()) return null;
+  return typeof value === 'string' ? value.trim() : value;
 }
 
-function normalizeUpdatePayload(body) {
+const UNIVERSITY_FIELD_KEYS = [
+  'name',
+  'name_en',
+  'short_name',
+  'code',
+  'type',
+  'website',
+  'country',
+  'city',
+  'address',
+  'contact_person',
+  'contact_email',
+  'contact_phone',
+  'logo_url',
+  'status',
+  'partnership_state',
+  'notes',
+];
+
+function normalizeFieldValue(key, value) {
+  if (key === 'name') return String(value).trim();
+  if (key === 'code') {
+    const t = emptyToNull(value);
+    return t == null ? null : String(t).trim().toUpperCase();
+  }
+  if (key === 'contact_email') {
+    const t = emptyToNull(value);
+    return t == null ? null : String(t).trim().toLowerCase();
+  }
+  if (key === 'status') return value ?? 'active';
+  if (key === 'partnership_state') return value ?? 'active';
+  if (key === 'notes') return value === null || value === '' ? null : value == null ? null : String(value);
+  return emptyToNull(value);
+}
+
+function normalizeUniversityFields(body, { partial = false } = {}) {
   const out = {};
-  if (body.name !== undefined) out.name = body.name.trim();
-  if (body.type !== undefined) {
-    out.type = body.type === null ? null : String(body.type).trim() || null;
+  for (const key of UNIVERSITY_FIELD_KEYS) {
+    if (partial && body[key] === undefined) continue;
+    if (!partial && body[key] === undefined) {
+      if (key === 'name') continue;
+      if (key === 'status') {
+        out.status = 'active';
+        continue;
+      }
+      if (key === 'partnership_state') {
+        out.partnership_state = 'active';
+        continue;
+      }
+      out[key] = null;
+      continue;
+    }
+    out[key] = normalizeFieldValue(key, body[key]);
   }
-  if (body.contact_person !== undefined) {
-    out.contact_person = body.contact_person === null ? null : String(body.contact_person).trim() || null;
+  if (!partial && body.name !== undefined) {
+    out.name = String(body.name).trim();
   }
-  if (body.contact_email !== undefined) {
-    out.contact_email =
-      body.contact_email === null || body.contact_email === ''
-        ? null
-        : String(body.contact_email).trim().toLowerCase();
-  }
-  if (body.contact_phone !== undefined) {
-    out.contact_phone = body.contact_phone === null ? null : String(body.contact_phone).trim() || null;
-  }
-  if (body.status !== undefined) out.status = body.status;
-  if (body.partnership_state !== undefined) out.partnership_state = body.partnership_state;
-  if (body.notes !== undefined) out.notes = body.notes === null ? null : body.notes;
-  out.updated_at = new Date();
   return out;
+}
+
+async function assertUniqueName(name, excludeId = null) {
+  const row = await universitiesRepository.findByName(name);
+  if (row && row.id !== excludeId) {
+    throw new ApiError(409, 'اسم الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_NAME_EXISTS');
+  }
+}
+
+async function assertUniqueCode(code, excludeId = null) {
+  if (!code) return;
+  const row = await universitiesRepository.findByCode(code);
+  if (row && row.id !== excludeId) {
+    throw new ApiError(409, 'كود الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_CODE_EXISTS');
+  }
+}
+
+async function assertDomainsAvailable(domains, excludeUniversityId = null) {
+  if (!domains?.length) return;
+  for (const d of domains) {
+    if (d.is_active === false) continue;
+    const clash = await universitiesRepository.findActiveDomainElsewhere(d.domain, excludeUniversityId);
+    if (clash) {
+      const uniName = clash.universities?.name || clash.university_id;
+      throw new ApiError(
+        409,
+        `نطاق البريد "${d.domain}" مستخدم بالفعل لدى جامعة أخرى (${uniName})`,
+        { domain: d.domain, university_id: clash.university_id },
+        'EMAIL_DOMAIN_IN_USE'
+      );
+    }
+  }
 }
 
 async function listUniversities() {
@@ -53,10 +105,10 @@ async function listUniversities() {
   return { universities: rows };
 }
 
-async function getUniversityById(id, query) {
-  const row = await universitiesRepository.findById(id);
+async function getUniversityById(id, query = {}) {
+  const row = await universitiesRepository.findById(id, { includeRelations: true });
   if (!row) {
-    throw new ApiError(404, 'University not found');
+    throw new ApiError(404, 'الجامعة غير موجودة');
   }
 
   if (!query.include_counts) {
@@ -72,40 +124,63 @@ async function getUniversityById(id, query) {
 }
 
 async function createUniversity(body) {
-  const payload = normalizeCreatePayload(body);
-  const nameTaken = await universitiesRepository.findByName(payload.name);
-  if (nameTaken) {
-    throw new ApiError(409, 'University name already exists');
-  }
+  const payload = normalizeUniversityFields(body, { partial: false });
+  await assertUniqueName(payload.name);
+  await assertUniqueCode(payload.code);
+  await assertDomainsAvailable(body.email_domains || []);
+
   try {
-    return await universitiesRepository.createUniversity(payload);
+    return await universitiesRepository.createUniversityWithRelations(payload, {
+      emailDomains: body.email_domains || [],
+      specialties: body.specialties || [],
+    });
   } catch (e) {
     if (e && e.code === 'P2002') {
-      throw new ApiError(409, 'University name already exists');
+      const target = e.meta?.target;
+      if (Array.isArray(target) && target.includes('code')) {
+        throw new ApiError(409, 'كود الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_CODE_EXISTS');
+      }
+      if (Array.isArray(target) && target.some((t) => String(t).includes('domain'))) {
+        throw new ApiError(409, 'نطاق البريد مكرر', null, 'EMAIL_DOMAIN_DUPLICATE');
+      }
+      throw new ApiError(409, 'اسم الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_NAME_EXISTS');
     }
     throw e;
   }
 }
 
 async function updateUniversity(id, body) {
-  const existing = await universitiesRepository.findById(id);
+  const existing = await universitiesRepository.findById(id, { includeRelations: false });
   if (!existing) {
-    throw new ApiError(404, 'University not found');
+    throw new ApiError(404, 'الجامعة غير موجودة');
   }
 
-  const payload = normalizeUpdatePayload(body);
-  if (payload.name) {
-    const other = await universitiesRepository.findByName(payload.name);
-    if (other && other.id !== id) {
-      throw new ApiError(409, 'University name already exists');
-    }
+  const payload = normalizeUniversityFields(body, { partial: true });
+  if (payload.name) await assertUniqueName(payload.name, id);
+  if (payload.code !== undefined) await assertUniqueCode(payload.code, id);
+  if (body.email_domains !== undefined) {
+    await assertDomainsAvailable(body.email_domains, id);
+  }
+
+  if (Object.keys(payload).length) {
+    payload.updated_at = new Date();
   }
 
   try {
-    return await universitiesRepository.updateUniversity(id, payload);
+    return await universitiesRepository.updateUniversityWithRelations(id, payload, {
+      emailDomains: body.email_domains,
+      specialties: body.specialties,
+    });
   } catch (e) {
     if (e && e.code === 'P2002') {
-      throw new ApiError(409, 'University name already exists');
+      const target = e.meta?.target;
+      if (Array.isArray(target) && target.includes('code')) {
+        throw new ApiError(409, 'كود الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_CODE_EXISTS');
+      }
+      if (Array.isArray(target) && target.some((t) => String(t).includes('domain'))) {
+        throw new ApiError(409, 'نطاق البريد مكرر', null, 'EMAIL_DOMAIN_DUPLICATE');
+      }
+      throw new ApiError(409, 'اسم الجامعة مستخدم مسبقًا', null, 'UNIVERSITY_NAME_EXISTS');
     }
     throw e;
   }

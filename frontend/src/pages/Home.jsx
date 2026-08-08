@@ -3,6 +3,7 @@ import { useLocale } from '../features/locale/index.js';
 import { LandingStatsProvider } from '../features/landing/LandingStatsContext.jsx';
 import { HeroFloatingNav } from '../components/landing/hero/HeroFloatingNav.jsx';
 import { HomeHero } from '../components/landing/HomeHero.jsx';
+import { EntryPortalsSection } from '../components/landing/EntryPortalsSection.jsx';
 import { PortalsSection } from '../components/landing/PortalsSection.jsx';
 import { LifecycleSection } from '../components/landing/LifecycleSection.jsx';
 import { PartnersSection } from '../components/landing/PartnersSection.jsx';
@@ -32,6 +33,8 @@ export function Home() {
         <div id="main" tabIndex={-1} className="overflow-x-hidden">
           <HomeHero />
           <SectionTransition variant="from-hero" />
+          <EntryPortalsSection />
+          <SectionTransition />
           <PortalsSection />
           <SectionTransition />
           <LifecycleSection />

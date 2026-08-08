@@ -1,54 +1,48 @@
 'use strict';
 
 /**
- * Phase 1 program_admin deprecation: freeze new assignments via HTTP user APIs.
- * Existing holders keep their DB roles and runtime access until a later migration phase.
+ * Block assignment of legacy role codes via HTTP user APIs.
+ * Existing holders keep DB rows until migrate-roles --apply.
  */
 
 const { ApiError } = require('../../utils/apiError');
-const { normalizeRoleCodes } = require('./superAdminPrivilegeBoundary');
+const { LEGACY_CATALOG_ROLE_CODES } = require('../../utils/roleCanon');
 
-const DEPRECATED_CODE = 'PROGRAM_ADMIN_DEPRECATED';
-const DEPRECATED_MESSAGE = 'program_admin is deprecated and cannot be newly assigned';
-const CANONICAL_PROGRAM_ADMIN_ROLE_CODE = 'program_admin';
+const DEPRECATED_CODE = 'LEGACY_ROLE_DEPRECATED';
+const DEPRECATED_MESSAGE =
+  'This legacy role cannot be newly assigned. Use admin or reviewer instead.';
 
-function getCanonicalProgramAdminRoleCode() {
-  return CANONICAL_PROGRAM_ADMIN_ROLE_CODE;
+const legacySet = new Set(LEGACY_CATALOG_ROLE_CODES);
+
+function includesLegacyRole(codes) {
+  const list = Array.isArray(codes) ? codes : [];
+  return list.some((c) => legacySet.has(String(c || '').trim().toLowerCase()));
+}
+
+function denyLegacyRoleAssignment(codes) {
+  const found = (Array.isArray(codes) ? codes : [])
+    .map((c) => String(c || '').trim().toLowerCase())
+    .filter((c) => legacySet.has(c));
+  throw new ApiError(400, DEPRECATED_MESSAGE, { legacy_roles: found }, DEPRECATED_CODE);
 }
 
 /**
- * @param {unknown} codes
- * @param {string} [paCode]
- */
-function includesProgramAdminRole(codes, paCode = getCanonicalProgramAdminRoleCode()) {
-  return normalizeRoleCodes(codes).includes(paCode);
-}
-
-function denyProgramAdminAssignment() {
-  throw new ApiError(400, DEPRECATED_MESSAGE, null, DEPRECATED_CODE);
-}
-
-/**
- * Reject any explicit role_codes payload that includes program_admin.
- * Omitting role_codes (undefined) preserves current roles — including legacy holders.
- *
- * Global requesters are also blocked: deprecation is a product decision, not a privilege gate.
- *
+ * Reject any explicit role_codes payload that includes legacy catalog roles.
  * @param {{ requestedRoleCodes?: unknown }} args
  */
 function assertProgramAdminNotNewlyAssigned({ requestedRoleCodes } = {}) {
   if (requestedRoleCodes === undefined) return;
-  if (includesProgramAdminRole(requestedRoleCodes)) {
-    denyProgramAdminAssignment();
+  if (includesLegacyRole(requestedRoleCodes)) {
+    denyLegacyRoleAssignment(requestedRoleCodes);
   }
 }
 
 module.exports = {
   DEPRECATED_CODE,
   DEPRECATED_MESSAGE,
-  CANONICAL_PROGRAM_ADMIN_ROLE_CODE,
-  getCanonicalProgramAdminRoleCode,
-  includesProgramAdminRole,
+  CANONICAL_PROGRAM_ADMIN_ROLE_CODE: 'program_admin',
+  getCanonicalProgramAdminRoleCode: () => 'program_admin',
+  includesProgramAdminRole: includesLegacyRole,
   assertProgramAdminNotNewlyAssigned,
-  denyProgramAdminAssignment,
+  denyProgramAdminAssignment: () => denyLegacyRoleAssignment(['program_admin']),
 };

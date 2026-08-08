@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
+import { TrainingHoursProgressCard } from '../../../../components/fieldTraining/TrainingHoursProgressCard.jsx';
 import { ClipboardCheck } from 'lucide-react';
 
 function formatReasons(reason) {
@@ -71,6 +72,14 @@ export function StudentEligibilityTab({
             </dd>
           </div>
           <div>
+            <dt>{t('hours.required')}</dt>
+            <dd>
+              {metrics.required_training_hours != null
+                ? `${metrics.required_training_hours} / ${metrics.completed_training_hours ?? 0}`
+                : t('hours.notConfigured')}
+            </dd>
+          </div>
+          <div>
             <dt>{t('progress.task')}</dt>
             <dd>{t(`finalTaskStatus.${finalTask}`, finalTask)}</dd>
           </div>
@@ -92,6 +101,11 @@ export function StudentEligibilityTab({
             </dd>
           </div>
         </dl>
+
+        <TrainingHoursProgressCard
+          hours={progress?.hours ?? metrics}
+          className="ft-student-eligibility__hours"
+        />
 
         {reasons.length ? (
           <ul className="ft-eligibility-reasons">

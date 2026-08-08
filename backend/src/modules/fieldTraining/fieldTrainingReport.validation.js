@@ -8,6 +8,8 @@ const reportFiltersSchema = z.object({
   opportunity_id: uuidSchema.optional(),
   status: z.enum(['pending', 'approved', 'rejected']).optional(),
   training_status: z.string().optional(),
+  eligibility_status: z.enum(['pending', 'eligible', 'not_eligible']).optional(),
+  search: z.string().max(200).optional(),
   from: z.string().optional(),
   to: z.string().optional(),
 });

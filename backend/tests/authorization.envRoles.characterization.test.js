@@ -1,50 +1,19 @@
 'use strict';
 
 /**
- * Characterization: repository-default role allowlists for sensitive operations (Phase 3).
- * program_admin removed from all active defaults.
+ * Characterization: repository-default role allowlists (five canonical roles).
  */
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { authorizeRoles } = require('../src/middlewares/authorization.middleware');
+const { env } = require('../src/config/env');
 const {
-  CANONICAL_ROLES,
   makeRequester,
   createMockReq,
   runMiddlewareSync,
 } = require('./helpers/authzFixtures');
-
-/** Defaults mirrored from backend/src/config/env.js after Phase 3 PA removal. */
-const DEFAULTS = {
-  ADMIN_READ: ['super_admin', 'university_admin'],
-  USER_WRITE: ['super_admin'],
-  USER_ACTIVATE: ['super_admin', 'university_admin', 'academic_admin'],
-  CURRICULUM_WRITE: ['super_admin', 'academic_admin'],
-  ENROLLMENT_DECISION: ['super_admin', 'academic_admin', 'university_reviewer'],
-  DELIVERY_WRITE: ['super_admin', 'university_admin', 'academic_admin', 'instructor'],
-  ACADEMIC_WRITE: ['super_admin', 'university_admin', 'academic_admin', 'instructor'],
-  CERTIFICATE_WRITE: ['super_admin', 'university_admin', 'academic_admin'],
-  QA_OVERSIGHT: ['super_admin', 'university_admin', 'academic_admin', 'qa_officer'],
-  RISK_INTEGRITY: [
-    'super_admin',
-    'university_admin',
-    'academic_admin',
-    'qa_officer',
-    'instructor',
-  ],
-  REPORT_READ: [
-    'super_admin',
-    'university_admin',
-    'academic_admin',
-    'qa_officer',
-    'university_reviewer',
-  ],
-  FIELD_TRAINING_ADMIN: ['super_admin', 'university_admin', 'academic_admin'],
-  FIELD_TRAINING_INSTRUCTOR: ['instructor'],
-  SETTINGS: ['super_admin'],
-  STUDENT_ONLY: ['student'],
-};
+const { CANONICAL_ROLE_CODES } = require('../src/utils/roleCanon');
 
 function assertRoleAllowed(allowList, role, expectedAllowed) {
   const mw = authorizeRoles(...allowList);
@@ -59,30 +28,62 @@ function assertRoleAllowed(allowList, role, expectedAllowed) {
   }
 }
 
-describe('env role defaults characterization (Phase 3)', () => {
-  it('no default allowlist includes program_admin', () => {
-    for (const [name, list] of Object.entries(DEFAULTS)) {
-      assert.equal(list.includes('program_admin'), false, name);
+describe('env role defaults characterization (five-role model)', () => {
+  it('live env defaults match five-role catalog', () => {
+    assert.deepEqual(env.ADMIN_READ_ROLE_CODES, ['super_admin', 'admin']);
+    assert.deepEqual(env.USER_WRITE_ROLE_CODES, ['super_admin']);
+    assert.deepEqual(env.USER_ACTIVATE_ROLE_CODES, ['super_admin', 'admin']);
+    assert.deepEqual(env.FIELD_TRAINING_ADMIN_ROLE_CODES, ['super_admin', 'admin']);
+    assert.ok(env.REPORT_READ_ROLE_CODES.includes('reviewer'));
+    assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('admin'));
+    assert.ok(env.ACADEMIC_WRITE_ROLE_CODES.includes('instructor'));
+  });
+
+  it('no live env allowlist includes raw legacy codes', () => {
+    const lists = [
+      env.ADMIN_READ_ROLE_CODES,
+      env.USER_WRITE_ROLE_CODES,
+      env.USER_ACTIVATE_ROLE_CODES,
+      env.CURRICULUM_WRITE_ROLE_CODES,
+      env.ENROLLMENT_DECISION_ROLE_CODES,
+      env.DELIVERY_WRITE_ROLE_CODES,
+      env.ACADEMIC_WRITE_ROLE_CODES,
+      env.CERTIFICATE_WRITE_ROLE_CODES,
+      env.QA_OVERSIGHT_ROLE_CODES,
+      env.REPORT_READ_ROLE_CODES,
+      env.FIELD_TRAINING_ADMIN_ROLE_CODES,
+    ];
+    for (const list of lists) {
+      for (const legacy of [
+        'program_admin',
+        'university_admin',
+        'academic_admin',
+        'qa_officer',
+        'university_reviewer',
+      ]) {
+        assert.equal(list.includes(legacy), false, legacy);
+      }
     }
   });
 
-  it('program_admin is denied on every sensitive default allowlist', () => {
-    for (const list of Object.values(DEFAULTS)) {
-      assertRoleAllowed(list, 'program_admin', false);
-    }
+  it('USER_WRITE is super_admin-only', () => {
+    assertRoleAllowed(env.USER_WRITE_ROLE_CODES, 'super_admin', true);
+    assertRoleAllowed(env.USER_WRITE_ROLE_CODES, 'admin', false);
+    assertRoleAllowed(env.USER_WRITE_ROLE_CODES, 'student', false);
   });
 
-  it('USER_WRITE is super_admin-only (was SA+PA)', () => {
-    assertRoleAllowed(DEFAULTS.USER_WRITE, 'super_admin', true);
-    assertRoleAllowed(DEFAULTS.USER_WRITE, 'university_admin', false);
-    assertRoleAllowed(DEFAULTS.USER_WRITE, 'program_admin', false);
+  it('ADMIN_READ allows admin', () => {
+    assertRoleAllowed(env.ADMIN_READ_ROLE_CODES, 'admin', true);
   });
 
-  it('UNIVERSITY-equivalent: ADMIN_READ still allows university_admin', () => {
-    assertRoleAllowed(DEFAULTS.ADMIN_READ, 'university_admin', true);
-  });
-
-  it('canonical roles still list program_admin historically', () => {
-    assert.ok(CANONICAL_ROLES.includes('program_admin'));
+  it('canonical role set includes trainer', () => {
+    assert.deepEqual([...CANONICAL_ROLE_CODES], [
+      'super_admin',
+      'admin',
+      'instructor',
+      'trainer',
+      'student',
+      'reviewer',
+    ]);
   });
 });

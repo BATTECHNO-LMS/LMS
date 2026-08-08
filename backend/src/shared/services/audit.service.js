@@ -5,6 +5,7 @@ const { prisma } = require('../../config/db');
  * @param {{
  *   userId?: string | null,
  *   universityId?: string | null,
+ *   organizationId?: string | null,
  *   actionType: string,
  *   entityType: string,
  *   entityId?: string | null,
@@ -19,6 +20,7 @@ async function recordAudit(payload) {
       data: {
         user_id: payload.userId ?? null,
         university_id: payload.universityId ?? null,
+        organization_id: payload.organizationId ?? null,
         action_type: payload.actionType,
         entity_type: payload.entityType,
         entity_id: payload.entityId ?? null,

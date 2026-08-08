@@ -15,14 +15,15 @@ import {
   downloadCompletionLetter,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
-import { STALE, keepPreviousListData } from '../../../lib/queryDefaults.js';
+import { STALE } from '../../../lib/queryDefaults.js';
 
 export function useStudentFieldTrainingList(params = {}, options = {}) {
   return useQuery({
     queryKey: fieldTrainingKeys.studentList(params),
     queryFn: () => fetchStudentFieldTrainingList(params),
     staleTime: STALE.fieldTraining,
-    placeholderData: keepPreviousListData,
+    // Do not keep previous university-scoped lists as placeholder (avoids stale cross-scope flash).
+    placeholderData: undefined,
     ...options,
   });
 }

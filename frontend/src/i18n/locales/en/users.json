@@ -29,13 +29,11 @@
   "filters": {
     "role": "Role",
     "allRoles": "All roles",
+    "superAdmin": "Super admin",
     "instructor": "Instructor",
     "student": "Student",
     "admin": "Admin",
-    "programAdminDeprecated": "Program Admin — Deprecated",
-    "qaOfficer": "QA Officer",
-    "academicReviewer": "Academic reviewer",
-    "universityAdmin": "University admin",
+    "reviewer": "Reviewer",
     "emailVerification": "Email verification",
     "emailVerificationAll": "All"
   },

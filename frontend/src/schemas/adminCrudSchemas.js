@@ -1,40 +1,192 @@
 import { z } from 'zod';
 import { ASSIGNABLE_USER_ROLE_CODES, ROLES } from '../constants/roles.js';
 
-const assignableRoleEnum = z.enum(ASSIGNABLE_USER_ROLE_CODES, {
+const assignableRoleEnum = z.enum([...ASSIGNABLE_USER_ROLE_CODES, ROLES.SUPER_ADMIN], {
   required_error: 'الدور مطلوب',
 });
 
-/** Edit forms may display a legacy program_admin holder; assignment UIs never offer it as new. */
-const editableRoleEnum = z.enum([...ASSIGNABLE_USER_ROLE_CODES, ROLES.PROGRAM_ADMIN], {
+const editableRoleEnum = z.enum([...ASSIGNABLE_USER_ROLE_CODES, ROLES.SUPER_ADMIN], {
   required_error: 'الدور مطلوب',
 });
 
-export const userSchema = z.object({
-  name: z.string().min(1, 'الاسم مطلوب'),
-  email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
-  password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'),
-  role: assignableRoleEnum,
-  status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
+export const userCreateFormSchema = z
+  .object({
+    full_name: z.string().min(1, 'الاسم الكامل مطلوب').max(255),
+    email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
+    phone: z.string().max(50).optional().or(z.literal('')),
+    password: z.string().min(6, 'كلمة المرور يجب أن تكون 6 أحرف على الأقل').max(128),
+    confirm_password: z.string().min(6, 'تأكيد كلمة المرور مطلوب'),
+    role: assignableRoleEnum,
+    status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'حالة الحساب مطلوبة' }),
+    email_verified: z.boolean().optional(),
+    primary_university_id: z.string().uuid('الجامعة مطلوبة').optional().or(z.literal('')),
+    university_specialty_id: z.string().uuid('تخصص الجامعة مطلوب').optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    if (data.password !== data.confirm_password) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['confirm_password'],
+        message: 'كلمتا المرور غير متطابقتين',
+      });
+    }
+    const needsUni = ['student', 'instructor', 'admin', 'reviewer'].includes(
+      data.role
+    );
+    if (needsUni && !data.primary_university_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['primary_university_id'],
+        message: 'الجامعة مطلوبة لهذا الدور',
+      });
+    }
+    if (data.role === 'student' && !data.university_specialty_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['university_specialty_id'],
+        message: 'تخصص الجامعة مطلوب للطالب',
+      });
+    }
+  });
+
+export const userUpdateFormSchema = z
+  .object({
+    full_name: z.string().min(1, 'الاسم الكامل مطلوب').max(255),
+    email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
+    phone: z.string().max(50).optional().or(z.literal('')),
+    role: editableRoleEnum,
+    status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'حالة الحساب مطلوبة' }),
+    email_verified: z.boolean().optional(),
+    primary_university_id: z.string().uuid('الجامعة مطلوبة').optional().or(z.literal('')),
+    university_specialty_id: z.string().uuid('تخصص الجامعة مطلوب').optional().or(z.literal('')),
+  })
+  .superRefine((data, ctx) => {
+    const needsUni = ['student', 'instructor', 'admin', 'reviewer'].includes(
+      data.role
+    );
+    if (needsUni && !data.primary_university_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['primary_university_id'],
+        message: 'الجامعة مطلوبة لهذا الدور',
+      });
+    }
+    if (data.role === 'student' && !data.university_specialty_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['university_specialty_id'],
+        message: 'تخصص الجامعة مطلوب للطالب',
+      });
+    }
+  });
+
+/** @deprecated use userCreateFormSchema */
+export const userSchema = userCreateFormSchema;
+/** @deprecated use userUpdateFormSchema */
+export const userUpdateSchema = userUpdateFormSchema;
+
+function normalizeDomainClient(value) {
+  if (value == null) return '';
+  let raw = String(value).trim().toLowerCase();
+  raw = raw.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+  const slash = raw.indexOf('/');
+  if (slash >= 0) raw = raw.slice(0, slash);
+  const at = raw.lastIndexOf('@');
+  if (at >= 0) raw = raw.slice(at + 1);
+  return raw.replace(/\s+/g, '').replace(/\.+$/g, '');
+}
+
+const emailDomainFormSchema = z
+  .object({
+    _key: z.string().optional(),
+    id: z.string().uuid().nullable().optional(),
+    domain: z.string().min(1, 'اسم النطاق مطلوب'),
+    is_active: z.boolean().optional(),
+    is_primary: z.boolean().optional(),
+  })
+  .superRefine((item, ctx) => {
+    const n = normalizeDomainClient(item.domain);
+    if (!n || !/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(n)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['domain'], message: 'صيغة نطاق البريد غير صالحة' });
+    }
+  });
+
+const specialtyFormSchema = z.object({
+  _key: z.string().optional(),
+  id: z.string().uuid().nullable().optional(),
+  name_ar: z.string().min(1, 'الاسم العربي للتخصص مطلوب').max(255),
+  name_en: z.string().max(255).optional().or(z.literal('')),
+  code: z.string().min(1, 'كود التخصص مطلوب').max(80),
+  college_name_ar: z.string().max(255).optional().or(z.literal('')),
+  college_name_en: z.string().max(255).optional().or(z.literal('')),
+  specialty_id: z.string().optional().or(z.literal('')),
+  status: z.enum(['active', 'inactive']).optional(),
 });
 
-export const userUpdateSchema = z.object({
-  name: z.string().min(1, 'الاسم مطلوب'),
-  role: editableRoleEnum,
-  status: z.enum(['active', 'inactive', 'suspended'], { required_error: 'الحالة مطلوبة' }),
-  phone: z.string().max(50).optional(),
-});
+export const universityFormSchema = z
+  .object({
+    name: z.string().min(1, 'اسم الجامعة بالعربية مطلوب').max(255),
+    name_en: z.string().max(255).optional().or(z.literal('')),
+    short_name: z.string().max(80).optional().or(z.literal('')),
+    code: z.string().max(50).optional().or(z.literal('')),
+    type: z.string().max(120).optional().or(z.literal('')),
+    website: z.string().max(500).optional().or(z.literal('')),
+    country: z.string().max(120).optional().or(z.literal('')),
+    city: z.string().max(120).optional().or(z.literal('')),
+    address: z.string().max(500).optional().or(z.literal('')),
+    contact_person: z.string().max(255).optional().or(z.literal('')),
+    contact_email: z
+      .union([z.string().email('صيغة البريد الرسمي غير صالحة'), z.literal('')])
+      .optional(),
+    contact_phone: z.string().max(50).optional().or(z.literal('')),
+    logo_url: z.string().max(1000).optional().or(z.literal('')),
+    status: z.enum(['active', 'inactive', 'archived'], { required_error: 'حالة الجامعة مطلوبة' }),
+    partnership_state: z.enum(['active', 'inactive', 'pending', 'ended']).optional(),
+    notes: z.string().max(20000).optional().or(z.literal('')),
+    email_domains: z.array(emailDomainFormSchema).optional(),
+    specialties: z.array(specialtyFormSchema).optional(),
+  })
+  .superRefine((data, ctx) => {
+    const domains = data.email_domains || [];
+    const seen = new Set();
+    let primary = 0;
+    domains.forEach((d, i) => {
+      const n = normalizeDomainClient(d.domain);
+      if (seen.has(n)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['email_domains', i, 'domain'],
+          message: 'لا يمكن تكرار نطاق البريد داخل نفس الجامعة',
+        });
+      }
+      seen.add(n);
+      if (d.is_primary && d.is_active !== false) primary += 1;
+    });
+    if (primary > 1) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['email_domains'],
+        message: 'يُسمح بنطاق أساسي واحد فقط',
+      });
+    }
 
-export const universitySchema = z.object({
-  name: z.string().min(1, 'اسم الجامعة مطلوب'),
-  contact: z.string().min(1, 'جهة الاتصال مطلوبة'),
-  email: z.string().min(1, 'البريد مطلوب').email('صيغة البريد غير صالحة'),
-  status: z.enum(['active', 'inactive', 'archived'], { required_error: 'الحالة مطلوبة' }),
-  programs: z.preprocess(
-    (v) => (v === '' || v === undefined || v === null ? undefined : v),
-    z.coerce.number().min(0, 'القيمة غير صالحة').optional()
-  ),
-});
+    const codes = new Set();
+    (data.specialties || []).forEach((s, i) => {
+      const code = String(s.code || '').trim().toUpperCase();
+      if (!code) return;
+      if (codes.has(code)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['specialties', i, 'code'],
+          message: 'لا يمكن تكرار كود التخصص داخل نفس الجامعة',
+        });
+      }
+      codes.add(code);
+    });
+  });
+
+/** @deprecated use universityFormSchema */
+export const universitySchema = universityFormSchema;
 
 export const trackSchema = z.object({
   name: z.string().min(1, 'اسم المسار مطلوب'),

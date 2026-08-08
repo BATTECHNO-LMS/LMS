@@ -20,13 +20,14 @@ const { hashPassword } = require('../../utils/password');
 const { sendPasswordResetOtpEmail } = require('../../shared/services/email.service');
 const { recordAudit } = require('../../utils/auditRecorder');
 const otpRepository = require('./passwordResetOtp.repository');
+const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
 
 const FORGOT_SUCCESS =
   'إذا كان البريد الإلكتروني مسجلاً لدينا، سيتم إرسال رمز التحقق إليه.';
 const RESEND_GENERIC_SUCCESS =
   'إذا كان البريد الإلكتروني مسجلاً لدينا، سيتم إرسال رمز تحقق جديد.';
-const GENERIC_OTP_ERROR = 'رمز التحقق غير صحيح أو منتهي الصلاحية.';
-const MAX_ATTEMPTS_ERROR = 'تم تجاوز عدد المحاولات المسموح. يرجى طلب رمز جديد.';
+const GENERIC_OTP_ERROR = messageForCode(AUTH_ERROR_CODES.INVALID_OTP);
+const MAX_ATTEMPTS_ERROR = messageForCode(AUTH_ERROR_CODES.OTP_RATE_LIMITED);
 const OTP_VERIFIED_SUCCESS = 'تم التحقق من الرمز بنجاح. يمكنك الآن تعيين كلمة مرور جديدة.';
 const RESET_SUCCESS = 'تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.';
 const INVALID_RESET_SESSION = 'جلسة إعادة التعيين غير صالحة أو منتهية الصلاحية.';
@@ -105,9 +106,9 @@ async function resendPasswordResetOtp(email) {
     const seconds = passwordResetResendCooldownRemainingSeconds(latest.last_sent_at);
     throw new ApiError(
       429,
-      `يمكنك إعادة الإرسال بعد ${seconds} ثانية`,
+      messageForCode(AUTH_ERROR_CODES.OTP_RESEND_COOLDOWN),
       { cooldownSeconds: seconds },
-      'OTP_RESEND_COOLDOWN'
+      AUTH_ERROR_CODES.OTP_RESEND_COOLDOWN
     );
   }
 
@@ -123,26 +124,26 @@ async function verifyPasswordResetOtp(email, otp) {
   });
 
   if (!user) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   const record = await otpRepository.findLatestActiveOtp(normalizedEmail);
   if (!record) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   if (isOtpExpired(record.expires_at)) {
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, messageForCode(AUTH_ERROR_CODES.OTP_EXPIRED), null, AUTH_ERROR_CODES.OTP_EXPIRED);
   }
 
   if (record.attempts_count >= env.PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
-    throw new ApiError(400, MAX_ATTEMPTS_ERROR);
+    throw new ApiError(429, MAX_ATTEMPTS_ERROR, null, AUTH_ERROR_CODES.OTP_RATE_LIMITED);
   }
 
   const isValid = verifyEmailOtpCode(otp, normalizedEmail, record.code_hash);
   if (!isValid) {
     await otpRepository.incrementOtpAttempts(record.id);
-    throw new ApiError(400, GENERIC_OTP_ERROR);
+    throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
   const resetToken = generatePasswordResetToken();

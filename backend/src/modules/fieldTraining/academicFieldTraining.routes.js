@@ -2,22 +2,40 @@ const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorizeRoles } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
-const { env } = require('../../config/env');
 const reportController = require('./fieldTrainingReport.controller');
 const {
   reportFiltersSchema,
   applicationIdParamSchema,
 } = require('./fieldTrainingReport.validation');
-const { taskIdParamSchema } = require('./fieldTraining.validation');
+const { taskIdParamSchema, opportunityIdParamSchema } = require('./fieldTraining.validation');
 
 const router = express.Router();
-const academicRoles = authorizeRoles(
-  'academic_admin',
-  'university_reviewer',
-  'qa_officer',
-  'university_admin'
-);
+const academicRoles = authorizeRoles('admin', 'reviewer');
 
+router.get(
+  '/dashboard',
+  authenticate,
+  academicRoles,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.academicDashboard
+);
+router.get(
+  '/opportunities',
+  authenticate,
+  academicRoles,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.academicOpportunitiesList
+);
+router.get(
+  '/opportunities/:opportunityId',
+  authenticate,
+  academicRoles,
+  validateRequest({
+    params: opportunityIdParamSchema,
+    query: reportFiltersSchema,
+  }),
+  reportController.academicOpportunityDetail
+);
 router.get(
   '/reports/university',
   authenticate,

@@ -33,6 +33,7 @@ import { PagePermissionGate } from '../../components/permissions/PagePermissionG
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { StudentTrainingTabNav } from './fieldTraining/components/StudentTrainingTabNav.jsx';
+import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { StudentExpelledBanner } from './fieldTraining/components/StudentExpelledBanner.jsx';
 import { StudentOverviewTab } from './fieldTraining/components/StudentOverviewTab.jsx';
 import { StudentSessionsTab } from './fieldTraining/components/StudentSessionsTab.jsx';
@@ -587,13 +588,31 @@ export function StudentFieldTrainingDetailPage() {
 
           {isApprovedParticipant ? (
             <section className="ft-student-hub" aria-label={t('studentTraining.hubLabel')}>
-              <StudentTrainingTabNav
-                activeTab={activeTab}
-                onTabChange={setActiveTab}
-                disabledTabs={
-                  expelled ? ['sessions', 'tasks', 'assessments', 'completion'] : []
-                }
-              />
+              <div className="ug-page-tools ug-page-tools--inline">
+                <StudentTrainingTabNav
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  disabledTabs={
+                    expelled ? ['sessions', 'tasks', 'assessments', 'completion'] : []
+                  }
+                />
+                <ContextualHelpButton
+                  contextualKey={
+                    activeTab === 'attendance'
+                      ? 'attendance'
+                      : activeTab === 'tasks'
+                        ? 'tasks'
+                        : activeTab === 'assessments'
+                          ? 'assessments'
+                          : activeTab === 'completion'
+                            ? 'certificates'
+                            : activeTab === 'sessions'
+                              ? 'attendance'
+                              : 'progress'
+                  }
+                  route={`/student/field-training/${id}`}
+                />
+              </div>
               <div className="ft-student-hub__panel">{tabContent}</div>
             </section>
           ) : (

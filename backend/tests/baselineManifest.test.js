@@ -326,8 +326,22 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
     assert.deepEqual(result.pendingAfterCutoff, [
       '20260719120000_field_training_required_hours',
       '20260720140000_field_training_completed_hours',
+      '20260720140000_university_profile_and_domain_primary',
       '20260720180000_mobile_push_registrations',
       '20260806180000_account_deletion_requests',
+      '20260725140000_field_training_task_grading_mode',
+      '20260725160000_field_training_attendance_windows',
+      '20260727020000_field_training_attendance_bulk_manual',
+      '20260727030000_user_guide_onboarding_help',
+      '20260727040000_unify_reviewer_role',
+      '20260727050000_user_status_rejected',
+      '20260729120000_content_help_cms',
+      '20260729160000_notification_rules_engine',
+      '20260802010000_institutional_portal_foundation',
+      '20260802020000_user_preferred_organization',
+      '20260802030000_institution_public_registration_meta',
+      '20260802040000_trainer_role_and_assignments',
+      '20260802050000_trainee_role',
     ]);
   });
 

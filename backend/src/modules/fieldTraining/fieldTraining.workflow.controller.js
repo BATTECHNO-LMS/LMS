@@ -361,6 +361,97 @@ async function downloadCompletionLetterAsManager(req, res, next) {
   }
 }
 
+function requestMeta(req) {
+  return {
+    ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
+    deviceInfo: String(req.headers['user-agent'] || '').slice(0, 500) || null,
+  };
+}
+
+async function openAttendanceWindow(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.openAttendanceWindow(
+      req.validated.params.sessionId,
+      req.validated.body,
+      req.user
+    );
+    return success(res, data, { message: 'Attendance window opened' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getAttendanceWindow(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.getSessionAttendanceWindow(
+      req.validated.params.sessionId,
+      req.user
+    );
+    return success(res, data);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function closeAttendanceWindow(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.closeAttendanceWindow(
+      req.validated.params.sessionId,
+      req.user
+    );
+    return success(res, data, { message: 'Attendance window closed' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function finalizeAttendanceAbsences(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.finalizeUnconfirmedAbsences(
+      req.validated.params.sessionId,
+      req.user
+    );
+    return success(res, data, { message: 'Unconfirmed absences finalized' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function markAllPresent(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.markAllPresent(
+      req.validated.params.sessionId,
+      req.validated.body,
+      req.user,
+      requestMeta(req)
+    );
+    return success(res, data, { message: data.message || 'تم تسجيل جميع الطلاب المؤهلين كحاضرين' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function patchStudentAttendance(req, res, next) {
+  try {
+    const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
+    const data = await attendanceWindow.updateStudentAttendanceManual(
+      req.validated.params.sessionId,
+      req.validated.params.studentId,
+      req.validated.body,
+      req.user,
+      requestMeta(req)
+    );
+    return success(res, data, { message: 'Attendance updated' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   startTraining,
   listSessions,
@@ -370,6 +461,12 @@ module.exports = {
   saveAttendance,
   listSessionParticipants,
   getSessionAttendance,
+  openAttendanceWindow,
+  getAttendanceWindow,
+  closeAttendanceWindow,
+  finalizeAttendanceAbsences,
+  markAllPresent,
+  patchStudentAttendance,
   upsertAssessment,
   publishAssessment,
   listOpportunityAssessments,

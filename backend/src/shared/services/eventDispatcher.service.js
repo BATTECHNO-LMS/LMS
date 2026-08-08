@@ -78,7 +78,7 @@ async function handleAttendanceBelowThreshold(event) {
   if (!cohort) return;
   const recipientIds = [];
   if (cohort.instructor_id) recipientIds.push(cohort.instructor_id);
-  const adminIds = await notificationService.userIdsByRoleCodes(['university_admin', 'academic_admin', 'qa_officer'], {
+  const adminIds = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort.university_id,
   });
   recipientIds.push(...adminIds);
@@ -105,7 +105,7 @@ async function handleCorrectiveActionOverdue(event) {
       select: { university_id: true },
     });
     if (cohort?.university_id) {
-      const qaOfficers = await notificationService.userIdsByRoleCodes(['qa_officer'], {
+      const qaOfficers = await notificationService.userIdsByRoleCodes(['admin'], {
         universityId: cohort.university_id,
       });
       recipients.push(...qaOfficers);
@@ -139,7 +139,7 @@ async function handleIntegrityCaseReported(event) {
     where: { id: integrityCase?.cohort_id },
     select: { university_id: true, title: true },
   });
-  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'university_admin', 'qa_officer'], {
+  const oversight = await notificationService.userIdsByRoleCodes(['super_admin', 'admin'], {
     universityId: cohort?.university_id,
   });
   await notificationService.createNotificationsForUsers({
@@ -160,7 +160,7 @@ async function handleQaReviewOpened(event) {
   const recipients = [];
   if (qaReview?.reviewer_id) recipients.push(qaReview.reviewer_id);
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const qaOfficers = await notificationService.userIdsByRoleCodes(['qa_officer', 'university_admin'], {
+  const qaOfficers = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...qaOfficers);
@@ -182,7 +182,7 @@ async function handleAssessmentOverdue(event) {
   });
   const recipients = [];
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const admins = await notificationService.userIdsByRoleCodes(['academic_admin'], {
+  const admins = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...admins);
@@ -204,7 +204,7 @@ async function handleAssessmentUngradedBeforeClosure(event) {
   });
   const recipients = [];
   if (cohort?.instructor_id) recipients.push(cohort.instructor_id);
-  const admins = await notificationService.userIdsByRoleCodes(['academic_admin', 'qa_officer'], {
+  const admins = await notificationService.userIdsByRoleCodes(['admin'], {
     universityId: cohort?.university_id,
   });
   recipients.push(...admins);
@@ -249,6 +249,47 @@ async function dispatchAppEvent(type, payload) {
     case 'cohort_status_changed':
     default:
       break;
+  }
+
+  // Thin bridge: map easy legacy events onto the notification rules catalog.
+  await bridgeLegacyEventToDomain(type, payload).catch(() => null);
+}
+
+/**
+ * Optional mapping from old dispatchAppEvent names → catalog event types.
+ * Failures never break the legacy handler path.
+ * @param {string} type
+ * @param {Record<string, unknown>} payload
+ */
+async function bridgeLegacyEventToDomain(type, payload = {}) {
+  const map = {
+    certificate_issued: 'CERTIFICATE_ISSUED',
+  };
+  const eventType = map[type];
+  if (!eventType) return;
+
+  const { emitDomainEvent } = require('../../modules/notificationEngine/notificationDispatcher.service');
+
+  if (eventType === 'CERTIFICATE_ISSUED') {
+    const certificate = /** @type {{ id?: string, student_id?: string, certificate_no?: string, status?: string } | undefined} */ (
+      payload.certificate
+    );
+    const actor = /** @type {{ userId?: string, universityId?: string } | undefined} */ (payload.actor);
+    if (!certificate?.student_id) return;
+    const certId = certificate.id || '';
+    await emitDomainEvent('CERTIFICATE_ISSUED', {
+      studentId: certificate.student_id,
+      affectedUserId: certificate.student_id,
+      universityId: actor?.universityId || null,
+      actorUserId: actor?.userId || null,
+      entityType: 'certificate',
+      entityId: certId || null,
+      reviewerActionUrl: certId ? `/reviewer/certificates/${certId}` : '/reviewer/certificates',
+      templateVars: {
+        certificate_name: certificate.certificate_no || '',
+        action_url: certId ? `/student/certificates/${certId}` : '/student/certificates',
+      },
+    });
   }
 }
 

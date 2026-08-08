@@ -1,6 +1,6 @@
 function formatZodError(parsed) {
   const firstIssue = parsed.error.issues[0];
-  return firstIssue?.message || 'Validation failed';
+  return firstIssue?.message || 'يرجى مراجعة الحقول المطلوبة.';
 }
 
 /**
@@ -17,7 +17,7 @@ function validateBody(schema) {
       const firstIssue = parsed.error.issues[0];
       return res.status(400).json({
         success: false,
-        message: firstIssue?.message || 'Validation failed',
+        message: firstIssue?.message || 'يرجى مراجعة الحقول المطلوبة.',
         code: 'VALIDATION_ERROR',
         details: {
           fields: fieldErrors,
@@ -46,6 +46,10 @@ function validateRequest(parts) {
           success: false,
           message: formatZodError(parsed),
           code: 'VALIDATION_ERROR',
+          details: {
+            fields: parsed.error.flatten().fieldErrors,
+            form: parsed.error.flatten().formErrors,
+          },
         });
       }
       out.params = parsed.data;
@@ -57,6 +61,10 @@ function validateRequest(parts) {
           success: false,
           message: formatZodError(parsed),
           code: 'VALIDATION_ERROR',
+          details: {
+            fields: parsed.error.flatten().fieldErrors,
+            form: parsed.error.flatten().formErrors,
+          },
         });
       }
       out.query = parsed.data;
@@ -68,6 +76,10 @@ function validateRequest(parts) {
           success: false,
           message: formatZodError(parsed),
           code: 'VALIDATION_ERROR',
+          details: {
+            fields: parsed.error.flatten().fieldErrors,
+            form: parsed.error.flatten().formErrors,
+          },
         });
       }
       out.body = parsed.data;

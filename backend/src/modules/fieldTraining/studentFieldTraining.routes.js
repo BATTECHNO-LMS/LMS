@@ -17,9 +17,13 @@ const {
   submitAssessmentBodySchema,
   aiSelfEvalBodySchema,
   taskSubmitFieldsSchema,
+  confirmAttendanceWindowBodySchema,
 } = require('./fieldTraining.validation');
 const { handleTaskUpload } = require('./fieldTraining.upload');
 const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
+const { attendanceConfirmLimiter } = require('./fieldTraining.attendanceRateLimit.middleware');
+const attendanceWindowService = require('./fieldTraining.attendanceWindow.service');
+const { success } = require('../../utils/apiResponse');
 
 const router = express.Router();
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
@@ -45,6 +49,50 @@ router.get(
   studentOnly,
   validateRequest({ query: listStudentQuerySchema }),
   studentFieldTrainingController.list
+);
+
+router.get(
+  '/attendance-window/active',
+  authenticate,
+  studentOnly,
+  async (req, res, next) => {
+    try {
+      const data = await attendanceWindowService.listActiveWindowsForStudent(req.user.userId);
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/attendance-window/confirm',
+  authenticate,
+  studentOnly,
+  attendanceConfirmLimiter,
+  validateRequest({ body: confirmAttendanceWindowBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await attendanceWindowService.confirmAttendanceWithCode(
+        req.validated.body,
+        req.user,
+        {
+          ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
+          deviceInfo: String(req.headers['user-agent'] || '').slice(0, 500) || null,
+        }
+      );
+      return success(res, data, { message: data.message || 'Attendance confirmed' });
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.get(
+  '/submissions/ai-supported-file-types',
+  authenticate,
+  studentOnly,
+  studentFieldTrainingController.getAiSupportedFileTypes
 );
 
 router.get(

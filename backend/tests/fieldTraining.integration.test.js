@@ -148,6 +148,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
         assigned_instructor_id: instructor.id,
         location: 'عمان',
         training_mode: 'hybrid',
+        required_training_hours: 160,
         description: 'وصف كامل لفرصة تدريب ميداني للاختبار التكاملي.',
         requires_pre_assessment: true,
         requires_post_assessment: true,
@@ -536,6 +537,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
         ],
         location: 'عمان',
         training_mode: 'remote',
+        required_training_hours: 160,
         description: 'فرصة لاختبار أهلية الطالب والتقارير.',
       });
     assert.strictEqual(createRes.status, 201);
@@ -565,6 +567,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
           ],
           location: 'عمان',
           training_mode: 'remote',
+          required_training_hours: 120,
           description: 'فرصة لتخصص مختلف في نفس الجامعة.',
         });
       assert.strictEqual(restrictedRes.status, 201);
@@ -653,6 +656,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
         ],
         location: 'عمان',
         training_mode: 'remote',
+        required_training_hours: 80,
         description: 'فرصة بدون مدرب معين للاختبار الأمني.',
       });
     assert.strictEqual(createRes.status, 201);

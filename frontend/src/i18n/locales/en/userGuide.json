@@ -1,0 +1,133 @@
+{
+  "eyebrow": "Student help",
+  "title": "Field training user guide",
+  "description": "Learn about applications, attendance, tasks, assessments, and certificates. Restart the tour anytime.",
+  "restartTour": "Restart onboarding tour",
+  "contactSupport": "Contact support",
+  "searchLabel": "Search the guide",
+  "searchPlaceholder": "e.g. attendance, code, task, certificate…",
+  "search": "Search",
+  "searchResults": "Results for “{{q}}”",
+  "noResultsTitle": "No direct answer found",
+  "noResultsDesc": "You can open a support ticket or try different keywords.",
+  "categoriesTitle": "Guide sections",
+  "articlesCount": "{{count}} article(s)",
+  "faqTitle": "Frequently asked questions",
+  "readArticle": "Read details",
+  "back": "Back to guide",
+  "categoryMissing": "Section not found",
+  "categoryMissingDesc": "Check the link or return to the main guide.",
+  "noArticles": "No articles in this section yet.",
+  "articleMissing": "Article not found",
+  "stillNeedHelp": "Still need help?",
+  "supportTitle": "Contact support",
+  "supportHint": "Have you checked the user guide? Search first, then create a ticket if needed.",
+  "relatedHelp": "Related articles",
+  "createTicket": "Create support ticket",
+  "ticketCategory": "Issue type",
+  "ticketTitle": "Issue title",
+  "ticketDescription": "Issue description",
+  "submitTicket": "Submit ticket",
+  "sending": "Sending…",
+  "ticketCreated": "Ticket created with reference {{ref}}",
+  "myTickets": "My tickets",
+  "ticketCategories": {
+    "ACCOUNT": "Account",
+    "EMAIL_VERIFICATION": "Email verification",
+    "PROFILE": "Profile",
+    "OPPORTUNITY": "Opportunity",
+    "APPLICATION": "Application",
+    "SESSION": "Session",
+    "ATTENDANCE": "Attendance",
+    "ZOOM_LINK": "Zoom link",
+    "PRE_TEST": "Pre-test",
+    "POST_TEST": "Post-test",
+    "TASK": "Task",
+    "SUBMISSION": "Submission",
+    "AI_EVALUATION": "AI evaluation",
+    "PROGRESS": "Progress",
+    "TRAINING_HOURS": "Training hours",
+    "CERTIFICATE": "Certificate",
+    "TECHNICAL": "Technical",
+    "OTHER": "Other"
+  },
+  "contextual": {
+    "open": "How do I use this page?",
+    "title": "Quick help",
+    "empty": "No articles are linked to this page yet.",
+    "readMore": "Read more in the guide",
+    "openGuide": "Open user guide"
+  },
+  "tour": {
+    "welcomeTitle": "Welcome to the field training platform",
+    "welcomeBody": "You can apply to opportunities, take the pre-assessment, follow sessions and attendance, submit tasks, take the post-assessment, then receive certificates after requirements are completed and approved.",
+    "updateAvailable": "Field training workflow was updated. Review the new changes.",
+    "start": "Start onboarding tour",
+    "skip": "Skip for now",
+    "openGuide": "Open user guide",
+    "prev": "Previous",
+    "next": "Next",
+    "finish": "Finish steps",
+    "close": "Close",
+    "progress": "{{current}} of {{total}}",
+    "doneTitle": "You are ready to start field training",
+    "doneBody": "You can replay the tour anytime from the user guide.",
+    "goOpportunities": "Go to opportunities",
+    "end": "End tour",
+    "steps": {
+      "profile": {
+        "title": "Confirm your profile details",
+        "body": "Review your full name, university, specialty, phone, and email — they are used in reports and official documents.",
+        "action": "Open profile"
+      },
+      "opportunities": {
+        "title": "Opportunities available to you",
+        "body": "Opportunities appear based on your university, specialty, and registration status. Open a match and review requirements before applying.",
+        "action": "View opportunities"
+      },
+      "application": {
+        "title": "Application and pre-assessment",
+        "body": "After applying, track your request status. Once approved you may need to complete a pre-assessment before training starts.",
+        "action": "View my applications"
+      },
+      "sessions": {
+        "title": "Sessions and attendance",
+        "body": "Follow the session schedule for date, time, and meeting link. When the instructor opens attendance, enter the code within the time window.",
+        "action": "View sessions"
+      },
+      "tasks": {
+        "title": "Training tasks",
+        "body": "Open the task, read instructions, deadline, and grading mode, then upload your work and submit.",
+        "action": "View tasks"
+      },
+      "submissions": {
+        "title": "How to submit a task",
+        "body": "Add a description, upload files, or add a link based on task settings. Submission is complete only after you click submit and see a success message."
+      },
+      "progress": {
+        "title": "Track progress and remaining requirements",
+        "body": "After sessions and tasks, the post-assessment may become available. Track completion and remaining requirements from the training page.",
+        "action": "View progress"
+      },
+      "certificates": {
+        "title": "Certificates and documents",
+        "body": "Certificates or completion letters appear after requirements and approvals are completed — not automatically after the last session.",
+        "action": "View certificates"
+      }
+    }
+  },
+  "admin": {
+    "title": "User guide management",
+    "desc": "Usage analytics and published field-training guide content.",
+    "analytics": "Tour analytics",
+    "started": "Started",
+    "completed": "Completed",
+    "dismissed": "Dismissed",
+    "emptySearches": "Empty searches",
+    "guideVersion": "Guide version",
+    "topArticles": "Top viewed articles",
+    "articles": "Articles",
+    "published": "Published",
+    "hidden": "Hidden"
+  }
+}

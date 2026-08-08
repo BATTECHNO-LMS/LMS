@@ -53,13 +53,13 @@ export function HeroCockpitNav() {
           </nav>
           <span className="mx-1 h-5 w-px bg-bat-border/80" aria-hidden />
           <Link
-            to="/login"
+            to="/portals"
             className="hidden rounded-lg border border-bat-accent/70 bg-bat-accent-soft/80 px-3 py-1.5 text-xs font-semibold text-bat-primary transition hover:bg-bat-accent-soft sm:inline-flex"
           >
             {t('header.login')}
           </Link>
           <Link
-            to="/register"
+            to="/portals"
             className="hidden rounded-lg bg-bat-primary px-3.5 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-bat-primary-hover sm:inline-flex"
           >
             {t('header.register')}
@@ -106,11 +106,11 @@ export function HeroCockpitNav() {
           >
             <nav className="mt-3 flex flex-col gap-1 rounded-xl border border-bat-border/60 bg-white/50 p-2 backdrop-blur-sm">
               {[...NAV_START, ...NAV_END].map(({ href, key }) => navLink(href, key))}
-              <Link to="/login" className="mt-1 rounded-lg bg-bat-primary px-3 py-2.5 text-center text-sm font-semibold text-white" onClick={close}>
-                {t('header.login')}
+              <Link to="/universities/login" className="mt-1 rounded-lg bg-bat-primary px-3 py-2.5 text-center text-sm font-semibold text-white" onClick={close}>
+                بوابة الجامعات
               </Link>
-              <Link to="/register" className="rounded-lg border border-bat-accent bg-bat-accent-soft px-3 py-2.5 text-center text-sm font-semibold text-bat-primary" onClick={close}>
-                {t('header.register')}
+              <Link to="/institutions/login" className="rounded-lg border border-bat-accent bg-bat-accent-soft px-3 py-2.5 text-center text-sm font-semibold text-bat-primary" onClick={close}>
+                بوابة المؤسسات
               </Link>
             </nav>
           </motion.div>

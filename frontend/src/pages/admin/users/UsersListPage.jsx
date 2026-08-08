@@ -112,12 +112,13 @@ export function UsersListPage() {
   const listParams = useMemo(() => {
     const params = { page: 1, page_size: 500 };
     if (status) params.status = status;
+    if (role) params.role = role;
     if (emailVerifiedFilter === 'true' || emailVerifiedFilter === 'false') {
       params.email_verified = emailVerifiedFilter;
     }
     if (scopeId && scopeId !== TENANT_SCOPE_ALL) params.university_id = scopeId;
     return params;
-  }, [status, emailVerifiedFilter, scopeId]);
+  }, [status, emailVerifiedFilter, scopeId, role]);
 
   const { data, isLoading, isError, error } = useUsers(listParams);
 
@@ -128,10 +129,11 @@ export function UsersListPage() {
     const qq = q.trim().toLowerCase();
     return scoped.filter((r) => {
       const matchQ = !qq || r.name.toLowerCase().includes(qq) || r.email.toLowerCase().includes(qq);
-      const matchRole = !role || (Array.isArray(r.roles) ? r.roles.includes(role) : r.role === role);
-      return matchQ && matchRole;
+      return matchQ;
     });
-  }, [data, filterRows, q, role]);
+  }, [data, filterRows, q]);
+
+  const roleCounts = data?.role_counts || {};
 
   const pendingStudents = useMemo(
     () =>
@@ -144,11 +146,15 @@ export function UsersListPage() {
   const unverifiedUsers = useMemo(() => rows.filter((r) => !r.emailVerified), [rows]);
 
   const stats = {
-    total: rows.length,
+    total: data?.meta?.total ?? rows.length,
     emailVerified: rows.filter((r) => r.emailVerified).length,
     emailUnverified: unverifiedUsers.length,
     active: rows.filter((r) => r.status === 'active').length,
     pendingActivation: rows.filter((r) => r.status === 'inactive').length,
+    admin: roleCounts.admin ?? 0,
+    instructor: roleCounts.instructor ?? 0,
+    student: roleCounts.student ?? 0,
+    reviewer: roleCounts.reviewer ?? 0,
   };
 
   async function handleActivateAll() {
@@ -336,11 +342,11 @@ export function UsersListPage() {
         />
         <SelectField id="role-filter" label={t('filters.role')} value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="">{t('filters.allRoles')}</option>
+          <option value="super_admin">{t('filters.superAdmin')}</option>
+          <option value="admin">{t('filters.admin')}</option>
           <option value="instructor">{t('filters.instructor')}</option>
           <option value="student">{t('filters.student')}</option>
-          <option value="program_admin">{t('filters.programAdminDeprecated')}</option>
-          <option value="qa_officer">{t('filters.qaOfficer')}</option>
-          <option value="academic_admin">{t('filters.academicReviewer')}</option>
+          <option value="reviewer">{t('filters.reviewer')}</option>
         </SelectField>
         <SelectField
           id="status-filter"
@@ -375,6 +381,10 @@ export function UsersListPage() {
         <StatCard label={t('stats.emailUnverified')} value={String(stats.emailUnverified)} icon={MailWarning} />
         <StatCard label={t('stats.active')} value={String(stats.active)} icon={UserCheck} />
         <StatCard label={t('stats.pendingActivation')} value={String(stats.pendingActivation)} icon={UserX} />
+        <StatCard label={t('filters.admin')} value={String(stats.admin)} icon={Users} />
+        <StatCard label={t('filters.instructor')} value={String(stats.instructor)} icon={Users} />
+        <StatCard label={t('filters.student')} value={String(stats.student)} icon={Users} />
+        <StatCard label={t('filters.reviewer')} value={String(stats.reviewer)} icon={Users} />
       </AdminStatsGrid>
       <SectionCard
         title={<>{t('listTitle')}</>}

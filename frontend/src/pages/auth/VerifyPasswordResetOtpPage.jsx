@@ -109,7 +109,11 @@ export function VerifyPasswordResetOtpPage() {
         setStorageItem(storageKeys.pendingPasswordResetEmail, normalizedEmail);
         navigate('/reset-password/new', { state: { email: normalizedEmail } });
       } catch (err) {
-        setError(getApiErrorMessage(err, t('resetPasswordVerify.errors.generic')));
+        const code = err?.response?.data?.code;
+        if (code === 'INVALID_OTP') setError('رمز التحقق غير صحيح.');
+        else if (code === 'OTP_EXPIRED') setError('انتهت صلاحية رمز التحقق. اطلب رمزًا جديدًا.');
+        else if (code === 'OTP_RATE_LIMITED') setError('تم تجاوز عدد المحاولات المسموح. اطلب رمزًا جديدًا.');
+        else setError(getApiErrorMessage(err, t('resetPasswordVerify.errors.generic')));
       } finally {
         setSubmitting(false);
       }
@@ -125,8 +129,13 @@ export function VerifyPasswordResetOtpPage() {
       await resendPasswordResetOtp(email.trim().toLowerCase());
       setCooldown(COOLDOWN_SECONDS);
     } catch (err) {
-      const msg = getApiErrorMessage(err, t('resetPasswordVerify.errors.resendFailed'));
-      setError(msg);
+      const code = err?.response?.data?.code;
+      if (code === 'OTP_RESEND_COOLDOWN') {
+        setError('تم إرسال عدة طلبات خلال وقت قصير. انتظر قليلًا قبل طلب رمز جديد.');
+      } else {
+        const msg = getApiErrorMessage(err, t('resetPasswordVerify.errors.resendFailed'));
+        setError(msg);
+      }
       const remaining = err?.response?.data?.details?.cooldownSeconds;
       if (typeof remaining === 'number' && remaining > 0) {
         setCooldown(remaining);

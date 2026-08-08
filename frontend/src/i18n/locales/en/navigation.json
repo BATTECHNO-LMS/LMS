@@ -3,6 +3,8 @@
   "admin": {
     "groups": {
       "general": "General management",
+      "institutionTraining": "Training management",
+      "contentHelp": "Content & help management",
       "orgs": "Organizations and programs",
       "delivery": "Delivery and teaching",
       "quality": "Quality and monitoring",
@@ -12,13 +14,25 @@
       "dashboard": "Home",
       "analytics": "Analytics & statistics",
       "courses": "Course management",
+      "trainingCourses": "Training courses",
       "fieldTraining": "Field training management",
+      "userGuide": "User guide",
+      "contentHubHelp": "User guide",
+      "contentHubTours": "Onboarding tours",
+      "contentHubPopups": "Pop-ups",
+      "contentHubAnnouncements": "Announcements & alerts",
+      "contentHubNotifications": "Notification rules",
+      "contentHubNotificationsSend": "Send notification",
+      "contentHubContextual": "Contextual help",
+      "contentHubAnalytics": "Usage analytics",
+      "contentHubAudit": "Change history",
       "fieldTrainingReports": "Field training reports",
       "fieldTrainingStudents": "Field training student follow-up",
       "users": "Users",
       "roles": "Roles and permissions",
       "settings": "Settings",
       "universities": "Universities",
+      "institutions": "Institutions",
       "tracks": "Tracks",
       "microCredentials": "Micro-credentials",
       "learningOutcomes": "Learning outcomes",
@@ -61,13 +75,38 @@
     "fieldTrainingTasks": "Tasks & submissions",
     "fieldTrainingResults": "Student results",
     "fieldTrainingEligibility": "Eligibility & follow-up",
+    "userGuide": "User guide",
     "notifications": "Notifications"
   },
+  "trainer": {
+    "home": "Dashboard",
+    "courses": "Training courses",
+    "notifications": "Notifications",
+    "userGuide": "Trainer guide",
+    "profile": "Profile"
+  },
+  "trainee": {
+    "home": "Dashboard",
+    "courses": "My training courses",
+    "certificates": "Certificates",
+    "notifications": "Notifications",
+    "userGuide": "Trainee guide",
+    "support": "Support",
+    "profile": "Profile"
+  },
   "student": {
+    "groups": {
+      "overview": "Overview",
+      "fieldTraining": "Field training",
+      "learning": "Programs & courses",
+      "support": "Help"
+    },
     "home": "Home",
+    "trainingPrograms": "My training courses",
     "availableCohorts": "Browse cohorts",
     "courses": "Courses",
-    "fieldTraining": "Field training",
+    "fieldTraining": "Field training opportunities",
+    "userGuide": "User guide",
     "programs": "My enrolled credentials",
     "semesterSchedule": "Registered training programs",
     "content": "Content",
@@ -80,13 +119,16 @@
     "notifications": "Notifications"
   },
   "reviewer": {
-    "home": "Home",
+    "home": "University reviewer dashboard",
     "recognition": "Recognition requests",
-    "universityReports": "University reports",
-    "fieldTraining": "Field training",
+    "universityReports": "Reports",
+    "fieldTraining": "Progress & hours",
+    "fieldTrainingStudents": "University students",
+    "fieldTrainingOpportunities": "Training opportunities",
     "evidence": "Evidence and attachments",
-    "certificates": "Linked certificates",
+    "certificates": "Certificates",
     "enrollmentRequests": "Enrollment requests",
+    "userGuide": "User guide",
     "notifications": "Notifications"
   }
 }
