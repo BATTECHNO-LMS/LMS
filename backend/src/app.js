@@ -65,27 +65,16 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', async (req, res) => {
-  let database = 'unknown';
-  try {
-    if (!env.DATABASE_URL) {
-      database = 'unconfigured';
-    } else {
-      await prisma.$queryRaw`SELECT 1`;
-      database = 'connected';
-    }
-  } catch {
-    database = 'disconnected';
-  }
-  const ok = database === 'connected';
-  return res.status(ok ? 200 : 503).json({
-    status: ok ? 'ok' : 'degraded',
-    database,
+/** Liveness: process can serve HTTP. Does not require DATABASE_URL or a live DB. */
+app.get('/health', (req, res) => {
+  return res.status(200).json({
+    status: 'ok',
     service: 'battechno-lms-api',
     timestamp: new Date().toISOString(),
   });
 });
 
+/** Readiness: PostgreSQL must be configured and reachable. */
 app.get('/health/ready', async (req, res) => {
   if (!env.DATABASE_URL) {
     return res.status(503).json({
