@@ -658,11 +658,151 @@ class AppLocalizationsEn extends AppLocalizations {
       'Passwords and assessment answers are not stored on device.';
 
   @override
+  String get privacyPolicyLink => 'Privacy policy';
+
+  @override
   String get appVersion => 'App version';
 
   @override
   String get logoutServerLimitation =>
       'Logout clears the local session only. Server tokens may remain active briefly (QA-AUTH-001).';
+
+  @override
+  String get accountManagement => 'Account Management';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get requestAccountDeletion => 'Request Account Deletion';
+
+  @override
+  String get deletionRequestStatus => 'Deletion Request Status';
+
+  @override
+  String get cancelDeletionRequest => 'Cancel Deletion Request';
+
+  @override
+  String get deletionExplainTitle => 'You are requesting account deletion';
+
+  @override
+  String get deletionExplainBody =>
+      'Submitting a request is not the same as immediate deletion. Your request may require identity verification and an authorized review before your personal account data is deleted or anonymized. You may lose access to courses, field training, certificates, and account data after processing.';
+
+  @override
+  String get deletionRetentionBody =>
+      'Certain academic, legal, security, or audit records may be retained where required by institutional or legal obligations. Disabling an account is different from permanent deletion.';
+
+  @override
+  String get deletionReasonOptional => 'Reason (optional)';
+
+  @override
+  String get deletionCurrentPassword => 'Current password';
+
+  @override
+  String get deletionTypeDelete => 'Type DELETE to confirm';
+
+  @override
+  String get deletionTypeDeleteHint => 'Confirmation must be exactly DELETE';
+
+  @override
+  String get deletionCheckboxLabel =>
+      'I understand this is a deletion request and that some records may be retained.';
+
+  @override
+  String get deletionCheckboxRequired =>
+      'Please confirm that you understand the deletion request.';
+
+  @override
+  String get deletionPasswordRequired => 'Enter your current password.';
+
+  @override
+  String get deletionConfirmationInvalid => 'Type DELETE exactly to confirm.';
+
+  @override
+  String get deletionInvalidPassword => 'Current password is incorrect.';
+
+  @override
+  String get deletionFinalConfirmTitle => 'Confirm deletion request';
+
+  @override
+  String get deletionFinalConfirmBody =>
+      'This will submit a reviewable deletion request. Your account will not be deleted immediately.';
+
+  @override
+  String get deletionSubmit => 'Submit request';
+
+  @override
+  String get deletionSubmitSuccess =>
+      'Deletion request submitted. Status will update after review.';
+
+  @override
+  String get deletionSubmitFailed => 'Could not submit the deletion request.';
+
+  @override
+  String get deletionAlreadyExists =>
+      'You already have an active deletion request.';
+
+  @override
+  String get deletionNotFound => 'No active deletion request was found.';
+
+  @override
+  String get deletionCannotCancel =>
+      'This deletion request can no longer be cancelled.';
+
+  @override
+  String get deletionUnavailable =>
+      'Account deletion is unavailable for this account type.';
+
+  @override
+  String get deletionOfflineRequired =>
+      'An internet connection is required to request or cancel account deletion.';
+
+  @override
+  String get deletionStatusNone => 'No deletion request';
+
+  @override
+  String get deletionStatusPending => 'Pending review';
+
+  @override
+  String get deletionStatusProcessing => 'Processing';
+
+  @override
+  String get deletionStatusCompleted => 'Completed';
+
+  @override
+  String get deletionStatusRejected => 'Rejected';
+
+  @override
+  String get deletionStatusCancelled => 'Cancelled';
+
+  @override
+  String deletionRequestedAt(String when) {
+    return 'Requested: $when';
+  }
+
+  @override
+  String get deletionWhatHappensNext =>
+      'An authorized administrator will review your request. You can keep using the app while the request is pending unless your account becomes inactive.';
+
+  @override
+  String get deletionCancelTitle => 'Cancel deletion request?';
+
+  @override
+  String get deletionCancelBody =>
+      'Your pending deletion request will be cancelled. You can submit a new request later.';
+
+  @override
+  String get deletionCancelAction => 'Cancel request';
+
+  @override
+  String get deletionCancelSuccess => 'Deletion request cancelled.';
+
+  @override
+  String get deletionContactSupport => 'Contact support';
+
+  @override
+  String get accountDeletionWebLink => 'Account deletion (web)';
 
   @override
   String get certificateReady => 'Completion document ready';

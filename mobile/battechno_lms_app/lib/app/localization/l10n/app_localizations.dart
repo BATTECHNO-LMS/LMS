@@ -1310,6 +1310,12 @@ abstract class AppLocalizations {
   /// **'لا يتم تخزين كلمات المرور أو بيانات التقييم على الجهاز.'**
   String get privacyNoticeBody;
 
+  /// No description provided for @privacyPolicyLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'سياسة الخصوصية'**
+  String get privacyPolicyLink;
+
   /// No description provided for @appVersion.
   ///
   /// In ar, this message translates to:
@@ -1321,6 +1327,252 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تسجيل الخروج يمسح الجلسة محليًا فقط. رموز الخادم قد تبقى نشطة مؤقتًا (QA-AUTH-001).'**
   String get logoutServerLimitation;
+
+  /// No description provided for @accountManagement.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة الحساب'**
+  String get accountManagement;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الحساب'**
+  String get deleteAccount;
+
+  /// No description provided for @requestAccountDeletion.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب حذف الحساب'**
+  String get requestAccountDeletion;
+
+  /// No description provided for @deletionRequestStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة طلب الحذف'**
+  String get deletionRequestStatus;
+
+  /// No description provided for @cancelDeletionRequest.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء طلب الحذف'**
+  String get cancelDeletionRequest;
+
+  /// No description provided for @deletionExplainTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنت تقدّم طلبًا لحذف الحساب'**
+  String get deletionExplainTitle;
+
+  /// No description provided for @deletionExplainBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تقديم الطلب لا يعني الحذف الفوري. قد يتطلب الطلب التحقق من الهوية ومراجعة مخوّلة قبل حذف بيانات حسابك الشخصية أو إخفاء هويتها. قد تفقد الوصول إلى الدورات والتدريب الميداني والشهادات وبيانات الحساب بعد المعالجة.'**
+  String get deletionExplainBody;
+
+  /// No description provided for @deletionRetentionBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'قد تُحتفظ ببعض السجلات الأكاديمية أو القانونية أو الأمنية أو سجلات التدقيق عند وجود التزام مؤسسي أو قانوني. تعطيل الحساب يختلف عن الحذف النهائي.'**
+  String get deletionRetentionBody;
+
+  /// No description provided for @deletionReasonOptional.
+  ///
+  /// In ar, this message translates to:
+  /// **'السبب (اختياري)'**
+  String get deletionReasonOptional;
+
+  /// No description provided for @deletionCurrentPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور الحالية'**
+  String get deletionCurrentPassword;
+
+  /// No description provided for @deletionTypeDelete.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب DELETE للتأكيد'**
+  String get deletionTypeDelete;
+
+  /// No description provided for @deletionTypeDeleteHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يجب أن يكون التأكيد DELETE تمامًا'**
+  String get deletionTypeDeleteHint;
+
+  /// No description provided for @deletionCheckboxLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'أفهم أن هذا طلب حذف وأن بعض السجلات قد تُحتفظ بها.'**
+  String get deletionCheckboxLabel;
+
+  /// No description provided for @deletionCheckboxRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'يرجى تأكيد فهمك لطلب الحذف.'**
+  String get deletionCheckboxRequired;
+
+  /// No description provided for @deletionPasswordRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل كلمة المرور الحالية.'**
+  String get deletionPasswordRequired;
+
+  /// No description provided for @deletionConfirmationInvalid.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب DELETE تمامًا للتأكيد.'**
+  String get deletionConfirmationInvalid;
+
+  /// No description provided for @deletionInvalidPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة المرور الحالية غير صحيحة.'**
+  String get deletionInvalidPassword;
+
+  /// No description provided for @deletionFinalConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد طلب الحذف'**
+  String get deletionFinalConfirmTitle;
+
+  /// No description provided for @deletionFinalConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم إرسال طلب حذف للمراجعة. لن يُحذف حسابك فورًا.'**
+  String get deletionFinalConfirmBody;
+
+  /// No description provided for @deletionSubmit.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال الطلب'**
+  String get deletionSubmit;
+
+  /// No description provided for @deletionSubmitSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إرسال طلب الحذف. ستتحدث الحالة بعد المراجعة.'**
+  String get deletionSubmitSuccess;
+
+  /// No description provided for @deletionSubmitFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر إرسال طلب الحذف.'**
+  String get deletionSubmitFailed;
+
+  /// No description provided for @deletionAlreadyExists.
+  ///
+  /// In ar, this message translates to:
+  /// **'لديك بالفعل طلب حذف نشط.'**
+  String get deletionAlreadyExists;
+
+  /// No description provided for @deletionNotFound.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد طلب حذف نشط.'**
+  String get deletionNotFound;
+
+  /// No description provided for @deletionCannotCancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن إلغاء طلب الحذف في حالته الحالية.'**
+  String get deletionCannotCancel;
+
+  /// No description provided for @deletionUnavailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الحساب غير متاح لهذا النوع من الحسابات.'**
+  String get deletionUnavailable;
+
+  /// No description provided for @deletionOfflineRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'يلزم اتصال بالإنترنت لطلب حذف الحساب أو إلغائه.'**
+  String get deletionOfflineRequired;
+
+  /// No description provided for @deletionStatusNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد طلب حذف'**
+  String get deletionStatusNone;
+
+  /// No description provided for @deletionStatusPending.
+  ///
+  /// In ar, this message translates to:
+  /// **'بانتظار المراجعة'**
+  String get deletionStatusPending;
+
+  /// No description provided for @deletionStatusProcessing.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيد المعالجة'**
+  String get deletionStatusProcessing;
+
+  /// No description provided for @deletionStatusCompleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتمل'**
+  String get deletionStatusCompleted;
+
+  /// No description provided for @deletionStatusRejected.
+  ///
+  /// In ar, this message translates to:
+  /// **'مرفوض'**
+  String get deletionStatusRejected;
+
+  /// No description provided for @deletionStatusCancelled.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملغى'**
+  String get deletionStatusCancelled;
+
+  /// No description provided for @deletionRequestedAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الطلب: {when}'**
+  String deletionRequestedAt(String when);
+
+  /// No description provided for @deletionWhatHappensNext.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيراجع مسؤول مخوّل طلبك. يمكنك الاستمرار باستخدام التطبيق أثناء انتظار الطلب ما لم يصبح حسابك غير نشط.'**
+  String get deletionWhatHappensNext;
+
+  /// No description provided for @deletionCancelTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء طلب الحذف؟'**
+  String get deletionCancelTitle;
+
+  /// No description provided for @deletionCancelBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم إلغاء طلب الحذف المعلّق. يمكنك تقديم طلب جديد لاحقًا.'**
+  String get deletionCancelBody;
+
+  /// No description provided for @deletionCancelAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الطلب'**
+  String get deletionCancelAction;
+
+  /// No description provided for @deletionCancelSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إلغاء طلب الحذف.'**
+  String get deletionCancelSuccess;
+
+  /// No description provided for @deletionContactSupport.
+  ///
+  /// In ar, this message translates to:
+  /// **'تواصل مع الدعم'**
+  String get deletionContactSupport;
+
+  /// No description provided for @accountDeletionWebLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الحساب (الويب)'**
+  String get accountDeletionWebLink;
 
   /// No description provided for @certificateReady.
   ///

@@ -654,11 +654,149 @@ class AppLocalizationsAr extends AppLocalizations {
       'لا يتم تخزين كلمات المرور أو بيانات التقييم على الجهاز.';
 
   @override
+  String get privacyPolicyLink => 'سياسة الخصوصية';
+
+  @override
   String get appVersion => 'إصدار التطبيق';
 
   @override
   String get logoutServerLimitation =>
       'تسجيل الخروج يمسح الجلسة محليًا فقط. رموز الخادم قد تبقى نشطة مؤقتًا (QA-AUTH-001).';
+
+  @override
+  String get accountManagement => 'إدارة الحساب';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get requestAccountDeletion => 'طلب حذف الحساب';
+
+  @override
+  String get deletionRequestStatus => 'حالة طلب الحذف';
+
+  @override
+  String get cancelDeletionRequest => 'إلغاء طلب الحذف';
+
+  @override
+  String get deletionExplainTitle => 'أنت تقدّم طلبًا لحذف الحساب';
+
+  @override
+  String get deletionExplainBody =>
+      'تقديم الطلب لا يعني الحذف الفوري. قد يتطلب الطلب التحقق من الهوية ومراجعة مخوّلة قبل حذف بيانات حسابك الشخصية أو إخفاء هويتها. قد تفقد الوصول إلى الدورات والتدريب الميداني والشهادات وبيانات الحساب بعد المعالجة.';
+
+  @override
+  String get deletionRetentionBody =>
+      'قد تُحتفظ ببعض السجلات الأكاديمية أو القانونية أو الأمنية أو سجلات التدقيق عند وجود التزام مؤسسي أو قانوني. تعطيل الحساب يختلف عن الحذف النهائي.';
+
+  @override
+  String get deletionReasonOptional => 'السبب (اختياري)';
+
+  @override
+  String get deletionCurrentPassword => 'كلمة المرور الحالية';
+
+  @override
+  String get deletionTypeDelete => 'اكتب DELETE للتأكيد';
+
+  @override
+  String get deletionTypeDeleteHint => 'يجب أن يكون التأكيد DELETE تمامًا';
+
+  @override
+  String get deletionCheckboxLabel =>
+      'أفهم أن هذا طلب حذف وأن بعض السجلات قد تُحتفظ بها.';
+
+  @override
+  String get deletionCheckboxRequired => 'يرجى تأكيد فهمك لطلب الحذف.';
+
+  @override
+  String get deletionPasswordRequired => 'أدخل كلمة المرور الحالية.';
+
+  @override
+  String get deletionConfirmationInvalid => 'اكتب DELETE تمامًا للتأكيد.';
+
+  @override
+  String get deletionInvalidPassword => 'كلمة المرور الحالية غير صحيحة.';
+
+  @override
+  String get deletionFinalConfirmTitle => 'تأكيد طلب الحذف';
+
+  @override
+  String get deletionFinalConfirmBody =>
+      'سيتم إرسال طلب حذف للمراجعة. لن يُحذف حسابك فورًا.';
+
+  @override
+  String get deletionSubmit => 'إرسال الطلب';
+
+  @override
+  String get deletionSubmitSuccess =>
+      'تم إرسال طلب الحذف. ستتحدث الحالة بعد المراجعة.';
+
+  @override
+  String get deletionSubmitFailed => 'تعذّر إرسال طلب الحذف.';
+
+  @override
+  String get deletionAlreadyExists => 'لديك بالفعل طلب حذف نشط.';
+
+  @override
+  String get deletionNotFound => 'لا يوجد طلب حذف نشط.';
+
+  @override
+  String get deletionCannotCancel =>
+      'لا يمكن إلغاء طلب الحذف في حالته الحالية.';
+
+  @override
+  String get deletionUnavailable =>
+      'حذف الحساب غير متاح لهذا النوع من الحسابات.';
+
+  @override
+  String get deletionOfflineRequired =>
+      'يلزم اتصال بالإنترنت لطلب حذف الحساب أو إلغائه.';
+
+  @override
+  String get deletionStatusNone => 'لا يوجد طلب حذف';
+
+  @override
+  String get deletionStatusPending => 'بانتظار المراجعة';
+
+  @override
+  String get deletionStatusProcessing => 'قيد المعالجة';
+
+  @override
+  String get deletionStatusCompleted => 'مكتمل';
+
+  @override
+  String get deletionStatusRejected => 'مرفوض';
+
+  @override
+  String get deletionStatusCancelled => 'ملغى';
+
+  @override
+  String deletionRequestedAt(String when) {
+    return 'تاريخ الطلب: $when';
+  }
+
+  @override
+  String get deletionWhatHappensNext =>
+      'سيراجع مسؤول مخوّل طلبك. يمكنك الاستمرار باستخدام التطبيق أثناء انتظار الطلب ما لم يصبح حسابك غير نشط.';
+
+  @override
+  String get deletionCancelTitle => 'إلغاء طلب الحذف؟';
+
+  @override
+  String get deletionCancelBody =>
+      'سيتم إلغاء طلب الحذف المعلّق. يمكنك تقديم طلب جديد لاحقًا.';
+
+  @override
+  String get deletionCancelAction => 'إلغاء الطلب';
+
+  @override
+  String get deletionCancelSuccess => 'تم إلغاء طلب الحذف.';
+
+  @override
+  String get deletionContactSupport => 'تواصل مع الدعم';
+
+  @override
+  String get accountDeletionWebLink => 'حذف الحساب (الويب)';
 
   @override
   String get certificateReady => 'وثيقة إتمام جاهزة';

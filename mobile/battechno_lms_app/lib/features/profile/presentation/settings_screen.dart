@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
 import '../../../app/localization/l10n/app_localizations.dart';
 import '../../../app/theme/bat_colors.dart';
+import '../../../core/config/public_web_urls.dart';
 import '../../push/presentation/push_permission_settings_tile.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   static const _pageBg = Color(0xFFF2F3F5);
+
+  Future<void> _openHttps(String url) async {
+    final uri = Uri.parse(url);
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -62,14 +69,44 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   SettingsSoftTile(
                     icon: Icons.privacy_tip_outlined,
-                    title: l10n.privacyNotice,
+                    title: l10n.privacyPolicyLink,
                     subtitle: l10n.privacyNoticeBody,
+                    onTap: () => _openHttps(PublicWebUrls.privacyPolicy),
                     showDivider: true,
                   ),
                   SettingsSoftTile(
                     icon: Icons.info_outline,
                     title: l10n.appVersion,
                     subtitle: '1.0.0',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SoftGroupCard(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        l10n.accountManagement,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: BatColors.heading,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SettingsSoftTile(
+                    icon: Icons.person_off_outlined,
+                    title: l10n.deleteAccount,
+                    subtitle: l10n.requestAccountDeletion,
+                    iconColor: BatColors.danger,
+                    iconBackgroundColor: const Color(0xFFFDECEC),
+                    titleColor: BatColors.dangerText,
+                    onTap: () => context.push('/account/deletion-request'),
                   ),
                 ],
               ),

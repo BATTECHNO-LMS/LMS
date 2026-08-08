@@ -327,6 +327,7 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260719120000_field_training_required_hours',
       '20260720140000_field_training_completed_hours',
       '20260720180000_mobile_push_registrations',
+      '20260806180000_account_deletion_requests',
     ]);
   });
 

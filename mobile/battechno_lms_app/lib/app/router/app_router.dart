@@ -15,6 +15,7 @@ import '../../features/field_training/presentation/assessments_hub_screen.dart';
 import '../../features/certificates/presentation/certificate_detail_screen.dart';
 import '../../features/certificates/presentation/certificates_hub_screen.dart';
 import '../../features/profile/presentation/settings_screen.dart';
+import '../../features/profile/presentation/account_deletion_screen.dart';
 import '../../features/field_training/presentation/field_training_detail_screen.dart';
 import '../../features/field_training/presentation/session_detail_screen.dart';
 import '../../features/field_training/presentation/sessions_list_screen.dart';
@@ -240,6 +241,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notifications',
         builder: (_, __) => const NotificationsInboxScreen(),
+      ),
+      GoRoute(
+        path: '/account/deletion-request',
+        builder: (_, __) => const AccountDeletionScreen(),
       ),
       GoRoute(
         path: '/instructor/settings',

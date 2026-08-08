@@ -91,6 +91,9 @@ class SettingsSoftTile extends StatelessWidget {
     this.onTap,
     this.trailing,
     this.showDivider = false,
+    this.iconColor,
+    this.iconBackgroundColor,
+    this.titleColor,
   });
 
   final IconData icon;
@@ -99,6 +102,9 @@ class SettingsSoftTile extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
   final bool showDivider;
+  final Color? iconColor;
+  final Color? iconBackgroundColor;
+  final Color? titleColor;
 
   @override
   Widget build(BuildContext context) {
@@ -111,10 +117,10 @@ class SettingsSoftTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: BatColors.primarySoft,
+              color: iconBackgroundColor ?? BatColors.primarySoft,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: BatColors.primary, size: 20),
+            child: Icon(icon, color: iconColor ?? BatColors.primary, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -125,7 +131,7 @@ class SettingsSoftTile extends StatelessWidget {
                   title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w800,
-                    color: BatColors.heading,
+                    color: titleColor ?? BatColors.heading,
                   ),
                 ),
                 if (subtitle != null && subtitle!.isNotEmpty) ...[

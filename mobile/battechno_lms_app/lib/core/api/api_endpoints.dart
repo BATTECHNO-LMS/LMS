@@ -227,4 +227,10 @@ class ApiEndpoints {
   String get mobilePushRegister => '${config.apiRoot}/mobile/push/register';
   String get mobilePushRegisterAll =>
       '${config.apiRoot}/mobile/push/register-all';
+
+  // —— Account deletion (ACCOUNT-DELETION-COMPLIANCE-001) ——
+  String get accountDeletionRequest =>
+      '${config.apiRoot}/account/deletion-request';
+  String get accountDeletionRequestCancel =>
+      '${config.apiRoot}/account/deletion-request/cancel';
 }
