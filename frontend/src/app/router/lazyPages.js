@@ -626,6 +626,14 @@ export const CertificateVerifyPage = lazyNamed(
   () => import('../../pages/public/CertificateVerifyPage.jsx'),
   'CertificateVerifyPage'
 );
+export const PrivacyPolicyPage = lazyNamed(
+  () => import('../../pages/public/LegalPublicPages.jsx'),
+  'PrivacyPolicyPage'
+);
+export const AccountDeletionPage = lazyNamed(
+  () => import('../../pages/public/LegalPublicPages.jsx'),
+  'AccountDeletionPage'
+);
 export const ReportVerificationPage = lazyNamed(
   () => import('../../pages/public/ReportVerificationPage.jsx'),
   'ReportVerificationPage'

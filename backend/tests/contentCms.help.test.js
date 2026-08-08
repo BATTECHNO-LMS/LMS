@@ -99,6 +99,11 @@ describe('GET /api/v1/help/categories', () => {
   });
 
   it('returns 200 with student auth when catalog is available', async (t) => {
+    if (!process.env.DATABASE_URL) {
+      t.skip('help categories require DATABASE_URL');
+      return;
+    }
+
     setCurrentAuthContextLoaderForTests(async (userId) => ({
       userId,
       roles: ['student'],

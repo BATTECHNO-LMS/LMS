@@ -100,6 +100,9 @@ export function AppRouter() {
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
+      <Route path="/privacy-policy" element={<Pages.PrivacyPolicyPage />} />
+      <Route path="/account-deletion" element={<Pages.AccountDeletionPage />} />
+
       <Route path="/verify/report/:verificationCode" element={<Pages.ReportVerificationPage />} />
 
       <Route element={<ProtectedRoute />}>

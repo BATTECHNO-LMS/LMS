@@ -341,6 +341,11 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260802030000_institution_public_registration_meta',
       '20260802040000_trainer_role_and_assignments',
       '20260802050000_trainee_role',
+      '20260802100000_training_materials',
+      '20260802110000_training_stable_codes',
+      '20260803120000_training_final_evaluation_completion_reports',
+      '20260804150000_training_official_reports',
+      '20260806180000_account_deletion_requests',
     ]);
   });
 

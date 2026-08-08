@@ -204,8 +204,11 @@ router.post(
   '/tasks/:taskId/submit',
   authenticate,
   studentOnly,
-  validateRequest({ params: taskIdParamSchema, body: taskSubmitFieldsSchema }),
+  // Params first so upload storage can use taskId; multer must run before body validation
+  // because multipart fields are empty until the upload middleware parses the request.
+  validateRequest({ params: taskIdParamSchema }),
   handleTaskUpload,
+  validateRequest({ body: taskSubmitFieldsSchema }),
   studentFieldTrainingController.submitTask
 );
 

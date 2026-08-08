@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { LandingBrandLogo } from './LandingBrandLogo.jsx';
@@ -40,12 +41,19 @@ export function HomeFooter() {
             <p className="landing-footer__label">{t('footer.support')}</p>
             <ul className="landing-footer__links">
               <li>
-                <a href="mailto:support@battechno.example" className="landing-footer__link">
+                <a href="mailto:privacy@battechno.com" className="landing-footer__link">
                   {t('footer.contact')}
                 </a>
               </li>
               <li>
-                <span className="landing-footer__link landing-footer__link--muted">{t('footer.privacy')}</span>
+                <Link to="/privacy-policy" className="landing-footer__link">
+                  {t('footer.privacy')}
+                </Link>
+              </li>
+              <li>
+                <Link to="/account-deletion" className="landing-footer__link">
+                  {t('footer.accountDeletion')}
+                </Link>
               </li>
               <li>
                 <span className="landing-footer__link landing-footer__link--muted">{t('footer.terms')}</span>

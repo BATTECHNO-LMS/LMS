@@ -59,26 +59,44 @@ function fileFilter(_req, file, cb) {
   cb(new Error('UNSUPPORTED_FILE_TYPE'));
 }
 
-const uploadTaskFile = multer({
+const uploadTaskFiles = multer({
   storage,
   limits: { fileSize: MAX_BYTES, files: MAX_FILES_PER_SUBMISSION },
   fileFilter,
-}).array('files', MAX_FILES_PER_SUBMISSION);
+}).fields([
+  { name: 'files', maxCount: MAX_FILES_PER_SUBMISSION },
+  // Legacy / integration clients still attach a single field named `file`.
+  { name: 'file', maxCount: 1 },
+]);
 
-const uploadTaskFileSingle = multer({
-  storage,
-  limits: { fileSize: MAX_BYTES, files: 1 },
-  fileFilter,
-}).single('file');
+function normalizeUploadedFiles(req) {
+  const grouped = req.files;
+  if (!grouped || Array.isArray(grouped)) {
+    if (Array.isArray(grouped) && grouped.length) {
+      req.file = grouped[0];
+    }
+    return;
+  }
+  const multi = Array.isArray(grouped.files) ? grouped.files : [];
+  const single = Array.isArray(grouped.file) ? grouped.file : [];
+  const all = [...multi, ...single];
+  if (all.length) {
+    req.files = all;
+    req.file = all[0];
+  } else {
+    delete req.files;
+    delete req.file;
+  }
+}
 
 function handleTaskUpload(req, res, next) {
   const ct = String(req.headers['content-type'] || '');
   if (!ct.includes('multipart/form-data')) {
     return next();
   }
-  uploadTaskFile(req, res, (err) => {
-    if (err && (err.code === 'LIMIT_UNEXPECTED_FILE' || err.message === 'Unexpected field')) {
-      return uploadTaskFileSingle(req, res, (err2) => mapUploadError(err2, next));
+  uploadTaskFiles(req, res, (err) => {
+    if (!err) {
+      normalizeUploadedFiles(req);
     }
     return mapUploadError(err, next);
   });

@@ -85,7 +85,8 @@ function validateRequest(parts) {
       out.body = parsed.data;
     }
 
-    req.validated = out;
+    // Merge so sequential validators (e.g. params before multer, body after) keep prior parts.
+    req.validated = { ...(req.validated || {}), ...out };
     return next();
   };
 }

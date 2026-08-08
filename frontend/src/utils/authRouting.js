@@ -1,5 +1,10 @@
 import { pickPrimaryRole } from '../features/auth/authUserMapper.js';
-import { ROLES, canonicalizeRoleCode, normalizeRoleCodes } from '../constants/roles.js';
+import {
+  ROLES,
+  canonicalizeRoleCode,
+  normalizeRoleCodes,
+  isLegacyDeprecatedRole,
+} from '../constants/roles.js';
 import { getDashboardPathForRole } from './helpers.js';
 
 /**
@@ -42,11 +47,20 @@ export const INSTITUTION_ROLE_LABELS_AR = Object.freeze({
  */
 export function getUserRoleCodes(user) {
   if (!user || typeof user !== 'object') return [];
+  let raw = [];
   if (Array.isArray(user.roles) && user.roles.length) {
-    return normalizeRoleCodes(user.roles.map(String));
+    raw = user.roles.map(String);
+  } else if (user.role) {
+    raw = [String(user.role)];
   }
-  if (user.role) return normalizeRoleCodes([String(user.role)]);
-  return [];
+  if (!raw.length) return [];
+
+  // Fail-closed: never upgrade a sole/legacy-only deprecated role to a live canonical role.
+  const activeRaw = raw.filter((r) => !isLegacyDeprecatedRole(r));
+  if (!activeRaw.length) {
+    return raw.map((r) => String(r).trim().toLowerCase()).filter(Boolean);
+  }
+  return normalizeRoleCodes(activeRaw);
 }
 
 /**

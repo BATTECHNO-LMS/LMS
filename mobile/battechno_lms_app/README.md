@@ -189,6 +189,14 @@ See [docs/PHASE_24_SUPER_ADMIN.md](docs/PHASE_24_SUPER_ADMIN.md).
 
 See [docs/PHASE_25_PUSH_NOTIFICATIONS.md](docs/PHASE_25_PUSH_NOTIFICATIONS.md) for the full architecture, backend contract, and manual device test matrix.
 
+### Account deletion (Play compliance)
+
+- In-app request flow: Settings → Account Management → Delete Account
+- Public instructions: https://lms.battechno.com/account-deletion
+- Privacy policy: https://lms.battechno.com/privacy-policy
+
+See [docs/ACCOUNT_DELETION.md](docs/ACCOUNT_DELETION.md).
+
 ## Run commands
 
 ```bash

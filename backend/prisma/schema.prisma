@@ -1023,6 +1023,34 @@ enum user_status {
   rejected
 }
 
+enum account_deletion_request_status {
+  pending
+  processing
+  completed
+  rejected
+  cancelled
+}
+
+/// Self-service account deletion requests (Play / privacy compliance).
+/// Processing anonymizes identity fields; academic records are retained.
+model account_deletion_requests {
+  id               String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String                            @db.Uuid
+  status           account_deletion_request_status   @default(pending)
+  reason           String?                           @db.VarChar(1000)
+  requested_at     DateTime                          @default(now()) @db.Timestamptz(6)
+  processed_at     DateTime?                         @db.Timestamptz(6)
+  processed_by_id  String?                           @db.Uuid
+  resolution_note  String?
+  cancelled_at     DateTime?                         @db.Timestamptz(6)
+  created_at       DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime                          @default(now()) @db.Timestamptz(6)
+
+  @@index([user_id], map: "idx_account_deletion_requests_user_id")
+  @@index([status], map: "idx_account_deletion_requests_status")
+  @@index([requested_at], map: "idx_account_deletion_requests_requested_at")
+}
+
 /// Standalone LMS courses; visibility to students via course_cohorts (optional).
 model courses {
   id                         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid

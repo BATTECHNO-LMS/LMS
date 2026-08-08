@@ -14,7 +14,7 @@ const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatal
 
 /**
  * Official university scope for non-global users:
- * - `reviewer`: active row in `reviewer_university_assignments` (fallback: primary_university_id)
+ * - `reviewer`: active row in `reviewer_university_assignments` only (no primary_university_id fallback)
  * - others: `users.primary_university_id`
  * Exposed on the request user as `universityId` (and mirrored as primaryUniversityId).
  *

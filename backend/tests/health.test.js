@@ -14,6 +14,20 @@ test('GET /health returns 200', async () => {
   const res = await request(app).get('/health');
   assert.strictEqual(res.status, 200);
   assert.strictEqual(res.body.status, 'ok');
+  assert.strictEqual(res.body.service, 'battechno-lms-api');
+});
+
+test('GET /health/ready returns 503 when DATABASE_URL is not configured', async (t) => {
+  const { env } = require('../src/config/env');
+  // Unit CI has no DATABASE_URL. If a local .env sets one, skip to avoid remote DB pings.
+  if (env.DATABASE_URL) {
+    t.skip('DATABASE_URL is set in this environment; readiness connectivity is covered by /health/ready in deploy checks');
+    return;
+  }
+  const res = await request(app).get('/health/ready');
+  assert.strictEqual(res.status, 503);
+  assert.strictEqual(res.body.status, 'not_ready');
+  assert.strictEqual(res.body.db, false);
 });
 
 test('CORS preflight allows production frontend for /api/auth/login', async () => {
