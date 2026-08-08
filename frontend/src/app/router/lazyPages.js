@@ -633,6 +633,7 @@ export const PrivacyPolicyPage = lazyNamed(
 export const AccountDeletionPage = lazyNamed(
   () => import('../../pages/public/LegalPublicPages.jsx'),
   'AccountDeletionPage'
+);
 export const ReportVerificationPage = lazyNamed(
   () => import('../../pages/public/ReportVerificationPage.jsx'),
   'ReportVerificationPage'

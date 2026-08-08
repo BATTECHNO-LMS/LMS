@@ -148,7 +148,8 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
         assigned_instructor_id: instructor.id,
         location: 'عمان',
         training_mode: 'hybrid',
-        required_training_hours: 160,
+        // One 10:00–11:00 attended session below = 1 completed hour; must match for eligibility.
+        required_training_hours: 1,
         description: 'وصف كامل لفرصة تدريب ميداني للاختبار التكاملي.',
         requires_pre_assessment: true,
         requires_post_assessment: true,
@@ -240,12 +241,20 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     assert.strictEqual(sessionRes.status, 201);
     ctx.sessionId = sessionRes.body.data.session.id;
 
-    await request(app)
+    const attendanceRes = await request(app)
       .post(`/api/v1/instructor/field-training/sessions/${ctx.sessionId}/attendance`)
       .set('Authorization', bearerForUser(instructor))
       .send({
-        records: [{ applicationId: ctx.applicationId, studentId: student.id, status: 'present' }],
+        records: [
+          {
+            applicationId: ctx.applicationId,
+            studentId: student.id,
+            status: 'present',
+            manual_reason: 'تسجيل حضور للاختبار التكاملي',
+          },
+        ],
       });
+    assert.strictEqual(attendanceRes.status, 200, JSON.stringify(attendanceRes.body));
 
     const taskRes = await request(app)
       .post(`/api/v1/instructor/field-training/${ctx.opportunityId}/tasks`)
@@ -345,7 +354,11 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
     const appRow = await prisma.field_training_applications.findUnique({
       where: { id: ctx.applicationId },
     });
-    assert.strictEqual(appRow.completion_eligibility_status, 'eligible');
+    assert.strictEqual(
+      appRow.completion_eligibility_status,
+      'eligible',
+      JSON.stringify(appRow.eligibility_reason)
+    );
 
     const letterRes = await request(app)
       .post(`/api/v1/admin/field-training/applications/${ctx.applicationId}/issue-completion-letter`)

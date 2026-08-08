@@ -328,7 +328,6 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260720140000_field_training_completed_hours',
       '20260720140000_university_profile_and_domain_primary',
       '20260720180000_mobile_push_registrations',
-      '20260806180000_account_deletion_requests',
       '20260725140000_field_training_task_grading_mode',
       '20260725160000_field_training_attendance_windows',
       '20260727020000_field_training_attendance_bulk_manual',
@@ -342,6 +341,11 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260802030000_institution_public_registration_meta',
       '20260802040000_trainer_role_and_assignments',
       '20260802050000_trainee_role',
+      '20260802100000_training_materials',
+      '20260802110000_training_stable_codes',
+      '20260803120000_training_final_evaluation_completion_reports',
+      '20260804150000_training_official_reports',
+      '20260806180000_account_deletion_requests',
     ]);
   });
 

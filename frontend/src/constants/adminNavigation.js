@@ -38,7 +38,7 @@ import {
   History,
   Send,
 } from 'lucide-react';
-import { ROLES, canonicalizeRoleCode } from './roles.js';
+import { ROLES, canonicalizeRoleCode, isLegacyDeprecatedRole } from './roles.js';
 
 const S = ROLES.SUPER_ADMIN;
 const Ad = ROLES.ADMIN;
@@ -193,6 +193,7 @@ function groupVisibleForPortal(group, organizationType, global) {
 }
 
 export function getAdminNavGroupsForRole(role, t, user = null) {
+  if (isLegacyDeprecatedRole(role)) return [];
   const canonical = canonicalizeRoleCode(role);
   const global = isGlobalAdmin(user || { role: canonical });
   const organizationType = user?.organizationType || null;
@@ -223,6 +224,7 @@ export function flattenAdminNavItems(role, t, user = null) {
 
 /** Route paths only — for access checks without translation. */
 export function flattenAdminNavPaths(role, user = null) {
+  if (isLegacyDeprecatedRole(role)) return [];
   const canonical = canonicalizeRoleCode(role);
   const global = isGlobalAdmin(user || { role: canonical });
   const organizationType = user?.organizationType || null;

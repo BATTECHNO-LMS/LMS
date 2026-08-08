@@ -20,12 +20,14 @@ import {
 const CANONICAL = Object.values(ROLES);
 
 describe('FE rolePermissions characterization', () => {
-  it('exposes exactly five official role codes', () => {
-    assert.equal(CANONICAL.length, 5);
+  it('exposes seven official role codes including trainer/trainee', () => {
+    assert.equal(CANONICAL.length, 7);
     assert.ok(ADMIN_ROLE_SET.includes(ROLES.SUPER_ADMIN));
     assert.ok(ADMIN_ROLE_SET.includes(ROLES.ADMIN));
     assert.ok(!ADMIN_ROLE_SET.includes(ROLES.INSTRUCTOR));
     assert.ok(CANONICAL.includes(ROLES.REVIEWER));
+    assert.ok(CANONICAL.includes(ROLES.TRAINER));
+    assert.ok(CANONICAL.includes(ROLES.TRAINEE));
   });
 
   it('ADMIN_ROLE_SET members get ADMIN_ALL (every UI_PERMISSION true)', () => {

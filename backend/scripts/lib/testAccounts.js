@@ -1,6 +1,7 @@
 const { prisma } = require('../../src/config/db');
 const { hashPassword } = require('../../src/utils/password');
 const { ensureRoles, ensureSpecialties } = require('./realBaseline');
+const reviewerAssignment = require('../../src/modules/users/reviewerAssignment.service');
 const {
   BATUNI_TEST_UNIVERSITY,
   TEST_PASSWORD,
@@ -168,6 +169,16 @@ async function ensureTestUser({
     await prisma.university_users.update({
       where: { id: uniLink.id },
       data: { relationship_type: relType, updated_at: now },
+    });
+  }
+
+  // Reviewer scope is assignment-table authoritative (not primary_university_id alone).
+  if (roleCode === 'reviewer') {
+    await reviewerAssignment.assignReviewerUniversity({
+      reviewerUserId: user.id,
+      universityId,
+      source: 'MANUAL',
+      assignedById: null,
     });
   }
 

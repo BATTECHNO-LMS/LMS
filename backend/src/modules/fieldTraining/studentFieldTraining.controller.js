@@ -129,7 +129,11 @@ async function aiSelfEvaluate(req, res, next) {
 
 async function submitTask(req, res, next) {
   try {
-    const body = { ...(req.validated?.body || req.body || {}) };
+    // Prefer Zod-validated body (after multer); fall back to raw body for non-validated paths.
+    const body = {
+      ...(req.body || {}),
+      ...(req.validated?.body || {}),
+    };
     if (Array.isArray(req.files) && req.files.length) {
       body._multerFiles = req.files;
     }
