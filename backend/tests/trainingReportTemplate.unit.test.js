@@ -59,4 +59,35 @@ describe('trainingReport.template', () => {
     assert.match(html, /BATTECHNO LMS/);
     assert.match(html, /جدول المحتويات/);
   });
+
+  it('uses a single-brand cover when institution is BATTECHNO', () => {
+    const html = buildTrainingReportHtml(
+      {
+        report_type: 'COURSE',
+        version: 1,
+        reference_code: 'TR-CRS-2026-BAT',
+        snapshot_json: {
+          meta: {
+            reportTitle: 'التقرير الشامل للدورة',
+            courseName: 'الدبلوم التشغيلي الرقمي',
+            institutionName: 'شركة الرجل الوطواط للتكنولوجيا – BATTECHNO',
+            institutionCode: 'BATTECHNO',
+            singleBrand: true,
+            platformName: 'BATTECHNO LMS',
+            platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
+            trainingDates: { startLabel: null, endLabel: null },
+            totalHours: null,
+            generatedAtLabel: '10 أغسطس 2026',
+            confidentiality: 'سري',
+          },
+          executiveSummary: { enrolled: 0 },
+        },
+      },
+      { battechnoLogoDataUri: null, institutionLogoDataUri: 'data:image/png;base64,AAA', singleBrand: true }
+    );
+    assert.match(html, /cover__brands--single/);
+    assert.match(html, /تنفيذ وتشغيل/);
+    assert.doesNotMatch(html, /بالتعاون مع/);
+    assert.doesNotMatch(html, /logo--institution/);
+  });
 });

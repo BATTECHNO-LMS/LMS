@@ -47,10 +47,36 @@ const MINISTRY_OF_YOUTH = Object.freeze({
   ]),
 });
 
+/**
+ * BATTECHNO as an INSTITUTION (platform operator acting as training provider).
+ * Not part of PUBLIC_INSTITUTION_SEEDS — no public trainee registration / branch catalog.
+ * Seeded by: npm run seed:battechno-diploma
+ */
+const BATTECHNO_INSTITUTION = Object.freeze({
+  code: 'BATTECHNO',
+  /** Full UI display name (Admin institutions list uses `name`). */
+  name: 'شركة الرجل الوطواط للتكنولوجيا – BATTECHNO',
+  nameAr: 'شركة الرجل الوطواط للتكنولوجيا',
+  nameEn: 'BATTECHNO',
+  shortName: 'BATTECHNO',
+  institutionKind: 'private',
+  /** Project-safe default used by other institution seeds; not a fabricated operational fact. */
+  country: 'Jordan',
+  allowsPublicTraineeRegistration: false,
+  /**
+   * Institution branding uses the platform BrandLogo asset
+   * (`frontend/src/assets/images/battechno-lms-logo-transparent.png`).
+   * `logo_url` stays null so reports use a single-brand header (no duplicated logos).
+   */
+  logoUrl: null,
+  branches: Object.freeze([]),
+});
+
 const PUBLIC_INSTITUTION_SEEDS = Object.freeze([CROWN_PRINCE_FOUNDATION, MINISTRY_OF_YOUTH]);
 
 module.exports = {
   CROWN_PRINCE_FOUNDATION,
   MINISTRY_OF_YOUTH,
+  BATTECHNO_INSTITUTION,
   PUBLIC_INSTITUTION_SEEDS,
 };

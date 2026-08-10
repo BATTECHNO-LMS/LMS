@@ -23,7 +23,8 @@ import { getApiErrorMessage } from '../../services/apiHelpers.js';
 const TABS = [
   { id: 'overview', label: 'نظرة عامة' },
   { id: 'sessions', label: 'الجلسات' },
-  { id: 'materials', label: 'المواد' },
+  { id: 'lectures', label: 'المحاضرات المسجلة' },
+  { id: 'materials', label: 'المواد التعليمية' },
   { id: 'tasks', label: 'المهمات' },
   { id: 'assessments', label: 'الاختبارات' },
   { id: 'evaluation', label: 'التقييم النهائي' },
@@ -240,25 +241,84 @@ export function TraineeCourseDetailPage() {
         </SectionCard>
       ) : null}
 
+      {tab === 'lectures' ? (
+        <SectionCard title="المحاضرات المسجلة">
+          {(data.recordedLectures || []).length ? (
+            <ul className="simple-list course-lecture-list">
+              {data.recordedLectures.map((lec) => (
+                <li key={lec.id} className="course-lecture-card">
+                  <strong>{lec.title}</strong>
+                  {lec.description ? (
+                    <div className="auth-register__helper">{lec.description}</div>
+                  ) : null}
+                  <div className="auth-register__helper">
+                    المدة:{' '}
+                    {lec.durationSeconds != null
+                      ? [
+                          Math.floor(lec.durationSeconds / 3600),
+                          Math.floor((lec.durationSeconds % 3600) / 60),
+                          Math.floor(lec.durationSeconds % 60),
+                        ]
+                          .map((v) => String(v).padStart(2, '0'))
+                          .join(':')
+                      : '—'}
+                  </div>
+                  <Link
+                    className="btn btn--primary btn--sm"
+                    to={`/trainee/courses/${programId}/lectures/${lec.id}`}
+                  >
+                    مشاهدة المحاضرة
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="لا توجد محاضرات مسجلة حتى الآن." />
+          )}
+        </SectionCard>
+      ) : null}
+
       {tab === 'materials' ? (
-        <SectionCard title="المواد التدريبية">
+        <SectionCard title="المواد التعليمية">
           {(data.materials || []).length ? (
             <ul className="simple-list">
               {data.materials.map((m) => (
-                <li key={m.id}>
+                <li key={m.id} className="course-material-card">
                   <strong>{m.title}</strong>
+                  {m.description ? <div className="auth-register__helper">{m.description}</div> : null}
                   {m.url ? (
                     <div>
                       <a className="link" href={m.url} target="_blank" rel="noreferrer">
-                        فتح المادة
+                        فتح الرابط
                       </a>
+                    </div>
+                  ) : null}
+                  {m.hasFile ? (
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const { getMaterialPlaybackUrl } = await import(
+                              '../../features/training/training.service.js'
+                            );
+                            const dataUrl = await getMaterialPlaybackUrl(m.id);
+                            if (dataUrl?.url) window.open(dataUrl.url, '_blank', 'noopener,noreferrer');
+                          } catch (err) {
+                            setError(getApiErrorMessage(err, 'تعذر فتح الملف.'));
+                          }
+                        }}
+                      >
+                        تحميل / عرض الملف
+                      </Button>
                     </div>
                   ) : null}
                 </li>
               ))}
             </ul>
           ) : (
-            <EmptyState title="لا توجد مواد" description="لم تُنشر مواد لهذه الدورة بعد." />
+            <EmptyState title="لم تتم إضافة مواد تعليمية بعد." />
           )}
         </SectionCard>
       ) : null}

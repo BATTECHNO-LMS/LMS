@@ -52,6 +52,33 @@ describe('trainer role catalog', () => {
   it('defines course-level trainer permission keys', () => {
     assert.ok(TRAINER_PERMISSION_KEYS.includes('can_manage_sessions'));
     assert.ok(TRAINER_PERMISSION_KEYS.includes('can_view_reports'));
+    assert.ok(TRAINER_PERMISSION_KEYS.includes('can_finalize_training'));
+  });
+
+  it('applies full operational defaults for primary trainer assignments', () => {
+    const {
+      PRIMARY_TRAINER_FULL_OPS,
+      resolveTrainerAssignmentPermissions,
+    } = require('../src/modules/trainingPrograms/trainerPermissionPolicy');
+    assert.equal(PRIMARY_TRAINER_FULL_OPS.can_finalize_training, true);
+    assert.equal(PRIMARY_TRAINER_FULL_OPS.is_lead_trainer, true);
+    const lead = resolveTrainerAssignmentPermissions({ is_lead_trainer: true });
+    assert.equal(lead.can_finalize_training, true);
+    assert.equal(lead.can_manage_assessments, true);
+    assert.equal(lead.can_send_course_announcements, true);
+    const regular = resolveTrainerAssignmentPermissions({ is_lead_trainer: false });
+    assert.equal(regular.can_finalize_training, true);
+    assert.equal(regular.is_lead_trainer, false);
+    const override = resolveTrainerAssignmentPermissions({
+      is_lead_trainer: true,
+      can_finalize_training: false,
+    });
+    assert.equal(override.can_finalize_training, false);
+  });
+
+  it('includes certificates.view for trainer catalog role', () => {
+    const map = defaultRolePermissionMap();
+    assert.ok(map.trainer.includes('certificates.view'));
   });
 
   it('merges assignment permission flags with OR', () => {

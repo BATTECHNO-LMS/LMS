@@ -68,18 +68,31 @@ async function loadInstitutionLogoDataUri(logoUrl) {
 async function loadBrandAssets(report) {
   const snap = report.snapshot_json || {};
   let institutionLogoUrl = snap.meta?.institutionLogoUrl || null;
-  if (!institutionLogoUrl) {
+  let organizationCode = snap.meta?.institutionCode || null;
+  let organizationName = snap.meta?.institutionName || null;
+
+  if (!organizationCode || institutionLogoUrl === undefined || !organizationName) {
     const org = await prisma.organizations.findUnique({
       where: { id: report.organization_id },
-      select: { logo_url: true, name: true },
+      select: { logo_url: true, name: true, code: true },
     });
-    institutionLogoUrl = org?.logo_url || null;
+    organizationCode = organizationCode || org?.code || null;
+    organizationName = organizationName || org?.name || null;
     if (!snap.meta) snap.meta = {};
-    if (!snap.meta.institutionName) snap.meta.institutionName = org?.name;
+    if (!snap.meta.institutionName) snap.meta.institutionName = organizationName;
+    if (!snap.meta.institutionCode) snap.meta.institutionCode = organizationCode;
+    if (institutionLogoUrl == null && org?.code !== 'BATTECHNO') {
+      institutionLogoUrl = org?.logo_url || null;
+    }
   }
+
+  const singleBrand =
+    Boolean(snap.meta?.singleBrand) || organizationCode === 'BATTECHNO';
+
   return {
     battechnoLogoDataUri: loadBattechnoLogoDataUri(),
-    institutionLogoDataUri: await loadInstitutionLogoDataUri(institutionLogoUrl),
+    institutionLogoDataUri: singleBrand ? null : await loadInstitutionLogoDataUri(institutionLogoUrl),
+    singleBrand,
   };
 }
 

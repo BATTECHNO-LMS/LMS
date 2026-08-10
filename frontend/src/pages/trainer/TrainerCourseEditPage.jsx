@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
-import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
-import { CourseEditForm } from '../../../features/training/components/CourseEditForm.jsx';
-import { getProgram } from '../../../features/training/training.service.js';
-import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
+import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
+import { CourseEditForm } from '../../features/training/components/CourseEditForm.jsx';
+import { getProgram } from '../../features/training/training.service.js';
+import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
-export function AdminTrainingCourseEditPage() {
+export function TrainerCourseEditPage() {
   const { programId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -33,18 +33,18 @@ export function AdminTrainingCourseEditPage() {
 
   if (loading) {
     return (
-      <div className="page page--dashboard page--admin" dir="rtl">
+      <div className="page page--dashboard" dir="rtl">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="page page--dashboard page--admin crud-page course-content-fade" dir="rtl">
+    <div className="page page--dashboard crud-page course-content-fade" dir="rtl">
       <AdminPageHeader title="تعديل معلومات الدورة" />
       <p style={{ marginBottom: '1rem' }}>
-        <Link className="link" to={`/admin/training-courses/${programId}`}>
-          ← العودة لإدارة الدورة
+        <Link className="link" to={`/trainer/courses/${programId}`}>
+          ← العودة للدورة
         </Link>
       </p>
       {error ? (
@@ -56,11 +56,11 @@ export function AdminTrainingCourseEditPage() {
         <CourseEditForm
           course={course}
           programId={programId}
-          allowStatus
-          onCancel={() => navigate(`/admin/training-courses/${programId}`)}
+          allowStatus={false}
+          onCancel={() => navigate(`/trainer/courses/${programId}`)}
           onSaved={(updated) => {
             setCourse(updated);
-            navigate(`/admin/training-courses/${programId}`, { replace: true });
+            navigate(`/trainer/courses/${programId}`, { replace: true });
           }}
         />
       ) : null}

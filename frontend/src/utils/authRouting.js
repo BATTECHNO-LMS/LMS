@@ -36,8 +36,8 @@ export const INSTITUTION_ROLE_LABELS_AR = Object.freeze({
   [ROLES.SUPER_ADMIN]: 'إدارة المنصة',
   [ROLES.ADMIN]: 'مسؤول المؤسسة',
   [ROLES.TRAINER]: 'المدرب',
-  [ROLES.TRAINEE]: 'متدرب',
-  [ROLES.STUDENT]: 'متدرب',
+  [ROLES.TRAINEE]: 'المتدرب',
+  [ROLES.STUDENT]: 'المتدرب',
   [ROLES.REVIEWER]: 'مراجع المؤسسة',
 });
 

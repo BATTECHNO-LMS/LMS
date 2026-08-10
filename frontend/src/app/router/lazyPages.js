@@ -46,6 +46,10 @@ export const AdminTrainingCourseEditPage = lazyNamed(
   () => import('../../pages/admin/trainingCourses/AdminTrainingCourseEditPage.jsx'),
   'AdminTrainingCourseEditPage'
 );
+export const RecordedLecturePlayerPage = lazyNamed(
+  () => import('../../pages/shared/RecordedLecturePlayerPage.jsx'),
+  'RecordedLecturePlayerPage'
+);
 export const StudentInstitutionProgramsPage = lazyNamed(
   () => import('../../pages/student/StudentInstitutionProgramsPage.jsx'),
   'StudentInstitutionProgramsPage'
@@ -294,6 +298,14 @@ export const TrainerCoursePage = lazyNamed(
   () => import('../../pages/trainer/TrainerCoursePage.jsx'),
   'TrainerCoursePage'
 );
+export const TrainerCourseEditPage = lazyNamed(
+  () => import('../../pages/trainer/TrainerCourseEditPage.jsx'),
+  'TrainerCourseEditPage'
+);
+export const TrainerRecordedLecturePlayerPage = lazyNamed(
+  () => import('../../pages/shared/RecordedLecturePlayerPage.jsx'),
+  'RecordedLecturePlayerPage'
+);
 export const TrainerProfilePage = lazyNamed(
   () => import('../../pages/trainer/TrainerProfilePage.jsx'),
   'TrainerProfilePage'
@@ -309,6 +321,10 @@ export const TraineeCoursesPage = lazyNamed(
 export const TraineeCourseDetailPage = lazyNamed(
   () => import('../../pages/trainee/TraineeCourseDetailPage.jsx'),
   'TraineeCourseDetailPage'
+);
+export const TraineeRecordedLecturePlayerPage = lazyNamed(
+  () => import('../../pages/shared/RecordedLecturePlayerPage.jsx'),
+  'RecordedLecturePlayerPage'
 );
 export const TraineeTrainingProgramsRedirect = lazyNamed(
   () => import('../../pages/trainee/TraineeTrainingProgramsRedirect.jsx'),

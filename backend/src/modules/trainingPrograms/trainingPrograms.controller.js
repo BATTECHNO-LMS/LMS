@@ -123,6 +123,23 @@ async function createSession(req, res, next) {
     return next(e);
   }
 }
+async function updateSession(req, res, next) {
+  try {
+    return success(res, await service.updateSession(R(req), req.validated.params.sessionId, req.validated.body || {}));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function setAttendanceStatus(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.setAttendanceStatus(R(req), req.validated.params.sessionId, req.validated.body || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
 async function openAttendanceWindow(req, res, next) {
   try {
     return created(res, await service.openAttendanceWindow(R(req), req.validated.params.sessionId, req.body || {}));
@@ -324,7 +341,115 @@ async function listProgramMaterials(req, res, next) {
 }
 async function createProgramMaterial(req, res, next) {
   try {
-    return created(res, await service.createProgramMaterial(R(req), req.validated.params.programId, req.body || {}));
+    return created(
+      res,
+      await service.createProgramMaterial(
+        R(req),
+        req.validated.params.programId,
+        req.validated.body || req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function updateProgramMaterial(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.updateProgramMaterial(
+        R(req),
+        req.validated.params.materialId,
+        req.validated.body || req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function deleteProgramMaterial(req, res, next) {
+  try {
+    return success(res, await service.deleteProgramMaterial(R(req), req.validated.params.materialId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function listRecordedLectures(req, res, next) {
+  try {
+    return success(res, await service.listRecordedLectures(R(req), req.validated.params.programId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function createRecordedLecture(req, res, next) {
+  try {
+    return created(
+      res,
+      await service.createRecordedLecture(
+        R(req),
+        req.validated.params.programId,
+        req.validated.body || req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function updateRecordedLecture(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.updateRecordedLecture(
+        R(req),
+        req.validated.params.lectureId,
+        req.validated.body || req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function publishRecordedLecture(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.publishRecordedLecture(
+        R(req),
+        req.validated.params.lectureId,
+        req.validated.body || req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function deleteRecordedLecture(req, res, next) {
+  try {
+    return success(res, await service.deleteRecordedLecture(R(req), req.validated.params.lectureId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getMaterialPlaybackUrl(req, res, next) {
+  try {
+    return success(res, await service.getMaterialPlaybackUrl(R(req), req.validated.params.materialId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function updateTask(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.updateTask(R(req), req.validated.params.taskId, req.validated.body || req.body || {})
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function listProgramTasksDetailed(req, res, next) {
+  try {
+    return success(res, await service.listProgramTasksDetailed(R(req), req.validated.params.programId));
   } catch (e) {
     return next(e);
   }
@@ -461,6 +586,8 @@ module.exports = {
   importPreview,
   importCommit,
   createSession,
+  updateSession,
+  setAttendanceStatus,
   listCohortSessions,
   openAttendanceWindow,
   confirmAttendance,
@@ -492,6 +619,16 @@ module.exports = {
   getTraineeProgramDetail,
   listProgramMaterials,
   createProgramMaterial,
+  updateProgramMaterial,
+  deleteProgramMaterial,
+  listRecordedLectures,
+  createRecordedLecture,
+  updateRecordedLecture,
+  publishRecordedLecture,
+  deleteRecordedLecture,
+  getMaterialPlaybackUrl,
+  updateTask,
+  listProgramTasksDetailed,
   getProgramEvaluation,
   getEnrollmentEvaluation,
   saveEvaluationDraft,

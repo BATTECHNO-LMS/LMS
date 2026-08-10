@@ -11,15 +11,22 @@ import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
 import { getTrainerCourse } from '../../features/training/trainer.service.js';
 import {
-  createProgramMaterial,
   createSession,
-  createTask,
   getPrePostComparison,
   getCompletionReadiness,
   listProgramAssessments,
   listSessionAttendance,
+  markAllPresent,
   openAttendanceWindow,
+  setAttendanceStatus,
+  updateProgram,
+  updateSession,
+  getProgramEvaluation,
+  getEnrollmentCertificate,
 } from '../../features/training/training.service.js';
+import { CourseMaterialsManager } from '../../features/training/components/CourseMaterialsManager.jsx';
+import { RecordedLecturesManager } from '../../features/training/components/RecordedLecturesManager.jsx';
+import { CourseTasksManager } from '../../features/training/components/CourseTasksManager.jsx';
 import { TrainingAssessmentEditor } from '../../features/training/components/TrainingAssessmentEditor.jsx';
 import { TrainingReadinessCard } from '../../features/training/components/completion/TrainingReadinessCard.jsx';
 import { CompletionStatusBadge } from '../../features/training/components/completion/CompletionStatusBadge.jsx';
@@ -31,15 +38,18 @@ import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', perm: null },
-  { id: 'cohorts', label: 'الدفعات', perm: null },
+  { id: 'trainees', label: 'المتدربون', perm: 'canViewTrainees' },
   { id: 'sessions', label: 'الجلسات', perm: 'canManageSessions', readFallback: true },
   { id: 'attendance', label: 'الحضور', perm: 'canManageAttendance', readFallback: true },
-  { id: 'materials', label: 'المواد التدريبية', perm: 'canManageMaterials' },
+  { id: 'lectures', label: 'المحاضرات المسجلة', perm: 'canManageMaterials', readFallback: true },
+  { id: 'materials', label: 'المواد التعليمية', perm: 'canManageMaterials', readFallback: true },
   { id: 'tasks', label: 'المهمات', perm: 'canManageTasks', readFallback: true },
   { id: 'assessments', label: 'الاختبارات', perm: 'canManageAssessments', readFallback: true },
-  { id: 'trainees', label: 'المتدربون', perm: 'canViewTrainees' },
   { id: 'progress', label: 'التقدم', perm: 'canViewProgress' },
-  { id: 'reports', label: 'التقارير', perm: 'canViewReports' },
+  { id: 'evaluation', label: 'التقييم النهائي', perm: 'canViewReports', readFallback: true },
+  { id: 'finalization', label: 'إنهاء التدريب والتقارير', perm: 'canViewReports' },
+  { id: 'certificates', label: 'الشهادات', perm: 'canViewReports', readFallback: true },
+  { id: 'settings', label: 'الإعدادات', perm: null },
 ];
 
 function formatDate(value) {
@@ -69,9 +79,17 @@ export function TrainerCoursePage() {
     ends_at: '',
     hours: '2',
     location: '',
+    meeting_url: '',
   });
-  const [taskForm, setTaskForm] = useState({ title: '', instructions: '' });
-  const [materialForm, setMaterialForm] = useState({ title: '', url: '' });
+  const [attendanceSessionId, setAttendanceSessionId] = useState('');
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [settingsForm, setSettingsForm] = useState({
+    description: '',
+    objectives: '',
+    outcomes: '',
+    field: '',
+  });
+  const [evaluation, setEvaluation] = useState(null);
   const [assessments, setAssessments] = useState([]);
   const [assessmentKind, setAssessmentKind] = useState('pre');
   const [comparison, setComparison] = useState(null);
@@ -80,6 +98,7 @@ export function TrainerCoursePage() {
   const [readinessError, setReadinessError] = useState('');
   const [finalizeModalOpen, setFinalizeModalOpen] = useState(false);
   const [reportEnrollmentId, setReportEnrollmentId] = useState(null);
+  const [certificatePreview, setCertificatePreview] = useState(null);
 
   async function refresh() {
     if (!programId) return;
@@ -92,6 +111,13 @@ export function TrainerCoursePage() {
         ...prev,
         cohort_id: prev.cohort_id || course?.cohorts?.[0]?.id || '',
       }));
+      setSettingsForm({
+        description: course?.program?.description || '',
+        objectives: course?.program?.objectives || '',
+        outcomes: course?.program?.outcomes || '',
+        field: course?.program?.field || '',
+      });
+      setAttendanceSessionId((prev) => prev || course?.sessions?.[0]?.id || '');
     } catch (err) {
       setError(getApiErrorMessage(err, 'تعذر تحميل الدورة.'));
     } finally {
@@ -111,6 +137,20 @@ export function TrainerCoursePage() {
       .catch((err) => setError(getApiErrorMessage(err, 'تعذر تحميل الاختبارات.')));
   }, [tab, programId]);
 
+  useEffect(() => {
+    if (tab !== 'evaluation' || !programId) return;
+    getProgramEvaluation(programId)
+      .then(setEvaluation)
+      .catch((err) => setError(getApiErrorMessage(err, 'تعذر تحميل التقييم النهائي.')));
+  }, [tab, programId]);
+
+  useEffect(() => {
+    if (!attendanceSessionId || (tab !== 'attendance' && tab !== 'sessions')) return;
+    listSessionAttendance(attendanceSessionId)
+      .then(setAttendanceData)
+      .catch(() => setAttendanceData(null));
+  }, [attendanceSessionId, tab]);
+
   const permissions = data?.permissions || {};
 
   const loadReadiness = useCallback(async () => {
@@ -129,7 +169,7 @@ export function TrainerCoursePage() {
   }, [programId]);
 
   useEffect(() => {
-    if (tab === 'reports' && permissions.canViewReports) {
+    if ((tab === 'finalization' || tab === 'certificates') && permissions.canViewReports) {
       loadReadiness();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -179,6 +219,8 @@ export function TrainerCoursePage() {
   const canManageAttendance = permissions.canManageAttendance !== false;
   const canManageTasks = permissions.canManageTasks !== false;
   const canManageAssessments = permissions.canManageAssessments !== false;
+  const canManageMaterials = permissions.canManageMaterials !== false;
+  const canEditSettings = Boolean(data?.assignment || data?.isLeadTrainer || canManageSessions);
 
   return (
     <div className="page page--dashboard crud-page" dir="rtl">
@@ -217,70 +259,63 @@ export function TrainerCoursePage() {
 
       {activeTab === 'overview' ? (
         <SectionCard title="نظرة عامة">
+          <div className="auth-form__fields-grid" style={{ marginBottom: '1rem' }}>
+            <p>
+              <strong>الحالة:</strong> {program?.status || '—'}
+            </p>
+            <p>
+              <strong>المجال:</strong> {program?.field || '—'}
+            </p>
+            <p>
+              <strong>الساعات:</strong> {program?.requiredHours ?? '—'}
+            </p>
+            <p>
+              <strong>المتدربون:</strong> {data?.traineeCount ?? 0}
+            </p>
+            <p>
+              <strong>تسليمات معلقة:</strong> {data?.overview?.pendingSubmissions ?? 0}
+            </p>
+            <p>
+              <strong>حضور غير معتمد:</strong> {data?.overview?.unconfirmedAttendance ?? 0}
+            </p>
+          </div>
           <dl className="detail-list">
             <div className="detail-list__row">
               <dt>الوصف</dt>
-              <dd>{program?.description || '—'}</dd>
+              <dd style={{ whiteSpace: 'pre-wrap' }}>{program?.description || '—'}</dd>
             </div>
             <div className="detail-list__row">
               <dt>الأهداف</dt>
-              <dd>{program?.objectives || '—'}</dd>
+              <dd style={{ whiteSpace: 'pre-wrap' }}>{program?.objectives || '—'}</dd>
             </div>
             <div className="detail-list__row">
               <dt>المخرجات</dt>
-              <dd>{program?.outcomes || '—'}</dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>عدد المتدربين</dt>
-              <dd>{data?.traineeCount ?? 0}</dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>ساعات التدريب</dt>
-              <dd>{program?.requiredHours ?? '—'}</dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>الجلسة القادمة</dt>
-              <dd>
-                {data?.overview?.upcomingSession
-                  ? `${data.overview.upcomingSession.title} — ${formatDate(data.overview.upcomingSession.startsAt)}`
-                  : '—'}
-              </dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>الجلسات المكتملة</dt>
-              <dd>
-                {data?.overview?.completedSessions ?? 0} / {data?.overview?.totalSessions ?? 0}
-              </dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>التسليمات المعلقة</dt>
-              <dd>{data?.overview?.pendingSubmissions ?? 0}</dd>
-            </div>
-            <div className="detail-list__row">
-              <dt>متدربون يحتاجون متابعة</dt>
-              <dd>{data?.overview?.atRiskCount ?? 0}</dd>
+              <dd style={{ whiteSpace: 'pre-wrap' }}>{program?.outcomes || '—'}</dd>
             </div>
           </dl>
-        </SectionCard>
-      ) : null}
-
-      {activeTab === 'cohorts' ? (
-        <SectionCard title="الدفعات المسندة">
-          {data?.cohorts?.length ? (
-            <ul className="simple-list">
-              {data.cohorts.map((cohort) => (
-                <li key={cohort.id}>
-                  <strong>{cohort.name}</strong>{' '}
-                  <StatusBadge variant="info">{cohort.status}</StatusBadge>
-                  <div style={{ opacity: 0.75, marginTop: '0.25rem' }}>
-                    {formatDate(cohort.startDate)} — {formatDate(cohort.endDate)}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState title="لا توجد دفعات" description="لا توجد دفعات ضمن نطاق تعيينك." />
-          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem' }}>
+            <Button type="button" variant="primary" onClick={() => navigate(`/trainer/courses/${programId}/edit`)}>
+              تعديل معلومات الدورة
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('sessions')}>
+              إدارة الجلسات
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('lectures')}>
+              إدارة المحاضرات المسجلة
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('materials')}>
+              إدارة المواد التعليمية
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('tasks')}>
+              إدارة المهمات
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('assessments')}>
+              إدارة الاختبارات
+            </Button>
+            <Button type="button" variant="outline" onClick={() => selectTab('finalization')}>
+              إنهاء التدريب
+            </Button>
+          </div>
         </SectionCard>
       ) : null}
 
@@ -304,9 +339,17 @@ export function TrainerCoursePage() {
                     ends_at: sessionForm.ends_at,
                     hours: Number(sessionForm.hours) || null,
                     location: sessionForm.location || null,
+                    meeting_url: sessionForm.meeting_url || null,
                   });
                   setMessage('تم إنشاء الجلسة.');
-                  setSessionForm((p) => ({ ...p, title: '', starts_at: '', ends_at: '', location: '' }));
+                  setSessionForm((p) => ({
+                    ...p,
+                    title: '',
+                    starts_at: '',
+                    ends_at: '',
+                    location: '',
+                    meeting_url: '',
+                  }));
                   await refresh();
                 } catch (err) {
                   setError(getApiErrorMessage(err, 'تعذر إنشاء الجلسة.'));
@@ -366,9 +409,15 @@ export function TrainerCoursePage() {
                   value={sessionForm.location}
                   onChange={(e) => setSessionForm((p) => ({ ...p, location: e.target.value }))}
                 />
+                <FormInput
+                  id="session-meeting"
+                  label="رابط الاجتماع"
+                  value={sessionForm.meeting_url}
+                  onChange={(e) => setSessionForm((p) => ({ ...p, meeting_url: e.target.value }))}
+                />
               </div>
               <Button type="submit" variant="primary" disabled={busy || !sessionForm.title.trim()}>
-                إنشاء جلسة
+                إضافة جلسة
               </Button>
             </form>
           )}
@@ -380,32 +429,59 @@ export function TrainerCoursePage() {
                   <StatusBadge variant="info">{session.status}</StatusBadge>
                   <div dir="ltr">{formatDate(session.startsAt)}</div>
                   {session.location ? <div>المكان: {session.location}</div> : null}
-                  {canManageAttendance ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="btn--sm"
-                      disabled={busy}
-                      onClick={async () => {
-                        setBusy(true);
-                        setError('');
-                        try {
-                          const win = await openAttendanceWindow(session.id, {
-                            duration_seconds: 600,
-                          });
-                          setLastAttendanceCode(win.code || '');
-                          setMessage(`تم فتح نافذة الحضور. الرمز: ${win.code}`);
-                          await listSessionAttendance(session.id);
-                        } catch (err) {
-                          setError(getApiErrorMessage(err, 'تعذر فتح نافذة الحضور.'));
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      فتح نافذة الحضور
-                    </Button>
-                  ) : null}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.35rem' }}>
+                    {canManageAttendance ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="btn--sm"
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          setError('');
+                          try {
+                            const win = await openAttendanceWindow(session.id, {
+                              duration_seconds: 120,
+                            });
+                            setLastAttendanceCode(win.code || '');
+                            setAttendanceSessionId(session.id);
+                            setMessage(`تم فتح نافذة الحضور (دقيقتان). الرمز: ${win.code}`);
+                            const att = await listSessionAttendance(session.id);
+                            setAttendanceData(att);
+                          } catch (err) {
+                            setError(getApiErrorMessage(err, 'تعذر فتح نافذة الحضور.'));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        فتح الحضور
+                      </Button>
+                    ) : null}
+                    {canManageSessions ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="btn--sm"
+                        disabled={busy}
+                        onClick={async () => {
+                          if (!window.confirm('تأكيد إلغاء هذه الجلسة؟')) return;
+                          setBusy(true);
+                          try {
+                            await updateSession(session.id, { status: 'CANCELLED' });
+                            setMessage('تم إلغاء الجلسة.');
+                            await refresh();
+                          } catch (err) {
+                            setError(getApiErrorMessage(err, 'تعذر إلغاء الجلسة.'));
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        إلغاء الجلسة
+                      </Button>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -420,136 +496,142 @@ export function TrainerCoursePage() {
           {!canManageAttendance ? (
             <StatusBadge variant="muted">عرض فقط — لا تملك صلاحية إدارة الحضور</StatusBadge>
           ) : null}
-          <p>
-            سجلات الحضور غير المؤكدة ضمن نطاقك:{' '}
-            <strong>{data?.overview?.unconfirmedAttendance ?? 0}</strong>
-          </p>
+          <FormSelect
+            id="attendance-session"
+            label="الجلسة"
+            value={attendanceSessionId}
+            onChange={(e) => setAttendanceSessionId(e.target.value)}
+          >
+            <option value="">اختر جلسة</option>
+            {(data?.sessions || []).map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.title}
+              </option>
+            ))}
+          </FormSelect>
+          {canManageAttendance && attendanceSessionId ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', margin: '0.75rem 0' }}>
+              <Button
+                type="button"
+                variant="primary"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    const win = await openAttendanceWindow(attendanceSessionId, { duration_seconds: 120 });
+                    setLastAttendanceCode(win.code || '');
+                    setMessage(`نافذة حضور مفتوحة لدقيقتين. الرمز: ${win.code}`);
+                    setAttendanceData(await listSessionAttendance(attendanceSessionId));
+                  } catch (err) {
+                    setError(getApiErrorMessage(err, 'تعذر فتح نافذة الحضور.'));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                فتح الحضور (دقيقتان)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={busy}
+                onClick={async () => {
+                  if (!window.confirm('تأكيد تعليم جميع المتدربين المؤهلين حاضرين؟')) return;
+                  setBusy(true);
+                  try {
+                    const result = await markAllPresent(attendanceSessionId, { mode: 'safe' });
+                    setMessage(`تم تحديث ${result?.updated ?? 0} سجل حضور.`);
+                    setAttendanceData(await listSessionAttendance(attendanceSessionId));
+                  } catch (err) {
+                    setError(getApiErrorMessage(err, 'تعذر تعليم الجميع حاضرين.'));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                تعليم الجميع حاضرين
+              </Button>
+            </div>
+          ) : null}
           {lastAttendanceCode ? (
             <p className="auth-register__helper">
-              آخر رمز حضور تم إنشاؤه: <strong dir="ltr">{lastAttendanceCode}</strong>
+              آخر رمز حضور: <strong dir="ltr">{lastAttendanceCode}</strong>
             </p>
+          ) : null}
+          {attendanceData?.records?.length ? (
+            <ul className="simple-list">
+              {attendanceData.records.map((row) => {
+                const trainee = (data?.trainees || []).find((t) => t.enrollmentId === row.enrollmentId);
+                return (
+                  <li key={row.id || `${row.enrollmentId}-${row.status}`}>
+                    <strong>{trainee?.fullName || row.enrollmentId}</strong>{' '}
+                    <StatusBadge variant="info">{row.status}</StatusBadge>
+                    {canManageAttendance ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginTop: '0.35rem' }}>
+                        {['present', 'absent', 'late', 'excused'].map((status) => (
+                          <Button
+                            key={status}
+                            type="button"
+                            variant="outline"
+                            className="btn--sm"
+                            disabled={busy}
+                            onClick={async () => {
+                              setBusy(true);
+                              try {
+                                await setAttendanceStatus(attendanceSessionId, {
+                                  enrollment_id: row.enrollmentId,
+                                  status,
+                                });
+                                setAttendanceData(await listSessionAttendance(attendanceSessionId));
+                                setMessage('تم تحديث الحضور.');
+                              } catch (err) {
+                                setError(getApiErrorMessage(err, 'تعذر تحديث الحضور.'));
+                              } finally {
+                                setBusy(false);
+                              }
+                            }}
+                          >
+                            {status === 'present'
+                              ? 'حاضر'
+                              : status === 'absent'
+                                ? 'غائب'
+                                : status === 'late'
+                                  ? 'متأخر'
+                                  : 'معذور'}
+                          </Button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
           ) : (
-            <p className="auth-register__helper">
-              افتح نافذة الحضور من تبويب الجلسات. الرمز يُعرض مرة واحدة فقط من استجابة الخادم.
-            </p>
+            <p className="auth-register__helper">لا توجد سجلات حضور لهذه الجلسة بعد.</p>
           )}
         </SectionCard>
       ) : null}
 
+      {activeTab === 'lectures' ? (
+        <SectionCard title="المحاضرات المسجلة">
+          <RecordedLecturesManager
+            programId={programId}
+            canManage={canManageMaterials}
+            sessions={(data?.sessions || []).map((s) => ({ id: s.id, title: s.title }))}
+            viewBasePath={`/trainer/courses/${programId}/lectures`}
+          />
+        </SectionCard>
+      ) : null}
+
       {activeTab === 'materials' ? (
-        <SectionCard title="المواد التدريبية">
-          {permissions.canManageMaterials === false ? (
-            <StatusBadge variant="muted">لا تملك صلاحية إدارة المواد</StatusBadge>
-          ) : (
-            <form
-              className="crud-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError('');
-                try {
-                  await createProgramMaterial(programId, {
-                    title: materialForm.title.trim(),
-                    url: materialForm.url.trim(),
-                    material_type: 'LINK',
-                    is_published: true,
-                  });
-                  setMaterialForm({ title: '', url: '' });
-                  setMessage('تم إضافة المادة.');
-                  await refresh();
-                } catch (err) {
-                  setError(getApiErrorMessage(err, 'تعذر إضافة المادة.'));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <div className="auth-form__fields-grid">
-                <FormInput
-                  id="material-title"
-                  label="عنوان المادة"
-                  required
-                  value={materialForm.title}
-                  onChange={(e) => setMaterialForm((p) => ({ ...p, title: e.target.value }))}
-                />
-                <FormInput
-                  id="material-url"
-                  label="الرابط"
-                  required
-                  value={materialForm.url}
-                  onChange={(e) => setMaterialForm((p) => ({ ...p, url: e.target.value }))}
-                />
-              </div>
-              <Button type="submit" variant="primary" disabled={busy}>
-                إضافة مادة
-              </Button>
-            </form>
-          )}
+        <SectionCard title="المواد التعليمية">
+          <CourseMaterialsManager programId={programId} canManage={canManageMaterials} />
         </SectionCard>
       ) : null}
 
       {activeTab === 'tasks' ? (
         <SectionCard title="المهمات">
-          {!canManageTasks ? (
-            <StatusBadge variant="muted">عرض فقط — لا تملك صلاحية إدارة المهمات</StatusBadge>
-          ) : (
-            <form
-              className="crud-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError('');
-                try {
-                  await createTask(programId, {
-                    title: taskForm.title.trim(),
-                    instructions: taskForm.instructions || null,
-                    publish: true,
-                    is_required: true,
-                  });
-                  setTaskForm({ title: '', instructions: '' });
-                  setMessage('تم إنشاء المهمة.');
-                  await refresh();
-                } catch (err) {
-                  setError(getApiErrorMessage(err, 'تعذر إنشاء المهمة.'));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <FormInput
-                id="task-title"
-                label="عنوان المهمة"
-                required
-                value={taskForm.title}
-                onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))}
-              />
-              <FormTextarea
-                id="task-instructions"
-                label="التعليمات"
-                value={taskForm.instructions}
-                onChange={(e) => setTaskForm((p) => ({ ...p, instructions: e.target.value }))}
-              />
-              <Button type="submit" variant="primary" disabled={busy || !taskForm.title.trim()}>
-                إنشاء ونشر مهمة
-              </Button>
-            </form>
-          )}
-          {data?.tasks?.length ? (
-            <ul className="simple-list">
-              {data.tasks.map((task) => (
-                <li key={task.id}>
-                  <strong>{task.title}</strong>{' '}
-                  {task.isFinal ? <StatusBadge variant="warning">مهمة نهائية</StatusBadge> : null}
-                  <div>الموعد: {formatDate(task.deadline)}</div>
-                  <div>
-                    {task.isPublished ? 'منشورة' : 'مسودة'} — تقييم: {task.gradingMode || '—'}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState title="لا توجد مهمات" description="أنشئ مهمة ونشرها للمتدربين." />
-          )}
+          <CourseTasksManager programId={programId} canManage={canManageTasks} />
         </SectionCard>
       ) : null}
 
@@ -687,110 +769,228 @@ export function TrainerCoursePage() {
         </SectionCard>
       ) : null}
 
-      {activeTab === 'reports' ? (
+      {activeTab === 'evaluation' ? (
+        <SectionCard title="التقييم النهائي">
+          {evaluation ? (
+            <dl className="detail-list">
+              <div className="detail-list__row">
+                <dt>نسبة الاستجابة</dt>
+                <dd>{evaluation.responseRate ?? evaluation.stats?.responseRate ?? '—'}</dd>
+              </div>
+              <div className="detail-list__row">
+                <dt>متوسط التقييم</dt>
+                <dd>{evaluation.averageRating ?? evaluation.stats?.averageRating ?? '—'}</dd>
+              </div>
+              <div className="detail-list__row">
+                <dt>NPS</dt>
+                <dd>{evaluation.nps ?? evaluation.stats?.nps ?? '—'}</dd>
+              </div>
+              <div className="detail-list__row">
+                <dt>المكتمل / الإجمالي</dt>
+                <dd>
+                  {evaluation.submittedCount ?? evaluation.stats?.submittedCount ?? '—'} /{' '}
+                  {evaluation.assignedCount ?? evaluation.stats?.assignedCount ?? '—'}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <EmptyState title="لا توجد بيانات تقييم" description="ستظهر إحصاءات التقييم النهائي هنا عند توفرها." />
+          )}
+        </SectionCard>
+      ) : null}
+
+      {activeTab === 'finalization' ? (
         <>
-          <SectionCard title="تقارير الدورة">
-            {data?.reportsSummary ? (
-              <dl className="detail-list">
-                <div className="detail-list__row">
-                  <dt>المتدربون</dt>
-                  <dd>{data.reportsSummary.traineeCount}</dd>
-                </div>
-                <div className="detail-list__row">
-                  <dt>الجلسات</dt>
-                  <dd>
-                    {data.reportsSummary.completedSessions} / {data.reportsSummary.totalSessions}
-                  </dd>
-                </div>
-                <div className="detail-list__row">
-                  <dt>تسليمات معلقة</dt>
-                  <dd>{data.reportsSummary.pendingSubmissions}</dd>
-                </div>
-                <div className="detail-list__row">
-                  <dt>حضور غير مؤكد</dt>
-                  <dd>{data.reportsSummary.unconfirmedAttendance}</dd>
-                </div>
-                <div className="detail-list__row">
-                  <dt>يحتاجون متابعة</dt>
-                  <dd>{data.reportsSummary.atRiskCount}</dd>
-                </div>
-              </dl>
-            ) : (
-              <EmptyState title="التقارير غير متاحة" description="لا تملك صلاحية عرض تقارير هذه الدورة." />
-            )}
+          <SectionCard
+            title="إنهاء التدريب والتقارير"
+            actions={
+              permissions.canFinalizeTraining ? (
+                <Button type="button" variant="primary" onClick={() => setFinalizeModalOpen(true)}>
+                  إنهاء التدريب
+                </Button>
+              ) : (
+                <StatusBadge variant="muted">لا تملك صلاحية إنهاء التدريب</StatusBadge>
+              )
+            }
+          >
+            {readinessLoading ? (
+              <LoadingSpinner label="جاري تحميل الجاهزية" />
+            ) : readinessError ? (
+              <p className="form-field__error" role="alert">
+                {readinessError}
+              </p>
+            ) : readiness ? (
+              <>
+                <TrainingReadinessCard counts={readiness.counts} />
+                <ul className="simple-list">
+                  {(readiness.trainees || []).map((t) => (
+                    <li key={t.enrollmentId}>
+                      <strong>{t.fullName}</strong> <CompletionStatusBadge status={t.lifecycleStatus} />
+                      <div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="btn--sm"
+                          onClick={() => setReportEnrollmentId(t.enrollmentId)}
+                        >
+                          التقرير الفردي
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
           </SectionCard>
 
-          {data?.reportsSummary ? (
-            <>
-              <SectionCard
-                title="إنهاء التدريب والتقارير"
-                actions={
-                  permissions.canFinalizeTraining ? (
-                    <Button type="button" variant="primary" onClick={() => setFinalizeModalOpen(true)}>
-                      إنهاء التدريب
-                    </Button>
-                  ) : null
-                }
-              >
-                {readinessLoading ? (
-                  <LoadingSpinner label="جاري تحميل الجاهزية" />
-                ) : readinessError ? (
-                  <p className="form-field__error" role="alert">
-                    {readinessError}
-                  </p>
-                ) : readiness ? (
-                  <>
-                    <TrainingReadinessCard counts={readiness.counts} />
-                    <ul className="simple-list">
-                      {(readiness.trainees || []).map((t) => (
-                        <li key={t.enrollmentId}>
-                          <strong>{t.fullName}</strong> <CompletionStatusBadge status={t.lifecycleStatus} />
-                          <div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className="btn--sm"
-                              onClick={() => setReportEnrollmentId(t.enrollmentId)}
-                            >
-                              التقرير الفردي
-                            </Button>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-              </SectionCard>
+          <SectionCard title="تقرير الدورة">
+            <CourseReportDashboard programId={programId} canGenerate={Boolean(permissions.canViewReports)} />
+          </SectionCard>
 
-              <SectionCard title="تقرير الدورة">
-                <CourseReportDashboard programId={programId} canGenerate={Boolean(permissions.canViewReports)} />
-              </SectionCard>
+          <TrainingFinalizationModal
+            open={finalizeModalOpen}
+            onClose={() => setFinalizeModalOpen(false)}
+            programId={programId}
+            cohorts={data?.cohorts || []}
+            canExceptional={false}
+            onFinalized={() => {
+              setMessage('تم تنفيذ إجراء إنهاء التدريب.');
+              loadReadiness();
+            }}
+          />
 
-              <TrainingFinalizationModal
-                open={finalizeModalOpen}
-                onClose={() => setFinalizeModalOpen(false)}
-                programId={programId}
-                cohorts={data?.cohorts || []}
-                canExceptional={false}
-                onFinalized={() => {
-                  setMessage('تم تنفيذ إجراء إنهاء التدريب.');
-                  loadReadiness();
-                }}
-              />
-
-              <AppModal
-                open={Boolean(reportEnrollmentId)}
-                onClose={() => setReportEnrollmentId(null)}
-                title="التقرير الفردي"
-                size="lg"
-              >
-                {reportEnrollmentId ? (
-                  <IndividualReportView enrollmentId={reportEnrollmentId} canGenerate={Boolean(permissions.canViewReports)} />
-                ) : null}
-              </AppModal>
-            </>
-          ) : null}
+          <AppModal
+            open={Boolean(reportEnrollmentId)}
+            onClose={() => setReportEnrollmentId(null)}
+            title="التقرير الفردي"
+            size="lg"
+          >
+            {reportEnrollmentId ? (
+              <IndividualReportView enrollmentId={reportEnrollmentId} canGenerate={Boolean(permissions.canViewReports)} />
+            ) : null}
+          </AppModal>
         </>
+      ) : null}
+
+      {activeTab === 'certificates' ? (
+        <SectionCard title="الشهادات">
+          {(readiness?.trainees || data?.trainees || []).length ? (
+            <ul className="simple-list">
+              {(readiness?.trainees || data?.trainees || []).map((t) => (
+                <li key={t.enrollmentId}>
+                  <strong>{t.fullName}</strong>
+                  <div>
+                    الأهلية: {t.certificateEligible || t.progress?.certificateEligible ? 'مؤهل' : 'غير مؤهل / قيد التحقق'}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="btn--sm"
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      try {
+                        const cert = await getEnrollmentCertificate(t.enrollmentId);
+                        setCertificatePreview(cert);
+                        setMessage('تم تحميل بيانات الشهادة.');
+                      } catch (err) {
+                        setCertificatePreview(null);
+                        setError(getApiErrorMessage(err, 'لا توجد شهادة صادرة لهذا المتدرب.'));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    عرض الشهادة
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState title="لا توجد شهادات للعرض" description="ستظهر الشهادات بعد أهلية المتدربين." />
+          )}
+          {certificatePreview ? (
+            <dl className="detail-list" style={{ marginTop: '1rem' }}>
+              <div className="detail-list__row">
+                <dt>رقم الشهادة</dt>
+                <dd dir="ltr">{certificatePreview.certificateNumber}</dd>
+              </div>
+              <div className="detail-list__row">
+                <dt>رمز التحقق</dt>
+                <dd dir="ltr">{certificatePreview.verificationCode}</dd>
+              </div>
+              <div className="detail-list__row">
+                <dt>الحالة</dt>
+                <dd>{certificatePreview.status}</dd>
+              </div>
+            </dl>
+          ) : null}
+          <p className="auth-register__helper" style={{ marginTop: '0.75rem' }}>
+            إصدار الشهادات يبقى لمسؤول المؤسسة / سوبر أدمن وفق قواعد الحوكمة الحالية.
+          </p>
+        </SectionCard>
+      ) : null}
+
+      {activeTab === 'settings' ? (
+        <SectionCard title="الإعدادات التشغيلية">
+          {!canEditSettings ? (
+            <StatusBadge variant="muted">عرض فقط</StatusBadge>
+          ) : (
+            <form
+              className="crud-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                setError('');
+                try {
+                  await updateProgram(programId, {
+                    description: settingsForm.description || null,
+                    objectives: settingsForm.objectives || null,
+                    outcomes: settingsForm.outcomes || null,
+                    field: settingsForm.field || null,
+                  });
+                  setMessage('تم حفظ الإعدادات التشغيلية.');
+                  await refresh();
+                } catch (err) {
+                  setError(getApiErrorMessage(err, 'تعذر حفظ الإعدادات.'));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <FormInput
+                id="settings-field"
+                label="المجال"
+                value={settingsForm.field}
+                onChange={(e) => setSettingsForm((p) => ({ ...p, field: e.target.value }))}
+              />
+              <FormTextarea
+                id="settings-description"
+                label="الوصف"
+                value={settingsForm.description}
+                onChange={(e) => setSettingsForm((p) => ({ ...p, description: e.target.value }))}
+              />
+              <FormTextarea
+                id="settings-objectives"
+                label="الأهداف"
+                value={settingsForm.objectives}
+                onChange={(e) => setSettingsForm((p) => ({ ...p, objectives: e.target.value }))}
+              />
+              <FormTextarea
+                id="settings-outcomes"
+                label="المخرجات"
+                value={settingsForm.outcomes}
+                onChange={(e) => setSettingsForm((p) => ({ ...p, outcomes: e.target.value }))}
+              />
+              <Button type="submit" variant="primary" disabled={busy}>
+                حفظ الإعدادات التشغيلية
+              </Button>
+            </form>
+          )}
+          <p className="auth-register__helper">
+            لا يمكن للمدرب تغيير ملكية الدورة أو حذفها أو تنفيذ إجراءات إدارية عالية الخطورة.
+          </p>
+        </SectionCard>
       ) : null}
     </div>
   );

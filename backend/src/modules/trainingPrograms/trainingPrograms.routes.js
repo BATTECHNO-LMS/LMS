@@ -174,6 +174,13 @@ router.post(
   validateRequest({ params: v.cohortIdParam, body: v.sessionBody }),
   c.createSession
 );
+router.patch(
+  '/sessions/:sessionId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.sessionIdParam, body: v.updateSessionBody }),
+  c.updateSession
+);
 router.post(
   '/sessions/:sessionId/attendance-window',
   authenticate,
@@ -196,6 +203,13 @@ router.post(
   c.confirmAttendance
 );
 router.post(
+  '/sessions/:sessionId/attendance/status',
+  authenticate,
+  manage,
+  validateRequest({ params: v.sessionIdParam, body: v.setAttendanceStatusBody }),
+  c.setAttendanceStatus
+);
+router.post(
   '/sessions/:sessionId/attendance/mark-all-present',
   authenticate,
   manage,
@@ -213,8 +227,64 @@ router.post(
   '/programs/:programId/materials',
   authenticate,
   manage,
-  validateRequest({ params: v.programIdParam }),
+  validateRequest({ params: v.programIdParam, body: v.createMaterialBody }),
   c.createProgramMaterial
+);
+router.patch(
+  '/materials/:materialId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.materialIdParam, body: v.materialBody }),
+  c.updateProgramMaterial
+);
+router.delete(
+  '/materials/:materialId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.materialIdParam }),
+  c.deleteProgramMaterial
+);
+router.get(
+  '/materials/:materialId/playback-url',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.materialIdParam }),
+  c.getMaterialPlaybackUrl
+);
+router.get(
+  '/programs/:programId/recorded-lectures',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.programIdParam }),
+  c.listRecordedLectures
+);
+router.post(
+  '/programs/:programId/recorded-lectures',
+  authenticate,
+  manage,
+  validateRequest({ params: v.programIdParam, body: v.createRecordedLectureBody }),
+  c.createRecordedLecture
+);
+router.patch(
+  '/recorded-lectures/:lectureId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.lectureIdParam, body: v.recordedLectureBody }),
+  c.updateRecordedLecture
+);
+router.post(
+  '/recorded-lectures/:lectureId/publish',
+  authenticate,
+  manage,
+  validateRequest({ params: v.lectureIdParam, body: v.publishLectureBody }),
+  c.publishRecordedLecture
+);
+router.delete(
+  '/recorded-lectures/:lectureId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.lectureIdParam }),
+  c.deleteRecordedLecture
 );
 router.get(
   '/programs/:programId/tasks',
@@ -223,12 +293,26 @@ router.get(
   validateRequest({ params: v.programIdParam }),
   c.listProgramTasks
 );
+router.get(
+  '/programs/:programId/tasks/detailed',
+  authenticate,
+  manage,
+  validateRequest({ params: v.programIdParam }),
+  c.listProgramTasksDetailed
+);
 router.post(
   '/programs/:programId/tasks',
   authenticate,
   manage,
-  validateRequest({ params: v.programIdParam }),
+  validateRequest({ params: v.programIdParam, body: v.createTaskBody }),
   c.createTask
+);
+router.patch(
+  '/tasks/:taskId',
+  authenticate,
+  manage,
+  validateRequest({ params: v.taskIdParam, body: v.updateTaskBody }),
+  c.updateTask
 );
 router.get(
   '/programs/:programId/assessments',

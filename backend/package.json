@@ -34,6 +34,8 @@
     "seed:analytics-demo": "node scripts/seed-analytics-demo.js",
     "seed:auth": "node scripts/seed-auth-minimum.js",
     "seed:institutions": "node scripts/seed-institutions.js",
+    "seed:battechno-diploma": "node scripts/seed-battechno-digital-operational-diploma.js",
+    "seed:battechno-diploma-configure": "node scripts/configure-battechno-digital-operational-diploma.js",
     "seed:cpf-job-interview": "node scripts/seed-cpf-job-interview-course.js",
     "seed:cpf-job-interview-post-test": "node scripts/seed-cpf-job-interview-post-test.js",
     "seed:cpf-job-interview-evaluation": "node scripts/seed-cpf-job-interview-evaluation.js",

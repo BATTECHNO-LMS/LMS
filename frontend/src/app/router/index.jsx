@@ -183,6 +183,10 @@ export function AppRouter() {
             <Route path="training-courses" element={<Pages.AdminTrainingCoursesPage />} />
             <Route path="training-courses/create" element={<Pages.AdminTrainingCourseCreatePage />} />
             <Route path="training-courses/:programId/edit" element={<Pages.AdminTrainingCourseEditPage />} />
+            <Route
+              path="training-courses/:programId/lectures/:lectureId"
+              element={<Pages.RecordedLecturePlayerPage />}
+            />
             <Route path="training-courses/:programId" element={<Pages.AdminTrainingCourseDetailPage />} />
             <Route path="tracks/create" element={<Pages.TrackCreatePage />} />
             <Route path="tracks/:id/edit" element={<Pages.TrackEditPage />} />
@@ -244,6 +248,11 @@ export function AppRouter() {
           <Route index element={<Pages.TrainerDashboardPage />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINER]} />}>
             <Route path="courses" element={<Pages.TrainerCoursesPage />} />
+            <Route path="courses/:programId/edit" element={<Pages.TrainerCourseEditPage />} />
+            <Route
+              path="courses/:programId/lectures/:lectureId"
+              element={<Pages.TrainerRecordedLecturePlayerPage />}
+            />
             <Route path="courses/:programId" element={<Pages.TrainerCoursePage />} />
             <Route path="courses/:programId/:tab" element={<Pages.TrainerCoursePage />} />
             <Route path="notifications" element={<Pages.NotificationsPage />} />
@@ -261,6 +270,10 @@ export function AppRouter() {
           <Route index element={<Pages.TraineeDashboardPage />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINEE]} />}>
             <Route path="courses" element={<Pages.TraineeCoursesPage />} />
+            <Route
+              path="courses/:programId/lectures/:lectureId"
+              element={<Pages.TraineeRecordedLecturePlayerPage />}
+            />
             <Route path="courses/:programId" element={<Pages.TraineeCourseDetailPage />} />
             <Route path="courses/:programId/:tab" element={<Pages.TraineeCourseDetailPage />} />
             <Route path="certificates" element={<Pages.CertificatePage />} />

@@ -11,10 +11,15 @@ import {
   BarChart3,
   Settings,
   FileBarChart2,
+  Clock3,
+  UserRound,
+  Target,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
+import { AdminStatsGrid } from '../../../components/admin/AdminStatsGrid.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
+import { StatCard } from '../../../components/common/StatCard.jsx';
 import { FormInput } from '../../../components/forms/FormInput.jsx';
 import { FormSelect } from '../../../components/forms/FormSelect.jsx';
 import { FormTextarea } from '../../../components/forms/FormTextarea.jsx';
@@ -57,6 +62,9 @@ import { CompletionStatusBadge } from '../../../features/training/components/com
 import { TrainingFinalizationModal } from '../../../features/training/components/completion/TrainingFinalizationModal.jsx';
 import { CourseReportDashboard } from '../../../features/training/components/reports/CourseReportDashboard.jsx';
 import { IndividualReportView } from '../../../features/training/components/reports/IndividualReportView.jsx';
+import { CourseMaterialsManager } from '../../../features/training/components/CourseMaterialsManager.jsx';
+import { RecordedLecturesManager } from '../../../features/training/components/RecordedLecturesManager.jsx';
+import { CourseTasksManager } from '../../../features/training/components/CourseTasksManager.jsx';
 import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
@@ -68,6 +76,8 @@ const TABS = [
   { id: 'trainees', label: 'المتدربون', icon: Users },
   { id: 'sessions', label: 'الجلسات', icon: CalendarDays },
   { id: 'attendance', label: 'الحضور', icon: ClipboardCheck },
+  { id: 'lectures', label: 'المحاضرات المسجلة', icon: FileCheck },
+  { id: 'materials', label: 'المواد التعليمية', icon: ListChecks },
   { id: 'tasks', label: 'المهمات', icon: ListChecks },
   { id: 'pretest', label: 'الاختبار القبلي', icon: FileCheck },
   { id: 'posttest', label: 'الاختبار البعدي', icon: FileCheck },
@@ -75,6 +85,76 @@ const TABS = [
   { id: 'finalization', label: 'إنهاء التدريب والتقارير', icon: FileBarChart2 },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
+
+function statusLabel(status) {
+  const map = {
+    DRAFT: 'مسودة',
+    PUBLISHED: 'منشورة',
+    REGISTRATION_OPEN: 'التسجيل مفتوح',
+    REGISTRATION_CLOSED: 'التسجيل مغلق',
+    IN_PROGRESS: 'قيد التنفيذ',
+    COMPLETED: 'مكتملة',
+    CANCELLED: 'ملغاة',
+    ARCHIVED: 'مؤرشفة',
+  };
+  return map[status] || status || '—';
+}
+
+function formatDateAr(value) {
+  if (!value) return null;
+  const raw = String(value).slice(0, 10);
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  if (!m) return null;
+  const iso = `${m[1]}-${m[2]}-${m[3]}T12:00:00+03:00`;
+  try {
+    return new Intl.DateTimeFormat('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'Asia/Amman',
+    }).format(new Date(iso));
+  } catch {
+    return raw;
+  }
+}
+
+function formatDateRangeShort(start, end) {
+  const s = formatDateAr(start);
+  const e = formatDateAr(end);
+  if (s && e) {
+    const startShort = s.replace(/\s*2026\s*$/, '').trim();
+    return `${startShort} – ${e}`;
+  }
+  if (s) return s;
+  if (e) return e;
+  return '—';
+}
+
+function parseDomains(course) {
+  if (Array.isArray(course?.domains) && course.domains.length) {
+    return course.domains.map((d) => String(d).trim()).filter(Boolean);
+  }
+  return String(course?.field || '')
+    .split(/[،,•|]/)
+    .map((d) => d.trim())
+    .filter(Boolean);
+}
+
+function MultilineBlock({ text }) {
+  if (!text) return <p className="muted">—</p>;
+  const lines = String(text)
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  if (lines.length <= 1) return <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{text}</p>;
+  return (
+    <ul style={{ margin: 0, paddingInlineStart: '1.25rem', lineHeight: 1.85 }}>
+      {lines.map((line) => (
+        <li key={line}>{line}</li>
+      ))}
+    </ul>
+  );
+}
 
 export function AdminTrainingCourseDetailPage() {
   const { programId } = useParams();
@@ -224,6 +304,24 @@ export function AdminTrainingCourseDetailPage() {
     [assessments]
   );
 
+  const domains = useMemo(() => parseDomains(course), [course]);
+  const leadTrainer = useMemo(() => {
+    if (course?.leadTrainer?.fullName) return course.leadTrainer;
+    const lead = assignments.find((a) => a.isLeadTrainer || a.is_lead_trainer);
+    if (!lead) return null;
+    return {
+      fullName:
+        lead.trainer?.full_name ||
+        lead.trainer?.fullName ||
+        lead.trainerName ||
+        null,
+      email: lead.trainer?.email || null,
+      userId: lead.trainerUserId || lead.trainer_user_id,
+    };
+  }, [course, assignments]);
+  const startLabel = formatDateAr(course?.startDate);
+  const endLabel = formatDateAr(course?.endDate);
+
   if (loading) {
     return (
       <div className="page page--dashboard page--admin" dir="rtl">
@@ -249,7 +347,24 @@ export function AdminTrainingCourseDetailPage() {
     <div className="page page--dashboard page--admin crud-page" dir="rtl">
       <AdminPageHeader
         title={course.title}
-        description={`${course.organizationName || 'مؤسسة'} · ${course.status}`}
+        description={
+          <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+            <StatusBadge variant="info">{statusLabel(course.status)}</StatusBadge>
+            <span>{course.organizationName || course.organization?.name || 'مؤسسة'}</span>
+            {course.code ? (
+              <span dir="ltr" style={{ fontFamily: 'ui-monospace, monospace' }}>
+                {course.code}
+              </span>
+            ) : null}
+            {startLabel || endLabel ? (
+              <span>
+                {startLabel || '—'}
+                {' إلى '}
+                {endLabel || '—'}
+              </span>
+            ) : null}
+          </span>
+        }
       />
 
       <p style={{ marginBottom: '0.75rem' }}>
@@ -286,62 +401,158 @@ export function AdminTrainingCourseDetailPage() {
       </div>
 
       {tab === 'overview' ? (
-        <SectionCard title="نظرة عامة">
-          <div className="auth-form__fields-grid">
-            <p>
-              <strong>الحالة:</strong> <StatusBadge variant="info">{course.status}</StatusBadge>
-            </p>
-            <p>
-              <strong>المجال:</strong> {course.field || '—'}
-            </p>
-            <p>
-              <strong>المستوى:</strong> {course.level || '—'}
-            </p>
-            <p>
-              <strong>اللغة:</strong> {course.language || '—'}
-            </p>
-            <p>
-              <strong>طريقة التدريب:</strong> {course.deliveryMode || '—'}
-            </p>
-            <p>
-              <strong>الساعات المطلوبة:</strong> {course.requiredHours ?? '—'}
-            </p>
-            <p>
-              <strong>نسبة الحضور:</strong> {course.requiredAttendancePct ?? '—'}%
-            </p>
-            <p>
-              <strong>الدفعات:</strong> {course.cohortCount ?? cohorts.length}
-            </p>
-            <p>
-              <strong>رمز الدورة:</strong> <span dir="ltr">{course.code || '—'}</span>
-            </p>
-            <p>
-              <strong>المدربون:</strong>{' '}
-              {(course.trainerCount ?? assignments.length) > 0
-                ? course.trainerCount ?? assignments.length
-                : 'لم يتم تعيين مدرب بعد'}
-            </p>
-            <p className="auth-form__span-full">
-              <strong>الوصف:</strong> {course.description || '—'}
-            </p>
-            <p className="auth-form__span-full">
-              <strong>الأهداف:</strong> {course.objectives || '—'}
-            </p>
-            <p className="auth-form__span-full">
-              <strong>المخرجات:</strong> {course.outcomes || '—'}
-            </p>
-            <p className="auth-form__span-full">
-              <strong>المتطلبات:</strong>{' '}
+        <div className="stack-lg" style={{ display: 'grid', gap: '1rem' }}>
+          <AdminStatsGrid>
+            <StatCard
+              label="مدة البرنامج"
+              value={formatDateRangeShort(course.startDate, course.endDate)}
+              icon={CalendarDays}
+            />
+            <StatCard
+              label="الساعات التدريبية"
+              value={
+                course.requiredHours != null && course.requiredHours !== ''
+                  ? `${Number(course.requiredHours)} ساعة`
+                  : '—'
+              }
+              icon={Clock3}
+            />
+            <StatCard
+              label="نسبة الحضور المطلوبة"
+              value={
+                course.requiredAttendancePct != null && course.requiredAttendancePct !== ''
+                  ? `${Number(course.requiredAttendancePct)}%`
+                  : '—'
+              }
+              icon={ClipboardCheck}
+            />
+            <StatCard
+              label="السعة"
+              value={
+                course.maxParticipants != null
+                  ? `${course.maxParticipants} متدربين`
+                  : '—'
+              }
+              icon={Users}
+            />
+          </AdminStatsGrid>
+
+          <SectionCard title="تفاصيل الدورة">
+            <div
+              className="auth-form__fields-grid"
+              style={{ alignItems: 'start' }}
+            >
+              <div className="auth-form__span-full">
+                <strong>المجالات</strong>
+                {domains.length ? (
+                  <p style={{ marginTop: '0.35rem', lineHeight: 1.8 }}>
+                    {domains.join(' • ')}
+                  </p>
+                ) : (
+                  <p className="muted" style={{ marginTop: '0.35rem' }}>
+                    —
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <strong>المدرب الأساسي</strong>
+                <p style={{ marginTop: '0.35rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                  <UserRound size={16} aria-hidden />
+                  {leadTrainer?.fullName || 'لم يتم تعيين مدرب أساسي بعد'}
+                </p>
+              </div>
+
+              <div>
+                <strong>رمز الدورة</strong>
+                <p style={{ marginTop: '0.35rem' }} dir="ltr">
+                  {course.code || '—'}
+                </p>
+              </div>
+
+              <div>
+                <strong>تاريخ البداية</strong>
+                <p style={{ marginTop: '0.35rem' }}>{startLabel || '—'}</p>
+              </div>
+              <div>
+                <strong>تاريخ النهاية</strong>
+                <p style={{ marginTop: '0.35rem' }}>{endLabel || '—'}</p>
+              </div>
+
+              {course.level ? (
+                <div>
+                  <strong>المستوى</strong>
+                  <p style={{ marginTop: '0.35rem' }}>{course.level}</p>
+                </div>
+              ) : null}
+              {course.language ? (
+                <div>
+                  <strong>اللغة</strong>
+                  <p style={{ marginTop: '0.35rem' }}>{course.language}</p>
+                </div>
+              ) : null}
+              {course.deliveryMode ? (
+                <div>
+                  <strong>طريقة التدريب</strong>
+                  <p style={{ marginTop: '0.35rem' }}>{course.deliveryMode}</p>
+                </div>
+              ) : null}
+            </div>
+          </SectionCard>
+
+          <SectionCard title="الوصف">
+            <MultilineBlock text={course.description} />
+          </SectionCard>
+
+          <SectionCard title="الأهداف">
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+              <Target size={18} aria-hidden style={{ marginTop: 4, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <MultilineBlock text={course.objectives} />
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="المخرجات">
+            <MultilineBlock text={course.outcomes} />
+          </SectionCard>
+
+          <SectionCard title="المتطلبات">
+            <p style={{ margin: 0, lineHeight: 1.8 }}>
               {[
                 course.requiresPreTest ? 'اختبار قبلي' : null,
                 course.requiresPostTest ? 'اختبار بعدي' : null,
                 course.requiresTasks !== false ? 'مهمات' : null,
+                course.requiresEvaluation ? 'تقييم نهائي' : null,
               ]
                 .filter(Boolean)
                 .join(' · ') || '—'}
             </p>
-          </div>
-        </SectionCard>
+          </SectionCard>
+
+          <SectionCard title="إدارة المحتوى">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <Button type="button" variant="primary" onClick={() => navigate(`/admin/training-courses/${programId}/edit`)}>
+                تعديل معلومات الدورة
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setTab('sessions')}>
+                إدارة الجلسات
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setTab('lectures')}>
+                إدارة المحاضرات المسجلة
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setTab('materials')}>
+                إدارة المواد التعليمية
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setTab('tasks')}>
+                إدارة المهمات
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setTab('pretest')}>
+                إدارة الاختبارات
+              </Button>
+            </div>
+          </SectionCard>
+        </div>
       ) : null}
 
       {tab === 'cohorts' ? (
@@ -550,7 +761,12 @@ export function AdminTrainingCourseDetailPage() {
             ]}
             rows={assignments.map((a) => ({
               id: a.id,
-              name: a.trainerName || a.trainer?.fullName || a.trainerUserId || a.trainer_user_id,
+              name:
+                a.trainer?.full_name ||
+                a.trainer?.fullName ||
+                a.trainerName ||
+                a.trainerUserId ||
+                a.trainer_user_id,
               lead: a.isLeadTrainer || a.is_lead_trainer ? 'نعم' : 'لا',
             }))}
             emptyTitle="لا يوجد مدربون مسندون"
@@ -804,78 +1020,26 @@ export function AdminTrainingCourseDetailPage() {
         </SectionCard>
       ) : null}
 
+      {tab === 'lectures' ? (
+        <SectionCard title="المحاضرات المسجلة">
+          <RecordedLecturesManager
+            programId={programId}
+            canManage={!readOnly}
+            sessions={(sessions || []).map((s) => ({ id: s.id, title: s.title }))}
+            viewBasePath={`/admin/training-courses/${programId}/lectures`}
+          />
+        </SectionCard>
+      ) : null}
+
+      {tab === 'materials' ? (
+        <SectionCard title="المواد التعليمية">
+          <CourseMaterialsManager programId={programId} canManage={!readOnly} />
+        </SectionCard>
+      ) : null}
+
       {tab === 'tasks' ? (
         <SectionCard title="المهمات">
-          {!readOnly ? (
-            <form
-              className="crud-form"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setBusy(true);
-                setError('');
-                try {
-                  await createTask(programId, {
-                    title: taskForm.title.trim(),
-                    instructions: taskForm.instructions || null,
-                    publish: Boolean(taskForm.publish),
-                    is_required: true,
-                  });
-                  setTaskForm({ title: '', instructions: '', publish: true });
-                  const rows = await listProgramTasks(programId);
-                  setTasks(Array.isArray(rows) ? rows : []);
-                  setMessage('تم إنشاء المهمة.');
-                } catch (err) {
-                  setError(getApiErrorMessage(err, 'تعذر إنشاء المهمة.'));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              <div className="auth-form__fields-grid">
-                <FormInput
-                  id="task-title"
-                  label="عنوان المهمة"
-                  required
-                  value={taskForm.title}
-                  onChange={(e) => setTaskForm((p) => ({ ...p, title: e.target.value }))}
-                  className="auth-form__span-full"
-                />
-                <FormTextarea
-                  id="task-instructions"
-                  label="التعليمات"
-                  value={taskForm.instructions}
-                  onChange={(e) => setTaskForm((p) => ({ ...p, instructions: e.target.value }))}
-                  className="auth-form__span-full"
-                />
-                <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={taskForm.publish}
-                    onChange={(e) => setTaskForm((p) => ({ ...p, publish: e.target.checked }))}
-                  />
-                  نشر فورًا
-                </label>
-              </div>
-              <Button type="submit" variant="primary" disabled={busy || !taskForm.title.trim()}>
-                إنشاء مهمة
-              </Button>
-            </form>
-          ) : null}
-          <DataTable
-            columns={[
-              { key: 'title', label: 'المهمة', mobileTitle: true },
-              { key: 'publishedAt', label: 'النشر' },
-              { key: 'isRequired', label: 'مطلوبة' },
-            ]}
-            rows={tasks.map((t) => ({
-              id: t.id,
-              title: t.title,
-              publishedAt: t.publishedAt ? String(t.publishedAt).slice(0, 10) : 'مسودة',
-              isRequired: t.isRequired ? 'نعم' : 'لا',
-            }))}
-            emptyTitle="لا توجد مهمات"
-            emptyDescription="أنشئ مهمة للدورة."
-          />
+          <CourseTasksManager programId={programId} canManage={!readOnly} />
         </SectionCard>
       ) : null}
 

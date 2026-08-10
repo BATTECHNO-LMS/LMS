@@ -50,6 +50,7 @@ function barChart(items, { max = 100 } = {}) {
 }
 
 function buildCover(meta, assets) {
+  const singleBrand = Boolean(assets.singleBrand || meta.singleBrand);
   const institutionLogo = assets.institutionLogoDataUri
     ? `<img class="logo logo--institution" src="${assets.institutionLogoDataUri}" alt="${escapeHtml(meta.institutionName || 'المؤسسة')}" />`
     : `<div class="logo-fallback">${escapeHtml(meta.institutionName || 'المؤسسة')}</div>`;
@@ -57,18 +58,28 @@ function buildCover(meta, assets) {
     ? `<img class="logo logo--battechno" src="${assets.battechnoLogoDataUri}" alt="BATTECHNO LMS" />`
     : `<div class="logo-fallback">BATTECHNO LMS</div>`;
 
-  return `
-  <section class="cover">
-    <div class="cover__brands">
+  const brands = singleBrand
+    ? `<div class="cover__brands cover__brands--single">
+      <div class="cover__brand cover__brand--bat">${batLogo}</div>
+    </div>`
+    : `<div class="cover__brands">
       <div class="cover__brand cover__brand--institution">${institutionLogo}</div>
       <div class="cover__brand cover__brand--bat">${batLogo}</div>
-    </div>
+    </div>`;
+
+  const executionLine = singleBrand
+    ? `<p><strong>تنفيذ وتشغيل:</strong> ${escapeHtml(meta.institutionName || meta.platformNameAr || 'BATTECHNO')} – ${escapeHtml(meta.platformName || 'BATTECHNO LMS')}</p>`
+    : `<p><strong>تنفيذ:</strong> ${escapeHtml(meta.institutionName || '—')}</p>
+      <p><strong>بالتعاون مع:</strong> ${escapeHtml(meta.platformNameAr || '')} – ${escapeHtml(meta.platformName || 'BATTECHNO LMS')}</p>`;
+
+  return `
+  <section class="cover">
+    ${brands}
     <div class="cover__ornament"></div>
     <h1 class="cover__title">${escapeHtml(meta.reportTitle || 'تقرير تدريبي')}</h1>
     <p class="cover__course">${escapeHtml(meta.courseName || '')}</p>
     <div class="cover__meta">
-      <p><strong>تنفيذ:</strong> ${escapeHtml(meta.institutionName || '—')}</p>
-      <p><strong>بالتعاون مع:</strong> ${escapeHtml(meta.platformNameAr || '')} – ${escapeHtml(meta.platformName || 'BATTECHNO LMS')}</p>
+      ${executionLine}
       <p><strong>الفترة:</strong> ${escapeHtml(meta.trainingDates?.startLabel || '—')} – ${escapeHtml(meta.trainingDates?.endLabel || '—')}</p>
       <p><strong>إجمالي الساعات:</strong> ${fmt(meta.totalHours)} ساعة تدريبية</p>
       ${meta.cohorts?.length ? `<p><strong>الدفعات:</strong> ${escapeHtml(meta.cohorts.map((c) => c.name).join('، '))}</p>` : ''}
@@ -464,11 +475,26 @@ function buildTrainingReportHtml(report, assets = {}, { printable = false } = {}
     rendered = renderGenericSections(snap, report.report_type);
   }
 
+  const singleBrandHeader = Boolean(assets.singleBrand || meta.singleBrand);
+  let headerLogosHtml;
+  if (singleBrandHeader) {
+    headerLogosHtml = assets.battechnoLogoDataUri
+      ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />`
+      : '<span>BATTECHNO</span>';
+  } else {
+    const institutionPart = assets.institutionLogoDataUri
+      ? `<img src="${assets.institutionLogoDataUri}" alt="" />`
+      : `<span>${escapeHtml(meta.institutionName || '')}</span>`;
+    const platformPart = assets.battechnoLogoDataUri
+      ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />`
+      : '<span>BATTECHNO</span>';
+    headerLogosHtml = `${institutionPart}${platformPart}`;
+  }
+
   const headerBrand = `
     <div class="page-header">
-      <div class="page-header__logos">
-        ${assets.institutionLogoDataUri ? `<img src="${assets.institutionLogoDataUri}" alt="" />` : `<span>${escapeHtml(meta.institutionName || '')}</span>`}
-        ${assets.battechnoLogoDataUri ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />` : '<span>BATTECHNO</span>'}
+      <div class="page-header__logos ${singleBrandHeader ? 'page-header__logos--single' : ''}">
+        ${headerLogosHtml}
       </div>
       <div class="page-header__text">
         <strong>${escapeHtml(meta.courseName || '')}</strong>
@@ -520,6 +546,7 @@ function buildTrainingReportHtml(report, assets = {}, { printable = false } = {}
       border: 18px solid rgba(201,162,39,.25); border-radius: 50%;
     }
     .cover__brands { display:flex; justify-content: space-between; align-items: center; gap: 24px; }
+    .cover__brands--single { justify-content: center; }
     .logo { height: 64px; width: auto; object-fit: contain; background: rgba(255,255,255,.92); padding: 8px 12px; border-radius: 10px; }
     .logo-fallback { background: rgba(255,255,255,.92); color: var(--color-primary); padding: 12px 16px; border-radius: 10px; font-weight: 700; }
     .cover__title { text-align:center; font-size: 2rem; margin: 48px 0 12px; font-weight: 800; }
@@ -527,6 +554,7 @@ function buildTrainingReportHtml(report, assets = {}, { printable = false } = {}
     .cover__meta { max-width: 520px; margin: 0 auto; background: rgba(255,255,255,.08); padding: 20px 24px; border-radius: 14px; }
     .cover__footer { display:flex; justify-content: space-between; margin-top: 48px; font-size: .9rem; opacity: .85; }
     .page-header { display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid var(--color-border); padding-bottom: 10px; margin: 18px 0 24px; }
+    .page-header__logos--single { justify-content: flex-start; }
     .page-header img { height: 28px; width: auto; object-fit: contain; margin-inline-start: 8px; }
     .page-header__logos { display:flex; align-items:center; gap: 8px; }
     .page-header__text { text-align: left; font-size: .85rem; color: #5c6675; }

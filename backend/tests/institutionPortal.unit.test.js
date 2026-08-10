@@ -38,6 +38,18 @@ describe('institution seed data', () => {
     const codes = PUBLIC_INSTITUTION_SEEDS.map((s) => s.code);
     assert.deepEqual(codes, ['CROWN_PRINCE_FOUNDATION', 'MINISTRY_OF_YOUTH']);
   });
+
+  it('defines BATTECHNO as INSTITUTION seed outside public registration catalog', () => {
+    const { BATTECHNO_INSTITUTION } = require('../src/modules/organizations/institutionSeedData');
+    assert.equal(BATTECHNO_INSTITUTION.code, 'BATTECHNO');
+    assert.equal(BATTECHNO_INSTITUTION.name, 'شركة الرجل الوطواط للتكنولوجيا – BATTECHNO');
+    assert.equal(BATTECHNO_INSTITUTION.nameEn, 'BATTECHNO');
+    assert.equal(BATTECHNO_INSTITUTION.shortName, 'BATTECHNO');
+    assert.equal(BATTECHNO_INSTITUTION.allowsPublicTraineeRegistration, false);
+    assert.equal(BATTECHNO_INSTITUTION.logoUrl, null);
+    assert.equal(BATTECHNO_INSTITUTION.branches.length, 0);
+    assert.ok(!PUBLIC_INSTITUTION_SEEDS.some((s) => s.code === 'BATTECHNO'));
+  });
 });
 
 describe('institution public registration schema', () => {

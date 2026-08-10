@@ -71,6 +71,11 @@ export async function createSession(cohortId, body) {
   return unwrapApiData(res);
 }
 
+export async function updateSession(sessionId, body) {
+  const res = await apiClient.patch(`${base}/sessions/${sessionId}`, body);
+  return unwrapApiData(res);
+}
+
 export async function openAttendanceWindow(sessionId, body = {}) {
   const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance-window`, body);
   return unwrapApiData(res);
@@ -78,6 +83,16 @@ export async function openAttendanceWindow(sessionId, body = {}) {
 
 export async function listSessionAttendance(sessionId) {
   const res = await apiClient.get(`${base}/sessions/${sessionId}/attendance`);
+  return unwrapApiData(res);
+}
+
+export async function setAttendanceStatus(sessionId, body) {
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance/status`, body);
+  return unwrapApiData(res);
+}
+
+export async function markAllPresent(sessionId, body = {}) {
+  const res = await apiClient.post(`${base}/sessions/${sessionId}/attendance/mark-all-present`, body);
   return unwrapApiData(res);
 }
 
@@ -175,6 +190,56 @@ export async function listProgramMaterials(programId) {
 
 export async function createProgramMaterial(programId, body) {
   const res = await apiClient.post(`${base}/programs/${programId}/materials`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateProgramMaterial(materialId, body) {
+  const res = await apiClient.patch(`${base}/materials/${materialId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function deleteProgramMaterial(materialId) {
+  const res = await apiClient.delete(`${base}/materials/${materialId}`);
+  return unwrapApiData(res);
+}
+
+export async function getMaterialPlaybackUrl(materialId) {
+  const res = await apiClient.get(`${base}/materials/${materialId}/playback-url`);
+  return unwrapApiData(res);
+}
+
+export async function listRecordedLectures(programId) {
+  const res = await apiClient.get(`${base}/programs/${programId}/recorded-lectures`);
+  return asList(unwrapApiData(res));
+}
+
+export async function createRecordedLecture(programId, body) {
+  const res = await apiClient.post(`${base}/programs/${programId}/recorded-lectures`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateRecordedLecture(lectureId, body) {
+  const res = await apiClient.patch(`${base}/recorded-lectures/${lectureId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function publishRecordedLecture(lectureId, body = { publish: true }) {
+  const res = await apiClient.post(`${base}/recorded-lectures/${lectureId}/publish`, body);
+  return unwrapApiData(res);
+}
+
+export async function deleteRecordedLecture(lectureId) {
+  const res = await apiClient.delete(`${base}/recorded-lectures/${lectureId}`);
+  return unwrapApiData(res);
+}
+
+export async function listProgramTasksDetailed(programId) {
+  const res = await apiClient.get(`${base}/programs/${programId}/tasks/detailed`);
+  return asList(unwrapApiData(res));
+}
+
+export async function updateTask(taskId, body) {
+  const res = await apiClient.patch(`${base}/tasks/${taskId}`, body);
   return unwrapApiData(res);
 }
 

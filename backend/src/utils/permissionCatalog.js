@@ -142,6 +142,7 @@ function defaultRolePermissionMap() {
     'assessments.create',
     'assessments.update',
     'assessments.manage',
+    'certificates.view',
     'reports.view',
     'notifications.view',
     'notifications.update',

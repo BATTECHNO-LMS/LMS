@@ -19,6 +19,7 @@ const {
   assertTrainerPermission,
   TRAINER_PERMISSION_KEYS,
 } = require('./trainerScope');
+const { resolveTrainerAssignmentPermissions } = require('./trainerPermissionPolicy');
 
 function requireOrgAdmin(requester, organizationId) {
   assertOrganizationAccess(requester, organizationId);
@@ -208,21 +209,7 @@ async function assignTrainerToCourse(requester, organizationId, body) {
     },
   });
 
-  const permDefaults = {
-    is_lead_trainer: body.is_lead_trainer ?? false,
-    can_manage_sessions: body.can_manage_sessions ?? true,
-    can_manage_attendance: body.can_manage_attendance ?? true,
-    can_manage_materials: body.can_manage_materials ?? true,
-    can_manage_tasks: body.can_manage_tasks ?? true,
-    can_grade_tasks: body.can_grade_tasks ?? true,
-    can_manage_assessments: body.can_manage_assessments ?? true,
-    can_grade_assessments: body.can_grade_assessments ?? true,
-    can_view_trainees: body.can_view_trainees ?? true,
-    can_view_progress: body.can_view_progress ?? true,
-    can_view_reports: body.can_view_reports ?? true,
-    can_finalize_training: body.can_finalize_training ?? false,
-    can_send_course_announcements: body.can_send_course_announcements ?? false,
-  };
+  const permDefaults = resolveTrainerAssignmentPermissions(body);
 
   let row;
   if (existing) {
@@ -499,10 +486,36 @@ async function getTrainerCourse(requester, programId) {
 
   const atRiskTrainees = trainees.filter((t) => t.progress?.atRisk);
 
+  const programRow = await prisma.training_programs.findUnique({
+    where: { id: programId },
+  });
+  const programFull = programRow
+    ? {
+        id: programRow.id,
+        title: programRow.title,
+        status: programRow.status,
+        type: programRow.type,
+        organizationId: programRow.organization_id,
+        code: programRow.code,
+        description: programRow.description,
+        objectives: programRow.objectives,
+        outcomes: programRow.outcomes,
+        field: programRow.field,
+        level: programRow.level,
+        language: programRow.language,
+        deliveryMode: programRow.delivery_mode,
+        startDate: programRow.start_date,
+        endDate: programRow.end_date,
+        requiredHours: programRow.required_hours,
+        requiredAttendancePct: programRow.required_attendance_pct,
+        maxParticipants: programRow.max_participants,
+      }
+    : assignment?.program || null;
+
   return {
     assignment,
     assignments: rows.map(mapAssignment),
-    program: assignment?.program || null,
+    program: programFull,
     organization: assignment?.organization || null,
     permissions,
     isLeadTrainer,

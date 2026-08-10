@@ -56,6 +56,17 @@ function mapProgramRow(r, organization = null) {
     title: r.title,
     description: r.description,
     shortDescription: settings.shortDescription || null,
+    titleEn: settings.titleEn || null,
+    targetAudience: settings.targetAudience || null,
+    prerequisites: settings.prerequisites || null,
+    venue: settings.venue || null,
+    meetingUrl: settings.meetingUrl || null,
+    expectedSessions: settings.expectedSessions ?? null,
+    registrationOpenAt: settings.registrationOpenAt || null,
+    registrationCloseAt: settings.registrationCloseAt || null,
+    enrollmentOpen: settings.enrollmentOpen ?? null,
+    visibilitySetting: settings.visibility || null,
+    timezone: settings.timezone || null,
     field: r.field,
     objectives: r.objectives,
     outcomes: r.outcomes,
@@ -237,11 +248,49 @@ async function getProgram(requester, programId) {
     await assertTrainerProgramAccess(requester, programId);
   }
   const reqMap = Object.fromEntries((row.training_requirements || []).map((r) => [r.code, r]));
+
+  const leadAssignment = await prisma.training_trainer_assignments.findFirst({
+    where: {
+      training_program_id: programId,
+      is_active: true,
+      revoked_at: null,
+      is_lead_trainer: true,
+    },
+    orderBy: { assigned_at: 'asc' },
+  });
+  let leadTrainer = null;
+  if (leadAssignment) {
+    const leadUser = await prisma.users.findUnique({
+      where: { id: leadAssignment.trainer_user_id },
+      select: { id: true, full_name: true, email: true, status: true },
+    });
+    if (leadUser) {
+      leadTrainer = {
+        userId: leadUser.id,
+        fullName: leadUser.full_name,
+        email: leadUser.email,
+        status: leadUser.status,
+        assignmentId: leadAssignment.id,
+        isLeadTrainer: true,
+      };
+    }
+  }
+
+  const settings = row.settings_json && typeof row.settings_json === 'object' ? row.settings_json : {};
+  const domains = Array.isArray(settings.domains)
+    ? settings.domains.map((d) => String(d).trim()).filter(Boolean)
+    : String(row.field || '')
+        .split(/[،,•|]/)
+        .map((d) => d.trim())
+        .filter(Boolean);
+
   return {
     ...mapProgramRow(row, row.organizations),
     organization: row.organizations,
     cohortCount: row._count?.training_cohorts || 0,
     trainerCount: row._count?.training_trainer_assignments || 0,
+    leadTrainer,
+    domains,
     requirements: (row.training_requirements || []).map((r) => ({
       code: r.code,
       label: r.label,
@@ -340,37 +389,131 @@ async function updateProgram(requester, programId, body = {}) {
   if (!existing) throw new ApiError(404, 'Program not found');
   requireOrgWrite(requester);
   assertOrganizationAccess(requester, existing.organization_id);
-  if (isTrainerOnly(requester)) {
-    throw new ApiError(403, 'تحديث إعدادات الدورة متاح لمسؤول المؤسسة فقط.');
+
+  const trainerOnly = isTrainerOnly(requester);
+  if (trainerOnly) {
+    await assertTrainerProgramAccess(requester, programId);
   }
+
   const payload = body && typeof body === 'object' ? body : {};
+
+  // Trainers may edit operational course fields for assigned programs only.
+  // High-risk admin actions remain blocked (status transitions / publish / cancel / archive).
+  if (trainerOnly) {
+    const blockedKeys = ['status', 'organization_id', 'type', 'code'];
+    for (const key of blockedKeys) {
+      if (payload[key] !== undefined) {
+        throw new ApiError(
+          403,
+          'لا يمكن للمدرب تغيير الحالة الإدارية أو ملكية الدورة. حدّث التفاصيل التشغيلية فقط.',
+          null,
+          'TRAINER_ADMIN_SETTING_FORBIDDEN'
+        );
+      }
+    }
+  }
+
+  const prevSettings =
+    existing.settings_json && typeof existing.settings_json === 'object' ? existing.settings_json : {};
+  const nextSettings = { ...prevSettings };
+  let settingsTouched = false;
+
+  const settingsMap = [
+    ['short_description', 'shortDescription'],
+    ['title_en', 'titleEn'],
+    ['target_audience', 'targetAudience'],
+    ['prerequisites', 'prerequisites'],
+    ['venue', 'venue'],
+    ['meeting_url', 'meetingUrl'],
+    ['online_meeting', 'meetingUrl'],
+    ['expected_sessions', 'expectedSessions'],
+    ['registration_open_at', 'registrationOpenAt'],
+    ['registration_close_at', 'registrationCloseAt'],
+    ['enrollment_open', 'enrollmentOpen'],
+    ['visibility', 'visibility'],
+    ['timezone', 'timezone'],
+  ];
+  for (const [bodyKey, settingsKey] of settingsMap) {
+    if (payload[bodyKey] !== undefined) {
+      nextSettings[settingsKey] = payload[bodyKey];
+      settingsTouched = true;
+    }
+  }
+  if (payload.domains !== undefined) {
+    const domains = Array.isArray(payload.domains)
+      ? payload.domains.map((d) => String(d).trim()).filter(Boolean)
+      : String(payload.domains || '')
+          .split(/[،,•|]/)
+          .map((d) => d.trim())
+          .filter(Boolean);
+    nextSettings.domains = domains;
+    settingsTouched = true;
+    if (payload.field === undefined) {
+      payload.field = domains.join('، ') || null;
+    }
+  }
+
+  const changed = {};
+  const track = (key, oldVal, newVal) => {
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      changed[key] = { from: oldVal ?? null, to: newVal ?? null };
+    }
+  };
+
+  const data = {
+    ...(payload.title !== undefined ? { title: payload.title } : {}),
+    ...(payload.description !== undefined ? { description: payload.description } : {}),
+    ...(payload.field !== undefined ? { field: payload.field } : {}),
+    ...(payload.objectives !== undefined ? { objectives: payload.objectives } : {}),
+    ...(payload.outcomes !== undefined ? { outcomes: payload.outcomes } : {}),
+    ...(payload.level !== undefined ? { level: payload.level } : {}),
+    ...(payload.language !== undefined ? { language: payload.language } : {}),
+    ...(payload.delivery_mode !== undefined ? { delivery_mode: payload.delivery_mode } : {}),
+    ...(!trainerOnly && payload.status !== undefined ? { status: payload.status } : {}),
+    ...(payload.required_hours !== undefined ? { required_hours: payload.required_hours } : {}),
+    ...(payload.required_attendance_pct !== undefined
+      ? { required_attendance_pct: payload.required_attendance_pct }
+      : {}),
+    ...(payload.max_participants !== undefined
+      ? { max_participants: payload.max_participants }
+      : {}),
+    ...(payload.start_date !== undefined
+      ? { start_date: payload.start_date ? new Date(payload.start_date) : null }
+      : {}),
+    ...(payload.end_date !== undefined
+      ? { end_date: payload.end_date ? new Date(payload.end_date) : null }
+      : {}),
+    ...(settingsTouched ? { settings_json: nextSettings } : {}),
+    updated_at: new Date(),
+  };
+
+  if (payload.title !== undefined) track('title', existing.title, payload.title);
+  if (payload.description !== undefined) track('description', existing.description, payload.description);
+  if (payload.field !== undefined) track('field', existing.field, payload.field);
+  if (payload.objectives !== undefined) track('objectives', existing.objectives, payload.objectives);
+  if (payload.outcomes !== undefined) track('outcomes', existing.outcomes, payload.outcomes);
+  if (payload.level !== undefined) track('level', existing.level, payload.level);
+  if (payload.language !== undefined) track('language', existing.language, payload.language);
+  if (payload.delivery_mode !== undefined) {
+    track('delivery_mode', existing.delivery_mode, payload.delivery_mode);
+  }
+  if (!trainerOnly && payload.status !== undefined) track('status', existing.status, payload.status);
+  if (payload.required_hours !== undefined) {
+    track('required_hours', existing.required_hours, payload.required_hours);
+  }
+  if (payload.required_attendance_pct !== undefined) {
+    track('required_attendance_pct', existing.required_attendance_pct, payload.required_attendance_pct);
+  }
+  if (payload.max_participants !== undefined) {
+    track('max_participants', existing.max_participants, payload.max_participants);
+  }
+  if (payload.start_date !== undefined) track('start_date', existing.start_date, payload.start_date);
+  if (payload.end_date !== undefined) track('end_date', existing.end_date, payload.end_date);
+  if (settingsTouched) track('settings', prevSettings, nextSettings);
+
   const row = await prisma.training_programs.update({
     where: { id: programId },
-    data: {
-      ...(payload.title !== undefined ? { title: payload.title } : {}),
-      ...(payload.description !== undefined ? { description: payload.description } : {}),
-      ...(payload.field !== undefined ? { field: payload.field } : {}),
-      ...(payload.objectives !== undefined ? { objectives: payload.objectives } : {}),
-      ...(payload.outcomes !== undefined ? { outcomes: payload.outcomes } : {}),
-      ...(payload.level !== undefined ? { level: payload.level } : {}),
-      ...(payload.language !== undefined ? { language: payload.language } : {}),
-      ...(payload.delivery_mode !== undefined ? { delivery_mode: payload.delivery_mode } : {}),
-      ...(payload.status !== undefined ? { status: payload.status } : {}),
-      ...(payload.required_hours !== undefined ? { required_hours: payload.required_hours } : {}),
-      ...(payload.required_attendance_pct !== undefined
-        ? { required_attendance_pct: payload.required_attendance_pct }
-        : {}),
-      ...(payload.max_participants !== undefined
-        ? { max_participants: payload.max_participants }
-        : {}),
-      ...(payload.start_date !== undefined
-        ? { start_date: payload.start_date ? new Date(payload.start_date) : null }
-        : {}),
-      ...(payload.end_date !== undefined
-        ? { end_date: payload.end_date ? new Date(payload.end_date) : null }
-        : {}),
-      updated_at: new Date(),
-    },
+    data,
   });
   const touchesRequirements =
     payload.requires_pre_test !== undefined ||
@@ -413,6 +556,29 @@ async function updateProgram(requester, programId, body = {}) {
           : byCode.PRE_TEST?.threshold_json?.pass_score ??
             byCode.POST_TEST?.threshold_json?.pass_score ??
             null,
+    });
+    track('requirements', true, {
+      requires_pre_test: payload.requires_pre_test,
+      requires_post_test: payload.requires_post_test,
+      requires_tasks: payload.requires_tasks,
+      requires_final_task: payload.requires_final_task,
+      requires_evaluation: payload.requires_evaluation,
+      pass_score: payload.pass_score,
+    });
+  }
+
+  if (Object.keys(changed).length) {
+    await recordAudit({
+      userId: requester.userId,
+      organizationId: existing.organization_id,
+      actionType: 'COURSE_UPDATED',
+      entityType: 'training_program',
+      entityId: row.id,
+      oldValues: Object.fromEntries(Object.entries(changed).map(([k, v]) => [k, v.from])),
+      newValues: {
+        ...Object.fromEntries(Object.entries(changed).map(([k, v]) => [k, v.to])),
+        role: trainerOnly ? 'trainer' : requester.roles?.includes('admin') ? 'admin' : 'super_admin',
+      },
     });
   }
   return getProgram(requester, row.id);
@@ -728,6 +894,127 @@ async function createSession(requester, cohortId, body) {
   return { id: row.id, title: row.title, startsAt: row.starts_at, endsAt: row.ends_at };
 }
 
+async function updateSession(requester, sessionId, body = {}) {
+  const session = await prisma.training_sessions.findUnique({
+    where: { id: sessionId },
+    include: { training_cohorts: true },
+  });
+  if (!session) throw new ApiError(404, 'Session not found');
+  requireOrgWrite(requester);
+  assertOrganizationAccess(requester, session.training_cohorts.organization_id);
+  await assertTrainerCohortAccess(requester, session.cohort_id, 'can_manage_sessions');
+
+  const payload = body && typeof body === 'object' ? body : {};
+  const row = await prisma.training_sessions.update({
+    where: { id: sessionId },
+    data: {
+      ...(payload.title !== undefined ? { title: payload.title } : {}),
+      ...(payload.description !== undefined ? { description: payload.description } : {}),
+      ...(payload.starts_at !== undefined ? { starts_at: new Date(payload.starts_at) } : {}),
+      ...(payload.ends_at !== undefined ? { ends_at: new Date(payload.ends_at) } : {}),
+      ...(payload.hours !== undefined ? { hours: payload.hours } : {}),
+      ...(payload.session_type !== undefined ? { session_type: payload.session_type } : {}),
+      ...(payload.meeting_url !== undefined ? { meeting_url: payload.meeting_url } : {}),
+      ...(payload.location !== undefined ? { location: payload.location } : {}),
+      ...(payload.status !== undefined ? { status: payload.status } : {}),
+      ...(payload.attendance_required !== undefined
+        ? { attendance_required: Boolean(payload.attendance_required) }
+        : {}),
+      updated_at: new Date(),
+    },
+  });
+
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: session.training_cohorts.organization_id,
+    actionType: 'TRAINING_SESSION_UPDATED',
+    entityType: 'training_session',
+    entityId: row.id,
+    newValues: {
+      title: row.title,
+      status: row.status,
+      startsAt: row.starts_at,
+      endsAt: row.ends_at,
+    },
+  });
+
+  return {
+    id: row.id,
+    title: row.title,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    status: row.status,
+    location: row.location,
+    meetingUrl: row.meeting_url,
+    hours: row.hours,
+  };
+}
+
+async function setAttendanceStatus(requester, sessionId, body = {}) {
+  const session = await prisma.training_sessions.findUnique({
+    where: { id: sessionId },
+    include: { training_cohorts: true },
+  });
+  if (!session) throw new ApiError(404, 'Session not found');
+  requireOrgWrite(requester);
+  assertOrganizationAccess(requester, session.training_cohorts.organization_id);
+  await assertTrainerCohortAccess(requester, session.cohort_id, 'can_manage_attendance');
+
+  const enrollmentId = body.enrollment_id;
+  const status = String(body.status || '').trim().toLowerCase();
+  const allowed = new Set(['present', 'absent', 'late', 'excused']);
+  if (!enrollmentId || !allowed.has(status)) {
+    throw new ApiError(400, 'enrollment_id وحالة حضور صالحة مطلوبان (present|absent|late|excused).');
+  }
+
+  const enrollment = await prisma.training_enrollments.findFirst({
+    where: { id: enrollmentId, cohort_id: session.cohort_id },
+  });
+  if (!enrollment) throw new ApiError(404, 'التسجيل غير موجود في دفعة هذه الجلسة.');
+
+  const now = new Date();
+  const record = await prisma.training_attendance_records.upsert({
+    where: {
+      session_id_enrollment_id: { session_id: sessionId, enrollment_id: enrollmentId },
+    },
+    create: {
+      session_id: sessionId,
+      enrollment_id: enrollmentId,
+      user_id: enrollment.user_id,
+      status,
+      marked_via: 'TRAINER_MANUAL',
+      marked_by: requester.userId,
+      confirmed_at: now,
+      reason: body.note || body.reason || null,
+    },
+    update: {
+      status,
+      marked_via: 'TRAINER_MANUAL',
+      marked_by: requester.userId,
+      reason: body.note || body.reason || null,
+      confirmed_at: now,
+      updated_at: now,
+    },
+  });
+
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: session.training_cohorts.organization_id,
+    actionType: 'TRAINING_ATTENDANCE_SET',
+    entityType: 'training_attendance_record',
+    entityId: record.id,
+    newValues: { sessionId, enrollmentId, status },
+  });
+
+  return {
+    id: record.id,
+    sessionId,
+    enrollmentId,
+    status: record.status,
+    markedVia: record.marked_via,
+  };
+}
+
 async function openAttendanceWindow(requester, sessionId, body = {}) {
   const session = await prisma.training_sessions.findUnique({
     where: { id: sessionId },
@@ -914,6 +1201,14 @@ async function createTask(requester, programId, body) {
   requireOrgWrite(requester);
   assertOrganizationAccess(requester, program.organization_id);
   await assertTrainerProgramAccess(requester, programId, 'can_manage_tasks');
+  const settings = {};
+  if (Array.isArray(body.external_links)) settings.externalLinks = body.external_links;
+  if (Array.isArray(body.allowed_file_types)) settings.allowedFileTypes = body.allowed_file_types;
+  if (body.attachment_url) settings.attachmentUrl = body.attachment_url;
+  if (body.attachment_storage_key) settings.attachmentStorageKey = body.attachment_storage_key;
+  if (body.attachment_file_id) settings.attachmentFileId = body.attachment_file_id;
+  if (body.settings && typeof body.settings === 'object') Object.assign(settings, body.settings);
+
   const row = await prisma.training_tasks.create({
     data: {
       program_id: programId,
@@ -928,7 +1223,20 @@ async function createTask(requester, programId, body) {
       max_attempts: body.max_attempts ?? 3,
       published_at: body.publish ? new Date() : null,
       due_at: body.due_at ? new Date(body.due_at) : null,
+      settings_json: Object.keys(settings).length ? settings : undefined,
       created_by: requester.userId,
+    },
+  });
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: program.organization_id,
+    actionType: 'TASK_CREATED',
+    entityType: 'training_task',
+    entityId: row.id,
+    newValues: {
+      title: row.title,
+      published: Boolean(row.published_at),
+      programId,
     },
   });
   if (row.published_at) {
@@ -939,7 +1247,7 @@ async function createTask(requester, programId, body) {
       templateVars: { task_title: row.title },
     }).catch(() => null);
   }
-  return { id: row.id, title: row.title, isFinalTask: row.is_final_task };
+  return { id: row.id, title: row.title, isFinalTask: row.is_final_task, isPublished: Boolean(row.published_at) };
 }
 
 async function submitTask(requester, taskId, body) {
@@ -1403,7 +1711,11 @@ async function getEnrollmentCertificate(requester, enrollmentId) {
   assertOrganizationAccess(requester, enrollment.organization_id);
   const isOwner = enrollment.user_id === requester.userId;
   if (!isOwner && !isSystemWideAdmin(requester) && !requester.roles?.includes('admin')) {
-    throw new ApiError(403, 'Forbidden', null, 'ROLE_NOT_ALLOWED');
+    if (isTrainerOnly(requester)) {
+      await assertTrainerCohortAccess(requester, enrollment.cohort_id, 'can_view_reports');
+    } else {
+      throw new ApiError(403, 'Forbidden', null, 'ROLE_NOT_ALLOWED');
+    }
   }
   const row = await prisma.training_certificates.findFirst({
     where: { enrollment_id: enrollmentId, status: 'ISSUED' },
@@ -1463,7 +1775,11 @@ async function getTraineeProgramDetail(requester, programId) {
       },
     }),
     prisma.training_materials.findMany({
-      where: { program_id: programId, is_published: true },
+      where: {
+        program_id: programId,
+        is_published: true,
+        OR: [{ available_from: null }, { available_from: { lte: new Date() } }],
+      },
       orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
     }),
     prisma.training_certificates.findFirst({
@@ -1573,14 +1889,31 @@ async function getTraineeProgramDetail(requester, programId) {
     })),
     materials: contentLocked
       ? []
-      : materials.map((m) => ({
-          id: m.id,
-          title: m.title,
-          description: m.description,
-          materialType: m.material_type,
-          url: m.url,
-          visibility: m.visibility,
-        })),
+      : materials
+          .filter((m) => m.material_type !== 'RECORDED_LECTURE')
+          .map((m) => ({
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            materialType: m.material_type,
+            url: m.url,
+            hasFile: Boolean(m.storage_key || m.file_id),
+            visibility: m.visibility,
+          })),
+    recordedLectures: contentLocked
+      ? []
+      : materials
+          .filter((m) => m.material_type === 'RECORDED_LECTURE')
+          .map((m) => ({
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            durationSeconds: m.duration_seconds,
+            sessionId: m.session_id,
+            hasFile: Boolean(m.storage_key || m.file_id),
+            hasExternalUrl: Boolean(m.url),
+            sortOrder: m.sort_order,
+          })),
     certificate: certificate
       ? {
           id: certificate.id,
@@ -1593,87 +1926,64 @@ async function getTraineeProgramDetail(requester, programId) {
 }
 
 async function listProgramMaterials(requester, programId) {
-  const program = await prisma.training_programs.findUnique({ where: { id: programId } });
-  if (!program || program.type !== 'TRAINING_COURSE') {
-    throw new ApiError(404, 'الدورة غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');
-  }
-  assertOrganizationAccess(requester, program.organization_id);
-  const isLearner =
-    requester.roles?.includes('trainee') || requester.roles?.includes('student');
-  if (isLearner && !isSystemWideAdmin(requester) && !requester.roles?.includes('admin')) {
-    const enrolled = await prisma.training_enrollments.findFirst({
-      where: {
-        user_id: requester.userId,
-        organization_id: program.organization_id,
-        training_cohorts: { program_id: programId },
-        status: { in: ['ACTIVE', 'APPROVED', 'REQUIREMENTS_COMPLETED', 'COMPLETED'] },
-      },
-    });
-    if (!enrolled) {
-      throw new ApiError(403, 'COURSE_ENROLLMENT_REQUIRED', null, 'COURSE_ENROLLMENT_REQUIRED');
-    }
-  } else if (isTrainerOnly(requester)) {
-    await assertTrainerProgramAccess(requester, programId, 'can_manage_materials');
-  }
-  const rows = await prisma.training_materials.findMany({
-    where: {
-      program_id: programId,
-      ...(isLearner && !isSystemWideAdmin(requester) && !requester.roles?.includes('admin')
-        ? { is_published: true }
-        : {}),
-    },
-    orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
-  });
-  return rows.map((m) => ({
-    id: m.id,
-    title: m.title,
-    description: m.description,
-    materialType: m.material_type,
-    url: m.url,
-    isPublished: m.is_published,
-    visibility: m.visibility,
-    cohortId: m.cohort_id,
-    sessionId: m.session_id,
-  }));
+  const courseContent = require('./courseContent.service');
+  return courseContent.listProgramMaterials(requester, programId, { excludeRecordedLectures: true });
 }
 
 async function createProgramMaterial(requester, programId, body = {}) {
-  const program = await prisma.training_programs.findUnique({ where: { id: programId } });
-  if (!program || program.type !== 'TRAINING_COURSE') {
-    throw new ApiError(404, 'الدورة غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');
-  }
-  requireOrgWrite(requester);
-  assertOrganizationAccess(requester, program.organization_id);
-  await assertTrainerProgramAccess(requester, programId, 'can_manage_materials');
-  if (!body.title?.trim()) throw new ApiError(400, 'عنوان المادة مطلوب');
-  if (!body.url?.trim() && !body.storage_key) {
-    throw new ApiError(400, 'يلزم رابط أو ملف للمادة التدريبية');
-  }
-  const row = await prisma.training_materials.create({
-    data: {
-      program_id: programId,
-      organization_id: program.organization_id,
-      cohort_id: body.cohort_id || null,
-      session_id: body.session_id || null,
-      title: body.title.trim(),
-      description: body.description || null,
-      material_type: body.material_type || 'LINK',
-      url: body.url || null,
-      storage_key: body.storage_key || null,
-      mime_type: body.mime_type || null,
-      visibility: body.visibility || 'ENROLLED',
-      is_published: body.is_published !== false,
-      sort_order: Number(body.sort_order || 0),
-      created_by: requester.userId,
-    },
-  });
-  return {
-    id: row.id,
-    title: row.title,
-    url: row.url,
-    materialType: row.material_type,
-    isPublished: row.is_published,
-  };
+  const courseContent = require('./courseContent.service');
+  return courseContent.createProgramMaterial(requester, programId, body);
+}
+
+async function updateProgramMaterial(requester, materialId, body = {}) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.updateProgramMaterial(requester, materialId, body);
+}
+
+async function deleteProgramMaterial(requester, materialId) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.deleteProgramMaterial(requester, materialId);
+}
+
+async function listRecordedLectures(requester, programId) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.listRecordedLectures(requester, programId);
+}
+
+async function createRecordedLecture(requester, programId, body = {}) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.createRecordedLecture(requester, programId, body);
+}
+
+async function updateRecordedLecture(requester, lectureId, body = {}) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.updateRecordedLecture(requester, lectureId, body);
+}
+
+async function publishRecordedLecture(requester, lectureId, body = {}) {
+  const courseContent = require('./courseContent.service');
+  const publish = body?.publish !== false && body?.unpublish !== true;
+  return courseContent.publishRecordedLecture(requester, lectureId, publish);
+}
+
+async function deleteRecordedLecture(requester, lectureId) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.deleteRecordedLecture(requester, lectureId);
+}
+
+async function getMaterialPlaybackUrl(requester, materialId) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.getMaterialPlaybackUrl(requester, materialId);
+}
+
+async function updateTask(requester, taskId, body = {}) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.updateTask(requester, taskId, body);
+}
+
+async function listProgramTasksDetailed(requester, programId) {
+  const courseContent = require('./courseContent.service');
+  return courseContent.listProgramTasksDetailed(requester, programId);
 }
 
 async function publishProgram(requester, programId) {
@@ -1843,6 +2153,8 @@ module.exports = {
   importEnrollmentsPreview,
   importEnrollmentsCommit,
   createSession,
+  updateSession,
+  setAttendanceStatus,
   listCohortSessions,
   openAttendanceWindow,
   confirmAttendance,
@@ -1876,6 +2188,16 @@ module.exports = {
   listSessionAttendance,
   listProgramMaterials,
   createProgramMaterial,
+  updateProgramMaterial,
+  deleteProgramMaterial,
+  listRecordedLectures,
+  createRecordedLecture,
+  updateRecordedLecture,
+  publishRecordedLecture,
+  deleteRecordedLecture,
+  getMaterialPlaybackUrl,
+  updateTask,
+  listProgramTasksDetailed,
   publishProgram,
   getProgramEvaluation,
   getEnrollmentEvaluation,

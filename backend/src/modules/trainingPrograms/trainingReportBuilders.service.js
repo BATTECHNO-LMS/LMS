@@ -72,7 +72,10 @@ async function loadProgramContext(programId, { cohortId } = {}) {
       platformName: 'BATTECHNO LMS',
       platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
       institutionName: program.organizations?.name || null,
-      institutionLogoUrl: program.organizations?.logo_url || null,
+      institutionCode: program.organizations?.code || null,
+      institutionLogoUrl:
+        program.organizations?.code === 'BATTECHNO' ? null : program.organizations?.logo_url || null,
+      singleBrand: program.organizations?.code === 'BATTECHNO',
       reportTitle: null,
     },
   };
@@ -89,13 +92,16 @@ function formatDateAr(value) {
 
 function metaCover(ctx, reportType, extras = {}) {
   const { program, organization, cohorts, trainers, branches } = ctx;
+  const singleBrand = organization?.code === 'BATTECHNO';
   return {
     reportType,
     reportTitle: REPORT_TYPE_TITLES_AR[reportType] || reportType,
     courseName: program.title,
     courseCode: program.code || null,
     institutionName: organization?.name || null,
-    institutionLogoUrl: organization?.logo_url || null,
+    institutionCode: organization?.code || null,
+    institutionLogoUrl: singleBrand ? null : organization?.logo_url || null,
+    singleBrand,
     platformName: 'BATTECHNO LMS',
     platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
     branches: branches.map((b) => b.name),
