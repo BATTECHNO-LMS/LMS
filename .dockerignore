@@ -1,5 +1,7 @@
 node_modules
 npm-debug.log*
+dist
+build
 coverage
 .git
 .DS_Store
@@ -7,4 +9,6 @@ coverage
 .env.*
 !.env.example
 uploads
+storage
 *.log
+.deploy-tools

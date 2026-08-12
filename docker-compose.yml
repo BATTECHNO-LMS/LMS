@@ -1,0 +1,47 @@
+# Production stack for BATTECHNO LMS (host Nginx terminates TLS).
+# Backend uses external DATABASE_URL (e.g. Neon) from .env — no local Postgres service.
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: battechno-lms-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      TRUST_PROXY: "true"
+    ports:
+      - "127.0.0.1:4400:4000"
+    volumes:
+      - ./storage/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Same-origin API via Nginx proxy (/api → backend)
+        VITE_API_BASE_URL: ""
+        VITE_APP_ORIGINS: "https://lms.battechno.com,https://www.lms.battechno.com"
+    container_name: battechno-lms-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8080:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
