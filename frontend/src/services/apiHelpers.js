@@ -75,10 +75,24 @@ const TRAINING_ERROR_AR = {
  * @param {unknown} err
  * @param {string} [fallback]
  */
+export function isCanceledRequest(err) {
+  return (
+    err?.code === 'ERR_CANCELED' ||
+    err?.name === 'CanceledError' ||
+    err?.name === 'AbortError'
+  );
+}
+
 export function getApiErrorMessage(err, fallback = 'Request failed') {
+  if (isCanceledRequest(err)) {
+    return fallback;
+  }
   if (!err?.response) {
     if (err && typeof err === 'object' && err.code && TRAINING_ERROR_AR[err.code]) {
       return TRAINING_ERROR_AR[err.code];
+    }
+    if (err?.code === 'ECONNABORTED') {
+      return 'انتهت مهلة الاتصال بالمنصة. حاول مرة أخرى.';
     }
     return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
   }

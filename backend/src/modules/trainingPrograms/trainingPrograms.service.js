@@ -211,26 +211,27 @@ async function syncProgramRequirements(programId, body = {}) {
       is_required: body.requires_evaluation === true,
     },
   ];
-  for (let i = 0; i < defs.length; i += 1) {
-    const d = defs[i];
-    await prisma.training_requirements.upsert({
-      where: { program_id_code: { program_id: programId, code: d.code } },
-      create: {
-        program_id: programId,
-        code: d.code,
-        label: d.label,
-        is_required: d.is_required,
-        threshold_json: d.threshold_json ?? undefined,
-        sort_order: i,
-      },
-      update: {
-        is_required: d.is_required,
-        threshold_json: d.threshold_json ?? undefined,
-        sort_order: i,
-        updated_at: new Date(),
-      },
-    });
-  }
+  await Promise.all(
+    defs.map((d, i) =>
+      prisma.training_requirements.upsert({
+        where: { program_id_code: { program_id: programId, code: d.code } },
+        create: {
+          program_id: programId,
+          code: d.code,
+          label: d.label,
+          is_required: d.is_required,
+          threshold_json: d.threshold_json ?? undefined,
+          sort_order: i,
+        },
+        update: {
+          is_required: d.is_required,
+          threshold_json: d.threshold_json ?? undefined,
+          sort_order: i,
+          updated_at: new Date(),
+        },
+      })
+    )
+  );
 }
 
 async function getProgram(requester, programId) {
@@ -1131,6 +1132,8 @@ async function confirmAttendance(requester, sessionId, code) {
     entityId: record.id,
   }).catch(() => null);
 
+  await computeAndPersistProgress(enrollment.id).catch(() => null);
+
   return { id: record.id, status: record.status };
 }
 
@@ -1149,41 +1152,55 @@ async function markAllPresent(requester, sessionId, { mode = 'safe' } = {}) {
       cohort_id: session.cohort_id,
       status: { in: ['ACTIVE', 'APPROVED'] },
     },
+    select: { id: true, user_id: true },
   });
-  let updated = 0;
+  const enrollmentIds = enrollments.map((e) => e.id);
+  const existingRows = enrollmentIds.length
+    ? await prisma.training_attendance_records.findMany({
+        where: { session_id: sessionId, enrollment_id: { in: enrollmentIds } },
+        select: { id: true, enrollment_id: true, status: true },
+      })
+    : [];
+  const existingByEnrollment = new Map(existingRows.map((row) => [row.enrollment_id, row]));
+  const toCreate = [];
+  const toUpdateIds = [];
+  const now = new Date();
   for (const enrollment of enrollments) {
-    const existing = await prisma.training_attendance_records.findUnique({
-      where: {
-        session_id_enrollment_id: { session_id: sessionId, enrollment_id: enrollment.id },
-      },
-    });
+    const existing = existingByEnrollment.get(enrollment.id);
     if (mode === 'safe' && existing && !['absent', 'unconfirmed'].includes(String(existing.status).toLowerCase())) {
       continue;
     }
-    await prisma.training_attendance_records.upsert({
-      where: {
-        session_id_enrollment_id: { session_id: sessionId, enrollment_id: enrollment.id },
-      },
-      create: {
+    if (!existing) {
+      toCreate.push({
         session_id: sessionId,
         enrollment_id: enrollment.id,
         user_id: enrollment.user_id,
         status: 'present',
         marked_via: 'MARK_ALL_PRESENT',
         marked_by: requester.userId,
-        confirmed_at: new Date(),
+        confirmed_at: now,
         reason: 'mark_all_present',
-      },
-      update: {
+      });
+    } else {
+      toUpdateIds.push(existing.id);
+    }
+  }
+  if (toCreate.length) {
+    await prisma.training_attendance_records.createMany({ data: toCreate });
+  }
+  if (toUpdateIds.length) {
+    await prisma.training_attendance_records.updateMany({
+      where: { id: { in: toUpdateIds } },
+      data: {
         status: 'present',
         marked_via: 'MARK_ALL_PRESENT',
         marked_by: requester.userId,
         reason: 'mark_all_present',
-        updated_at: new Date(),
+        updated_at: now,
       },
     });
-    updated += 1;
   }
+  const updated = toCreate.length + toUpdateIds.length;
   await recordAudit({
     userId: requester.userId,
     organizationId: session.training_cohorts.organization_id,
@@ -1414,12 +1431,54 @@ async function computeAndPersistProgress(enrollmentId) {
   if (!enrollment) throw new ApiError(404, 'Enrollment not found');
 
   const program = enrollment.training_cohorts.training_programs;
-  const sessions = await prisma.training_sessions.findMany({
-    where: { cohort_id: enrollment.cohort_id, counts_toward_hours: true },
-  });
-  const attendance = await prisma.training_attendance_records.findMany({
-    where: { enrollment_id: enrollmentId },
-  });
+  const [
+    sessions,
+    attendance,
+    tasks,
+    submissions,
+    reqRows,
+    assessments,
+    finalTaskRow,
+    evaluationAssignment,
+  ] = await Promise.all([
+    prisma.training_sessions.findMany({
+      where: { cohort_id: enrollment.cohort_id, counts_toward_hours: true },
+      select: { id: true, hours: true },
+    }),
+    prisma.training_attendance_records.findMany({
+      where: { enrollment_id: enrollmentId },
+      select: { session_id: true, status: true },
+    }),
+    prisma.training_tasks.findMany({
+      where: { program_id: program.id, is_required: true },
+      select: { id: true },
+    }),
+    prisma.training_task_submissions.findMany({
+      where: { enrollment_id: enrollmentId, status: { in: ['ACCEPTED', 'GRADED'] } },
+      select: { task_id: true, score: true, submitted_at: true },
+    }),
+    prisma.training_requirements.findMany({ where: { program_id: program.id } }),
+    prisma.training_assessments.findMany({
+      where: { program_id: program.id, kind: { in: ['PRE_TEST', 'POST_TEST'] } },
+      select: {
+        id: true,
+        kind: true,
+        pass_score: true,
+        training_assessment_attempts: {
+          where: { enrollment_id: enrollmentId },
+          select: { status: true, score: true, graded_at: true },
+        },
+      },
+    }),
+    prisma.training_tasks.findFirst({
+      where: { program_id: program.id, is_final_task: true },
+      select: { id: true },
+    }),
+    prisma.training_evaluation_assignments.findUnique({
+      where: { enrollment_id: enrollmentId },
+      select: { status: true },
+    }),
+  ]);
   const presentLike = attendance.filter((a) => ['present', 'late', 'excused'].includes(String(a.status).toLowerCase()));
   const attendancePct = sessions.length ? (presentLike.length / sessions.length) * 100 : 0;
   const hoursCompleted = presentLike.reduce((sum, a) => {
@@ -1429,21 +1488,10 @@ async function computeAndPersistProgress(enrollmentId) {
   const hoursRequired = Number(program.required_hours || 0);
   const requiredAttendance = Number(program.required_attendance_pct || 0);
 
-  const tasks = await prisma.training_tasks.findMany({
-    where: { program_id: program.id, is_required: true },
-  });
-  const submissions = await prisma.training_task_submissions.findMany({
-    where: { enrollment_id: enrollmentId, status: { in: ['ACCEPTED', 'GRADED'] } },
-  });
   const completedTaskIds = new Set(submissions.map((s) => s.task_id));
   const tasksDone = tasks.filter((t) => completedTaskIds.has(t.id)).length;
 
-  const reqRows = await prisma.training_requirements.findMany({ where: { program_id: program.id } });
   const reqByCode = Object.fromEntries(reqRows.map((r) => [r.code, r]));
-  const assessments = await prisma.training_assessments.findMany({
-    where: { program_id: program.id, kind: { in: ['PRE_TEST', 'POST_TEST'] } },
-    include: { training_assessment_attempts: { where: { enrollment_id: enrollmentId } } },
-  });
   function assessmentOk(kind) {
     const cfg = reqByCode[kind];
     if (!cfg?.is_required) return { required: false, ok: true, value: null };
@@ -1474,16 +1522,12 @@ async function computeAndPersistProgress(enrollmentId) {
 
   let finalTaskCheck = { required: false, ok: true };
   if (reqByCode.FINAL_TASK?.is_required) {
-    const finalTaskRow = await prisma.training_tasks.findFirst({
-      where: { program_id: program.id, is_final_task: true },
-    });
     if (!finalTaskRow) {
       finalTaskCheck = { required: true, ok: false, reason: 'NO_FINAL_TASK_CONFIGURED' };
     } else {
-      const submission = await prisma.training_task_submissions.findFirst({
-        where: { task_id: finalTaskRow.id, enrollment_id: enrollmentId, status: { in: ['ACCEPTED', 'GRADED'] } },
-        orderBy: { submitted_at: 'desc' },
-      });
+      const submission = submissions
+        .filter((s) => s.task_id === finalTaskRow.id)
+        .sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0))[0];
       finalTaskCheck = {
         required: true,
         ok: Boolean(submission),
@@ -1495,9 +1539,6 @@ async function computeAndPersistProgress(enrollmentId) {
 
   let evaluationCheck = { required: false, ok: true };
   if (reqByCode.EVALUATION?.is_required) {
-    const evaluationAssignment = await prisma.training_evaluation_assignments.findUnique({
-      where: { enrollment_id: enrollmentId },
-    });
     evaluationCheck = {
       required: true,
       ok: evaluationAssignment?.status === 'SUBMITTED',
@@ -1740,75 +1781,112 @@ async function getTraineeProgramDetail(requester, programId) {
   if (program.type !== 'TRAINING_COURSE') {
     throw new ApiError(404, 'الدورة غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');
   }
-  const [sessions, tasks, assessments, materials, certificate] = await Promise.all([
-    prisma.training_sessions.findMany({
-      where: { cohort_id: enrollment.cohort_id },
-      orderBy: { starts_at: 'asc' },
-    }),
-    prisma.training_tasks.findMany({
-      where: { program_id: programId, published_at: { not: null } },
-      orderBy: { created_at: 'desc' },
-    }),
-    prisma.training_assessments.findMany({
-      where: { program_id: programId, is_published: true },
-      include: {
-        training_assessment_questions: { orderBy: { sort_order: 'asc' } },
-        training_assessment_attempts: { where: { enrollment_id: enrollment.id } },
-      },
-    }),
-    prisma.training_materials.findMany({
-      where: {
-        program_id: programId,
-        is_published: true,
-        OR: [{ available_from: null }, { available_from: { lte: new Date() } }],
-      },
-      orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
-    }),
-    prisma.training_certificates.findFirst({
-      where: { enrollment_id: enrollment.id, status: 'ISSUED' },
-      orderBy: { issued_at: 'desc' },
-    }),
-  ]);
-  const submissions = await prisma.training_task_submissions.findMany({
-    where: { enrollment_id: enrollment.id },
-  });
-  const attendance = await prisma.training_attendance_records.findMany({
-    where: { enrollment_id: enrollment.id },
-  });
-  let progressSnapshot = enrollment.training_progress
-    ? {
-        completionPct: Number(enrollment.training_progress.completion_pct),
-        hoursCompleted: Number(enrollment.training_progress.hours_completed),
-        attendancePct: Number(enrollment.training_progress.attendance_pct || 0),
-        status: enrollment.training_progress.status,
-        requirements: enrollment.training_progress.requirements_json,
-      }
-    : null;
-  try {
-    progressSnapshot = await recomputeProgress(requester, enrollment.id);
-  } catch {
-    /* keep cached progress */
+  const [sessions, tasks, assessments, materials, certificate, submissions, attendance, trainerCount] =
+    await Promise.all([
+      prisma.training_sessions.findMany({
+        where: { cohort_id: enrollment.cohort_id },
+        orderBy: { starts_at: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          starts_at: true,
+          ends_at: true,
+          status: true,
+          location: true,
+          meeting_url: true,
+        },
+      }),
+      prisma.training_tasks.findMany({
+        where: { program_id: programId, published_at: { not: null } },
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.training_assessments.findMany({
+        where: { program_id: programId, is_published: true },
+        select: {
+          id: true,
+          kind: true,
+          title: true,
+          code: true,
+          duration_minutes: true,
+          max_attempts: true,
+          pass_score: true,
+          _count: { select: { training_assessment_questions: true } },
+          training_assessment_attempts: {
+            where: { enrollment_id: enrollment.id },
+            select: { id: true, score: true, status: true, submitted_at: true },
+          },
+        },
+      }),
+      prisma.training_materials.findMany({
+        where: {
+          program_id: programId,
+          is_published: true,
+          OR: [{ available_from: null }, { available_from: { lte: new Date() } }],
+        },
+        orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          material_type: true,
+          url: true,
+          storage_key: true,
+          file_id: true,
+          visibility: true,
+          duration_seconds: true,
+          session_id: true,
+          sort_order: true,
+        },
+      }),
+      prisma.training_certificates.findFirst({
+        where: { enrollment_id: enrollment.id, status: 'ISSUED' },
+        orderBy: { issued_at: 'desc' },
+        select: {
+          id: true,
+          certificate_number: true,
+          verification_code: true,
+          issued_at: true,
+        },
+      }),
+      prisma.training_task_submissions.findMany({
+        where: { enrollment_id: enrollment.id },
+      }),
+      prisma.training_attendance_records.findMany({
+        where: { enrollment_id: enrollment.id },
+        select: { session_id: true, status: true, confirmed_at: true },
+      }),
+      prisma.training_trainer_assignments.count({
+        where: { training_program_id: programId, is_active: true, revoked_at: null },
+      }),
+    ]);
+  const { snapshotFromProgressRow } = require('./trainingProgress.helpers');
+  let progressSnapshot = snapshotFromProgressRow(enrollment.training_progress, enrollment.id);
+  if (!progressSnapshot) {
+    try {
+      progressSnapshot = await recomputeProgress(requester, enrollment.id);
+    } catch {
+      progressSnapshot = null;
+    }
   }
   const settings = program.settings_json && typeof program.settings_json === 'object' ? program.settings_json : {};
   const preReq = progressSnapshot?.requirements?.preTest;
   const contentLocked = Boolean(
     settings.preTestBlocksContent && preReq?.required && !preReq?.ok
   );
-  const mappedSessions = sessions.map((s) => ({
-    id: s.id,
-    title: s.title,
-    startsAt: s.starts_at,
-    endsAt: s.ends_at,
-    status: s.status,
-    location: s.location,
-    meetingUrl: s.meeting_url,
-    attendance: attendance.find((a) => a.session_id === s.id)
-      ? {
-          status: attendance.find((a) => a.session_id === s.id).status,
-          confirmedAt: attendance.find((a) => a.session_id === s.id).confirmed_at,
-        }
-      : null,
-  }));
+  const attendanceBySession = new Map(attendance.map((a) => [a.session_id, a]));
+  const mappedSessions = sessions.map((s) => {
+    const rec = attendanceBySession.get(s.id);
+    return {
+      id: s.id,
+      title: s.title,
+      startsAt: s.starts_at,
+      endsAt: s.ends_at,
+      status: s.status,
+      location: s.location,
+      meetingUrl: s.meeting_url,
+      attendance: rec ? { status: rec.status, confirmedAt: rec.confirmed_at } : null,
+    };
+  });
   const { getTraineeTaskListExtras } = require('./trainingTaskWorkflow.service');
   const mappedTasks = contentLocked
     ? []
@@ -1827,12 +1905,7 @@ async function getTraineeProgramDetail(requester, programId) {
     contentLockReason: contentLocked
       ? 'يجب إكمال الاختبار القبلي قبل الوصول إلى محتوى الدورة.'
       : null,
-    trainerAssignmentNote:
-      (await prisma.training_trainer_assignments.count({
-        where: { training_program_id: programId, is_active: true, revoked_at: null },
-      })) === 0
-        ? 'لم يتم تعيين مدرب بعد'
-        : null,
+    trainerAssignmentNote: trainerCount === 0 ? 'لم يتم تعيين مدرب بعد' : null,
     progress: progressSnapshot,
     sessions: contentLocked ? [] : mappedSessions,
     tasks: mappedTasks,
@@ -1844,13 +1917,7 @@ async function getTraineeProgramDetail(requester, programId) {
       durationMinutes: a.duration_minutes,
       maxAttempts: a.max_attempts,
       passScore: a.pass_score != null ? Number(a.pass_score) : null,
-      questions: (a.training_assessment_questions || []).map((q) => ({
-        id: q.id,
-        prompt: q.prompt,
-        questionType: q.question_type,
-        options: q.options_json,
-        points: q.points,
-      })),
+      questionCount: a._count?.training_assessment_questions ?? 0,
       attempts: (a.training_assessment_attempts || []).map((at) => ({
         id: at.id,
         score: at.score,

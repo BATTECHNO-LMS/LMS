@@ -65,11 +65,17 @@ export function useOpportunityApplications(opportunityId, params = {}, options =
   });
 }
 
+function invalidateAdminCatalog(qc, id) {
+  qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminList() });
+  qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminStats() });
+  if (id) qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminDetail(id) });
+}
+
 export function useCreateFieldTraining() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createAdminFieldTraining,
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.all }),
+    onSuccess: (created) => invalidateAdminCatalog(qc, created?.id),
   });
 }
 
@@ -77,7 +83,7 @@ export function useUpdateFieldTraining() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, body }) => updateAdminFieldTraining(id, body),
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.all }),
+    onSuccess: (_d, { id }) => invalidateAdminCatalog(qc, id),
   });
 }
 
@@ -85,7 +91,7 @@ export function usePublishFieldTraining() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: publishAdminFieldTraining,
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.all }),
+    onSuccess: (_d, id) => invalidateAdminCatalog(qc, id),
   });
 }
 
@@ -93,7 +99,7 @@ export function useArchiveFieldTraining() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: archiveAdminFieldTraining,
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.all }),
+    onSuccess: (_d, id) => invalidateAdminCatalog(qc, id),
   });
 }
 

@@ -16,6 +16,10 @@ const {
   gradeAnswers,
   normalizeQuestionType,
 } = require('../fieldTraining/fieldTraining.assessmentQuestions');
+const {
+  latestAttemptByEnrollment,
+  buildPrePostComparisonItems,
+} = require('./trainingPrePostComparison');
 
 function requireOrgWrite(requester) {
   if (isSystemWideAdmin(requester)) return;
@@ -148,17 +152,11 @@ async function listProgramAssessments(requester, programId) {
       ...(isLearner ? { is_published: true } : {}),
     },
     include: {
-      training_assessment_questions: { orderBy: { sort_order: 'asc' } },
       _count: { select: { training_assessment_questions: true, training_assessment_attempts: true } },
     },
     orderBy: { kind: 'asc' },
   });
-  return rows.map((r) =>
-    mapAssessmentOut(r, {
-      includeQuestions: isManager,
-      includeCorrect: isManager && !requester.roles?.includes('reviewer'),
-    })
-  );
+  return rows.map((r) => mapAssessmentOut(r, { includeQuestions: false, includeCorrect: false }));
 }
 
 async function getAssessment(requester, assessmentId) {
@@ -374,9 +372,9 @@ async function assertAvailability(assessment) {
   }
 }
 
-async function assertPostTestEligible(requester, assessment, enrollment) {
+async function assertPostTestEligible(requester, assessment, enrollment, progressSnapshot = null) {
   const { recomputeProgress } = require('./trainingPrograms.service');
-  const progress = await recomputeProgress(requester, enrollment.id);
+  const progress = progressSnapshot || (await recomputeProgress(requester, enrollment.id));
   const reqs = progress.requirements || {};
   const blockers = [];
   if (reqs.attendance && !reqs.attendance.ok) blockers.push('الحضور');
@@ -786,10 +784,11 @@ async function getPrePostComparison(requester, programId) {
 
   const assessments = await prisma.training_assessments.findMany({
     where: { program_id: programId, kind: { in: ['PRE_TEST', 'POST_TEST'] } },
+    select: { id: true, kind: true, pass_score: true },
   });
   const pre = assessments.find((a) => a.kind === 'PRE_TEST');
   const post = assessments.find((a) => a.kind === 'POST_TEST');
-  if (!pre && !post) return { items: [] };
+  if (!pre && !post) return { programId, items: [] };
 
   const enrollments = await prisma.training_enrollments.findMany({
     where: {
@@ -800,54 +799,43 @@ async function getPrePostComparison(requester, programId) {
         ? { user_id: requester.userId }
         : {}),
     },
+    select: { id: true, user_id: true },
   });
+  if (!enrollments.length) return { programId, items: [] };
 
-  const items = [];
-  for (const en of enrollments) {
-    const preAttempt = pre
-      ? await prisma.training_assessment_attempts.findFirst({
-          where: {
-            assessment_id: pre.id,
-            enrollment_id: en.id,
-            status: { in: ['GRADED', 'SUBMITTED'] },
-          },
-          orderBy: { attempt_no: 'desc' },
-        })
-      : null;
-    const postAttempt = post
-      ? await prisma.training_assessment_attempts.findFirst({
-          where: {
-            assessment_id: post.id,
-            enrollment_id: en.id,
-            status: { in: ['GRADED', 'SUBMITTED'] },
-          },
-          orderBy: { attempt_no: 'desc' },
-        })
-      : null;
-    const preScore = preAttempt?.score != null ? Number(preAttempt.score) : null;
-    const postScore = postAttempt?.score != null ? Number(postAttempt.score) : null;
-    const diff = preScore != null && postScore != null ? postScore - preScore : null;
-    const improvementPct =
-      preScore != null && postScore != null && preScore > 0
-        ? Math.round(((postScore - preScore) / preScore) * 10000) / 100
-        : null;
-    const user = await prisma.users.findUnique({
-      where: { id: en.user_id },
+  const assessmentIds = [pre?.id, post?.id].filter(Boolean);
+  const enrollmentIds = enrollments.map((en) => en.id);
+  const userIds = [...new Set(enrollments.map((en) => en.user_id))];
+
+  const [attempts, users] = await Promise.all([
+    prisma.training_assessment_attempts.findMany({
+      where: {
+        assessment_id: { in: assessmentIds },
+        enrollment_id: { in: enrollmentIds },
+        status: { in: ['GRADED', 'SUBMITTED'] },
+      },
+      select: { enrollment_id: true, assessment_id: true, attempt_no: true, score: true },
+    }),
+    prisma.users.findMany({
+      where: { id: { in: userIds } },
       select: { id: true, full_name: true, email: true },
-    });
-    items.push({
-      enrollmentId: en.id,
-      userId: en.user_id,
-      traineeName: user?.full_name || '—',
-      preScore,
-      postScore,
-      difference: diff,
-      improvementPct,
-      prePassed: pre?.pass_score != null && preScore != null ? preScore >= Number(pre.pass_score) : null,
-      postPassed:
-        post?.pass_score != null && postScore != null ? postScore >= Number(post.pass_score) : null,
-    });
-  }
+    }),
+  ]);
+
+  const preByEnrollment = latestAttemptByEnrollment(
+    pre ? attempts.filter((row) => row.assessment_id === pre.id) : []
+  );
+  const postByEnrollment = latestAttemptByEnrollment(
+    post ? attempts.filter((row) => row.assessment_id === post.id) : []
+  );
+  const items = buildPrePostComparisonItems({
+    enrollments,
+    usersById: new Map(users.map((u) => [u.id, u])),
+    pre,
+    post,
+    preByEnrollment,
+    postByEnrollment,
+  });
   return { programId, items };
 }
 
@@ -866,18 +854,48 @@ async function getTraineeAssessmentStatus(requester, programId) {
     where: { program_id: programId, is_published: true },
     include: { _count: { select: { training_assessment_questions: true } } },
   });
+  const assessmentIds = assessments.map((a) => a.id);
+  const allAttempts = assessmentIds.length
+    ? await prisma.training_assessment_attempts.findMany({
+        where: { enrollment_id: enrollment.id, assessment_id: { in: assessmentIds } },
+        orderBy: { attempt_no: 'asc' },
+        select: {
+          id: true,
+          assessment_id: true,
+          status: true,
+          score: true,
+          submitted_at: true,
+          attempt_no: true,
+        },
+      })
+    : [];
+  const attemptsByAssessment = new Map();
+  for (const row of allAttempts) {
+    const list = attemptsByAssessment.get(row.assessment_id);
+    if (list) list.push(row);
+    else attemptsByAssessment.set(row.assessment_id, [row]);
+  }
+
+  const { snapshotFromProgressRow } = require('./trainingProgress.helpers');
+  let progressSnapshot = snapshotFromProgressRow(enrollment.training_progress, enrollment.id);
+  if (!progressSnapshot && assessments.some((a) => a.kind === 'POST_TEST')) {
+    try {
+      const { recomputeProgress } = require('./trainingPrograms.service');
+      progressSnapshot = await recomputeProgress(requester, enrollment.id);
+    } catch {
+      progressSnapshot = null;
+    }
+  }
+
   const result = [];
   for (const a of assessments) {
-    const attempts = await prisma.training_assessment_attempts.findMany({
-      where: { assessment_id: a.id, enrollment_id: enrollment.id },
-      orderBy: { attempt_no: 'asc' },
-    });
+    const attempts = attemptsByAssessment.get(a.id) || [];
     let availability = 'available';
     let availabilityMessage = null;
     try {
       await assertAvailability(a);
       if (a.kind === 'POST_TEST') {
-        await assertPostTestEligible(requester, a, enrollment);
+        await assertPostTestEligible(requester, a, enrollment, progressSnapshot);
       }
     } catch (err) {
       availability = 'locked';

@@ -346,6 +346,8 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260803120000_training_final_evaluation_completion_reports',
       '20260804150000_training_official_reports',
       '20260806180000_account_deletion_requests',
+      '20260810120000_training_content_management',
+      '20260819120000_training_query_performance_indexes',
     ]);
   });
 

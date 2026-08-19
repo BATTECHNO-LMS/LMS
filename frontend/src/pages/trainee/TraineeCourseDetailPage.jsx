@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -14,11 +14,14 @@ import {
   getPrePostComparison,
   submitTask,
 } from '../../features/training/training.service.js';
-import { TrainingAssessmentAttemptPanel } from '../../features/training/components/TrainingAssessmentAttemptPanel.jsx';
-import { EvaluationWizard } from '../../features/training/components/evaluation/EvaluationWizard.jsx';
-import { IndividualReportView } from '../../features/training/components/reports/IndividualReportView.jsx';
+import {
+  TrainingAssessmentAttemptPanel,
+  EvaluationWizard,
+  IndividualReportView,
+} from '../../features/training/components/lazyTrainingUi.js';
 import { CompletionRequirementList } from '../../features/training/components/completion/CompletionRequirementList.jsx';
-import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { getApiErrorMessage, isCanceledRequest } from '../../services/apiHelpers.js';
+import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة' },
@@ -46,15 +49,20 @@ export function TraineeCourseDetailPage() {
   const [taskDrafts, setTaskDrafts] = useState({});
   const [comparison, setComparison] = useState(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async ({ silent = false } = {}) => {
     if (!programId) return;
-    setLoading(true);
-    setError('');
-    setBusinessCode('');
+    if (!silent) {
+      setLoading(true);
+      setError('');
+      setBusinessCode('');
+    }
     try {
       const detail = await getTraineeProgramDetail(programId);
       setData(detail);
+      setError('');
+      setBusinessCode('');
     } catch (err) {
+      if (isCanceledRequest(err)) return;
       const code = err?.response?.data?.code || err?.code;
       if (code === 'COURSE_ENROLLMENT_REQUIRED' || code === 'ENROLLMENT_PENDING') {
         setBusinessCode(code);
@@ -63,7 +71,7 @@ export function TraineeCourseDetailPage() {
         setError(getApiErrorMessage(err, 'تعذر تحميل الدورة.'));
       }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [programId]);
 
@@ -111,12 +119,15 @@ export function TraineeCourseDetailPage() {
     );
   }
 
-  if (error || !data) {
+  if (!data) {
     return (
       <div className="page page--dashboard" dir="rtl">
         <p className="form-field__error" role="alert">
           {error || 'تعذر تحميل الدورة.'}
         </p>
+        <Button type="button" variant="primary" onClick={() => refresh()}>
+          إعادة المحاولة
+        </Button>{' '}
         <Link className="link" to="/trainee/courses">
           العودة إلى الدورات
         </Link>
@@ -139,6 +150,7 @@ export function TraineeCourseDetailPage() {
         actions={<StatusBadge variant="info">{data.status || '—'}</StatusBadge>}
       />
 
+      <Suspense fallback={<RouteFallback />}>
       {error ? (
         <p className="form-field__error" role="alert">
           {error}
@@ -211,7 +223,7 @@ export function TraineeCourseDetailPage() {
                           await confirmAttendance(s.id, attendanceCode);
                           setMessage('تم تأكيد الحضور.');
                           setAttendanceCode('');
-                          await refresh();
+                          await refresh({ silent: true });
                         } catch (err) {
                           setError(getApiErrorMessage(err, 'تعذر تأكيد الحضور.'));
                         } finally {
@@ -348,7 +360,7 @@ export function TraineeCourseDetailPage() {
                             content_text: taskDrafts[task.id] || '',
                           });
                           setMessage('تم تسليم المهمة.');
-                          await refresh();
+                          await refresh({ silent: true });
                         } catch (err) {
                           setError(getApiErrorMessage(err, 'تعذر تسليم المهمة.'));
                         } finally {
@@ -557,6 +569,7 @@ export function TraineeCourseDetailPage() {
           )}
         </SectionCard>
       ) : null}
+      </Suspense>
     </div>
   );
 }

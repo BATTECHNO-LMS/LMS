@@ -1,5 +1,5 @@
 const { prisma } = require('../../config/db');
-const { cohortListWhere } = require('../../utils/deliveryAccess');
+const { cohortListWhere, assessmentCohortScopeWhere } = require('../../utils/deliveryAccess');
 const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 
 async function countUsers(requester) {
@@ -36,16 +36,7 @@ async function countCohorts(requester) {
 }
 
 async function countAssessments(requester) {
-  const cw = cohortListWhere(requester);
-  if (cw === null) {
-    return prisma.assessments.count();
-  }
-  if (cw.id?.in?.length === 0) return 0;
-  const cohortIds = (
-    await prisma.cohorts.findMany({ where: cw, select: { id: true } })
-  ).map((c) => c.id);
-  if (!cohortIds.length) return 0;
-  return prisma.assessments.count({ where: { cohort_id: { in: cohortIds } } });
+  return prisma.assessments.count({ where: assessmentCohortScopeWhere(requester) });
 }
 
 async function countPendingEnrollments(requester) {

@@ -25,17 +25,6 @@ async function safeQuery(fn, fallback) {
   }
 }
 
-/** Students linked to a university (self-registration / staff-created), independent of cohort enrollments. */
-async function countUniversityStudentMemberships(universityId) {
-  return safeQuery(
-    () =>
-      prisma.university_users.count({
-        where: { university_id: universityId, relationship_type: 'student' },
-      }),
-    0
-  );
-}
-
 function inDateRange(field, filters) {
   if (!filters.from && !filters.to) return {};
   return {
@@ -110,53 +99,94 @@ async function universitiesReport(filters) {
         []
       )
     : [];
-  const rows = [];
-  for (const uni of universities) {
-    const cohortIds = cohorts.filter((c) => c.university_id === uni.id).map((c) => c.id);
-    const studentIds = cohortIds.length
-      ? await safeQuery(
+  if (!universities.length) return [];
+
+  const allCohortIds = cohorts.map((c) => c.id);
+  const [enrollments, recognitionGroups, certificateGroups, membershipGroups] = await Promise.all([
+    allCohortIds.length
+      ? safeQuery(
           () =>
             prisma.enrollments.findMany({
-              where: { cohort_id: { in: cohortIds }, ...inDateRange('enrolled_at', filters) },
-              select: { student_id: true },
+              where: { cohort_id: { in: allCohortIds }, ...inDateRange('enrolled_at', filters) },
+              select: { student_id: true, cohort_id: true },
             }),
           []
         )
-      : [];
-    const recognition_count = cohortIds.length
-      ? await safeQuery(
+      : [],
+    allCohortIds.length
+      ? safeQuery(
           () =>
-            prisma.recognition_requests.count({
-              where: { cohort_id: { in: cohortIds }, ...inDateRange('created_at', filters) },
+            prisma.recognition_requests.groupBy({
+              by: ['cohort_id'],
+              where: { cohort_id: { in: allCohortIds }, ...inDateRange('created_at', filters) },
+              _count: { _all: true },
             }),
-          0
+          []
         )
-      : 0;
-    const certificates_count = cohortIds.length
-      ? await safeQuery(
+      : [],
+    allCohortIds.length
+      ? safeQuery(
           () =>
-            prisma.certificates.count({
-              where: { cohort_id: { in: cohortIds }, ...inDateRange('issued_at', filters) },
+            prisma.certificates.groupBy({
+              by: ['cohort_id'],
+              where: { cohort_id: { in: allCohortIds }, ...inDateRange('issued_at', filters) },
+              _count: { _all: true },
             }),
-          0
+          []
         )
-      : 0;
-    const enrollmentDistinct = new Set(studentIds.map((s) => s.student_id)).size;
-    const linkedStudentsAtUniversity = await countUniversityStudentMemberships(uni.id);
-    const enrolled_students_count = Math.max(enrollmentDistinct, linkedStudentsAtUniversity);
-    rows.push({
+      : [],
+    uniIds.length
+      ? safeQuery(
+          () =>
+            prisma.university_users.groupBy({
+              by: ['university_id'],
+              where: { university_id: { in: uniIds }, relationship_type: 'student' },
+              _count: { _all: true },
+            }),
+          []
+        )
+      : [],
+  ]);
+
+  const cohortsByUni = new Map();
+  for (const c of cohorts) {
+    const list = cohortsByUni.get(c.university_id);
+    if (list) list.push(c);
+    else cohortsByUni.set(c.university_id, [c]);
+  }
+  const studentsByCohort = new Map();
+  for (const row of enrollments) {
+    const list = studentsByCohort.get(row.cohort_id);
+    if (list) list.push(row.student_id);
+    else studentsByCohort.set(row.cohort_id, [row.student_id]);
+  }
+  const recognitionByCohort = new Map(recognitionGroups.map((g) => [g.cohort_id, g._count._all]));
+  const certificatesByCohort = new Map(certificateGroups.map((g) => [g.cohort_id, g._count._all]));
+  const membershipByUni = new Map(membershipGroups.map((g) => [g.university_id, g._count._all]));
+
+  return universities.map((uni) => {
+    const uniCohorts = cohortsByUni.get(uni.id) || [];
+    const studentIds = new Set();
+    let recognition_count = 0;
+    let certificates_count = 0;
+    for (const c of uniCohorts) {
+      for (const studentId of studentsByCohort.get(c.id) || []) studentIds.add(studentId);
+      recognition_count += recognitionByCohort.get(c.id) || 0;
+      certificates_count += certificatesByCohort.get(c.id) || 0;
+    }
+    const enrolled_students_count = Math.max(studentIds.size, membershipByUni.get(uni.id) || 0);
+    return {
       university_id: uni.id,
       university_name: uni.name,
       status: uni.status,
       partnership_state: uni.partnership_state,
-      cohorts_count: cohortIds.length,
-      active_micro_credentials: new Set(cohorts.filter((c) => c.university_id === uni.id).map((c) => c.micro_credential_id)).size,
+      cohorts_count: uniCohorts.length,
+      active_micro_credentials: new Set(uniCohorts.map((c) => c.micro_credential_id)).size,
       enrolled_students_count,
       recognition_requests_count: recognition_count,
       certificates_count,
-    });
-  }
-  return rows;
+    };
+  });
 }
 
 async function cohortsReport(filters) {
@@ -178,32 +208,57 @@ async function cohortsReport(filters) {
       }),
     []
   );
-  const rows = [];
-  for (const c of cohorts) {
-    const [enrollments, assessments, qaReviews] = await Promise.all([
-      safeQuery(
-        () =>
-          prisma.enrollments.findMany({
-            where: { cohort_id: c.id },
-            select: { attendance_percentage: true, final_status: true },
-          }),
-        []
-      ),
-      safeQuery(() => prisma.assessments.count({ where: { cohort_id: c.id } }), 0),
-      safeQuery(
-        () =>
-          prisma.qa_reviews.count({
-            where: { cohort_id: c.id, status: { in: ['open', 'in_progress'] } },
-          }),
-        0
-      ),
-    ]);
-    const avgAttendance = enrollments.length
-      ? Math.round((enrollments.reduce((s, e) => s + Number(e.attendance_percentage || 0), 0) / enrollments.length) * 100) / 100
+  if (!cohorts.length) return [];
+  const ids = cohorts.map((c) => c.id);
+  const [enrollments, assessmentGroups, qaGroups] = await Promise.all([
+    safeQuery(
+      () =>
+        prisma.enrollments.findMany({
+          where: { cohort_id: { in: ids } },
+          select: { cohort_id: true, attendance_percentage: true, final_status: true },
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.assessments.groupBy({
+          by: ['cohort_id'],
+          where: { cohort_id: { in: ids } },
+          _count: { _all: true },
+        }),
+      []
+    ),
+    safeQuery(
+      () =>
+        prisma.qa_reviews.groupBy({
+          by: ['cohort_id'],
+          where: { cohort_id: { in: ids }, status: { in: ['open', 'in_progress'] } },
+          _count: { _all: true },
+        }),
+      []
+    ),
+  ]);
+  const enrollmentsByCohort = new Map();
+  for (const row of enrollments) {
+    const list = enrollmentsByCohort.get(row.cohort_id);
+    if (list) list.push(row);
+    else enrollmentsByCohort.set(row.cohort_id, [row]);
+  }
+  const assessmentsByCohort = new Map(assessmentGroups.map((g) => [g.cohort_id, g._count._all]));
+  const qaByCohort = new Map(qaGroups.map((g) => [g.cohort_id, g._count._all]));
+
+  return cohorts.map((c) => {
+    const cohortEnrollments = enrollmentsByCohort.get(c.id) || [];
+    const avgAttendance = cohortEnrollments.length
+      ? Math.round(
+          (cohortEnrollments.reduce((s, e) => s + Number(e.attendance_percentage || 0), 0) /
+            cohortEnrollments.length) *
+            100
+        ) / 100
       : 0;
-    const passed = enrollments.filter((e) => e.final_status === 'passed').length;
-    const completed = enrollments.filter((e) => ['passed', 'failed'].includes(e.final_status)).length;
-    rows.push({
+    const passed = cohortEnrollments.filter((e) => e.final_status === 'passed').length;
+    const completed = cohortEnrollments.filter((e) => ['passed', 'failed'].includes(e.final_status)).length;
+    return {
       cohort_id: c.id,
       cohort_title: c.title,
       cohort_status: c.status,
@@ -211,14 +266,13 @@ async function cohortsReport(filters) {
       micro_credential_id: c.micro_credential_id,
       start_date: c.start_date,
       end_date: c.end_date,
-      enrollments_count: enrollments.length,
+      enrollments_count: cohortEnrollments.length,
       attendance_avg_pct: avgAttendance,
-      assessments_count: assessments,
+      assessments_count: assessmentsByCohort.get(c.id) || 0,
       grade_pass_rate_pct: completed ? Math.round((passed / completed) * 10000) / 100 : 0,
-      open_qa_reviews_count: qaReviews,
-    });
-  }
-  return rows;
+      open_qa_reviews_count: qaByCohort.get(c.id) || 0,
+    };
+  });
 }
 
 async function attendanceReport(filters) {

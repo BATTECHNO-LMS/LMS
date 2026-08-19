@@ -2917,6 +2917,7 @@ model training_enrollments {
   @@index([organization_id], map: "idx_training_enrollments_org")
   @@index([user_id], map: "idx_training_enrollments_user")
   @@index([status], map: "idx_training_enrollments_status")
+  @@index([cohort_id, status], map: "idx_training_enrollments_cohort_status")
 }
 
 model training_sessions {
@@ -3102,6 +3103,8 @@ model training_assessment_attempts {
 
   @@unique([assessment_id, enrollment_id, attempt_no], map: "uq_training_assessment_attempts")
   @@index([user_id], map: "idx_training_assessment_attempts_user")
+  @@index([enrollment_id], map: "idx_training_assessment_attempts_enrollment")
+  @@index([assessment_id, status], map: "idx_training_assessment_attempts_assessment_status")
 }
 
 model training_requirements {

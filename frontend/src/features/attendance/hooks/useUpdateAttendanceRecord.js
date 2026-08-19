@@ -10,10 +10,14 @@ export function useUpdateAttendanceRecord() {
     mutationFn: ({ id, body }) => updateAttendanceRecord(id, body),
     onSuccess: (data) => {
       const sid = data?.session_id;
-      qc.invalidateQueries({ queryKey: attendanceKeys.all });
+      const cid = data?.cohort_id;
       if (sid) qc.invalidateQueries({ queryKey: attendanceKeys.session(sid) });
-      qc.invalidateQueries({ queryKey: enrollmentsKeys.all });
-      qc.invalidateQueries({ queryKey: cohortsKeys.all });
+      else qc.invalidateQueries({ queryKey: attendanceKeys.all });
+      if (cid) {
+        qc.invalidateQueries({ queryKey: enrollmentsKeys.byCohort(cid) });
+        qc.invalidateQueries({ queryKey: cohortsKeys.attendanceSummary(cid) });
+        qc.invalidateQueries({ queryKey: cohortsKeys.detail(cid) });
+      }
     },
   });
 }

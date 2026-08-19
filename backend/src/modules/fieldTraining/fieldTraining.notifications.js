@@ -191,16 +191,19 @@ async function notifyStudentsAttendanceWindowOpened(params) {
   if (!studentIds.length) return { created_count: 0 };
 
   const actionUrl = `/student/field-training/${opportunityId}?tab=sessions&attendanceWindow=${windowId || ''}&sessionId=${sessionId || ''}`;
-  const result = await prisma.notifications.createMany({
-    data: studentIds.map((userId) => ({
-      user_id: userId,
+  let created = 0;
+  // Use createNotificationForUser to ensure fanoutPushForRow runs (FCM is sent best-effort).
+  for (const userId of studentIds) {
+    const row = await createNotificationForUser({
+      userId,
       title,
       body,
       type: 'action_required',
-      action_url: actionUrl,
-    })),
-  });
-  return { created_count: result.count };
+      actionUrl,
+    });
+    if (row) created += 1;
+  }
+  return { created_count: created };
 }
 
 async function notifyStudentExpelled(params) {

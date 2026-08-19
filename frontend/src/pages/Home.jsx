@@ -12,6 +12,9 @@ import { TrustSection } from '../components/landing/TrustSection.jsx';
 import { CTASection } from '../components/landing/CTASection.jsx';
 import { SectionTransition } from '../components/landing/SectionTransition.jsx';
 import { HomeFooter } from '../components/landing/HomeFooter.jsx';
+import '../landing-tailwind.css';
+import '../landing-backgrounds.css';
+import '../phone-device.css';
 
 export function Home() {
   const { t, i18n } = useTranslation('landing');

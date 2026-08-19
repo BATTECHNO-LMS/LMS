@@ -15,6 +15,7 @@ import {
   validateBuilderForPublish,
 } from '../../../pages/admin/fieldTraining/components/manage/assessmentQuestionBuilder.utils.js';
 import {
+  getAssessment,
   gradeAssessmentAttempt,
   listAssessmentResults,
   publishAssessment,
@@ -84,21 +85,40 @@ export function TrainingAssessmentEditor({
     setClosesAt(assessment.closesAt ? String(assessment.closesAt).slice(0, 16) : '');
     setShuffleQuestions(Boolean(assessment.shuffleQuestions));
     setShowResults(assessment.showResults !== false);
+
+    let cancelled = false;
+    const applyQuestions = (source) => {
+      if (cancelled) return;
+      if (source?.questions?.length) {
+        const hydrated = source.questions.map((q) =>
+          hydrateQuestionFromApi({
+            ...q,
+            question_text: q.question_text || q.prompt,
+            options: q.options || q.options_json,
+          })
+        );
+        setQuestions(hydrated);
+        setActiveKey(hydrated[0]?.clientKey ?? null);
+      } else {
+        const first = createEmptyQuestion();
+        setQuestions([first]);
+        setActiveKey(first.clientKey);
+      }
+    };
+
     if (assessment.questions?.length) {
-      const hydrated = assessment.questions.map((q) =>
-        hydrateQuestionFromApi({
-          ...q,
-          question_text: q.question_text || q.prompt,
-          options: q.options || q.options_json,
-        })
-      );
-      setQuestions(hydrated);
-      setActiveKey(hydrated[0]?.clientKey ?? null);
+      applyQuestions(assessment);
+    } else if (assessment.id) {
+      getAssessment(assessment.id)
+        .then((detail) => applyQuestions(detail || assessment))
+        .catch(() => applyQuestions(assessment));
     } else {
-      const first = createEmptyQuestion();
-      setQuestions([first]);
-      setActiveKey(first.clientKey);
+      applyQuestions(assessment);
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [assessment?.id, assessment?.updatedAt, kind, titleFallback]);
 
   useEffect(() => {

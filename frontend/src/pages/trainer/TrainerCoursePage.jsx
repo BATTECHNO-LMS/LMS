@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -24,18 +24,21 @@ import {
   getProgramEvaluation,
   getEnrollmentCertificate,
 } from '../../features/training/training.service.js';
-import { CourseMaterialsManager } from '../../features/training/components/CourseMaterialsManager.jsx';
-import { RecordedLecturesManager } from '../../features/training/components/RecordedLecturesManager.jsx';
-import { CourseTasksManager } from '../../features/training/components/CourseTasksManager.jsx';
-import { TrainingAssessmentEditor } from '../../features/training/components/TrainingAssessmentEditor.jsx';
+import {
+  CourseMaterialsManager,
+  RecordedLecturesManager,
+  CourseTasksManager,
+  TrainingAssessmentEditor,
+  TrainingFinalizationModal,
+  CourseReportDashboard,
+  IndividualReportView,
+  EvaluationAnalyticsPanel,
+} from '../../features/training/components/lazyTrainingUi.js';
 import { TrainingReadinessCard } from '../../features/training/components/completion/TrainingReadinessCard.jsx';
 import { CompletionStatusBadge } from '../../features/training/components/completion/CompletionStatusBadge.jsx';
-import { TrainingFinalizationModal } from '../../features/training/components/completion/TrainingFinalizationModal.jsx';
-import { CourseReportDashboard } from '../../features/training/components/reports/CourseReportDashboard.jsx';
-import { IndividualReportView } from '../../features/training/components/reports/IndividualReportView.jsx';
-import { EvaluationAnalyticsPanel } from '../../features/training/components/evaluation/EvaluationAnalyticsPanel.jsx';
 import { AppModal } from '../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', perm: null },
@@ -244,6 +247,7 @@ export function TrainerCoursePage() {
         }
       />
 
+      <Suspense fallback={<RouteFallback />}>
       <div className="admin-tabs" role="tablist" aria-label="أقسام الدورة">
         {visibleTabs.map((item) => (
           <button
@@ -646,44 +650,34 @@ export function TrainerCoursePage() {
             <Button
               type="button"
               variant={assessmentKind === 'pre' ? 'primary' : 'outline'}
-              onClick={async () => {
-                setAssessmentKind('pre');
-                try {
-                  const rows = await listProgramAssessments(programId);
-                  setAssessments(Array.isArray(rows) ? rows : []);
-                } catch (err) {
-                  setError(getApiErrorMessage(err, 'تعذر تحميل الاختبارات.'));
-                }
-              }}
+              onClick={() => setAssessmentKind('pre')}
             >
               الاختبار القبلي
             </Button>
             <Button
               type="button"
               variant={assessmentKind === 'post' ? 'primary' : 'outline'}
-              onClick={async () => {
-                setAssessmentKind('post');
-                try {
-                  const rows = await listProgramAssessments(programId);
-                  setAssessments(Array.isArray(rows) ? rows : []);
-                } catch (err) {
-                  setError(getApiErrorMessage(err, 'تعذر تحميل الاختبارات.'));
-                }
-              }}
+              onClick={() => setAssessmentKind('post')}
             >
               الاختبار البعدي
             </Button>
             <Button
               type="button"
               variant="outline"
+              disabled={busy}
               onClick={async () => {
+                setBusy(true);
                 try {
-                  const rows = await listProgramAssessments(programId);
+                  const [rows, cmp] = await Promise.all([
+                    listProgramAssessments(programId),
+                    getPrePostComparison(programId),
+                  ]);
                   setAssessments(Array.isArray(rows) ? rows : []);
-                  const cmp = await getPrePostComparison(programId);
                   setComparison(cmp);
                 } catch (err) {
                   setError(getApiErrorMessage(err, 'تعذر تحميل المقارنة.'));
+                } finally {
+                  setBusy(false);
                 }
               }}
             >
@@ -974,6 +968,7 @@ export function TrainerCoursePage() {
           </p>
         </SectionCard>
       ) : null}
+      </Suspense>
     </div>
   );
 }

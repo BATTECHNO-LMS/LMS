@@ -17,7 +17,7 @@ import {
   UserPlus,
 } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
-import { useAnalytics, exportAnalyticsExcel, exportAnalyticsPdf, exportAnalyticsPowerBi } from '../../features/analytics/index.js';
+import { useAnalytics } from '../../features/analytics/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { useUniversities } from '../../features/universities/hooks/useUniversities.js';
 import { useTracks } from '../../features/tracks/hooks/useTracks.js';
@@ -81,6 +81,7 @@ export function SuperAdminAnalyticsPage() {
     setExportingPdf(true);
     try {
       const lang = String(i18n.language || 'ar').toLowerCase().startsWith('en') ? 'en' : 'ar';
+      const { exportAnalyticsPdf } = await import('../../features/analytics/analyticsExport.js');
       await exportAnalyticsPdf({ filters, lang });
     } catch (e) {
       console.error(e);
@@ -94,6 +95,7 @@ export function SuperAdminAnalyticsPage() {
     if (!data || exportingExcel) return;
     setExportingExcel(true);
     try {
+      const { exportAnalyticsExcel } = await import('../../features/analytics/analyticsExport.js');
       await exportAnalyticsExcel({ filters });
     } catch (e) {
       console.error(e);
@@ -103,15 +105,19 @@ export function SuperAdminAnalyticsPage() {
     }
   }, [data, exportingExcel, filters, t]);
 
-  const onExportPowerBi = useCallback(() => {
-    if (!data) return;
+  const onExportPowerBi = useCallback(async () => {
+    if (!data || exportingExcel) return;
+    setExportingExcel(true);
     try {
+      const { exportAnalyticsPowerBi } = await import('../../features/analytics/analyticsExport.js');
       exportAnalyticsPowerBi({ data, filters, t });
     } catch (e) {
       console.error(e);
       window.alert(t('export.failed'));
+    } finally {
+      setExportingExcel(false);
     }
-  }, [data, filters, t]);
+  }, [data, exportingExcel, filters, t]);
 
   const lng = i18n.language;
   const pickName = useCallback((row) => {

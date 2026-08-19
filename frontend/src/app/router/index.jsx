@@ -1,33 +1,7 @@
 import { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '../../layouts/AuthLayout.jsx';
-import { AdminLayout } from '../../layouts/AdminLayout.jsx';
-import { InstructorLayout } from '../../layouts/InstructorLayout.jsx';
-import { TrainerLayout } from '../../layouts/TrainerLayout.jsx';
-import { TraineeLayout } from '../../layouts/TraineeLayout.jsx';
-import { StudentLayout } from '../../layouts/StudentLayout.jsx';
-import { ReviewerLayout } from '../../layouts/ReviewerLayout.jsx';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
-import { LoginPage } from '../../pages/auth/LoginPage.jsx';
-import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
-import { VerifyEmailOtpPage } from '../../pages/auth/VerifyEmailOtpPage.jsx';
-import { ForgotPasswordPage } from '../../pages/auth/ForgotPasswordPage.jsx';
-import { VerifyPasswordResetOtpPage } from '../../pages/auth/VerifyPasswordResetOtpPage.jsx';
-import { NewPasswordPage } from '../../pages/auth/NewPasswordPage.jsx';
-import { AccountStatusPage } from '../../pages/auth/AccountStatusPage.jsx';
-import {
-  AdminLoginPage,
-  InstructorLoginPage,
-  StudentLoginPage,
-  ReviewerLoginPage,
-} from '../../pages/auth/portalLogins.jsx';
-import { PortalPickerPage } from '../../pages/auth/PortalPickerPage.jsx';
-import {
-  InstitutionLoginPage,
-  UniversitiesLoginPage,
-} from '../../pages/auth/InstitutionLoginPage.jsx';
-import { InstitutionRegisterPage } from '../../pages/auth/InstitutionRegisterPage.jsx';
-import { SelectOrganizationPage } from '../../pages/auth/SelectOrganizationPage.jsx';
 import * as Pages from './lazyPages.js';
 import { ProtectedRoute } from '../../components/common/ProtectedRoute.jsx';
 import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
@@ -44,7 +18,7 @@ function SubdomainLoginRedirect() {
   if (portal === 'reviewer') return <Navigate to="/login/reviewer" replace />;
   if (portal === 'institutions') return <Navigate to="/institutions/login" replace />;
   if (portal === 'universities') return <Navigate to="/universities/login" replace />;
-  return <PortalPickerPage />;
+  return <Pages.PortalPickerPage />;
 }
 
 export function AppRouter() {
@@ -54,49 +28,49 @@ export function AppRouter() {
       <Route path="/" element={<RootRedirect />} />
 
       <Route path="/portals" element={<AuthLayout />}>
-        <Route index element={<PortalPickerPage />} />
+        <Route index element={<Pages.PortalPickerPage />} />
       </Route>
 
       <Route path="/login" element={<AuthLayout />}>
         <Route index element={<SubdomainLoginRedirect />} />
-        <Route path="admin" element={<AdminLoginPage />} />
-        <Route path="instructor" element={<InstructorLoginPage />} />
-        <Route path="student" element={<StudentLoginPage />} />
-        <Route path="reviewer" element={<ReviewerLoginPage />} />
+        <Route path="admin" element={<Pages.AdminLoginPage />} />
+        <Route path="instructor" element={<Pages.InstructorLoginPage />} />
+        <Route path="student" element={<Pages.StudentLoginPage />} />
+        <Route path="reviewer" element={<Pages.ReviewerLoginPage />} />
       </Route>
 
       <Route path="/institutions" element={<AuthLayout />}>
-        <Route path="login" element={<InstitutionLoginPage />} />
-        <Route path="register" element={<InstitutionRegisterPage />} />
+        <Route path="login" element={<Pages.InstitutionLoginPage />} />
+        <Route path="register" element={<Pages.InstitutionRegisterPage />} />
       </Route>
 
       <Route path="/universities" element={<AuthLayout />}>
-        <Route path="login" element={<UniversitiesLoginPage />} />
+        <Route path="login" element={<Pages.UniversitiesLoginPage />} />
       </Route>
 
       <Route path="/register" element={<AuthLayout />}>
-        <Route index element={<RegisterPage />} />
+        <Route index element={<Pages.RegisterPage />} />
       </Route>
 
       <Route path="/verify-email" element={<AuthLayout />}>
-        <Route index element={<VerifyEmailOtpPage />} />
+        <Route index element={<Pages.VerifyEmailOtpPage />} />
       </Route>
 
       <Route path="/forgot-password" element={<AuthLayout />}>
-        <Route index element={<ForgotPasswordPage />} />
+        <Route index element={<Pages.ForgotPasswordPage />} />
       </Route>
 
       <Route path="/reset-password" element={<AuthLayout />}>
-        <Route path="verify" element={<VerifyPasswordResetOtpPage />} />
-        <Route path="new" element={<NewPasswordPage />} />
+        <Route path="verify" element={<Pages.VerifyPasswordResetOtpPage />} />
+        <Route path="new" element={<Pages.NewPasswordPage />} />
       </Route>
 
       <Route path="/account-status" element={<AuthLayout />}>
-        <Route index element={<AccountStatusPage />} />
+        <Route index element={<Pages.AccountStatusPage />} />
       </Route>
 
       <Route path="/select-organization" element={<AuthLayout />}>
-        <Route index element={<SelectOrganizationPage />} />
+        <Route index element={<Pages.SelectOrganizationPage />} />
       </Route>
 
       <Route path="/verify/certificate/:verificationCode" element={<Pages.CertificateVerifyPage />} />
@@ -106,7 +80,7 @@ export function AppRouter() {
       <Route path="/verify/report/:verificationCode" element={<Pages.ReportVerificationPage />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<Pages.AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={ADMIN_ROLE_SET} />}>
             <Route path="dashboard" element={<Pages.AdminDashboardPage />} />
@@ -244,7 +218,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/trainer" element={<TrainerLayout />}>
+        <Route path="/trainer" element={<Pages.TrainerLayout />}>
           <Route index element={<Pages.TrainerDashboardPage />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINER]} />}>
             <Route path="courses" element={<Pages.TrainerCoursesPage />} />
@@ -266,7 +240,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/trainee" element={<TraineeLayout />}>
+        <Route path="/trainee" element={<Pages.TraineeLayout />}>
           <Route index element={<Pages.TraineeDashboardPage />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.TRAINEE]} />}>
             <Route path="courses" element={<Pages.TraineeCoursesPage />} />
@@ -288,7 +262,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/instructor" element={<InstructorLayout />}>
+        <Route path="/instructor" element={<Pages.InstructorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.INSTRUCTOR]} />}>
             <Route path="at-risk-students" element={<Navigate to="/instructor/risk-students" replace />} />
@@ -338,7 +312,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/student" element={<StudentLayout />}>
+        <Route path="/student" element={<Pages.StudentLayout />}>
           <Route index element={<Pages.StudentEntryRedirect />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.STUDENT]} />}>
             <Route path="enrollments" element={<Navigate to="/student/programs" replace />} />
@@ -387,7 +361,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/academic" element={<AdminLayout />}>
+        <Route path="/academic" element={<Pages.AdminLayout />}>
           <Route index element={<Navigate to="field-training/reports" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.ADMIN, ROLES.REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
@@ -407,7 +381,7 @@ export function AppRouter() {
           </Route>
         </Route>
 
-        <Route path="/reviewer" element={<ReviewerLayout />}>
+        <Route path="/reviewer" element={<Pages.ReviewerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>

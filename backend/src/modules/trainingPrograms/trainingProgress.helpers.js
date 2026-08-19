@@ -40,4 +40,21 @@ function computeAttendanceStatus({ sessionCount, attendancePct, requiredAttendan
   return { value: attendancePct, required: requiredAttendance, ok };
 }
 
-module.exports = { computeHoursStatus, computeAttendanceStatus };
+/**
+ * Map a persisted training_progress row to the API snapshot shape.
+ * @param {object|null|undefined} row
+ * @param {string} [enrollmentId]
+ */
+function snapshotFromProgressRow(row, enrollmentId) {
+  if (!row) return null;
+  return {
+    enrollmentId: enrollmentId || row.enrollment_id,
+    completionPct: Number(row.completion_pct),
+    hoursCompleted: Number(row.hours_completed),
+    attendancePct: Number(row.attendance_pct || 0),
+    status: row.status,
+    requirements: row.requirements_json,
+  };
+}
+
+module.exports = { computeHoursStatus, computeAttendanceStatus, snapshotFromProgressRow };

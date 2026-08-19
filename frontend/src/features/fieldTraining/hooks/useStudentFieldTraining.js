@@ -63,8 +63,10 @@ export function useCancelFieldTrainingApplication() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cancelFieldTrainingApplication,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: fieldTrainingKeys.all });
+    onSuccess: (_d, id) => {
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentList() });
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.myApplications() });
+      if (id) qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentDetail(id) });
     },
   });
 }

@@ -32,6 +32,10 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          if (id.includes('xlsx')) return 'xlsx';
+          if (id.includes('jspdf')) return 'jspdf';
+          if (id.includes('framer-motion')) return 'framer-motion';
+          if (id.includes('react-icons')) return 'react-icons';
           if (id.includes('recharts')) return 'recharts';
           if (id.includes('lucide-react')) return 'lucide';
           if (id.includes('@tanstack')) return 'tanstack-query';

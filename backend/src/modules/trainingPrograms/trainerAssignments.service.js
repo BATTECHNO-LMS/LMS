@@ -364,7 +364,7 @@ async function getTrainerCourse(requester, programId) {
     : 0;
 
   const now = new Date();
-  const [sessions, tasks, assessments, enrollments, pendingSubmissions, unconfirmedAttendance] =
+  const [sessions, tasks, assessments, enrollments, pendingSubmissions, unconfirmedAttendance, programRow] =
     await Promise.all([
       cohortIds.length
         ? prisma.training_sessions.findMany({
@@ -446,6 +446,9 @@ async function getTrainerCourse(requester, programId) {
             },
           })
         : 0,
+      prisma.training_programs.findUnique({
+        where: { id: programId },
+      }),
     ]);
 
   const userIds = [...new Set((enrollments || []).map((e) => e.user_id))];
@@ -486,9 +489,6 @@ async function getTrainerCourse(requester, programId) {
 
   const atRiskTrainees = trainees.filter((t) => t.progress?.atRisk);
 
-  const programRow = await prisma.training_programs.findUnique({
-    where: { id: programId },
-  });
   const programFull = programRow
     ? {
         id: programRow.id,

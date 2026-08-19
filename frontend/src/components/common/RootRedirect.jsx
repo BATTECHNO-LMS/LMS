@@ -1,8 +1,10 @@
 import { Navigate } from 'react-router-dom';
+import { lazy } from 'react';
 import { useAuth } from '../../features/auth/index.js';
-import { Home } from '../../pages/Home.jsx';
 import { LoadingSpinner } from './LoadingSpinner.jsx';
 import { resolveAuthenticatedPublicPageRedirect } from '../../utils/resolveAuthenticatedLandingRoute.js';
+
+const Home = lazy(() => import('../../pages/Home.jsx').then((mod) => ({ default: mod.Home })));
 
 export function RootRedirect() {
   const { isAuthenticated, user, isAuthReady } = useAuth();

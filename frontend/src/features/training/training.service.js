@@ -278,9 +278,20 @@ export async function listMyPrograms() {
   return asList(unwrapApiData(res));
 }
 
+const inflightTraineeProgramDetail = new Map();
+
 export async function getTraineeProgramDetail(programId) {
-  const res = await apiClient.get(`${base}/trainee/programs/${programId}`);
-  return unwrapApiData(res);
+  const key = String(programId || '');
+  const pending = inflightTraineeProgramDetail.get(key);
+  if (pending) return pending;
+  const request = apiClient
+    .get(`${base}/trainee/programs/${programId}`)
+    .then((res) => unwrapApiData(res))
+    .finally(() => {
+      inflightTraineeProgramDetail.delete(key);
+    });
+  inflightTraineeProgramDetail.set(key, request);
+  return request;
 }
 
 /** Institutional final evaluation (end-of-course reaction survey). */

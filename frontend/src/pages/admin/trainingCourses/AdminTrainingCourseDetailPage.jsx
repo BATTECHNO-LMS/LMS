@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, Suspense } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   BookOpen,
@@ -31,7 +31,6 @@ import {
   approveCompletion,
   createCohort,
   createSession,
-  createTask,
   enrollUser,
   getEnrollmentProgress,
   getProgram,
@@ -41,7 +40,6 @@ import {
   listEnrollments,
   getPrePostComparison,
   listProgramAssessments,
-  listProgramTasks,
   listSessionAttendance,
   openAttendanceWindow,
   publishProgram,
@@ -57,19 +55,22 @@ import {
 } from '../../../features/training/trainer.service.js';
 import { listBranches, listMembers } from '../../../features/organizations/organizations.service.js';
 import { isAdminRole } from '../../../utils/helpers.js';
-import { TrainingAssessmentEditor } from '../../../features/training/components/TrainingAssessmentEditor.jsx';
 import { TrainingReadinessCard } from '../../../features/training/components/completion/TrainingReadinessCard.jsx';
 import { CompletionStatusBadge } from '../../../features/training/components/completion/CompletionStatusBadge.jsx';
-import { TrainingFinalizationModal } from '../../../features/training/components/completion/TrainingFinalizationModal.jsx';
-import { CourseReportDashboard } from '../../../features/training/components/reports/CourseReportDashboard.jsx';
-import { IndividualReportView } from '../../../features/training/components/reports/IndividualReportView.jsx';
-import { CourseMaterialsManager } from '../../../features/training/components/CourseMaterialsManager.jsx';
-import { RecordedLecturesManager } from '../../../features/training/components/RecordedLecturesManager.jsx';
-import { CourseTasksManager } from '../../../features/training/components/CourseTasksManager.jsx';
-import { EvaluationAnalyticsPanel } from '../../../features/training/components/evaluation/EvaluationAnalyticsPanel.jsx';
+import {
+  TrainingAssessmentEditor,
+  TrainingFinalizationModal,
+  CourseReportDashboard,
+  IndividualReportView,
+  CourseMaterialsManager,
+  RecordedLecturesManager,
+  CourseTasksManager,
+  EvaluationAnalyticsPanel,
+} from '../../../features/training/components/lazyTrainingUi.js';
 import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
+import { RouteFallback } from '../../../components/common/RouteFallback.jsx';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: BookOpen },
@@ -179,7 +180,6 @@ export function AdminTrainingCourseDetailPage() {
   const [trainees, setTrainees] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [tasks, setTasks] = useState([]);
   const [assessments, setAssessments] = useState([]);
   const [evaluation, setEvaluation] = useState(null);
   const [selectedCohortId, setSelectedCohortId] = useState('');
@@ -203,7 +203,6 @@ export function AdminTrainingCourseDetailPage() {
     hours: '',
     location: '',
   });
-  const [taskForm, setTaskForm] = useState({ title: '', instructions: '', publish: true });
   const [enrollForm, setEnrollForm] = useState({ user_id: '', status: 'ACTIVE' });
   const [assignForm, setAssignForm] = useState({ trainer_user_id: '', is_lead_trainer: false });
   const [comparison, setComparison] = useState(null);
@@ -213,30 +212,10 @@ export function AdminTrainingCourseDetailPage() {
     setLoading(true);
     setError('');
     try {
-      const program = await getProgram(programId);
-      const [cohortRows, branchRows, trainerRows, assignmentRows, taskRows, assessmentRows] =
-        await Promise.all([
-          listCohorts(programId),
-          listBranches(program.organizationId),
-          listMembers(program.organizationId, { role_code: 'trainer' }),
-          listTrainerAssignments(program.organizationId),
-          listProgramTasks(programId),
-          listProgramAssessments(programId),
-        ]);
+      const [program, cohortRows] = await Promise.all([getProgram(programId), listCohorts(programId)]);
       setCourse(program);
       setCohorts(Array.isArray(cohortRows) ? cohortRows : []);
-      setBranches(Array.isArray(branchRows) ? branchRows : []);
-      setTrainers(Array.isArray(trainerRows) ? trainerRows : []);
-      setAssignments(
-        (Array.isArray(assignmentRows) ? assignmentRows : []).filter(
-          (a) => String(a.trainingProgramId || a.training_program_id) === String(programId)
-        )
-      );
-      setTasks(Array.isArray(taskRows) ? taskRows : []);
-      setAssessments(Array.isArray(assessmentRows) ? assessmentRows : []);
       setSelectedCohortId((prev) => prev || (cohortRows[0]?.id ?? ''));
-      const traineeMembers = await listMembers(program.organizationId, { role_code: 'trainee' });
-      setTrainees(Array.isArray(traineeMembers) ? traineeMembers : []);
     } catch (err) {
       setError(getApiErrorMessage(err, 'تعذر تحميل الدورة التدريبية.'));
       setCourse(null);
@@ -250,9 +229,69 @@ export function AdminTrainingCourseDetailPage() {
   }, [refresh]);
 
   useEffect(() => {
-    if (!selectedCohortId) {
-      setEnrollments([]);
-      setSessions([]);
+    if (!course?.organizationId) return;
+    if (tab !== 'cohorts' && tab !== 'trainers') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [branchRows, trainerRows, assignmentRows] = await Promise.all([
+          listBranches(course.organizationId),
+          tab === 'trainers' ? listMembers(course.organizationId, { role_code: 'trainer' }) : [],
+          tab === 'trainers' ? listTrainerAssignments(course.organizationId) : [],
+        ]);
+        if (cancelled) return;
+        setBranches(Array.isArray(branchRows) ? branchRows : []);
+        if (tab === 'trainers') {
+          setTrainers(Array.isArray(trainerRows) ? trainerRows : []);
+          setAssignments(
+            (Array.isArray(assignmentRows) ? assignmentRows : []).filter(
+              (a) => String(a.trainingProgramId || a.training_program_id) === String(programId)
+            )
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setBranches([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, course?.organizationId, programId]);
+
+  useEffect(() => {
+    if (tab !== 'trainees' || !course?.organizationId) return;
+    let cancelled = false;
+    listMembers(course.organizationId, { role_code: 'trainee' })
+      .then((rows) => {
+        if (!cancelled) setTrainees(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setTrainees([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, course?.organizationId]);
+
+  useEffect(() => {
+    if ((tab !== 'pretest' && tab !== 'posttest') || !programId) return;
+    let cancelled = false;
+    listProgramAssessments(programId)
+      .then((rows) => {
+        if (!cancelled) setAssessments(Array.isArray(rows) ? rows : []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(getApiErrorMessage(err, 'تعذر تحميل الاختبارات.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, programId]);
+
+  useEffect(() => {
+    if (!selectedCohortId || !['sessions', 'attendance', 'trainees', 'cohorts'].includes(tab)) {
       return;
     }
     let cancelled = false;
@@ -276,7 +315,7 @@ export function AdminTrainingCourseDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedCohortId]);
+  }, [selectedCohortId, tab]);
 
   const loadReadiness = useCallback(async () => {
     if (!programId) return;
@@ -378,6 +417,7 @@ export function AdminTrainingCourseDetailPage() {
         }
       />
 
+      <Suspense fallback={<RouteFallback />}>
       <p style={{ marginBottom: '0.75rem' }}>
         <Link className="link" to="/admin/training-courses">
           ← الدورات التدريبية
@@ -1361,6 +1401,7 @@ export function AdminTrainingCourseDetailPage() {
           )}
         </SectionCard>
       ) : null}
+      </Suspense>
     </div>
   );
 }

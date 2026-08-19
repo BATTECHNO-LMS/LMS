@@ -654,3 +654,80 @@ export const ReportVerificationPage = lazyNamed(
   () => import('../../pages/public/ReportVerificationPage.jsx'),
   'ReportVerificationPage'
 );
+
+// —— Layouts (keep auth layout eager in the router) ——
+export const AdminLayout = lazyNamed(() => import('../../layouts/AdminLayout.jsx'), 'AdminLayout');
+export const InstructorLayout = lazyNamed(
+  () => import('../../layouts/InstructorLayout.jsx'),
+  'InstructorLayout'
+);
+export const TrainerLayout = lazyNamed(() => import('../../layouts/TrainerLayout.jsx'), 'TrainerLayout');
+export const TraineeLayout = lazyNamed(() => import('../../layouts/TraineeLayout.jsx'), 'TraineeLayout');
+export const StudentLayout = lazyNamed(() => import('../../layouts/StudentLayout.jsx'), 'StudentLayout');
+export const ReviewerLayout = lazyNamed(
+  () => import('../../layouts/ReviewerLayout.jsx'),
+  'ReviewerLayout'
+);
+
+// —— Auth pages ——
+export const LoginPage = lazyNamed(() => import('../../pages/auth/LoginPage.jsx'), 'LoginPage');
+export const RegisterPage = lazyNamed(
+  () => import('../../features/auth/pages/RegisterPage.jsx'),
+  'RegisterPage'
+);
+export const VerifyEmailOtpPage = lazyNamed(
+  () => import('../../pages/auth/VerifyEmailOtpPage.jsx'),
+  'VerifyEmailOtpPage'
+);
+export const ForgotPasswordPage = lazyNamed(
+  () => import('../../pages/auth/ForgotPasswordPage.jsx'),
+  'ForgotPasswordPage'
+);
+export const VerifyPasswordResetOtpPage = lazyNamed(
+  () => import('../../pages/auth/VerifyPasswordResetOtpPage.jsx'),
+  'VerifyPasswordResetOtpPage'
+);
+export const NewPasswordPage = lazyNamed(
+  () => import('../../pages/auth/NewPasswordPage.jsx'),
+  'NewPasswordPage'
+);
+export const AccountStatusPage = lazyNamed(
+  () => import('../../pages/auth/AccountStatusPage.jsx'),
+  'AccountStatusPage'
+);
+export const AdminLoginPage = lazyNamed(
+  () => import('../../pages/auth/portalLogins.jsx'),
+  'AdminLoginPage'
+);
+export const InstructorLoginPage = lazyNamed(
+  () => import('../../pages/auth/portalLogins.jsx'),
+  'InstructorLoginPage'
+);
+export const StudentLoginPage = lazyNamed(
+  () => import('../../pages/auth/portalLogins.jsx'),
+  'StudentLoginPage'
+);
+export const ReviewerLoginPage = lazyNamed(
+  () => import('../../pages/auth/portalLogins.jsx'),
+  'ReviewerLoginPage'
+);
+export const PortalPickerPage = lazyNamed(
+  () => import('../../pages/auth/PortalPickerPage.jsx'),
+  'PortalPickerPage'
+);
+export const InstitutionLoginPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
+  'InstitutionLoginPage'
+);
+export const UniversitiesLoginPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
+  'UniversitiesLoginPage'
+);
+export const InstitutionRegisterPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionRegisterPage.jsx'),
+  'InstitutionRegisterPage'
+);
+export const SelectOrganizationPage = lazyNamed(
+  () => import('../../pages/auth/SelectOrganizationPage.jsx'),
+  'SelectOrganizationPage'
+);
