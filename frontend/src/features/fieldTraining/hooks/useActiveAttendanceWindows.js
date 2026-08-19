@@ -3,8 +3,8 @@ import { fetchActiveAttendanceWindows } from '../fieldTraining.service.js';
 
 export const ACTIVE_ATTENDANCE_WINDOW_KEY = ['fieldTraining', 'attendance-window', 'active'];
 
-const IDLE_POLL_MS = 20_000;
-const ACTIVE_POLL_MS = 8_000;
+const IDLE_POLL_MS = 30_000;
+const ACTIVE_POLL_MS = 12_000;
 
 /**
  * Shared student poll for open attendance windows.

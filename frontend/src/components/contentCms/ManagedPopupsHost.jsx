@@ -53,7 +53,7 @@ export function ManagedPopupsHost({
     queryFn: () => fetchActivePopups({ route: location.pathname }),
     enabled: Boolean(isAuthenticated),
     staleTime: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const popups = useMemo(() => {

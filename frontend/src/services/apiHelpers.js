@@ -32,6 +32,7 @@ const TRAINING_ERROR_AR = {
   COURSE_ENROLLMENT_REQUIRED: 'يلزم التسجيل في الدورة للوصول إلى هذا المحتوى.',
   ENROLLMENT_PENDING: 'تسجيلك بانتظار الموافقة.',
   ENROLLMENT_REJECTED: 'تم رفض طلب التسجيل.',
+  ATTENDANCE_WINDOW_OPEN: 'توجد نافذة حضور مفتوحة لهذه الجلسة بالفعل. أغلقها أو انتظر انتهاء المدة.',
   ATTENDANCE_WINDOW_CLOSED: 'لا توجد نافذة حضور مفتوحة.',
   ATTENDANCE_CODE_INVALID: 'رمز الحضور غير صحيح.',
   ATTENDANCE_CODE_EXPIRED: 'انتهت صلاحية رمز الحضور.',

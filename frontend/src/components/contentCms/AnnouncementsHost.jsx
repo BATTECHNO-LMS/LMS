@@ -69,7 +69,7 @@ export function AnnouncementsHost({
     queryFn: fetchActiveAnnouncements,
     enabled: Boolean(isAuthenticated),
     staleTime: 60_000,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
   });
 
   const items = useMemo(() => {

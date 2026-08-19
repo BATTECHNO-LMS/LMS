@@ -47,7 +47,10 @@ describe('institution seed data', () => {
     assert.equal(BATTECHNO_INSTITUTION.shortName, 'BATTECHNO');
     assert.equal(BATTECHNO_INSTITUTION.allowsPublicTraineeRegistration, false);
     assert.equal(BATTECHNO_INSTITUTION.logoUrl, null);
-    assert.equal(BATTECHNO_INSTITUTION.branches.length, 0);
+    assert.equal(BATTECHNO_INSTITUTION.branches.length, 1);
+    assert.equal(BATTECHNO_INSTITUTION.branches[0].code, 'BATTECHNO_AMMAN');
+    assert.equal(BATTECHNO_INSTITUTION.branches[0].name, 'فرع عمان');
+    assert.equal(BATTECHNO_INSTITUTION.branches[0].city, 'عمان');
     assert.ok(!PUBLIC_INSTITUTION_SEEDS.some((s) => s.code === 'BATTECHNO'));
   });
 });

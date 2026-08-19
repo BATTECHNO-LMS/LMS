@@ -260,7 +260,18 @@ export function ManageAttendanceTab({
       invalidateAttendance();
       refetchWindow();
     },
-    onError: (err) => setError(getApiErrorMessage(err)),
+    onError: (err) => {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code || err?.code;
+      if (status === 409 || code === 'ATTENDANCE_WINDOW_OPEN') {
+        setShowOpenModal(false);
+        setError(getApiErrorMessage(err));
+        invalidateAttendance();
+        refetchWindow();
+        return;
+      }
+      setError(getApiErrorMessage(err));
+    },
   });
 
   const closeMut = useMutation({

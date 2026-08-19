@@ -214,7 +214,12 @@ async function openAttendanceWindow(sessionId, body, user) {
     existing = await expireWindowIfNeeded(existing, { closedById: user.userId });
   }
   if (existing && existing.status === 'open') {
-    throw new ApiError(409, 'توجد نافذة حضور مفتوحة لهذه الجلسة بالفعل', null, 'ATTENDANCE_WINDOW_OPEN');
+    throw new ApiError(
+      409,
+      'توجد نافذة حضور مفتوحة لهذه الجلسة بالفعل',
+      { window: mapWindowPublic(existing) },
+      'ATTENDANCE_WINDOW_OPEN'
+    );
   }
 
   const code = String(body.code || '').trim().toUpperCase() || generateAttendanceCode();
@@ -238,33 +243,6 @@ async function openAttendanceWindow(sessionId, body, user) {
     },
   });
 
-  const oppFull = await repo.findById(opp.id);
-  await ftNotify.notifyStudentsAttendanceWindowOpened({
-    opportunityId: opp.id,
-    opportunityTitle: oppFull?.title,
-    sessionTitle: session.title,
-    sessionId,
-    windowId: windowRow.id,
-    mode,
-    expiresAt,
-    durationSeconds: duration,
-  });
-
-  // Engine path (rules/templates). Never include attendance code in templateVars.
-  await emitDomainEvent('ATTENDANCE_WINDOW_OPENED', {
-    sessionId,
-    opportunityId: opp.id,
-    universityId: opp.university_id || oppFull?.university_id || null,
-    actorUserId: user.userId,
-    entityType: 'field_training_attendance_window',
-    entityId: windowRow.id,
-    templateVars: {
-      session_title: session.title || '',
-      opportunity_name: oppFull?.title || '',
-      action_url: `/student/field-training/sessions/${sessionId}`,
-    },
-  }).catch(() => null);
-
   await recordAudit({
     userId: user.userId,
     actionType: 'FIELD_TRAINING_ATTENDANCE_WINDOW_OPENED',
@@ -279,9 +257,41 @@ async function openAttendanceWindow(sessionId, body, user) {
     },
   });
 
-  const stats = await buildWindowStats(sessionId, windowRow.id);
+  // Fan-out after the response path: sequential student notifies + stats blocked the
+  // first open (~5–8s), so the browser retried and hit 409 on the already-created window.
+  setImmediate(() => {
+    Promise.resolve()
+      .then(async () => {
+        const oppFull = await repo.findById(opp.id);
+        await ftNotify.notifyStudentsAttendanceWindowOpened({
+          opportunityId: opp.id,
+          opportunityTitle: oppFull?.title,
+          sessionTitle: session.title,
+          sessionId,
+          windowId: windowRow.id,
+          mode,
+          expiresAt,
+          durationSeconds: duration,
+        });
+        await emitDomainEvent('ATTENDANCE_WINDOW_OPENED', {
+          sessionId,
+          opportunityId: opp.id,
+          universityId: opp.university_id || oppFull?.university_id || null,
+          actorUserId: user.userId,
+          entityType: 'field_training_attendance_window',
+          entityId: windowRow.id,
+          templateVars: {
+            session_title: session.title || '',
+            opportunity_name: oppFull?.title || '',
+            action_url: `/student/field-training/sessions/${sessionId}`,
+          },
+        });
+      })
+      .catch(() => null);
+  });
+
   return {
-    window: mapWindowPublic(windowRow, { includeCode: true, code, stats }),
+    window: mapWindowPublic(windowRow, { includeCode: true, code }),
     code, // one-time return for announcer UI
   };
 }

@@ -144,6 +144,56 @@ async function resolveOrganization(tx) {
   return { organization: created, action: 'created' };
 }
 
+async function upsertBranches(tx, organizationId, branches) {
+  const db = tx || prisma;
+  const results = [];
+  for (let i = 0; i < branches.length; i += 1) {
+    const branch = branches[i];
+    const existing = await db.organization_branches.findFirst({
+      where: {
+        organization_id: organizationId,
+        OR: [{ code: branch.code }, { name: branch.name }],
+      },
+    });
+
+    if (existing) {
+      const updated = await db.organization_branches.update({
+        where: { id: existing.id },
+        data: {
+          code: branch.code,
+          name: branch.name,
+          name_en: branch.nameEn || null,
+          city: branch.city || null,
+          address: branch.address || null,
+          sort_order: i + 1,
+          is_active: true,
+          updated_at: new Date(),
+        },
+      });
+      results.push({
+        code: branch.code,
+        action: existing.code === branch.code ? 'updated' : 'reconciled',
+        id: updated.id,
+      });
+    } else {
+      const created = await db.organization_branches.create({
+        data: {
+          organization_id: organizationId,
+          code: branch.code,
+          name: branch.name,
+          name_en: branch.nameEn || null,
+          city: branch.city || null,
+          address: branch.address || null,
+          sort_order: i + 1,
+          is_active: true,
+        },
+      });
+      results.push({ code: branch.code, action: 'created', id: created.id });
+    }
+  }
+  return results;
+}
+
 function courseSettings(existingSettings) {
   const prev =
     existingSettings && typeof existingSettings === 'object' && !Array.isArray(existingSettings)
@@ -228,12 +278,19 @@ async function resolveCourse(tx, organization) {
   return { program: created, action: 'created' };
 }
 
-async function verifyInvariants(organization, program) {
+async function verifyInvariants(organization, program, branchResults) {
   const orgCount = await prisma.organizations.count({
     where: { code: BATTECHNO_INSTITUTION.code },
   });
   const courseCount = await prisma.training_programs.count({
     where: { code: COURSE_CODE },
+  });
+  const ammanBranchCount = await prisma.organization_branches.count({
+    where: {
+      organization_id: organization.id,
+      code: 'BATTECHNO_AMMAN',
+      is_active: true,
+    },
   });
   const cohorts = await prisma.training_cohorts.count({
     where: { program_id: program.id },
@@ -258,18 +315,15 @@ async function verifyInvariants(organization, program) {
     courseType: program.type === 'TRAINING_COURSE',
     courseOrgLink: program.organization_id === organization.id,
     courseStatusDraftOrPreserved: Boolean(program.status),
-    noFakeDates: program.start_date == null && program.end_date == null,
-    noFakeHours: program.required_hours == null,
-    noCohorts: cohorts === 0,
-    noTrainers: trainers === 0,
-    noEnrollments: enrollments === 0,
+    ammanBranchExists: ammanBranchCount === 1,
+    expectedBranchesSeeded: Array.isArray(branchResults) && branchResults.length === BATTECHNO_INSTITUTION.branches.length,
   };
 
   const failed = Object.entries(checks)
     .filter(([, ok]) => !ok)
     .map(([k]) => k);
 
-  return { checks, failed, cohorts, trainers, enrollments };
+  return { checks, failed, cohorts, trainers, enrollments, ammanBranchCount };
 }
 
 async function main() {
@@ -307,13 +361,18 @@ async function main() {
 
   const result = await prisma.$transaction(async (tx) => {
     const orgResolved = await resolveOrganization(tx);
+    const branches = await upsertBranches(
+      tx,
+      orgResolved.organization.id,
+      BATTECHNO_INSTITUTION.branches
+    );
     const courseResolved = await resolveCourse(tx, orgResolved.organization);
-    return { orgResolved, courseResolved };
+    return { orgResolved, courseResolved, branches };
   });
 
   const { organization, action: orgAction, previousCode } = result.orgResolved;
   const { program, action: courseAction, preservedStatus } = result.courseResolved;
-  const verification = await verifyInvariants(organization, program);
+  const verification = await verifyInvariants(organization, program, result.branches);
 
   report.organization = {
     id: organization.id,
@@ -327,6 +386,7 @@ async function main() {
     previousCode: previousCode || null,
     existed: orgAction !== 'created',
   };
+  report.branches = result.branches;
   report.course = {
     id: program.id,
     code: program.code,

@@ -1,11 +1,17 @@
 const { PrismaClient } = require('@prisma/client');
+const { applyPrismaPoolParams } = require('./prismaPoolUrl');
 
 const globalForPrisma = globalThis;
 
 /** One client per Node process; avoids extra pools when tooling reloads modules in dev. */
 function createPrismaClient() {
+  const url = applyPrismaPoolParams(process.env.DATABASE_URL || '', {
+    connectionLimit: process.env.PRISMA_CONNECTION_LIMIT,
+    poolTimeout: process.env.PRISMA_POOL_TIMEOUT,
+  });
   return new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    ...(url ? { datasources: { db: { url } } } : {}),
   });
 }
 

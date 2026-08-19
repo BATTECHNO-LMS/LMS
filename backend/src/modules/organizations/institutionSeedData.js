@@ -49,7 +49,7 @@ const MINISTRY_OF_YOUTH = Object.freeze({
 
 /**
  * BATTECHNO as an INSTITUTION (platform operator acting as training provider).
- * Not part of PUBLIC_INSTITUTION_SEEDS — no public trainee registration / branch catalog.
+ * Not part of PUBLIC_INSTITUTION_SEEDS (public registration flag is separate).
  * Seeded by: npm run seed:battechno-diploma
  */
 const BATTECHNO_INSTITUTION = Object.freeze({
@@ -69,7 +69,15 @@ const BATTECHNO_INSTITUTION = Object.freeze({
    * `logo_url` stays null so reports use a single-brand header (no duplicated logos).
    */
   logoUrl: null,
-  branches: Object.freeze([]),
+  branches: Object.freeze([
+    {
+      code: 'BATTECHNO_AMMAN',
+      name: 'فرع عمان',
+      nameEn: 'Amman Branch',
+      city: 'عمان',
+      address: 'عمان، الأردن',
+    },
+  ]),
 });
 
 const PUBLIC_INSTITUTION_SEEDS = Object.freeze([CROWN_PRINCE_FOUNDATION, MINISTRY_OF_YOUTH]);

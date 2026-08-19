@@ -31,6 +31,10 @@ const env = {
   PORT: Number(process.env.PORT) || 4000,
   API_VERSION: process.env.API_VERSION || 'v1',
   DATABASE_URL: process.env.DATABASE_URL || '',
+  /** Prisma client pool size (long-running Node). Default beats num_cpus*2+1 in Docker. */
+  PRISMA_CONNECTION_LIMIT: Number(process.env.PRISMA_CONNECTION_LIMIT) || 25,
+  /** Seconds to wait for a free Prisma connection before P2024. */
+  PRISMA_POOL_TIMEOUT: Number(process.env.PRISMA_POOL_TIMEOUT) || 20,
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
   /** Minimum length for JWT_SECRET when NODE_ENV=production */
