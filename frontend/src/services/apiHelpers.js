@@ -49,7 +49,7 @@ const TRAINING_ERROR_AR = {
   ASSESSMENT_MANUAL_GRADING_PENDING: 'نتيجتك بانتظار مراجعة المدرب.',
   COURSE_REQUIREMENTS_INCOMPLETE: 'متطلبات الدورة غير مكتملة بعد.',
   CERTIFICATE_NOT_ELIGIBLE: 'الشهادة غير متاحة لهذا التسجيل.',
-  FINAL_EVALUATION_LOCKED: 'التقييم النهائي مقفل حتى استيفاء متطلبات الدورة (اجتياز الاختبار البعدي).',
+  FINAL_EVALUATION_LOCKED: 'يصبح التقييم النهائي متاحًا بعد استكمال الاختبار البعدي.',
   FINAL_EVALUATION_NOT_AVAILABLE: 'التقييم النهائي غير متاح حاليًا لهذه الدورة.',
   FINAL_EVALUATION_ALREADY_SUBMITTED: 'تم إرسال التقييم النهائي بالفعل ولا يمكن تعديله.',
   FINAL_EVALUATION_VALIDATION_FAILED: 'يرجى الإجابة على جميع الأسئلة المطلوبة قبل إرسال التقييم.',

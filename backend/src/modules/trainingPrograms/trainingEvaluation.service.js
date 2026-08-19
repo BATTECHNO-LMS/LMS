@@ -1,7 +1,9 @@
 'use strict';
 
 /**
- * Institutional TRAINING_COURSE final evaluation (end-of-course reaction survey).
+ * Institutional TRAINING_COURSE final evaluation (Kirkpatrick Level 1 — Reaction).
+ * Level 2 Learning is measured by PRE_TEST vs POST_TEST, not this survey.
+ * Levels 3/4 are reserved for future follow-up evaluations.
  * One evaluation assignment per enrollment, one response per assignment.
  * Assignment lifecycle: LOCKED -> AVAILABLE -> IN_PROGRESS -> SUBMITTED -> (REOPENED) -> CLOSED.
  */
@@ -11,7 +13,7 @@ const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { recordAudit } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
-const { npsCategory, computeSectionScores, filterQuestionsForDeliveryMode, average } = require('./trainingEvaluation.scoring');
+const { npsCategory, computeSectionScores, filterQuestionsForDeliveryMode, average, buildRatingDistribution, KIRKPATRICK } = require('./trainingEvaluation.scoring');
 
 function isTrainerOnly(requester) {
   return (
@@ -158,7 +160,15 @@ async function ensureEvaluationAssignment(enrollmentId, { forceUnlock = false } 
     where: { enrollment_id: enrollmentId },
   });
 
-  const deliveryMode = enrollment.training_cohorts.delivery_mode || program.delivery_mode || null;
+  const templateMeta = await prisma.training_evaluation_templates.findUnique({
+    where: { id: link.template_id },
+    select: { delivery_mode: true },
+  });
+  const deliveryMode =
+    enrollment.training_cohorts.delivery_mode ||
+    program.delivery_mode ||
+    templateMeta?.delivery_mode ||
+    null;
   const willUnlock = forceUnlock && (!existing || existing.status === 'LOCKED');
   const baseData = {
     program_id: program.id,
@@ -294,7 +304,7 @@ async function getEnrollmentEvaluation(requester, enrollmentId) {
   if (isOwner && assignment.status === 'LOCKED') {
     throw new ApiError(
       403,
-      'التقييم النهائي مقفل حتى استيفاء متطلبات الدورة (اجتياز الاختبار البعدي).',
+      'يصبح التقييم النهائي متاحًا بعد استكمال الاختبار البعدي.',
       null,
       'FINAL_EVALUATION_LOCKED'
     );
@@ -341,12 +351,27 @@ async function getProgramEvaluation(requester, programId) {
       return { programId, isConfigured: false, isRequired: false, isActive: false, template: null };
     }
     const template = await loadTemplateWithSections(link.template_id);
+    const aggregates = await getEvaluationAggregates(programId);
     return {
       programId,
       isConfigured: true,
       isRequired: link.is_required,
       isActive: link.is_active,
-      template: mapTemplateOut(template, { deliveryMode: program.delivery_mode }),
+      kirkpatrick: {
+        level1: KIRKPATRICK.FINAL_EVALUATION,
+        level2: KIRKPATRICK.PRE_POST_TESTS,
+        level3: KIRKPATRICK.FOLLOW_UP_BEHAVIOR,
+        level4: KIRKPATRICK.FOLLOW_UP_RESULTS,
+      },
+      template: mapTemplateOut(template, { deliveryMode: program.delivery_mode || template.delivery_mode }),
+      ...aggregates,
+      stats: {
+        responseRate: aggregates.responseRate,
+        submittedCount: aggregates.totalSubmitted,
+        assignedCount: aggregates.totalAssignments,
+        nps: aggregates.nps?.index,
+        averageRating: aggregates.averages?.overall_reaction_score,
+      },
     };
   }
 
@@ -559,11 +584,20 @@ async function reopenEvaluation(requester, assignmentId, reason) {
   return { id: updated.id, status: updated.status, reopenReason: updated.reopen_reason };
 }
 
-/** Aggregated scores/response-rate/NPS for a program's submitted evaluations (used by the course report). */
+/** Aggregated scores/response-rate/NPS/question distributions for a program's submitted evaluations. */
 async function getEvaluationAggregates(programId) {
   const [responses, totalAssignments] = await Promise.all([
     prisma.training_evaluation_responses.findMany({
       where: { training_evaluation_assignments: { program_id: programId }, status: 'SUBMITTED' },
+      include: {
+        training_evaluation_answers: {
+          include: {
+            training_evaluation_questions: {
+              include: { training_evaluation_sections: true },
+            },
+          },
+        },
+      },
     }),
     prisma.training_evaluation_assignments.count({ where: { program_id: programId } }),
   ]);
@@ -572,34 +606,124 @@ async function getEvaluationAggregates(programId) {
   const scoresList = responses.map((r) => (r.scores_json && typeof r.scores_json === 'object' ? r.scores_json : {}));
   const avgField = (field) => average(scoresList.map((s) => (typeof s[field] === 'number' ? s[field] : null)));
 
-  const npsScores = responses.map((r) => r.nps_score).filter((v) => v != null);
-  const promoters = responses.filter((r) => r.nps_category === 'PROMOTER').length;
-  const passives = responses.filter((r) => r.nps_category === 'PASSIVE').length;
-  const detractors = responses.filter((r) => r.nps_category === 'DETRACTOR').length;
-  const npsIndex = npsScores.length ? Math.round(((promoters - detractors) / npsScores.length) * 10000) / 100 : null;
+  const npsScores = responses.map((r) => r.nps_score).filter((v) => v != null).map((v) => Number(v));
+  const nps = require('./trainingReportMetrics.service').computeNps(npsScores);
+
+  const byQuestion = new Map();
+  for (const response of responses) {
+    for (const answer of response.training_evaluation_answers || []) {
+      const q = answer.training_evaluation_questions;
+      if (!q) continue;
+      if (!byQuestion.has(q.id)) {
+        byQuestion.set(q.id, {
+          questionId: q.id,
+          code: q.code,
+          prompt: q.prompt,
+          questionType: q.question_type,
+          sectionCode: q.training_evaluation_sections?.code || null,
+          sectionTitle: q.training_evaluation_sections?.title || null,
+          numericValues: [],
+          texts: [],
+        });
+      }
+      const bucket = byQuestion.get(q.id);
+      if (q.question_type === 'OPEN_TEXT') {
+        const text = answer.text_value && String(answer.text_value).trim();
+        if (text) bucket.texts.push(text);
+      } else if (answer.numeric_value != null) {
+        bucket.numericValues.push(Number(answer.numeric_value));
+      }
+    }
+  }
+
+  const questions = [...byQuestion.values()].map((q) => {
+    if (q.questionType === 'OPEN_TEXT') {
+      return {
+        questionId: q.questionId,
+        code: q.code,
+        prompt: q.prompt,
+        questionType: q.questionType,
+        sectionCode: q.sectionCode,
+        sectionTitle: q.sectionTitle,
+        n: q.texts.length,
+        comments: q.texts,
+      };
+    }
+    const dist = buildRatingDistribution(
+      q.numericValues,
+      q.questionType === 'NPS' ? 0 : 1,
+      q.questionType === 'NPS' ? 10 : 5
+    );
+    return {
+      questionId: q.questionId,
+      code: q.code,
+      prompt: q.prompt,
+      questionType: q.questionType,
+      sectionCode: q.sectionCode,
+      sectionTitle: q.sectionTitle,
+      ...dist,
+    };
+  });
+
+  const ratingQuestions = questions.filter((q) => q.questionType === 'RATING_SCALE' && q.n > 0);
+  const ranked = [...ratingQuestions].sort((a, b) => (b.average ?? 0) - (a.average ?? 0));
+
+  const comments = questions
+    .filter((q) => q.questionType === 'OPEN_TEXT')
+    .map((q) => ({
+      questionCode: q.code,
+      prompt: q.prompt,
+      sectionTitle: q.sectionTitle,
+      count: q.n,
+      comments: q.comments,
+    }));
+
+  const averages = {
+    trainer_score: avgField('trainer_score'),
+    content_score: avgField('content_score'),
+    activities_score: avgField('activities_score'),
+    venue_score: avgField('venue_score'),
+    technical_environment_score: avgField('technical_environment_score'),
+    organization_score: avgField('organization_score'),
+    immediate_impact_score: avgField('immediate_impact_score'),
+    overall_reaction_score: avgField('overall_reaction_score'),
+  };
 
   return {
     programId,
+    sampleSize: totalSubmitted,
     totalAssignments,
     totalSubmitted,
     responseRate: totalAssignments ? Math.round((totalSubmitted / totalAssignments) * 10000) / 100 : 0,
-    averages: {
-      trainer_score: avgField('trainer_score'),
-      content_score: avgField('content_score'),
-      activities_score: avgField('activities_score'),
-      venue_score: avgField('venue_score'),
-      technical_environment_score: avgField('technical_environment_score'),
-      organization_score: avgField('organization_score'),
-      immediate_impact_score: avgField('immediate_impact_score'),
-      overall_reaction_score: avgField('overall_reaction_score'),
-    },
+    averages,
     nps: {
       average: average(npsScores),
-      index: npsIndex,
-      promoters,
-      passives,
-      detractors,
-      totalResponses: npsScores.length,
+      index: nps.index,
+      promoters: nps.promoters,
+      passives: nps.passives,
+      detractors: nps.detractors,
+      promotersPct: nps.promotersPct,
+      passivesPct: nps.passivesPct,
+      detractorsPct: nps.detractorsPct,
+      totalResponses: nps.totalResponses,
+      note: nps.note,
+    },
+    questions,
+    highestRated: ranked.slice(0, 3).map((q) => ({ code: q.code, prompt: q.prompt, average: q.average, n: q.n })),
+    lowestRated: ranked.slice(-3).reverse().map((q) => ({ code: q.code, prompt: q.prompt, average: q.average, n: q.n })),
+    comments,
+    kirkpatrickLevel1: {
+      label: 'المستوى الأول — Reaction',
+      note: 'تقييم رد الفعل الفوري للمتدربين. لا يُعد دليلًا على تغيّر السلوك الوظيفي أو النتائج التشغيلية.',
+      averages,
+      nps: {
+        index: nps.index,
+        promotersPct: nps.promotersPct,
+        passivesPct: nps.passivesPct,
+        detractorsPct: nps.detractorsPct,
+        totalResponses: nps.totalResponses,
+      },
+      sampleSize: totalSubmitted,
     },
   };
 }
@@ -615,4 +739,5 @@ module.exports = {
   getEvaluationAggregates,
   mapTemplateOut,
   mapResponseOut,
+  KIRKPATRICK,
 };

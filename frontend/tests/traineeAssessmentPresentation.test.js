@@ -219,6 +219,71 @@ describe('mapTraineeAssessment', () => {
     assert.equal(mapped.programType, 'FIELD_TRAINING');
     assert.equal(mapped.durationMinutes, 20);
   });
+
+  it('presents the BATTECHNO diploma content/Office pre-test metrics without revealing answers', () => {
+    const mapped = mapTraineeAssessment({
+      id: 'battechno-diploma-content-office-pre',
+      title: 'الاختبار القبلي – كتابة المحتوى وبرامج Microsoft Office',
+      kind: 'PRE_TEST',
+      durationMinutes: 30,
+      questionCount: 25,
+      attemptsUsed: 0,
+      attemptsAllowed: 1,
+      passScore: 60,
+      showResults: true,
+      showCorrectAnswers: false,
+    });
+    assert.equal(mapped.title, 'الاختبار القبلي – كتابة المحتوى وبرامج Microsoft Office');
+    assert.equal(mapped.showCorrectAnswers, false);
+    assert.equal(mapped.action.label, 'بدء الاختبار');
+    const metrics = buildAssessmentMetrics(mapped);
+    assert.equal(metrics.find((m) => m.key === 'questions').value, '25 سؤالًا');
+    assert.equal(metrics.find((m) => m.key === 'duration').value, '30 دقيقة');
+    assert.equal(metrics.find((m) => m.key === 'attempts').value, '0 من 1');
+    assert.equal(metrics.find((m) => m.key === 'passScore').value, '60%');
+
+    const afterSubmit = mapTraineeAssessment({
+      id: 'battechno-diploma-content-office-pre',
+      title: 'الاختبار القبلي – كتابة المحتوى وبرامج Microsoft Office',
+      kind: 'PRE_TEST',
+      durationMinutes: 30,
+      questionCount: 25,
+      attemptsUsed: 1,
+      attemptsAllowed: 1,
+      passScore: 60,
+      showResults: true,
+      showCorrectAnswers: false,
+      latestResult: { score: 72, status: 'GRADED', pendingManual: false },
+    });
+    assert.equal(afterSubmit.score, 72);
+    assert.equal(afterSubmit.passed, true);
+    assert.equal(afterSubmit.showCorrectAnswers, false);
+    assert.equal(afterSubmit.resultMode, 'completed');
+  });
+
+  it('presents the CPF LinkedIn & CV pre-test metrics without revealing answers', () => {
+    const mapped = mapTraineeAssessment({
+      id: 'cpf-linkedin-cv-pre',
+      title: 'الاختبار القبلي – LinkedIn وكتابة السيرة الذاتية CV',
+      kind: 'PRE_TEST',
+      durationMinutes: 20,
+      questionCount: 20,
+      attemptsUsed: 0,
+      attemptsAllowed: 1,
+      passScore: 60,
+      showResults: true,
+      showCorrectAnswers: false,
+      latestResult: { score: 80, status: 'GRADED', pendingManual: false },
+    });
+    assert.equal(mapped.title, 'الاختبار القبلي – LinkedIn وكتابة السيرة الذاتية CV');
+    assert.equal(mapped.showCorrectAnswers, false);
+    assert.equal(mapped.score, 80);
+    const metrics = buildAssessmentMetrics(mapped);
+    assert.equal(metrics.find((m) => m.key === 'questions').value, '20 سؤالًا');
+    assert.equal(metrics.find((m) => m.key === 'duration').value, '20 دقيقة');
+    assert.equal(metrics.find((m) => m.key === 'attempts').value, '0 من 1');
+    assert.equal(metrics.find((m) => m.key === 'passScore').value, '60%');
+  });
 });
 
 describe('resolveAssessmentUiState', () => {

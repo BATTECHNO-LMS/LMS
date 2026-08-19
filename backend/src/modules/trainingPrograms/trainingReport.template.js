@@ -49,6 +49,54 @@ function barChart(items, { max = 100 } = {}) {
     .join('')}</div>`;
 }
 
+function sectionKirkpatrick(snap) {
+  const k = snap.kirkpatrick || {};
+  const l1 = k.level1 || {};
+  const l2 = k.level2 || snap.learningImpact || {};
+  const avgs = snap.evaluation?.averages || {};
+  return `
+    <h3>${escapeHtml(l1.label || 'المستوى الأول — Reaction')}</h3>
+    <p class="muted">${escapeHtml(l1.note || '')}</p>
+    ${table(
+      ['المحور', 'المتوسط', 'حجم العينة'],
+      [
+        ['تقييم المدرب', l1.trainer ?? avgs.trainer_score, l1.sampleSize],
+        ['تقييم المحتوى', l1.content ?? avgs.content_score, l1.sampleSize],
+        ['تقييم الأنشطة', l1.activities ?? avgs.activities_score, l1.sampleSize],
+        ['تقييم التنظيم', l1.organization ?? avgs.organization_score, l1.sampleSize],
+        ['الأثر المهني المباشر', l1.immediateImpact ?? avgs.immediate_impact_score, l1.sampleSize],
+        ['NPS', l1.nps ?? snap.nps?.index, snap.nps?.totalResponses],
+      ]
+    )}
+    ${table(
+      ['مروّجون', 'محايدون', 'منتقدون', 'NPS', 'عدد الردود'],
+      [[
+        snap.nps?.promoters,
+        snap.nps?.passives,
+        snap.nps?.detractors,
+        snap.nps?.index,
+        snap.nps?.totalResponses,
+      ]]
+    )}
+    <h3>${escapeHtml(l2.label || 'المستوى الثاني — Learning')}</h3>
+    <p class="muted">${escapeHtml(l2.note || snap.learningImpact?.observation || '')}</p>
+    <p class="muted">${escapeHtml(l2.caveat || snap.learningImpact?.caveat || '')}</p>
+    ${table(
+      ['متوسط الاختبار القبلي', 'متوسط الاختبار البعدي', 'فرق النقاط المئوية', 'نسبة من تحسنت نتائجهم', 'نسبة من بقيت نتائجهم متقاربة', 'نسبة من انخفضت نتائجهم'],
+      [[
+        l2.averagePre ?? snap.learningImpact?.averagePre,
+        l2.averagePost ?? snap.learningImpact?.averagePost,
+        l2.averagePp ?? snap.learningImpact?.averagePp,
+        l2.improvedPct ?? snap.learningImpact?.improvedPct,
+        l2.unchangedPct ?? snap.learningImpact?.unchangedPct,
+        l2.decreasedPct ?? snap.learningImpact?.decreasedPct,
+      ]]
+    )}
+    <p class="muted">${escapeHtml(k.level3Reserved?.note || '')}</p>
+    <p class="muted">${escapeHtml(k.level4Reserved?.note || '')}</p>
+  `;
+}
+
 function buildCover(meta, assets) {
   const singleBrand = Boolean(assets.singleBrand || meta.singleBrand);
   const institutionLogo = assets.institutionLogoDataUri
@@ -138,6 +186,7 @@ function renderIndividualSections(snap) {
       ${kpiCard('البعدي', snap.executiveSummary?.postTestScore != null ? `${snap.executiveSummary.postTestScore}%` : null)}
       ${kpiCard('التحسن', snap.executiveSummary?.improvementPp != null ? `${snap.executiveSummary.improvementPp} ن.م` : null)}
       ${kpiCard('التقييم النهائي', snap.executiveSummary?.evaluationSubmitted ? 'مكتمل' : 'غير مكتمل')}
+      ${kpiCard('تاريخ إرسال التقييم', snap.executiveSummary?.evaluationSubmittedAt)}
       ${kpiCard('الشهادة', snap.executiveSummary?.certificateStatus)}
     </div>`
   );
@@ -177,7 +226,7 @@ function renderIndividualSections(snap) {
         ['درجة القبلي', snap.preTest?.statusLabel],
         ['درجة البعدي', snap.postTest?.statusLabel],
         ['فرق النقاط المئوية', snap.learningImprovement?.percentagePointDifference],
-        ['التحسن النسبي %', snap.learningImprovement?.relativeImprovementPct],
+        ['التحسن النسبي %', snap.learningImprovement?.relativeImprovementLabel || snap.learningImprovement?.relativeImprovementPct],
       ]
     )}`
   );
@@ -253,7 +302,11 @@ function renderCourseSections(snap) {
       ${kpiCard('متوسط الحضور', exec.averageAttendance != null ? `${exec.averageAttendance}%` : null)}
       ${kpiCard('متوسط القبلي', exec.preTestAverage)}
       ${kpiCard('متوسط البعدي', exec.postTestAverage)}
-      ${kpiCard('متوسط التحسن', exec.averageImprovementPp)}
+      ${kpiCard('فرق التعلم', exec.averageImprovementPp)}
+      ${kpiCard('نسبة الاستجابة للتقييم', exec.evaluationResponseRate != null ? `${exec.evaluationResponseRate}%` : null)}
+      ${kpiCard('متوسط تقييم المدرب', exec.trainerAverage)}
+      ${kpiCard('متوسط تقييم المحتوى', exec.contentAverage)}
+      ${kpiCard('متوسط الأثر المباشر', exec.immediateImpactAverage)}
       ${kpiCard('NPS', exec.nps)}
     </div>
     <p class="muted">${escapeHtml(exec.objective || '')}</p>`
@@ -325,21 +378,8 @@ function renderCourseSections(snap) {
 
   add(
     'evaluation',
-    'التقييم النهائي',
-    `${table(
-      ['المحور', 'المتوسط'],
-      Object.entries(snap.evaluation?.averages || {}).map(([k, v]) => [k, v])
-    )}
-    ${table(
-      ['مروّجون', 'محايدون', 'منتقدون', 'NPS', 'عدد الردود'],
-      [[
-        snap.nps?.promoters,
-        snap.nps?.passives,
-        snap.nps?.detractors,
-        snap.nps?.index,
-        snap.nps?.totalResponses,
-      ]]
-    )}`
+    'التقييم النهائي وفق نموذج Kirkpatrick',
+    `${sectionKirkpatrick(snap)}`
   );
 
   add(

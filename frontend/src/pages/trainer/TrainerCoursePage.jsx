@@ -33,6 +33,7 @@ import { CompletionStatusBadge } from '../../features/training/components/comple
 import { TrainingFinalizationModal } from '../../features/training/components/completion/TrainingFinalizationModal.jsx';
 import { CourseReportDashboard } from '../../features/training/components/reports/CourseReportDashboard.jsx';
 import { IndividualReportView } from '../../features/training/components/reports/IndividualReportView.jsx';
+import { EvaluationAnalyticsPanel } from '../../features/training/components/evaluation/EvaluationAnalyticsPanel.jsx';
 import { AppModal } from '../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
@@ -218,6 +219,7 @@ export function TrainerCoursePage() {
   const canManageSessions = permissions.canManageSessions !== false;
   const canManageAttendance = permissions.canManageAttendance !== false;
   const canManageTasks = permissions.canManageTasks !== false;
+  const canGradeTasks = permissions.canGradeTasks !== false;
   const canManageAssessments = permissions.canManageAssessments !== false;
   const canManageMaterials = permissions.canManageMaterials !== false;
   const canEditSettings = Boolean(data?.assignment || data?.isLeadTrainer || canManageSessions);
@@ -631,7 +633,7 @@ export function TrainerCoursePage() {
 
       {activeTab === 'tasks' ? (
         <SectionCard title="المهمات">
-          <CourseTasksManager programId={programId} canManage={canManageTasks} />
+          <CourseTasksManager programId={programId} canManage={canManageTasks} canGrade={canGradeTasks} />
         </SectionCard>
       ) : null}
 
@@ -772,27 +774,7 @@ export function TrainerCoursePage() {
       {activeTab === 'evaluation' ? (
         <SectionCard title="التقييم النهائي">
           {evaluation ? (
-            <dl className="detail-list">
-              <div className="detail-list__row">
-                <dt>نسبة الاستجابة</dt>
-                <dd>{evaluation.responseRate ?? evaluation.stats?.responseRate ?? '—'}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>متوسط التقييم</dt>
-                <dd>{evaluation.averageRating ?? evaluation.stats?.averageRating ?? '—'}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>NPS</dt>
-                <dd>{evaluation.nps ?? evaluation.stats?.nps ?? '—'}</dd>
-              </div>
-              <div className="detail-list__row">
-                <dt>المكتمل / الإجمالي</dt>
-                <dd>
-                  {evaluation.submittedCount ?? evaluation.stats?.submittedCount ?? '—'} /{' '}
-                  {evaluation.assignedCount ?? evaluation.stats?.assignedCount ?? '—'}
-                </dd>
-              </div>
-            </dl>
+            <EvaluationAnalyticsPanel evaluation={evaluation} />
           ) : (
             <EmptyState title="لا توجد بيانات تقييم" description="ستظهر إحصاءات التقييم النهائي هنا عند توفرها." />
           )}

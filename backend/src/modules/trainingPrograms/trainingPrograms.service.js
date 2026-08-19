@@ -1201,13 +1201,13 @@ async function createTask(requester, programId, body) {
   requireOrgWrite(requester);
   assertOrganizationAccess(requester, program.organization_id);
   await assertTrainerProgramAccess(requester, programId, 'can_manage_tasks');
-  const settings = {};
+  const { hydrateAttachmentSettings } = require('./trainingTaskWorkflow.service');
+  let settings = {};
   if (Array.isArray(body.external_links)) settings.externalLinks = body.external_links;
   if (Array.isArray(body.allowed_file_types)) settings.allowedFileTypes = body.allowed_file_types;
   if (body.attachment_url) settings.attachmentUrl = body.attachment_url;
-  if (body.attachment_storage_key) settings.attachmentStorageKey = body.attachment_storage_key;
-  if (body.attachment_file_id) settings.attachmentFileId = body.attachment_file_id;
   if (body.settings && typeof body.settings === 'object') Object.assign(settings, body.settings);
+  settings = await hydrateAttachmentSettings(settings, body);
 
   const row = await prisma.training_tasks.create({
     data: {
@@ -1251,77 +1251,58 @@ async function createTask(requester, programId, body) {
 }
 
 async function submitTask(requester, taskId, body) {
-  const task = await prisma.training_tasks.findUnique({
-    where: { id: taskId },
-    include: { training_programs: true },
-  });
-  if (!task) throw new ApiError(404, 'Task not found');
-  const enrollment = await prisma.training_enrollments.findFirst({
-    where: {
-      user_id: requester.userId,
-      organization_id: task.training_programs.organization_id,
-      status: { in: ['ACTIVE', 'APPROVED'] },
-      ...(task.cohort_id ? { cohort_id: task.cohort_id } : {}),
-    },
-  });
-  if (!enrollment) throw new ApiError(403, 'Not enrolled');
-
-  const attempts = await prisma.training_task_submissions.count({
-    where: { task_id: taskId, enrollment_id: enrollment.id },
-  });
-  if (attempts >= task.max_attempts) throw new ApiError(400, 'Max attempts reached');
-
-  const row = await prisma.training_task_submissions.create({
-    data: {
-      task_id: taskId,
-      enrollment_id: enrollment.id,
-      user_id: requester.userId,
-      attempt_no: attempts + 1,
-      content_text: body.content_text ?? null,
-      content_url: body.content_url ?? null,
-      status: task.grading_mode === 'NONE' ? 'ACCEPTED' : 'SUBMITTED',
-    },
-  });
-  await emitDomainEvent('TASK_SUBMITTED', {
-    organizationId: task.training_programs.organization_id,
-    affectedUserId: requester.userId,
-    entityType: 'training_task_submission',
-    entityId: row.id,
-  }).catch(() => null);
-  return { id: row.id, status: row.status, attemptNo: row.attempt_no };
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.submitTask(requester, taskId, body || {});
 }
 
 async function gradeTask(requester, submissionId, body) {
-  const submission = await prisma.training_task_submissions.findUnique({
-    where: { id: submissionId },
-    include: { training_tasks: { include: { training_programs: true } } },
-  });
-  if (!submission) throw new ApiError(404, 'Submission not found');
-  requireOrgWrite(requester);
-  assertOrganizationAccess(requester, submission.training_tasks.training_programs.organization_id);
-  await assertTrainerProgramAccess(
-    requester,
-    submission.training_tasks.program_id,
-    'can_grade_tasks'
-  );
-  const row = await prisma.training_task_submissions.update({
-    where: { id: submissionId },
-    data: {
-      score: body.score ?? null,
-      feedback: body.feedback ?? null,
-      status: body.status || 'GRADED',
-      graded_by: requester.userId,
-      graded_at: new Date(),
-      updated_at: new Date(),
-    },
-  });
-  await emitDomainEvent('TASK_GRADED', {
-    organizationId: submission.training_tasks.training_programs.organization_id,
-    affectedUserId: submission.user_id,
-    entityType: 'training_task_submission',
-    entityId: row.id,
-  }).catch(() => null);
-  return { id: row.id, score: row.score, status: row.status };
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.gradeTask(requester, submissionId, body || {});
+}
+
+async function getTaskForRequester(requester, taskId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.getTaskForRequester(requester, taskId);
+}
+
+async function getTaskInstructionFile(requester, taskId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.getInstructionFileUrl(requester, taskId);
+}
+
+async function getMyTaskSubmission(requester, taskId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.getMySubmission(requester, taskId);
+}
+
+async function resubmitTask(requester, taskId, submissionId, body) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.resubmitTask(requester, taskId, submissionId, body || {});
+}
+
+async function getTaskSubmissionFile(requester, submissionId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.getSubmissionFileUrl(requester, submissionId);
+}
+
+async function listTaskSubmissions(requester, taskId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.listTaskSubmissions(requester, taskId);
+}
+
+async function getTaskSubmission(requester, submissionId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.getTaskSubmission(requester, submissionId);
+}
+
+async function requestTaskRevision(requester, submissionId, body) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.requestRevision(requester, submissionId, body || {});
+}
+
+async function reopenTaskSubmission(requester, submissionId, body) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.reopenSubmission(requester, submissionId, body || {});
 }
 
 const trainingAssessment = require('./trainingAssessment.service');
@@ -1525,9 +1506,10 @@ async function computeAndPersistProgress(enrollmentId) {
     };
   }
 
+  const { computeHoursStatus, computeAttendanceStatus } = require('./trainingProgress.helpers');
   const requirements = {
-    attendance: { value: attendancePct, required: requiredAttendance, ok: attendancePct >= requiredAttendance },
-    hours: { value: hoursCompleted, required: hoursRequired, ok: !hoursRequired || hoursCompleted >= hoursRequired },
+    attendance: computeAttendanceStatus({ sessionCount: sessions.length, attendancePct, requiredAttendance }),
+    hours: computeHoursStatus({ sessionCount: sessions.length, hoursCompleted, hoursRequired }),
     tasks: {
       value: tasksDone,
       required: reqByCode.TASKS?.is_required === false ? 0 : tasks.length,
@@ -1827,21 +1809,10 @@ async function getTraineeProgramDetail(requester, programId) {
         }
       : null,
   }));
-  const mappedTasks = tasks.map((t) => {
-    const sub = submissions.find((s) => s.task_id === t.id);
-    return {
-      id: t.id,
-      title: t.title,
-      instructions: t.instructions,
-      dueAt: t.due_at,
-      isRequired: t.is_required,
-      isFinalTask: t.is_final_task,
-      maxScore: t.max_score,
-      submission: sub
-        ? { id: sub.id, status: sub.status, score: sub.score, feedback: sub.feedback }
-        : null,
-    };
-  });
+  const { getTraineeTaskListExtras } = require('./trainingTaskWorkflow.service');
+  const mappedTasks = contentLocked
+    ? []
+    : await getTraineeTaskListExtras(programId, tasks, submissions);
   return {
     enrollmentId: enrollment.id,
     status: enrollment.status,
@@ -1864,7 +1835,7 @@ async function getTraineeProgramDetail(requester, programId) {
         : null,
     progress: progressSnapshot,
     sessions: contentLocked ? [] : mappedSessions,
-    tasks: contentLocked ? [] : mappedTasks,
+    tasks: mappedTasks,
     assessments: assessments.map((a) => ({
       id: a.id,
       kind: a.kind,
@@ -2163,6 +2134,15 @@ module.exports = {
   listProgramTasks,
   submitTask,
   gradeTask,
+  getTaskForRequester,
+  getTaskInstructionFile,
+  getMyTaskSubmission,
+  resubmitTask,
+  getTaskSubmissionFile,
+  listTaskSubmissions,
+  getTaskSubmission,
+  requestTaskRevision,
+  reopenTaskSubmission,
   upsertAssessment,
   listProgramAssessments,
   getAssessment,

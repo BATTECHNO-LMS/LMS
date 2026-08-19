@@ -140,6 +140,7 @@ function computeImprovement(preScore, postScore) {
       direction: 'unavailable',
       note:
         'فرق النقاط المئوية = البعدي − القبلي. التحسن النسبي = (البعدي − القبلي) / القبلي × 100 عند وجود درجة قبلية أكبر من صفر.',
+      relativeImprovementLabel: null,
     };
   }
   const pp = round2(post - pre);
@@ -155,6 +156,7 @@ function computeImprovement(preScore, postScore) {
     direction,
     note:
       'فرق النقاط المئوية يقيس الفرق المطلق بين النسبتين (مثلاً من 55% إلى 85% = +30 نقطة مئوية). التحسن النسبي يقيس النسبة إلى الدرجة القبلية وليس هو نفسه فرق النقاط المئوية.',
+    relativeImprovementLabel: relative == null && pre === 0 ? 'غير قابل للحساب' : relative == null ? null : `${relative}%`,
   };
 }
 

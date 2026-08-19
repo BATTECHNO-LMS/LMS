@@ -163,7 +163,15 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
           value={exec.improvementPp ?? improvement.percentagePointDifference ?? improvement.improvement}
           tone={(exec.improvementPp ?? improvement.percentagePointDifference) < 0 ? 'danger' : 'success'}
         />
-        <Kpi label="التقييم النهائي" value={exec.evaluationSubmitted || snap.evaluation?.submitted ? 'مكتمل' : 'غير مكتمل'} />
+        <Kpi label="التقييم النهائي" value={exec.evaluationSubmitted || snap.evaluation?.submitted ? 'مُرسل' : 'غير مُرسل'} />
+        <Kpi
+          label="تاريخ الإرسال"
+          value={
+            exec.evaluationSubmittedAt || snap.evaluation?.submittedAt
+              ? new Date(exec.evaluationSubmittedAt || snap.evaluation.submittedAt).toLocaleString('ar')
+              : '—'
+          }
+        />
         <Kpi label="الشهادة" value={exec.certificateStatus || snap.certificate?.status || (snap.certificate?.issued ? 'صادرة' : 'غير صادرة')} />
       </section>
 
@@ -179,7 +187,16 @@ export function IndividualReportView({ enrollmentId, canGenerate = false }) {
               <Bar dataKey="value" fill="#1e5a8a" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          {improvement.note ? <p className="muted">{improvement.note}</p> : null}
+          {improvement.relativeImprovementLabel ? (
+            <p className="muted">التحسن النسبي: {improvement.relativeImprovementLabel}</p>
+          ) : null}
+          {improvement.relativeImprovementLabel || improvement.note ? (
+            <p className="muted">
+              {improvement.relativeImprovementLabel
+                ? `التحسن النسبي: ${improvement.relativeImprovementLabel}`
+                : improvement.note}
+            </p>
+          ) : null}
         </div>
       ) : null}
 

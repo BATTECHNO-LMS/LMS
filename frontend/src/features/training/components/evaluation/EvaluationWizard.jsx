@@ -10,7 +10,6 @@ import { EvaluationSuccessState } from './EvaluationSuccessState.jsx';
 import { RatingScaleQuestion } from './RatingScaleQuestion.jsx';
 import { NpsQuestion } from './NpsQuestion.jsx';
 import { OpenTextQuestion } from './OpenTextQuestion.jsx';
-import { resolveRatingLabel } from './ratingLabels.js';
 
 const AUTOSAVE_DELAY_MS = 800;
 const EDITABLE_STATUSES = new Set(['AVAILABLE', 'IN_PROGRESS', 'REOPENED']);
@@ -31,13 +30,6 @@ function renderQuestionField(question, value, onChange, error, disabled) {
     return <OpenTextQuestion question={question} value={value} onChange={onChange} error={error} disabled={disabled} />;
   }
   return <RatingScaleQuestion question={question} value={value} onChange={onChange} error={error} disabled={disabled} />;
-}
-
-function answerSummary(question, value) {
-  if (value == null || value === '') return '—';
-  if (question.questionType === 'OPEN_TEXT') return String(value);
-  if (question.questionType === 'NPS') return String(value);
-  return `${value} — ${resolveRatingLabel(value, question.scaleLabels)}`;
 }
 
 /**
@@ -155,17 +147,12 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
       }
     }
     setFieldErrors({});
-    setStepIndex((i) => Math.min(i + 1, sections.length));
+    setStepIndex((i) => Math.min(i + 1, Math.max(sections.length - 1, 0)));
   }
 
   function goPrev() {
     setFieldErrors({});
     setStepIndex((i) => Math.max(i - 1, 0));
-  }
-
-  function goToSection(index) {
-    setFieldErrors({});
-    setStepIndex(index);
   }
 
   async function handleSubmit() {
@@ -202,7 +189,7 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
   if (gateMessage) {
     return (
       <div className="eval-wizard" dir="rtl">
-        <EmptyState title="التقييم النهائي غير متاح بعد" description={gateMessage} />
+        <EmptyState title="التقييم النهائي غير متاح بعد" description={gateMessage || 'يصبح التقييم النهائي متاحًا بعد استكمال الاختبار البعدي.'} />
       </div>
     );
   }
@@ -224,19 +211,20 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
     return (
       <div className="eval-wizard" dir="rtl">
         <EvaluationSuccessState
+          title="تم استلام تقييمك بنجاح"
           description={
             data.status === 'CLOSED'
-              ? 'تم إرسال تقييمك لهذه الدورة وتم اعتماده.'
-              : 'شكرًا لمشاركتنا رأيك. ساعدتنا ملاحظاتك على تحسين جودة الدورات التدريبية القادمة.'
+              ? 'تم إغلاق التقييم النهائي.'
+              : 'شكرًا لمساهمتك في تطوير جودة البرامج التدريبية. سيتم الآن تحديث حالة استكمال التدريب.'
           }
         />
       </div>
     );
   }
 
-  const isReviewStep = stepIndex >= sections.length;
-  const currentSection = sections[stepIndex];
-  const stepLabels = [...sections.map((s) => s.title), 'مراجعة وإرسال'];
+  const isLastSection = sections.length > 0 && stepIndex === sections.length - 1;
+  const currentSection = sections[stepIndex] || null;
+  const stepLabels = sections.map((s) => s.title);
 
   return (
     <div className="eval-wizard" dir="rtl">
@@ -249,13 +237,13 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
       <EvaluationProgress steps={stepLabels} currentIndex={stepIndex} />
 
       <div className="eval-wizard__save-status" role="status" aria-live="polite">
-        {saveState === 'saving' ? 'جارٍ حفظ المسودة…' : null}
-        {saveState === 'saved' ? 'تم حفظ المسودة.' : null}
-        {saveState === 'error' ? 'تعذر حفظ المسودة تلقائيًا — سيُعاد المحاولة عند التعديل التالي.' : null}
+        {saveState === 'saving' ? 'جاري الحفظ...' : null}
+        {saveState === 'saved' ? 'تم حفظ المسودة' : null}
+        {saveState === 'error' ? 'تعذر حفظ آخر تعديل. حاول مرة أخرى.' : null}
       </div>
 
       <div className="eval-wizard__body">
-        {!isReviewStep && currentSection ? (
+        {currentSection ? (
           <section className="eval-wizard__section">
             <h3 className="eval-wizard__section-title">{currentSection.title}</h3>
             {currentSection.description ? (
@@ -266,33 +254,6 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
                 <div key={q.id}>{renderQuestionField(q, answers[q.id], (v) => updateAnswer(q.id, v), fieldErrors[q.id], submitting)}</div>
               )}
             </div>
-          </section>
-        ) : null}
-
-        {isReviewStep ? (
-          <section className="eval-wizard__review">
-            <h3 className="eval-wizard__section-title">مراجعة إجاباتك قبل الإرسال</h3>
-            <p className="eval-wizard__section-desc">
-              تأكد من إجاباتك قبل الإرسال — لا يمكن تعديل التقييم بعد إرساله إلا بموافقة إدارة المؤسسة.
-            </p>
-            {sections.map((section, index) => (
-              <div key={section.id} className="eval-review-section">
-                <div className="eval-review-section__head">
-                  <h4>{section.title}</h4>
-                  <button type="button" className="eval-review-section__edit" onClick={() => goToSection(index)}>
-                    تعديل
-                  </button>
-                </div>
-                <dl className="eval-review-section__list">
-                  {(section.questions || []).map((q) => (
-                    <div key={q.id} className="eval-review-section__row">
-                      <dt>{q.prompt}</dt>
-                      <dd>{answerSummary(q, answers[q.id])}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))}
             {submitError ? (
               <p className="form-field__error" role="alert">
                 {submitError}
@@ -306,8 +267,20 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
         <Button type="button" variant="outline" disabled={stepIndex === 0 || submitting} onClick={goPrev}>
           السابق
         </Button>
-        {isReviewStep ? (
-          <Button type="button" variant="primary" disabled={submitting} onClick={() => setConfirmOpen(true)}>
+        {isLastSection ? (
+          <Button
+            type="button"
+            variant="primary"
+            disabled={submitting}
+            onClick={() => {
+              const errors = validateSection(currentSection || { questions: [] });
+              if (Object.keys(errors).length) {
+                setFieldErrors(errors);
+                return;
+              }
+              setConfirmOpen(true);
+            }}
+          >
             إرسال التقييم النهائي
           </Button>
         ) : (
@@ -322,8 +295,9 @@ export function EvaluationWizard({ enrollmentId, onSubmitted }) {
         onClose={() => setConfirmOpen(false)}
         onConfirm={handleSubmit}
         title="تأكيد إرسال التقييم"
-        description="لا يمكن تعديل إجاباتك بعد الإرسال إلا بموافقة إدارة المؤسسة. هل ترغب بالمتابعة؟"
+        description="بعد إرسال التقييم سيتم اعتماد إجاباتك ولن تتمكن من تعديلها إلا إذا أعاد مسؤول مخول فتح التقييم. هل تريد المتابعة؟"
         confirmLabel="إرسال التقييم"
+        cancelLabel="العودة للمراجعة"
         confirmVariant="primary"
         busy={submitting}
       />

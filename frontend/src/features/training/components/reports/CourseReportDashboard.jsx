@@ -206,13 +206,16 @@ export function CourseReportDashboard({ programId, cohortId, canGenerate = false
 
       <section className="training-report-kpi-grid" aria-label="مؤشرات رئيسية">
         <Kpi label="المتدربون" value={exec.traineeCount ?? snap.counts?.total} />
-        <Kpi label="نسبة الإكمال" value={fmtPct(exec.completionRate ?? snap.completionRate)} />
         <Kpi label="متوسط الحضور" value={fmtPct(exec.averageAttendance ?? snap.attendance?.average ?? snap.averageAttendancePct)} />
+        <Kpi label="نسبة الاستجابة للتقييم" value={fmtPct(exec.evaluationResponseRate ?? snap.evaluation?.responseRate)} />
+        <Kpi label="متوسط تقييم المدرب" value={exec.trainerAverage ?? snap.evaluation?.averages?.trainer_score} />
+        <Kpi label="متوسط تقييم المحتوى" value={exec.contentAverage ?? snap.evaluation?.averages?.content_score} />
+        <Kpi label="متوسط الأثر المباشر" value={exec.immediateImpactAverage ?? snap.evaluation?.averages?.immediate_impact_score} />
         <Kpi label="NPS" value={exec.nps ?? nps.index} />
-        <Kpi label="متوسط القبلي" value={exec.preTestAverage ?? snap.preTest?.average} />
-        <Kpi label="متوسط البعدي" value={exec.postTestAverage ?? snap.postTest?.average} />
-        <Kpi label="متوسط التحسن (ن.م)" value={exec.averageImprovementPp ?? snap.learningImpact?.averagePp} />
-        <Kpi label="معدل الاستجابة للتقييم" value={fmtPct(exec.evaluationResponseRate ?? snap.evaluation?.responseRate)} />
+        <Kpi label="متوسط الاختبار القبلي" value={exec.preTestAverage ?? snap.preTest?.average} />
+        <Kpi label="متوسط الاختبار البعدي" value={exec.postTestAverage ?? snap.postTest?.average} />
+        <Kpi label="فرق التعلم" value={exec.averageImprovementPp ?? snap.learningImpact?.averagePp} />
+        <Kpi label="نسبة إكمال الدورة" value={fmtPct(exec.completionRate ?? snap.completionRate)} />
       </section>
 
       <div className="training-report-charts">
@@ -262,6 +265,33 @@ export function CourseReportDashboard({ programId, cohortId, canGenerate = false
           </div>
         ) : null}
       </div>
+
+      {snap.kirkpatrick ? (
+        <section className="training-report-section">
+          <h4>{snap.kirkpatrick.title || 'التقييم النهائي وفق نموذج Kirkpatrick'}</h4>
+          <h5>{snap.kirkpatrick.level1?.label || 'المستوى الأول — Reaction'}</h5>
+          <p className="muted">{snap.kirkpatrick.level1?.note}</p>
+          <section className="training-report-kpi-grid">
+            <Kpi label="تقييم المدرب" value={snap.kirkpatrick.level1?.trainer} />
+            <Kpi label="تقييم المحتوى" value={snap.kirkpatrick.level1?.content} />
+            <Kpi label="تقييم الأنشطة" value={snap.kirkpatrick.level1?.activities} />
+            <Kpi label="تقييم التنظيم" value={snap.kirkpatrick.level1?.organization} />
+            <Kpi label="الأثر المهني المباشر" value={snap.kirkpatrick.level1?.immediateImpact} />
+            <Kpi label="NPS" value={snap.kirkpatrick.level1?.nps} />
+          </section>
+          <h5>{snap.kirkpatrick.level2?.label || 'المستوى الثاني — Learning'}</h5>
+          <p className="muted">{snap.kirkpatrick.level2?.note}</p>
+          <p className="muted">{snap.kirkpatrick.level2?.caveat}</p>
+          <section className="training-report-kpi-grid">
+            <Kpi label="متوسط القبلي" value={snap.kirkpatrick.level2?.averagePre} />
+            <Kpi label="متوسط البعدي" value={snap.kirkpatrick.level2?.averagePost} />
+            <Kpi label="فرق النقاط المئوية" value={snap.kirkpatrick.level2?.averagePp} />
+            <Kpi label="تحسّن %" value={snap.kirkpatrick.level2?.improvedPct} />
+            <Kpi label="ثبات %" value={snap.kirkpatrick.level2?.unchangedPct} />
+            <Kpi label="انخفاض %" value={snap.kirkpatrick.level2?.decreasedPct} />
+          </section>
+        </section>
+      ) : null}
 
       {Array.isArray(snap.recommendations) && snap.recommendations.length ? (
         <section className="training-report-section">

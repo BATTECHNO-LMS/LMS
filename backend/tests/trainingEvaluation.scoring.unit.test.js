@@ -9,6 +9,7 @@ const {
   average,
   filterQuestionsForDeliveryMode,
   computeSectionScores,
+  buildRatingDistribution,
 } = require('../src/modules/trainingPrograms/trainingEvaluation.scoring');
 
 describe('trainingEvaluation.scoring npsCategory', () => {
@@ -147,5 +148,24 @@ describe('trainingEvaluation.scoring computeSectionScores', () => {
     assert.equal(RATING_LABELS_AR[1], 'لا أوافق بشدة');
     assert.equal(RATING_LABELS_AR[5], 'أوافق بشدة');
     assert.equal(Object.keys(RATING_LABELS_AR).length, 5);
+  });
+});
+
+describe('trainingEvaluation.scoring buildRatingDistribution', () => {
+  it('counts each Likert value and reports percentages', () => {
+    const dist = buildRatingDistribution([5, 5, 4, 3]);
+    assert.equal(dist.n, 4);
+    assert.equal(dist.counts[5], 2);
+    assert.equal(dist.percentages[5], 50);
+    assert.equal(dist.percentages[1], 0);
+  });
+
+  it('reports counts and percentages for 1-5 including zeros', () => {
+    const out = buildRatingDistribution([5, 5, 5, 4, 4, 3, 1], 1, 5);
+    assert.equal(out.n, 7);
+    assert.equal(out.counts[5], 3);
+    assert.equal(out.counts[2], 0);
+    assert.equal(out.percentages[5], 42.86);
+    assert.equal(out.percentages[1], 14.29);
   });
 });

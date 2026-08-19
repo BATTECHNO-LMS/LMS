@@ -38,6 +38,7 @@ describe('trainingReportMetrics.computeImprovement', () => {
     const out = computeImprovement(0, 50);
     assert.equal(out.percentagePointDifference, 50);
     assert.equal(out.relativeImprovementPct, null);
+    assert.equal(out.relativeImprovementLabel, 'غير قابل للحساب');
   });
 });
 
@@ -56,6 +57,17 @@ describe('trainingReportMetrics.computeNps', () => {
     const out = computeNps([]);
     assert.equal(out.index, null);
     assert.equal(out.totalResponses, 0);
+  });
+
+  it('returns 40 for 6 promoters, 2 passives, and 2 detractors', () => {
+    const scores = [10, 10, 9, 9, 9, 9, 8, 7, 6, 0];
+    const out = computeNps(scores);
+    assert.equal(out.promoters, 6);
+    assert.equal(out.passives, 2);
+    assert.equal(out.detractors, 2);
+    assert.equal(out.index, 40);
+    assert.notEqual(out.index, 8);
+    assert.notEqual(out.index, 4);
   });
 });
 

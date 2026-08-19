@@ -48,6 +48,7 @@ import {
   recomputeProgress,
   updateProgram,
   getCompletionReadiness,
+  getProgramEvaluation,
 } from '../../../features/training/training.service.js';
 import {
   assignTrainerToCourse,
@@ -65,6 +66,7 @@ import { IndividualReportView } from '../../../features/training/components/repo
 import { CourseMaterialsManager } from '../../../features/training/components/CourseMaterialsManager.jsx';
 import { RecordedLecturesManager } from '../../../features/training/components/RecordedLecturesManager.jsx';
 import { CourseTasksManager } from '../../../features/training/components/CourseTasksManager.jsx';
+import { EvaluationAnalyticsPanel } from '../../../features/training/components/evaluation/EvaluationAnalyticsPanel.jsx';
 import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
@@ -81,6 +83,7 @@ const TABS = [
   { id: 'tasks', label: 'المهمات', icon: ListChecks },
   { id: 'pretest', label: 'الاختبار القبلي', icon: FileCheck },
   { id: 'posttest', label: 'الاختبار البعدي', icon: FileCheck },
+  { id: 'evaluation', label: 'التقييم النهائي', icon: Target },
   { id: 'progress', label: 'التقدم والساعات', icon: BarChart3 },
   { id: 'finalization', label: 'إنهاء التدريب والتقارير', icon: FileBarChart2 },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
@@ -178,6 +181,7 @@ export function AdminTrainingCourseDetailPage() {
   const [sessions, setSessions] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [assessments, setAssessments] = useState([]);
+  const [evaluation, setEvaluation] = useState(null);
   const [selectedCohortId, setSelectedCohortId] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -294,6 +298,13 @@ export function AdminTrainingCourseDetailPage() {
       loadReadiness();
     }
   }, [tab, loadReadiness]);
+
+  useEffect(() => {
+    if (tab !== 'evaluation' || !programId) return;
+    getProgramEvaluation(programId)
+      .then(setEvaluation)
+      .catch((err) => setError(getApiErrorMessage(err, 'تعذر تحميل التقييم النهائي.')));
+  }, [tab, programId]);
 
   const preAssessment = useMemo(
     () => assessments.find((a) => a.kind === 'PRE_TEST') || null,
@@ -1039,7 +1050,7 @@ export function AdminTrainingCourseDetailPage() {
 
       {tab === 'tasks' ? (
         <SectionCard title="المهمات">
-          <CourseTasksManager programId={programId} canManage={!readOnly} />
+          <CourseTasksManager programId={programId} canManage={!readOnly} canGrade={!readOnly} />
         </SectionCard>
       ) : null}
 
@@ -1090,6 +1101,16 @@ export function AdminTrainingCourseDetailPage() {
               </ul>
             ) : null}
           </div>
+        </SectionCard>
+      ) : null}
+
+      {tab === 'evaluation' ? (
+        <SectionCard title="التقييم النهائي">
+          {evaluation ? (
+            <EvaluationAnalyticsPanel evaluation={evaluation} />
+          ) : (
+            <EmptyState title="لا توجد بيانات تقييم" description="ستظهر إحصاءات التقييم النهائي هنا بعد ربط القالب." />
+          )}
         </SectionCard>
       ) : null}
 

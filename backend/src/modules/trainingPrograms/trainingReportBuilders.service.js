@@ -385,6 +385,8 @@ async function buildIndividualTrainingReportData(enrollmentId) {
       postTestScore: postTest.score,
       improvementPp: improvement.percentagePointDifference,
       evaluationSubmitted,
+      evaluationSubmittedAt: evaluationAssignment?.submitted_at || null,
+      relativeImprovementLabel: improvement.relativeImprovementLabel || null,
       certificateStatus: certificateInfo.status,
     },
     attendance: {
@@ -425,7 +427,11 @@ async function buildIndividualTrainingReportData(enrollmentId) {
     },
     certificate: certificateInfo,
     recommendation,
-    evaluation: { submitted: evaluationSubmitted, status: evaluationAssignment?.status || null },
+    evaluation: {
+      submitted: evaluationSubmitted,
+      status: evaluationAssignment?.status || null,
+      submittedAt: evaluationAssignment?.submitted_at || null,
+    },
     summary: recommendation,
     generatedAt: new Date().toISOString(),
   };
@@ -636,6 +642,11 @@ async function buildCourseTrainingReportData(programId, { cohortId, mode, reason
       averageImprovementPp: average(improvementPps),
       evaluationResponseRate: evaluationAggregates.responseRate,
       overallSatisfaction: evaluationAggregates.averages?.overall_reaction_score ?? null,
+      trainerAverage: evaluationAggregates.averages?.trainer_score ?? null,
+      contentAverage: evaluationAggregates.averages?.content_score ?? null,
+      activitiesAverage: evaluationAggregates.averages?.activities_score ?? null,
+      organizationAverage: evaluationAggregates.averages?.organization_score ?? null,
+      immediateImpactAverage: evaluationAggregates.averages?.immediate_impact_score ?? null,
       nps: nps.index,
       mainStrengths: recommendations.filter((r) => r.priority === 'Low').map((r) => r.finding),
       mainRisks: recommendations.filter((r) => r.priority === 'High').map((r) => r.finding),
@@ -679,10 +690,61 @@ async function buildCourseTrainingReportData(programId, { cohortId, mode, reason
       improved: improvements.filter((i) => i.direction === 'improved').length,
       unchanged: improvements.filter((i) => i.direction === 'unchanged').length,
       decreased: improvements.filter((i) => i.direction === 'decreased').length,
+      improvedPct: pct(improvements.filter((i) => i.direction === 'improved').length, improvements.length),
+      unchangedPct: pct(improvements.filter((i) => i.direction === 'unchanged').length, improvements.length),
+      decreasedPct: pct(improvements.filter((i) => i.direction === 'decreased').length, improvements.length),
+      observation:
+        average(improvements.map((i) => i.postTestScore)) != null &&
+        average(improvements.map((i) => i.preTestScore)) != null &&
+        average(improvements.map((i) => i.postTestScore)) > average(improvements.map((i) => i.preTestScore))
+          ? 'أظهرت النتائج ارتفاعًا في متوسط درجات الاختبار البعدي مقارنة بالاختبار القبلي.'
+          : null,
       caveat: 'الفرق الملحوظ في الدرجات بعد التدريب لا يعني بالضرورة سببية مباشرة.',
     },
     evaluation: evaluationAggregates,
     nps,
+    kirkpatrick: {
+      title: 'التقييم النهائي وفق نموذج Kirkpatrick',
+      level1: {
+        label: 'المستوى الأول — Reaction',
+        note: 'تقييم رد الفعل الفوري للمتدربين. لا يُعد دليلًا على تغيّر السلوك أو النتائج الوظيفية.',
+        sampleSize: evaluationAggregates.totalSubmitted,
+        trainer: evaluationAggregates.averages?.trainer_score ?? null,
+        content: evaluationAggregates.averages?.content_score ?? null,
+        activities: evaluationAggregates.averages?.activities_score ?? null,
+        organization: evaluationAggregates.averages?.organization_score ?? null,
+        venue: evaluationAggregates.averages?.venue_score ?? null,
+        technical: evaluationAggregates.averages?.technical_environment_score ?? null,
+        immediateImpact: evaluationAggregates.averages?.immediate_impact_score ?? null,
+        nps: nps.index,
+        comments: evaluationAggregates.comments || [],
+      },
+      level2: {
+        label: 'المستوى الثاني — Learning',
+        note:
+          average(improvements.map((i) => i.postTestScore)) != null &&
+          average(improvements.map((i) => i.preTestScore)) != null &&
+          average(improvements.map((i) => i.postTestScore)) > average(improvements.map((i) => i.preTestScore))
+            ? 'أظهرت النتائج ارتفاعًا في متوسط درجات الاختبار البعدي مقارنة بالاختبار القبلي.'
+            : null,
+        caveat: 'الفرق الملحوظ في الدرجات بعد التدريب لا يعني بالضرورة سببية مباشرة.',
+        sampleSize: improvements.length,
+        averagePre: average(improvements.map((i) => i.preTestScore)),
+        averagePost: average(improvements.map((i) => i.postTestScore)),
+        averagePp: average(improvementPps),
+        improvedPct: pct(improvements.filter((i) => i.direction === 'improved').length, improvements.length),
+        unchangedPct: pct(improvements.filter((i) => i.direction === 'unchanged').length, improvements.length),
+        decreasedPct: pct(improvements.filter((i) => i.direction === 'decreased').length, improvements.length),
+      },
+      level3Reserved: {
+        available: false,
+        note: 'متابعة السلوك بعد التدريب (نحو 30 يومًا) غير مفعّلة حاليًا.',
+      },
+      level4Reserved: {
+        available: false,
+        note: 'متابعة النتائج الوظيفية (بعد 60–90 يومًا) غير مفعّلة حاليًا.',
+      },
+    },
     completion: {
       completionRate: pct(completed, total),
       completed,

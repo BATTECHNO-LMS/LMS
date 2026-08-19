@@ -141,11 +141,44 @@ function computeSectionScores(questions, answersByQuestionId) {
   };
 }
 
+/**
+ * Count/percentage distribution for a 1–5 (or custom) rating question.
+ * @param {Array<number>} values
+ * @param {number} [min=1]
+ * @param {number} [max=5]
+ */
+function buildRatingDistribution(values, min = 1, max = 5) {
+  const counts = {};
+  for (let i = min; i <= max; i += 1) counts[i] = 0;
+  const nums = (values || []).map((v) => Number(v)).filter((n) => Number.isInteger(n) && n >= min && n <= max);
+  for (const n of nums) counts[n] += 1;
+  const total = nums.length;
+  const percentages = {};
+  for (let i = min; i <= max; i += 1) {
+    percentages[i] = total ? Math.round((counts[i] / total) * 10000) / 100 : 0;
+  }
+  return { counts, percentages, n: total, average: average(nums) };
+}
+
+/**
+ * Kirkpatrick mapping used by this engine.
+ * FINAL_EVALUATION is Level 1 only. Pre/post tests are Level 2.
+ * Level 3/4 follow-up kinds are reserved and must not be inferred from this survey.
+ */
+const KIRKPATRICK = Object.freeze({
+  FINAL_EVALUATION: 'LEVEL_1_REACTION',
+  PRE_POST_TESTS: 'LEVEL_2_LEARNING',
+  FOLLOW_UP_BEHAVIOR: 'LEVEL_3_RESERVED',
+  FOLLOW_UP_RESULTS: 'LEVEL_4_RESERVED',
+});
+
 module.exports = {
   RATING_LABELS_AR,
+  KIRKPATRICK,
   npsCategory,
   average,
   filterQuestionsForDeliveryMode,
   extractAnswerValue,
   computeSectionScores,
+  buildRatingDistribution,
 };
