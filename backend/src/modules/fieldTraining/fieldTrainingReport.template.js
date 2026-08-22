@@ -17,10 +17,9 @@ function fmtDate(value) {
 }
 
 const BASE_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
   * { box-sizing: border-box; }
   body {
-    font-family: Tajawal, 'IBM Plex Sans Arabic', Arial, sans-serif;
+    font-family: Tahoma, 'Noto Naskh Arabic', 'DejaVu Sans', Arial, sans-serif;
     direction: rtl;
     color: #1b2a4a;
     margin: 0;

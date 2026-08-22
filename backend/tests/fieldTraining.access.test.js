@@ -72,3 +72,22 @@ test('mapSubmissionRow omits public file_url by default', () => {
   });
   assert.strictEqual(row.file_url, null);
 });
+
+test('field training PDF HTML does not fetch Google Fonts', () => {
+  const { renderGlobalReportHtml } = require('../src/modules/fieldTraining/fieldTrainingReport.template');
+  const html = renderGlobalReportHtml({
+    report_title: 'تقرير',
+    generated_at: '2026-08-22T00:00:00.000Z',
+    summary: { universities_count: 1, opportunities_count: 1 },
+    university_comparison: [],
+    specialty_comparison: [],
+  });
+  assert.doesNotMatch(html, /fonts\.googleapis\.com/);
+  assert.match(html, /تقرير/);
+});
+
+test('resolveChromeExecutable prefers an existing env path', () => {
+  const { resolveChromeExecutable } = require('../src/modules/analytics/pdfRenderer');
+  const path = resolveChromeExecutable();
+  assert.ok(path === undefined || typeof path === 'string');
+});

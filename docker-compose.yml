@@ -16,6 +16,8 @@ services:
       TRUST_PROXY: "true"
       PRISMA_CONNECTION_LIMIT: "25"
       PRISMA_POOL_TIMEOUT: "20"
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
     ports:
       - "127.0.0.1:4400:4000"
     volumes:

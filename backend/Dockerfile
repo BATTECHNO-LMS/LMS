@@ -2,8 +2,20 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# wget used by compose healthcheck
-RUN apk add --no-cache wget
+# wget: compose healthcheck. Chromium + fonts: server-side PDF export (Puppeteer).
+RUN apk add --no-cache \
+    wget \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    font-noto
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+RUN if [ -x /usr/bin/chromium ] && [ ! -e /usr/bin/chromium-browser ]; then ln -s /usr/bin/chromium /usr/bin/chromium-browser; fi
 
 COPY package*.json ./
 COPY prisma ./prisma
