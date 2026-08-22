@@ -11,6 +11,8 @@ import { useTenant } from '../../../features/tenant/index.js';
 import { useAuth, resolveAuthUniversityId } from '../../../features/auth/index.js';
 import { useFieldTrainingApplicationsReport } from '../../../features/fieldTrainingReports/index.js';
 import { FieldTrainingReportFilters, resolveReportParams } from './FieldTrainingReportFilters.jsx';
+import { FieldTrainingReportRoleBanner } from './FieldTrainingReportRoleBanner.jsx';
+import { getReportPaths, mergeReportCapabilities, usesAcademicReportApi } from './reportCapabilities.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
 
@@ -49,7 +51,8 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
     [filters, mode, user, scopeId, isAllTenantsSelected]
   );
 
-  const universityMissing = mode === 'academic' && !resolveAuthUniversityId(user);
+  const universityMissing = usesAcademicReportApi(mode) && !resolveAuthUniversityId(user);
+  const paths = getReportPaths(basePath, mode);
 
   const { data, isLoading, isError, error, refetch } = useFieldTrainingApplicationsReport(params, {
     enabled: Boolean(params.university_id),
@@ -58,9 +61,9 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
   });
 
   const students = data?.students ?? [];
-  const studentDetailBase =
-    mode === 'academic' ? '/academic/field-training/reports/student' : `${basePath}/student`;
-  const hubPath = mode === 'academic' ? '/academic/field-training/reports' : basePath;
+  const capabilities = mergeReportCapabilities(data?.capabilities, user, mode);
+  const studentDetailBase = paths.student;
+  const hubPath = paths.hub;
 
   if (universityMissing) {
     return (
@@ -106,6 +109,8 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
           </div>
         }
       />
+
+      <FieldTrainingReportRoleBanner user={user} mode={mode} capabilities={capabilities} />
 
       {!params.university_id ? <p className="crud-muted">{tCommon('tenant.select')}</p> : null}
       <FieldTrainingReportFilters value={filters} onChange={setFilters} mode={mode} />

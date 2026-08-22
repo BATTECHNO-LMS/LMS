@@ -39,4 +39,30 @@ function authorizeRoles(...allowedRoleCodes) {
   };
 }
 
-module.exports = { authorizeRoles };
+/**
+ * Deny institution-typed requesters on university routers (and vice versa).
+ * Super-admin (`isGlobal`) is unrestricted.
+ * @param {'UNIVERSITY'|'INSTITUTION'} expected
+ */
+function requireOrganizationType(expected) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'يجب تسجيل الدخول للمتابعة.',
+        code: 'UNAUTHORIZED',
+      });
+    }
+    if (req.user.isGlobal) return next();
+    if (req.user.organizationType !== expected) {
+      return res.status(403).json({
+        success: false,
+        message: 'لا تملك صلاحية تنفيذ هذه العملية.',
+        code: 'PORTAL_MISMATCH',
+      });
+    }
+    return next();
+  };
+}
+
+module.exports = { authorizeRoles, requireOrganizationType };

@@ -37,9 +37,33 @@ const {
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
+const reportController = require('./fieldTrainingReport.controller');
+const { applicationIdParamSchema: reportApplicationIdParamSchema } = require('./fieldTrainingReport.validation');
 const instructorOnly = authorizeRoles(...env.FIELD_TRAINING_INSTRUCTOR_ROLE_CODES);
 
 /* -------- Static paths (must be before /:id) -------- */
+
+router.get(
+  '/reports/students/:applicationId',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.studentReport
+);
+router.get(
+  '/reports/students/:applicationId/export/pdf',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.exportStudentPdf
+);
+router.get(
+  '/reports/students/:applicationId/export/excel',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.exportStudentExcel
+);
 
 router.get(
   '/',

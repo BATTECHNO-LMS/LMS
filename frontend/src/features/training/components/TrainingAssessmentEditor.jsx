@@ -22,6 +22,7 @@ import {
   upsertAssessment,
 } from '../training.service.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { toDatetimeLocalValue } from '../assessmentPresentation/assessmentDate.js';
 
 /**
  * Shared institutional assessment editor (TRAINING_COURSE).
@@ -81,8 +82,8 @@ export function TrainingAssessmentEditor({
       assessment.durationMinutes != null ? String(assessment.durationMinutes) : '30'
     );
     setMaxAttempts(assessment.maxAttempts != null ? String(assessment.maxAttempts) : '1');
-    setOpensAt(assessment.opensAt ? String(assessment.opensAt).slice(0, 16) : '');
-    setClosesAt(assessment.closesAt ? String(assessment.closesAt).slice(0, 16) : '');
+    setOpensAt(toDatetimeLocalValue(assessment.opensAt));
+    setClosesAt(toDatetimeLocalValue(assessment.closesAt));
     setShuffleQuestions(Boolean(assessment.shuffleQuestions));
     setShowResults(assessment.showResults !== false);
 

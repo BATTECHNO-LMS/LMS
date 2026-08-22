@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const tracksController = require('./tracks.controller');
@@ -12,6 +12,8 @@ const {
 } = require('./tracks.validation');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 
 const curriculumRead = authorizeRoles(...env.CURRICULUM_READ_ROLE_CODES);
 const curriculumWrite = authorizeRoles(...env.CURRICULUM_WRITE_ROLE_CODES);

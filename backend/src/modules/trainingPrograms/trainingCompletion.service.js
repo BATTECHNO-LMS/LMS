@@ -191,6 +191,11 @@ async function getProgramCompletionReadiness(requester, programId, { cohortId } 
  * issues a certificate when the course has certificates enabled. Idempotent
  * certificate issuance is handled by trainingPrograms.issueCertificateCore.
  */
+function shouldIssueCertificateOnFinalize(settings) {
+  const s = settings && typeof settings === 'object' ? settings : {};
+  return s.certificateEnabled !== false;
+}
+
 async function completeEnrollmentAndReport(requester, enrollmentId, { mode, reason } = {}) {
   const enrollment = await prisma.training_enrollments.findUnique({
     where: { id: enrollmentId },
@@ -227,36 +232,15 @@ async function completeEnrollmentAndReport(requester, enrollmentId, { mode, reas
   });
 
   let reportId = null;
-  try {
-    const official = await officialReports.generateOfficialReport(requester, {
-      reportType: REPORT_TYPES.INDIVIDUAL,
-      enrollmentId,
-    });
-    reportId = official.id;
-  } catch {
-    const snapshot = await buildIndividualReportSnapshot(enrollmentId);
-    const lastReport = await prisma.training_individual_reports.findFirst({
-      where: { enrollment_id: enrollmentId },
-      orderBy: { version: 'desc' },
-    });
-    const report = await prisma.training_individual_reports.create({
-      data: {
-        enrollment_id: enrollmentId,
-        program_id: program.id,
-        organization_id: enrollment.organization_id,
-        version: (lastReport?.version || 0) + 1,
-        status: 'GENERATED',
-        snapshot_json: snapshot,
-        summary_text: snapshot.summary,
-        generated_by: requester.userId,
-      },
-    });
-    reportId = report.id;
-  }
+  const official = await officialReports.generateOfficialReport(requester, {
+    reportType: REPORT_TYPES.INDIVIDUAL,
+    enrollmentId,
+  });
+  reportId = official.id;
 
   const settings = program.settings_json && typeof program.settings_json === 'object' ? program.settings_json : {};
   let certificate = null;
-  if (settings.certificateEnabled !== false) {
+  if (shouldIssueCertificateOnFinalize(settings)) {
     const { issueCertificateCore } = require('./trainingPrograms.service');
     certificate = await issueCertificateCore(enrollmentId, requester.userId).catch(() => null);
   }
@@ -357,7 +341,7 @@ async function finalizeTraining(requester, { programId, cohortId, enrollmentIds,
       exceptionalCompleted.push(enrollment.id);
     } else {
       skipped.push({ enrollmentId: enrollment.id, reason: 'NOT_ELIGIBLE', missing: eligibility.missingRequirements });
-      await emitDomainEvent('TRAINING_NOT_COMPLETED', {
+      await emitDomainEvent('TRAINING_NOT_ELIGIBLE', {
         organizationId: enrollment.organization_id,
         affectedUserId: enrollment.user_id,
         entityType: 'training_enrollment',
@@ -653,6 +637,7 @@ async function reopenTraining(requester, programId, { reason, enrollmentIds } = 
 module.exports = {
   FINALIZATION_MODES,
   REPORT_THRESHOLDS,
+  shouldIssueCertificateOnFinalize,
   deriveCompletionEligibility,
   calculateTrainingCompletionEligibility,
   getProgramCompletionReadiness,

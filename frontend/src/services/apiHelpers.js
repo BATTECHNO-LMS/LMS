@@ -69,6 +69,10 @@ const TRAINING_ERROR_AR = {
   INDIVIDUAL_REPORT_NOT_FOUND: 'لا يوجد تقرير فردي لهذا المتدرب بعد.',
   COURSE_REPORT_NOT_FOUND: 'لا يوجد تقرير للدورة بعد.',
   ENROLLMENT_NOT_FOUND: 'التسجيل غير موجود.',
+  PDF_RENDER_FAILED: 'تعذر إنشاء ملف PDF. حاول مرة أخرى بعد قليل.',
+  PDF_RENDER_UNAVAILABLE: 'تعذر إنشاء ملف PDF على الخادم حالياً.',
+  REPORT_READ_ONLY: 'ليس لديك صلاحية إنشاء أو إعادة إنشاء التقارير. يمكنك عرض وتنزيل التقارير المتاحة فقط.',
+  REPORT_EXPORT_FAILED: 'تعذر تصدير التقرير. حاول مرة أخرى بعد قليل.',
 };
 
 /**
@@ -97,6 +101,9 @@ export function getApiErrorMessage(err, fallback = 'Request failed') {
     return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
   }
   const body = err?.response?.data;
+  if (body && typeof Blob !== 'undefined' && body instanceof Blob) {
+    return fallback === 'Request failed' ? 'تعذر إكمال العملية. حاول مرة أخرى بعد قليل.' : fallback;
+  }
   const code = body?.code || err?.code;
   if (code && TRAINING_ERROR_AR[code]) {
     return TRAINING_ERROR_AR[code];

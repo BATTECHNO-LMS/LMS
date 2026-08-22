@@ -27,6 +27,7 @@ import { Button } from '../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../../components/common/EmptyState.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
+import { formatAssessmentDateTime } from '../../../features/training/assessmentPresentation/assessmentDate.js';
 import {
   approveCompletion,
   createCohort,
@@ -1007,7 +1008,7 @@ export function AdminTrainingCourseDetailPage() {
             rows={sessions.map((s) => ({
               id: s.id,
               title: s.title,
-              startsAt: s.startsAt ? String(s.startsAt).slice(0, 16) : '—',
+              startsAt: s.startsAt ? formatAssessmentDateTime(s.startsAt) : '—',
               status: s.status,
               hours: s.hours ?? '—',
             }))}

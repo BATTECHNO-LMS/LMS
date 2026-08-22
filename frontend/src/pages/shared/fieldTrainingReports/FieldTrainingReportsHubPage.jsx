@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart3,
   Briefcase,
@@ -30,7 +30,9 @@ import {
   useFieldTrainingOpportunities,
 } from '../../../features/fieldTrainingReports/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
-import { resolveReportParams } from './FieldTrainingReportFilters.jsx';
+import { resolveReportParams, FieldTrainingReportFilters } from './FieldTrainingReportFilters.jsx';
+import { FieldTrainingReportRoleBanner } from './FieldTrainingReportRoleBanner.jsx';
+import { getReportPaths, mergeReportCapabilities, usesAcademicReportApi } from './reportCapabilities.js';
 import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
 
 function MetricLink({ to, children }) {
@@ -46,18 +48,14 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
   const { t: tCommon } = useTranslation('common');
   const { user } = useAuth();
   const { scopeId, isAllTenantsSelected } = useTenant();
+  const [filters, setFilters] = useState({});
   const params = useMemo(
-    () => resolveReportParams({}, { mode, user, scopeId, isAllTenantsSelected }),
-    [mode, user, scopeId, isAllTenantsSelected]
+    () => resolveReportParams(filters, { mode, user, scopeId, isAllTenantsSelected }),
+    [filters, mode, user, scopeId, isAllTenantsSelected]
   );
-  const studentsPath =
-    mode === 'academic' ? '/academic/field-training/students' : `${basePath}/students`;
-  const opportunitiesPath =
-    mode === 'academic' ? '/academic/field-training/opportunities' : `${basePath}/opportunities`;
-  const studentDetailPrefix =
-    mode === 'academic' ? '/academic/field-training/reports/student' : `${basePath}/student`;
+  const paths = getReportPaths(basePath, mode);
   const canGlobal = mode === 'admin' && [ROLES.SUPER_ADMIN].includes(user?.role);
-  const universityMissing = mode === 'academic' && !resolveAuthUniversityId(user);
+  const universityMissing = usesAcademicReportApi(mode) && !resolveAuthUniversityId(user);
   const universityName = user?.university?.name || user?.primary_university?.name || '';
 
   const { data, isLoading, isError, error, refetch, isFetching } = useFieldTrainingDashboard(params, {
@@ -67,11 +65,12 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
   });
 
   const { data: opportunitiesData } = useFieldTrainingOpportunities(params, {
-    enabled: mode === 'academic' && Boolean(params.university_id),
+    enabled: usesAcademicReportApi(mode) && Boolean(params.university_id),
     staleTime: 30_000,
-    mode: 'academic',
+    mode,
   });
 
+  const capabilities = mergeReportCapabilities(data?.capabilities, user, mode);
   const summary = data?.summary ?? {};
   const recent = data?.recent_applications ?? [];
   const opportunities = opportunitiesData?.opportunities ?? [];
@@ -113,21 +112,26 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
                 {t('hub.globalReportLink')}
               </Link>
             ) : null}
-            {mode === 'academic' ? (
-              <Link className="btn btn--outline btn--sm" to={opportunitiesPath}>
+            {usesAcademicReportApi(mode) ? (
+              <Link className="btn btn--outline btn--sm" to={paths.opportunities}>
                 <Briefcase size={16} aria-hidden />
                 {t('hub.opportunitiesLink')}
               </Link>
             ) : null}
-            <Link className="btn btn--outline btn--sm" to={studentsPath}>
+            <Link className="btn btn--outline btn--sm" to={paths.students}>
               {t('hub.applicationsLink')}
             </Link>
-            <Link className="btn btn--primary btn--sm" to={`${basePath}/university`}>
+            <Link className="btn btn--primary btn--sm" to={paths.university}>
               {t('hub.universityReportLink')}
             </Link>
           </div>
         }
       />
+
+      <FieldTrainingReportRoleBanner user={user} mode={mode} capabilities={capabilities} />
+      {capabilities.canSelectUniversity ? (
+        <FieldTrainingReportFilters value={filters} onChange={setFilters} mode={mode} />
+      ) : null}
 
       {!params.university_id ? (
         <p className="crud-muted" role="status">
@@ -148,56 +152,56 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
       {params.university_id && !isLoading && !isError ? (
         <>
           <AdminStatsGrid>
-            <MetricLink to={opportunitiesPath}>
+            <MetricLink to={paths.opportunities}>
               <StatCard
                 label={t('metrics.eligibleOpportunities')}
                 value={String(summary.eligible_opportunities ?? 0)}
                 icon={Briefcase}
               />
             </MetricLink>
-            <MetricLink to={studentsPath}>
+            <MetricLink to={paths.students}>
               <StatCard
                 label={t('metrics.totalApplicants')}
                 value={String(summary.total_applicants ?? 0)}
                 icon={Users}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?status=pending`}>
+            <MetricLink to={`${paths.students}?status=pending`}>
               <StatCard
                 label={t('metrics.pendingReview')}
                 value={String(summary.pending_review ?? 0)}
                 icon={Hourglass}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?status=approved`}>
+            <MetricLink to={`${paths.students}?status=approved`}>
               <StatCard
                 label={t('metrics.accepted')}
                 value={String(summary.accepted_students ?? 0)}
                 icon={CheckCircle2}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?training_status=in_training`}>
+            <MetricLink to={`${paths.students}?training_status=in_training`}>
               <StatCard
                 label={t('metrics.inTraining')}
                 value={String(summary.in_training_students ?? 0)}
                 icon={ClipboardList}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?training_status=completed`}>
+            <MetricLink to={`${paths.students}?training_status=completed`}>
               <StatCard
                 label={t('metrics.completed')}
                 value={String(summary.completed_students ?? 0)}
                 icon={BarChart3}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?training_status=expelled`}>
+            <MetricLink to={`${paths.students}?training_status=expelled`}>
               <StatCard
                 label={t('metrics.expelled')}
                 value={String(summary.expelled_students ?? 0)}
                 icon={XCircle}
               />
             </MetricLink>
-            <MetricLink to={`${studentsPath}?eligibility_status=eligible`}>
+            <MetricLink to={`${paths.students}?eligibility_status=eligible`}>
               <StatCard
                 label={t('metrics.eligibleStudents')}
                 value={String(summary.eligible_students ?? 0)}
@@ -239,11 +243,50 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
             />
           </AdminStatsGrid>
 
-          {mode === 'academic' ? (
+          {capabilities.readOnly && (summary.total_applicants ?? 0) === 0 ? (
+            <p className="crud-muted" role="status">
+              {t('states.emptyReviewer')}
+            </p>
+          ) : null}
+
+          <SectionCard title={t('hub.reportsTitle')}>
+            <div className="ft-report-hub-cards">
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.universityReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.students}>
+                <h3>{t('hub.studentReportsLink')}</h3>
+                <p>{t('applications.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.attendanceReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.hoursReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.progressReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.assessmentsReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+              <Link className="ft-report-hub-card" to={paths.university}>
+                <h3>{t('hub.certificatesReportLink')}</h3>
+                <p>{t('universityReport.description')}</p>
+              </Link>
+            </div>
+          </SectionCard>
+
+          {usesAcademicReportApi(mode) ? (
             <SectionCard
               title={t('hub.opportunitiesTitle')}
               actions={
-                <Link className="btn btn--ghost btn--sm" to={opportunitiesPath}>
+                <Link className="btn btn--ghost btn--sm" to={paths.opportunities}>
                   {t('hub.viewAll')}
                 </Link>
               }
@@ -255,7 +298,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
                   {opportunities.slice(0, 4).map((opp) => (
                     <Link
                       key={opp.id}
-                      to={`/academic/field-training/opportunities/${opp.id}`}
+                      to={paths.opportunityDetail(opp.id)}
                       className="ft-report-opportunity-card"
                     >
                       <h3 className="ft-report-opportunity-card__title">{opp.title}</h3>
@@ -290,7 +333,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
             }
           >
             <DataTable
-              emptyTitle={t('hub.noApplications')}
+              emptyTitle={capabilities.readOnly ? t('states.emptyReviewer') : t('hub.noApplications')}
               columns={[
                 { key: 'student_name', label: t('table.student') },
                 { key: 'opportunity_title', label: t('table.opportunity') },
@@ -305,7 +348,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
                   key: 'actions',
                   label: t('table.actions'),
                   render: (row) => (
-                    <TableIconActions viewTo={`${studentDetailPrefix}/${row.id ?? row.application_id}`} />
+                    <TableIconActions viewTo={`${paths.student}/${row.id ?? row.application_id}`} />
                   ),
                 },
               ]}

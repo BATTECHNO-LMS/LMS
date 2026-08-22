@@ -46,6 +46,7 @@ function tokenFor(overrides = {}) {
     roles: ['student'],
     universityId: SYNTH_UNI_A,
     isGlobal: false,
+    portalType: 'UNIVERSITY',
     ...overrides,
   });
 }

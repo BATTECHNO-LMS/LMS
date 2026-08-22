@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const submissionsController = require('../submissions/submissions.controller');
@@ -8,6 +8,8 @@ const gradesController = require('../grades/grades.controller');
 const { studentIdParamSchema } = require('../submissions/submissions.validation');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 
 const academicRead = authorizeRoles(...env.ACADEMIC_READ_ROLE_CODES);
 

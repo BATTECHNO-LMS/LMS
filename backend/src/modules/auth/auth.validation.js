@@ -30,14 +30,14 @@ const loginSchema = z
   .object({
     email: z.string().email('يرجى إدخال بريد إلكتروني صحيح.').max(255),
     password: z.string().min(1, 'كلمة المرور مطلوبة'),
-    /** Non-authoritative UI hint only — never used for authorization. */
-    portalType: z.enum(['UNIVERSITY', 'INSTITUTION']).optional(),
+    /** Sticky portal for this session — required. Super-admin may use either portal. */
+    portalType: z.enum(['UNIVERSITY', 'INSTITUTION']),
   })
   .strict()
   .transform((b) => ({
     email: b.email.trim().toLowerCase(),
     password: b.password,
-    portalType: b.portalType || undefined,
+    portalType: b.portalType,
   }));
 
 const accountStatusSchema = z

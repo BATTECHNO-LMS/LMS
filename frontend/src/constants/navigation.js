@@ -147,9 +147,9 @@ export const NAV_BY_ROLE = {
 
   [ROLES.REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
-    navItem('/academic/field-training/students', 'fieldTrainingStudents', Users, P.canViewUniversityReports),
+    navItem('/reviewer/field-training/reports', 'fieldTrainingReports', Briefcase, P.canViewUniversityReports),
+    navItem('/reviewer/field-training/reports/students', 'fieldTrainingStudents', Users, P.canViewUniversityReports),
     navItem('/academic/field-training/opportunities', 'fieldTrainingOpportunities', Briefcase, P.canViewUniversityReports),
-    navItem('/academic/field-training/reports', 'fieldTraining', Briefcase, P.canViewUniversityReports),
     navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
     navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
     navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),

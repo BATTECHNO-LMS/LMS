@@ -1,8 +1,8 @@
 const { ApiError } = require('../../utils/apiError');
-const { env } = require('../../config/env');
 const { prisma } = require('../../config/db');
 const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 const ftAccess = require('./fieldTraining.access');
+const reportAccess = require('./fieldTrainingReport.access');
 const repo = require('./fieldTraining.repository');
 const reportRepo = require('./fieldTrainingReport.repository');
 const { renderStudentReportHtml, renderUniversityReportHtml, renderGlobalReportHtml } = require('./fieldTrainingReport.template');
@@ -10,6 +10,9 @@ const { exportStudentReportExcel, exportUniversityReportExcel } = require('./fie
 const { exportGlobalReportExcel } = require('./fieldTrainingGlobalReport.excel');
 const globalReportRepo = require('./fieldTrainingGlobalReport.repository');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
+const { loadBattechnoLogoDataUri, loadInstitutionLogoDataUri } = require('../trainingPrograms/trainingReportPdf.service');
+const dates = require('./fieldTrainingReport.dates');
+const crypto = require('crypto');
 
 function scopeUniversityId(user, requestedUniversityId) {
   if (isSystemWideAdmin(user)) {
@@ -21,69 +24,117 @@ function scopeUniversityId(user, requestedUniversityId) {
 }
 
 function canReadFieldTrainingReports(user) {
-  const roles = ftAccess.normalizeRoles(user);
-  if (isSystemWideAdmin(user)) return true;
-  if (roles.some((r) => env.REPORT_READ_ROLE_CODES.includes(r))) return true;
-  if (roles.some((r) => env.FIELD_TRAINING_MANAGE_ROLE_CODES.includes(r))) return true;
-  return false;
+  return Boolean(reportAccess.buildReportCapabilities(user).canViewUniversityReport);
 }
 
-function assertStaffReportAccess(user) {
-  const roles = ftAccess.normalizeRoles(user);
-  if (roles.includes('student')) {
-    throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
-  }
-  if (!canReadFieldTrainingReports(user)) {
-    throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
-  }
+function assertStaffReportAccess(user, action = reportAccess.REPORT_ACTIONS.VIEW_REPORT) {
+  reportAccess.verifyUniversityFieldTrainingReportAccess({ user, action });
 }
 
-async function assertStudentReportAccess(user, applicationId) {
-  const app = await repo.findApplicationById(applicationId);
-  if (!app) throw new ApiError(404, 'Application not found');
-
-  const opp = await repo.findById(app.opportunity_id);
-  if (!opp) throw new ApiError(404, 'Opportunity not found');
-
-  const roles = ftAccess.normalizeRoles(user);
-
-  if (roles.includes('student')) {
-    if (String(app.student_id) !== String(user?.userId)) {
-      throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
-    }
-    return { app, opp };
-  }
-
-  if (!canReadFieldTrainingReports(user)) {
-    throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
-  }
-
-  if (isSystemWideAdmin(user)) return { app, opp };
-
-  if (ftAccess.isAssignedInstructor(user, opp)) return { app, opp };
-
-  // University-scoped report readers (e.g. reviewer): student university match only.
-  // Do not require FIELD_TRAINING_ADMIN — reviewers are read-only.
-  await ftAccess.assertApplicationStudentAccess(user, app.student_id);
-  if (ftAccess.isUniversityScopedFieldTrainingUser(user)) {
-    return { app, opp };
-  }
-
-  await ftAccess.assertAdminOpportunityAccess(user, opp);
-
-  return { app, opp };
-}
-
-async function getDashboard(user, query = {}) {
-  assertStaffReportAccess(user);
-  const universityId = scopeUniversityId(user, query.university_id);
+function resolveStaffUniversity(user, requestedUniversityId, action) {
+  const access = reportAccess.verifyUniversityFieldTrainingReportAccess({
+    user,
+    requestedUniversityId,
+    action,
+  });
+  const universityId = access.universityId;
   if (!universityId) {
     throw new ApiError(400, 'يرجى تحديد الجامعة', null, 'UNIVERSITY_REQUIRED');
   }
+  return { universityId, capabilities: access.capabilities };
+}
 
-  if (!isSystemWideAdmin(user)) {
-    ftAccess.assertStudentUniversityAccess(user, universityId);
+function makeReportReference(reportType, code) {
+  const prefix = String(code || 'FT').replace(/[^A-Za-z0-9-]/g, '').slice(0, 16) || 'FT';
+  const year = new Date().getFullYear();
+  const seq = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const kind = String(reportType || 'RPT').slice(0, 3).toUpperCase();
+  return `${prefix}-${kind}-${year}-${seq}`;
+}
+
+function generatedByName(user) {
+  return user?.fullName || user?.full_name || user?.email || null;
+}
+
+function attachReportMeta(report, user, extra = {}) {
+  const generatedAt = extra.generatedAt || new Date();
+  return {
+    ...report,
+    meta: {
+      generated_at: generatedAt.toISOString(),
+      generated_at_label: dates.formatReportDateTime(generatedAt),
+      generated_by: user?.userId || null,
+      generated_by_name: generatedByName(user),
+      version: extra.version || 1,
+      reference: extra.reference || makeReportReference(report.report_type, report.university?.code || report.student?.university?.code),
+      status: 'READY',
+      timezone: dates.REPORT_TZ,
+    },
+  };
+}
+
+async function loadFieldTrainingBrandAssets(university) {
+  return {
+    battechnoLogoDataUri: loadBattechnoLogoDataUri(),
+    universityLogoDataUri: await loadInstitutionLogoDataUri(university?.logo_url || null),
+  };
+}
+
+async function assertStudentReportAccess(
+  user,
+  applicationId,
+  action = reportAccess.REPORT_ACTIONS.VIEW_REPORT
+) {
+  const ctx = await reportRepo.loadApplicationReportContext(applicationId);
+  if (!ctx?.app) throw new ApiError(404, 'Application not found');
+  if (!ctx.opp) throw new ApiError(404, 'Opportunity not found');
+  const { app, opp } = ctx;
+
+  const roles = ftAccess.normalizeRoles(user);
+
+  if (roles.includes('student')) {
+    if (!studentOwnsApplication(user, app)) {
+      throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
+    }
+    return { app, opp, viewer: 'student' };
   }
+
+  if (ftAccess.isAssignedInstructor(user, opp)) {
+    return { app, opp, viewer: 'instructor' };
+  }
+
+  const requestedUniversityId = opp.university_id || opp.universities?.id || null;
+  const student = await prisma.users.findUnique({
+    where: { id: app.student_id },
+    select: { primary_university_id: true },
+  });
+  const universityId = student?.primary_university_id || requestedUniversityId;
+
+  const access = reportAccess.verifyUniversityFieldTrainingReportAccess({
+    user,
+    requestedUniversityId: universityId,
+    action,
+  });
+
+  if (reportAccess.isReportSuperAdmin(user)) {
+    return { app, opp, viewer: 'staff', capabilities: access.capabilities };
+  }
+
+  await ftAccess.assertApplicationStudentAccess(user, app.student_id);
+  return {
+    app,
+    opp,
+    viewer: access.capabilities.readOnly ? 'reviewer' : 'staff',
+    capabilities: access.capabilities,
+  };
+}
+
+async function getDashboard(user, query = {}) {
+  const { universityId, capabilities } = resolveStaffUniversity(
+    user,
+    query.university_id,
+    reportAccess.REPORT_ACTIONS.VIEW_REPORT
+  );
 
   const dashboard = await reportRepo.buildUniversityDashboard(universityId, query);
   const university = await reportRepo.loadUniversity(universityId);
@@ -114,6 +165,7 @@ async function getDashboard(user, query = {}) {
   return {
     university,
     ...dashboard,
+    capabilities,
     recent_applications: recentApplications.map((row) => ({
       id: row.id,
       student_name: profileById[row.student_id]?.full_name ?? null,
@@ -127,55 +179,69 @@ async function getDashboard(user, query = {}) {
   };
 }
 
-async function getUniversityReport(user, query = {}) {
-  assertStaffReportAccess(user);
-  const universityId = scopeUniversityId(user, query.university_id);
-  if (!universityId) {
-    throw new ApiError(400, 'يرجى تحديد الجامعة', null, 'UNIVERSITY_REQUIRED');
-  }
-
-  if (!isSystemWideAdmin(user)) {
-    ftAccess.assertStudentUniversityAccess(user, universityId);
-  }
-
+async function getUniversityReport(user, query = {}, action = reportAccess.REPORT_ACTIONS.VIEW_REPORT) {
+  const { universityId, capabilities } = resolveStaffUniversity(user, query.university_id, action);
   const report = await reportRepo.buildUniversityReport(universityId, query);
   if (!report) throw new ApiError(404, 'University not found');
-  return report;
+  return { ...attachReportMeta(report, user), capabilities };
 }
 
 async function listUniversityApplications(user, query = {}) {
-  assertStaffReportAccess(user);
-  const universityId = scopeUniversityId(user, query.university_id);
-  if (!universityId) {
-    throw new ApiError(400, 'يرجى تحديد الجامعة', null, 'UNIVERSITY_REQUIRED');
-  }
-
-  if (!isSystemWideAdmin(user)) {
-    ftAccess.assertStudentUniversityAccess(user, universityId);
-  }
-
+  const { universityId, capabilities } = resolveStaffUniversity(
+    user,
+    query.university_id,
+    reportAccess.REPORT_ACTIONS.VIEW_REPORT
+  );
   const report = await reportRepo.buildUniversityReport(universityId, query);
   return {
     university: report.university,
     students: report.students,
     summary: report.summary,
+    capabilities,
   };
 }
 
-async function getStudentReport(user, applicationId) {
-  await assertStudentReportAccess(user, applicationId);
-  const report = await reportRepo.buildStudentDetailedReport(applicationId);
+async function getStudentReport(user, applicationId, action = reportAccess.REPORT_ACTIONS.VIEW_REPORT) {
+  const access = await assertStudentReportAccess(user, applicationId, action);
+  const report = await reportRepo.buildStudentDetailedReport(applicationId, {
+    exposeAiAudit: false,
+    app: access.app,
+    opp: access.opp,
+  });
   if (!report) throw new ApiError(404, 'Application not found');
-  return report;
+  const capabilities = access.capabilities || reportAccess.buildReportCapabilities(user);
+  return { ...attachReportMeta(report, user), capabilities };
+}
+
+function asciiDownloadSlug(value, fallback) {
+  const cleaned = String(value || '')
+    .normalize('NFKC')
+    .replace(/[^\x20-\x7E]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 48);
+  return cleaned || fallback;
 }
 
 async function exportUniversityReport(user, query = {}, format = 'pdf') {
-  const report = await getUniversityReport(user, query);
-  const stamp = new Date().toISOString().slice(0, 10);
-  const uniSlug = report.university?.name?.replace(/\s+/g, '-') ?? 'university';
+  try {
+    return await exportUniversityReportInner(user, query, format);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(500, 'تعذر تصدير تقرير الجامعة', { reason: err?.message }, 'REPORT_EXPORT_FAILED');
+  }
+}
+
+async function exportUniversityReportInner(user, query = {}, format = 'pdf') {
+  const report = await getUniversityReport(user, query, reportAccess.REPORT_ACTIONS.EXPORT_REPORT);
+  const stamp = dates.formatReportDate(new Date()) || 'report';
+  const uniSlug = asciiDownloadSlug(report.university?.code || report.university?.name_en, 'university');
 
   if (format === 'xlsx' || format === 'excel') {
-    const buffer = await exportUniversityReportExcel(report);
+    const buffer = await exportUniversityReportExcel(report, {
+      includeRawData: Boolean(report.capabilities?.includeRawExcel),
+    });
     return {
       buffer,
       contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -183,8 +249,13 @@ async function exportUniversityReport(user, query = {}, format = 'pdf') {
     };
   }
 
-  const html = renderUniversityReportHtml(report);
-  const buffer = await renderHtmlToPdf(html, { lang: 'ar' });
+  const assets = await loadFieldTrainingBrandAssets(report.university);
+  const html = renderUniversityReportHtml(report, assets);
+  const buffer = await renderHtmlToPdf(html, {
+    lang: 'ar',
+    footerLeft: `BATTECHNO LMS · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
+    footerNote: report.meta?.generated_at_label || '',
+  });
   return {
     buffer,
     contentType: 'application/pdf',
@@ -193,9 +264,18 @@ async function exportUniversityReport(user, query = {}, format = 'pdf') {
 }
 
 async function exportStudentReport(user, applicationId, format = 'pdf') {
-  const report = await getStudentReport(user, applicationId);
-  const stamp = new Date().toISOString().slice(0, 10);
-  const nameSlug = report.student?.full_name?.replace(/\s+/g, '-') ?? applicationId.slice(0, 8);
+  try {
+    return await exportStudentReportInner(user, applicationId, format);
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(500, 'تعذر تصدير تقرير الطالب', { reason: err?.message }, 'REPORT_EXPORT_FAILED');
+  }
+}
+
+async function exportStudentReportInner(user, applicationId, format = 'pdf') {
+  const report = await getStudentReport(user, applicationId, reportAccess.REPORT_ACTIONS.EXPORT_REPORT);
+  const stamp = dates.formatReportDate(new Date()) || 'report';
+  const nameSlug = asciiDownloadSlug(report.student?.full_name, applicationId.slice(0, 8));
 
   if (format === 'xlsx' || format === 'excel') {
     const buffer = await exportStudentReportExcel(report);
@@ -206,8 +286,13 @@ async function exportStudentReport(user, applicationId, format = 'pdf') {
     };
   }
 
-  const html = renderStudentReportHtml(report);
-  const buffer = await renderHtmlToPdf(html, { lang: 'ar' });
+  const assets = await loadFieldTrainingBrandAssets(report.student?.university);
+  const html = renderStudentReportHtml(report, assets);
+  const buffer = await renderHtmlToPdf(html, {
+    lang: 'ar',
+    footerLeft: `BATTECHNO LMS · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
+    footerNote: report.meta?.generated_at_label || '',
+  });
   return {
     buffer,
     contentType: 'application/pdf',
@@ -266,6 +351,14 @@ async function exportGlobalReport(user, query = {}, format = 'pdf') {
   };
 }
 
+async function generateUniversityReport(user, query = {}) {
+  return getUniversityReport(user, query, reportAccess.REPORT_ACTIONS.GENERATE_REPORT);
+}
+
+async function generateStudentReport(user, applicationId) {
+  return getStudentReport(user, applicationId, reportAccess.REPORT_ACTIONS.GENERATE_REPORT);
+}
+
 async function getAcademicDashboard(user, query = {}) {
   return getDashboard(user, withAcademicUniversity(user, query));
 }
@@ -312,6 +405,10 @@ async function getAcademicStudentReport(user, applicationId) {
   return getStudentReport(user, applicationId);
 }
 
+function studentOwnsApplication(user, application) {
+  return Boolean(user?.userId) && String(application?.student_id) === String(user.userId);
+}
+
 module.exports = {
   getDashboard,
   getUniversityReport,
@@ -319,6 +416,8 @@ module.exports = {
   getStudentReport,
   exportUniversityReport,
   exportStudentReport,
+  generateUniversityReport,
+  generateStudentReport,
   getGlobalReport,
   exportGlobalReport,
   getAcademicDashboard,
@@ -329,4 +428,7 @@ module.exports = {
   getAcademicStudentReport,
   withAcademicUniversity,
   ACADEMIC_UNIVERSITY_REQUIRED_MSG,
+  assertStaffReportAccess,
+  studentOwnsApplication,
+  scopeUniversityId,
 };

@@ -115,6 +115,7 @@ function bearerForUser(user, { isGlobal = false } = {}) {
     roles,
     universityId: user.primary_university_id,
     isGlobal: isGlobal || superAdmin,
+    portalType: roles.includes('trainee') || roles.includes('trainer') ? 'INSTITUTION' : 'UNIVERSITY',
   })}`;
 }
 

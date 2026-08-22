@@ -5,7 +5,15 @@
     "applicationsLink": "طلبات الجامعة",
     "opportunitiesLink": "فرص التدريب",
     "globalReportLink": "التقرير الشامل",
-    "universityReportLink": "تقرير الجامعة",
+    "universityReportLink": "التقرير الشامل للجامعة",
+    "reportsTitle": "التقارير",
+    "studentReportsLink": "تقارير الطلاب",
+    "attendanceReportLink": "تقرير الحضور",
+    "hoursReportLink": "تقرير الساعات التدريبية",
+    "completionReportLink": "تقرير الإكمال والشهادات",
+    "progressReportLink": "تقرير التقدم والإكمال",
+    "assessmentsReportLink": "تقرير الاختبارات",
+    "certificatesReportLink": "تقرير الشهادات",
     "recentApplications": "أحدث الطلبات",
     "opportunitiesTitle": "فرص التدريب المرتبطة بالجامعة",
     "viewAll": "عرض الكل",
@@ -43,6 +51,7 @@
   "filters": {
     "university": "الجامعة",
     "allUniversities": "جميع الجامعات",
+    "selectUniversity": "اختر الجامعة",
     "universityLocked": "التقرير مقيد بجامعتك فقط.",
     "status": "حالة الطلب",
     "allStatuses": "جميع الحالات",
@@ -53,17 +62,39 @@
     "search": "بحث",
     "searchPlaceholder": "اسم الطالب أو البريد أو الفرصة…",
     "from": "من تاريخ",
-    "to": "إلى تاريخ"
+    "to": "إلى تاريخ",
+    "completionStatus": "حالة الإكمال",
+    "allCompletion": "كل حالات الإكمال",
+    "certificateStatus": "حالة الشهادة",
+    "allCertificates": "كل حالات الشهادة",
+    "organization": "جهة التدريب",
+    "organizationPlaceholder": "اسم جهة التدريب"
   },
   "universityReport": {
-    "title": "تقرير الجامعة للتدريب الميداني",
-    "description": "ملخص مؤشرات الأداء والتفصيل حسب التخصص وجدول الطلاب.",
+    "title": "التقرير الشامل للتدريب الميداني للجامعة",
+    "description": "مؤشرات الأداء والرسوم والجداول التفصيلية للتدريب الميداني.",
     "bySpecialty": "التفصيل حسب التخصص",
-    "studentsTable": "جدول الطلاب"
+    "studentsTable": "جدول الطلاب",
+    "charts": "التحليل البياني",
+    "opportunities": "الفرص التدريبية",
+    "organizations": "جهات التدريب",
+    "risk": "حالات تحتاج متابعة",
+    "recommendations": "التوصيات"
   },
   "studentReport": {
-    "title": "تقرير الطالب التفصيلي للتدريب الميداني",
-    "description": "تقرير شامل لمسار الطالب في التدريب الميداني."
+    "title": "التقرير الفردي للتدريب الميداني للطالب",
+    "description": "تقرير شامل لمسار الطالب في التدريب الميداني.",
+    "tabsLabel": "أقسام تقرير الطالب",
+    "tabs": {
+      "summary": "الملخص",
+      "attendance": "الحضور",
+      "hours": "الساعات",
+      "tasks": "المهمات",
+      "assessments": "الاختبارات",
+      "progress": "التقدم",
+      "completion": "الإكمال",
+      "certificate": "الشهادة"
+    }
   },
   "metrics": {
     "universities": "الجامعات",
@@ -81,7 +112,12 @@
     "averagePreAssessment": "متوسط التقييم القبلي",
     "averagePostAssessment": "متوسط التقييم البعدي",
     "tasksSubmitted": "المهام المسلمة",
-    "taskSubmissionRate": "معدل تسليم المهام"
+    "taskSubmissionRate": "معدل تسليم المهام",
+    "completionRate": "معدل الإكمال",
+    "trainingHours": "الساعات التدريبية",
+    "trainingOrganizations": "جهات التدريب",
+    "atRisk": "حالات متابعة",
+    "progress": "التقدم"
   },
   "timeline": {
     "empty": "لا توجد أحداث مسجلة بعد في رحلة التدريب."
@@ -96,6 +132,8 @@
     "tasks": "المهام والتسليمات",
     "postAssessment": "التقييم البعدي",
     "eligibility": "أهلية الإنهاء",
+    "requirements": "متطلبات التقدم",
+    "recommendations": "الملخص والتوصيات",
     "completionLetter": "كتاب الإنهاء",
     "timeline": "رحلة التدريب"
   },
@@ -106,7 +144,8 @@
     "university": "الجامعة",
     "universitySpecialty": "التخصص الجامعي",
     "canonicalSpecialty": "المسار المعياري",
-    "accountStatus": "حالة الحساب"
+    "accountStatus": "حالة الحساب",
+    "trainingStatus": "حالة التدريب"
   },
   "opportunity": {
     "title": "عنوان الفرصة",
@@ -129,7 +168,8 @@
     "score": "الدرجة",
     "level": "المستوى",
     "submittedAt": "تاريخ الإرسال",
-    "passed": "النجاح"
+    "passed": "النجاح",
+    "delta": "الفرق بالنقاط المئوية"
   },
   "attendance": {
     "totalSessions": "إجمالي الجلسات",
@@ -137,11 +177,13 @@
     "absent": "غائب",
     "late": "متأخر",
     "excused": "معذور",
+    "unconfirmed": "غير مؤكد",
     "percentage": "نسبة الحضور",
     "eligibility": "أهلية الحضور"
   },
   "hours": {
     "required": "الساعات المطلوبة",
+    "scheduled": "الساعات المجدولة",
     "completed": "الساعات المنجزة",
     "remaining": "الساعات المتبقية",
     "percentage": "نسبة الإنجاز",
@@ -152,7 +194,8 @@
     "attendanceRule": "قاعدة الحضور",
     "hoursRule": "قاعدة الساعات",
     "taskRule": "قاعدة المهام",
-    "postAssessmentRule": "قاعدة التقييم البعدي"
+    "postAssessmentRule": "قاعدة التقييم البعدي",
+    "missing": "المتطلبات غير المكتملة"
   },
   "letter": {
     "issued": "صادر",
@@ -163,12 +206,42 @@
   },
   "export": {
     "pdf": "تصدير PDF",
-    "excel": "تصدير Excel"
+    "excel": "تصدير Excel",
+    "print": "طباعة",
+    "view": "عرض التقرير",
+    "refresh": "تحديث التقرير",
+    "generate": "إنشاء تقرير",
+    "regenerate": "إعادة إنشاء التقرير",
+    "generating": "جاري إنشاء التقرير...",
+    "ready": "تم إنشاء التقرير بنجاح"
+  },
+  "states": {
+    "emptyReviewer": "لا توجد تقارير متاحة ضمن نطاق صلاحياتك حاليًا.",
+    "notGenerated": "لم يتم إنشاء التقرير بعد. يرجى التواصل مع مسؤول الجامعة لإنشاء التقرير.",
+    "staleReviewer": "هذا التقرير يحتاج إلى تحديث من مسؤول الجامعة.",
+    "staleAdmin": "هذا التقرير قديم. يمكنك إعادة إنشائه للحصول على أحدث البيانات.",
+    "readOnlyGenerate": "ليس لديك صلاحية إنشاء أو إعادة إنشاء التقارير. يمكنك عرض وتنزيل التقارير المتاحة فقط."
+  },
+  "roleBanner": {
+    "reviewer": {
+      "title": "مراجع الجامعة",
+      "subtitle": "عرض التقارير — قراءة فقط"
+    },
+    "admin": {
+      "title": "مسؤول الجامعة",
+      "subtitle": "إدارة تقارير التدريب الميداني"
+    },
+    "super_admin": {
+      "title": "Super Admin",
+      "subtitle": "إدارة التقارير"
+    }
   },
   "common": {
     "backToHub": "العودة للوحة",
     "yes": "نعم",
-    "no": "لا"
+    "no": "لا",
+    "unavailable": "غير متوفر",
+    "notRequired": "غير مطلوب"
   },
   "table": {
     "student": "الطالب",
@@ -219,6 +292,35 @@
     "attendanceAvg": "متوسط الحضور",
     "taskCompletionRate": "معدل إنجاز المهام",
     "postAssessmentAvg": "متوسط البعدي",
-    "completed": "مكتمل"
+    "completed": "مكتمل",
+    "organization": "جهة التدريب",
+    "capacity": "السعة",
+    "status": "الحالة",
+    "issue": "المشكلة",
+    "severity": "الحدة",
+    "requiredAction": "الإجراء المطلوب",
+    "finding": "الملاحظة",
+    "evidence": "الدليل",
+    "priority": "الأولوية"
+  },
+  "charts": {
+    "completion": "توزيع الإكمال",
+    "funnel": "مسار الالتحاق",
+    "specialties": "الطلاب حسب التخصص",
+    "organizations": "الطلاب حسب جهة التدريب",
+    "progress": "توزيع التقدم",
+    "prePost": "مقارنة القبلي والبعدي",
+    "reasons": "أسباب عدم الإكمال",
+    "empty": "لا توجد بيانات كافية لهذا الرسم.",
+    "emptyAssessments": "لا توجد بيانات اختبارات ضمن نطاق التقرير."
+  },
+  "completionStatus": {
+    "completed": "مكتمل",
+    "in_progress": "قيد الإنجاز",
+    "not_completed": "غير مكتمل"
+  },
+  "certificateStatus": {
+    "issued": "صادرة",
+    "not_issued": "غير صادرة"
   }
 }

@@ -106,7 +106,9 @@ async function listByAssessment(assessmentId, requester) {
   const assessment = await assessmentsRepo.findById(assessmentId);
   if (!assessment) throw new ApiError(404, 'Assessment not found');
   await assessmentsService.assertCanReadAssessment(requester, assessment);
-  const rows = await repo.findMany({ assessment_id: assessmentId }, { take: 500 });
+  const where = { assessment_id: assessmentId };
+  if (!isStaff(requester)) where.student_id = requester.userId;
+  const rows = await repo.findMany(where, { take: 500 });
   const sm = await loadStudentsMap(rows.map((r) => r.student_id));
   const gm = await loadGradersMap(rows.map((r) => r.grader_id));
   return { grades: rows.map((r) => mapGrade(r, sm, gm)) };
@@ -114,7 +116,15 @@ async function listByAssessment(assessmentId, requester) {
 
 async function listByStudent(studentId, requester) {
   if (!isStaff(requester) && studentId !== requester.userId) throw new ApiError(403, 'Forbidden');
-  const rows = await repo.findMany({ student_id: studentId }, { take: 500 });
+  const where = { student_id: studentId };
+  if (isStaff(requester) && studentId !== requester.userId) {
+    if (!requester.isGlobal && !requester.universityId) {
+      throw new ApiError(403, 'Forbidden');
+    }
+    const scope = assessmentCohortScopeWhere(requester);
+    if (Object.keys(scope).length) where.assessments = scope;
+  }
+  const rows = await repo.findMany(where, { take: 500 });
   const sm = await loadStudentsMap(rows.map((r) => r.student_id));
   const gm = await loadGradersMap(rows.map((r) => r.grader_id));
   return { grades: rows.map((r) => mapGrade(r, sm, gm)) };

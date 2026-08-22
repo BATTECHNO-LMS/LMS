@@ -310,6 +310,10 @@ export const TrainerProfilePage = lazyNamed(
   () => import('../../pages/trainer/TrainerProfilePage.jsx'),
   'TrainerProfilePage'
 );
+export const TraineeProfilePage = lazyNamed(
+  () => import('../../pages/trainee/TraineeProfilePage.jsx'),
+  'TraineeProfilePage'
+);
 export const TraineeDashboardPage = lazyNamed(
   () => import('../../pages/trainee/TraineeDashboardPage.jsx'),
   'TraineeDashboardPage'
@@ -633,6 +637,10 @@ export const AdminFieldTrainingStudentReportPage = lazyNamed(
 export const ModulePlaceholderPage = lazyNamed(
   () => import('../../pages/common/ModulePlaceholderPage.jsx'),
   'ModulePlaceholderPage'
+);
+export const AdminNotFoundPage = lazyNamed(
+  () => import('../../pages/common/ModulePlaceholderPage.jsx'),
+  'AdminNotFoundPage'
 );
 export const NotificationsPage = lazyNamed(
   () => import('../../pages/common/NotificationsPage.jsx'),

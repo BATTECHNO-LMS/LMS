@@ -12,8 +12,13 @@ function normalizeParams(params = {}) {
     university_id: params.university_id || undefined,
     university_specialty_id: params.university_specialty_id || undefined,
     opportunity_id: params.opportunity_id || undefined,
+    instructor_id: params.instructor_id || undefined,
+    organization_name: params.organization_name || undefined,
+    student_id: params.student_id || undefined,
     status: params.status || undefined,
     training_status: params.training_status || undefined,
+    completion_status: params.completion_status || undefined,
+    certificate_status: params.certificate_status || undefined,
     eligibility_status: params.eligibility_status || undefined,
     search: params.search || undefined,
     from: params.from || undefined,
@@ -21,20 +26,47 @@ function normalizeParams(params = {}) {
   };
 }
 
+function usesAcademicReportApi(mode) {
+  return mode === 'academic' || mode === 'reviewer';
+}
+
 function apiBase(mode = 'admin') {
-  if (mode === 'academic') return ACADEMIC_BASE;
+  if (usesAcademicReportApi(mode)) return ACADEMIC_BASE;
   if (mode === 'legacy') return LEGACY_BASE;
+  if (mode === 'student') return endpoints.studentFieldTraining;
+  if (mode === 'instructor') return endpoints.instructorFieldTraining;
   return ADMIN_BASE;
 }
 
 function parseFilename(contentDisposition, fallback) {
+  const utf = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition || '');
+  if (utf?.[1]) {
+    try {
+      return decodeURIComponent(utf[1]);
+    } catch {
+      /* use quoted filename */
+    }
+  }
   const match = /filename="([^"]+)"/i.exec(contentDisposition || '');
   return match?.[1] ?? fallback;
 }
 
+async function rethrowBlobApiError(err) {
+  const data = err?.response?.data;
+  if (data && typeof data.text === 'function') {
+    try {
+      const parsed = JSON.parse(await data.text());
+      err.response.data = parsed;
+    } catch {
+      /* keep original blob */
+    }
+  }
+  throw err;
+}
+
 export async function fetchFieldTrainingDashboard(params = {}, mode = 'admin') {
   const base = apiBase(mode);
-  const path = mode === 'academic' ? `${base}/dashboard` : `${base}`;
+  const path = usesAcademicReportApi(mode) ? `${base}/dashboard` : `${base}`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
   return unwrapApiData(res);
 }
@@ -46,7 +78,7 @@ export async function fetchFieldTrainingGlobalReport(params = {}) {
 
 export async function fetchFieldTrainingUniversityReport(params = {}, mode = 'admin') {
   const base = apiBase(mode);
-  const path = mode === 'academic' ? `${base}/reports/university` : `${base}/university`;
+  const path = usesAcademicReportApi(mode) ? `${base}/reports/university` : `${base}/university`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
   return unwrapApiData(res);
 }
@@ -60,7 +92,7 @@ export async function fetchFieldTrainingApplicationsReport(params = {}, mode = '
 
 export async function fetchFieldTrainingOpportunities(params = {}, mode = 'academic') {
   const base = apiBase(mode);
-  const path = mode === 'academic' ? `${base}/opportunities` : `${base}/opportunities`;
+  const path = `${base}/opportunities`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
   return unwrapApiData(res);
 }
@@ -76,9 +108,13 @@ export async function fetchFieldTrainingOpportunityDetail(opportunityId, params 
 export async function fetchFieldTrainingStudentReport(applicationId, mode = 'admin') {
   const base = apiBase(mode);
   const path =
-    mode === 'academic'
+    usesAcademicReportApi(mode)
       ? `${base}/reports/students/${applicationId}`
-      : `${base}/students/${applicationId}`;
+      : mode === 'student'
+        ? `${base}/applications/${applicationId}/report`
+        : mode === 'instructor'
+          ? `${base}/reports/students/${applicationId}`
+          : `${base}/students/${applicationId}`;
   const res = await apiClient.get(path);
   return unwrapApiData(res);
 }
@@ -92,49 +128,87 @@ export async function fetchFieldTrainingAnalytics(params = {}) {
 
 export async function exportFieldTrainingGlobalReport(format = 'pdf', params = {}) {
   const suffix = format === 'pdf' ? 'pdf' : 'excel';
-  const res = await apiClient.get(`${ADMIN_BASE}/global/export/${suffix}`, {
-    params: normalizeParams(params),
-    responseType: 'blob',
-  });
-  const filename = parseFilename(
-    res.headers['content-disposition'],
-    `field-training-global-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
-  );
-  saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  try {
+    const res = await apiClient.get(`${ADMIN_BASE}/global/export/${suffix}`, {
+      params: normalizeParams(params),
+      responseType: 'blob',
+      timeout: 120_000,
+    });
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      `field-training-global-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function exportFieldTrainingUniversityReport(format = 'pdf', params = {}, mode = 'admin') {
   const base = apiBase(mode);
   const suffix = format === 'pdf' ? 'pdf' : 'excel';
   const path =
-    mode === 'academic'
+    usesAcademicReportApi(mode)
       ? `${base}/reports/university/export/${suffix}`
       : `${base}/university/export/${suffix}`;
-  const res = await apiClient.get(path, {
-    params: normalizeParams(params),
-    responseType: 'blob',
-  });
-  const filename = parseFilename(
-    res.headers['content-disposition'],
-    `field-training-university-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
-  );
-  saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  try {
+    const res = await apiClient.get(path, {
+      params: normalizeParams(params),
+      responseType: 'blob',
+      timeout: 120_000,
+    });
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      `field-training-university-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function exportFieldTrainingStudentReport(applicationId, format = 'pdf', mode = 'admin') {
   const base = apiBase(mode);
   const suffix = format === 'pdf' ? 'pdf' : 'excel';
   const path =
-    mode === 'academic'
+    usesAcademicReportApi(mode)
       ? `${base}/reports/students/${applicationId}/export/${suffix}`
-      : `${base}/students/${applicationId}/export/${suffix}`;
-  const res = await apiClient.get(path, {
-    params: { format: format === 'pdf' ? 'pdf' : 'xlsx' },
-    responseType: 'blob',
-  });
-  const filename = parseFilename(
-    res.headers['content-disposition'],
-    `field-training-student-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
-  );
-  saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+      : mode === 'student'
+        ? `${base}/applications/${applicationId}/report/${suffix}`
+        : mode === 'instructor'
+          ? `${base}/reports/students/${applicationId}/export/${suffix}`
+          : `${base}/students/${applicationId}/export/${suffix}`;
+  try {
+    const res = await apiClient.get(path, {
+      params: { format: format === 'pdf' ? 'pdf' : 'xlsx' },
+      responseType: 'blob',
+      timeout: 120_000,
+    });
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      `field-training-student-report.${format === 'pdf' ? 'pdf' : 'xlsx'}`
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
+
+export async function generateFieldTrainingUniversityReport(params = {}, mode = 'admin') {
+  const base = apiBase(mode);
+  const path = usesAcademicReportApi(mode)
+    ? `${base}/reports/university/generate`
+    : `${base}/university/generate`;
+  const res = await apiClient.post(path, null, { params: normalizeParams(params) });
+  return unwrapApiData(res);
+}
+
+export async function regenerateFieldTrainingUniversityReport(params = {}, mode = 'admin') {
+  const base = apiBase(mode);
+  const path = usesAcademicReportApi(mode)
+    ? `${base}/reports/university/regenerate`
+    : `${base}/university/regenerate`;
+  const res = await apiClient.post(path, null, { params: normalizeParams(params) });
+  return unwrapApiData(res);
+}
+

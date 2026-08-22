@@ -35,3 +35,12 @@ export function ModulePlaceholderPage() {
     </div>
   );
 }
+
+export function AdminNotFoundPage() {
+  return (
+    <div className="page page--dashboard" dir="rtl">
+      <PageHeader title="الصفحة غير موجودة" subtitle="404" />
+      <EmptyState title="لم يُعثر على هذه الصفحة" description="تحقق من الرابط أو عد إلى لوحة التحكم." />
+    </div>
+  );
+}

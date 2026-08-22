@@ -75,7 +75,9 @@ async function assertAdminOpportunityAccess(user, opportunity) {
     throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
   }
   const uni = user?.universityId;
-  if (!uni) return;
+  if (!uni) {
+    throw new ApiError(403, 'غير مصرح', null, 'FIELD_TRAINING_FORBIDDEN');
+  }
   if (opportunity.university_id) {
     assertUniversityRecordAccess(user, opportunity.university_id);
     return;
@@ -125,7 +127,7 @@ function manageOpportunityListWhere(user) {
 
   if (isFieldTrainingAdmin(user)) {
     if (uni) return opportunityEligibilityWhereForUniversity(uni);
-    return {};
+    return denyAllWhere();
   }
 
   // Assigned instructors see all opportunities they own — do not scope by university eligibility.

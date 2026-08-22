@@ -164,21 +164,26 @@ async function requireStaffTaskAccess(requester, task, permissionKey) {
 
 async function submitTask(requester, taskId, body) {
   const task = await loadTaskOrThrow(taskId);
-  if (!task.published_at) throw new ApiError(403, 'Task is not published');
+  if (!task.published_at) throw new ApiError(403, 'Task is not published', null, 'TASK_NOT_AVAILABLE');
   const enrollment = await findActiveEnrollment(requester, task);
   if (!enrollment) throw new ApiError(403, 'Not enrolled');
+  if (task.due_at && new Date() > new Date(task.due_at)) {
+    throw new ApiError(400, 'انتهى موعد تسليم المهمة', null, 'TASK_NOT_AVAILABLE');
+  }
 
-  const attempts = await prisma.training_task_submissions.count({
+  const submissions = await prisma.training_task_submissions.findMany({
     where: { task_id: taskId, enrollment_id: enrollment.id },
   });
-  if (attempts >= (task.max_attempts ?? 3)) throw new ApiError(400, 'Max attempts reached');
+  if (!canSubmitTask(task, submissions)) {
+    throw new ApiError(400, 'لا يمكن تسليم هذه المهمة حالياً', null, 'TASK_NOT_AVAILABLE');
+  }
 
   const row = await prisma.training_task_submissions.create({
     data: {
       task_id: taskId,
       enrollment_id: enrollment.id,
       user_id: requester.userId,
-      attempt_no: attempts + 1,
+      attempt_no: submissions.length + 1,
       content_text: body.content_text ?? null,
       content_url: body.content_url ?? null,
       status: task.grading_mode === 'NONE' ? 'ACCEPTED' : 'SUBMITTED',
@@ -190,10 +195,8 @@ async function submitTask(requester, taskId, body) {
     entityType: 'training_task_submission',
     entityId: row.id,
   }).catch(() => null);
-  if (row.status === 'ACCEPTED') {
-    const { computeAndPersistProgress } = require('./trainingPrograms.service');
-    await computeAndPersistProgress(enrollment.id).catch(() => null);
-  }
+  const { computeAndPersistProgress } = require('./trainingPrograms.service');
+  await computeAndPersistProgress(enrollment.id).catch(() => null);
   return { id: row.id, status: row.status, attemptNo: row.attempt_no };
 }
 
@@ -271,13 +274,18 @@ function resolveAttachmentUrl(settings) {
 
 async function getInstructionFileUrl(requester, taskId) {
   const task = await loadTaskOrThrow(taskId);
+  assertOrganizationAccess(requester, task.training_programs.organization_id);
   const enrollment = await findViewableEnrollment(requester, task);
   const isStaff =
     isSystemWideAdmin(requester) ||
     requester.roles?.includes('admin') ||
     requester.roles?.includes('instructor') ||
     requester.roles?.includes('trainer');
-  if (!enrollment && !isStaff) throw new ApiError(403, 'Not enrolled');
+  if (isStaff) {
+    await assertTrainerProgramAccess(requester, task.program_id);
+  } else if (!enrollment) {
+    throw new ApiError(403, 'Not enrolled');
+  }
   const settings = parseSettings(task.settings_json);
   if (settings.attachmentFileId) {
     const file = await prisma.files.findFirst({

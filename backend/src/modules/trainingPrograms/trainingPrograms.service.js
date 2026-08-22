@@ -181,19 +181,28 @@ async function listTrainingCourses(requester, query = {}) {
   }));
 }
 
+function mergeRequirementThreshold(existing, patch) {
+  const prev = existing && typeof existing === 'object' ? existing : {};
+  if (patch == null) return Object.keys(prev).length ? prev : undefined;
+  return { ...prev, ...patch };
+}
+
 async function syncProgramRequirements(programId, body = {}) {
+  const existingRows = await prisma.training_requirements.findMany({ where: { program_id: programId } });
+  const existingByCode = Object.fromEntries(existingRows.map((r) => [r.code, r]));
+  const passPatch = body.pass_score != null ? { pass_score: Number(body.pass_score) } : null;
   const defs = [
     {
       code: 'PRE_TEST',
       label: 'الاختبار القبلي',
       is_required: body.requires_pre_test === true,
-      threshold_json: body.pass_score != null ? { pass_score: Number(body.pass_score) } : null,
+      threshold_json: mergeRequirementThreshold(existingByCode.PRE_TEST?.threshold_json, passPatch),
     },
     {
       code: 'POST_TEST',
       label: 'الاختبار البعدي',
       is_required: body.requires_post_test === true,
-      threshold_json: body.pass_score != null ? { pass_score: Number(body.pass_score) } : null,
+      threshold_json: mergeRequirementThreshold(existingByCode.POST_TEST?.threshold_json, passPatch),
     },
     {
       code: 'TASKS',
@@ -344,6 +353,10 @@ async function createProgram(requester, organizationId, body) {
       ? String(body.short_description)
       : null);
 
+  const settingsJson = {};
+  if (body.expected_sessions !== undefined) settingsJson.expectedSessions = body.expected_sessions;
+  if (body.timezone !== undefined) settingsJson.timezone = body.timezone;
+
   const row = await prisma.training_programs.create({
     data: {
       organization_id: organizationId,
@@ -363,6 +376,7 @@ async function createProgram(requester, organizationId, body) {
       end_date: body.end_date ? new Date(body.end_date) : null,
       status: body.status || 'DRAFT',
       created_by: requester.userId,
+      ...(Object.keys(settingsJson).length ? { settings_json: settingsJson } : {}),
     },
   });
   await syncProgramRequirements(row.id, body);
@@ -652,8 +666,16 @@ async function listProgramTasks(requester, programId) {
   if (!program) throw new ApiError(404, 'Program not found');
   assertOrganizationAccess(requester, program.organization_id);
   await assertTrainerProgramAccess(requester, programId, 'can_manage_tasks');
+  const isLearner =
+    (requester.roles?.includes('trainee') || requester.roles?.includes('student')) &&
+    !isSystemWideAdmin(requester) &&
+    !requester.roles?.includes('admin') &&
+    !requester.roles?.includes('trainer');
   const rows = await prisma.training_tasks.findMany({
-    where: { program_id: programId },
+    where: {
+      program_id: programId,
+      ...(isLearner ? { published_at: { not: null } } : {}),
+    },
     orderBy: { created_at: 'desc' },
   });
   return rows.map((r) => ({
@@ -1443,14 +1465,14 @@ async function computeAndPersistProgress(enrollmentId) {
   ] = await Promise.all([
     prisma.training_sessions.findMany({
       where: { cohort_id: enrollment.cohort_id, counts_toward_hours: true },
-      select: { id: true, hours: true },
+      select: { id: true, hours: true, starts_at: true, ends_at: true },
     }),
     prisma.training_attendance_records.findMany({
       where: { enrollment_id: enrollmentId },
       select: { session_id: true, status: true },
     }),
     prisma.training_tasks.findMany({
-      where: { program_id: program.id, is_required: true },
+      where: { program_id: program.id, is_required: true, published_at: { not: null } },
       select: { id: true },
     }),
     prisma.training_task_submissions.findMany({
@@ -1479,12 +1501,19 @@ async function computeAndPersistProgress(enrollmentId) {
       select: { status: true },
     }),
   ]);
-  const presentLike = attendance.filter((a) => ['present', 'late', 'excused'].includes(String(a.status).toLowerCase()));
+  const { computeHoursStatus, computeAttendanceStatus, resolveSessionHours } = require('./trainingProgress.helpers');
+  const countableIds = new Set(sessions.map((s) => s.id));
+  const presentLike = attendance.filter(
+    (a) =>
+      countableIds.has(a.session_id) && ['present', 'late', 'excused'].includes(String(a.status).toLowerCase())
+  );
   const attendancePct = sessions.length ? (presentLike.length / sessions.length) * 100 : 0;
+  const hoursBySession = new Map(sessions.map((s) => [s.id, resolveSessionHours(s)]));
   const hoursCompleted = presentLike.reduce((sum, a) => {
-    const session = sessions.find((s) => s.id === a.session_id);
-    return sum + Number(session?.hours || 0);
+    const hours = hoursBySession.get(a.session_id);
+    return hours == null ? sum : sum + hours;
   }, 0);
+  const hoursMeasurableCount = sessions.filter((s) => hoursBySession.get(s.id) != null).length;
   const hoursRequired = Number(program.required_hours || 0);
   const requiredAttendance = Number(program.required_attendance_pct || 0);
 
@@ -1547,10 +1576,9 @@ async function computeAndPersistProgress(enrollmentId) {
     };
   }
 
-  const { computeHoursStatus, computeAttendanceStatus } = require('./trainingProgress.helpers');
   const requirements = {
     attendance: computeAttendanceStatus({ sessionCount: sessions.length, attendancePct, requiredAttendance }),
-    hours: computeHoursStatus({ sessionCount: sessions.length, hoursCompleted, hoursRequired }),
+    hours: computeHoursStatus({ sessionCount: hoursMeasurableCount, hoursCompleted, hoursRequired }),
     tasks: {
       value: tasksDone,
       required: reqByCode.TASKS?.is_required === false ? 0 : tasks.length,
@@ -1745,7 +1773,7 @@ async function getEnrollmentCertificate(requester, enrollmentId) {
     orderBy: { issued_at: 'desc' },
   });
   if (!row) {
-    throw new ApiError(404, 'لا توجد شهادة صادرة لهذا التسجيل.', null, 'CERTIFICATE_NOT_ELIGIBLE');
+    throw new ApiError(404, 'لا توجد شهادة صادرة لهذا التسجيل.', null, 'CERTIFICATE_NOT_ISSUED');
   }
   return {
     id: row.id,
@@ -2183,6 +2211,7 @@ module.exports = {
   listTrainingCourses,
   getProgram,
   createProgram,
+  mergeRequirementThreshold,
   updateProgram,
   createCohort,
   listCohorts,

@@ -27,9 +27,16 @@ describe('computeHoursStatus', () => {
     assert.equal(result.ok, true);
   });
 
-  it('returns ok true when hoursRequired is 0 with sessions', () => {
-    const result = computeHoursStatus({ sessionCount: 3, hoursCompleted: 0, hoursRequired: 0 });
-    assert.equal(result.ok, true);
+  it('returns duration-based hours when hours is null and excludes unmeasurable sessions', () => {
+    const { resolveSessionHours } = require('../src/modules/trainingPrograms/trainingProgress.helpers');
+    const durationHours = resolveSessionHours({
+      hours: null,
+      starts_at: '2026-08-19T08:00:00.000Z',
+      ends_at: '2026-08-19T10:00:00.000Z',
+    });
+    assert.equal(durationHours, 2);
+    assert.equal(resolveSessionHours({ hours: null, starts_at: null, ends_at: null }), null);
+    assert.equal(resolveSessionHours({ hours: 0, starts_at: null, ends_at: null }), null);
   });
 });
 

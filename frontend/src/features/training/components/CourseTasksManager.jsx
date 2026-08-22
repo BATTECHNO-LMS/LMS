@@ -10,7 +10,7 @@ import {
   listProgramTasksDetailed,
   updateTask,
 } from '../training.service.js';
-import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { toDatetimeLocalValue } from '../assessmentPresentation/assessmentDate.js';
 
 const EMPTY = {
   title: '',
@@ -24,14 +24,7 @@ const EMPTY = {
 };
 
 function toLocalInput(value) {
-  if (!value) return '';
-  try {
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return '';
-    return d.toISOString().slice(0, 16);
-  } catch {
-    return '';
-  }
+  return toDatetimeLocalValue(value);
 }
 
 export function CourseTasksManager({ programId, canManage = true }) {

@@ -4,6 +4,7 @@ import {
   formatAssessmentDateTime,
   looksLikeRawIsoDate,
   parseAssessmentDate,
+  toDatetimeLocalValue,
 } from '../src/features/training/assessmentPresentation/assessmentDate.js';
 import {
   buildAssessmentMetrics,
@@ -298,5 +299,13 @@ describe('resolveAssessmentUiState', () => {
     });
     assert.equal(state.action.type, 'exhausted');
     assert.notEqual(state.action.type, 'start');
+  });
+});
+
+describe('toDatetimeLocalValue', () => {
+  it('formats in Asia/Amman instead of a UTC ISO slice', () => {
+    const value = toDatetimeLocalValue('2026-08-19T10:00:00.000Z', 'Asia/Amman');
+    assert.equal(value, '2026-08-19T13:00');
+    assert.notEqual(value, '2026-08-19T10:00');
   });
 });

@@ -9,6 +9,7 @@ const { prisma } = require('./config/db');
 const { errorMiddleware } = require('./middlewares/error.middleware');
 const { requestIdMiddleware } = require('./middlewares/requestId.middleware');
 const { createRequestLogger } = require('./middlewares/requestLogger.middleware');
+const { authenticate } = require('./middlewares/auth.middleware');
 
 const app = express();
 
@@ -94,6 +95,7 @@ app.get('/health/ready', async (req, res) => {
 
 app.use(
   '/uploads',
+  authenticate,
   express.static(path.join(__dirname, '..', env.UPLOAD_DIR))
 );
 

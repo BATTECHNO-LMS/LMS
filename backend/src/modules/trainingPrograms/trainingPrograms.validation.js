@@ -8,6 +8,7 @@ const programIdParam = z.object({ programId: z.string().uuid() });
 const cohortIdParam = z.object({ cohortId: z.string().uuid() });
 const sessionIdParam = z.object({ sessionId: z.string().uuid() });
 const taskIdParam = z.object({ taskId: z.string().uuid() });
+const taskResubmitParam = z.object({ taskId: z.string().uuid(), submissionId: z.string().uuid() });
 const assessmentIdParam = z.object({ assessmentId: z.string().uuid() });
 const attemptIdParam = z.object({ attemptId: z.string().uuid() });
 const enrollmentIdParam = z.object({ enrollmentId: z.string().uuid() });
@@ -61,6 +62,7 @@ const createProgramBody = z
     required_attendance_pct: z.coerce.number().optional().nullable(),
     max_participants: z.coerce.number().int().optional().nullable(),
     expected_sessions: z.coerce.number().int().optional().nullable(),
+    timezone: z.string().optional().nullable(),
     start_date: z.string().optional().nullable(),
     end_date: z.string().optional().nullable(),
     pass_score: z.coerce.number().optional().nullable(),
@@ -343,6 +345,7 @@ module.exports = {
   cohortIdParam,
   sessionIdParam,
   taskIdParam,
+  taskResubmitParam,
   assessmentIdParam,
   attemptIdParam,
   assessmentKindParam,

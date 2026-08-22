@@ -89,6 +89,7 @@ async function assertCanViewProgramContent(requester, program) {
         training_cohorts: { program_id: program.id },
         status: { in: ['ACTIVE', 'APPROVED', 'REQUIREMENTS_COMPLETED', 'COMPLETED'] },
       },
+      include: { training_progress: true },
     });
     if (!enrolled) {
       throw new ApiError(403, 'COURSE_ENROLLMENT_REQUIRED', null, 'COURSE_ENROLLMENT_REQUIRED');
@@ -646,6 +647,11 @@ async function getMaterialPlaybackUrl(requester, materialId) {
   const view = await assertCanViewProgramContent(requester, program);
 
   if (view.mode === 'learner') {
+    const settings = program.settings_json && typeof program.settings_json === 'object' ? program.settings_json : {};
+    const preReq = view.enrollment?.training_progress?.requirements_json?.preTest;
+    if (settings.preTestBlocksContent && preReq?.required && !preReq?.ok) {
+      throw new ApiError(403, 'المحتوى مقفل حتى اجتياز الاختبار القبلي', null, 'CONTENT_LOCKED');
+    }
     if (!material.is_published) {
       throw new ApiError(403, 'المحاضرة غير منشورة', null, 'LECTURE_NOT_PUBLISHED');
     }
@@ -734,25 +740,12 @@ async function updateTask(requester, taskId, body = {}) {
 
   const prevSettings =
     existing.settings_json && typeof existing.settings_json === 'object' ? existing.settings_json : {};
-  const nextSettings = { ...prevSettings };
-  if (payload.external_links !== undefined) {
-    nextSettings.externalLinks = Array.isArray(payload.external_links) ? payload.external_links : [];
-  }
-  if (payload.allowed_file_types !== undefined) {
-    nextSettings.allowedFileTypes = Array.isArray(payload.allowed_file_types)
-      ? payload.allowed_file_types
-      : [];
-  }
-  if (payload.attachment_url !== undefined) nextSettings.attachmentUrl = payload.attachment_url || null;
-  if (payload.attachment_storage_key !== undefined) {
-    nextSettings.attachmentStorageKey = payload.attachment_storage_key || null;
-  }
-  if (payload.attachment_file_id !== undefined) {
-    nextSettings.attachmentFileId = payload.attachment_file_id || null;
-  }
+  const { hydrateAttachmentSettings } = require('./trainingTaskWorkflow.service');
+  let nextSettings = { ...prevSettings };
   if (payload.settings !== undefined && typeof payload.settings === 'object') {
     Object.assign(nextSettings, payload.settings);
   }
+  nextSettings = await hydrateAttachmentSettings(nextSettings, payload);
 
   let publishedAt = existing.published_at;
   if (payload.publish === true) publishedAt = existing.published_at || new Date();

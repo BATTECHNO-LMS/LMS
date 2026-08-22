@@ -32,6 +32,9 @@ import {
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import {
+  exportFieldTrainingStudentReport,
+} from '../../features/fieldTrainingReports/index.js';
 import { StudentTrainingTabNav } from './fieldTraining/components/StudentTrainingTabNav.jsx';
 import { ContextualHelpButton } from '../../components/help/ContextualHelpButton.jsx';
 import { StudentExpelledBanner } from './fieldTraining/components/StudentExpelledBanner.jsx';
@@ -210,6 +213,7 @@ export function StudentFieldTrainingDetailPage() {
   const [message, setMessage] = useState('');
   const [formError, setFormError] = useState('');
   const [applySuccess, setApplySuccess] = useState(false);
+  const [exporting, setExporting] = useState('');
 
   const opp = data?.opportunity;
   const application = data?.application;
@@ -295,6 +299,18 @@ export function StudentFieldTrainingDetailPage() {
     if (!appId) return;
     await cancelMut.mutateAsync(appId);
     refetch();
+  }
+
+  async function handleExportReport(format) {
+    if (!appId || exporting) return;
+    setExporting(format);
+    try {
+      await exportFieldTrainingStudentReport(appId, format, 'student');
+    } catch (err) {
+      setFormError(getApiErrorMessage(err, tCommon('errors.generic')));
+    } finally {
+      setExporting('');
+    }
   }
 
   function handleContinueTraining() {
@@ -505,6 +521,26 @@ export function StudentFieldTrainingDetailPage() {
                     <Button type="button" variant="primary" onClick={handleContinueTraining}>
                       {expelled ? t('studentTraining.viewHistory') : t('student.continueTraining')}
                     </Button>
+                  ) : null}
+                  {appId ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={Boolean(exporting)}
+                        onClick={() => handleExportReport('pdf')}
+                      >
+                        {exporting === 'pdf' ? t('studentTraining.completion.downloading') : 'تصدير PDF'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={Boolean(exporting)}
+                        onClick={() => handleExportReport('xlsx')}
+                      >
+                        {exporting === 'xlsx' ? t('studentTraining.completion.downloading') : 'تصدير Excel'}
+                      </Button>
+                    </>
                   ) : null}
                   {appStatus === 'pending' ? (
                     <span className="ft-student-hero__notice">{t('student.pendingReview')}</span>

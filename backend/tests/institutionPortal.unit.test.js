@@ -163,7 +163,25 @@ describe('portal access evaluation', () => {
     assert.equal(result.reason, 'super_admin');
   });
 
-  it('exposes PORTAL_MISMATCH stable code', () => {
-    assert.equal(AUTH_ERROR_CODES.PORTAL_MISMATCH, 'PORTAL_MISMATCH');
+  it('rejects login without portalType (BUG-013)', () => {
+    const { loginSchema } = require('../src/modules/auth/auth.validation');
+    const result = loginSchema.safeParse({ email: 'a@example.com', password: 'x' });
+    assert.equal(result.success, false);
+  });
+
+  it('filters dual-role user to institution portal roles (BUG-013)', () => {
+    const { applyPortalScope } = require('../src/modules/auth/portalAccess');
+    const scoped = applyPortalScope(
+      {
+        isGlobal: false,
+        roles: ['admin', 'student', 'trainee'],
+        universityId: 'u1',
+        organizationType: 'INSTITUTION',
+      },
+      'INSTITUTION'
+    );
+    assert.deepEqual(scoped.roles.sort(), ['admin', 'trainee']);
+    assert.equal(scoped.universityId, null);
+    assert.equal(scoped.portalType, 'INSTITUTION');
   });
 });

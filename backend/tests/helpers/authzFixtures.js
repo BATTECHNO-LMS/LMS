@@ -31,6 +31,8 @@ function makeRequester(overrides = {}) {
     universityId: overrides.universityId === undefined ? SYNTH_UNI_A : overrides.universityId,
     isGlobal: Boolean(overrides.isGlobal),
     permissions: Array.isArray(overrides.permissions) ? overrides.permissions : [],
+    organizationType: overrides.organizationType,
+    portalType: overrides.portalType,
   };
 }
 

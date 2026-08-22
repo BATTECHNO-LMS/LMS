@@ -55,6 +55,43 @@ function mapKind(kind) {
   throw new ApiError(400, 'نوع الاختبار غير صالح', null, 'ASSESSMENT_NOT_FOUND');
 }
 
+function shuffleInPlace(items) {
+  const out = Array.isArray(items) ? items.slice() : [];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function orderQuestions(questions, questionOrder) {
+  const list = Array.isArray(questions) ? questions : [];
+  if (!questionOrder?.length) {
+    return list.slice().sort((a, b) => a.sort_order - b.sort_order);
+  }
+  const byId = new Map(list.map((q) => [q.id, q]));
+  return questionOrder.map((id) => byId.get(id)).filter(Boolean);
+}
+
+function isAttemptExpired(attempt, assessment, now = new Date()) {
+  if (!assessment?.duration_minutes || !attempt?.started_at) return false;
+  const started = new Date(attempt.started_at);
+  if (Number.isNaN(started.getTime())) return false;
+  const deadline = new Date(started.getTime() + Number(assessment.duration_minutes) * 60000);
+  return now > deadline;
+}
+
+async function assertAttemptNotExpired(attempt, assessment) {
+  if (!isAttemptExpired(attempt, assessment)) return;
+  if (attempt.status === 'IN_PROGRESS') {
+    await prisma.training_assessment_attempts.update({
+      where: { id: attempt.id },
+      data: { status: 'EXPIRED', updated_at: new Date() },
+    });
+  }
+  throw new ApiError(400, 'انتهت مدة الاختبار', null, 'ASSESSMENT_ATTEMPT_EXPIRED');
+}
+
 function mapQuestionOut(q, { includeCorrect = false } = {}) {
   return {
     id: q.id,
@@ -70,7 +107,7 @@ function mapQuestionOut(q, { includeCorrect = false } = {}) {
   };
 }
 
-function mapAssessmentOut(row, { includeQuestions = false, includeCorrect = false } = {}) {
+function mapAssessmentOut(row, { includeQuestions = false, includeCorrect = false, questionOrder } = {}) {
   return {
     id: row.id,
     programId: row.program_id,
@@ -94,10 +131,9 @@ function mapAssessmentOut(row, { includeQuestions = false, includeCorrect = fals
     status: row.is_published ? 'published' : 'draft',
     questionCount: row._count?.training_assessment_questions ?? row.training_assessment_questions?.length ?? 0,
     questions: includeQuestions
-      ? (row.training_assessment_questions || [])
-          .slice()
-          .sort((a, b) => a.sort_order - b.sort_order)
-          .map((q) => mapQuestionOut(q, { includeCorrect }))
+      ? orderQuestions(row.training_assessment_questions, questionOrder).map((q) =>
+          mapQuestionOut(q, { includeCorrect })
+        )
       : undefined,
     updatedAt: row.updated_at,
   };
@@ -195,9 +231,13 @@ async function getAssessment(requester, assessmentId) {
   } else if (isTrainerOnly(requester)) {
     await assertTrainerProgramAccess(requester, row.program_id);
   }
+  const includeCorrect =
+    isSystemWideAdmin(requester) ||
+    requester.roles?.includes('admin') ||
+    requester.roles?.includes('trainer');
   return mapAssessmentOut(row, {
     includeQuestions: true,
-    includeCorrect: !isLearner,
+    includeCorrect,
   });
 }
 
@@ -426,9 +466,14 @@ async function startAttempt(requester, assessmentId) {
     },
   });
   if (inProgress) {
+    await assertAttemptNotExpired(inProgress, assessment);
     return {
-      attempt: mapAttempt(inProgress),
-      assessment: mapAssessmentOut(assessment, { includeQuestions: true, includeCorrect: false }),
+      attempt: mapAttempt(inProgress, { showResults: assessment.show_results }),
+      assessment: mapAssessmentOut(assessment, {
+        includeQuestions: true,
+        includeCorrect: false,
+        questionOrder: inProgress.answers_json?.questionOrder,
+      }),
       resumed: true,
     };
   }
@@ -444,6 +489,10 @@ async function startAttempt(requester, assessmentId) {
     throw new ApiError(400, 'أكملت جميع المحاولات المتاحة.', null, 'ASSESSMENT_ATTEMPTS_EXHAUSTED');
   }
 
+  const questionPool = assessment.training_assessment_questions || [];
+  const ordered = assessment.shuffle_questions ? shuffleInPlace(questionPool) : questionPool;
+  const questionOrder = ordered.map((q) => q.id);
+
   const row = await prisma.training_assessment_attempts.create({
     data: {
       assessment_id: assessmentId,
@@ -451,19 +500,24 @@ async function startAttempt(requester, assessmentId) {
       user_id: requester.userId,
       attempt_no: completedCount + 1,
       status: 'IN_PROGRESS',
-      answers_json: {},
+      answers_json: { questionOrder },
       started_at: new Date(),
     },
   });
 
   return {
-    attempt: mapAttempt(row),
-    assessment: mapAssessmentOut(assessment, { includeQuestions: true, includeCorrect: false }),
+    attempt: mapAttempt(row, { showResults: assessment.show_results }),
+    assessment: mapAssessmentOut(assessment, {
+      includeQuestions: true,
+      includeCorrect: false,
+      questionOrder,
+    }),
     resumed: false,
   };
 }
 
-function mapAttempt(row) {
+function mapAttempt(row, { showResults = true } = {}) {
+  const hideScores = showResults === false && ['SUBMITTED', 'GRADED'].includes(row.status);
   return {
     id: row.id,
     assessmentId: row.assessment_id,
@@ -471,9 +525,9 @@ function mapAttempt(row) {
     attemptNo: row.attempt_no,
     status: row.status,
     answers: row.answers_json?.answers ?? row.answers_json ?? {},
-    gradingDetails: row.answers_json?.gradingDetails ?? null,
-    score: row.score != null ? Number(row.score) : null,
-    maxScore: row.answers_json?.maxScore != null ? Number(row.answers_json.maxScore) : null,
+    gradingDetails: hideScores ? undefined : row.answers_json?.gradingDetails ?? null,
+    score: hideScores ? null : row.score != null ? Number(row.score) : null,
+    maxScore: hideScores ? null : row.answers_json?.maxScore != null ? Number(row.answers_json.maxScore) : null,
     startedAt: row.started_at,
     submittedAt: row.submitted_at,
     gradedAt: row.graded_at,
@@ -493,16 +547,7 @@ async function saveAttemptAnswers(requester, attemptId, answers) {
     throw new ApiError(400, 'لا يمكن تعديل إجابات محاولة مُرسلة', null, 'ASSESSMENT_ATTEMPT_ALREADY_SUBMITTED');
   }
   const assessment = attempt.training_assessments;
-  if (assessment.duration_minutes && attempt.started_at) {
-    const deadline = new Date(attempt.started_at.getTime() + assessment.duration_minutes * 60000);
-    if (new Date() > deadline) {
-      await prisma.training_assessment_attempts.update({
-        where: { id: attemptId },
-        data: { status: 'EXPIRED', updated_at: new Date() },
-      });
-      throw new ApiError(400, 'انتهت مدة الاختبار', null, 'ASSESSMENT_ATTEMPT_EXPIRED');
-    }
-  }
+  await assertAttemptNotExpired(attempt, assessment);
   const prev = attempt.answers_json && typeof attempt.answers_json === 'object' ? attempt.answers_json : {};
   const row = await prisma.training_assessment_attempts.update({
     where: { id: attemptId },
@@ -511,7 +556,7 @@ async function saveAttemptAnswers(requester, attemptId, answers) {
       updated_at: new Date(),
     },
   });
-  return mapAttempt(row);
+  return mapAttempt(row, { showResults: assessment.show_results });
 }
 
 async function submitAttempt(requester, attemptId, answers) {
@@ -533,12 +578,13 @@ async function submitAttempt(requester, attemptId, answers) {
   if (attempt.status !== 'IN_PROGRESS') {
     // Idempotent: return existing graded/submitted attempt
     if (['SUBMITTED', 'GRADED'].includes(attempt.status)) {
-      return mapAttempt(attempt);
+      return mapAttempt(attempt, { showResults: attempt.training_assessments?.show_results });
     }
     throw new ApiError(400, 'المحاولة غير قابلة للإرسال', null, 'ASSESSMENT_ATTEMPT_ALREADY_SUBMITTED');
   }
 
   const assessment = attempt.training_assessments;
+  await assertAttemptNotExpired(attempt, assessment);
   const finalAnswers =
     answers ||
     attempt.answers_json?.answers ||
@@ -608,13 +654,16 @@ async function submitAttempt(requester, attemptId, answers) {
     }
   }
 
+  const mapped = mapAttempt(row, { showResults: assessment.show_results });
   return {
-    ...mapAttempt(row),
-    scorePercent: graded.scorePercent,
+    ...mapped,
+    scorePercent: assessment.show_results === false ? null : graded.scorePercent,
     passed:
-      assessment.pass_score == null
-        ? true
-        : graded.scorePercent >= Number(assessment.pass_score),
+      assessment.show_results === false
+        ? null
+        : assessment.pass_score == null
+          ? true
+          : graded.scorePercent >= Number(assessment.pass_score),
     pendingManual,
     showResults: assessment.show_results,
     postTestSubmitted: assessment.kind === 'POST_TEST',
@@ -790,14 +839,16 @@ async function getPrePostComparison(requester, programId) {
   const post = assessments.find((a) => a.kind === 'POST_TEST');
   if (!pre && !post) return { programId, items: [] };
 
+  const isTrainingStaff =
+    isSystemWideAdmin(requester) ||
+    requester.roles?.includes('admin') ||
+    requester.roles?.includes('trainer');
   const enrollments = await prisma.training_enrollments.findMany({
     where: {
       organization_id: program.organization_id,
       training_cohorts: { program_id: programId },
       status: { in: ['ACTIVE', 'APPROVED', 'REQUIREMENTS_COMPLETED', 'COMPLETED'] },
-      ...(requester.roles?.includes('trainee') && !isSystemWideAdmin(requester) && !requester.roles?.includes('admin')
-        ? { user_id: requester.userId }
-        : {}),
+      ...(!isTrainingStaff ? { user_id: requester.userId } : {}),
     },
     select: { id: true, user_id: true },
   });
@@ -943,4 +994,8 @@ module.exports = {
   getPrePostComparison,
   getTraineeAssessmentStatus,
   mapAssessmentOut,
+  mapAttempt,
+  isAttemptExpired,
+  shuffleInPlace,
+  orderQuestions,
 };

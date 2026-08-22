@@ -3,21 +3,36 @@ const { success } = require('../../utils/apiResponse');
 const { recordAudit } = require('../../shared/services/audit.service');
 
 async function auditReport(req, action, entityId, summary) {
-  await recordAudit({
-    userId: req.user?.userId ?? null,
-    universityId: req.user?.universityId ?? null,
-    actionType: action,
-    entityType: 'field_training_report',
-    entityId,
-    newValues: summary,
-    ipAddress: req.ip || null,
-  });
+  try {
+    await recordAudit({
+      userId: req.user?.userId ?? null,
+      universityId: req.user?.universityId ?? null,
+      actionType: action,
+      entityType: 'field_training_report',
+      entityId,
+      newValues: summary,
+      ipAddress: req.ip || null,
+    });
+  } catch {
+    /* export/view must not fail because audit write failed */
+  }
 }
 
 function sendExport(res, { buffer, contentType, filename }) {
+  const payload = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   res.setHeader('Content-Type', contentType);
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  return res.send(buffer);
+  try {
+    res.setHeader('Content-Disposition', buildContentDisposition(filename));
+  } catch {
+    res.setHeader('Content-Disposition', 'attachment; filename="field-training-report.bin"');
+  }
+  return res.send(payload);
+}
+
+function buildContentDisposition(filename) {
+  const raw = String(filename || 'download.bin').replace(/[\r\n"]/g, '_');
+  const safeAscii = raw.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_').slice(0, 180) || 'download.bin';
+  return `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(raw)}`;
 }
 
 async function dashboard(req, res, next) {
@@ -133,6 +148,50 @@ async function exportStudentExcel(req, res, next) {
   }
 }
 
+async function generateUniversity(req, res, next) {
+  try {
+    const data = await reportService.generateUniversityReport(req.user, req.validated.query);
+    await auditReport(req, 'report.generate', data.university?.id ?? null, { type: 'field_training_university' });
+    return success(res, data, { message: 'تم إنشاء التقرير بنجاح' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function generateStudent(req, res, next) {
+  try {
+    const { applicationId } = req.validated.params;
+    const data = await reportService.generateStudentReport(req.user, applicationId);
+    await auditReport(req, 'report.generate', applicationId, { type: 'field_training_student' });
+    return success(res, data, { message: 'تم إنشاء التقرير بنجاح' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function academicGenerateUniversity(req, res, next) {
+  try {
+    const query = reportService.withAcademicUniversity(req.user, req.validated.query);
+    const data = await reportService.generateUniversityReport(req.user, query);
+    await auditReport(req, 'report.generate', data.university?.id ?? null, { type: 'academic_field_training_university' });
+    return success(res, data, { message: 'تم إنشاء التقرير بنجاح' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function academicGenerateStudent(req, res, next) {
+  try {
+    const { applicationId } = req.validated.params;
+    await reportService.getAcademicStudentReport(req.user, applicationId);
+    const data = await reportService.generateStudentReport(req.user, applicationId);
+    await auditReport(req, 'report.generate', applicationId, { type: 'academic_field_training_student' });
+    return success(res, data, { message: 'تم إنشاء التقرير بنجاح' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function academicDashboard(req, res, next) {
   try {
     const data = await reportService.getAcademicDashboard(req.user, req.validated.query);
@@ -228,7 +287,6 @@ async function academicExportUniversityExcel(req, res, next) {
 async function academicExportStudentPdf(req, res, next) {
   try {
     const { applicationId } = req.validated.params;
-    await reportService.getAcademicStudentReport(req.user, applicationId);
     const file = await reportService.exportStudentReport(req.user, applicationId, 'pdf');
     return sendExport(res, file);
   } catch (e) {
@@ -239,7 +297,6 @@ async function academicExportStudentPdf(req, res, next) {
 async function academicExportStudentExcel(req, res, next) {
   try {
     const { applicationId } = req.validated.params;
-    await reportService.getAcademicStudentReport(req.user, applicationId);
     const file = await reportService.exportStudentReport(req.user, applicationId, 'xlsx');
     return sendExport(res, file);
   } catch (e) {
@@ -295,6 +352,10 @@ module.exports = {
   exportUniversityExcel,
   exportStudentPdf,
   exportStudentExcel,
+  generateUniversity,
+  generateStudent,
+  academicGenerateUniversity,
+  academicGenerateStudent,
   academicUniversityReport,
   academicStudentsList,
   academicOpportunitiesList,
@@ -310,4 +371,5 @@ module.exports = {
   applications: studentsList,
   exportUniversity: exportUniversityPdf,
   exportStudent: exportStudentPdf,
+  buildContentDisposition,
 };

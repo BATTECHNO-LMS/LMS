@@ -49,8 +49,9 @@ describe('FE rolePermissions characterization', () => {
     assert.equal(hasUiPermission(ROLES.STUDENT, UI_PERMISSION.canGradeAssessments), false);
   });
 
-  it('unknown role falls back to student matrix', () => {
-    assert.equal(hasUiPermission('employer_unknown', UI_PERMISSION.canSubmitAssessments), true);
+  it('unknown role fails closed (no student fallback)', () => {
+    assert.equal(hasUiPermission('employer_unknown', UI_PERMISSION.canSubmitAssessments), false);
+    assert.equal(hasUiPermission('employer_unknown', UI_PERMISSION.canViewDashboard), false);
     assert.equal(hasUiPermission('employer_unknown', UI_PERMISSION.canGradeAssessments), false);
   });
 
@@ -148,5 +149,19 @@ describe('FE rolePermissions characterization', () => {
       true
     );
     assert.equal(hasUiPermission(ROLES.REVIEWER, UI_PERMISSION.canViewUniversityReports), true);
+  });
+
+  it('reviewer field-training reports routes are allowed; student and instructor are denied', () => {
+    assert.equal(canAccessPathWithUiPermissions(ROLES.REVIEWER, '/reviewer/field-training/reports'), true);
+    assert.equal(
+      canAccessPathWithUiPermissions(ROLES.REVIEWER, '/reviewer/field-training/reports/university'),
+      true
+    );
+    assert.equal(
+      canAccessPathWithUiPermissions(ROLES.REVIEWER, '/reviewer/field-training/reports/students'),
+      true
+    );
+    assert.equal(canAccessPathWithUiPermissions(ROLES.STUDENT, '/reviewer/field-training/reports'), false);
+    assert.equal(canAccessPathWithUiPermissions(ROLES.INSTRUCTOR, '/reviewer/field-training/reports'), false);
   });
 });

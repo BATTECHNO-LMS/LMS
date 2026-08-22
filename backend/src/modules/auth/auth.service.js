@@ -33,13 +33,14 @@ function isGlobalFromRoleRecords(roleRecords) {
   return normalizeRoleRecords(roleRecords).some((r) => r.code.toLowerCase() === code);
 }
 
-function buildTokenPayload(userId, roleRecords, primaryUniversityId) {
+function buildTokenPayload(userId, roleRecords, primaryUniversityId, portalType = null) {
   const roles = normalizeRoleCodes((roleRecords || []).map((r) => r.code));
   return {
     userId,
     roles,
     universityId: primaryUniversityId ?? null,
     isGlobal: isGlobalFromRoleRecords(roleRecords),
+    portalType: portalType || null,
   };
 }
 
@@ -582,7 +583,7 @@ async function login(validated) {
     portalType: validated.portalType || null,
   });
   const token = signToken(
-    buildTokenPayload(user.id, roleRecords, profile.primary_university_id)
+    buildTokenPayload(user.id, roleRecords, profile.primary_university_id, validated.portalType)
   );
 
   await authRepository.touchLastLogin(user.id);
@@ -593,7 +594,7 @@ async function login(validated) {
   };
 }
 
-async function me(userId) {
+async function me(userId, options = {}) {
   const user = await authRepository.findUserProfileById(userId);
   if (!user) {
     throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED), null, AUTH_ERROR_CODES.UNAUTHORIZED);
@@ -608,7 +609,9 @@ async function me(userId) {
   }
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);
   const isGlobal = isGlobalFromRoleRecords(roleRecords);
-  return toLoginUser(user, roleRecords, permissionCodes, isGlobal);
+  return toLoginUser(user, roleRecords, permissionCodes, isGlobal, {
+    portalType: options.portalType || null,
+  });
 }
 
 function logout() {

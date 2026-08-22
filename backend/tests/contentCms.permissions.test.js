@@ -103,6 +103,7 @@ function tokenFor(roles, overrides = {}) {
     roles,
     universityId: overrides.universityId === undefined ? SYNTH_UNI_A : overrides.universityId,
     isGlobal: Boolean(overrides.isGlobal),
+    portalType: overrides.portalType || 'UNIVERSITY',
   });
 }
 

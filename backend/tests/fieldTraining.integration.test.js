@@ -447,13 +447,13 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
       .query({ university_id: uniId })
       .set('Authorization', bearerForUser(admin));
     assert.strictEqual(uniRes.status, 200);
-    assert.strictEqual(uniRes.body.data.report_title, 'تقرير الجامعة للتدريب الميداني');
+    assert.strictEqual(uniRes.body.data.report_title, 'التقرير الشامل للتدريب الميداني للجامعة');
 
     const studentRes = await request(app)
       .get(`/api/v1/reports/field-training/applications/${ctx.applicationId}`)
       .set('Authorization', bearerForUser(admin));
     assert.strictEqual(studentRes.status, 200);
-    assert.strictEqual(studentRes.body.data.report_title, 'تقرير الطالب التفصيلي للتدريب الميداني');
+    assert.strictEqual(studentRes.body.data.report_title, 'التقرير الفردي للتدريب الميداني للطالب');
     assert.ok(studentRes.body.data.student);
     assert.ok(Array.isArray(studentRes.body.data.timeline));
   });
@@ -491,7 +491,7 @@ test.describe('Field training integration', { concurrency: 1 }, () => {
       .query({ university_id: uniId })
       .set('Authorization', bearerForUser(admin));
     assert.strictEqual(adminUniRes.status, 200);
-    assert.strictEqual(adminUniRes.body.data.report_title, 'تقرير الجامعة للتدريب الميداني');
+    assert.strictEqual(adminUniRes.body.data.report_title, 'التقرير الشامل للتدريب الميداني للجامعة');
 
     const adminStudentRes = await request(app)
       .get(`/api/v1/admin/field-training/reports/students/${ctx.applicationId}`)

@@ -3,6 +3,10 @@ const repo = require('./fieldTraining.repository');
 const ftEligibility = require('./fieldTraining.eligibility');
 const progressBuilder = require('./fieldTraining.progress');
 const hoursMod = require('./fieldTraining.hours');
+const metrics = require('./fieldTrainingReport.metrics');
+const labels = require('./fieldTrainingReport.labels');
+const dates = require('./fieldTrainingReport.dates');
+const aggregations = require('./fieldTrainingReport.aggregations');
 
 function parseDateFilter(filters = {}) {
   const where = {};
@@ -18,10 +22,193 @@ function parseDateFilter(filters = {}) {
 }
 
 async function loadUniversity(universityId) {
+  if (!universityId) return null;
   return prisma.universities.findFirst({
     where: { id: universityId, status: 'active' },
-    select: { id: true, name: true, name_en: true, short_name: true, code: true },
+    select: {
+      id: true,
+      name: true,
+      name_en: true,
+      short_name: true,
+      code: true,
+      logo_url: true,
+    },
   });
+}
+
+async function loadApplicationReportContext(applicationId) {
+  const row = await prisma.field_training_applications.findUnique({
+    where: { id: applicationId },
+    include: {
+      field_training_opportunities: {
+        include: {
+          universities: { select: { id: true, name: true } },
+          specialties: {
+            select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+          },
+        },
+      },
+    },
+  });
+  if (!row) return null;
+  const { field_training_opportunities: opp, ...app } = row;
+  return { app, opp: opp || null };
+}
+
+async function loadUniversitySpecialties(universityId) {
+  return prisma.university_specialties.findMany({
+    where: { university_id: universityId, status: 'active' },
+    select: { id: true, name_ar: true, name_en: true, code: true },
+    orderBy: { name_ar: 'asc' },
+  });
+}
+
+function extractEligibilityReasons(app) {
+  const raw = app?.eligibility_reason;
+  if (!raw) return [];
+  if (Array.isArray(raw.reasons)) return raw.reasons.filter(Boolean);
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return [];
+}
+
+async function loadReportDetailBatches(applicationIds, opportunityIds) {
+  const emptyIds = applicationIds.length ? applicationIds : ['00000000-0000-0000-0000-000000000000'];
+  const emptyOppIds = opportunityIds.length ? opportunityIds : ['00000000-0000-0000-0000-000000000000'];
+  const [attendanceRows, sessions, tasks, submissions, attempts, letters] = await Promise.all([
+    applicationIds.length
+      ? prisma.field_training_attendance.findMany({
+          where: { application_id: { in: emptyIds } },
+          select: {
+            id: true,
+            application_id: true,
+            session_id: true,
+            status: true,
+            method: true,
+            note: true,
+            recorded_at: true,
+            field_training_sessions: {
+              select: {
+                id: true,
+                title: true,
+                session_date: true,
+                start_time: true,
+                end_time: true,
+                opportunity_id: true,
+                is_required: true,
+              },
+            },
+          },
+        })
+      : Promise.resolve([]),
+    opportunityIds.length
+      ? prisma.field_training_sessions.findMany({
+          where: { opportunity_id: { in: emptyOppIds } },
+          select: {
+            id: true,
+            opportunity_id: true,
+            title: true,
+            session_date: true,
+            start_time: true,
+            end_time: true,
+            is_required: true,
+          },
+        })
+      : Promise.resolve([]),
+    opportunityIds.length
+      ? prisma.field_training_tasks.findMany({
+          where: { opportunity_id: { in: emptyOppIds } },
+          select: {
+            id: true,
+            opportunity_id: true,
+            title: true,
+            due_date: true,
+            is_final_task: true,
+          },
+        })
+      : Promise.resolve([]),
+    applicationIds.length
+      ? prisma.field_training_task_submissions.findMany({
+          where: { application_id: { in: emptyIds } },
+          select: {
+            id: true,
+            application_id: true,
+            task_id: true,
+            submitted_at: true,
+            is_late: true,
+            review_status: true,
+            reviewed_at: true,
+            manual_score: true,
+            max_score: true,
+            instructor_feedback: true,
+          },
+        })
+      : Promise.resolve([]),
+    applicationIds.length
+      ? prisma.field_training_assessment_attempts.findMany({
+          where: { application_id: { in: emptyIds } },
+          select: {
+            id: true,
+            application_id: true,
+            assessment_id: true,
+            score: true,
+            max_score: true,
+            submitted_at: true,
+            field_training_assessments: { select: { id: true, type: true, title: true, passing_score: true } },
+          },
+        })
+      : Promise.resolve([]),
+    applicationIds.length
+      ? prisma.field_training_completion_letters.findMany({
+          where: { application_id: { in: emptyIds } },
+          select: {
+            id: true,
+            application_id: true,
+            letter_no: true,
+            issued_at: true,
+            status: true,
+            verification_code: true,
+          },
+        })
+      : Promise.resolve([]),
+  ]);
+  return { attendanceRows, sessions, tasks, submissions, attempts, letters };
+}
+
+function scheduledHoursForOpportunity(sessions) {
+  let minutes = 0;
+  let known = false;
+  for (const session of sessions || []) {
+    const dur = hoursMod.sessionDurationMinutes(session.start_time, session.end_time);
+    if (dur != null) {
+      minutes += dur;
+      known = true;
+    }
+  }
+  return known ? hoursMod.minutesToHours(minutes) : null;
+}
+
+function matchesExtraFilters(row, filters = {}) {
+  if (filters.instructor_id && String(row.instructor_id || '') !== String(filters.instructor_id)) {
+    return false;
+  }
+  if (filters.organization_name) {
+    const q = String(filters.organization_name).trim().toLowerCase();
+    if (!String(row.training_organization || '').toLowerCase().includes(q)) return false;
+  }
+  if (filters.certificate_status) {
+    if (filters.certificate_status === 'issued' && row.completion_letter_status !== 'issued') return false;
+    if (filters.certificate_status === 'not_issued' && row.completion_letter_status === 'issued') return false;
+  }
+  if (filters.completion_status) {
+    const ts = row.training_status;
+    if (filters.completion_status === 'completed' && ts !== 'completed') return false;
+    if (filters.completion_status === 'in_progress' && !aggregations.IN_TRAINING_STATUSES.has(ts) && ts !== 'eligible_for_completion') {
+      return false;
+    }
+    if (filters.completion_status === 'not_completed' && !['failed', 'expelled'].includes(ts)) return false;
+  }
+  if (filters.student_id && String(row.student_id) !== String(filters.student_id)) return false;
+  return true;
 }
 
 async function studentIdsForUniversity(universityId) {
@@ -191,10 +378,14 @@ async function buildUniversityReport(universityId, filters = {}) {
     : [];
   const oppById = Object.fromEntries(opportunities.map((opp) => [opp.id, opp]));
 
+  const instructorIds = [...new Set(opportunities.map((opp) => opp.assigned_instructor_id).filter(Boolean))];
+  const instructors = instructorIds.length ? await repo.findUsersByIds(instructorIds) : [];
+  const instructorById = Object.fromEntries(instructors.map((row) => [row.id, row]));
+
   const specialtyBreakdown = new Map();
   for (const app of apps) {
     const profile = profileById[app.student_id];
-    const specialtyId = profile?.university_specialty_id ?? 'unknown';
+    const specialtyId = profile?.university_specialty?.id ?? profile?.university_specialty_id ?? 'unknown';
     if (!specialtyBreakdown.has(specialtyId)) {
       specialtyBreakdown.set(specialtyId, {
         university_specialty_id: specialtyId === 'unknown' ? null : specialtyId,
@@ -240,6 +431,21 @@ async function buildUniversityReport(universityId, filters = {}) {
     )
   );
 
+  const batches = await loadReportDetailBatches(
+    apps.map((app) => app.id),
+    opportunityIds
+  );
+  const sessionsByOpp = new Map();
+  for (const session of batches.sessions) {
+    if (!sessionsByOpp.has(session.opportunity_id)) sessionsByOpp.set(session.opportunity_id, []);
+    sessionsByOpp.get(session.opportunity_id).push(session);
+  }
+  const submissionsByApp = new Map();
+  for (const sub of batches.submissions) {
+    if (!submissionsByApp.has(sub.application_id)) submissionsByApp.set(sub.application_id, []);
+    submissionsByApp.get(sub.application_id).push(sub);
+  }
+
   const students = apps.map((app) => {
     const profile = profileById[app.student_id];
     const opp = oppById[app.opportunity_id];
@@ -247,6 +453,20 @@ async function buildUniversityReport(universityId, filters = {}) {
       requiredHours: opp?.required_training_hours,
       completedMinutes: 0,
     });
+    const instructor = opp?.assigned_instructor_id ? instructorById[opp.assigned_instructor_id] : null;
+    const appSubs = submissionsByApp.get(app.id) || [];
+    const pendingGrading = appSubs.some((s) => ['pending', 'submitted', 'under_review'].includes(s.review_status));
+    const taskTotal = (batches.tasks || []).filter((t) => t.opportunity_id === app.opportunity_id).length;
+    const taskDone = appSubs.filter((s) => ['approved', 'graded', 'submitted'].includes(s.review_status)).length;
+    const taskCompletion = taskTotal > 0 ? metrics.rate(taskDone, taskTotal) : null;
+    const scheduled = scheduledHoursForOpportunity(sessionsByOpp.get(app.opportunity_id) || []);
+    const eligibilityReasons = extractEligibilityReasons(app);
+    const progressPct =
+      hours.hours_completion_percentage != null
+        ? hours.hours_completion_percentage
+        : app.attendance_percentage != null
+          ? Number(app.attendance_percentage)
+          : taskCompletion;
     return {
       application_id: app.id,
       student_id: app.student_id,
@@ -262,23 +482,42 @@ async function buildUniversityReport(universityId, filters = {}) {
       opportunity_id: app.opportunity_id,
       opportunity_title: opp?.title ?? null,
       training_track: repo.mapSpecialtySummary(opp?.specialties) ?? null,
+      training_organization: opp?.organization_name ?? null,
+      instructor_id: opp?.assigned_instructor_id ?? null,
+      instructor_name: instructor?.full_name ?? null,
+      start_date: opp?.start_date ?? null,
+      end_date: opp?.end_date ?? null,
       application_status: app.status,
+      application_status_label: labels.labelOf(labels.APPLICATION_STATUS_AR, app.status),
       training_status: app.training_status,
+      training_status_label: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
       attendance_percentage: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      attendance_threshold:
+        opp?.minimum_attendance_percentage != null ? Number(opp.minimum_attendance_percentage) : null,
       required_training_hours: hours.required_training_hours,
       completed_training_hours: hours.completed_training_hours,
       remaining_training_hours: hours.remaining_training_hours,
+      scheduled_training_hours: scheduled,
       hours_completion_percentage: hours.hours_completion_percentage,
       hours_completion_status: hours.hours_completion_status,
       hours_completion_status_label: hoursMod.hoursStatusLabelAr(hours.hours_completion_status),
       hours_progress_percentage: hours.hours_completion_percentage,
       pre_assessment_score: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       post_assessment_score: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
+      task_completion: taskCompletion,
+      pending_grading: pendingGrading,
       final_task_status: app.final_task_status,
       eligibility_status: app.completion_eligibility_status,
+      eligibility_status_label: labels.labelOf(labels.ELIGIBILITY_AR, app.completion_eligibility_status),
+      eligibility_reasons: eligibilityReasons,
       completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
+      completion_letter_status_label: labels.labelOf(
+        labels.CERTIFICATE_AR,
+        app.completion_letter_issued_at ? 'issued' : 'not_issued'
+      ),
       submitted_at: app.created_at,
-      progress_percentage: hours.hours_completion_percentage,
+      progress_percentage: progressPct,
+      risk_severity: pendingGrading || eligibilityReasons.length ? 'متابعة' : null,
     };
   }).filter((row) => {
     if (filters.eligibility_status && row.eligibility_status !== filters.eligibility_status) {
@@ -291,29 +530,78 @@ async function buildUniversityReport(universityId, filters = {}) {
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
-      return hay.includes(q);
+      if (!hay.includes(q)) return false;
     }
-    return true;
+    return matchesExtraFilters(row, filters);
   });
 
-  const summary =
-    filters.eligibility_status || filters.search
-      ? summarizeApplications(
-          apps.filter((app) => students.some((row) => row.application_id === app.id)),
-          {
-            eligibleOpportunities: dashboard.summary.eligible_opportunities,
-            submissions: dashboard.summary.tasks_submitted,
-            tasks: 0,
-          }
-        )
-      : dashboard.summary;
+  const scopedApps = apps.filter((app) => students.some((row) => row.application_id === app.id));
+  const analytics = aggregations.buildUniversityAnalytics({
+    apps: scopedApps,
+    students,
+    opportunities,
+    attendanceRows: batches.attendanceRows.filter((row) =>
+      students.some((s) => s.application_id === row.application_id)
+    ),
+    sessions: batches.sessions,
+    tasks: batches.tasks,
+    submissions: batches.submissions.filter((row) =>
+      students.some((s) => s.application_id === row.application_id)
+    ),
+    attempts: batches.attempts.filter((row) =>
+      students.some((s) => s.application_id === row.application_id)
+    ),
+    letters: batches.letters.filter((row) =>
+      students.some((s) => s.application_id === row.application_id)
+    ),
+    bySpecialty: by_specialty,
+    eligibleOpportunities: dashboard.summary.eligible_opportunities,
+  });
+
+  const specialtiesCatalog = await loadUniversitySpecialties(universityId);
 
   return {
-    report_title: 'تقرير الجامعة للتدريب الميداني',
-    university,
-    summary,
-    by_specialty,
+    report_title: 'التقرير الشامل للتدريب الميداني للجامعة',
+    report_type: 'UNIVERSITY_FIELD_TRAINING_REPORT',
+    university: {
+      ...university,
+      specialties: specialtiesCatalog,
+      participating_students: students.length,
+      instructors_count: instructorIds.length,
+    },
+    filters: {
+      university_id: universityId,
+      university_specialty_id: filters.university_specialty_id || null,
+      opportunity_id: filters.opportunity_id || null,
+      instructor_id: filters.instructor_id || null,
+      organization_name: filters.organization_name || null,
+      status: filters.status || null,
+      training_status: filters.training_status || null,
+      completion_status: filters.completion_status || null,
+      certificate_status: filters.certificate_status || null,
+      eligibility_status: filters.eligibility_status || null,
+      search: filters.search || null,
+      from: filters.from || null,
+      to: filters.to || null,
+    },
+    summary: analytics.summary,
+    by_specialty: analytics.by_specialty,
     students,
+    funnel: analytics.funnel,
+    opportunities: analytics.opportunities,
+    organizations: analytics.organizations,
+    attendance: analytics.attendance,
+    hours: analytics.hours,
+    tasks: analytics.tasks,
+    assessments: analytics.assessments,
+    progress: analytics.progress,
+    completion: analytics.completion,
+    certificates: analytics.certificates,
+    instructors: analytics.instructors,
+    risk: analytics.risk,
+    recommendations: analytics.recommendations,
+    data_quality_warnings: analytics.data_quality_warnings,
+    charts: analytics.charts,
   };
 }
 
@@ -404,14 +692,28 @@ function buildTimeline(app, opp, sessions, submissions, letter, attempts) {
   return events.sort((a, b) => new Date(a.at) - new Date(b.at));
 }
 
-async function buildStudentDetailedReport(applicationId) {
-  const app = await repo.findApplicationById(applicationId);
-  if (!app) return null;
+async function buildStudentDetailedReport(applicationId, options = {}) {
+  let app = options.app || null;
+  let opp = options.opp || null;
+  if (!app || !opp) {
+    const ctx = await loadApplicationReportContext(applicationId);
+    if (!ctx?.app || !ctx?.opp) return null;
+    app = ctx.app;
+    opp = ctx.opp;
+  }
 
-  const opp = await repo.findById(app.opportunity_id);
-  if (!opp) return null;
-
-  const [profiles, sessionsRaw, tasks, submissionsRaw, letter, assessments] = await Promise.all([
+  const [
+    profiles,
+    sessionsRaw,
+    tasks,
+    submissionsRaw,
+    letter,
+    assessments,
+    attempts,
+    eligibility,
+    instructorRows,
+    universityFull,
+  ] = await Promise.all([
     repo.findStudentProfilesByIds([app.student_id]),
     repo.findSessionsByOpportunity(app.opportunity_id, { applicationId: app.id }),
     repo.findTasksByOpportunity(app.opportunity_id, { applicationId: app.id }),
@@ -433,16 +735,34 @@ async function buildStudentDetailedReport(applicationId) {
       orderBy: { submitted_at: 'asc' },
     }),
     repo.findCompletionLetterByApplication(applicationId),
-    repo.findAssessmentsByOpportunity(app.opportunity_id),
+    prisma.field_training_assessments.findMany({
+      where: { opportunity_id: app.opportunity_id },
+      select: { id: true, type: true, title: true, passing_score: true },
+      orderBy: { type: 'asc' },
+    }),
+    prisma.field_training_assessment_attempts.findMany({
+      where: { application_id: app.id },
+      select: {
+        score: true,
+        max_score: true,
+        level: true,
+        submitted_at: true,
+        field_training_assessments: { select: { id: true, type: true, title: true, passing_score: true } },
+      },
+    }),
+    ftEligibility.findActiveByOpportunityId(app.opportunity_id),
+    opp.assigned_instructor_id
+      ? repo.findUsersByIds([opp.assigned_instructor_id])
+      : Promise.resolve([]),
+    prisma.users
+      .findUnique({
+        where: { id: app.student_id },
+        select: { primary_university_id: true },
+      })
+      .then((row) => loadUniversity(row?.primary_university_id)),
   ]);
 
   const profile = profiles[0] ?? null;
-  const attempts = await prisma.field_training_assessment_attempts.findMany({
-    where: { application_id: app.id },
-    include: {
-      field_training_assessments: { select: { id: true, type: true, title: true, passing_score: true } },
-    },
-  });
   const attemptByType = {
     pre: attempts.find((row) => row.field_training_assessments?.type === 'pre') ?? null,
     post: attempts.find((row) => row.field_training_assessments?.type === 'post') ?? null,
@@ -457,16 +777,17 @@ async function buildStudentDetailedReport(applicationId) {
     (acc, session) => {
       const status = session.attendance?.status;
       if (status === 'present') acc.present += 1;
-      if (status === 'absent') acc.absent += 1;
-      if (status === 'late') acc.late += 1;
-      if (status === 'excused') acc.excused += 1;
+      else if (status === 'absent') acc.absent += 1;
+      else if (status === 'late') acc.late += 1;
+      else if (status === 'excused') acc.excused += 1;
+      else if (status === 'unconfirmed') acc.unconfirmed += 1;
       return acc;
     },
-    { present: 0, absent: 0, late: 0, excused: 0 }
+    { present: 0, absent: 0, late: 0, excused: 0, unconfirmed: 0 }
   );
 
   const submissions = submissionsRaw.map((row) => ({
-    ...repo.mapSubmissionRow(row, { exposeAiAudit: true }),
+    ...repo.mapSubmissionRow(row, { exposeAiAudit: Boolean(options.exposeAiAudit) }),
     task_title: row.field_training_tasks?.title ?? null,
     due_date: row.field_training_tasks?.due_date ?? null,
     is_final_task: row.field_training_tasks?.is_final_task ?? false,
@@ -477,23 +798,32 @@ async function buildStudentDetailedReport(applicationId) {
     has_solution_file: Boolean(row.file_path),
   }));
 
-  const eligibility = await ftEligibility.findActiveByOpportunityId(app.opportunity_id);
   const eligibilityMatch = eligibility.find(
     (row) =>
       row.university_id === profile?.primary_university_id &&
       row.university_specialty_id === profile?.university_specialty_id
   );
 
-  let instructor = null;
-  if (opp.assigned_instructor_id) {
-    const [ins] = await repo.findUsersByIds([opp.assigned_instructor_id]);
-    instructor = ins ? { id: ins.id, full_name: ins.full_name, email: ins.email } : null;
-  }
+  const instructor = instructorRows[0]
+    ? { id: instructorRows[0].id, full_name: instructorRows[0].full_name, email: instructorRows[0].email }
+    : null;
 
-  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
-    app.id,
-    opp.required_training_hours
-  );
+  const hoursProgress = hoursMod.buildHoursProgress({
+    requiredHours: opp.required_training_hours,
+    completedMinutes: hoursMod.sumCompletedMinutesFromRecords(
+      sessions
+        .filter((session) => session.attendance)
+        .map((session) => ({
+          status: session.attendance.status,
+          session_id: session.id,
+          field_training_sessions: {
+            id: session.id,
+            start_time: session.start_time,
+            end_time: session.end_time,
+          },
+        }))
+    ),
+  });
 
   const progress = progressBuilder.buildParticipantProgress(app, opp, {
     sessionsCount: sessions.length,
@@ -502,14 +832,115 @@ async function buildStudentDetailedReport(applicationId) {
     hoursProgress,
   });
 
+  const attendancePct = app.attendance_percentage != null ? Number(app.attendance_percentage) : null;
+  const minAttendance =
+    opp.minimum_attendance_percentage != null ? Number(opp.minimum_attendance_percentage) : null;
+  const attendanceState = metrics.requirementState({
+    required: minAttendance != null,
+    complete: attendancePct == null ? null : attendancePct >= minAttendance,
+  });
+  const hoursState = metrics.requirementState({
+    required: opp.required_training_hours != null,
+    complete:
+      hoursProgress.hours_completion_status == null
+        ? null
+        : hoursProgress.hours_completion_status === hoursMod.HOURS_STATUS.COMPLETED,
+  });
+  const taskPending = submissions.some((s) =>
+    ['pending', 'submitted', 'under_review', 'needs_revision'].includes(s.review_status)
+  );
+  const tasksState = metrics.requirementState({
+    required: Boolean(opp.requires_final_task) || tasks.length > 0,
+    complete: opp.requires_final_task ? app.final_task_status === 'approved' : tasks.length === 0 ? true : submissions.length >= tasks.length,
+    pending: taskPending,
+  });
+  const postScore = attemptByType.post?.score != null
+    ? Number(attemptByType.post.score)
+    : app.post_assessment_score != null
+      ? Number(app.post_assessment_score)
+      : null;
+  const assessmentState = metrics.requirementState({
+    required: Boolean(opp.requires_post_assessment),
+    complete: postScore != null,
+  });
+  const preScore = attemptByType.pre?.score != null
+    ? Number(attemptByType.pre.score)
+    : app.pre_assessment_score != null
+      ? Number(app.pre_assessment_score)
+      : null;
+  const learning = {
+    pre_pct: preScore,
+    post_pct: postScore,
+    difference_pp: metrics.prePostDelta(preScore, postScore),
+    relative_improvement: metrics.relativeImprovement(preScore, postScore),
+    classification: metrics.classifyPrePost(preScore, postScore),
+    observation: preScore != null && postScore != null ? 'الفرق الملحوظ بين نتائج القياس القبلي والبعدي' : null,
+    caveat: 'لا يُفسَّر الفرق على أنه أثر سببي للتدريب.',
+  };
+
+  const letterIssued = Boolean(letter?.issued_at || app.completion_letter_issued_at);
+  const completed = app.training_status === 'completed';
+  const certificateStatus = letterIssued
+    ? 'issued'
+    : app.completion_eligibility_status === 'ineligible'
+      ? 'not_eligible'
+      : 'not_issued';
+  const scheduledHours = scheduledHoursForOpportunity(sessions);
+  const remainingHours =
+    hoursProgress.required_training_hours != null && hoursProgress.completed_training_hours != null
+      ? Math.max(0, hoursProgress.required_training_hours - hoursProgress.completed_training_hours)
+      : hoursProgress.remaining_training_hours;
+
+  const requirements = [
+    { key: 'attendance', label: 'متطلب الحضور', state: attendanceState, label_ar: metrics.requirementLabel(attendanceState) },
+    { key: 'hours', label: 'متطلب الساعات التدريبية', state: hoursState, label_ar: metrics.requirementLabel(hoursState) },
+    { key: 'tasks', label: 'المهام المطلوبة', state: tasks.length ? tasksState : 'not_required', label_ar: metrics.requirementLabel(tasks.length ? tasksState : 'not_required') },
+    { key: 'assessments', label: 'الاختبارات المطلوبة', state: assessmentState, label_ar: metrics.requirementLabel(assessmentState) },
+    (() => {
+      const eligibilityState =
+        app.completion_eligibility_status === 'eligible'
+          ? 'complete'
+          : app.completion_eligibility_status === 'pending' || app.completion_eligibility_status === 'needs_review'
+            ? 'pending'
+            : opp.requires_post_assessment || opp.requires_final_task
+              ? 'incomplete'
+              : 'not_required';
+      return {
+        key: 'eligibility',
+        label: 'أهلية الإنهاء',
+        state: eligibilityState,
+        label_ar: metrics.requirementLabel(eligibilityState),
+      };
+    })(),
+  ];
+
+  const missingRequirements = requirements
+    .filter((r) => r.state === 'incomplete' || r.state === 'pending')
+    .map((r) => r.label);
+
+  const recommendations = metrics.buildStudentRecommendations({
+    completed,
+    attendanceState,
+    hoursState,
+    tasksState,
+    assessmentState,
+    eligibilityStatus: app.completion_eligibility_status,
+  });
+
+  const overallProgress =
+    hoursProgress.hours_completion_percentage != null
+      ? hoursProgress.hours_completion_percentage
+      : attendancePct;
+
   return {
-    report_title: 'تقرير الطالب التفصيلي للتدريب الميداني',
+    report_title: 'التقرير الفردي للتدريب الميداني للطالب',
+    report_type: 'STUDENT_FIELD_TRAINING_REPORT',
     student: {
       id: profile?.id ?? app.student_id,
       full_name: profile?.full_name ?? null,
       email: profile?.email ?? null,
       phone: profile?.phone ?? null,
-      university: profile?.university ?? null,
+      university: universityFull || profile?.university || null,
       university_specialty: profile?.university_specialty ?? null,
       university_specialty_label: repo.formatSpecialtyLabel(profile?.university_specialty),
       canonical_specialty: profile?.canonical_specialty ?? null,
@@ -520,74 +951,132 @@ async function buildStudentDetailedReport(applicationId) {
       ...repo.mapOpportunityRow(opp),
       training_track: repo.mapSpecialtySummary(opp.specialties) ?? null,
       assigned_instructor: instructor,
+      training_organization: opp.organization_name || null,
       eligibility_used: eligibilityMatch ?? null,
       eligibility_grouped: ftEligibility.groupEligibilityByUniversity(eligibility),
     },
     application: repo.mapApplicationRow(app),
-    training_hours: hoursProgress,
+    training_hours: {
+      ...hoursProgress,
+      scheduled_training_hours: scheduledHours,
+      remaining_training_hours: remainingHours,
+      hours_requirement_percentage: hoursProgress.hours_completion_percentage,
+    },
+    executive_summary: {
+      overall_progress: overallProgress,
+      attendance_percentage: attendancePct,
+      completed_hours: hoursProgress.completed_training_hours,
+      required_hours: hoursProgress.required_training_hours,
+      task_completion: tasks.length ? metrics.rate(submissions.length, tasks.length) : null,
+      tasks_required: Boolean(tasks.length || opp.requires_final_task),
+      assessment_result: postScore,
+      training_status: app.training_status,
+      training_status_label: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
+      certificate_status: certificateStatus,
+      certificate_status_label: labels.labelOf(labels.CERTIFICATE_AR, certificateStatus),
+    },
     pre_assessment: attemptByType.pre
       ? {
-          score: attemptByType.pre.score != null ? Number(attemptByType.pre.score) : app.pre_assessment_score,
+          name: attemptByType.pre.field_training_assessments?.title || 'الاختبار القبلي',
+          type: 'pre',
+          score: preScore,
+          max_score: attemptByType.pre.max_score != null ? Number(attemptByType.pre.max_score) : null,
+          percentage: preScore,
           level: attemptByType.pre.level ?? app.pre_assessment_level,
           submitted_at: attemptByType.pre.submitted_at,
-          answers: attemptByType.pre.answers ?? null,
+          attempt_number: 1,
+          answers: null,
           assessment: attemptByType.pre.field_training_assessments ?? null,
         }
       : {
-          score: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
+          name: 'الاختبار القبلي',
+          type: 'pre',
+          score: preScore,
+          max_score: null,
+          percentage: preScore,
           level: app.pre_assessment_level,
           submitted_at: null,
+          attempt_number: preScore != null ? 1 : null,
           answers: null,
           assessment: assessments.find((row) => row.type === 'pre') ?? null,
         },
     post_assessment: attemptByType.post
       ? {
-          score: attemptByType.post.score != null ? Number(attemptByType.post.score) : app.post_assessment_score,
+          name: attemptByType.post.field_training_assessments?.title || 'الاختبار البعدي',
+          type: 'post',
+          score: postScore,
+          max_score: attemptByType.post.max_score != null ? Number(attemptByType.post.max_score) : null,
+          percentage: postScore,
           level: attemptByType.post.level,
           submitted_at: attemptByType.post.submitted_at,
+          attempt_number: 1,
           passed:
-            attemptByType.post.score != null && attemptByType.post.field_training_assessments?.passing_score != null
-              ? Number(attemptByType.post.score) >= Number(attemptByType.post.field_training_assessments.passing_score)
+            postScore != null && attemptByType.post.field_training_assessments?.passing_score != null
+              ? postScore >= Number(attemptByType.post.field_training_assessments.passing_score)
               : null,
-          answers: attemptByType.post.answers ?? null,
+          answers: null,
           assessment: attemptByType.post.field_training_assessments ?? null,
         }
       : {
-          score: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
+          name: 'الاختبار البعدي',
+          type: 'post',
+          score: postScore,
+          max_score: null,
+          percentage: postScore,
           level: null,
           submitted_at: null,
+          attempt_number: postScore != null ? 1 : null,
           passed: null,
           answers: null,
           assessment: assessments.find((row) => row.type === 'post') ?? null,
         },
-    sessions,
+    learning_improvement: learning,
+    sessions: sessions.map((session) => ({
+      ...session,
+      attendance_status_label: labels.labelOf(labels.ATTENDANCE_STATUS_AR, session.attendance?.status),
+      attendance_method_label: labels.labelOf(labels.ATTENDANCE_METHOD_AR, session.attendance?.method),
+      duration_minutes: hoursMod.sessionDurationMinutes(session.start_time, session.end_time),
+    })),
     attendance_summary: {
       total_sessions: sessions.length,
+      required_attendance_percentage: minAttendance,
       ...attendanceCounts,
-      attendance_percentage: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      attendance_percentage: attendancePct,
       attendance_eligibility:
-        opp.minimum_attendance_percentage != null
-          ? Number(app.attendance_percentage ?? 0) >= Number(opp.minimum_attendance_percentage)
-          : null,
+        minAttendance == null || attendancePct == null ? null : attendancePct >= minAttendance,
     },
     tasks,
-    submissions,
+    submissions: submissions.map((sub) => ({
+      ...sub,
+      review_status_label: labels.labelOf(labels.TASK_REVIEW_AR, sub.review_status),
+      required: Boolean(sub.is_final_task) || true,
+    })),
+    tasks_required: Boolean(tasks.length || opp.requires_final_task),
     completion_eligibility: {
       status: app.completion_eligibility_status,
+      status_label: labels.labelOf(labels.ELIGIBILITY_AR, app.completion_eligibility_status),
       reason: app.eligibility_reason,
-      attendance_rule:
-        opp.minimum_attendance_percentage != null
-          ? Number(app.attendance_percentage ?? 0) >= Number(opp.minimum_attendance_percentage)
-          : null,
+      missing_requirements: missingRequirements,
+      attendance_rule: minAttendance == null || attendancePct == null ? null : attendancePct >= minAttendance,
       hours_rule:
         opp.required_training_hours != null
           ? hoursProgress.hours_completion_status === hoursMod.HOURS_STATUS.COMPLETED
           : null,
-      task_rule: opp.requires_final_task ? app.final_task_status === 'approved' : true,
+      task_rule: opp.requires_final_task ? app.final_task_status === 'approved' : null,
       post_assessment_rule:
-        opp.requires_post_assessment && opp.minimum_post_assessment_score != null
-          ? Number(app.post_assessment_score ?? 0) >= Number(opp.minimum_post_assessment_score)
+        opp.requires_post_assessment
+          ? postScore != null &&
+            (opp.minimum_post_assessment_score == null ||
+              postScore >= Number(opp.minimum_post_assessment_score))
           : null,
+    },
+    requirements,
+    completion_decision: {
+      final_status: app.training_status,
+      final_status_label: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
+      eligibility: app.completion_eligibility_status,
+      completion_date: completed ? app.updated_at : null,
+      missing_requirements: missingRequirements,
     },
     completion_letter: letter
       ? {
@@ -597,8 +1086,14 @@ async function buildStudentDetailedReport(applicationId) {
           verification_code: letter.verification_code ?? null,
           pdf_url: letter.pdf_url ?? null,
           status: letter.status,
+          status_label: labels.labelOf(labels.CERTIFICATE_AR, 'issued'),
         }
-      : { issued: false },
+      : {
+          issued: false,
+          status: certificateStatus,
+          status_label: labels.labelOf(labels.CERTIFICATE_AR, certificateStatus),
+        },
+    recommendations,
     progress,
     timeline: buildTimeline(app, opp, sessions, submissions, letter, attemptByType),
   };
@@ -752,4 +1247,5 @@ module.exports = {
   listUniversityEligibleOpportunities,
   getUniversityOpportunityDetail,
   loadUniversity,
+  loadApplicationReportContext,
 };

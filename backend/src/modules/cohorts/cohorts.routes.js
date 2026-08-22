@@ -1,6 +1,6 @@
 ﻿const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const cohortsController = require('./cohorts.controller');
@@ -17,6 +17,8 @@ const { createEnrollmentBodySchema } = require('../enrollments/enrollments.valid
 const { createSessionBodySchema } = require('../sessions/sessions.validation');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 
 const deliveryRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES);
 const cohortDetailRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES, env.STUDENT_ROLE_CODE);

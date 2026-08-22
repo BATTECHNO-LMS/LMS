@@ -62,7 +62,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, Ad]),
       entry('/admin/notifications', 'admin.items.notifications', Bell, [S, Ad]),
       entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
-      entry('/admin/courses', 'admin.items.courses', BookMarked, [S, Ad], { portal: 'UNIVERSITY' }),
+      entry('/admin/courses', 'admin.items.courses', BookMarked, [S], { portal: 'UNIVERSITY' }),
       entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, Ad], {
         portal: 'UNIVERSITY',
       }),

@@ -10,7 +10,7 @@ const { ApiError } = require('../../utils/apiError');
 const { isGlobalFromRoleRecords } = require('./auth.service');
 const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCanon');
 const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
-const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
+const { applyPortalScope } = require('./portalAccess');
 
 /**
  * Official university scope for non-global users:
@@ -47,9 +47,10 @@ async function loadPermissionCodesForRoleIds(roleIds) {
 
 /**
  * @param {string} userId
+ * @param {{ portalType?: 'UNIVERSITY'|'INSTITUTION'|null }} [options]
  * @returns {Promise<AuthRequestUser>}
  */
-async function loadCurrentAuthContextFromDb(userId) {
+async function loadCurrentAuthContextFromDb(userId, options = {}) {
   if (!userId || typeof userId !== 'string') {
     throw new ApiError(
       401,
@@ -155,23 +156,27 @@ async function loadCurrentAuthContextFromDb(userId) {
     },
   };
 
-  let organizationAssignment = null;
-  if (user.preferred_organization_id) {
-    organizationAssignment = await prisma.user_organization_assignments.findFirst({
-      where: {
-        user_id: user.id,
-        organization_id: user.preferred_organization_id,
-        is_active: true,
-      },
-      select: assignmentSelect,
-    });
-  }
-  if (!organizationAssignment) {
-    organizationAssignment = await prisma.user_organization_assignments.findFirst({
-      where: { user_id: user.id, is_active: true },
-      orderBy: { assigned_at: 'desc' },
-      select: assignmentSelect,
-    });
+  const portalType =
+    options.portalType === 'UNIVERSITY' || options.portalType === 'INSTITUTION'
+      ? options.portalType
+      : null;
+
+  const assignmentRows = await prisma.user_organization_assignments.findMany({
+    where: { user_id: user.id, is_active: true },
+    orderBy: { assigned_at: 'desc' },
+    select: assignmentSelect,
+  });
+  const matchingType = (row) =>
+    !portalType || row.organizations?.type === portalType || (portalType === 'UNIVERSITY' && isGlobal);
+  let organizationAssignment =
+    (user.preferred_organization_id &&
+      assignmentRows.find(
+        (a) => a.organization_id === user.preferred_organization_id && matchingType(a)
+      )) ||
+    assignmentRows.find((a) => matchingType(a)) ||
+    null;
+  if (!portalType && !organizationAssignment) {
+    organizationAssignment = assignmentRows[0] || null;
   }
 
   let organizationId =
@@ -218,7 +223,7 @@ async function loadCurrentAuthContextFromDb(userId) {
         ? { type: 'university', universityId: primaryUniversityId, organizationId }
         : { type: 'none', universityId: null, organizationId: null };
 
-  return {
+  const authUser = {
     userId: user.id,
     roles,
     universityId: primaryUniversityId,
@@ -243,13 +248,15 @@ async function loadCurrentAuthContextFromDb(userId) {
     isGlobal,
     permissions,
   };
+  if (!portalType) return authUser;
+  return applyPortalScope(authUser, portalType);
 }
 
 /** @type {(userId: string) => Promise<AuthRequestUser>} */
 let activeLoader = loadCurrentAuthContextFromDb;
 
-function loadCurrentAuthContext(userId) {
-  return activeLoader(userId);
+function loadCurrentAuthContext(userId, options = {}) {
+  return activeLoader(userId, options);
 }
 
 function setCurrentAuthContextLoaderForTests(fn) {

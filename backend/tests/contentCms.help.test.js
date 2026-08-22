@@ -116,6 +116,7 @@ describe('GET /api/v1/help/categories', () => {
       roles: ['student'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
 
     const res = await request(app)

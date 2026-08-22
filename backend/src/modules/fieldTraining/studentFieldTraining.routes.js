@@ -5,6 +5,8 @@ const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const studentFieldTrainingController = require('./studentFieldTraining.controller');
 const workflowController = require('./fieldTraining.workflow.controller');
+const reportController = require('./fieldTrainingReport.controller');
+const { applicationIdParamSchema: reportApplicationIdParamSchema } = require('./fieldTrainingReport.validation');
 const {
   uuidParamSchema,
   applicationIdParamSchema,
@@ -33,6 +35,28 @@ router.get(
   authenticate,
   studentOnly,
   studentFieldTrainingController.myApplications
+);
+
+router.get(
+  '/applications/:applicationId/report',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.studentReport
+);
+router.get(
+  '/applications/:applicationId/report/pdf',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.exportStudentPdf
+);
+router.get(
+  '/applications/:applicationId/report/excel',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: reportApplicationIdParamSchema }),
+  reportController.exportStudentExcel
 );
 
 router.patch(

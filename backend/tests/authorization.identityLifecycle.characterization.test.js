@@ -117,6 +117,7 @@ describe('authenticate uses current DB context (IDENTITY-002/003)', () => {
       roles: ['student'],
       universityId: SYNTH_UNI_A,
       isGlobal: true,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);
@@ -136,6 +137,7 @@ describe('authenticate uses current DB context (IDENTITY-002/003)', () => {
       roles: ['super_admin'],
       universityId: null,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);
@@ -154,6 +156,7 @@ describe('authenticate uses current DB context (IDENTITY-002/003)', () => {
       roles: ['program_admin'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);
@@ -170,6 +173,7 @@ describe('authenticate uses current DB context (IDENTITY-002/003)', () => {
       roles: ['student'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const out = await runMiddlewareAsync(authenticate, bearerReq(token));
     assert.equal(out.nextCalled, false);
@@ -327,6 +331,7 @@ describe('stale JWT claims no longer authorize (IDENTITY-002)', () => {
       roles: ['student'],
       universityId: SYNTH_UNI_A,
       isGlobal: true,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);
@@ -346,6 +351,7 @@ describe('stale JWT claims no longer authorize (IDENTITY-002)', () => {
       roles: ['university_admin'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);

@@ -6,6 +6,15 @@ const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { buildTrainingReportHtml } = require('./trainingReport.template');
 const { prisma } = require('../../config/db');
 
+const MAX_LOGO_BYTES = 1_500_000;
+
+function toLogoDataUri(buf, mime) {
+  if (!buf || buf.length > MAX_LOGO_BYTES) return null;
+  const safeMime = String(mime || 'image/png').split(';')[0].trim().toLowerCase();
+  if (!/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(safeMime)) return null;
+  return `data:${safeMime};base64,${Buffer.from(buf).toString('base64')}`;
+}
+
 function loadBattechnoLogoDataUri() {
   const candidates = [
     path.join(__dirname, '../../../../frontend/src/assets/images/battechno-lms-logo-transparent.png'),
@@ -16,7 +25,8 @@ function loadBattechnoLogoDataUri() {
     try {
       if (fs.existsSync(file)) {
         const buf = fs.readFileSync(file);
-        return `data:image/png;base64,${buf.toString('base64')}`;
+        const dataUri = toLogoDataUri(buf, 'image/png');
+        if (dataUri) return dataUri;
       }
     } catch {
       /* try next */
@@ -43,21 +53,23 @@ function resolveLocalUploadPath(logoUrl) {
 
 async function loadInstitutionLogoDataUri(logoUrl) {
   if (!logoUrl) return null;
-  if (logoUrl.startsWith('data:')) return logoUrl;
+  if (logoUrl.startsWith('data:')) {
+    return logoUrl.length > MAX_LOGO_BYTES * 2 ? null : logoUrl;
+  }
   const local = resolveLocalUploadPath(logoUrl);
   if (local) {
     const buf = fs.readFileSync(local);
     const ext = path.extname(local).toLowerCase();
     const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : 'image/png';
-    return `data:${mime};base64,${buf.toString('base64')}`;
+    return toLogoDataUri(buf, mime);
   }
   if (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')) {
     try {
-      const res = await fetch(logoUrl);
+      const res = await fetch(logoUrl, { signal: AbortSignal.timeout(5_000) });
       if (!res.ok) return null;
       const arr = Buffer.from(await res.arrayBuffer());
       const contentType = res.headers.get('content-type') || 'image/png';
-      return `data:${contentType};base64,${arr.toString('base64')}`;
+      return toLogoDataUri(arr, contentType);
     } catch {
       return null;
     }

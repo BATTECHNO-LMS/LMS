@@ -15,6 +15,7 @@ const {
   canManageFieldTraining,
   manageOpportunityListWhere,
   assertStudentUniversityAccess,
+  assertAdminOpportunityAccess,
   UNIVERSITY_FORBIDDEN_MSG,
 } = require('../src/modules/fieldTraining/fieldTraining.access');
 const { isSystemWideAdmin } = require('../src/utils/universityScope');
@@ -163,6 +164,24 @@ describe('fieldTraining.access characterization', () => {
   it('manageOpportunityListWhere: non-admin non-instructor → denyAll', () => {
     const where = manageOpportunityListWhere(makeRequester({ roles: ['student'] }));
     assert.deepEqual(where, { id: { in: [] } });
+  });
+
+  it('manageOpportunityListWhere: admin without universityId → denyAll (BUG-001)', () => {
+    const where = manageOpportunityListWhere(
+      makeRequester({ roles: ['admin'], universityId: null, isGlobal: false })
+    );
+    assert.deepEqual(where, { id: { in: [] } });
+  });
+
+  it('assertAdminOpportunityAccess: admin without universityId is 403 (BUG-001)', async () => {
+    await assert.rejects(
+      () =>
+        assertAdminOpportunityAccess(
+          makeRequester({ roles: ['admin'], universityId: null, isGlobal: false }),
+          opportunity
+        ),
+      (err) => err instanceof ApiError && err.statusCode === 403 && err.code === 'FIELD_TRAINING_FORBIDDEN'
+    );
   });
 
   it('assertStudentUniversityAccess: same university allowed for scoped staff', () => {

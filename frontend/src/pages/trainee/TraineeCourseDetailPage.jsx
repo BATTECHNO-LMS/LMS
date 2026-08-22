@@ -5,6 +5,7 @@ import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import { FormInput } from '../../components/forms/FormInput.jsx';
 import { FormTextarea } from '../../components/forms/FormTextarea.jsx';
+import { FileUploader } from '../../components/forms/FileUploader.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
@@ -13,6 +14,7 @@ import {
   getTraineeProgramDetail,
   getPrePostComparison,
   submitTask,
+  getTaskInstructionFile,
 } from '../../features/training/training.service.js';
 import {
   TrainingAssessmentAttemptPanel,
@@ -22,6 +24,7 @@ import {
 import { CompletionRequirementList } from '../../features/training/components/completion/CompletionRequirementList.jsx';
 import { getApiErrorMessage, isCanceledRequest } from '../../services/apiHelpers.js';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
+import { formatAssessmentDateTime } from '../../features/training/assessmentPresentation/assessmentDate.js';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة' },
@@ -36,6 +39,16 @@ const TABS = [
   { id: 'certificate', label: 'الشهادة' },
 ];
 
+const TASK_STATUS_AR = {
+  SUBMITTED: 'مُسلَّمة',
+  ACCEPTED: 'مقبولة',
+  GRADED: 'مُصحَّحة',
+  REVISION_REQUESTED: 'مطلوب تعديل',
+  REOPENED: 'أُعيد فتحها',
+  RETURNED: 'مُعادة',
+  REJECTED: 'مرفوضة',
+};
+
 export function TraineeCourseDetailPage() {
   const { programId, tab: tabParam } = useParams();
   const [tab, setTab] = useState(tabParam || 'overview');
@@ -45,8 +58,9 @@ export function TraineeCourseDetailPage() {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [businessCode, setBusinessCode] = useState('');
-  const [attendanceCode, setAttendanceCode] = useState('');
+  const [attendanceCodes, setAttendanceCodes] = useState({});
   const [taskDrafts, setTaskDrafts] = useState({});
+  const [taskFiles, setTaskFiles] = useState({});
   const [comparison, setComparison] = useState(null);
 
   const refresh = useCallback(async ({ silent = false } = {}) => {
@@ -210,7 +224,7 @@ export function TraineeCourseDetailPage() {
                 <li key={s.id}>
                   <strong>{s.title}</strong>{' '}
                   <StatusBadge variant="info">{s.attendance?.status || s.status}</StatusBadge>
-                  <div>{s.startsAt ? String(s.startsAt).slice(0, 16) : '—'}</div>
+                  <div>{s.startsAt ? formatAssessmentDateTime(s.startsAt) : '—'}</div>
                   {!s.attendance?.confirmedAt ? (
                     <form
                       className="crud-form"
@@ -220,9 +234,9 @@ export function TraineeCourseDetailPage() {
                         setBusy(true);
                         setError('');
                         try {
-                          await confirmAttendance(s.id, attendanceCode);
+                          await confirmAttendance(s.id, attendanceCodes[s.id]);
                           setMessage('تم تأكيد الحضور.');
-                          setAttendanceCode('');
+                          setAttendanceCodes((prev) => ({ ...prev, [s.id]: '' }));
                           await refresh({ silent: true });
                         } catch (err) {
                           setError(getApiErrorMessage(err, 'تعذر تأكيد الحضور.'));
@@ -234,15 +248,21 @@ export function TraineeCourseDetailPage() {
                       <FormInput
                         id={`code-${s.id}`}
                         label="رمز الحضور"
-                        value={attendanceCode}
-                        onChange={(e) => setAttendanceCode(e.target.value)}
+                        value={attendanceCodes[s.id] || ''}
+                        onChange={(e) =>
+                          setAttendanceCodes((prev) => ({ ...prev, [s.id]: e.target.value }))
+                        }
                       />
-                      <Button type="submit" variant="primary" disabled={busy || !attendanceCode.trim()}>
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={busy || !(attendanceCodes[s.id] || '').trim()}
+                      >
                         تأكيد الحضور
                       </Button>
                     </form>
                   ) : (
-                    <div>تم التأكيد: {String(s.attendance.confirmedAt).slice(0, 16)}</div>
+                    <div>تم التأكيد: {s.attendance.confirmedAt ? formatAssessmentDateTime(s.attendance.confirmedAt) : '—'}</div>
                   )}
                 </li>
               ))}
@@ -342,13 +362,35 @@ export function TraineeCourseDetailPage() {
               {data.tasks.map((task) => (
                 <li key={task.id}>
                   <strong>{task.title}</strong>
+                  {task.instructions ? (
+                    <div className="auth-register__helper">{task.instructions}</div>
+                  ) : null}
+                  {task.hasAttachment || task.attachmentUrl ? (
+                    <div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          try {
+                            const file = await getTaskInstructionFile(task.id);
+                            if (file?.url) window.open(file.url, '_blank', 'noopener,noreferrer');
+                          } catch (err) {
+                            setError(getApiErrorMessage(err, 'تعذر تحميل ملف التعليمات.'));
+                          }
+                        }}
+                      >
+                        تحميل التعليمات
+                      </Button>
+                    </div>
+                  ) : null}
                   {task.submission ? (
                     <div>
-                      الحالة: {task.submission.status}
+                      الحالة: {TASK_STATUS_AR[task.submission.status] || task.submission.status}
                       {task.submission.score != null ? ` — الدرجة: ${task.submission.score}` : ''}
                       {task.submission.feedback ? ` — ${task.submission.feedback}` : ''}
                     </div>
-                  ) : (
+                  ) : null}
+                  {task.canSubmit ? (
                     <form
                       className="crud-form"
                       onSubmit={async (e) => {
@@ -358,6 +400,7 @@ export function TraineeCourseDetailPage() {
                         try {
                           await submitTask(task.id, {
                             content_text: taskDrafts[task.id] || '',
+                            content_url: taskFiles[task.id]?.url || taskFiles[task.id]?.storageKey || null,
                           });
                           setMessage('تم تسليم المهمة.');
                           await refresh({ silent: true });
@@ -370,17 +413,26 @@ export function TraineeCourseDetailPage() {
                     >
                       <FormTextarea
                         id={`task-${task.id}`}
-                        label="تسليمك"
+                        label="تسليمك النصي"
                         value={taskDrafts[task.id] || ''}
                         onChange={(e) =>
                           setTaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))
                         }
                       />
+                      <FileUploader
+                        folder="training"
+                        visibility="private"
+                        relatedEntityType="training_task"
+                        relatedEntityId={task.id}
+                        accept="application/pdf,.doc,.docx,.ppt,.pptx,image/*,.zip"
+                        onUploaded={(file) => setTaskFiles((prev) => ({ ...prev, [task.id]: file }))}
+                        onError={(err) => setError(getApiErrorMessage(err, 'تعذر رفع الملف.'))}
+                      />
                       <Button type="submit" variant="primary" disabled={busy}>
                         تسليم المهمة
                       </Button>
                     </form>
-                  )}
+                  ) : null}
                 </li>
               ))}
             </ul>

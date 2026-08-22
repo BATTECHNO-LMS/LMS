@@ -95,6 +95,7 @@ describe('authenticate (JWT + current-state) characterization', () => {
       roles: ['instructor'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     };
     mirrorTokenClaimsAsDb(payload);
     const token = signToken(payload);
@@ -120,6 +121,7 @@ describe('authenticate (JWT + current-state) characterization', () => {
       roles: ['super_admin'],
       universityId: null,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const req = bearerReq(token);
     await runMiddlewareAsync(authenticate, req);
@@ -135,6 +137,7 @@ describe('authenticate (JWT + current-state) characterization', () => {
       roles: ['student'],
       universityId: SYNTH_UNI_A,
       isGlobal: false,
+      portalType: 'UNIVERSITY',
     });
     const out = await runMiddlewareAsync(authenticate, bearerReq(token));
     assert.equal(out.nextCalled, false);

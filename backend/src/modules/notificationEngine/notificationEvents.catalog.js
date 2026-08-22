@@ -157,6 +157,7 @@ const EVENT_META = Object.freeze({
   TRAINING_APPROVED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
   TRAINING_READY_TO_COMPLETE: { category: 'PROGRESS', priority: 'HIGH' },
   TRAINING_NOT_COMPLETED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
+  TRAINING_NOT_ELIGIBLE: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
   TRAINING_REOPENED: { category: 'PROGRESS', priority: 'HIGH', isCritical: true },
 
   FINAL_EVALUATION_AVAILABLE: { category: 'TEST', priority: 'HIGH' },

@@ -13,7 +13,6 @@ const repo = require('./files.repository');
 function canAccessFile(file, user) {
   if (!file || !user) return false;
   if (user.isGlobal) return true;
-  if (file.visibility === 'public') return true;
   if (file.createdById && file.createdById === user.userId) return true;
   if (file.userId && file.userId === user.userId) return true;
   return false;

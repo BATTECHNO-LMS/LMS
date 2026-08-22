@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const reportController = require('./fieldTrainingReport.controller');
 const {
@@ -10,6 +10,8 @@ const {
 const { taskIdParamSchema, opportunityIdParamSchema } = require('./fieldTraining.validation');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 const academicRoles = authorizeRoles('admin', 'reviewer');
 
 router.get(
@@ -43,6 +45,20 @@ router.get(
   validateRequest({ query: reportFiltersSchema }),
   reportController.academicUniversityReport
 );
+router.post(
+  '/reports/university/generate',
+  authenticate,
+  academicRoles,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.academicGenerateUniversity
+);
+router.post(
+  '/reports/university/regenerate',
+  authenticate,
+  academicRoles,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.academicGenerateUniversity
+);
 router.get(
   '/reports/university/export/pdf',
   authenticate,
@@ -70,6 +86,20 @@ router.get(
   academicRoles,
   validateRequest({ params: applicationIdParamSchema }),
   reportController.academicStudentReport
+);
+router.post(
+  '/reports/students/:applicationId/generate',
+  authenticate,
+  academicRoles,
+  validateRequest({ params: applicationIdParamSchema }),
+  reportController.academicGenerateStudent
+);
+router.post(
+  '/reports/students/:applicationId/regenerate',
+  authenticate,
+  academicRoles,
+  validateRequest({ params: applicationIdParamSchema }),
+  reportController.academicGenerateStudent
 );
 router.get(
   '/reports/students/:applicationId/export/pdf',

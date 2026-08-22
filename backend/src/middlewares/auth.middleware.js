@@ -41,8 +41,20 @@ async function authMiddleware(req, res, next) {
     });
   }
 
+  const portalType =
+    payload.portalType === 'UNIVERSITY' || payload.portalType === 'INSTITUTION'
+      ? payload.portalType
+      : null;
+  if (!portalType) {
+    return res.status(401).json({
+      success: false,
+      message: messageForCode(AUTH_ERROR_CODES.PORTAL_REQUIRED),
+      code: AUTH_ERROR_CODES.PORTAL_REQUIRED,
+    });
+  }
+
   try {
-    req.user = await loadCurrentAuthContext(userId);
+    req.user = await loadCurrentAuthContext(userId, { portalType });
     return enforceAcademicReviewerReadOnly(req, res, next);
   } catch (err) {
     if (err instanceof ApiError) {

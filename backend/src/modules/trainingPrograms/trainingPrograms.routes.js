@@ -315,6 +315,34 @@ router.patch(
   c.updateTask
 );
 router.get(
+  '/tasks/:taskId',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskIdParam }),
+  c.getTask
+);
+router.get(
+  '/tasks/:taskId/instruction-file',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskIdParam }),
+  c.getTaskInstructionFile
+);
+router.get(
+  '/tasks/:taskId/submissions',
+  authenticate,
+  manage,
+  validateRequest({ params: v.taskIdParam }),
+  c.listTaskSubmissions
+);
+router.post(
+  '/tasks/:taskId/submissions/:submissionId/resubmit',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskResubmitParam }),
+  c.resubmitTask
+);
+router.get(
   '/programs/:programId/assessments',
   authenticate,
   anyRole,
@@ -348,6 +376,20 @@ router.post(
   manage,
   validateRequest({ params: v.submissionIdParam }),
   c.gradeTask
+);
+router.post(
+  '/submissions/:submissionId/revision',
+  authenticate,
+  manage,
+  validateRequest({ params: v.submissionIdParam }),
+  c.requestTaskRevision
+);
+router.post(
+  '/submissions/:submissionId/reopen',
+  authenticate,
+  manage,
+  validateRequest({ params: v.submissionIdParam }),
+  c.reopenTaskSubmission
 );
 router.put(
   '/programs/:programId/assessments/:kind',

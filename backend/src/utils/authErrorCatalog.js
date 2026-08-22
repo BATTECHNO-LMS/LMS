@@ -28,6 +28,7 @@ const AUTH_ERROR_CODES = Object.freeze({
   SERVER_ERROR: 'SERVER_ERROR',
   UNAUTHORIZED: 'UNAUTHORIZED',
   PORTAL_MISMATCH: 'PORTAL_MISMATCH',
+  PORTAL_REQUIRED: 'PORTAL_REQUIRED',
 });
 
 const AUTH_MESSAGES = Object.freeze({
@@ -73,6 +74,8 @@ const AUTH_MESSAGES = Object.freeze({
     'يرجى مراجعة الحقول المظللة وتصحيحها.',
   [AUTH_ERROR_CODES.PORTAL_MISMATCH]:
     'هذا الحساب مرتبط ببوابة مختلفة. يرجى تسجيل الدخول من البوابة المناسبة.',
+  [AUTH_ERROR_CODES.PORTAL_REQUIRED]:
+    'يرجى تسجيل الدخول من بوابة الجامعات أو بوابة المؤسسات.',
   PORTAL_MISMATCH_UNIVERSITY:
     'هذا الحساب مرتبط ببوابة الجامعات. يرجى تسجيل الدخول من بوابة الجامعات.',
   PORTAL_MISMATCH_INSTITUTION:

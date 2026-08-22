@@ -57,4 +57,14 @@ function snapshotFromProgressRow(row, enrollmentId) {
   };
 }
 
-module.exports = { computeHoursStatus, computeAttendanceStatus, snapshotFromProgressRow };
+function resolveSessionHours(session) {
+  if (!session) return null;
+  if (session.hours != null && Number(session.hours) > 0) return Number(session.hours);
+  if (session.starts_at && session.ends_at) {
+    const ms = new Date(session.ends_at) - new Date(session.starts_at);
+    if (Number.isFinite(ms) && ms > 0) return ms / 3600000;
+  }
+  return null;
+}
+
+module.exports = { computeHoursStatus, computeAttendanceStatus, snapshotFromProgressRow, resolveSessionHours };

@@ -26,6 +26,7 @@ export function FieldTrainingGlobalReportPage({ basePath }) {
   const { scopeId, isAllTenantsSelected } = useTenant();
   const [filters, setFilters] = useState({});
   const [exporting, setExporting] = useState(null);
+  const [exportError, setExportError] = useState(null);
 
   const canView = [ROLES.SUPER_ADMIN].includes(user?.role);
   const params = useMemo(
@@ -42,8 +43,11 @@ export function FieldTrainingGlobalReportPage({ basePath }) {
 
   async function handleExport(format) {
     setExporting(format);
+    setExportError(null);
     try {
       await exportFieldTrainingGlobalReport(format, params);
+    } catch (err) {
+      setExportError(err);
     } finally {
       setExporting(null);
     }
@@ -76,6 +80,12 @@ export function FieldTrainingGlobalReportPage({ basePath }) {
       />
 
       <FieldTrainingReportFilters value={filters} onChange={setFilters} mode="admin" />
+
+      {exportError ? (
+        <p className="crud-muted" role="alert">
+          {getApiErrorMessage(exportError, tCommon('errors.generic'))}
+        </p>
+      ) : null}
 
       {isLoading ? <LoadingSpinner /> : null}
       {isError ? <p className="crud-muted">{getApiErrorMessage(error, tCommon('errors.generic'))}</p> : null}

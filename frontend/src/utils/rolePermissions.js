@@ -101,11 +101,28 @@ const TRAINEE = {
   [P.canViewFieldTraining]: false,
 };
 
+const TRAINER = {
+  ...Object.fromEntries(Object.values(P).map((k) => [k, false])),
+  [P.canViewDashboard]: true,
+  [P.canViewNotifications]: true,
+  [P.canViewEnrolledPrograms]: true,
+  [P.canViewAssessments]: true,
+  [P.canCreateAssessments]: true,
+  [P.canEditAssessments]: true,
+  [P.canGradeAssessments]: true,
+  [P.canManageSessions]: true,
+  [P.canManageAttendance]: true,
+  [P.canViewCertificates]: true,
+  [P.canViewSubmissionsTeaching]: true,
+  [P.canViewGradesTeaching]: true,
+};
+
 const BY_ROLE = {
   [ROLES.STUDENT]: STUDENT,
   [ROLES.TRAINEE]: TRAINEE,
   [ROLES.INSTRUCTOR]: INSTRUCTOR,
   [ROLES.REVIEWER]: REVIEWER,
+  [ROLES.TRAINER]: TRAINER,
 };
 
 /**
@@ -114,9 +131,9 @@ const BY_ROLE = {
  */
 export function getUiPermissions(role) {
   const code = canonicalizeRoleCode(role);
-  if (!code) return { ...STUDENT };
+  if (!code) return { ...DENY_ALL };
   if (code && ADMIN_ROLE_SET.includes(code)) return { ...ADMIN_ALL };
-  return BY_ROLE[code] ?? STUDENT;
+  return BY_ROLE[code] ?? { ...DENY_ALL };
 }
 
 /**
@@ -177,12 +194,15 @@ const ROUTE_RULES = [
   [/^\/student\/grades(\/|$)/, P.canViewGrades],
   [/^\/student\/certificate(\/|$)/, P.canViewCertificates],
   [/^\/student\/dashboard\/?$/, P.canViewDashboard],
+  [/^\/student\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/student\/notification-settings(\/|$)/, P.canViewNotifications],
 
   [/^\/trainee\/courses\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
   [/^\/trainee\/courses\/?$/, P.canViewEnrolledPrograms],
   [/^\/trainee\/certificates(\/|$)/, P.canViewCertificates],
   [/^\/trainee\/notifications(\/|$)/, P.canViewNotifications],
   [/^\/trainee\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/trainee\/notification-settings(\/|$)/, P.canViewNotifications],
   [/^\/trainee\/profile\/?$/, P.canViewDashboard],
   [/^\/trainee\/?$/, P.canViewDashboard],
 
@@ -197,6 +217,8 @@ const ROUTE_RULES = [
   [/^\/instructor\/cohorts(\/|$)/, P.canManageCohorts],
   [/^\/instructor\/enrollments(\/|$)/, P.canManageCohorts],
   [/^\/instructor\/dashboard\/?$/, P.canViewDashboard],
+  [/^\/instructor\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/instructor\/notification-settings(\/|$)/, P.canViewNotifications],
 
   [/^\/reviewer\/recognition-requests(\/|$)/, P.canViewRecognitionRequests],
   [/^\/reviewer\/university-reports(\/|$)/, P.canViewUniversityReports],
@@ -204,6 +226,9 @@ const ROUTE_RULES = [
   [/^\/reviewer\/certificates(\/|$)/, P.canViewLinkedCertificates],
   [/^\/reviewer\/enrollment-requests(\/|$)/, P.canViewUniversityReports],
   [/^\/reviewer\/dashboard\/?$/, P.canViewDashboard],
+  [/^\/reviewer\/user-guide(\/|$)/, P.canViewDashboard],
+  [/^\/reviewer\/notification-settings(\/|$)/, P.canViewNotifications],
+  [/^\/reviewer\/field-training(\/|$)/, P.canViewUniversityReports],
 
   [/^\/student\/notifications(\/|$)/, P.canViewNotifications],
   [/^\/instructor\/notifications(\/|$)/, P.canViewNotifications],

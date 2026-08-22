@@ -24,6 +24,9 @@ function signToken(payload) {
       roles: payload.roles,
       universityId: payload.universityId ?? null,
       isGlobal: Boolean(payload.isGlobal),
+      portalType: payload.portalType === 'UNIVERSITY' || payload.portalType === 'INSTITUTION'
+        ? payload.portalType
+        : null,
     },
     getSecret(),
     { expiresIn: env.JWT_EXPIRES_IN }

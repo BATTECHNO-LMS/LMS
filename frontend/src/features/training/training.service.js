@@ -116,6 +116,11 @@ export async function submitTask(taskId, body) {
   return unwrapApiData(res);
 }
 
+export async function getTaskInstructionFile(taskId) {
+  const res = await apiClient.get(`${base}/tasks/${taskId}/instruction-file`);
+  return unwrapApiData(res);
+}
+
 export async function gradeTask(submissionId, body) {
   const res = await apiClient.post(`${base}/submissions/${submissionId}/grade`, body);
   return unwrapApiData(res);

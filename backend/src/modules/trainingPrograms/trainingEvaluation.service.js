@@ -218,6 +218,34 @@ async function unlockEvaluationAfterPostTest(enrollmentId, { pendingManual = fal
     return { available: false, reason: 'POST_TEST_GRADING_PENDING' };
   }
 
+  const postReq = await prisma.training_requirements.findUnique({
+    where: { program_id_code: { program_id: program.id, code: 'POST_TEST' } },
+  });
+  const threshold = postReq?.threshold_json && typeof postReq.threshold_json === 'object' ? postReq.threshold_json : {};
+  const passingRequired = threshold.passing_required === true;
+  if (passingRequired) {
+    const assessment = await prisma.training_assessments.findFirst({
+      where: { program_id: program.id, kind: 'POST_TEST' },
+      include: {
+        training_assessment_attempts: {
+          where: { enrollment_id: enrollmentId, status: 'GRADED' },
+          select: { score: true },
+        },
+      },
+    });
+    const passScoreRaw = assessment?.pass_score ?? threshold.pass_score;
+    const passScore = passScoreRaw != null ? Number(passScoreRaw) : null;
+    const best = (assessment?.training_assessment_attempts || []).reduce(
+      (max, a) => Math.max(max, Number(a.score || 0)),
+      0
+    );
+    const passed = passScore == null ? best > 0 : best >= passScore;
+    if (!passed) {
+      await ensureEvaluationAssignment(enrollmentId, { forceUnlock: false });
+      return { available: false, reason: 'POST_TEST_NOT_PASSED' };
+    }
+  }
+
   const before = await prisma.training_evaluation_assignments.findUnique({ where: { enrollment_id: enrollmentId } });
   const assignment = await ensureEvaluationAssignment(enrollmentId, { forceUnlock: true });
   if (!assignment) return { available: false };

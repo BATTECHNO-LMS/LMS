@@ -5,7 +5,15 @@
     "applicationsLink": "University applications",
     "opportunitiesLink": "Training opportunities",
     "globalReportLink": "Global comprehensive report",
-    "universityReportLink": "University report",
+    "universityReportLink": "University comprehensive report",
+    "reportsTitle": "Reports",
+    "studentReportsLink": "Student reports",
+    "attendanceReportLink": "Attendance report",
+    "hoursReportLink": "Training hours report",
+    "completionReportLink": "Completion and certificates report",
+    "progressReportLink": "Progress and completion report",
+    "assessmentsReportLink": "Assessments report",
+    "certificatesReportLink": "Certificates report",
     "recentApplications": "Recent applications",
     "opportunitiesTitle": "Opportunities linked to your university",
     "viewAll": "View all",
@@ -43,6 +51,7 @@
   "filters": {
     "university": "University",
     "allUniversities": "All universities",
+    "selectUniversity": "Select university",
     "universityLocked": "Report is limited to your university.",
     "status": "Application status",
     "allStatuses": "All statuses",
@@ -53,17 +62,39 @@
     "search": "Search",
     "searchPlaceholder": "Student name, email, or opportunity…",
     "from": "From date",
-    "to": "To date"
+    "to": "To date",
+    "completionStatus": "Completion status",
+    "allCompletion": "All completion statuses",
+    "certificateStatus": "Certificate status",
+    "allCertificates": "All certificate statuses",
+    "organization": "Training organization",
+    "organizationPlaceholder": "Organization name"
   },
   "universityReport": {
-    "title": "University field training report",
-    "description": "Summary metrics, specialty breakdown, and student table.",
+    "title": "Comprehensive university field training report",
+    "description": "KPIs, charts, and detailed field-training tables for the university.",
     "bySpecialty": "Breakdown by specialty",
-    "studentsTable": "Student table"
+    "studentsTable": "Student table",
+    "charts": "Analytical charts",
+    "opportunities": "Training opportunities",
+    "organizations": "Training organizations",
+    "risk": "Cases needing follow-up",
+    "recommendations": "Recommendations"
   },
   "studentReport": {
-    "title": "Detailed student field training report",
-    "description": "Comprehensive report of the student's field training journey."
+    "title": "Individual student field training report",
+    "description": "Comprehensive report of the student's field training journey.",
+    "tabsLabel": "Student report sections",
+    "tabs": {
+      "summary": "Summary",
+      "attendance": "Attendance",
+      "hours": "Hours",
+      "tasks": "Tasks",
+      "assessments": "Assessments",
+      "progress": "Progress",
+      "completion": "Completion",
+      "certificate": "Certificate"
+    }
   },
   "metrics": {
     "universities": "Universities",
@@ -81,7 +112,12 @@
     "averagePreAssessment": "Avg. pre-assessment",
     "averagePostAssessment": "Avg. post-assessment",
     "tasksSubmitted": "Tasks submitted",
-    "taskSubmissionRate": "Task submission rate"
+    "taskSubmissionRate": "Task submission rate",
+    "completionRate": "Completion rate",
+    "trainingHours": "Training hours",
+    "trainingOrganizations": "Training organizations",
+    "atRisk": "At-risk cases",
+    "progress": "Progress"
   },
   "timeline": {
     "empty": "No training journey events recorded yet."
@@ -96,6 +132,8 @@
     "tasks": "Tasks & submissions",
     "postAssessment": "Post-assessment",
     "eligibility": "Completion eligibility",
+    "requirements": "Progress requirements",
+    "recommendations": "Summary and recommendations",
     "completionLetter": "Completion letter",
     "timeline": "Training journey"
   },
@@ -106,7 +144,8 @@
     "university": "University",
     "universitySpecialty": "University specialty",
     "canonicalSpecialty": "Canonical track",
-    "accountStatus": "Account status"
+    "accountStatus": "Account status",
+    "trainingStatus": "Training status"
   },
   "opportunity": {
     "title": "Opportunity title",
@@ -129,7 +168,8 @@
     "score": "Score",
     "level": "Level",
     "submittedAt": "Submitted at",
-    "passed": "Passed"
+    "passed": "Passed",
+    "delta": "Percentage-point difference"
   },
   "attendance": {
     "totalSessions": "Total sessions",
@@ -137,11 +177,13 @@
     "absent": "Absent",
     "late": "Late",
     "excused": "Excused",
+    "unconfirmed": "Unconfirmed",
     "percentage": "Attendance %",
     "eligibility": "Attendance eligibility"
   },
   "hours": {
     "required": "Required hours",
+    "scheduled": "Scheduled hours",
     "completed": "Completed hours",
     "remaining": "Remaining hours",
     "percentage": "Completion percentage",
@@ -152,7 +194,8 @@
     "attendanceRule": "Attendance rule",
     "hoursRule": "Hours rule",
     "taskRule": "Task rule",
-    "postAssessmentRule": "Post-assessment rule"
+    "postAssessmentRule": "Post-assessment rule",
+    "missing": "Incomplete requirements"
   },
   "letter": {
     "issued": "Issued",
@@ -210,15 +253,74 @@
     "fileExtraction": "File extraction",
     "urlExtraction": "URL extraction",
     "finalNotes": "Final student notes",
-    "event": "Event"
+    "event": "Event",
+    "organization": "Training organization",
+    "capacity": "Capacity",
+    "status": "Status",
+    "issue": "Issue",
+    "severity": "Severity",
+    "requiredAction": "Required action",
+    "finding": "Finding",
+    "evidence": "Evidence",
+    "priority": "Priority"
   },
   "export": {
     "pdf": "Export PDF",
-    "excel": "Export Excel"
+    "excel": "Export Excel",
+    "print": "Print",
+    "view": "View report",
+    "refresh": "Refresh report",
+    "generate": "Generate report",
+    "regenerate": "Regenerate report",
+    "generating": "Generating report...",
+    "ready": "Report generated successfully"
+  },
+  "states": {
+    "emptyReviewer": "No reports are available within your authorized scope yet.",
+    "notGenerated": "The report has not been created yet. Please contact the university administrator.",
+    "staleReviewer": "This report needs to be updated by the university administrator.",
+    "staleAdmin": "This report is stale. You can regenerate it to get the latest data.",
+    "readOnlyGenerate": "You do not have permission to generate or regenerate reports. You can only view and download available reports."
+  },
+  "roleBanner": {
+    "reviewer": {
+      "title": "University reviewer",
+      "subtitle": "Report viewing — read only"
+    },
+    "admin": {
+      "title": "University administrator",
+      "subtitle": "Field training report management"
+    },
+    "super_admin": {
+      "title": "Super Admin",
+      "subtitle": "Report management"
+    }
   },
   "common": {
     "backToHub": "Back to hub",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "unavailable": "Not available",
+    "notRequired": "Not required"
+  },
+  "charts": {
+    "completion": "Completion distribution",
+    "funnel": "Enrollment funnel",
+    "specialties": "Students by specialty",
+    "organizations": "Students by training organization",
+    "progress": "Progress distribution",
+    "prePost": "Pre/post comparison",
+    "reasons": "Non-completion reasons",
+    "empty": "Not enough data for this chart.",
+    "emptyAssessments": "No assessment data in this report scope."
+  },
+  "completionStatus": {
+    "completed": "Completed",
+    "in_progress": "In progress",
+    "not_completed": "Not completed"
+  },
+  "certificateStatus": {
+    "issued": "Issued",
+    "not_issued": "Not issued"
   }
 }

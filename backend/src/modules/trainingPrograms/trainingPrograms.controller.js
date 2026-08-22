@@ -175,6 +175,56 @@ async function submitTask(req, res, next) {
     return next(e);
   }
 }
+async function getTask(req, res, next) {
+  try {
+    return success(res, await service.getTaskForRequester(R(req), req.validated.params.taskId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function getTaskInstructionFile(req, res, next) {
+  try {
+    return success(res, await service.getTaskInstructionFile(R(req), req.validated.params.taskId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function listTaskSubmissions(req, res, next) {
+  try {
+    return success(res, await service.listTaskSubmissions(R(req), req.validated.params.taskId));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function resubmitTask(req, res, next) {
+  try {
+    return created(
+      res,
+      await service.resubmitTask(
+        R(req),
+        req.validated.params.taskId,
+        req.validated.params.submissionId,
+        req.body || {}
+      )
+    );
+  } catch (e) {
+    return next(e);
+  }
+}
+async function requestTaskRevision(req, res, next) {
+  try {
+    return success(res, await service.requestTaskRevision(R(req), req.validated.params.submissionId, req.body || {}));
+  } catch (e) {
+    return next(e);
+  }
+}
+async function reopenTaskSubmission(req, res, next) {
+  try {
+    return success(res, await service.reopenTaskSubmission(R(req), req.validated.params.submissionId, req.body || {}));
+  } catch (e) {
+    return next(e);
+  }
+}
 async function gradeTask(req, res, next) {
   try {
     return success(res, await service.gradeTask(R(req), req.validated.params.submissionId, req.body || {}));
@@ -596,6 +646,12 @@ module.exports = {
   createTask,
   listProgramTasks,
   submitTask,
+  getTask,
+  getTaskInstructionFile,
+  listTaskSubmissions,
+  resubmitTask,
+  requestTaskRevision,
+  reopenTaskSubmission,
   gradeTask,
   upsertAssessment,
   listProgramAssessments,

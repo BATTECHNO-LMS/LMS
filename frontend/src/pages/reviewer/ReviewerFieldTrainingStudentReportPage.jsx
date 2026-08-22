@@ -3,5 +3,11 @@ import { FieldTrainingStudentReportPage } from '../shared/fieldTrainingReports/F
 
 export function ReviewerFieldTrainingStudentReportPage() {
   const { applicationId } = useParams();
-  return <FieldTrainingStudentReportPage basePath="/reviewer/field-training" applicationId={applicationId} />;
+  return (
+    <FieldTrainingStudentReportPage
+      basePath="/reviewer/field-training/reports"
+      applicationId={applicationId}
+      mode="reviewer"
+    />
+  );
 }

@@ -37,6 +37,20 @@ router.get(
   validateRequest({ query: reportFiltersSchema }),
   reportController.universityReport
 );
+router.post(
+  '/university/generate',
+  authenticate,
+  reportRead,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.generateUniversity
+);
+router.post(
+  '/university/regenerate',
+  authenticate,
+  reportRead,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.generateUniversity
+);
 router.get(
   '/university/export/pdf',
   authenticate,
@@ -64,6 +78,20 @@ router.get(
   reportRead,
   validateRequest({ params: applicationIdParamSchema }),
   reportController.studentReport
+);
+router.post(
+  '/students/:applicationId/generate',
+  authenticate,
+  reportRead,
+  validateRequest({ params: applicationIdParamSchema }),
+  reportController.generateStudent
+);
+router.post(
+  '/students/:applicationId/regenerate',
+  authenticate,
+  reportRead,
+  validateRequest({ params: applicationIdParamSchema }),
+  reportController.generateStudent
 );
 router.get(
   '/students/:applicationId/export/pdf',

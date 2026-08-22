@@ -11,18 +11,15 @@ function extractEmailDomain(email) {
 }
 
 /**
- * Exact match or subdomain of an allowed campus domain (e.g. mail.yu.edu.jo vs yu.edu.jo).
+ * Exact match against registered campus domains. Undeclared subdomains
+ * (e.g. mail.uni.edu.jo when only uni.edu.jo is listed) are rejected.
  * @param {string} emailDomain
  * @param {string[]} allowedDomains lowercased hostnames from DB
  */
 function emailDomainMatchesAllowed(emailDomain, allowedDomains) {
   if (!emailDomain || !allowedDomains?.length) return false;
   const d = emailDomain.toLowerCase();
-  return allowedDomains.some((allowed) => {
-    const a = String(allowed).trim().toLowerCase();
-    if (!a) return false;
-    return d === a || d.endsWith(`.${a}`);
-  });
+  return allowedDomains.some((allowed) => String(allowed).trim().toLowerCase() === d);
 }
 
 module.exports = { extractEmailDomain, emailDomainMatchesAllowed };

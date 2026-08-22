@@ -133,7 +133,7 @@ export function ReviewerDashboardPage() {
       </AdminStatsGrid>
       {universityParam.university_id ? (
         <p className="crud-muted">
-          <Link to="/reviewer/field-training">{t('reviewer.fieldTrainingPortal')}</Link>
+          <Link to="/reviewer/field-training/reports">{t('reviewer.fieldTrainingPortal')}</Link>
         </p>
       ) : null}
       <SectionCard title={<>{t('reviewer.latest')}</>}>
