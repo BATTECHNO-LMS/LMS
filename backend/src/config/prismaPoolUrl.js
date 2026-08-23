@@ -62,4 +62,26 @@ function describePrismaPoolUrl(rawUrl) {
   };
 }
 
-module.exports = { applyPrismaPoolParams, describePrismaPoolUrl };
+function summarizeDatabaseHost(rawUrl) {
+  const info = describePrismaPoolUrl(rawUrl);
+  const hostMatch = String(rawUrl || '').match(/@([^/?]+)/);
+  const host = hostMatch ? hostMatch[1].split(':')[0] : '';
+  const labels = host.split('.').filter(Boolean);
+  const isNeon = /\.neon\.tech$/i.test(host);
+  let regionHint = null;
+  if (isNeon) {
+    const cloudIdx = labels.findIndex((l) => l === 'aws' || l === 'azure' || l === 'gcp');
+    if (cloudIdx > 0) regionHint = labels[cloudIdx - 1];
+  }
+  return {
+    pooled_connection: info.isPooler,
+    pgbouncer: info.pgbouncer,
+    connection_limit: info.connectionLimit,
+    pool_timeout: info.poolTimeout,
+    provider: isNeon ? 'neon' : 'other',
+    region_hint: regionHint,
+    host_kind: info.isPooler ? 'neon-pooler' : isNeon ? 'neon-direct' : 'other',
+  };
+}
+
+module.exports = { applyPrismaPoolParams, describePrismaPoolUrl, summarizeDatabaseHost };

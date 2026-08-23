@@ -25,13 +25,6 @@ router.use('/submissions', require('../modules/submissions/submissions.routes'))
 router.use('/grades', require('../modules/grades/grades.routes'));
 router.use('/students', require('../modules/students/students.routes'));
 router.use('/rubric-criteria', require('../modules/rubrics/rubricCriteria.routes'));
-router.use('/evidence', require('../modules/evidence/evidence.routes'));
-router.use('/qa-reviews', require('../modules/qa-reviews/qaReviews.routes'));
-router.use('/corrective-actions', require('../modules/corrective-actions/correctiveActions.routes'));
-router.use('/risk-cases', require('../modules/risk-cases/riskCases.routes'));
-router.use('/integrity-cases', require('../modules/integrity-cases/integrityCases.routes'));
-router.use('/recognition-requests', require('../modules/recognition-requests/recognitionRequests.routes'));
-router.use('/recognition-documents', require('../modules/recognition-documents/recognitionDocuments.routes'));
 router.use('/certificates', require('../modules/certificates/certificates.routes'));
 router.use('/notifications', require('../modules/notifications/notifications.routes'));
 router.use('/analytics', require('../modules/analytics/analytics.routes'));

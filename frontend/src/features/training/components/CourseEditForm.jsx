@@ -6,6 +6,7 @@ import { Button } from '../../../components/common/Button.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
 import { updateProgram } from '../training.service.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { TRAINING_PROGRAM_STATUS_LABEL_AR } from '../trainingProgramStatus.js';
 
 function toDateInput(value) {
   if (!value) return '';
@@ -414,13 +415,13 @@ export function CourseEditForm({ course, programId, allowStatus = true, onSaved,
               value={form.status}
               onChange={(e) => setField('status', e.target.value)}
             >
-              <option value="DRAFT">مسودة</option>
-              <option value="PUBLISHED">منشورة</option>
-              <option value="REGISTRATION_OPEN">التسجيل مفتوح</option>
-              <option value="REGISTRATION_CLOSED">التسجيل مغلق</option>
-              <option value="IN_PROGRESS">قيد التنفيذ</option>
-              <option value="COMPLETED">مكتملة</option>
-              <option value="ARCHIVED">مؤرشفة</option>
+              {['DRAFT', 'PUBLISHED', 'REGISTRATION_OPEN', 'REGISTRATION_CLOSED', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'].map(
+                (code) => (
+                  <option key={code} value={code}>
+                    {TRAINING_PROGRAM_STATUS_LABEL_AR[code]}
+                  </option>
+                )
+              )}
             </FormSelect>
           ) : (
             <p className="auth-register__helper">حالة النشر تُدار بواسطة مسؤول المؤسسة.</p>

@@ -11,6 +11,9 @@ const { isGlobalFromRoleRecords } = require('./auth.service');
 const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCanon');
 const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
 const { applyPortalScope } = require('./portalAccess');
+const { AUTH_ERROR_CODES: AUTH_ERROR_CODES, messageForCode: messageForCode } = require('../../utils/authErrorCatalog');
+const { getPermissionCodesForRoleIds } = require('./rolePermissionCache');
+const { universityIdentityCache, organizationIdentityCache } = require('../../utils/lookupCache');
 
 /**
  * Official university scope for non-global users:
@@ -30,19 +33,46 @@ const { applyPortalScope } = require('./portalAccess');
  * }} AuthRequestUser
  */
 
+const assignmentSelect = {
+  id: true,
+  organization_id: true,
+  role_code: true,
+  branch_id: true,
+  department_id: true,
+  job_title: true,
+  employee_number: true,
+  organizations: {
+    select: { id: true, type: true, name: true, status: true },
+  },
+};
+
+async function getUniversityIdentity(id) {
+  if (!id) return null;
+  const cached = universityIdentityCache.get(id);
+  if (cached !== undefined) return cached;
+  const row = await prisma.universities.findUnique({
+    where: { id },
+    select: { id: true, name: true, organization_id: true },
+  });
+  universityIdentityCache.set(id, row);
+  return row;
+}
+
+async function getOrganizationIdentity(id) {
+  if (!id) return null;
+  const cached = organizationIdentityCache.get(id);
+  if (cached !== undefined) return cached;
+  const row = await prisma.organizations.findUnique({
+    where: { id },
+    select: { id: true, type: true, name: true, status: true },
+  });
+  organizationIdentityCache.set(id, row);
+  return row;
+}
+
 async function loadPermissionCodesForRoleIds(roleIds) {
   if (!roleIds.length) return [];
-  const links = await prisma.role_permissions.findMany({
-    where: { role_id: { in: roleIds } },
-    select: { permission_id: true },
-  });
-  if (!links.length) return [];
-  const permIds = [...new Set(links.map((l) => l.permission_id))];
-  const perms = await prisma.permissions.findMany({
-    where: { id: { in: permIds } },
-    select: { code: true },
-  });
-  return [...new Set(perms.map((p) => p.code))];
+  return getPermissionCodesForRoleIds(prisma, roleIds);
 }
 
 /**
@@ -60,15 +90,42 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
     );
   }
 
-  const user = await prisma.users.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      status: true,
-      primary_university_id: true,
-      preferred_organization_id: true,
-    },
-  });
+  const portalType =
+    options.portalType === 'UNIVERSITY' || options.portalType === 'INSTITUTION'
+      ? options.portalType
+      : null;
+
+  const [user, links, assignmentRows, reviewerAssignment] = await Promise.all([
+    prisma.users.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        status: true,
+        primary_university_id: true,
+        preferred_organization_id: true,
+      },
+    }),
+    prisma.user_roles.findMany({
+      where: { user_id: userId },
+      select: { role_id: true },
+    }),
+    prisma.user_organization_assignments.findMany({
+      where: { user_id: userId, is_active: true },
+      orderBy: { assigned_at: 'desc' },
+      select: assignmentSelect,
+    }),
+    prisma.reviewer_university_assignments.findFirst({
+      where: { reviewer_user_id: userId, is_active: true },
+      orderBy: { assigned_at: 'desc' },
+      select: {
+        id: true,
+        university_id: true,
+        assignment_source: true,
+        is_active: true,
+        assigned_at: true,
+      },
+    }),
+  ]);
 
   if (!user) {
     throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED), null, 'USER_NOT_FOUND');
@@ -86,86 +143,57 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
     throw new ApiError(403, messageForCode(code), null, code);
   }
 
-  const links = await prisma.user_roles.findMany({
-    where: { user_id: user.id },
-    select: { role_id: true },
-  });
   const roleIds = links.map((l) => l.role_id);
-  const roleRecords = roleIds.length
-    ? await prisma.roles.findMany({
-        where: { id: { in: roleIds } },
-        select: { id: true, code: true, name: true },
-      })
-    : [];
+  const guessedUniversityId = user.primary_university_id ?? null;
+
+  const [roleRecords, guessedUniversity, permissionsFromRoleIds] = await Promise.all([
+    roleIds.length
+      ? prisma.roles.findMany({
+          where: { id: { in: roleIds } },
+          select: { id: true, code: true, name: true },
+        })
+      : Promise.resolve([]),
+    getUniversityIdentity(guessedUniversityId),
+    roleIds.length ? loadPermissionCodesForRoleIds(roleIds) : Promise.resolve([]),
+  ]);
 
   const normalizedRecords = normalizeRoleRecords(roleRecords);
   const roles = normalizeRoleCodes(normalizedRecords.map((r) => r.code));
   const isGlobal = isGlobalFromRoleRecords(normalizedRecords);
 
-  const canonicalRoleRows = roles.length
-    ? await prisma.roles.findMany({
-        where: { code: { in: roles } },
-        select: { id: true, code: true },
-      })
-    : [];
-  let permissions = await loadPermissionCodesForRoleIds(canonicalRoleRows.map((r) => r.id));
-  if (isGlobal) {
-    permissions = [...ALL_PERMISSION_CODES];
+  const originalCodes = roleRecords.map((r) => r.code);
+  const codesUnchanged =
+    roles.length === originalCodes.length && roles.every((c) => originalCodes.includes(c));
+  let canonicalRoleRows = roleRecords.map((r) => ({ id: r.id, code: r.code }));
+  if (roles.length && !codesUnchanged) {
+    canonicalRoleRows = await prisma.roles.findMany({
+      where: { code: { in: roles } },
+      select: { id: true, code: true },
+    });
+  }
+
+  let permissions = isGlobal ? [...ALL_PERMISSION_CODES] : permissionsFromRoleIds;
+  if (!isGlobal && roles.length && !codesUnchanged) {
+    permissions = await loadPermissionCodesForRoleIds(canonicalRoleRows.map((r) => r.id));
   }
 
   let primaryUniversityId = user.primary_university_id ?? null;
-  let reviewerAssignment = null;
   if (roles.includes('reviewer') && !isGlobal) {
-    reviewerAssignment = await prisma.reviewer_university_assignments.findFirst({
-      where: { reviewer_user_id: user.id, is_active: true },
-      orderBy: { assigned_at: 'desc' },
-      select: {
-        id: true,
-        university_id: true,
-        assignment_source: true,
-        is_active: true,
-        assigned_at: true,
-      },
-    });
     if (reviewerAssignment?.university_id) {
       primaryUniversityId = reviewerAssignment.university_id;
     } else {
-      // No active assignment → block university scope (do not grant global access).
       primaryUniversityId = null;
     }
   }
 
   let university = null;
   if (primaryUniversityId) {
-    university = await prisma.universities.findUnique({
-      where: { id: primaryUniversityId },
-      select: { id: true, name: true, organization_id: true },
-    });
+    university =
+      guessedUniversity && guessedUniversity.id === primaryUniversityId
+        ? guessedUniversity
+        : await getUniversityIdentity(primaryUniversityId);
   }
 
-  const assignmentSelect = {
-    id: true,
-    organization_id: true,
-    role_code: true,
-    branch_id: true,
-    department_id: true,
-    job_title: true,
-    employee_number: true,
-    organizations: {
-      select: { id: true, type: true, name: true, status: true },
-    },
-  };
-
-  const portalType =
-    options.portalType === 'UNIVERSITY' || options.portalType === 'INSTITUTION'
-      ? options.portalType
-      : null;
-
-  const assignmentRows = await prisma.user_organization_assignments.findMany({
-    where: { user_id: user.id, is_active: true },
-    orderBy: { assigned_at: 'desc' },
-    select: assignmentSelect,
-  });
   const matchingType = (row) =>
     !portalType || row.organizations?.type === portalType || (portalType === 'UNIVERSITY' && isGlobal);
   let organizationAssignment =
@@ -192,10 +220,7 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
     : null;
 
   if (!organization && university?.organization_id) {
-    const org = await prisma.organizations.findUnique({
-      where: { id: university.organization_id },
-      select: { id: true, type: true, name: true, status: true },
-    });
+    const org = await getOrganizationIdentity(university.organization_id);
     if (org) {
       organizationId = org.id;
       organizationType = org.type;
@@ -203,7 +228,6 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
     }
   }
 
-  // Reviewer institution scope from assignment when no university assignment.
   if (roles.includes('reviewer') && !isGlobal && organizationAssignment?.organizations?.type === 'INSTITUTION') {
     organizationId = organizationAssignment.organization_id;
     organizationType = 'INSTITUTION';

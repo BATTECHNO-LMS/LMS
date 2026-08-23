@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const { applyPrismaPoolParams } = require('./prismaPoolUrl');
+const { isPerfLoggingEnabled, recordQuery } = require('./queryTiming');
 
 const globalForPrisma = globalThis;
 
@@ -9,10 +10,28 @@ function createPrismaClient() {
     connectionLimit: process.env.PRISMA_CONNECTION_LIMIT,
     poolTimeout: process.env.PRISMA_POOL_TIMEOUT,
   });
-  return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  const perf = isPerfLoggingEnabled();
+  const client = new PrismaClient({
+    log: perf
+      ? [
+          { emit: 'event', level: 'query' },
+          { emit: 'stdout', level: 'error' },
+        ]
+      : process.env.NODE_ENV === 'development'
+        ? ['error', 'warn']
+        : ['error'],
     ...(url ? { datasources: { db: { url } } } : {}),
   });
+  if (perf) {
+    client.$on('query', (e) => {
+      recordQuery({
+        durationMs: Number(e.duration) || 0,
+        target: e.target,
+        sql: e.query,
+      });
+    });
+  }
+  return client;
 }
 
 const prisma = globalForPrisma.__battechnoPrisma ?? createPrismaClient();

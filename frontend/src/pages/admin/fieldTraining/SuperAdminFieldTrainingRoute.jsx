@@ -22,5 +22,15 @@ export function SuperAdminFieldTrainingRoute({ children }) {
     );
   }
 
+  const isGlobal = Boolean(user?.isGlobal || user?.role === 'super_admin');
+  if (!isGlobal && user?.organizationType === 'INSTITUTION') {
+    return (
+      <UnauthorizedPage
+        title={t('unauthorized.title')}
+        description={t('unauthorized.description')}
+      />
+    );
+  }
+
   return children ?? <AdminFieldTrainingPage />;
 }

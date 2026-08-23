@@ -21,7 +21,7 @@ export function NotificationBell({ className }) {
 
   const { data, isLoading } = useNotifications(BELL_PARAMS, {
     staleTime: 30_000,
-    enabled: Boolean(user),
+    enabled: Boolean(user) && open,
   });
   const { data: unreadData } = useUnreadNotificationCount({
     staleTime: 30_000,

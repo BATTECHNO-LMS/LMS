@@ -2,6 +2,7 @@ const { ApiError } = require('../../utils/apiError');
 const { env } = require('../../config/env');
 const { canAccessCohort, normalizeRoles, cohortListWhere } = require('../../utils/deliveryAccess');
 const { resolvePrimaryUniversityId } = require('../../utils/studentScope');
+const { dateOnlyISO } = require('../../utils/dateOnly');
 const { recordAudit } = require('../../utils/auditRecorder');
 const notificationService = require('../../shared/services/notification.service');
 const { prisma } = require('../../config/db');
@@ -330,13 +331,6 @@ async function rejectEnrollment(id, body, requester) {
     newValues: { enrollment_status: 'rejected', rejection_reason: updated.rejection_reason },
   });
   return serializeEnrollment(updated);
-}
-
-function dateOnlyISO(d) {
-  if (!d) return null;
-  const x = d instanceof Date ? d : new Date(d);
-  if (Number.isNaN(x.getTime())) return null;
-  return x.toISOString().slice(0, 10);
 }
 
 /**

@@ -34,7 +34,10 @@ async function login(req, res, next) {
 
 async function me(req, res, next) {
   try {
-    const user = await authService.me(req.user.userId, { portalType: req.user.portalType || null });
+    const user = await authService.me(req.user.userId, {
+      portalType: req.user.portalType || null,
+      authContext: req.user,
+    });
     return success(res, { user }, { message: 'تم تحميل بيانات الحساب.' });
   } catch (e) {
     return next(e);

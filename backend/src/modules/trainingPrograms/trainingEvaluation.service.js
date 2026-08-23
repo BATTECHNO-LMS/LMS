@@ -11,17 +11,10 @@
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const { recordAudit } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
 const { npsCategory, computeSectionScores, filterQuestionsForDeliveryMode, average, buildRatingDistribution, KIRKPATRICK } = require('./trainingEvaluation.scoring');
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
 
 function isManagerRole(requester) {
   return (
@@ -30,12 +23,6 @@ function isManagerRole(requester) {
     Boolean(requester?.roles?.includes('trainer')) ||
     Boolean(requester?.roles?.includes('reviewer'))
   );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 async function findEnrollmentForProgram(userId, programId, organizationId) {

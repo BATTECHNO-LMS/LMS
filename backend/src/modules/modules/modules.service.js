@@ -1,4 +1,5 @@
 ﻿const repo = require('./modules.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 async function listModules(query) {
   const page = query.page;
@@ -12,12 +13,7 @@ async function listModules(query) {
   });
   return {
     modules,
-    meta: {
-      page,
-      page_size,
-      total,
-      total_pages: Math.max(1, Math.ceil(total / page_size)),
-    },
+    meta: buildListMeta(total, page, page_size),
   };
 }
 

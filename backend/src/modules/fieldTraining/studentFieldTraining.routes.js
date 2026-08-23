@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const studentFieldTrainingController = require('./studentFieldTraining.controller');
@@ -28,6 +28,8 @@ const attendanceWindowService = require('./fieldTraining.attendanceWindow.servic
 const { success } = require('../../utils/apiResponse');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
 
 router.get(

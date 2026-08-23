@@ -285,12 +285,14 @@ export async function listMyPrograms() {
 
 const inflightTraineeProgramDetail = new Map();
 
-export async function getTraineeProgramDetail(programId) {
-  const key = String(programId || '');
+export async function getTraineeProgramDetail(programId, { sections } = {}) {
+  const key = `${String(programId || '')}::${sections || 'all'}`;
   const pending = inflightTraineeProgramDetail.get(key);
   if (pending) return pending;
   const request = apiClient
-    .get(`${base}/trainee/programs/${programId}`)
+    .get(`${base}/trainee/programs/${programId}`, {
+      params: sections ? { sections } : undefined,
+    })
     .then((res) => unwrapApiData(res))
     .finally(() => {
       inflightTraineeProgramDetail.delete(key);

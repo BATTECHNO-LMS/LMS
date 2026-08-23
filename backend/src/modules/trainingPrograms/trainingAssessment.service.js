@@ -10,6 +10,7 @@ const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { emitDomainEvent } = require('../notificationEngine');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const {
   prepareQuestionForStorage,
   validateAssessmentQuestions,
@@ -33,20 +34,6 @@ function requireOrgWrite(requester) {
   ) {
     throw new ApiError(403, 'Forbidden', null, 'ROLE_NOT_ALLOWED');
   }
-}
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 function mapKind(kind) {

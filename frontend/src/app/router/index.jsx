@@ -194,29 +194,6 @@ export function AppRouter() {
             <Route path="rubrics" element={<Pages.RubricsPage />} />
             <Route path="submissions" element={<Pages.SubmissionsPage />} />
             <Route path="grades" element={<Pages.GradesPage />} />
-            <Route path="evidence" element={<Pages.EvidencePage />} />
-            <Route path="qa" element={<Pages.QAPage />} />
-            <Route path="qa-reviews/create" element={<Pages.QAReviewCreatePage />} />
-            <Route path="qa-reviews/:id/edit" element={<Pages.QAReviewEditPage />} />
-            <Route path="qa-reviews/:id" element={<Pages.QAReviewViewPage />} />
-            <Route path="qa-reviews" element={<Pages.QAReviewsPage />} />
-            <Route path="corrective-actions/create" element={<Pages.CorrectiveActionCreatePage />} />
-            <Route path="corrective-actions/:id/edit" element={<Pages.CorrectiveActionEditPage />} />
-            <Route path="corrective-actions/:id" element={<Pages.CorrectiveActionViewPage />} />
-            <Route path="corrective-actions" element={<Pages.CorrectiveActionsPage />} />
-            <Route path="at-risk-students" element={<Pages.AtRiskStudentsPage />} />
-            <Route path="risk-cases/create" element={<Pages.RiskCaseCreatePage />} />
-            <Route path="risk-cases/:id/edit" element={<Pages.RiskCaseEditPage />} />
-            <Route path="risk-cases/:id" element={<Pages.RiskCaseViewPage />} />
-            <Route path="risk-cases" element={<Pages.RiskCasesPage />} />
-            <Route path="integrity-cases/create" element={<Pages.IntegrityCaseCreatePage />} />
-            <Route path="integrity-cases/:id/edit" element={<Pages.IntegrityCaseEditPage />} />
-            <Route path="integrity-cases/:id" element={<Pages.IntegrityCaseViewPage />} />
-            <Route path="integrity-cases" element={<Pages.IntegrityCasesPage />} />
-            <Route path="recognition-requests/create" element={<Pages.RecognitionRequestCreatePage />} />
-            <Route path="recognition-requests/:id/edit" element={<Pages.RecognitionRequestEditPage />} />
-            <Route path="recognition-requests/:id" element={<Pages.RecognitionRequestViewPage />} />
-            <Route path="recognition-requests" element={<Pages.RecognitionRequestsListPage />} />
             <Route path="certificates/issue" element={<Pages.CertificateIssuePage />} />
             <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
             <Route path="certificates" element={<Pages.CertificatesPage />} />
@@ -248,7 +225,7 @@ export function AppRouter() {
             <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
             <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
             <Route path="profile" element={<Pages.TrainerProfilePage />} />
-            <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+            <Route path="*" element={<Pages.NotFoundPage />} />
           </Route>
         </Route>
 
@@ -270,14 +247,14 @@ export function AppRouter() {
             <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
             <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
             <Route path="profile" element={<Pages.TraineeProfilePage />} />
-            <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+            <Route path="*" element={<Pages.NotFoundPage />} />
           </Route>
         </Route>
 
         <Route path="/instructor" element={<Pages.InstructorLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.INSTRUCTOR]} />}>
-            <Route path="at-risk-students" element={<Navigate to="/instructor/risk-students" replace />} />
+            <Route path="at-risk-students" element={<Pages.NotFoundPage />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.InstructorDashboardPage />} />
               <Route path="cohorts/:id/sessions/create" element={<Pages.SessionCreatePage />} />
@@ -299,11 +276,6 @@ export function AppRouter() {
               <Route path="submissions" element={<Pages.InstructorSubmissionsPage />} />
               <Route path="grades/:gradeId/edit" element={<Pages.InstructorAcademicGradePage />} />
               <Route path="grades" element={<Pages.InstructorGradesPage />} />
-              <Route path="evidence/create" element={<Pages.EvidenceCreatePage />} />
-              <Route path="evidence/:id/edit" element={<Pages.EvidenceEditPage />} />
-              <Route path="evidence/:id" element={<Pages.EvidenceViewPage />} />
-              <Route path="evidence" element={<Pages.InstructorEvidencePage />} />
-              <Route path="risk-students" element={<Pages.RiskStudentsPage />} />
               <Route path="field-training" element={<Pages.InstructorFieldTrainingPage />} />
               <Route path="field-training/:id/manage" element={<Pages.InstructorFieldTrainingManagePage />} />
               <Route path="field-training/:id/participants" element={<Pages.InstructorFieldTrainingParticipantsPage />} />
@@ -319,7 +291,7 @@ export function AppRouter() {
               <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
               <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
-              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+              <Route path="*" element={<Pages.NotFoundPage />} />
             </Route>
           </Route>
         </Route>
@@ -368,7 +340,7 @@ export function AppRouter() {
               <Route path="certificate" element={<Pages.CertificatePage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
               <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
-              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+              <Route path="*" element={<Pages.NotFoundPage />} />
             </Route>
           </Route>
         </Route>
@@ -399,8 +371,6 @@ export function AppRouter() {
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.ReviewerDashboardPage />} />
               <Route path="enrollment-requests" element={<Pages.ReviewerEnrollmentRequestsPage />} />
-              <Route path="recognition-requests/:id" element={<Pages.RecognitionRequestViewPage />} />
-              <Route path="recognition-requests" element={<Pages.ReviewerRecognitionRequestsPage />} />
               <Route path="university-reports" element={<Pages.UniversityReportsPage />} />
               <Route path="field-training/reports" element={<Pages.ReviewerFieldTrainingHubPage />} />
               <Route
@@ -417,7 +387,6 @@ export function AppRouter() {
               />
               <Route path="field-training" element={<Navigate to="/reviewer/field-training/reports" replace />} />
               <Route path="field-training/*" element={<Navigate to="/reviewer/field-training/reports" replace />} />
-              <Route path="evidence" element={<Pages.EvidenceViewerPage />} />
               <Route path="certificates/:id" element={<Pages.CertificateDetailPage />} />
               <Route path="certificates" element={<Pages.CertificatesReviewPage />} />
               <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
@@ -426,13 +395,13 @@ export function AppRouter() {
               <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
               <Route path="notifications" element={<Pages.NotificationsPage />} />
               <Route path="notification-settings" element={<Pages.NotificationPreferencesPage />} />
-              <Route path="*" element={<Pages.ModulePlaceholderPage />} />
+              <Route path="*" element={<Pages.NotFoundPage />} />
             </Route>
           </Route>
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Pages.NotFoundPage />} />
     </Routes>
     </Suspense>
   );

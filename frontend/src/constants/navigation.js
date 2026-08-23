@@ -1,25 +1,18 @@
 import {
   LayoutDashboard,
   Layers,
-  CalendarDays,
   ClipboardCheck,
   FileCheck,
   Upload,
   BarChart3,
-  FolderOpen,
-  AlertTriangle,
   GraduationCap,
   BookOpen,
   BookMarked,
   Briefcase,
   Award,
-  FileBadge,
   Bell,
   Library,
-  Table2,
   Users,
-  ListChecks,
-  ClipboardList,
   BookOpenCheck,
 } from 'lucide-react';
 import { ROLES, ADMIN_ROLE_SET } from './roles.js';
@@ -34,8 +27,8 @@ import i18n from '../i18n/config.js';
 
 const P = UI_PERMISSION;
 
-function navItem(to, labelKey, icon, permission) {
-  return { to, labelKey, icon, permission };
+function navItem(to, labelKey, icon, permission, meta = {}) {
+  return { to, labelKey, icon, permission, ...meta };
 }
 
 const ROLE_NAV_PREFIX = {
@@ -56,45 +49,18 @@ export const STUDENT_NAV_GROUPS = [
     titleKey: 'student.groups.overview',
     collapsible: false,
     defaultOpen: true,
-    items: [navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard)],
-  },
-  {
-    id: 'fieldTraining',
-    titleKey: 'student.groups.fieldTraining',
-    collapsible: true,
-    defaultOpen: true,
     items: [
-      navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining),
-      navItem('/student/sessions', 'sessions', CalendarDays, P.canViewSessions),
-      navItem('/student/attendance', 'attendance', ClipboardCheck, P.canViewAttendance),
-      navItem('/student/assessments', 'assessments', FileCheck, P.canViewAssessments),
-      navItem('/student/submissions', 'submissions', Upload, P.canViewSubmissionStatus),
+      navItem('/student/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
+      navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
+      navItem('/student/training-programs', 'trainingPrograms', Briefcase, P.canViewEnrolledPrograms),
+      navItem('/student/available-cohorts', 'microCredentials', GraduationCap, P.canViewEnrolledPrograms),
+      navItem('/student/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining, {
+        portal: 'UNIVERSITY',
+      }),
       navItem('/student/grades', 'grades', BarChart3, P.canViewGrades),
       navItem('/student/certificate', 'certificate', Award, P.canViewCertificates),
-    ],
-  },
-  {
-    id: 'learning',
-    titleKey: 'student.groups.learning',
-    collapsible: true,
-    defaultOpen: false,
-    items: [
-      navItem('/student/training-programs', 'trainingPrograms', Briefcase, P.canViewEnrolledPrograms),
-      navItem('/student/available-cohorts', 'availableCohorts', Library, P.canViewEnrolledPrograms),
-      navItem('/student/courses', 'courses', BookMarked, P.canViewCourses),
-      navItem('/student/programs', 'programs', GraduationCap, P.canViewEnrolledPrograms),
-      navItem('/student/semester-schedule', 'semesterSchedule', Table2, P.canViewEnrolledPrograms),
-      navItem('/student/content', 'content', BookOpen, P.canViewContent),
-    ],
-  },
-  {
-    id: 'support',
-    titleKey: 'student.groups.support',
-    collapsible: true,
-    defaultOpen: false,
-    items: [
-      navItem('/student/user-guide', 'userGuide', BookOpenCheck),
       navItem('/student/notifications', 'notifications', Bell, P.canViewNotifications),
+      navItem('/student/user-guide', 'userGuide', BookOpenCheck),
     ],
   },
 ];
@@ -108,21 +74,15 @@ export const NAV_BY_ROLE = {
   [ROLES.INSTRUCTOR]: [
     navItem('/instructor/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
     navItem('/instructor/cohorts', 'cohorts', Layers, P.canManageCohorts),
-    navItem('/instructor/sessions', 'sessions', CalendarDays, P.canManageSessions),
+    navItem('/instructor/field-training', 'fieldTraining', Briefcase, P.canViewFieldTraining, {
+      portal: 'UNIVERSITY',
+    }),
     navItem('/instructor/attendance', 'attendance', ClipboardCheck, P.canManageAttendance),
-    navItem('/instructor/assessments', 'assessments', FileCheck, P.canViewAssessments),
     navItem('/instructor/submissions', 'submissions', Upload, P.canViewSubmissionsTeaching),
+    navItem('/instructor/assessments', 'assessments', FileCheck, P.canViewAssessments),
     navItem('/instructor/grades', 'grades', BarChart3, P.canViewGradesTeaching),
-    navItem('/instructor/evidence', 'evidence', FolderOpen, P.canUploadEvidence),
-    navItem('/instructor/risk-students', 'riskStudents', AlertTriangle, P.canManageRiskStudents),
-    navItem('/instructor/field-training', 'fieldTraining', Briefcase),
-    navItem('/instructor/field-training', 'fieldTrainingAssigned', Users),
-    navItem('/instructor/field-training?section=sessions', 'fieldTrainingSessions', CalendarDays),
-    navItem('/instructor/field-training?section=tasks', 'fieldTrainingTasks', ListChecks),
-    navItem('/instructor/field-training?section=results', 'fieldTrainingResults', ClipboardList),
-    navItem('/instructor/field-training?section=eligibility', 'fieldTrainingEligibility', Award),
-    navItem('/instructor/user-guide', 'userGuide', BookOpenCheck),
     navItem('/instructor/notifications', 'notifications', Bell, P.canViewNotifications),
+    navItem('/instructor/user-guide', 'userGuide', BookOpenCheck),
   ],
 
   [ROLES.TRAINER]: [
@@ -139,7 +99,6 @@ export const NAV_BY_ROLE = {
     navItem('/trainee/certificates', 'certificates', Award, P.canViewCertificates),
     navItem('/trainee/notifications', 'notifications', Bell, P.canViewNotifications),
     navItem('/trainee/user-guide', 'userGuide', BookOpenCheck, P.canViewDashboard),
-    navItem('/trainee/user-guide/support', 'support', BookOpenCheck, P.canViewDashboard),
     navItem('/trainee/profile', 'profile', Users, P.canViewDashboard),
   ],
 
@@ -147,22 +106,28 @@ export const NAV_BY_ROLE = {
 
   [ROLES.REVIEWER]: [
     navItem('/reviewer/dashboard', 'home', LayoutDashboard, P.canViewDashboard),
-    navItem('/reviewer/field-training/reports', 'fieldTrainingReports', Briefcase, P.canViewUniversityReports),
-    navItem('/reviewer/field-training/reports/students', 'fieldTrainingStudents', Users, P.canViewUniversityReports),
-    navItem('/academic/field-training/opportunities', 'fieldTrainingOpportunities', Briefcase, P.canViewUniversityReports),
     navItem('/reviewer/university-reports', 'universityReports', BarChart3, P.canViewUniversityReports),
     navItem('/reviewer/certificates', 'certificates', Award, P.canViewLinkedCertificates),
+    navItem('/reviewer/field-training/reports', 'fieldTrainingReports', Briefcase, P.canViewUniversityReports, {
+      portal: 'UNIVERSITY',
+    }),
     navItem('/reviewer/enrollment-requests', 'enrollmentRequests', Library, P.canViewUniversityReports),
-    navItem('/reviewer/recognition-requests', 'recognition', FileBadge, P.canViewRecognitionRequests),
-    navItem('/reviewer/evidence', 'evidence', FolderOpen, P.canViewReviewerEvidence),
     navItem('/reviewer/user-guide', 'userGuide', BookOpenCheck, P.canViewDashboard),
     navItem('/reviewer/notifications', 'notifications', Bell, P.canViewNotifications),
   ],
 };
 
+function itemVisibleForPortal(item, organizationType) {
+  if (!item.portal) return true;
+  if (!organizationType) return item.portal !== 'INSTITUTION';
+  return item.portal === organizationType;
+}
+
 function filterNavItemsByUi(user, items) {
   if (!items) return [];
-  return items.filter((item) => hasUiPermissionForUser(user, item.permission));
+  return items
+    .filter((item) => itemVisibleForPortal(item, user?.organizationType || null))
+    .filter((item) => hasUiPermissionForUser(user, item.permission));
 }
 
 function resolveRoleNavLabel(role, item, tNav) {
@@ -312,7 +277,6 @@ const CRUD_MODULE_NS = {
   'micro-credentials': 'microCredentials',
   cohorts: 'cohorts',
   assessments: 'assessments',
-  'recognition-requests': 'recognition',
 };
 
 function crudPageTitle(parts, ns) {

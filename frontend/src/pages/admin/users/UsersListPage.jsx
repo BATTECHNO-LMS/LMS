@@ -65,7 +65,12 @@ export function UsersListPage() {
   const { filterRows, scopeId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const [q, setQ] = useState('');
-  const [role, setRole] = useState('');
+  const [role, setRole] = useState(() => searchParams.get('role') || '');
+
+  useEffect(() => {
+    const fromUrl = searchParams.get('role') || '';
+    setRole((current) => (current === fromUrl ? current : fromUrl));
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState(readStoredView);
   const status = searchParams.get('status') || '';
   const emailVerifiedFilter = searchParams.get('email_verified') || '';

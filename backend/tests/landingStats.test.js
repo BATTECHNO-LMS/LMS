@@ -5,6 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const request = require('supertest');
 const app = require('../src/app');
+const { _resetLandingStatsCache } = require('../src/modules/public/landingStats.service');
 
 const NUMERIC_KEYS = [
   'usersCount',
@@ -21,6 +22,7 @@ const NUMERIC_KEYS = [
 ];
 
 test('GET /api/v1/public/landing-stats returns aggregate counts', async (t) => {
+  _resetLandingStatsCache();
   const res = await request(app).get('/api/v1/public/landing-stats');
 
   if (res.status === 500) {

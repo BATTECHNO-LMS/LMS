@@ -3,6 +3,7 @@ const { prisma } = require('../../config/db');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
 const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 const repo = require('./auditLogs.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 function auditScopeWhere(requester) {
   if (isSystemWideAdmin(requester)) return null;
@@ -82,15 +83,9 @@ async function listAuditLogs(query, requester) {
     repo.findMany(where, { skip: query.skip, take: query.take }),
   ]);
   const audit_logs = await hydrateAuditRows(rows);
-  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     audit_logs,
-    meta: {
-      page: query.page,
-      page_size: query.page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, query.page, query.page_size),
   };
 }
 

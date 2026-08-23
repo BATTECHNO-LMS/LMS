@@ -141,7 +141,9 @@ function manageOpportunityListWhere(user) {
 function scopeAdminListQuery(user, query) {
   if (isSystemWideAdmin(user)) return query;
   const universityId = resolveUniversityIdFilter(user, query.university_id);
-  if (!universityId) return query;
+  if (!universityId) {
+    return { ...query, university_id: '00000000-0000-0000-0000-000000000000' };
+  }
   return { ...query, university_id: universityId };
 }
 

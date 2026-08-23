@@ -4,20 +4,7 @@ const { prisma } = require('../../config/db');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { env } = require('../../config/env');
 const hoursMod = require('./fieldTraining.hours');
-
-function toDateOnly(value) {
-  if (value == null || value === '') return null;
-  if (value instanceof Date) return value;
-  return new Date(`${value}T00:00:00.000Z`);
-}
-
-function formatDateOnly(d) {
-  if (!d) return null;
-  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  const dt = d instanceof Date ? d : new Date(d);
-  if (Number.isNaN(dt.getTime())) return null;
-  return dt.toISOString().slice(0, 10);
-}
+const { toDateOnly, formatDateOnly } = require('../../utils/dateOnly');
 
 const opportunityListInclude = {
   _count: { select: { field_training_applications: true } },

@@ -7,6 +7,7 @@ const {
 const { dispatchAppEvent } = require('../../shared/services/eventDispatcher.service');
 const enrollmentsRepo = require('../enrollments/enrollments.repository');
 const repo = require('./assessments.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 const STAFF_ROLES = new Set(['super_admin', 'admin', 'instructor']);
 
@@ -118,15 +119,9 @@ async function listAssessments(query, requester) {
     repo.count(where),
     repo.findMany(where, { skip: query.skip, take: query.take }),
   ]);
-  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     assessments: rows.map(mapAssessment),
-    meta: {
-      page: query.page,
-      page_size: query.page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, query.page, query.page_size),
   };
 }
 

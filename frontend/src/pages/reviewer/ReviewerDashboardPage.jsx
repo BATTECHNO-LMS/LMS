@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { FileBadge, BarChart3, FolderOpen, Bell, Briefcase } from 'lucide-react';
+import { BarChart3, Bell, Briefcase, Award } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
@@ -10,8 +10,6 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { DataTable } from '../../components/tables/DataTable.jsx';
 import { useAuth, resolveAuthUniversityId } from '../../features/auth/index.js';
-import { useRecognitionRequests } from '../../features/recognition/index.js';
-import { useEvidence } from '../../features/evidence/index.js';
 import { useReport } from '../../features/reports/index.js';
 import { useFieldTrainingDashboard } from '../../features/fieldTrainingReports/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
@@ -24,13 +22,7 @@ export function ReviewerDashboardPage() {
   const universityId = resolveAuthUniversityId(user);
   const universityName = user?.university?.name || user?.primary_university?.name || '';
   const universityParam = universityId ? { university_id: universityId } : {};
-  const {
-    data: recognitionPayload,
-    isLoading: recognitionLoading,
-    isError: recognitionError,
-    error: recognitionErrorObj,
-  } = useRecognitionRequests(universityParam, { staleTime: 30_000 });
-  const { data: evidencePayload, isLoading: evidenceLoading } = useEvidence(universityParam, { staleTime: 30_000 });
+  const isUniversity = user?.organizationType !== 'INSTITUTION';
   const {
     data: reportsPayload,
     isLoading: reportsLoading,
@@ -43,39 +35,30 @@ export function ReviewerDashboardPage() {
     isError: ftError,
     error: ftErrorObj,
   } = useFieldTrainingDashboard(universityParam, {
-    enabled: Boolean(universityId),
+    enabled: Boolean(universityId) && isUniversity,
     staleTime: 30_000,
     mode: 'academic',
   });
 
-  const recognition = recognitionPayload?.recognition_requests ?? [];
   const reports = reportsPayload?.rows ?? [];
-  const evidence = evidencePayload?.evidence ?? [];
   const ftSummary = ftDashboard?.summary ?? {};
-
-  const pendingReview = useMemo(
-    () => recognition.filter((r) => r.status === 'submitted' || r.status === 'under_review').length,
-    [recognition]
-  );
+  const loading = reportsLoading || (isUniversity && ftLoading);
+  const loadError = reportsError
+    ? getApiErrorMessage(reportsErrorObj, tCommon('errors.generic'))
+    : ftError
+      ? getApiErrorMessage(ftErrorObj, tCommon('errors.generic'))
+      : '';
 
   const latestRows = useMemo(
     () =>
-      recognition.map((r) => ({
-        id: r.id,
-        when: r.created_at ? String(r.created_at).slice(0, 19) : '—',
-        what: r.micro_credential?.title ?? r.cohort?.title ?? r.id,
-        ref: r.id,
+      reports.slice(0, 8).map((r, idx) => ({
+        id: r.id ?? String(idx),
+        when: r.updated_at || r.created_at || '—',
+        what: r.name || r.title || r.university_name || '—',
+        ref: r.id || '—',
       })),
-    [recognition]
+    [reports]
   );
-  const loading = recognitionLoading || reportsLoading || evidenceLoading || ftLoading;
-  const loadError = recognitionError
-    ? getApiErrorMessage(recognitionErrorObj, tCommon('errors.generic'))
-    : reportsError
-      ? getApiErrorMessage(reportsErrorObj, tCommon('errors.generic'))
-      : ftError
-        ? getApiErrorMessage(ftErrorObj, tCommon('errors.generic'))
-        : '';
 
   return (
     <div className="page page--dashboard page--reviewer">
@@ -91,7 +74,7 @@ export function ReviewerDashboardPage() {
         />
         <ContextualHelpButton contextualKey="progress" route="/reviewer/dashboard" />
       </div>
-      {!universityId ? (
+      {isUniversity && !universityId ? (
         <SectionCard title={<>{tFt('hub.universityRequiredTitle')}</>}>
           <p className="crud-muted" role="alert">
             {tFt('hub.universityRequired')}
@@ -100,38 +83,37 @@ export function ReviewerDashboardPage() {
       ) : null}
       <AdminStatsGrid>
         <StatCard
-          label={t('reviewer.requests')}
-          value={String(pendingReview)}
-          hint={t('reviewer.statsHint')}
-          icon={FileBadge}
-        />
-        <StatCard
           label={t('reviewer.reports')}
           value={String(reports.length)}
           hint={t('reviewer.statsHint')}
           icon={BarChart3}
         />
-        <StatCard
-          label={t('reviewer.evidence')}
-          value={String(evidence.length)}
-          hint={t('reviewer.statsHint')}
-          icon={FolderOpen}
-        />
         <StatCard label={t('reviewer.alerts')} value="—" hint={t('reviewer.statsHint')} icon={Bell} />
-        <StatCard
-          label={t('reviewer.fieldTrainingApplicants')}
-          value={String(ftSummary.total_applicants ?? 0)}
-          hint={t('reviewer.fieldTrainingHint')}
-          icon={Briefcase}
-        />
-        <StatCard
-          label={t('reviewer.fieldTrainingInTraining')}
-          value={String(ftSummary.in_training_students ?? 0)}
-          hint={t('reviewer.fieldTrainingHint')}
-          icon={Briefcase}
-        />
+        {isUniversity ? (
+          <>
+            <StatCard
+              label={t('reviewer.fieldTrainingApplicants')}
+              value={String(ftSummary.total_applicants ?? 0)}
+              hint={t('reviewer.fieldTrainingHint')}
+              icon={Briefcase}
+            />
+            <StatCard
+              label={t('reviewer.fieldTrainingInTraining')}
+              value={String(ftSummary.in_training_students ?? 0)}
+              hint={t('reviewer.fieldTrainingHint')}
+              icon={Briefcase}
+            />
+          </>
+        ) : (
+          <StatCard
+            label={t('reviewer.certificates', { defaultValue: 'Certificates' })}
+            value="—"
+            hint={t('reviewer.statsHint')}
+            icon={Award}
+          />
+        )}
       </AdminStatsGrid>
-      {universityParam.university_id ? (
+      {isUniversity && universityParam.university_id ? (
         <p className="crud-muted">
           <Link to="/reviewer/field-training/reports">{t('reviewer.fieldTrainingPortal')}</Link>
         </p>

@@ -32,7 +32,7 @@ router.get(
   '/trainee/programs/:programId',
   authenticate,
   learner,
-  validateRequest({ params: v.programIdParam }),
+  validateRequest({ params: v.programIdParam, query: v.traineeProgramDetailQuery }),
   c.getTraineeProgramDetail
 );
 
@@ -43,7 +43,7 @@ router.get(
   '/trainer/courses/:programId',
   authenticate,
   requireTrainer(),
-  validateRequest({ params: tv.programIdParam }),
+  validateRequest({ params: tv.programIdParam, query: tv.trainerCourseDetailQuery }),
   trainerCtrl.getCourse
 );
 router.post(

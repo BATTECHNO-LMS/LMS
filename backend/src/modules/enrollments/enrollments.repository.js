@@ -66,6 +66,15 @@ async function findUserBrief(id) {
   });
 }
 
+async function findUsersBrief(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return prisma.users.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, full_name: true, email: true, status: true },
+  });
+}
+
 module.exports = {
   findManyByCohort,
   findById,
@@ -76,4 +85,5 @@ module.exports = {
   update,
   userHasRoleCode,
   findUserBrief,
+  findUsersBrief,
 };

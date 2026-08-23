@@ -77,8 +77,8 @@ const INSTRUCTOR = {
   [P.canViewSubmissionsTeaching]: true,
   [P.canViewGradesTeaching]: true,
   [P.canViewFieldTraining]: true,
-  [P.canUploadEvidence]: true,
-  [P.canManageRiskStudents]: true,
+  [P.canUploadEvidence]: false,
+  [P.canManageRiskStudents]: false,
   [P.canViewRecognitionRequests]: false,
   [P.canViewUniversityReports]: false,
   [P.canViewReviewerEvidence]: false,
@@ -89,9 +89,9 @@ const INSTRUCTOR = {
 const REVIEWER = {
   ...Object.fromEntries(Object.values(P).map((k) => [k, false])),
   [P.canViewDashboard]: true,
-  [P.canViewRecognitionRequests]: true,
+  [P.canViewRecognitionRequests]: false,
   [P.canViewUniversityReports]: true,
-  [P.canViewReviewerEvidence]: true,
+  [P.canViewReviewerEvidence]: false,
   [P.canViewLinkedCertificates]: true,
   [P.canViewNotifications]: true,
 };
@@ -207,8 +207,6 @@ const ROUTE_RULES = [
   [/^\/trainee\/?$/, P.canViewDashboard],
 
   [/^\/instructor\/field-training(\/|$)/, P.canViewFieldTraining],
-  [/^\/instructor\/risk-students(\/|$)/, P.canManageRiskStudents],
-  [/^\/instructor\/evidence(\/|$)/, P.canUploadEvidence],
   [/^\/instructor\/grades(\/|$)/, P.canViewGradesTeaching],
   [/^\/instructor\/submissions(\/|$)/, P.canViewSubmissionsTeaching],
   [/^\/instructor\/assessments(\/|$)/, P.canViewAssessments],
@@ -220,9 +218,7 @@ const ROUTE_RULES = [
   [/^\/instructor\/user-guide(\/|$)/, P.canViewDashboard],
   [/^\/instructor\/notification-settings(\/|$)/, P.canViewNotifications],
 
-  [/^\/reviewer\/recognition-requests(\/|$)/, P.canViewRecognitionRequests],
   [/^\/reviewer\/university-reports(\/|$)/, P.canViewUniversityReports],
-  [/^\/reviewer\/evidence(\/|$)/, P.canViewReviewerEvidence],
   [/^\/reviewer\/certificates(\/|$)/, P.canViewLinkedCertificates],
   [/^\/reviewer\/enrollment-requests(\/|$)/, P.canViewUniversityReports],
   [/^\/reviewer\/dashboard\/?$/, P.canViewDashboard],

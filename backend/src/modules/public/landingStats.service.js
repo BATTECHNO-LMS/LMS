@@ -1,5 +1,13 @@
 const landingStatsRepository = require('./landingStats.repository');
 
+const LANDING_STATS_TTL_MS = 60_000;
+
+let landingStatsCache = { expiresAt: 0, payload: null };
+
+function _resetLandingStatsCache() {
+  landingStatsCache = { expiresAt: 0, payload: null };
+}
+
 /**
  * Run a metric query; return fallback on failure so one bad query does not break the endpoint.
  * @template T
@@ -15,11 +23,29 @@ async function safeMetric(fn, fallback) {
   }
 }
 
+function bumpCachedVisits() {
+  if (!landingStatsCache.payload) return;
+  landingStatsCache.payload = {
+    ...landingStatsCache.payload,
+    visitsCount: Number(landingStatsCache.payload.visitsCount || 0) + 1,
+  };
+}
+
 /**
  * Aggregate public landing metrics (no PII).
  * Increments homepage visits once per API request.
+ * Metric queries are cached for 60s so the homepage does not hit Neon 12 times per view.
+ *
+ * @param {typeof landingStatsRepository} [repository]
  */
-async function getLandingStats() {
+async function getLandingStats(repository = landingStatsRepository) {
+  const now = Date.now();
+  if (landingStatsCache.payload && now < landingStatsCache.expiresAt) {
+    bumpCachedVisits();
+    repository.incrementLandingVisits().catch(() => {});
+    return { ...landingStatsCache.payload };
+  }
+
   const [
     visitsCount,
     usersCount,
@@ -28,27 +54,28 @@ async function getLandingStats() {
     cohortsCount,
     assessmentsCount,
     certificatesCount,
-    issuedCertificatesCount,
     attendanceRate,
     sessionsThisWeekCount,
     openAssessmentsCount,
-    qaCompletionRate,
   ] = await Promise.all([
-    safeMetric(() => landingStatsRepository.incrementLandingVisits(), 0),
-    safeMetric(() => landingStatsRepository.countUsers(), 0),
-    safeMetric(() => landingStatsRepository.countUniversities(), 0),
-    safeMetric(() => landingStatsRepository.countMicroCredentials(), 0),
-    safeMetric(() => landingStatsRepository.countCohorts(), 0),
-    safeMetric(() => landingStatsRepository.countAssessments(), 0),
-    safeMetric(() => landingStatsRepository.countCertificates(), 0),
-    safeMetric(() => landingStatsRepository.countIssuedCertificates(), 0),
-    safeMetric(() => landingStatsRepository.getAttendanceRate(), 0),
-    safeMetric(() => landingStatsRepository.countSessionsThisWeek(), 0),
-    safeMetric(() => landingStatsRepository.countOpenAssessments(), 0),
-    safeMetric(() => landingStatsRepository.getQaCompletionRate(), 0),
+    safeMetric(() => repository.incrementLandingVisits(), 0),
+    safeMetric(() => repository.countUsers(), 0),
+    safeMetric(() => repository.countUniversities(), 0),
+    safeMetric(() => repository.countMicroCredentials(), 0),
+    safeMetric(() => repository.countCohorts(), 0),
+    safeMetric(() => repository.countAssessments(), 0),
+    safeMetric(() => repository.countCertificates(), 0),
+    safeMetric(() => repository.getAttendanceRate(), 0),
+    safeMetric(() => repository.countSessionsThisWeek(), 0),
+    safeMetric(() => repository.countOpenAssessments(), 0),
   ]);
 
-  return {
+  const credentialRate =
+    microCredentialsCount > 0
+      ? Math.min(100, Math.round((certificatesCount / microCredentialsCount) * 100))
+      : 0;
+
+  const payload = {
     usersCount,
     visitsCount,
     universitiesCount,
@@ -59,18 +86,25 @@ async function getLandingStats() {
     attendanceRate,
     sessionsThisWeekCount,
     openAssessmentsCount,
-    issuedCertificatesCount,
+    issuedCertificatesCount: certificatesCount,
     activePrograms: [
       {
-        label: 'تحليل البيانات التعليمية',
+        label: 'الدورات التدريبية',
         progress: attendanceRate,
       },
       {
-        label: 'إدارة الجودة الأكاديمية',
-        progress: qaCompletionRate,
+        label: 'الشهادات المصغرة',
+        progress: credentialRate,
       },
     ],
   };
+
+  landingStatsCache = { expiresAt: now + LANDING_STATS_TTL_MS, payload };
+  return { ...payload };
 }
 
-module.exports = { getLandingStats };
+module.exports = {
+  getLandingStats,
+  _resetLandingStatsCache,
+  LANDING_STATS_TTL_MS,
+};

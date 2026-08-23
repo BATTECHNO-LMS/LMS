@@ -26,6 +26,7 @@ async function countUsers(requester) {
 async function countUniversities(requester) {
   const scopedUniversityId = resolveUniversityIdFilter(requester, null);
   if (scopedUniversityId) return 1;
+  if (!isSystemWideAdmin(requester)) return 0;
   return prisma.universities.count({ where: { status: 'active' } });
 }
 
@@ -97,7 +98,90 @@ async function fetchRecentActivity(requester, limit = 10) {
   }));
 }
 
+function resolveDashboardKpiSet(requester) {
+  if (requester?.isGlobal) return 'global';
+  if (requester?.organizationType === 'INSTITUTION') return 'institution';
+  return 'university';
+}
+
+async function getInstitutionDashboardStats(requester) {
+  const organizationId = requester.organizationId;
+  if (!organizationId) {
+    return {
+      users: 0,
+      universities: 0,
+      cohorts: 0,
+      assessments: 0,
+      pending_enrollments: 0,
+      recent_activity: [],
+      programs: 0,
+      kpi_set: 'institution',
+    };
+  }
+
+  const [users, programs, cohorts, pending_enrollments, rows] = await Promise.all([
+    prisma.user_organization_assignments.count({
+      where: { organization_id: organizationId, is_active: true },
+    }),
+    prisma.training_programs.count({ where: { organization_id: organizationId } }),
+    prisma.training_cohorts.count({ where: { organization_id: organizationId } }),
+    prisma.user_organization_assignments.count({
+      where: {
+        organization_id: organizationId,
+        is_active: true,
+        users: { status: 'inactive', email_verified_at: { not: null } },
+      },
+    }),
+    prisma.audit_logs.findMany({
+      where: { organization_id: organizationId },
+      orderBy: { created_at: 'desc' },
+      take: 10,
+      select: {
+        id: true,
+        action_type: true,
+        entity_type: true,
+        entity_id: true,
+        created_at: true,
+        user_id: true,
+      },
+    }),
+  ]);
+
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+  const actors = userIds.length
+    ? await prisma.users.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, full_name: true, email: true },
+      })
+    : [];
+  const actorMap = new Map(actors.map((u) => [u.id, u]));
+  const recent_activity = rows.map((r) => ({
+    id: r.id,
+    action_type: r.action_type,
+    entity_type: r.entity_type,
+    entity_id: r.entity_id,
+    created_at: r.created_at,
+    actor: r.user_id ? actorMap.get(r.user_id) ?? { id: r.user_id } : null,
+  }));
+
+  return {
+    users,
+    universities: 0,
+    cohorts,
+    assessments: 0,
+    pending_enrollments,
+    recent_activity,
+    programs,
+    kpi_set: 'institution',
+  };
+}
+
 async function getAdminDashboardStats(requester) {
+  const kpi_set = resolveDashboardKpiSet(requester);
+  if (kpi_set === 'institution') {
+    return getInstitutionDashboardStats(requester);
+  }
+
   const [users, universities, cohorts, assessments, pending_enrollments, recent_activity] =
     await Promise.all([
       countUsers(requester),
@@ -115,7 +199,8 @@ async function getAdminDashboardStats(requester) {
     assessments,
     pending_enrollments,
     recent_activity,
+    kpi_set,
   };
 }
 
-module.exports = { getAdminDashboardStats };
+module.exports = { getAdminDashboardStats, resolveDashboardKpiSet, resolveDashboardKpiSet: resolveDashboardKpiSet };

@@ -2,6 +2,10 @@
   "mainMenu": "Main menu",
   "admin": {
     "groups": {
+      "main": "Main menu",
+      "organizations": "Organizations",
+      "training": "Training",
+      "platform": "Platform",
       "general": "General management",
       "institutionTraining": "Training management",
       "contentHelp": "Content & help management",
@@ -11,11 +15,16 @@
       "accreditation": "Accreditation and reports"
     },
     "items": {
-      "dashboard": "Home",
+      "dashboard": "Dashboard",
       "analytics": "Analytics & statistics",
       "courses": "Course management",
       "trainingCourses": "Training courses",
-      "fieldTraining": "Field training management",
+      "fieldTraining": "Field training",
+      "students": "Students",
+      "instructors": "Instructors",
+      "trainees": "Trainees",
+      "trainers": "Trainers",
+      "help": "Help",
       "userGuide": "User guide",
       "contentHubHelp": "User guide",
       "contentHubTours": "Onboarding tours",
@@ -60,8 +69,8 @@
     }
   },
   "instructor": {
-    "home": "Home",
-    "cohorts": "My cohorts",
+    "home": "Dashboard",
+    "cohorts": "My courses",
     "sessions": "Sessions",
     "attendance": "Attendance",
     "assessments": "Assessments",
@@ -104,8 +113,9 @@
     "home": "Home",
     "trainingPrograms": "My training courses",
     "availableCohorts": "Browse cohorts",
-    "courses": "Courses",
-    "fieldTraining": "Field training opportunities",
+    "microCredentials": "Micro-credentials",
+    "courses": "My courses",
+    "fieldTraining": "Field training",
     "userGuide": "User guide",
     "programs": "My enrolled credentials",
     "semesterSchedule": "Registered training programs",

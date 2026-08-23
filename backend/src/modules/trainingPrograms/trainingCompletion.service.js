@@ -10,6 +10,7 @@
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const { recordAudit } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
 const { buildIndividualTrainingReportData } = require('./trainingReportBuilders.service');
@@ -26,20 +27,6 @@ const REPORT_THRESHOLDS = Object.freeze({
   LOW_CONTENT_SCORE: 3.5,
   HIGH_DROPOUT_PCT: 20,
 });
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
-}
 
 function assertManagerAccess(requester, { allowReviewer = true } = {}) {
   if (isSystemWideAdmin(requester)) return;

@@ -45,6 +45,7 @@ const {
 const { getAiSupportedFileTypesConfig } = require('./fieldTraining.contentExtract');
 const { assertActiveSpecialty } = require('../specialties/specialties.service');
 const { prisma } = require('../../config/db');
+const { buildListMeta } = require('../../utils/pagination');
 
 function resolveTaskGradingModeFromBody(body) {
   if (body.grading_mode != null) {
@@ -233,24 +234,21 @@ async function listAdminOpportunities(query, user) {
     skip,
     take: page_size,
   });
-  const eligibilityCounts = await ftEligibility.countActiveByOpportunityIds(
-    opportunities.map((row) => row.id)
-  );
-  const eligibilitySummaries = await ftEligibility.summarizeEligibilityByOpportunityIds(
-    opportunities.map((row) => row.id)
-  );
-  const applicationCounts = await repo.aggregateApplicationCountsForOpportunities(
-    opportunities.map((row) => row.id),
-    {
-      studentUniversityId: user?.universityId && !isSystemWideAdmin(user) ? user.universityId : undefined,
-    }
-  );
+  const opportunityIds = opportunities.map((row) => row.id);
   const instructorIds = [
     ...new Set(opportunities.map((row) => row.assigned_instructor_id).filter(Boolean)),
   ];
-  const instructors = instructorIds.length ? await repo.findUsersByIds(instructorIds) : [];
+  const [eligibilityCounts, eligibilitySummaries, applicationCounts, instructors, opsStats] =
+    await Promise.all([
+      ftEligibility.countActiveByOpportunityIds(opportunityIds),
+      ftEligibility.summarizeEligibilityByOpportunityIds(opportunityIds),
+      repo.aggregateApplicationCountsForOpportunities(opportunityIds, {
+        studentUniversityId: user?.universityId && !isSystemWideAdmin(user) ? user.universityId : undefined,
+      }),
+      instructorIds.length ? repo.findUsersByIds(instructorIds) : Promise.resolve([]),
+      repo.aggregateInstructorListStats(opportunityIds),
+    ]);
   const instructorById = Object.fromEntries(instructors.map((instructor) => [instructor.id, instructor]));
-  const opsStats = await repo.aggregateInstructorListStats(opportunities.map((row) => row.id));
 
   return {
     opportunities: opportunities.map((row) => {
@@ -274,7 +272,7 @@ async function listAdminOpportunities(query, user) {
         at_risk_count: stats.at_risk_count ?? 0,
       };
     }),
-    meta: { page, page_size, total, total_pages: Math.max(1, Math.ceil(total / page_size)) },
+    meta: buildListMeta(total, page, page_size),
   };
 }
 

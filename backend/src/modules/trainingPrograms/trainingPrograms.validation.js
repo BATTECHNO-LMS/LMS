@@ -5,6 +5,9 @@ const { z } = require('zod');
 const uuidParam = z.object({ id: z.string().uuid() });
 const orgIdParam = z.object({ organizationId: z.string().uuid() });
 const programIdParam = z.object({ programId: z.string().uuid() });
+const traineeProgramDetailQuery = z.object({
+  sections: z.string().max(120).optional(),
+});
 const cohortIdParam = z.object({ cohortId: z.string().uuid() });
 const sessionIdParam = z.object({ sessionId: z.string().uuid() });
 const taskIdParam = z.object({ taskId: z.string().uuid() });
@@ -342,6 +345,7 @@ module.exports = {
   uuidParam,
   orgIdParam,
   programIdParam,
+  traineeProgramDetailQuery,
   cohortIdParam,
   sessionIdParam,
   taskIdParam,

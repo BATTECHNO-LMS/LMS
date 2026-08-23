@@ -1,6 +1,6 @@
 const express = require('express');
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { authorizeRoles } = require('../../middlewares/authorization.middleware');
+const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const adminFieldTrainingController = require('./adminFieldTraining.controller');
@@ -37,6 +37,8 @@ const {
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
+router.use(authenticate);
+router.use(requireOrganizationType('UNIVERSITY'));
 const reportController = require('./fieldTrainingReport.controller');
 const { applicationIdParamSchema: reportApplicationIdParamSchema } = require('./fieldTrainingReport.validation');
 const instructorOnly = authorizeRoles(...env.FIELD_TRAINING_INSTRUCTOR_ROLE_CODES);

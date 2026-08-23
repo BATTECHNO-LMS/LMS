@@ -6,6 +6,7 @@ const { prisma } = require('../../config/db');
 const { env } = require('../../config/env');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const repo = require('./courses.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 /** Persist relative upload keys when possible so URLs stay portable across environments. */
 function normalizeCoverForStorage(value) {
@@ -105,10 +106,9 @@ async function listAdminCourses(query) {
     skip,
     take: page_size,
   });
-  const total_pages = Math.max(1, Math.ceil(total / page_size));
   return {
     courses,
-    meta: { page, page_size, total, total_pages },
+    meta: buildListMeta(total, page, page_size),
   };
 }
 
@@ -385,9 +385,14 @@ async function listStudentCourses(query, studentId) {
     }
   }
   const rows = await repo.findPublishedManyForStudent({ where }, studentId);
+  const enrollments = await repo.findEnrollmentsForStudentCourses(
+    studentId,
+    rows.map((c) => c.id)
+  );
+  const enrollmentByCourseId = new Map(enrollments.map((e) => [e.course_id, e]));
   const courses = await Promise.all(
     rows.map(async (c) => {
-      const enrollment = await repo.findEnrollment(c.id, studentId);
+      const enrollment = enrollmentByCourseId.get(c.id) || null;
       const progressInfo = enrollment
         ? await computeProgressPercent(c.id, studentId)
         : { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };

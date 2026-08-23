@@ -14,8 +14,10 @@ export async function listTrainerCourses() {
   return unwrapApiData(res);
 }
 
-export async function getTrainerCourse(programId) {
-  const res = await apiClient.get(`${base}/trainer/courses/${programId}`);
+export async function getTrainerCourse(programId, { sections } = {}) {
+  const res = await apiClient.get(`${base}/trainer/courses/${programId}`, {
+    params: sections ? { sections } : undefined,
+  });
   return unwrapApiData(res);
 }
 

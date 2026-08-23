@@ -4,6 +4,7 @@ const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { emitDomainEvent } = require('../notificationEngine');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 
 const REVISION_STATUSES = new Set(['REVISION_REQUESTED', 'REOPENED', 'RETURNED']);
@@ -20,20 +21,6 @@ function requireOrgWrite(requester) {
   ) {
     throw new ApiError(403, 'Forbidden');
   }
-}
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 function parseSettings(settingsJson) {

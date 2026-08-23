@@ -72,6 +72,13 @@ import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
 import { RouteFallback } from '../../../components/common/RouteFallback.jsx';
+import { trainingProgramStatusLabel } from '../../../features/training/trainingProgramStatus.js';
+import {
+  formatTrainingDateAr,
+  formatTrainingDateRangeShort,
+  parseCourseDomains,
+  MultilineBlock,
+} from './trainingCourseDetailUi.jsx';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: BookOpen },
@@ -90,76 +97,6 @@ const TABS = [
   { id: 'finalization', label: 'إنهاء التدريب والتقارير', icon: FileBarChart2 },
   { id: 'settings', label: 'الإعدادات', icon: Settings },
 ];
-
-function statusLabel(status) {
-  const map = {
-    DRAFT: 'مسودة',
-    PUBLISHED: 'منشورة',
-    REGISTRATION_OPEN: 'التسجيل مفتوح',
-    REGISTRATION_CLOSED: 'التسجيل مغلق',
-    IN_PROGRESS: 'قيد التنفيذ',
-    COMPLETED: 'مكتملة',
-    CANCELLED: 'ملغاة',
-    ARCHIVED: 'مؤرشفة',
-  };
-  return map[status] || status || '—';
-}
-
-function formatDateAr(value) {
-  if (!value) return null;
-  const raw = String(value).slice(0, 10);
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
-  if (!m) return null;
-  const iso = `${m[1]}-${m[2]}-${m[3]}T12:00:00+03:00`;
-  try {
-    return new Intl.DateTimeFormat('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'Asia/Amman',
-    }).format(new Date(iso));
-  } catch {
-    return raw;
-  }
-}
-
-function formatDateRangeShort(start, end) {
-  const s = formatDateAr(start);
-  const e = formatDateAr(end);
-  if (s && e) {
-    const startShort = s.replace(/\s*2026\s*$/, '').trim();
-    return `${startShort} – ${e}`;
-  }
-  if (s) return s;
-  if (e) return e;
-  return '—';
-}
-
-function parseDomains(course) {
-  if (Array.isArray(course?.domains) && course.domains.length) {
-    return course.domains.map((d) => String(d).trim()).filter(Boolean);
-  }
-  return String(course?.field || '')
-    .split(/[،,•|]/)
-    .map((d) => d.trim())
-    .filter(Boolean);
-}
-
-function MultilineBlock({ text }) {
-  if (!text) return <p className="muted">—</p>;
-  const lines = String(text)
-    .split(/\n+/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length <= 1) return <p style={{ whiteSpace: 'pre-wrap', lineHeight: 1.8 }}>{text}</p>;
-  return (
-    <ul style={{ margin: 0, paddingInlineStart: '1.25rem', lineHeight: 1.85 }}>
-      {lines.map((line) => (
-        <li key={line}>{line}</li>
-      ))}
-    </ul>
-  );
-}
 
 export function AdminTrainingCourseDetailPage() {
   const { programId } = useParams();
@@ -355,7 +292,7 @@ export function AdminTrainingCourseDetailPage() {
     [assessments]
   );
 
-  const domains = useMemo(() => parseDomains(course), [course]);
+  const domains = useMemo(() => parseCourseDomains(course), [course]);
   const leadTrainer = useMemo(() => {
     if (course?.leadTrainer?.fullName) return course.leadTrainer;
     const lead = assignments.find((a) => a.isLeadTrainer || a.is_lead_trainer);
@@ -370,8 +307,8 @@ export function AdminTrainingCourseDetailPage() {
       userId: lead.trainerUserId || lead.trainer_user_id,
     };
   }, [course, assignments]);
-  const startLabel = formatDateAr(course?.startDate);
-  const endLabel = formatDateAr(course?.endDate);
+  const startLabel = formatTrainingDateAr(course?.startDate);
+  const endLabel = formatTrainingDateAr(course?.endDate);
 
   if (loading) {
     return (
@@ -400,7 +337,7 @@ export function AdminTrainingCourseDetailPage() {
         title={course.title}
         description={
           <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-            <StatusBadge variant="info">{statusLabel(course.status)}</StatusBadge>
+            <StatusBadge variant="info">{trainingProgramStatusLabel(course.status)}</StatusBadge>
             <span>{course.organizationName || course.organization?.name || 'مؤسسة'}</span>
             {course.code ? (
               <span dir="ltr" style={{ fontFamily: 'ui-monospace, monospace' }}>
@@ -457,7 +394,7 @@ export function AdminTrainingCourseDetailPage() {
           <AdminStatsGrid>
             <StatCard
               label="مدة البرنامج"
-              value={formatDateRangeShort(course.startDate, course.endDate)}
+              value={formatTrainingDateRangeShort(course.startDate, course.endDate)}
               icon={CalendarDays}
             />
             <StatCard

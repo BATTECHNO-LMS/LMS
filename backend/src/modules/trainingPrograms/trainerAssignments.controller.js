@@ -27,7 +27,9 @@ async function getCourse(req, res, next) {
   try {
     return success(
       res,
-      await service.getTrainerCourse(requester(req), req.validated.params.programId)
+      await service.getTrainerCourse(requester(req), req.validated.params.programId, {
+        sections: req.validated?.query?.sections,
+      })
     );
   } catch (e) {
     return next(e);

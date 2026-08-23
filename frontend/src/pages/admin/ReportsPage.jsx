@@ -9,7 +9,7 @@ import { useTenant } from '../../features/tenant/index.js';
 import { useReport, useExportReport } from '../../features/reports/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 
-const REPORT_TYPES = ['universities', 'cohorts', 'attendance', 'assessments', 'recognition', 'certificates'];
+const REPORT_TYPES = ['universities', 'cohorts', 'attendance', 'assessments', 'certificates'];
 
 export function ReportsPage() {
   const { t } = useTranslation('common');

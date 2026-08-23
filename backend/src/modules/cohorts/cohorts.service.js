@@ -11,18 +11,8 @@ const { prisma } = require('../../config/db');
 const cohortsRepository = require('./cohorts.repository');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
 const { resolvePrimaryUniversityId } = require('../../utils/studentScope');
-
-function parseDateOnly(s) {
-  const d = new Date(`${s}T00:00:00.000Z`);
-  if (Number.isNaN(d.getTime())) throw new ApiError(400, 'Invalid date');
-  return d;
-}
-
-function dateOnlyISO(d) {
-  if (!d) return null;
-  const x = d instanceof Date ? d : new Date(d);
-  return x.toISOString().slice(0, 10);
-}
+const { dateOnlyISO, parseDateOnly } = require('../../utils/dateOnly');
+const { buildListMeta } = require('../../utils/pagination');
 
 async function loadUserBrief(id) {
   if (!id) return null;
@@ -190,15 +180,9 @@ async function listCohorts(query, requester) {
     cohortsRepository.findMany(where, { skip: query.skip, take: query.take }),
   ]);
   const cohorts = await serializeCohortListRows(rows);
-  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     cohorts,
-    meta: {
-      page: query.page,
-      page_size: query.page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, query.page, query.page_size),
   };
 }
 

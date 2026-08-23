@@ -370,7 +370,12 @@ async function listStudentPrograms(req, res, next) {
 }
 async function getTraineeProgramDetail(req, res, next) {
   try {
-    return success(res, await service.getTraineeProgramDetail(R(req), req.validated.params.programId));
+    return success(
+      res,
+      await service.getTraineeProgramDetail(R(req), req.validated.params.programId, {
+        sections: req.validated?.query?.sections,
+      })
+    );
   } catch (e) {
     return next(e);
   }

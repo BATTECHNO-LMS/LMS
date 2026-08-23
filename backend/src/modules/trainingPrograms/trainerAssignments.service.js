@@ -20,6 +20,7 @@ const {
   TRAINER_PERMISSION_KEYS,
 } = require('./trainerScope');
 const { resolveTrainerAssignmentPermissions } = require('./trainerPermissionPolicy');
+const { resolveTrainerCourseSections } = require('./trainerCourseSections');
 
 function requireOrgAdmin(requester, organizationId) {
   assertOrganizationAccess(requester, organizationId);
@@ -313,7 +314,8 @@ async function listTrainerCourses(requester) {
   return [...byProgram.values()];
 }
 
-async function getTrainerCourse(requester, programId) {
+async function getTrainerCourse(requester, programId, { sections } = {}) {
+  const wanted = resolveTrainerCourseSections(sections);
   const rows = await listTrainerAssignmentsForProgram(requester.userId, programId);
   if (!rows.length && !requester.isGlobal) {
     throw new ApiError(403, 'لا تملك تعيينًا نشطًا لهذه الدورة التدريبية.');
@@ -354,102 +356,116 @@ async function getTrainerCourse(requester, programId) {
   });
   const cohortIds = cohorts.map((c) => c.id);
 
-  const traineeCount = cohortIds.length
-    ? await prisma.training_enrollments.count({
-        where: {
-          cohort_id: { in: cohortIds },
-          status: { in: ['APPROVED', 'ACTIVE', 'COMPLETED', 'REQUIREMENTS_COMPLETED'] },
-        },
-      })
-    : 0;
-
   const now = new Date();
-  const [sessions, tasks, assessments, enrollments, pendingSubmissions, unconfirmedAttendance, programRow] =
-    await Promise.all([
-      cohortIds.length
-        ? prisma.training_sessions.findMany({
-            where: { cohort_id: { in: cohortIds } },
-            orderBy: { starts_at: 'asc' },
-            take: 100,
-            select: {
-              id: true,
-              title: true,
-              starts_at: true,
-              ends_at: true,
-              session_type: true,
-              status: true,
-              cohort_id: true,
-              meeting_url: true,
-              location: true,
-            },
-          })
-        : [],
-      prisma.training_tasks.findMany({
-        where: { program_id: programId },
-        orderBy: { created_at: 'desc' },
-        take: 50,
-        select: {
-          id: true,
-          title: true,
-          due_at: true,
-          published_at: true,
-          is_required: true,
-          is_final_task: true,
-          max_score: true,
-          grading_mode: true,
+  const jobs = {
+    traineeCount: cohortIds.length
+      ? prisma.training_enrollments.count({
+          where: {
+            cohort_id: { in: cohortIds },
+            status: { in: ['APPROVED', 'ACTIVE', 'COMPLETED', 'REQUIREMENTS_COMPLETED'] },
+          },
+        })
+      : Promise.resolve(0),
+    pendingSubmissions: cohortIds.length
+      ? prisma.training_task_submissions.count({
+          where: {
+            status: { in: ['SUBMITTED', 'RESUBMITTED'] },
+            training_tasks: { program_id: programId },
+            training_enrollments: { cohort_id: { in: cohortIds } },
+          },
+        })
+      : Promise.resolve(0),
+    unconfirmedAttendance: cohortIds.length
+      ? prisma.training_attendance_records.count({
+          where: {
+            confirmed_at: null,
+            status: 'absent',
+            training_sessions: { cohort_id: { in: cohortIds }, starts_at: { lt: now } },
+          },
+        })
+      : Promise.resolve(0),
+    programRow: prisma.training_programs.findUnique({
+      where: { id: programId },
+    }),
+  };
+  if (wanted.has('sessions') && cohortIds.length) {
+    jobs.sessions = prisma.training_sessions.findMany({
+      where: { cohort_id: { in: cohortIds } },
+      orderBy: { starts_at: 'asc' },
+      take: 100,
+      select: {
+        id: true,
+        title: true,
+        starts_at: true,
+        ends_at: true,
+        session_type: true,
+        status: true,
+        cohort_id: true,
+        meeting_url: true,
+        location: true,
+      },
+    });
+  }
+  if (wanted.has('tasks')) {
+    jobs.tasks = prisma.training_tasks.findMany({
+      where: { program_id: programId },
+      orderBy: { created_at: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        title: true,
+        due_at: true,
+        published_at: true,
+        is_required: true,
+        is_final_task: true,
+        max_score: true,
+        grading_mode: true,
+      },
+    });
+  }
+  if (wanted.has('assessments')) {
+    jobs.assessments = prisma.training_assessments.findMany({
+      where: { program_id: programId },
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        is_published: true,
+        opens_at: true,
+        closes_at: true,
+        pass_score: true,
+        duration_minutes: true,
+      },
+    });
+  }
+  if (wanted.has('trainees') && permissions.canViewTrainees && cohortIds.length) {
+    jobs.enrollments = prisma.training_enrollments.findMany({
+      where: {
+        cohort_id: { in: cohortIds },
+        status: {
+          in: ['APPROVED', 'ACTIVE', 'COMPLETED', 'REQUIREMENTS_COMPLETED', 'INVITED'],
         },
-      }),
-      prisma.training_assessments.findMany({
-        where: { program_id: programId },
-        select: {
-          id: true,
-          kind: true,
-          title: true,
-          is_published: true,
-          opens_at: true,
-          closes_at: true,
-          pass_score: true,
-          duration_minutes: true,
-        },
-      }),
-      permissions.canViewTrainees && cohortIds.length
-        ? prisma.training_enrollments.findMany({
-            where: {
-              cohort_id: { in: cohortIds },
-              status: {
-                in: ['APPROVED', 'ACTIVE', 'COMPLETED', 'REQUIREMENTS_COMPLETED', 'INVITED'],
-              },
-            },
-            include: {
-              training_progress: true,
-              training_cohorts: { select: { id: true, name: true, branch_id: true } },
-            },
-            take: 200,
-            orderBy: { created_at: 'desc' },
-          })
-        : Promise.resolve([]),
-      cohortIds.length
-        ? prisma.training_task_submissions.count({
-            where: {
-              status: { in: ['SUBMITTED', 'RESUBMITTED'] },
-              training_tasks: { program_id: programId },
-              training_enrollments: { cohort_id: { in: cohortIds } },
-            },
-          })
-        : 0,
-      cohortIds.length
-        ? prisma.training_attendance_records.count({
-            where: {
-              confirmed_at: null,
-              status: 'absent',
-              training_sessions: { cohort_id: { in: cohortIds }, starts_at: { lt: now } },
-            },
-          })
-        : 0,
-      prisma.training_programs.findUnique({
-        where: { id: programId },
-      }),
-    ]);
+      },
+      include: {
+        training_progress: true,
+        training_cohorts: { select: { id: true, name: true, branch_id: true } },
+      },
+      take: 200,
+      orderBy: { created_at: 'desc' },
+    });
+  }
+
+  const jobKeys = Object.keys(jobs);
+  const jobValues = await Promise.all(jobKeys.map((key) => jobs[key]));
+  const bag = Object.fromEntries(jobKeys.map((key, i) => [key, jobValues[i]]));
+  const sessions = bag.sessions || [];
+  const tasks = bag.tasks || [];
+  const assessments = bag.assessments || [];
+  const enrollments = bag.enrollments || [];
+  const pendingSubmissions = bag.pendingSubmissions;
+  const unconfirmedAttendance = bag.unconfirmedAttendance;
+  const programRow = bag.programRow;
+  const traineeCount = bag.traineeCount || 0;
 
   const userIds = [...new Set((enrollments || []).map((e) => e.user_id))];
   const users = userIds.length
@@ -512,7 +528,7 @@ async function getTrainerCourse(requester, programId) {
       }
     : assignment?.program || null;
 
-  return {
+  const payload = {
     assignment,
     assignments: rows.map(mapAssignment),
     program: programFull,
@@ -542,7 +558,9 @@ async function getTrainerCourse(requester, programId) {
       unconfirmedAttendance,
       atRiskCount: atRiskTrainees.length,
     },
-    sessions: sessions.map((s) => ({
+  };
+  if (wanted.has('sessions')) {
+    payload.sessions = sessions.map((s) => ({
       id: s.id,
       title: s.title,
       startsAt: s.starts_at,
@@ -552,8 +570,10 @@ async function getTrainerCourse(requester, programId) {
       cohortId: s.cohort_id,
       meetingUrl: s.meeting_url,
       location: s.location,
-    })),
-    tasks: tasks.map((t) => ({
+    }));
+  }
+  if (wanted.has('tasks')) {
+    payload.tasks = tasks.map((t) => ({
       id: t.id,
       title: t.title,
       deadline: t.due_at,
@@ -562,8 +582,10 @@ async function getTrainerCourse(requester, programId) {
       isFinal: t.is_final_task,
       maxScore: t.max_score,
       gradingMode: t.grading_mode,
-    })),
-    assessments: assessments.map((a) => ({
+    }));
+  }
+  if (wanted.has('assessments')) {
+    payload.assessments = assessments.map((a) => ({
       id: a.id,
       kind: a.kind,
       title: a.title,
@@ -572,20 +594,23 @@ async function getTrainerCourse(requester, programId) {
       closesAt: a.closes_at,
       passScore: a.pass_score,
       durationMinutes: a.duration_minutes,
-    })),
-    trainees,
-    progressRows: permissions.canViewProgress ? trainees : [],
-    reportsSummary: permissions.canViewReports
-      ? {
-          traineeCount,
-          totalSessions: sessions.length,
-          completedSessions,
-          pendingSubmissions,
-          unconfirmedAttendance,
-          atRiskCount: atRiskTrainees.length,
-        }
-      : null,
-  };
+    }));
+  }
+  if (wanted.has('trainees')) {
+    payload.trainees = trainees;
+    payload.progressRows = permissions.canViewProgress ? trainees : [];
+  }
+  payload.reportsSummary = permissions.canViewReports
+    ? {
+        traineeCount,
+        totalSessions: sessions.length,
+        completedSessions,
+        pendingSubmissions,
+        unconfirmedAttendance,
+        atRiskCount: atRiskTrainees.length,
+      }
+    : null;
+  return payload;
 }
 
 async function getTrainerDashboard(requester) {

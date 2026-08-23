@@ -39,6 +39,7 @@ import { CompletionStatusBadge } from '../../features/training/components/comple
 import { AppModal } from '../../components/designSystem/AppModal.jsx';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
+import { mergeTrainerCourseDetail } from '../../features/training/mergeCourseDetail.js';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', perm: null },
@@ -104,13 +105,13 @@ export function TrainerCoursePage() {
   const [reportEnrollmentId, setReportEnrollmentId] = useState(null);
   const [certificatePreview, setCertificatePreview] = useState(null);
 
-  async function refresh() {
+  async function refresh(sections = 'overview') {
     if (!programId) return;
     setLoading(true);
     setError('');
     try {
-      const course = await getTrainerCourse(programId);
-      setData(course);
+      const course = await getTrainerCourse(programId, { sections });
+      setData((prev) => mergeTrainerCourseDetail(prev, course));
       setSessionForm((prev) => ({
         ...prev,
         cohort_id: prev.cohort_id || course?.cohorts?.[0]?.id || '',
@@ -130,9 +131,32 @@ export function TrainerCoursePage() {
   }
 
   useEffect(() => {
-    refresh();
+    refresh('overview');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programId]);
+
+  useEffect(() => {
+    if (!programId || loading || !data) return;
+    let sections = null;
+    if ((tab === 'sessions' || tab === 'attendance') && !data.sessions) sections = 'sessions';
+    else if ((tab === 'trainees' || tab === 'progress' || tab === 'certificates') && !data.trainees) {
+      sections = 'trainees';
+    }
+    if (!sections) return;
+    let cancelled = false;
+    getTrainerCourse(programId, { sections })
+      .then((course) => {
+        if (cancelled) return;
+        setData((prev) => mergeTrainerCourseDetail(prev, course));
+        setAttendanceSessionId((prev) => prev || course?.sessions?.[0]?.id || '');
+      })
+      .catch((err) => {
+        if (!cancelled) setError(getApiErrorMessage(err, 'تعذر تحميل محتوى التبويب.'));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, programId, loading, data]);
 
   useEffect(() => {
     if (tab !== 'assessments' || !programId) return;
@@ -356,7 +380,7 @@ export function TrainerCoursePage() {
                     location: '',
                     meeting_url: '',
                   }));
-                  await refresh();
+                  await refresh('sessions');
                 } catch (err) {
                   setError(getApiErrorMessage(err, 'تعذر إنشاء الجلسة.'));
                 } finally {
@@ -427,7 +451,9 @@ export function TrainerCoursePage() {
               </Button>
             </form>
           )}
-          {data?.sessions?.length ? (
+          {!data?.sessions ? (
+            <LoadingSpinner />
+          ) : data.sessions.length ? (
             <ul className="simple-list">
               {data.sessions.map((session) => (
                 <li key={session.id}>
@@ -476,7 +502,7 @@ export function TrainerCoursePage() {
                           try {
                             await updateSession(session.id, { status: 'CANCELLED' });
                             setMessage('تم إلغاء الجلسة.');
-                            await refresh();
+                            await refresh('sessions');
                           } catch (err) {
                             setError(getApiErrorMessage(err, 'تعذر إلغاء الجلسة.'));
                           } finally {
@@ -715,7 +741,9 @@ export function TrainerCoursePage() {
 
       {activeTab === 'trainees' ? (
         <SectionCard title="المتدربون">
-          {data?.trainees?.length ? (
+          {!data?.trainees ? (
+            <LoadingSpinner />
+          ) : data.trainees.length ? (
             <ul className="simple-list">
               {data.trainees.map((trainee) => (
                 <li key={trainee.enrollmentId}>
@@ -745,7 +773,9 @@ export function TrainerCoursePage() {
 
       {activeTab === 'progress' ? (
         <SectionCard title="التقدم">
-          {data?.progressRows?.length ? (
+          {!data?.progressRows && !data?.trainees ? (
+            <LoadingSpinner />
+          ) : data?.progressRows?.length ? (
             <ul className="simple-list">
               {data.progressRows.map((row) => (
                 <li key={row.enrollmentId}>
@@ -926,7 +956,7 @@ export function TrainerCoursePage() {
                     field: settingsForm.field || null,
                   });
                   setMessage('تم حفظ الإعدادات التشغيلية.');
-                  await refresh();
+                  await refresh('overview');
                 } catch (err) {
                   setError(getApiErrorMessage(err, 'تعذر حفظ الإعدادات.'));
                 } finally {

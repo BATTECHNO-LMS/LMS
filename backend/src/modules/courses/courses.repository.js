@@ -283,6 +283,13 @@ async function findEnrollment(courseId, studentId) {
   });
 }
 
+async function findEnrollmentsForStudentCourses(studentId, courseIds) {
+  if (!courseIds.length) return [];
+  return prisma.course_enrollments.findMany({
+    where: { student_id: studentId, course_id: { in: courseIds } },
+  });
+}
+
 async function upsertEnrollment(courseId, studentId) {
   return prisma.course_enrollments.upsert({
     where: {
@@ -362,6 +369,7 @@ module.exports = {
   findLessonInCourse,
   reorderLessons,
   findEnrollment,
+  findEnrollmentsForStudentCourses,
   upsertEnrollment,
   markEnrollmentCompleted,
   findProgressForCourse,

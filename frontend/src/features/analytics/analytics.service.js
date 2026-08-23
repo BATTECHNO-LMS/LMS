@@ -18,11 +18,6 @@ export async function fetchAnalyticsOverview(filters = {}) {
   return unwrapApiData(res);
 }
 
-export async function fetchAnalyticsDomain(domain, filters = {}) {
-  const res = await apiClient.get(`${endpoints.analytics}/${domain}`, { params: toApiParams(filters) });
-  return unwrapApiData(res);
-}
-
 export async function downloadAnalyticsPdf(filters = {}, lang = 'ar') {
   const params = { ...toApiParams(filters), lang: lang === 'en' ? 'en' : 'ar' };
   const res = await apiClient.get(`${endpoints.analytics}/export/pdf`, {

@@ -3,6 +3,7 @@ const { ApiError } = require('../../utils/apiError');
 const { normalizeType } = require('../../shared/services/notification.service');
 const { CATEGORIES, CHANNELS } = require('../notificationEngine/notificationEvents.catalog');
 const repo = require('./notifications.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 function mapNotification(n) {
   return {
@@ -38,15 +39,9 @@ async function listNotifications(query, requester) {
     repo.countForUser(requester.userId, where),
     repo.findManyForUser(requester.userId, where, { skip: query.skip, take: query.take }),
   ]);
-  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     notifications: rows.map(mapNotification),
-    meta: {
-      page: query.page,
-      page_size: query.page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, query.page, query.page_size),
   };
 }
 

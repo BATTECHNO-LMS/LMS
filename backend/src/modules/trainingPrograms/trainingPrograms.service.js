@@ -6,6 +6,8 @@ const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { recordAudit } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
+const { resolveTraineeDetailSections } = require('./traineeProgramDetailSections');
 
 function requireOrgWrite(requester) {
   if (isSystemWideAdmin(requester)) return;
@@ -19,20 +21,6 @@ function requireOrgWrite(requester) {
   ) {
     throw new ApiError(403, 'Forbidden');
   }
-}
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 async function assertTrainerCohortAccess(requester, cohortId, permissionKey = null) {
@@ -1786,7 +1774,8 @@ async function getEnrollmentCertificate(requester, enrollmentId) {
   };
 }
 
-async function getTraineeProgramDetail(requester, programId) {
+async function getTraineeProgramDetail(requester, programId, { sections } = {}) {
+  const wanted = resolveTraineeDetailSections(sections);
   const enrollment = await prisma.training_enrollments.findFirst({
     where: {
       user_id: requester.userId,
@@ -1809,84 +1798,99 @@ async function getTraineeProgramDetail(requester, programId) {
   if (program.type !== 'TRAINING_COURSE') {
     throw new ApiError(404, 'الدورة غير موجودة', null, 'TRAINING_PROGRAM_NOT_FOUND');
   }
-  const [sessions, tasks, assessments, materials, certificate, submissions, attendance, trainerCount] =
-    await Promise.all([
-      prisma.training_sessions.findMany({
-        where: { cohort_id: enrollment.cohort_id },
-        orderBy: { starts_at: 'asc' },
-        select: {
-          id: true,
-          title: true,
-          starts_at: true,
-          ends_at: true,
-          status: true,
-          location: true,
-          meeting_url: true,
+
+  const jobs = {
+    trainerCount: prisma.training_trainer_assignments.count({
+      where: { training_program_id: programId, is_active: true, revoked_at: null },
+    }),
+  };
+  if (wanted.has('sessions')) {
+    jobs.sessions = prisma.training_sessions.findMany({
+      where: { cohort_id: enrollment.cohort_id },
+      orderBy: { starts_at: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        starts_at: true,
+        ends_at: true,
+        status: true,
+        location: true,
+        meeting_url: true,
+      },
+    });
+    jobs.attendance = prisma.training_attendance_records.findMany({
+      where: { enrollment_id: enrollment.id },
+      select: { session_id: true, status: true, confirmed_at: true },
+    });
+  }
+  if (wanted.has('tasks')) {
+    jobs.tasks = prisma.training_tasks.findMany({
+      where: { program_id: programId, published_at: { not: null } },
+      orderBy: { created_at: 'desc' },
+    });
+    jobs.submissions = prisma.training_task_submissions.findMany({
+      where: { enrollment_id: enrollment.id },
+    });
+  }
+  if (wanted.has('assessments')) {
+    jobs.assessments = prisma.training_assessments.findMany({
+      where: { program_id: programId, is_published: true },
+      select: {
+        id: true,
+        kind: true,
+        title: true,
+        code: true,
+        duration_minutes: true,
+        max_attempts: true,
+        pass_score: true,
+        _count: { select: { training_assessment_questions: true } },
+        training_assessment_attempts: {
+          where: { enrollment_id: enrollment.id },
+          select: { id: true, score: true, status: true, submitted_at: true },
         },
-      }),
-      prisma.training_tasks.findMany({
-        where: { program_id: programId, published_at: { not: null } },
-        orderBy: { created_at: 'desc' },
-      }),
-      prisma.training_assessments.findMany({
-        where: { program_id: programId, is_published: true },
-        select: {
-          id: true,
-          kind: true,
-          title: true,
-          code: true,
-          duration_minutes: true,
-          max_attempts: true,
-          pass_score: true,
-          _count: { select: { training_assessment_questions: true } },
-          training_assessment_attempts: {
-            where: { enrollment_id: enrollment.id },
-            select: { id: true, score: true, status: true, submitted_at: true },
-          },
-        },
-      }),
-      prisma.training_materials.findMany({
-        where: {
-          program_id: programId,
-          is_published: true,
-          OR: [{ available_from: null }, { available_from: { lte: new Date() } }],
-        },
-        orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          material_type: true,
-          url: true,
-          storage_key: true,
-          file_id: true,
-          visibility: true,
-          duration_seconds: true,
-          session_id: true,
-          sort_order: true,
-        },
-      }),
-      prisma.training_certificates.findFirst({
-        where: { enrollment_id: enrollment.id, status: 'ISSUED' },
-        orderBy: { issued_at: 'desc' },
-        select: {
-          id: true,
-          certificate_number: true,
-          verification_code: true,
-          issued_at: true,
-        },
-      }),
-      prisma.training_task_submissions.findMany({
-        where: { enrollment_id: enrollment.id },
-      }),
-      prisma.training_attendance_records.findMany({
-        where: { enrollment_id: enrollment.id },
-        select: { session_id: true, status: true, confirmed_at: true },
-      }),
-      prisma.training_trainer_assignments.count({
-        where: { training_program_id: programId, is_active: true, revoked_at: null },
-      }),
-    ]);
+      },
+    });
+  }
+  if (wanted.has('materials')) {
+    jobs.materials = prisma.training_materials.findMany({
+      where: {
+        program_id: programId,
+        is_published: true,
+        OR: [{ available_from: null }, { available_from: { lte: new Date() } }],
+      },
+      orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        material_type: true,
+        url: true,
+        storage_key: true,
+        file_id: true,
+        visibility: true,
+        duration_seconds: true,
+        session_id: true,
+        sort_order: true,
+      },
+    });
+  }
+  if (wanted.has('certificate')) {
+    jobs.certificate = prisma.training_certificates.findFirst({
+      where: { enrollment_id: enrollment.id, status: 'ISSUED' },
+      orderBy: { issued_at: 'desc' },
+      select: {
+        id: true,
+        certificate_number: true,
+        verification_code: true,
+        issued_at: true,
+      },
+    });
+  }
+
+  const jobKeys = Object.keys(jobs);
+  const jobValues = await Promise.all(jobKeys.map((key) => jobs[key]));
+  const bag = Object.fromEntries(jobKeys.map((key, i) => [key, jobValues[i]]));
+
   const { snapshotFromProgressRow } = require('./trainingProgress.helpers');
   let progressSnapshot = snapshotFromProgressRow(enrollment.training_progress, enrollment.id);
   if (!progressSnapshot) {
@@ -1901,25 +1905,8 @@ async function getTraineeProgramDetail(requester, programId) {
   const contentLocked = Boolean(
     settings.preTestBlocksContent && preReq?.required && !preReq?.ok
   );
-  const attendanceBySession = new Map(attendance.map((a) => [a.session_id, a]));
-  const mappedSessions = sessions.map((s) => {
-    const rec = attendanceBySession.get(s.id);
-    return {
-      id: s.id,
-      title: s.title,
-      startsAt: s.starts_at,
-      endsAt: s.ends_at,
-      status: s.status,
-      location: s.location,
-      meetingUrl: s.meeting_url,
-      attendance: rec ? { status: rec.status, confirmedAt: rec.confirmed_at } : null,
-    };
-  });
-  const { getTraineeTaskListExtras } = require('./trainingTaskWorkflow.service');
-  const mappedTasks = contentLocked
-    ? []
-    : await getTraineeTaskListExtras(programId, tasks, submissions);
-  return {
+
+  const payload = {
     enrollmentId: enrollment.id,
     status: enrollment.status,
     program: mapProgramRow(program),
@@ -1933,11 +1920,38 @@ async function getTraineeProgramDetail(requester, programId) {
     contentLockReason: contentLocked
       ? 'يجب إكمال الاختبار القبلي قبل الوصول إلى محتوى الدورة.'
       : null,
-    trainerAssignmentNote: trainerCount === 0 ? 'لم يتم تعيين مدرب بعد' : null,
+    trainerAssignmentNote: bag.trainerCount === 0 ? 'لم يتم تعيين مدرب بعد' : null,
     progress: progressSnapshot,
-    sessions: contentLocked ? [] : mappedSessions,
-    tasks: mappedTasks,
-    assessments: assessments.map((a) => ({
+  };
+
+  if (wanted.has('sessions')) {
+    const sessions = bag.sessions || [];
+    const attendance = bag.attendance || [];
+    const attendanceBySession = new Map(attendance.map((a) => [a.session_id, a]));
+    payload.sessions = contentLocked
+      ? []
+      : sessions.map((s) => {
+          const rec = attendanceBySession.get(s.id);
+          return {
+            id: s.id,
+            title: s.title,
+            startsAt: s.starts_at,
+            endsAt: s.ends_at,
+            status: s.status,
+            location: s.location,
+            meetingUrl: s.meeting_url,
+            attendance: rec ? { status: rec.status, confirmedAt: rec.confirmed_at } : null,
+          };
+        });
+  }
+  if (wanted.has('tasks')) {
+    const { getTraineeTaskListExtras } = require('./trainingTaskWorkflow.service');
+    payload.tasks = contentLocked
+      ? []
+      : await getTraineeTaskListExtras(programId, bag.tasks || [], bag.submissions || []);
+  }
+  if (wanted.has('assessments')) {
+    payload.assessments = (bag.assessments || []).map((a) => ({
       id: a.id,
       kind: a.kind,
       title: a.title,
@@ -1952,8 +1966,11 @@ async function getTraineeProgramDetail(requester, programId) {
         status: at.status,
         submittedAt: at.submitted_at,
       })),
-    })),
-    materials: contentLocked
+    }));
+  }
+  if (wanted.has('materials')) {
+    const materials = bag.materials || [];
+    payload.materials = contentLocked
       ? []
       : materials
           .filter((m) => m.material_type !== 'RECORDED_LECTURE')
@@ -1965,8 +1982,8 @@ async function getTraineeProgramDetail(requester, programId) {
             url: m.url,
             hasFile: Boolean(m.storage_key || m.file_id),
             visibility: m.visibility,
-          })),
-    recordedLectures: contentLocked
+          }));
+    payload.recordedLectures = contentLocked
       ? []
       : materials
           .filter((m) => m.material_type === 'RECORDED_LECTURE')
@@ -1979,16 +1996,20 @@ async function getTraineeProgramDetail(requester, programId) {
             hasFile: Boolean(m.storage_key || m.file_id),
             hasExternalUrl: Boolean(m.url),
             sortOrder: m.sort_order,
-          })),
-    certificate: certificate
+          }));
+  }
+  if (wanted.has('certificate')) {
+    payload.certificate = bag.certificate
       ? {
-          id: certificate.id,
-          certificateNumber: certificate.certificate_number,
-          verificationCode: certificate.verification_code,
-          issuedAt: certificate.issued_at,
+          id: bag.certificate.id,
+          certificateNumber: bag.certificate.certificate_number,
+          verificationCode: bag.certificate.verification_code,
+          issuedAt: bag.certificate.issued_at,
         }
-      : null,
-  };
+      : null;
+  }
+
+  return payload;
 }
 
 async function listProgramMaterials(requester, programId) {

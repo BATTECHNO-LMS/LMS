@@ -8,6 +8,7 @@ const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const filesRepo = require('../files/files.repository');
 const { assertOrganizationAccess } = require('../../utils/organizationScope');
 const { isSystemWideAdmin } = require('../../utils/universityScope');
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 
 const RECORDED_LECTURE_TYPE = 'RECORDED_LECTURE';
 const EDUCATIONAL_TYPES = new Set(['LINK', 'FILE', 'DOCUMENT', 'IMAGE', 'ARCHIVE', 'OTHER']);
@@ -24,20 +25,6 @@ function requireOrgWrite(requester) {
   ) {
     throw new ApiError(403, 'Forbidden');
   }
-}
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = null) {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 function roleOf(requester) {

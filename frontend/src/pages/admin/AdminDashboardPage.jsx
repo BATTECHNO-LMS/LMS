@@ -28,6 +28,8 @@ export function AdminDashboardPage() {
   const isInstitutionAdmin =
     Boolean(user?.organizationType === 'INSTITUTION') &&
     (user?.role === ROLES.ADMIN || isSuperAdmin);
+  const isUniversityAdmin =
+    Boolean(user?.organizationType === 'UNIVERSITY') && user?.role === ROLES.ADMIN;
 
   const counts = useMemo(
     () => ({
@@ -67,13 +69,24 @@ export function AdminDashboardPage() {
         />
       ) : (
         <>
-          {isInstitutionAdmin || isSuperAdmin ? (
-            <SectionCard title={tr(isArabic, 'إجراءات سريعة للتدريب المؤسسي', 'Institution training quick actions')}>
+          {isSuperAdmin || isInstitutionAdmin || isUniversityAdmin ? (
+            <SectionCard
+              title={tr(
+                isArabic,
+                isInstitutionAdmin ? 'إجراءات سريعة' : 'إجراءات سريعة',
+                'Quick actions'
+              )}
+            >
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
                 {isSuperAdmin ? (
-                  <Link className="btn btn--outline btn--sm" to="/admin/institutions">
-                    <Building2 size={16} aria-hidden /> {tr(isArabic, 'عرض المؤسسات', 'View institutions')}
-                  </Link>
+                  <>
+                    <Link className="btn btn--outline btn--sm" to="/admin/universities">
+                      <Building2 size={16} aria-hidden /> {tr(isArabic, 'الجامعات', 'Universities')}
+                    </Link>
+                    <Link className="btn btn--outline btn--sm" to="/admin/institutions">
+                      <Building2 size={16} aria-hidden /> {tr(isArabic, 'المؤسسات', 'Institutions')}
+                    </Link>
+                  </>
                 ) : null}
                 <Link className="btn btn--primary btn--sm" to="/admin/training-courses/create">
                   <BookOpen size={16} aria-hidden />{' '}
@@ -82,6 +95,14 @@ export function AdminDashboardPage() {
                 <Link className="btn btn--outline btn--sm" to="/admin/training-courses">
                   {tr(isArabic, 'الدورات التدريبية', 'Training courses')}
                 </Link>
+                <Link className="btn btn--outline btn--sm" to="/admin/micro-credentials">
+                  {tr(isArabic, 'الشهادات المصغرة', 'Micro-credentials')}
+                </Link>
+                {isUniversityAdmin || isSuperAdmin ? (
+                  <Link className="btn btn--outline btn--sm" to="/admin/field-training">
+                    {tr(isArabic, 'التدريب الميداني', 'Field training')}
+                  </Link>
+                ) : null}
               </div>
             </SectionCard>
           ) : null}
@@ -93,27 +114,31 @@ export function AdminDashboardPage() {
               meta={t('admin.statsMeta')}
               icon={Users}
             />
+            {isInstitutionAdmin ? null : (
+              <StatCard
+                label={t('admin.stats.universities')}
+                value={String(counts.universities)}
+                hint={t('admin.statsHint')}
+                meta={t('admin.statsMeta')}
+                icon={Building2}
+              />
+            )}
             <StatCard
-              label={t('admin.stats.universities')}
-              value={String(counts.universities)}
-              hint={t('admin.statsHint')}
-              meta={t('admin.statsMeta')}
-              icon={Building2}
-            />
-            <StatCard
-              label={t('admin.stats.cohorts')}
+              label={tr(isArabic, 'الشهادات المصغرة / الدفعات', 'Micro-credentials / cohorts')}
               value={String(counts.cohorts)}
               hint={t('admin.statsHint')}
               meta={t('admin.statsMeta')}
               icon={Layers}
             />
-            <StatCard
-              label={t('admin.stats.assessments')}
-              value={String(counts.assessments)}
-              hint={t('admin.statsHint')}
-              meta={t('admin.statsMeta')}
-              icon={ClipboardList}
-            />
+            {isInstitutionAdmin ? null : (
+              <StatCard
+                label={t('admin.stats.assessments')}
+                value={String(counts.assessments)}
+                hint={t('admin.statsHint')}
+                meta={t('admin.statsMeta')}
+                icon={ClipboardList}
+              />
+            )}
             <StatCard
               label={t('admin.stats.pendingEnrollments')}
               value={String(counts.pendingEnrollments)}

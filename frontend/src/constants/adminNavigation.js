@@ -3,40 +3,15 @@ import {
   Users,
   Shield,
   Building2,
-  Route,
   GraduationCap,
-  ListTree,
-  Layers,
   BookOpen,
-  BookMarked,
   Briefcase,
-  CalendarDays,
-  ClipboardCheck,
-  FileCheck,
-  ListChecks,
-  Upload,
-  BarChart3,
-  FolderOpen,
-  ShieldCheck,
-  ClipboardList,
-  AlertTriangle,
-  BadgeAlert,
-  FileBadge,
   Award,
   FileSpreadsheet,
   ScrollText,
   Settings,
-  HeartPulse,
-  LineChart,
   Bell,
-  UserPlus,
   BookOpenCheck,
-  Map,
-  MessageSquare,
-  Megaphone,
-  CircleHelp,
-  History,
-  Send,
 } from 'lucide-react';
 import { ROLES, canonicalizeRoleCode, isLegacyDeprecatedRole } from './roles.js';
 
@@ -56,119 +31,104 @@ function entry(to, labelKey, icon, roles, meta = {}) {
  */
 export const ADMIN_NAV_GROUPS = [
   {
-    id: 'general',
-    titleKey: 'admin.groups.general',
+    id: 'main',
+    titleKey: 'admin.groups.main',
     items: [
       entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, Ad]),
-      entry('/admin/notifications', 'admin.items.notifications', Bell, [S, Ad]),
-      entry('/admin/analytics', 'admin.items.analytics', LineChart, [S]),
-      entry('/admin/courses', 'admin.items.courses', BookMarked, [S], { portal: 'UNIVERSITY' }),
-      entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S, Ad], {
+      entry('/admin/training-courses', 'admin.items.trainingCourses', BookOpen, [Ad]),
+      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [Ad]),
+      entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [Ad], {
         portal: 'UNIVERSITY',
       }),
-      entry('/admin/field-training/reports', 'admin.items.fieldTrainingReports', Briefcase, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/field-training/reports/students', 'admin.items.fieldTrainingStudents', Users, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/institutions', 'admin.items.institutions', Building2, [S, Ad], {
-        portal: 'INSTITUTION',
-      }),
-      entry('/admin/users', 'admin.items.users', Users, [S, Ad]),
-      entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
-      entry('/admin/settings', 'admin.items.settings', Settings, [S]),
+      entry('/admin/users?role=student', 'admin.items.students', Users, [Ad], { portal: 'UNIVERSITY' }),
+      entry('/admin/users?role=instructor', 'admin.items.instructors', Users, [Ad], { portal: 'UNIVERSITY' }),
+      entry('/admin/users?role=trainee', 'admin.items.trainees', Users, [Ad], { portal: 'INSTITUTION' }),
+      entry('/admin/users?role=trainer', 'admin.items.trainers', Users, [Ad], { portal: 'INSTITUTION' }),
+      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [Ad]),
+      entry('/admin/certificates', 'admin.items.certificates', Award, [Ad]),
+      entry('/admin/notifications', 'admin.items.notifications', Bell, [Ad]),
+      entry('/admin/content-hub/help', 'admin.items.help', BookOpenCheck, [Ad]),
     ],
   },
   {
-    id: 'institutionTraining',
-    titleKey: 'admin.groups.institutionTraining',
-    portal: 'INSTITUTION',
-    collapsible: true,
-    defaultOpen: true,
+    id: 'organizations',
+    titleKey: 'admin.groups.organizations',
+    roles: [S],
     items: [
-      entry('/admin/training-courses', 'admin.items.trainingCourses', BookOpen, [S, Ad], {
-        portal: 'INSTITUTION',
-      }),
+      entry('/admin/universities', 'admin.items.universities', Building2, [S]),
+      entry('/admin/institutions', 'admin.items.institutions', Building2, [S]),
     ],
   },
   {
-    id: 'contentHelp',
-    titleKey: 'admin.groups.contentHelp',
+    id: 'training',
+    titleKey: 'admin.groups.training',
+    roles: [S],
     items: [
-      entry('/admin/content-hub/help', 'admin.items.contentHubHelp', BookOpenCheck, [S, Ad]),
-      entry('/admin/content-hub/tours', 'admin.items.contentHubTours', Map, [S, Ad]),
-      entry('/admin/content-hub/popups', 'admin.items.contentHubPopups', MessageSquare, [S, Ad]),
-      entry('/admin/content-hub/announcements', 'admin.items.contentHubAnnouncements', Megaphone, [S, Ad]),
-      entry('/admin/content-hub/notifications', 'admin.items.contentHubNotifications', Bell, [S, Ad]),
-      entry('/admin/content-hub/notifications/send', 'admin.items.contentHubNotificationsSend', Send, [S, Ad]),
-      entry('/admin/content-hub/contextual', 'admin.items.contentHubContextual', CircleHelp, [S, Ad]),
-      entry('/admin/content-hub/analytics', 'admin.items.contentHubAnalytics', BarChart3, [S, Ad]),
-      entry('/admin/content-hub/audit', 'admin.items.contentHubAudit', History, [S, Ad]),
+      entry('/admin/training-courses', 'admin.items.trainingCourses', BookOpen, [S]),
+      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S]),
+      entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [S]),
     ],
   },
   {
-    id: 'orgs',
-    titleKey: 'admin.groups.orgs',
-    portal: 'UNIVERSITY',
+    id: 'platform',
+    titleKey: 'admin.groups.platform',
+    roles: [S],
     items: [
-      entry('/admin/universities', 'admin.items.universities', Building2, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/tracks', 'admin.items.tracks', Route, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/learning-outcomes', 'admin.items.learningOutcomes', ListTree, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/cohorts', 'admin.items.cohorts', Layers, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/enrollments', 'admin.items.enrollments', UserPlus, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/content', 'admin.items.content', BookOpen, [S, Ad], { portal: 'UNIVERSITY' }),
-    ],
-  },
-  {
-    id: 'delivery',
-    titleKey: 'admin.groups.delivery',
-    portal: 'UNIVERSITY',
-    items: [
-      entry('/admin/sessions', 'admin.items.sessions', CalendarDays, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/attendance', 'admin.items.attendance', ClipboardCheck, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/assessments', 'admin.items.assessments', FileCheck, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/rubrics', 'admin.items.rubrics', ListChecks, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/submissions', 'admin.items.submissions', Upload, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/grades', 'admin.items.grades', BarChart3, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/evidence', 'admin.items.evidence', FolderOpen, [S, Ad], { portal: 'UNIVERSITY' }),
-    ],
-  },
-  {
-    id: 'quality',
-    titleKey: 'admin.groups.quality',
-    portal: 'UNIVERSITY',
-    items: [
-      entry('/admin/qa', 'admin.items.qa', HeartPulse, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/qa-reviews', 'admin.items.qaReviews', ShieldCheck, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/corrective-actions', 'admin.items.correctiveActions', ClipboardList, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/at-risk-students', 'admin.items.atRiskStudents', AlertTriangle, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/risk-cases', 'admin.items.riskCases', AlertTriangle, [S, Ad], { portal: 'UNIVERSITY' }),
-      entry('/admin/integrity-cases', 'admin.items.integrity', BadgeAlert, [S, Ad], { portal: 'UNIVERSITY' }),
-    ],
-  },
-  {
-    id: 'accreditation',
-    titleKey: 'admin.groups.accreditation',
-    items: [
-      entry('/admin/recognition-requests', 'admin.items.recognition', FileBadge, [S, Ad], {
-        portal: 'UNIVERSITY',
-      }),
-      entry('/admin/certificates', 'admin.items.certificates', Award, [S, Ad]),
-      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [S, Ad]),
+      entry('/admin/users', 'admin.items.users', Users, [S]),
+      entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [S]),
+      entry('/admin/certificates', 'admin.items.certificates', Award, [S]),
+      entry('/admin/notifications', 'admin.items.notifications', Bell, [S]),
       entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S]),
+      entry('/admin/settings', 'admin.items.settings', Settings, [S]),
+      entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
+      entry('/admin/content-hub/help', 'admin.items.help', BookOpenCheck, [S]),
     ],
   },
 ];
+
+/**
+ * Hidden operational prefixes still required by Courses / Micro-Credentials / Field Training.
+ * These are not shown in the simplified sidebar.
+ */
+const ADMIN_EXTRA_PATH_PREFIXES = {
+  shared: [
+    '/admin/dashboard',
+    '/admin/notifications',
+    '/admin/notification-settings',
+    '/admin/certificates',
+    '/admin/reports',
+    '/admin/training-courses',
+    '/admin/micro-credentials',
+    '/admin/content-hub',
+    '/admin/users',
+    '/admin/help',
+  ],
+  university: [
+    '/admin/field-training',
+    '/admin/tracks',
+    '/admin/learning-outcomes',
+    '/admin/cohorts',
+    '/admin/enrollments',
+    '/admin/content',
+    '/admin/sessions',
+    '/admin/attendance',
+    '/admin/assessments',
+    '/admin/rubrics',
+    '/admin/submissions',
+    '/admin/grades',
+    '/admin/universities',
+  ],
+  super: [
+    '/admin/analytics',
+    '/admin/courses',
+    '/admin/audit-logs',
+    '/admin/settings',
+    '/admin/roles-permissions',
+    '/admin/institutions',
+    '/admin/universities',
+    '/admin/field-training',
+  ],
+};
 
 function isGlobalAdmin(user) {
   return Boolean(user?.isGlobal || canonicalizeRoleCode(user?.role) === ROLES.SUPER_ADMIN);
@@ -177,7 +137,6 @@ function isGlobalAdmin(user) {
 function itemVisibleForPortal(item, organizationType, global) {
   if (!item.portal) return true;
   if (global) {
-    // Super admin sees both portals; hide duplicate institutions link in institution group.
     if (item.hideForSuperAdmin) return false;
     return true;
   }
@@ -185,11 +144,24 @@ function itemVisibleForPortal(item, organizationType, global) {
   return item.portal === organizationType;
 }
 
-function groupVisibleForPortal(group, organizationType, global) {
+function groupVisibleForPortal(group, organizationType, global, role) {
+  if (Array.isArray(group.roles) && role && !group.roles.includes(role)) return false;
   if (!group.portal) return true;
   if (global) return true;
   if (!organizationType) return group.portal !== 'INSTITUTION';
   return group.portal === organizationType;
+}
+
+function extraPathPrefixesForUser(user, role) {
+  const global = isGlobalAdmin(user || { role });
+  const organizationType = user?.organizationType || null;
+  const prefixes = [...ADMIN_EXTRA_PATH_PREFIXES.shared];
+  if (global) {
+    prefixes.push(...ADMIN_EXTRA_PATH_PREFIXES.university, ...ADMIN_EXTRA_PATH_PREFIXES.super);
+  } else if (organizationType === 'UNIVERSITY' || !organizationType) {
+    prefixes.push(...ADMIN_EXTRA_PATH_PREFIXES.university);
+  }
+  return [...new Set(prefixes)];
 }
 
 export function getAdminNavGroupsForRole(role, t, user = null) {
@@ -199,7 +171,7 @@ export function getAdminNavGroupsForRole(role, t, user = null) {
   const organizationType = user?.organizationType || null;
 
   return ADMIN_NAV_GROUPS.map((group) => {
-    if (!groupVisibleForPortal(group, organizationType, global)) {
+    if (!groupVisibleForPortal(group, organizationType, global, canonical)) {
       return { id: group.id, title: t(group.titleKey), items: [] };
     }
     return {
@@ -222,17 +194,23 @@ export function flattenAdminNavItems(role, t, user = null) {
   return getAdminNavGroupsForRole(role, t, user).flatMap((g) => g.items);
 }
 
+function navPathBase(to) {
+  return String(to || '').split('?')[0];
+}
+
 /** Route paths only — for access checks without translation. */
 export function flattenAdminNavPaths(role, user = null) {
   if (isLegacyDeprecatedRole(role)) return [];
   const canonical = canonicalizeRoleCode(role);
   const global = isGlobalAdmin(user || { role: canonical });
   const organizationType = user?.organizationType || null;
-  return ADMIN_NAV_GROUPS.filter((g) => groupVisibleForPortal(g, organizationType, global)).flatMap((g) =>
+  const fromNav = ADMIN_NAV_GROUPS.filter((g) =>
+    groupVisibleForPortal(g, organizationType, global, canonical)
+  ).flatMap((g) =>
     g.items
       .filter((i) => i.roles.includes(canonical))
       .filter((i) => itemVisibleForPortal(i, organizationType, global))
-      .map((i) => i.to)
+      .map((i) => navPathBase(i.to))
   );
+  return [...new Set([...fromNav, ...extraPathPrefixesForUser(user, canonical)])];
 }
-

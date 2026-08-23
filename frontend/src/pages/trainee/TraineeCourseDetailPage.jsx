@@ -25,6 +25,8 @@ import { CompletionRequirementList } from '../../features/training/components/co
 import { getApiErrorMessage, isCanceledRequest } from '../../services/apiHelpers.js';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 import { formatAssessmentDateTime } from '../../features/training/assessmentPresentation/assessmentDate.js';
+import { trainingTaskStatusLabel } from '../../features/training/trainingTaskStatus.js';
+import { mergeTraineeProgramDetail } from '../../features/training/mergeCourseDetail.js';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة' },
@@ -39,14 +41,17 @@ const TABS = [
   { id: 'certificate', label: 'الشهادة' },
 ];
 
-const TASK_STATUS_AR = {
-  SUBMITTED: 'مُسلَّمة',
-  ACCEPTED: 'مقبولة',
-  GRADED: 'مُصحَّحة',
-  REVISION_REQUESTED: 'مطلوب تعديل',
-  REOPENED: 'أُعيد فتحها',
-  RETURNED: 'مُعادة',
-  REJECTED: 'مرفوضة',
+const TAB_SECTIONS = {
+  overview: 'overview',
+  sessions: 'sessions',
+  lectures: 'materials',
+  materials: 'materials',
+  tasks: 'tasks',
+  assessments: 'overview',
+  evaluation: 'overview',
+  progress: 'overview',
+  report: 'overview',
+  certificate: 'certificate',
 };
 
 export function TraineeCourseDetailPage() {
@@ -62,8 +67,9 @@ export function TraineeCourseDetailPage() {
   const [taskDrafts, setTaskDrafts] = useState({});
   const [taskFiles, setTaskFiles] = useState({});
   const [comparison, setComparison] = useState(null);
+  const [tabLoading, setTabLoading] = useState(false);
 
-  const refresh = useCallback(async ({ silent = false } = {}) => {
+  const refresh = useCallback(async ({ silent = false, sections = 'overview' } = {}) => {
     if (!programId) return;
     if (!silent) {
       setLoading(true);
@@ -71,8 +77,8 @@ export function TraineeCourseDetailPage() {
       setBusinessCode('');
     }
     try {
-      const detail = await getTraineeProgramDetail(programId);
-      setData(detail);
+      const detail = await getTraineeProgramDetail(programId, { sections });
+      setData((prev) => mergeTraineeProgramDetail(prev, detail));
       setError('');
       setBusinessCode('');
     } catch (err) {
@@ -90,12 +96,39 @@ export function TraineeCourseDetailPage() {
   }, [programId]);
 
   useEffect(() => {
-    refresh();
+    refresh({ sections: 'overview' });
   }, [refresh]);
 
   useEffect(() => {
     if (tabParam) setTab(tabParam);
   }, [tabParam]);
+
+  useEffect(() => {
+    if (!programId || loading || !data) return;
+    const sections = TAB_SECTIONS[tab] || 'overview';
+    if (sections === 'overview') return;
+    if (sections === 'sessions' && data.sessions) return;
+    if (sections === 'materials' && (data.materials || data.recordedLectures)) return;
+    if (sections === 'tasks' && data.tasks) return;
+    if (sections === 'certificate' && Object.prototype.hasOwnProperty.call(data, 'certificate')) return;
+    let cancelled = false;
+    setTabLoading(true);
+    getTraineeProgramDetail(programId, { sections })
+      .then((detail) => {
+        if (!cancelled) setData((prev) => mergeTraineeProgramDetail(prev, detail));
+      })
+      .catch((err) => {
+        if (!cancelled && !isCanceledRequest(err)) {
+          setError(getApiErrorMessage(err, 'تعذر تحميل محتوى التبويب.'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setTabLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, programId, loading, data]);
 
   if (loading) {
     return (
@@ -218,7 +251,9 @@ export function TraineeCourseDetailPage() {
 
       {tab === 'sessions' ? (
         <SectionCard title="الجلسات والحضور">
-          {(data.sessions || []).length ? (
+          {tabLoading && data.sessions == null ? (
+            <LoadingSpinner />
+          ) : (data.sessions || []).length ? (
             <ul className="simple-list">
               {(data.sessions || []).map((s) => (
                 <li key={s.id}>
@@ -237,7 +272,7 @@ export function TraineeCourseDetailPage() {
                           await confirmAttendance(s.id, attendanceCodes[s.id]);
                           setMessage('تم تأكيد الحضور.');
                           setAttendanceCodes((prev) => ({ ...prev, [s.id]: '' }));
-                          await refresh({ silent: true });
+                          await refresh({ silent: true, sections: 'sessions' });
                         } catch (err) {
                           setError(getApiErrorMessage(err, 'تعذر تأكيد الحضور.'));
                         } finally {
@@ -275,7 +310,9 @@ export function TraineeCourseDetailPage() {
 
       {tab === 'lectures' ? (
         <SectionCard title="المحاضرات المسجلة">
-          {(data.recordedLectures || []).length ? (
+          {tabLoading && data.recordedLectures == null ? (
+            <LoadingSpinner />
+          ) : (data.recordedLectures || []).length ? (
             <ul className="simple-list course-lecture-list">
               {data.recordedLectures.map((lec) => (
                 <li key={lec.id} className="course-lecture-card">
@@ -312,7 +349,9 @@ export function TraineeCourseDetailPage() {
 
       {tab === 'materials' ? (
         <SectionCard title="المواد التعليمية">
-          {(data.materials || []).length ? (
+          {tabLoading && data.materials == null ? (
+            <LoadingSpinner />
+          ) : (data.materials || []).length ? (
             <ul className="simple-list">
               {data.materials.map((m) => (
                 <li key={m.id} className="course-material-card">
@@ -357,7 +396,9 @@ export function TraineeCourseDetailPage() {
 
       {tab === 'tasks' ? (
         <SectionCard title="المهمات">
-          {(data.tasks || []).length ? (
+          {tabLoading && data.tasks == null ? (
+            <LoadingSpinner />
+          ) : (data.tasks || []).length ? (
             <ul className="simple-list">
               {data.tasks.map((task) => (
                 <li key={task.id}>
@@ -385,7 +426,7 @@ export function TraineeCourseDetailPage() {
                   ) : null}
                   {task.submission ? (
                     <div>
-                      الحالة: {TASK_STATUS_AR[task.submission.status] || task.submission.status}
+                      الحالة: {trainingTaskStatusLabel(task.submission.status)}
                       {task.submission.score != null ? ` — الدرجة: ${task.submission.score}` : ''}
                       {task.submission.feedback ? ` — ${task.submission.feedback}` : ''}
                     </div>
@@ -403,7 +444,7 @@ export function TraineeCourseDetailPage() {
                             content_url: taskFiles[task.id]?.url || taskFiles[task.id]?.storageKey || null,
                           });
                           setMessage('تم تسليم المهمة.');
-                          await refresh({ silent: true });
+                          await refresh({ silent: true, sections: 'tasks' });
                         } catch (err) {
                           setError(getApiErrorMessage(err, 'تعذر تسليم المهمة.'));
                         } finally {
@@ -594,7 +635,9 @@ export function TraineeCourseDetailPage() {
 
       {tab === 'certificate' ? (
         <SectionCard title="الشهادة">
-          {data.certificate ? (
+          {tabLoading && !Object.prototype.hasOwnProperty.call(data, 'certificate') ? (
+            <LoadingSpinner />
+          ) : data.certificate ? (
             <dl className="detail-list">
               <div className="detail-list__row">
                 <dt>رقم الشهادة</dt>

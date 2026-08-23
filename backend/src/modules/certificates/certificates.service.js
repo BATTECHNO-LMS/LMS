@@ -4,6 +4,7 @@ const { prisma } = require('../../config/db');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
 const { resolveUniversityIdFilter } = require('../../utils/universityScope');
 const repo = require('./certificates.repository');
+const { buildListMeta } = require('../../utils/pagination');
 
 const STATUS_TRANSITIONS = {
   issued: new Set(['revoked', 'superseded']),
@@ -168,15 +169,9 @@ async function listCertificates(query, requester) {
     repo.findMany(where, { skip: query.skip, take: query.take }),
   ]);
   const certificates = await hydrateCertificates(rows);
-  const total_pages = Math.max(1, Math.ceil(total / query.page_size));
   return {
     certificates,
-    meta: {
-      page: query.page,
-      page_size: query.page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, query.page, query.page_size),
   };
 }
 

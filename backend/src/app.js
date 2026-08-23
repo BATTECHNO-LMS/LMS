@@ -9,6 +9,7 @@ const { prisma } = require('./config/db');
 const { errorMiddleware } = require('./middlewares/error.middleware');
 const { requestIdMiddleware } = require('./middlewares/requestId.middleware');
 const { createRequestLogger } = require('./middlewares/requestLogger.middleware');
+const { createPerfTimingMiddleware } = require('./middlewares/perfTiming.middleware');
 const { authenticate } = require('./middlewares/auth.middleware');
 
 const app = express();
@@ -56,6 +57,7 @@ app.use(
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(createRequestLogger());
+  app.use(createPerfTimingMiddleware());
 }
 
 app.get('/', (req, res) => {

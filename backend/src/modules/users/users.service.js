@@ -17,6 +17,7 @@ const {
 } = require('./superAdminPrivilegeBoundary');
 const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignmentGuard');
 const { canonicalizeRoleCode, normalizeRoleCodes, ASSIGNABLE_ROLE_CODES, pickPrimaryRoleCode, CANONICAL_ROLE_CODES } = require('../../utils/roleCanon');
+const { buildListMeta } = require('../../utils/pagination');
 const reviewerAssignment = require('./reviewerAssignment.service');
 const { createNotificationForUser } = require('../../shared/services/notification.service');
 const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
@@ -166,7 +167,7 @@ async function listUsers(query, requester = {}) {
     return {
       items: [],
       role_counts: Object.fromEntries(CANONICAL_ROLE_CODES.map((c) => [c, 0])),
-      meta: { page: query.page, page_size: query.page_size, total: 0, total_pages: 1 },
+      meta: buildListMeta(0, query.page, query.page_size),
     };
   }
 
@@ -218,17 +219,10 @@ async function listUsers(query, requester = {}) {
     specialty: u.specialty_id ? specMap.get(u.specialty_id) || null : null,
   }));
 
-  const total_pages = Math.max(1, Math.ceil(total / page_size));
-
   return {
     items: enriched,
     role_counts,
-    meta: {
-      page,
-      page_size,
-      total,
-      total_pages,
-    },
+    meta: buildListMeta(total, page, page_size),
   };
 }
 

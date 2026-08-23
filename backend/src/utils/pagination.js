@@ -25,10 +25,21 @@ function normalizePagination(q) {
   };
 }
 
+function buildListMeta(total, page, page_size) {
+  const size = Math.max(1, Number(page_size) || 1);
+  return {
+    page,
+    page_size,
+    total,
+    total_pages: Math.max(1, Math.ceil(total / size)),
+  };
+}
+
 module.exports = {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   ADMIN_MAX_PAGE_SIZE,
   paginationQueryShape,
   normalizePagination,
+  buildListMeta,
 };

@@ -75,9 +75,10 @@ async function getSessionAttendance(sessionId, requester) {
   const existing = await attendanceRepository.findManyBySession(sessionId);
   const byStudent = new Map(existing.map((r) => [r.student_id, r]));
 
-  const students = await Promise.all(
-    active.map(async (e) => {
-      const u = await enrollmentsRepository.findUserBrief(e.student_id);
+  const briefs = await enrollmentsRepository.findUsersBrief(active.map((e) => e.student_id));
+  const briefById = new Map(briefs.map((u) => [u.id, u]));
+  const students = active.map((e) => {
+      const u = briefById.get(e.student_id) || null;
       const rec = byStudent.get(e.student_id);
       return {
         enrollment_id: e.id,
@@ -93,8 +94,7 @@ async function getSessionAttendance(sessionId, requester) {
             }
           : null,
       };
-    })
-  );
+    });
 
   return {
     session_id: sessionId,
@@ -190,9 +190,10 @@ async function getCohortAttendanceSummary(cohortId, requester) {
     allRecs.map((r) => [`${r.student_id}:${r.session_id}`, r.attendance_status])
   );
 
-  const rows = await Promise.all(
-    active.map(async (e) => {
-      const u = await enrollmentsRepository.findUserBrief(e.student_id);
+  const briefs = await enrollmentsRepository.findUsersBrief(active.map((e) => e.student_id));
+  const briefById = new Map(briefs.map((u) => [u.id, u]));
+  const rows = active.map((e) => {
+      const u = briefById.get(e.student_id) || null;
       let present = 0;
       let late = 0;
       let absent = 0;
@@ -222,8 +223,7 @@ async function getCohortAttendanceSummary(cohortId, requester) {
         total_late: late,
         total_excused: excused,
       };
-    })
-  );
+    });
 
   return { cohort_id: cohortId, total_sessions: totalSessions, students: rows };
 }

@@ -246,6 +246,8 @@ const env = {
   PASSWORD_RESET_OTP_MAX_ATTEMPTS: Number(process.env.PASSWORD_RESET_OTP_MAX_ATTEMPTS) || 5,
   PASSWORD_RESET_TOKEN_EXPIRY_MINUTES:
     Number(process.env.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES) || 10,
+  /** Log slow requests (>=400ms) without query strings or bodies. */
+  PERF_LOGGING: process.env.PERF_LOGGING === 'true' || process.env.PERF_LOGGING === '1',
 };
 
 module.exports = { env, parseRoleCodes, parseRoleCodesWithFallback };

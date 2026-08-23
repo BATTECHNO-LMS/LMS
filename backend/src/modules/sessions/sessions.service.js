@@ -5,7 +5,7 @@ const sessionsRepository = require('./sessions.repository');
 const cohortsRepository = require('../cohorts/cohorts.repository');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
 const attendanceRepository = require('../attendance/attendance.repository');
-const { dateOnlyISO, parseDateOnly } = require('../cohorts/cohorts.service');
+const { dateOnlyISO, parseDateOnly } = require('../../utils/dateOnly');
 
 function parseTimeHm(str) {
   const s = String(str).trim();

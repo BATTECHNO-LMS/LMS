@@ -16,20 +16,9 @@ import { listOrganizations } from '../../../features/organizations/organizations
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { useAuth } from '../../../features/auth/index.js';
 import { ROLES } from '../../../constants/roles.js';
+import { trainingProgramStatusLabel, TRAINING_PROGRAM_STATUS_LABEL_AR } from '../../../features/training/trainingProgramStatus.js';
 
-function statusLabel(status) {
-  const map = {
-    DRAFT: 'مسودة',
-    PUBLISHED: 'منشورة',
-    REGISTRATION_OPEN: 'التسجيل مفتوح',
-    REGISTRATION_CLOSED: 'التسجيل مغلق',
-    IN_PROGRESS: 'قيد التنفيذ',
-    COMPLETED: 'مكتملة',
-    CANCELLED: 'ملغاة',
-    ARCHIVED: 'مؤرشفة',
-  };
-  return map[status] || status || '—';
-}
+const COURSE_LIST_STATUS_FILTERS = ['DRAFT', 'PUBLISHED', 'REGISTRATION_OPEN', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED'];
 
 export function AdminTrainingCoursesPage() {
   const { user } = useAuth();
@@ -119,7 +108,7 @@ export function AdminTrainingCoursesPage() {
     {
       key: 'status',
       label: 'الحالة',
-      render: (row) => <StatusBadge variant="info">{statusLabel(row.status)}</StatusBadge>,
+      render: (row) => <StatusBadge variant="info">{trainingProgramStatusLabel(row.status)}</StatusBadge>,
     },
     { key: 'startDate', label: 'البداية' },
     { key: 'endDate', label: 'النهاية' },
@@ -168,12 +157,11 @@ export function AdminTrainingCoursesPage() {
         />
         <FormSelect id="course-status" label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">كل الحالات</option>
-          <option value="DRAFT">مسودة</option>
-          <option value="PUBLISHED">منشورة</option>
-          <option value="REGISTRATION_OPEN">التسجيل مفتوح</option>
-          <option value="IN_PROGRESS">قيد التنفيذ</option>
-          <option value="COMPLETED">مكتملة</option>
-          <option value="ARCHIVED">مؤرشفة</option>
+          {COURSE_LIST_STATUS_FILTERS.map((code) => (
+              <option key={code} value={code}>
+                {TRAINING_PROGRAM_STATUS_LABEL_AR[code]}
+              </option>
+            ))}
         </FormSelect>
         {isSuperAdmin ? (
           <FormSelect

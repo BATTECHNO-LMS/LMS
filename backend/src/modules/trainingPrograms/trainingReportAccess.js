@@ -3,14 +3,7 @@
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { REPORT_TYPES } = require('./trainingReportMetrics.service');
-
-function isTrainerOnly(requester) {
-  return (
-    Boolean(requester?.roles?.includes('trainer')) &&
-    !requester?.roles?.includes('admin') &&
-    !isSystemWideAdmin(requester)
-  );
-}
+const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 
 function isReviewerOnly(requester) {
   return (
@@ -26,12 +19,6 @@ function isTrainee(requester) {
 
 function isManager(requester) {
   return isSystemWideAdmin(requester) || Boolean(requester?.roles?.includes('admin'));
-}
-
-async function assertTrainerProgramAccess(requester, programId, permissionKey = 'can_view_reports') {
-  if (!isTrainerOnly(requester)) return null;
-  const { assertTrainerCanAccessProgram } = require('./trainerAssignments.service');
-  return assertTrainerCanAccessProgram(requester, programId, permissionKey);
 }
 
 /**

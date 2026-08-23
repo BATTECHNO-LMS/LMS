@@ -14,7 +14,7 @@ function scopeFiltersForUser(query, user) {
   if (scoped) {
     return { ...query, university_id: scoped };
   }
-  return { ...query, university_id: user?.universityId || undefined };
+  return { ...query, university_id: '00000000-0000-0000-0000-000000000000' };
 }
 
 async function auditReportRead(req, reportType, summary) {

@@ -31,6 +31,9 @@ function resolveUniversityIdFilter(requester, requestedUniversityId) {
     throw new ApiError(403, 'Forbidden');
   }
 
+  // Non-global users with a null universityId must not be treated as global.
+  // Callers that need a university filter must treat a missing id as deny-all,
+  // never as "no filter".
   return uni || undefined;
 }
 

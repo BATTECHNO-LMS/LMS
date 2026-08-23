@@ -48,13 +48,31 @@ async function toLoginUser(user, roleRecords, permissionCodes, isGlobal, options
   const portalType = options.portalType || null;
   let primaryUniversityId = user.primary_university_id;
   let university = null;
+  const { prisma } = require('../../config/db');
+  const assignmentQuery = prisma.user_organization_assignments.findMany({
+    where: { user_id: user.id, is_active: true },
+    orderBy: { assigned_at: 'desc' },
+    include: {
+      organizations: {
+        select: { id: true, type: true, name: true, status: true, logo_url: true },
+      },
+      organization_branches: { select: { id: true, name: true } },
+      organization_departments: { select: { id: true, name: true } },
+    },
+  });
+  let assignmentRows;
 
   if (!primaryUniversityId) {
     university = await ensureUserLinkedToUniversityFromEmail(user.id, user.email);
     if (university) primaryUniversityId = university.id;
+    assignmentRows = await assignmentQuery;
   } else {
-    const row = await authRepository.findUniversityById(primaryUniversityId);
+    const [row, rows] = await Promise.all([
+      authRepository.findUniversityById(primaryUniversityId),
+      assignmentQuery,
+    ]);
     university = row ? { id: row.id, name: row.name } : null;
+    assignmentRows = rows;
   }
 
   const universitySpecialty = user.university_specialty
@@ -90,19 +108,6 @@ async function toLoginUser(user, roleRecords, permissionCodes, isGlobal, options
 
   const roles = normalizeRoleCodes((roleRecords || []).map((r) => r.code));
   let role = pickPrimaryRoleCode((roleRecords || []).map((r) => r.code));
-
-  const { prisma } = require('../../config/db');
-  const assignmentRows = await prisma.user_organization_assignments.findMany({
-    where: { user_id: user.id, is_active: true },
-    orderBy: { assigned_at: 'desc' },
-    include: {
-      organizations: {
-        select: { id: true, type: true, name: true, status: true, logo_url: true },
-      },
-      organization_branches: { select: { id: true, name: true } },
-      organization_departments: { select: { id: true, name: true } },
-    },
-  });
 
   const organizationAssignments = assignmentRows.map((a) => ({
     id: a.id,
@@ -607,10 +612,20 @@ async function me(userId, options = {}) {
       AUTH_ERROR_CODES.ACCOUNT_INACTIVE
     );
   }
-  const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);
-  const isGlobal = isGlobalFromRoleRecords(roleRecords);
+  const ctx = options.authContext;
+  let roleRecords;
+  let permissionCodes;
+  let isGlobal;
+  if (ctx && Array.isArray(ctx.roles) && Array.isArray(ctx.permissions)) {
+    roleRecords = ctx.roles.map((code) => ({ code }));
+    permissionCodes = ctx.permissions;
+    isGlobal = Boolean(ctx.isGlobal);
+  } else {
+    ({ roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id));
+    isGlobal = isGlobalFromRoleRecords(roleRecords);
+  }
   return toLoginUser(user, roleRecords, permissionCodes, isGlobal, {
-    portalType: options.portalType || null,
+    portalType: options.portalType || ctx?.portalType || null,
   });
 }
 

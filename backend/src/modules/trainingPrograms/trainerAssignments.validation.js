@@ -4,6 +4,9 @@ const { z } = require('zod');
 
 const organizationIdParam = z.object({ organizationId: z.string().uuid() });
 const programIdParam = z.object({ programId: z.string().uuid() });
+const trainerCourseDetailQuery = z.object({
+  sections: z.string().max(120).optional(),
+});
 const assignmentIdParam = z.object({
   organizationId: z.string().uuid(),
   assignmentId: z.string().uuid(),
@@ -53,6 +56,7 @@ const assignTrainerBody = z
 module.exports = {
   organizationIdParam,
   programIdParam,
+  trainerCourseDetailQuery,
   assignmentIdParam,
   createTrainerBody,
   assignTrainerBody,

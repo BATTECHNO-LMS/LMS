@@ -528,37 +528,6 @@ export function SuperAdminAnalyticsPage() {
             />
           </div>
           <div className="analytics-module-block">
-            <AnalyticsModuleHead title={t('modules.evidence')} to="/admin/evidence" />
-            <AnalyticsMiniStat label={t('moduleLabels.totalFiles')} value={String(modules?.evidence?.totalFiles ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.missing')} value={String(modules?.evidence?.missing ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.completion')} value={`${modules?.evidence?.completionRatePct ?? '—'}%`} />
-          </div>
-          <div className="analytics-module-block">
-            <AnalyticsModuleHead title={t('modules.qa')} to="/admin/qa-reviews" />
-            <AnalyticsMiniStat label={t('moduleLabels.totalReviews')} value={String(modules?.qa?.totalReviews ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.openCases')} value={String(modules?.qa?.openCases ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.unresolvedCorrective')} value={String(modules?.qa?.unresolvedCorrective ?? '—')} />
-          </div>
-          <div className="analytics-module-block">
-            <AnalyticsModuleHead title={t('modules.riskCases')} to="/admin/risk-cases" />
-            <AnalyticsMiniStat label={t('moduleLabels.atRiskStudents')} value={String(modules?.riskCases?.totalAtRisk ?? '—')} />
-            <p className="analytics-module-block__line">
-              {t('moduleLabels.trend')}: {t(`trends.${modules?.riskCases?.trendKey ?? 'stable'}`)}
-            </p>
-          </div>
-          <div className="analytics-module-block">
-            <AnalyticsModuleHead title={t('modules.integrityCases')} to="/admin/integrity-cases" />
-            <AnalyticsMiniStat label={t('moduleLabels.totalCases')} value={String(modules?.integrityCases?.total ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.underInvestigation')} value={String(modules?.integrityCases?.underInvestigation ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.resolved')} value={String(modules?.integrityCases?.resolved ?? '—')} />
-          </div>
-          <div className="analytics-module-block">
-            <AnalyticsModuleHead title={t('modules.recognition')} to="/admin/recognition-requests" />
-            <AnalyticsMiniStat label={t('moduleLabels.totalRequests')} value={String(modules?.recognition?.total ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.readyForSubmission')} value={String(modules?.recognition?.readyForSubmission ?? '—')} />
-            <AnalyticsMiniStat label={t('moduleLabels.approvedRate')} value={`${modules?.recognition?.approvedRatePct ?? '—'}%`} />
-          </div>
-          <div className="analytics-module-block">
             <AnalyticsModuleHead title={t('modules.certificates')} to="/admin/certificates" />
             <AnalyticsMiniStat label={t('moduleLabels.totalIssued')} value={String(modules?.certificates?.totalIssued ?? '—')} />
             <AnalyticsMiniStat label={t('moduleLabels.issuedThisMonth')} value={String(modules?.certificates?.issuedThisMonth ?? '—')} />

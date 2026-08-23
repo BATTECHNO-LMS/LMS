@@ -2,6 +2,10 @@
   "mainMenu": "القائمة الرئيسية",
   "admin": {
     "groups": {
+      "main": "القائمة الرئيسية",
+      "organizations": "المؤسسات",
+      "training": "التدريب",
+      "platform": "المنصة",
       "general": "الإدارة العامة",
       "institutionTraining": "إدارة التدريب",
       "contentHelp": "إدارة المحتوى والمساعدة",
@@ -11,11 +15,16 @@
       "accreditation": "الاعتماد والتقارير"
     },
     "items": {
-      "dashboard": "الرئيسية",
+      "dashboard": "لوحة التحكم",
       "analytics": "الإحصائيات والتحليلات",
       "courses": "إدارة الكورسات",
       "trainingCourses": "الدورات التدريبية",
-      "fieldTraining": "إدارة التدريب الميداني",
+      "fieldTraining": "التدريب الميداني",
+      "students": "الطلاب",
+      "instructors": "المشرفون",
+      "trainees": "المتدربون",
+      "trainers": "المدربون",
+      "help": "المساعدة",
       "userGuide": "دليل المستخدم",
       "contentHubHelp": "دليل المستخدم",
       "contentHubTours": "الجولات التعريفية",
@@ -60,8 +69,8 @@
     }
   },
   "instructor": {
-    "home": "الرئيسية",
-    "cohorts": "دفعاتي",
+    "home": "لوحة التحكم",
+    "cohorts": "دوراتي",
     "sessions": "الجلسات",
     "attendance": "الحضور",
     "assessments": "التقييمات",
@@ -104,8 +113,9 @@
     "home": "الرئيسية",
     "trainingPrograms": "دوراتي التدريبية",
     "availableCohorts": "الدفعات المتاحة",
-    "courses": "الكورسات",
-    "fieldTraining": "فرص التدريب الميداني",
+    "microCredentials": "الشهادات المصغرة",
+    "courses": "دوراتي",
+    "fieldTraining": "التدريب الميداني",
     "userGuide": "دليل المستخدم",
     "programs": "شهاداتي المسجل بها",
     "semesterSchedule": "البرامج التدريبية المسجلة",

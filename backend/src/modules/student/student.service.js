@@ -5,7 +5,7 @@ const { prisma } = require('../../config/db');
 const { resolvePrimaryUniversityId } = require('../../utils/studentScope');
 const cohortsService = require('../cohorts/cohorts.service');
 const enrollmentsRepository = require('../enrollments/enrollments.repository');
-const { dateOnlyISO } = require('../cohorts/cohorts.service');
+const { dateOnlyISO } = require('../../utils/dateOnly');
 const { STEP_ORDER, resolveStepIndex } = require('../fieldTraining/fieldTraining.progress');
 const ftRepo = require('../fieldTraining/fieldTraining.repository');
 

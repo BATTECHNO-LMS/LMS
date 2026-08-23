@@ -93,7 +93,7 @@ export function StudentDashboardPage() {
   const enrollmentsQuery = useStudentEnrollments({ staleTime: STALE.dashboard });
   const sessionsQuery = useStudentSessions({ staleTime: STALE.dashboard });
   const assessmentsQuery = useAssessments(
-    { page: 1, page_size: 100 },
+    { page: 1, page_size: 30 },
     { staleTime: STALE.dashboard }
   );
   const submissionsQuery = useSubmissions({}, { staleTime: STALE.dashboard });
