@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Award,
@@ -30,56 +29,25 @@ function InfoItem({ label, value }) {
 export function ManageOverviewTab({
   opportunityId,
   opp,
-  applications,
-  sessions,
-  submissions,
+  summary = null,
+  summaryLoading = false,
+  summaryError = false,
   apiScope = 'admin',
-  appsLoading = false,
-  appsError = false,
 }) {
   const isInstructor = apiScope === 'instructor';
   const basePath = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t, i18n } = useTranslation('fieldTraining');
 
-  const approved = useMemo(
-    () => (applications ?? []).filter((a) => a.status === 'approved'),
-    [applications]
-  );
-  const inTrainingCount = useMemo(
-    () =>
-      approved.filter((a) =>
-        [
-          'in_training',
-          'task_pending',
-          'task_submitted',
-          'post_assessment_pending',
-          'post_assessment_completed',
-        ].includes(a.training_status)
-      ).length,
-    [approved]
-  );
-  const avgAttendance = useMemo(() => {
-    const withPct = approved.filter((a) => a.attendance_percentage != null);
-    if (!withPct.length) return null;
-    const sum = withPct.reduce((acc, a) => acc + Number(a.attendance_percentage), 0);
-    return Math.round(sum / withPct.length);
-  }, [approved]);
-  const lettersIssued = useMemo(
-    () => approved.filter((a) => a.completion_letter_issued_at || a.training_status === 'completed').length,
-    [approved]
-  );
-  const pendingReviews = useMemo(
-    () => (submissions ?? []).filter((s) => (s.review_status || 'pending') === 'pending').length,
-    [submissions]
-  );
-  const eligibleCount = useMemo(
-    () => approved.filter((a) => a.completion_eligibility_status === 'eligible').length,
-    [approved]
-  );
-  const expelledCount = useMemo(
-    () => (applications ?? []).filter((a) => a.training_status === 'expelled').length,
-    [applications]
-  );
+  const approvedCount = summary?.approvedCount ?? 0;
+  const inTrainingCount = summary?.inTrainingCount ?? 0;
+  const avgAttendance = summary?.avgAttendance ?? null;
+  const lettersIssued = summary?.lettersIssued ?? 0;
+  const pendingReviews = summary?.pendingReviews ?? 0;
+  const eligibleCount = summary?.eligibleCount ?? 0;
+  const expelledCount = summary?.expelledCount ?? 0;
+  const applicationCount = summary?.applicationCount ?? 0;
+  const sessionCount = summary?.sessionCount ?? 0;
+  const dataMissing = summaryError || (!summaryLoading && summary == null);
 
   const modeLabel = opp?.training_mode ? t(`modes.${opp.training_mode}`, opp.training_mode) : null;
   const specialtyLabel = getOpportunitySpecialtyLabel(opp, i18n.language);
@@ -95,21 +63,19 @@ export function ManageOverviewTab({
       .filter(Boolean)
       .join(' · ') || specialtyLabel;
 
-  const dataMissing = appsError || (!appsLoading && applications == null);
-
   return (
     <div className="ft-manage-panel">
       <div className="ft-manage-kpi-grid" role="list">
         <ManageKpiCard
           icon={Users}
           label={t('manageHub.kpi.applications')}
-          value={dataMissing ? null : applications?.length ?? 0}
+          value={dataMissing ? null : applicationCount}
           hint={t('manageHub.kpi.applicationsHint')}
         />
         <ManageKpiCard
           icon={Users}
           label={t('manageHub.kpi.approved')}
-          value={dataMissing ? null : approved.length}
+          value={dataMissing ? null : approvedCount}
           hint={t('manageHub.kpi.approvedHint')}
         />
         <ManageKpiCard
@@ -127,7 +93,7 @@ export function ManageOverviewTab({
         <ManageKpiCard
           icon={ClipboardList}
           label={t('manageHub.kpi.pendingReviews')}
-          value={submissions == null ? null : pendingReviews}
+          value={dataMissing ? null : pendingReviews}
           hint={t('manageHub.kpi.pendingReviewsHint')}
         />
         <ManageKpiCard
@@ -198,7 +164,7 @@ export function ManageOverviewTab({
           />
           <InfoItem
             label={t('manageHub.kpi.sessions')}
-            value={sessions != null ? String(sessions.length) : null}
+            value={sessionCount != null ? String(sessionCount) : null}
           />
         </dl>
 

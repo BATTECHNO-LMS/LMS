@@ -490,6 +490,22 @@ export const AdminFieldTrainingReportsHubPage = lazyNamed(
   () => import('../../pages/admin/fieldTraining/AdminFieldTrainingReportsHubPage.jsx'),
   'AdminFieldTrainingReportsHubPage'
 );
+export const AdminFieldTrainingEvaluationTemplatesPage = lazyNamed(
+  () => import('../../pages/admin/fieldTraining/AdminFieldTrainingEvaluationTemplatesPage.jsx'),
+  'AdminFieldTrainingEvaluationTemplatesPage'
+);
+export const AdminFieldTrainingEvaluationReportsPage = lazyNamed(
+  () => import('../../pages/shared/fieldTrainingReports/FieldTrainingEvaluationReportsPage.jsx'),
+  'AdminFieldTrainingEvaluationReportsPage'
+);
+export const ReviewerFieldTrainingEvaluationReportsPage = lazyNamed(
+  () => import('../../pages/shared/fieldTrainingReports/FieldTrainingEvaluationReportsPage.jsx'),
+  'ReviewerFieldTrainingEvaluationReportsPage'
+);
+export const AcademicFieldTrainingEvaluationReportsPage = lazyNamed(
+  () => import('../../pages/shared/fieldTrainingReports/FieldTrainingEvaluationReportsPage.jsx'),
+  'AcademicFieldTrainingEvaluationReportsPage'
+);
 export const AcademicFieldTrainingReportsHubPage = lazyNamed(
   () => import('../../pages/academic/AcademicFieldTrainingReportsHubPage.jsx'),
   'AcademicFieldTrainingReportsHubPage'

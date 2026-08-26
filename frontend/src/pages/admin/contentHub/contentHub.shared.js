@@ -22,6 +22,8 @@ export const ROLE_OPTIONS = [
   ROLES.SUPER_ADMIN,
   ROLES.ADMIN,
   ROLES.INSTRUCTOR,
+  ROLES.TRAINER,
+  ROLES.TRAINEE,
   ROLES.STUDENT,
   ROLES.REVIEWER,
 ];
@@ -30,7 +32,9 @@ export const ROLE_LABELS = {
   ar: {
     super_admin: 'مشرف أعلى',
     admin: 'مشرف',
-    instructor: 'مدرب',
+    instructor: 'مدرب أكاديمي',
+    trainer: 'مدرب',
+    trainee: 'متدرب',
     student: 'طالب',
     reviewer: 'مراجع',
   },
@@ -38,6 +42,8 @@ export const ROLE_LABELS = {
     super_admin: 'Super admin',
     admin: 'Admin',
     instructor: 'Instructor',
+    trainer: 'Trainer',
+    trainee: 'Trainee',
     student: 'Student',
     reviewer: 'Reviewer',
   },

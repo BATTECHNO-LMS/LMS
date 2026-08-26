@@ -13,6 +13,7 @@ export function getReportPaths(basePath, mode = 'admin') {
       opportunities: '/academic/field-training/opportunities',
       student: '/academic/field-training/reports/student',
       opportunityDetail: (id) => `/academic/field-training/opportunities/${id}`,
+      evaluations: '/academic/field-training/reports/evaluations',
     };
   }
   if (mode === 'reviewer') {
@@ -23,6 +24,7 @@ export function getReportPaths(basePath, mode = 'admin') {
       opportunities: '/academic/field-training/opportunities',
       student: `${basePath}/student`,
       opportunityDetail: (id) => `/academic/field-training/opportunities/${id}`,
+      evaluations: `${basePath}/evaluations`,
     };
   }
   return {
@@ -32,6 +34,8 @@ export function getReportPaths(basePath, mode = 'admin') {
     opportunities: `${basePath}/university`,
     student: `${basePath}/student`,
     opportunityDetail: () => `${basePath}/university`,
+    evaluations: `${basePath}/evaluations`,
+    templates: '/admin/field-training/evaluation-templates',
   };
 }
 

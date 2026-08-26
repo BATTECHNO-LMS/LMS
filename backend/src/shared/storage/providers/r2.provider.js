@@ -133,6 +133,19 @@ async function getObjectBuffer(storageKey) {
   return Buffer.concat(chunks);
 }
 
+async function putObjectBuffer(storageKey, buffer, mimeType) {
+  const key = assertSafeStorageKey(storageKey);
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+      Body: buffer,
+      ContentType: mimeType || 'application/octet-stream',
+    })
+  );
+  return { size: Buffer.byteLength(buffer) };
+}
+
 module.exports = {
   getRequiredR2Config,
   assertR2Configured,
@@ -143,4 +156,5 @@ module.exports = {
   createPresignedGetUrl,
   checkHealth,
   getObjectBuffer,
+  putObjectBuffer,
 };

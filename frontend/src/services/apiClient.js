@@ -18,6 +18,16 @@ apiClient.interceptors.request.use((config) => {
   if (token && typeof token === 'string') {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Let the browser set multipart boundary. A preset Content-Type (including
+  // the axios default application/json) makes multer reject the file with 400.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (config.headers && typeof config.headers.set === 'function') {
+      config.headers.set('Content-Type', undefined);
+    } else if (config.headers) {
+      delete config.headers['Content-Type'];
+      delete config.headers['content-type'];
+    }
+  }
   return config;
 });
 

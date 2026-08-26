@@ -32,6 +32,8 @@
       "contentHubAnnouncements": "الإعلانات والتنبيهات",
       "contentHubNotifications": "إدارة الإشعارات والقواعد",
       "contentHubNotificationsSend": "إرسال إشعار",
+      "contentHubNotificationsDeliveries": "سجل إرسال الإشعارات",
+      "contentHubNotificationsAnalytics": "تحليلات الإشعارات",
       "contentHubContextual": "المساعدة السياقية",
       "contentHubAnalytics": "إحصائيات الاستخدام",
       "contentHubAudit": "سجل التعديلات",

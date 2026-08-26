@@ -12,6 +12,15 @@ import {
   Settings,
   Bell,
   BookOpenCheck,
+  Map,
+  MessageSquare,
+  Megaphone,
+  CircleHelp,
+  History,
+  Send,
+  Inbox,
+  BarChart3,
+  LineChart,
 } from 'lucide-react';
 import { ROLES, canonicalizeRoleCode, isLegacyDeprecatedRole } from './roles.js';
 
@@ -47,7 +56,6 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [Ad]),
       entry('/admin/certificates', 'admin.items.certificates', Award, [Ad]),
       entry('/admin/notifications', 'admin.items.notifications', Bell, [Ad]),
-      entry('/admin/content-hub/help', 'admin.items.help', BookOpenCheck, [Ad]),
     ],
   },
   {
@@ -81,7 +89,27 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S]),
       entry('/admin/settings', 'admin.items.settings', Settings, [S]),
       entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
-      entry('/admin/content-hub/help', 'admin.items.help', BookOpenCheck, [S]),
+    ],
+  },
+  {
+    id: 'contentHelp',
+    titleKey: 'admin.groups.contentHelp',
+    collapsible: true,
+    defaultOpen: true,
+    items: [
+      entry('/admin/content-hub/help', 'admin.items.contentHubHelp', BookOpenCheck, [S, Ad]),
+      entry('/admin/content-hub/tours', 'admin.items.contentHubTours', Map, [S, Ad]),
+      entry('/admin/content-hub/popups', 'admin.items.contentHubPopups', MessageSquare, [S, Ad]),
+      entry('/admin/content-hub/announcements', 'admin.items.contentHubAnnouncements', Megaphone, [S, Ad]),
+      entry('/admin/content-hub/notifications', 'admin.items.contentHubNotifications', Bell, [S, Ad], {
+        end: true,
+      }),
+      entry('/admin/content-hub/notifications/send', 'admin.items.contentHubNotificationsSend', Send, [S, Ad]),
+      entry('/admin/content-hub/notifications/deliveries', 'admin.items.contentHubNotificationsDeliveries', Inbox, [S, Ad]),
+      entry('/admin/content-hub/notifications/analytics', 'admin.items.contentHubNotificationsAnalytics', LineChart, [S, Ad]),
+      entry('/admin/content-hub/contextual', 'admin.items.contentHubContextual', CircleHelp, [S, Ad]),
+      entry('/admin/content-hub/analytics', 'admin.items.contentHubAnalytics', BarChart3, [S, Ad]),
+      entry('/admin/content-hub/audit', 'admin.items.contentHubAudit', History, [S, Ad]),
     ],
   },
 ];

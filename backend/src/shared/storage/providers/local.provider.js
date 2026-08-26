@@ -60,6 +60,13 @@ async function getObjectBuffer(storageKey) {
   return fs.promises.readFile(abs);
 }
 
+async function putObjectBuffer(storageKey, buffer) {
+  const abs = getAbsolutePath(storageKey);
+  await fs.promises.mkdir(path.dirname(abs), { recursive: true });
+  await fs.promises.writeFile(abs, buffer);
+  return { size: Buffer.byteLength(buffer) };
+}
+
 module.exports = {
   objectExists,
   headObject,
@@ -69,4 +76,5 @@ module.exports = {
   checkHealth,
   getAbsolutePath,
   getObjectBuffer,
+  putObjectBuffer,
 };

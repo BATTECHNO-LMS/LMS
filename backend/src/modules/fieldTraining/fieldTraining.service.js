@@ -229,11 +229,12 @@ async function listAdminOpportunities(query, user) {
     Object.keys(scopeWhere).length && Object.keys(baseWhere).length
       ? { AND: [baseWhere, scopeWhere] }
       : { ...baseWhere, ...scopeWhere };
-  const { opportunities, total } = await repo.findManyAdmin({
-    where,
-    skip,
-    take: page_size,
-  });
+  try {
+    const { opportunities, total } = await repo.findManyAdmin({
+      where,
+      skip,
+      take: page_size,
+    });
   const opportunityIds = opportunities.map((row) => row.id);
   const instructorIds = [
     ...new Set(opportunities.map((row) => row.assigned_instructor_id).filter(Boolean)),
@@ -274,6 +275,9 @@ async function listAdminOpportunities(query, user) {
     }),
     meta: buildListMeta(total, page, page_size),
   };
+  } catch (err) {
+    rethrowFieldTrainingReadError(err);
+  }
 }
 
 function attachListDisplayMeta(
@@ -1592,6 +1596,85 @@ async function listOpportunityEligibility(opportunityId, user) {
   };
 }
 
+async function getOpportunityOverviewSummary(opportunityId, user) {
+  try {
+    const opp = await repo.findById(opportunityId);
+    if (!opp) throw new ApiError(404, 'Opportunity not found');
+    await assertManageOpportunityAccess(user, opp);
+
+    const studentUniversityId = resolveApplicationStudentUniversityId(user, undefined);
+    const apps = await prisma.field_training_applications.findMany({
+      where: { opportunity_id: opportunityId },
+      select: {
+        id: true,
+        student_id: true,
+        status: true,
+        training_status: true,
+        attendance_percentage: true,
+        completion_letter_issued_at: true,
+        completion_eligibility_status: true,
+      },
+    });
+
+    let scopedApps = apps;
+    if (studentUniversityId) {
+      const students = apps.length
+        ? await prisma.users.findMany({
+            where: {
+              id: { in: [...new Set(apps.map((a) => a.student_id))] },
+              primary_university_id: studentUniversityId,
+            },
+            select: { id: true },
+          })
+        : [];
+      const allowed = new Set(students.map((s) => s.id));
+      scopedApps = apps.filter((a) => allowed.has(a.student_id));
+    }
+
+    const approved = scopedApps.filter((a) => a.status === 'approved');
+    const inTrainingStatuses = new Set([
+      'in_training',
+      'task_pending',
+      'task_submitted',
+      'post_assessment_pending',
+      'post_assessment_completed',
+    ]);
+    const withPct = approved.filter((a) => a.attendance_percentage != null);
+    const avgAttendance = withPct.length
+      ? Math.round(withPct.reduce((acc, a) => acc + Number(a.attendance_percentage), 0) / withPct.length)
+      : null;
+
+    const scopedAppIds = scopedApps.map((a) => a.id);
+    const [sessionCount, pendingReviews] = await Promise.all([
+      prisma.field_training_sessions.count({ where: { opportunity_id: opportunityId } }),
+      scopedAppIds.length
+        ? prisma.field_training_task_submissions.count({
+            where: {
+              application_id: { in: scopedAppIds },
+              review_status: 'pending',
+            },
+          })
+        : 0,
+    ]);
+
+    return {
+      applicationCount: scopedApps.length,
+      approvedCount: approved.length,
+      inTrainingCount: approved.filter((a) => inTrainingStatuses.has(a.training_status)).length,
+      avgAttendance,
+      pendingReviews,
+      eligibleCount: approved.filter((a) => a.completion_eligibility_status === 'eligible').length,
+      lettersIssued: approved.filter(
+        (a) => a.completion_letter_issued_at || a.training_status === 'completed'
+      ).length,
+      expelledCount: scopedApps.filter((a) => a.training_status === 'expelled').length,
+      sessionCount,
+    };
+  } catch (err) {
+    rethrowFieldTrainingReadError(err);
+  }
+}
+
 module.exports = {
   buildStudentWhere,
   getEligibilityCatalog,
@@ -1604,6 +1687,7 @@ module.exports = {
   publishOpportunity,
   archiveOpportunity,
   listOpportunityApplications,
+  getOpportunityOverviewSummary,
   reviewApplication,
   listStudentOpportunities,
   listMyApplications,

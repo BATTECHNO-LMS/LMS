@@ -32,6 +32,8 @@
       "contentHubAnnouncements": "Announcements & alerts",
       "contentHubNotifications": "Notification rules",
       "contentHubNotificationsSend": "Send notification",
+      "contentHubNotificationsDeliveries": "Delivery history",
+      "contentHubNotificationsAnalytics": "Notification analytics",
       "contentHubContextual": "Contextual help",
       "contentHubAnalytics": "Usage analytics",
       "contentHubAudit": "Change history",

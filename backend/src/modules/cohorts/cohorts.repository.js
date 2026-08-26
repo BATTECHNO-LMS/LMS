@@ -4,6 +4,34 @@ async function findById(id) {
   return withDbRetry(() => prisma.cohorts.findUnique({ where: { id } }));
 }
 
+async function findManyByIds(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return withDbRetry(() => prisma.cohorts.findMany({ where: { id: { in: unique } } }));
+}
+
+async function findMicroCredentialsByIds(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return withDbRetry(() =>
+    prisma.micro_credentials.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, title: true, code: true, status: true, description: true },
+    })
+  );
+}
+
+async function findUniversitiesByIds(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return withDbRetry(() =>
+    prisma.universities.findMany({
+      where: { id: { in: unique } },
+      select: { id: true, name: true, status: true },
+    })
+  );
+}
+
 async function count(where) {
   return withDbRetry(() => prisma.cohorts.count({ where }));
 }
@@ -34,6 +62,21 @@ async function countEnrollmentsForCapacity(cohortId) {
         cohort_id: cohortId,
         enrollment_status: { in: ['pending', 'enrolled'] },
       },
+    })
+  );
+}
+
+async function countEnrollmentsForCapacityByCohortIds(cohortIds) {
+  const unique = [...new Set((cohortIds || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return withDbRetry(() =>
+    prisma.enrollments.groupBy({
+      by: ['cohort_id'],
+      where: {
+        cohort_id: { in: unique },
+        enrollment_status: { in: ['pending', 'enrolled'] },
+      },
+      _count: { _all: true },
     })
   );
 }
@@ -83,11 +126,15 @@ async function findMicroCredentialUniversityLink(microCredentialId, universityId
 
 module.exports = {
   findById,
+  findManyByIds,
+  findMicroCredentialsByIds,
+  findUniversitiesByIds,
   count,
   findMany,
   create,
   update,
   countEnrollmentsForCapacity,
+  countEnrollmentsForCapacityByCohortIds,
   countEnrollments,
   countSessions,
   findSessionsDocumentation,

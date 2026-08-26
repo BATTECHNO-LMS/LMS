@@ -49,6 +49,10 @@ const fieldTrainingStaff = authorizeRoles(
 
 router.use('/reports', require('./adminFieldTrainingReports.routes'));
 
+const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
+evaluationRoutes.mountReadRoutes(router, fieldTrainingStaff);
+evaluationRoutes.mountWriteRoutes(router, fieldTrainingStaff);
+
 /* -------- Static paths (must be before /:id) -------- */
 
 router.get(
@@ -388,6 +392,14 @@ router.post(
   fieldTrainingStaff,
   validateRequest({ params: assessmentTypeParamSchema }),
   workflowController.publishAssessment
+);
+
+router.get(
+  '/:id/overview-summary',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  adminFieldTrainingController.overviewSummary
 );
 
 router.get(

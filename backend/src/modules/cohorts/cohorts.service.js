@@ -218,16 +218,18 @@ async function listAvailableForUniversity(universityId) {
     { skip: 0, take: 500 }
   );
   const cohortsBase = await serializeCohortListRows(rows);
-  const cohorts = await Promise.all(
-    cohortsBase.map(async (c) => {
-      const used = await cohortsRepository.countEnrollmentsForCapacity(c.id);
-      return {
-        ...c,
-        enrollment_count: used,
-        spots_remaining: Math.max(0, (c.capacity ?? 0) - used),
-      };
-    })
+  const capacityRows = await cohortsRepository.countEnrollmentsForCapacityByCohortIds(
+    cohortsBase.map((c) => c.id)
   );
+  const usedByCohort = new Map(capacityRows.map((r) => [r.cohort_id, r._count._all]));
+  const cohorts = cohortsBase.map((c) => {
+    const used = usedByCohort.get(c.id) || 0;
+    return {
+      ...c,
+      enrollment_count: used,
+      spots_remaining: Math.max(0, (c.capacity ?? 0) - used),
+    };
+  });
   return { cohorts };
 }
 

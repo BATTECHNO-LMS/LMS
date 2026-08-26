@@ -139,15 +139,6 @@ async function findPublishedManyForStudent({ where }, studentId) {
     orderBy: { published_at: 'desc' },
     include: {
       _count: { select: { course_sections: true } },
-      course_sections: {
-        where: { course_lessons: { some: { status: 'published' } } },
-        include: {
-          course_lessons: {
-            where: { status: 'published' },
-            select: { id: true },
-          },
-        },
-      },
       ...courseCohortsInclude,
     },
   });
@@ -342,6 +333,26 @@ async function countPublishedLessons(courseId) {
   });
 }
 
+async function countPublishedLessonsByCourseIds(courseIds) {
+  const unique = [...new Set((courseIds || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return prisma.course_lessons.groupBy({
+    by: ['course_id'],
+    where: { course_id: { in: unique }, status: 'published' },
+    _count: { _all: true },
+  });
+}
+
+async function countCompletedLessonsByCourseIds(courseIds, studentId) {
+  const unique = [...new Set((courseIds || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return prisma.course_lesson_progress.groupBy({
+    by: ['course_id'],
+    where: { course_id: { in: unique }, student_id: studentId, is_completed: true },
+    _count: { _all: true },
+  });
+}
+
 module.exports = {
   courseIncludeStructure,
   countLessons,
@@ -375,4 +386,6 @@ module.exports = {
   findProgressForCourse,
   upsertLessonComplete,
   countPublishedLessons,
+  countPublishedLessonsByCourseIds,
+  countCompletedLessonsByCourseIds,
 };

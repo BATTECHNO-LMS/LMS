@@ -14,13 +14,12 @@ function decToNumber(v) {
   return Number(v);
 }
 
-async function serializeEnrollment(row) {
-  const student = await enrollmentsRepository.findUserBrief(row.student_id);
+function toEnrollmentJson(row, student) {
   return {
     id: row.id,
     cohort_id: row.cohort_id,
     student_id: row.student_id,
-    student,
+    student: student || null,
     enrollment_status: row.enrollment_status,
     final_status: row.final_status,
     final_grade: decToNumber(row.final_grade),
@@ -35,6 +34,50 @@ async function serializeEnrollment(row) {
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
+}
+
+async function serializeEnrollmentRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const students = await enrollmentsRepository.findUsersBrief(list.map((r) => r.student_id));
+  const byId = new Map(students.map((s) => [s.id, s]));
+  return list.map((row) => toEnrollmentJson(row, byId.get(row.student_id) || null));
+}
+
+async function serializeEnrollment(row) {
+  const [mapped] = await serializeEnrollmentRows([row]);
+  return mapped;
+}
+
+async function attachCohortContext(rows, bases) {
+  const cohortIds = [...new Set(rows.map((r) => r.cohort_id))];
+  const cohorts = await cohortsRepository.findManyByIds(cohortIds);
+  const byCohort = new Map(cohorts.map((c) => [c.id, c]));
+  const [mcs, unis] = await Promise.all([
+    cohortsRepository.findMicroCredentialsByIds(cohorts.map((c) => c.micro_credential_id)),
+    cohortsRepository.findUniversitiesByIds(cohorts.map((c) => c.university_id)),
+  ]);
+  const mcMap = new Map(mcs.map((m) => [m.id, m]));
+  const uniMap = new Map(unis.map((u) => [u.id, u]));
+  return bases.map((base, i) => {
+    const cohort = byCohort.get(rows[i].cohort_id);
+    if (!cohort) return { ...base, cohort: null };
+    const mc = mcMap.get(cohort.micro_credential_id);
+    const uni = uniMap.get(cohort.university_id);
+    return {
+      ...base,
+      cohort: {
+        id: cohort.id,
+        title: cohort.title,
+        status: cohort.status,
+        start_date: dateOnlyISO(cohort.start_date),
+        end_date: dateOnlyISO(cohort.end_date),
+        micro_credential: mc
+          ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status, description: mc.description ?? null }
+          : null,
+        university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
+      },
+    };
+  });
 }
 
 function assertEnrollmentDecisionRole(requester) {
@@ -54,7 +97,7 @@ async function assertCohortWritable(cohortId, requester) {
 async function listByCohort(cohortId, requester) {
   await assertCohortWritable(cohortId, requester);
   const rows = await enrollmentsRepository.findManyByCohort(cohortId);
-  const enrollments = await Promise.all(rows.map((r) => serializeEnrollment(r)));
+  const enrollments = await serializeEnrollmentRows(rows);
   return { enrollments };
 }
 
@@ -241,30 +284,8 @@ async function listPending(requester) {
       orderBy: { enrolled_at: 'asc' },
     });
   }
-  const enrollments = [];
-  for (const row of pendingRows) {
-    const base = await serializeEnrollment(row);
-    const cohort = await cohortsRepository.findById(row.cohort_id);
-    let cohortPayload = null;
-    if (cohort) {
-      const [mc, uni] = await Promise.all([
-        cohortsRepository.findMicroCredential(cohort.micro_credential_id),
-        cohortsRepository.findUniversity(cohort.university_id),
-      ]);
-      cohortPayload = {
-        id: cohort.id,
-        title: cohort.title,
-        status: cohort.status,
-        start_date: dateOnlyISO(cohort.start_date),
-        end_date: dateOnlyISO(cohort.end_date),
-        micro_credential: mc
-          ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status, description: mc.description ?? null }
-          : null,
-        university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
-      };
-    }
-    enrollments.push({ ...base, cohort: cohortPayload });
-  }
+  const bases = await serializeEnrollmentRows(pendingRows);
+  const enrollments = await attachCohortContext(pendingRows, bases);
   return { enrollments };
 }
 
@@ -343,30 +364,8 @@ async function listMine(requester) {
     throw new ApiError(403, 'Forbidden');
   }
   const rows = await enrollmentsRepository.findManyByStudent(requester.userId);
-  const enrollments = [];
-  for (const row of rows) {
-    const base = await serializeEnrollment(row);
-    const cohort = await cohortsRepository.findById(row.cohort_id);
-    let cohortPayload = null;
-    if (cohort) {
-      const [mc, uni] = await Promise.all([
-        cohortsRepository.findMicroCredential(cohort.micro_credential_id),
-        cohortsRepository.findUniversity(cohort.university_id),
-      ]);
-      cohortPayload = {
-        id: cohort.id,
-        title: cohort.title,
-        status: cohort.status,
-        start_date: dateOnlyISO(cohort.start_date),
-        end_date: dateOnlyISO(cohort.end_date),
-        micro_credential: mc
-          ? { id: mc.id, title: mc.title, code: mc.code, status: mc.status, description: mc.description ?? null }
-          : null,
-        university: uni ? { id: uni.id, name: uni.name, status: uni.status } : null,
-      };
-    }
-    enrollments.push({ ...base, cohort: cohortPayload });
-  }
+  const bases = await serializeEnrollmentRows(rows);
+  const enrollments = await attachCohortContext(rows, bases);
   return { enrollments };
 }
 

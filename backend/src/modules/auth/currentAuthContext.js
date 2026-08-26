@@ -41,8 +41,37 @@ const assignmentSelect = {
   department_id: true,
   job_title: true,
   employee_number: true,
+  is_active: true,
   organizations: {
-    select: { id: true, type: true, name: true, status: true },
+    select: { id: true, type: true, name: true, status: true, logo_url: true },
+  },
+  organization_branches: { select: { id: true, name: true } },
+  organization_departments: { select: { id: true, name: true } },
+};
+
+const profileSelect = {
+  id: true,
+  status: true,
+  full_name: true,
+  email: true,
+  phone: true,
+  email_verified_at: true,
+  primary_university_id: true,
+  preferred_organization_id: true,
+  university_specialty_id: true,
+  specialty_id: true,
+  specialties: {
+    select: { id: true, name_ar: true, name_en: true, code: true, status: true },
+  },
+  university_specialty: {
+    select: {
+      id: true,
+      name_ar: true,
+      name_en: true,
+      code: true,
+      status: true,
+      specialty_id: true,
+    },
   },
 };
 
@@ -95,24 +124,21 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
       ? options.portalType
       : null;
 
-  const [user, links, assignmentRows, reviewerAssignment] = await Promise.all([
+  const [userRow, links, reviewerAssignment] = await Promise.all([
     prisma.users.findUnique({
       where: { id: userId },
       select: {
-        id: true,
-        status: true,
-        primary_university_id: true,
-        preferred_organization_id: true,
+        ...profileSelect,
+        user_organization_assignments: {
+          where: { is_active: true },
+          orderBy: { assigned_at: 'desc' },
+          select: assignmentSelect,
+        },
       },
     }),
     prisma.user_roles.findMany({
       where: { user_id: userId },
       select: { role_id: true },
-    }),
-    prisma.user_organization_assignments.findMany({
-      where: { user_id: userId, is_active: true },
-      orderBy: { assigned_at: 'desc' },
-      select: assignmentSelect,
     }),
     prisma.reviewer_university_assignments.findFirst({
       where: { reviewer_user_id: userId, is_active: true },
@@ -126,6 +152,14 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
       },
     }),
   ]);
+
+  const assignmentRows = userRow?.user_organization_assignments || [];
+  const user = userRow
+    ? (() => {
+        const { user_organization_assignments: _assignments, ...profile } = userRow;
+        return profile;
+      })()
+    : null;
 
   if (!user) {
     throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED), null, 'USER_NOT_FOUND');
@@ -271,6 +305,8 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
     scope,
     isGlobal,
     permissions,
+    _profile: user,
+    _assignmentRows: assignmentRows,
   };
   if (!portalType) return authUser;
   return applyPortalScope(authUser, portalType);

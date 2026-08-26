@@ -4,6 +4,7 @@ import { fetchSessionsByCohort } from '../sessions.service.js';
 export const sessionsKeys = {
   all: ['sessions'],
   byCohort: (cohortId) => [...sessionsKeys.all, 'cohort', cohortId],
+  instructorAssigned: () => [...sessionsKeys.all, 'instructor', 'assigned'],
   detail: (id) => [...sessionsKeys.all, 'detail', id],
 };
 

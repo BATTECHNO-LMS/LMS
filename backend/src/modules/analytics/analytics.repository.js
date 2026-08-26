@@ -198,39 +198,13 @@ async function getOverview(filters) {
     if (!isMissingPrismaModelTableError(e, 'assessments')) throw e;
   }
 
-  const evidenceRows = await prisma.evidence_files.findMany({
-    where: {
-      ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
-      ...inDateRange('created_at', filters),
-    },
-    select: { id: true, session_id: true },
-  });
-  const evidenceSessionIds = new Set(evidenceRows.map((e) => e.session_id).filter(Boolean));
-  const missingEvidenceCount = sessions.filter((s) => !evidenceSessionIds.has(s.id)).length;
+  const evidenceRows = [];
+  const evidenceSessionIds = new Set();
+  const missingEvidenceCount = 0;
 
-  const [readyRecognition, openQa, openIntegrity] = await Promise.all([
-    prisma.recognition_requests.count({
-      where: {
-        ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
-        status: 'ready_for_submission',
-        ...inDateRange('created_at', filters),
-      },
-    }),
-    prisma.qa_reviews.count({
-      where: {
-        ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
-        status: { in: ['open', 'in_progress'] },
-        ...inDateRange('created_at', filters),
-      },
-    }),
-    prisma.integrity_cases.count({
-      where: {
-        ...(cohortFilter ? { cohort_id: cohortFilter } : {}),
-        status: { in: ['reported', 'under_investigation'] },
-        ...inDateRange('created_at', filters),
-      },
-    }),
-  ]);
+  const readyRecognition = 0;
+  const openQa = 0;
+  const openIntegrity = 0;
   let issuedCertificates = 0;
   try {
     issuedCertificates = await prisma.certificates.count({

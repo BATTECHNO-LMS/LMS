@@ -67,4 +67,130 @@ function resolveSessionHours(session) {
   return null;
 }
 
-module.exports = { computeHoursStatus, computeAttendanceStatus, snapshotFromProgressRow, resolveSessionHours };
+/**
+ * Pure requirement snapshot from already-loaded program/learner rows.
+ * Shared by computeAndPersistProgress (write path) and batched readiness (read path).
+ */
+function buildProgressRequirements({
+  program,
+  sessions,
+  attendance,
+  requiredTasks,
+  submissions,
+  reqRows,
+  assessments,
+  finalTaskRow,
+  evaluationAssignment,
+}) {
+  const countableIds = new Set((sessions || []).map((s) => s.id));
+  const presentLike = (attendance || []).filter(
+    (a) =>
+      countableIds.has(a.session_id) && ['present', 'late', 'excused'].includes(String(a.status).toLowerCase())
+  );
+  const attendancePct = sessions.length ? (presentLike.length / sessions.length) * 100 : 0;
+  const hoursBySession = new Map((sessions || []).map((s) => [s.id, resolveSessionHours(s)]));
+  const hoursCompleted = presentLike.reduce((sum, a) => {
+    const hours = hoursBySession.get(a.session_id);
+    return hours == null ? sum : sum + hours;
+  }, 0);
+  const hoursMeasurableCount = (sessions || []).filter((s) => hoursBySession.get(s.id) != null).length;
+  const hoursRequired = Number(program?.required_hours || 0);
+  const requiredAttendance = Number(program?.required_attendance_pct || 0);
+
+  const completedTaskIds = new Set((submissions || []).map((s) => s.task_id));
+  const tasksDone = (requiredTasks || []).filter((t) => completedTaskIds.has(t.id)).length;
+
+  const reqByCode = Object.fromEntries((reqRows || []).map((r) => [r.code, r]));
+  function assessmentOk(kind) {
+    const cfg = reqByCode[kind];
+    if (!cfg?.is_required) return { required: false, ok: true, value: null };
+    const assessment = (assessments || []).find((a) => a.kind === kind);
+    if (!assessment) return { required: true, ok: false, value: 0, completed: false, passed: false };
+    const threshold = cfg.threshold_json && typeof cfg.threshold_json === 'object' ? cfg.threshold_json : {};
+    const passScoreRaw = assessment.pass_score ?? threshold.pass_score;
+    const passScore = passScoreRaw != null ? Number(passScoreRaw) : null;
+    const passingRequired = threshold.passing_required === true || (passScore != null && threshold.passing_required !== false);
+    const attempts = assessment.training_assessment_attempts || assessment.attempts || [];
+    const pendingManual = attempts.some((a) => a.status === 'SUBMITTED' && !a.graded_at);
+    const graded = attempts.filter((a) => a.status === 'GRADED');
+    const submittedOrGraded = attempts.filter((a) => ['SUBMITTED', 'GRADED'].includes(a.status));
+    const best = graded.reduce((max, a) => Math.max(max, Number(a.score || 0)), 0);
+    const completed = submittedOrGraded.length > 0 && !pendingManual;
+    const passed = passingRequired ? completed && best >= Number(passScore || 0) : completed;
+    return {
+      required: true,
+      ok: passed,
+      value: best,
+      passScore,
+      passingRequired,
+      completed,
+      passed,
+      pendingManual,
+    };
+  }
+
+  let finalTaskCheck = { required: false, ok: true };
+  if (reqByCode.FINAL_TASK?.is_required) {
+    if (!finalTaskRow) {
+      finalTaskCheck = { required: true, ok: false, reason: 'NO_FINAL_TASK_CONFIGURED' };
+    } else {
+      const submission = (submissions || [])
+        .filter((s) => s.task_id === finalTaskRow.id)
+        .sort((a, b) => new Date(b.submitted_at || 0) - new Date(a.submitted_at || 0))[0];
+      finalTaskCheck = {
+        required: true,
+        ok: Boolean(submission),
+        submitted: Boolean(submission),
+        score: submission?.score != null ? Number(submission.score) : null,
+      };
+    }
+  }
+
+  let evaluationCheck = { required: false, ok: true };
+  if (reqByCode.EVALUATION?.is_required) {
+    evaluationCheck = {
+      required: true,
+      ok: evaluationAssignment?.status === 'SUBMITTED',
+      submitted: evaluationAssignment?.status === 'SUBMITTED',
+      status: evaluationAssignment?.status || 'LOCKED',
+    };
+  }
+
+  const requirements = {
+    attendance: computeAttendanceStatus({ sessionCount: sessions.length, attendancePct, requiredAttendance }),
+    hours: computeHoursStatus({ sessionCount: hoursMeasurableCount, hoursCompleted, hoursRequired }),
+    tasks: {
+      value: tasksDone,
+      required: reqByCode.TASKS?.is_required === false ? 0 : (requiredTasks || []).length,
+      ok: reqByCode.TASKS?.is_required === false ? true : tasksDone >= (requiredTasks || []).length,
+    },
+    preTest: assessmentOk('PRE_TEST'),
+    postTest: assessmentOk('POST_TEST'),
+    finalTask: finalTaskCheck,
+    evaluation: evaluationCheck,
+  };
+  const allOk = Object.values(requirements).every((r) => r.ok);
+  const requirementChecks = Object.values(requirements);
+  const completionPct = allOk
+    ? 100
+    : Math.min(
+        99,
+        Math.round((requirementChecks.filter((r) => r.ok).length / Math.max(requirementChecks.length, 1)) * 100)
+      );
+
+  return {
+    requirements,
+    completionPct,
+    hoursCompleted,
+    attendancePct,
+    allOk,
+  };
+}
+
+module.exports = {
+  computeHoursStatus,
+  computeAttendanceStatus,
+  snapshotFromProgressRow,
+  resolveSessionHours,
+  buildProgressRequirements,
+};

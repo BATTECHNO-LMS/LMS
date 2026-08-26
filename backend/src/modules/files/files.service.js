@@ -203,4 +203,50 @@ module.exports = {
   canAccessFile,
   checkStorageHealth,
   resolveUploadInput,
+  storePrivateBuffer,
 };
+
+/**
+ * Persist a private buffer through the existing files table + storage provider.
+ * Used for Field Training evaluation templates and generated official PDFs.
+ */
+async function storePrivateBuffer({
+  buffer,
+  originalName,
+  mimeType,
+  folder = 'training',
+  user,
+  relatedEntityType,
+  relatedEntityId,
+}) {
+  const validation = validateUploadRequest({
+    fileName: originalName,
+    mimeType,
+    size: Buffer.byteLength(buffer),
+    folder,
+  });
+  if (!validation.valid) {
+    throw new ApiError(400, validation.errors[0] || 'Invalid upload', null, 'FILE_VALIDATION_ERROR');
+  }
+  const provider = getProvider();
+  const storageKey = buildStorageKey(validation.folder, originalName);
+  assertSafeStorageKey(storageKey);
+  if (typeof provider.putObjectBuffer !== 'function') {
+    throw new ApiError(503, 'Storage provider cannot store buffers', null, 'STORAGE_PROVIDER_ERROR');
+  }
+  await provider.putObjectBuffer(storageKey, buffer, mimeType);
+  const bucket = getStorageBackend() === 'r2' ? env.R2_BUCKET_NAME : env.UPLOAD_DIR || 'uploads';
+  return repo.createFile({
+    userId: user?.userId ?? null,
+    createdById: user?.userId ?? null,
+    relatedEntityType: relatedEntityType ?? null,
+    relatedEntityId: relatedEntityId ?? null,
+    originalName,
+    storageKey,
+    bucket,
+    mimeType,
+    size: Buffer.byteLength(buffer),
+    visibility: 'private',
+    url: null,
+  });
+}

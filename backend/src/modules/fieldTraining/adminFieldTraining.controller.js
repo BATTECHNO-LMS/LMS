@@ -95,6 +95,18 @@ async function listApplications(req, res, next) {
   }
 }
 
+async function overviewSummary(req, res, next) {
+  try {
+    const data = await fieldTrainingService.getOpportunityOverviewSummary(
+      req.validated.params.id,
+      req.user
+    );
+    return success(res, data, { message: 'Overview summary retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function reviewApplication(req, res, next) {
   try {
     const data = await fieldTrainingService.reviewApplication(
@@ -275,6 +287,7 @@ module.exports = {
   publish,
   archive,
   listApplications,
+  overviewSummary,
   reviewApplication,
   listTasks,
   createTask,

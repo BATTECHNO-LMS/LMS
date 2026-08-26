@@ -47,32 +47,42 @@ function buildTokenPayload(userId, roleRecords, primaryUniversityId, portalType 
 async function toLoginUser(user, roleRecords, permissionCodes, isGlobal, options = {}) {
   const portalType = options.portalType || null;
   let primaryUniversityId = user.primary_university_id;
-  let university = null;
-  const { prisma } = require('../../config/db');
-  const assignmentQuery = prisma.user_organization_assignments.findMany({
-    where: { user_id: user.id, is_active: true },
-    orderBy: { assigned_at: 'desc' },
-    include: {
-      organizations: {
-        select: { id: true, type: true, name: true, status: true, logo_url: true },
-      },
-      organization_branches: { select: { id: true, name: true } },
-      organization_departments: { select: { id: true, name: true } },
-    },
-  });
-  let assignmentRows;
+  let university = options.university || null;
+  let assignmentRows = Array.isArray(options.assignmentRows) ? options.assignmentRows : null;
 
-  if (!primaryUniversityId) {
-    university = await ensureUserLinkedToUniversityFromEmail(user.id, user.email);
-    if (university) primaryUniversityId = university.id;
-    assignmentRows = await assignmentQuery;
-  } else {
-    const [row, rows] = await Promise.all([
-      authRepository.findUniversityById(primaryUniversityId),
-      assignmentQuery,
-    ]);
+  if (!assignmentRows) {
+    const { prisma } = require('../../config/db');
+    const assignmentQuery = prisma.user_organization_assignments.findMany({
+      where: { user_id: user.id, is_active: true },
+      orderBy: { assigned_at: 'desc' },
+      include: {
+        organizations: {
+          select: { id: true, type: true, name: true, status: true, logo_url: true },
+        },
+        organization_branches: { select: { id: true, name: true } },
+        organization_departments: { select: { id: true, name: true } },
+      },
+    });
+
+    if (!primaryUniversityId && !options.skipUniversityLink) {
+      university = await ensureUserLinkedToUniversityFromEmail(user.id, user.email);
+      if (university) primaryUniversityId = university.id;
+      assignmentRows = await assignmentQuery;
+    } else {
+      const [row, rows] = await Promise.all([
+        university || !primaryUniversityId
+          ? Promise.resolve(null)
+          : authRepository.findUniversityById(primaryUniversityId),
+        assignmentQuery,
+      ]);
+      if (!university) {
+        university = row ? { id: row.id, name: row.name } : null;
+      }
+      assignmentRows = rows;
+    }
+  } else if (!university && primaryUniversityId && !options.skipUniversityQuery) {
+    const row = await authRepository.findUniversityById(primaryUniversityId);
     university = row ? { id: row.id, name: row.name } : null;
-    assignmentRows = rows;
   }
 
   const universitySpecialty = user.university_specialty
@@ -600,7 +610,8 @@ async function login(validated) {
 }
 
 async function me(userId, options = {}) {
-  const user = await authRepository.findUserProfileById(userId);
+  const ctx = options.authContext;
+  const user = ctx?._profile?.id === userId ? ctx._profile : await authRepository.findUserProfileById(userId);
   if (!user) {
     throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED), null, AUTH_ERROR_CODES.UNAUTHORIZED);
   }
@@ -612,7 +623,6 @@ async function me(userId, options = {}) {
       AUTH_ERROR_CODES.ACCOUNT_INACTIVE
     );
   }
-  const ctx = options.authContext;
   let roleRecords;
   let permissionCodes;
   let isGlobal;
@@ -626,6 +636,10 @@ async function me(userId, options = {}) {
   }
   return toLoginUser(user, roleRecords, permissionCodes, isGlobal, {
     portalType: options.portalType || ctx?.portalType || null,
+    assignmentRows: Array.isArray(ctx?._assignmentRows) ? ctx._assignmentRows : undefined,
+    university: ctx?.university || null,
+    skipUniversityLink: Boolean(ctx),
+    skipUniversityQuery: Boolean(ctx),
   });
 }
 
@@ -744,4 +758,5 @@ module.exports = {
   /** Exported for characterization tests — same helpers used at login. */
   isGlobalFromRoleRecords,
   buildTokenPayload,
+  toLoginUser,
 };

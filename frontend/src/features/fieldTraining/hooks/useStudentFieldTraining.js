@@ -97,8 +97,8 @@ export function useStudentTrainingProgress(opportunityId, options = {}) {
     queryKey: fieldTrainingKeys.studentProgress(opportunityId),
     queryFn: () => fetchStudentTrainingProgress(opportunityId),
     enabled: Boolean(opportunityId),
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: STALE.fieldTraining,
+    refetchOnMount: false,
     ...options,
   });
 }

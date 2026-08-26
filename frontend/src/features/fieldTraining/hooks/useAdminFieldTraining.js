@@ -6,6 +6,7 @@ import {
   fetchAdminFieldTrainingList,
   fetchAdminFieldTrainingStats,
   fetchOpportunityApplications,
+  fetchOpportunityOverviewSummary,
   publishAdminFieldTraining,
   reviewFieldTrainingApplication,
   updateAdminFieldTraining,
@@ -61,6 +62,18 @@ export function useOpportunityApplications(opportunityId, params = {}, options =
     enabled: Boolean(opportunityId),
     staleTime: STALE.fieldTraining,
     placeholderData: keepPreviousListData,
+    ...options,
+  });
+}
+
+export function useOpportunityOverviewSummary(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
+  return useQuery({
+    queryKey: fieldTrainingKeys.overviewSummary(opportunityId, scope),
+    queryFn: () =>
+      fetchOpportunityOverviewSummary(opportunityId, { asInstructor: scope === 'instructor' }),
+    enabled: Boolean(opportunityId),
+    staleTime: STALE.fieldTraining,
     ...options,
   });
 }

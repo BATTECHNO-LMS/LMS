@@ -56,6 +56,7 @@ async function authMiddleware(req, res, next) {
   try {
     req.user = await loadCurrentAuthContext(userId, { portalType });
     if (req.user && portalType) req.user.portalType = portalType;
+    req.authContext = req.user;
     return enforceAcademicReviewerReadOnly(req, res, next);
   } catch (err) {
     if (err instanceof ApiError) {

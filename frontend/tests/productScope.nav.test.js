@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { ROLES } from '../src/constants/roles.js';
-import { flattenAdminNavPaths } from '../src/constants/adminNavigation.js';
+import { flattenAdminNavPaths, getAdminNavGroupsForRole } from '../src/constants/adminNavigation.js';
 import { canAccessPathWithUiPermissions } from '../src/utils/rolePermissions.js';
 
 const uniAdmin = {
@@ -67,6 +67,42 @@ describe('product scope navigation', () => {
   it('Trainee sees Courses and no Field Training', () => {
     assert.equal(canAccessPathWithUiPermissions(ROLES.TRAINEE, '/trainee/courses'), true);
     assert.equal(canAccessPathWithUiPermissions(ROLES.TRAINEE, '/student/field-training'), false);
+  });
+
+  it('Super Admin and org admins see the Content Hub sidebar section', () => {
+    const t = (key) => key;
+    const expected = [
+      '/admin/content-hub/help',
+      '/admin/content-hub/tours',
+      '/admin/content-hub/popups',
+      '/admin/content-hub/announcements',
+      '/admin/content-hub/notifications',
+      '/admin/content-hub/notifications/send',
+      '/admin/content-hub/notifications/deliveries',
+      '/admin/content-hub/notifications/analytics',
+      '/admin/content-hub/contextual',
+      '/admin/content-hub/analytics',
+      '/admin/content-hub/audit',
+    ];
+    for (const user of [uniAdmin, instAdmin, superAdmin]) {
+      const groups = getAdminNavGroupsForRole(user.role, t, user);
+      const content = groups.find((g) => g.id === 'contentHelp');
+      assert.ok(content, `missing contentHelp group for ${user.role}`);
+      const tos = content.items.map((item) => item.to);
+      for (const path of expected) {
+        assert.ok(tos.includes(path), `${user.role} missing ${path}`);
+        assert.equal(canReach(user, path), true);
+      }
+    }
+  });
+
+  it('Reviewer, trainer, and learner roles do not receive Content Hub administration', () => {
+    const t = (key) => key;
+    assert.equal(getAdminNavGroupsForRole(ROLES.REVIEWER, t, { role: ROLES.REVIEWER }).length, 0);
+    assert.equal(getAdminNavGroupsForRole(ROLES.TRAINER, t, { role: ROLES.TRAINER }).length, 0);
+    assert.equal(getAdminNavGroupsForRole(ROLES.INSTRUCTOR, t, { role: ROLES.INSTRUCTOR }).length, 0);
+    assert.equal(getAdminNavGroupsForRole(ROLES.STUDENT, t, { role: ROLES.STUDENT }).length, 0);
+    assert.equal(getAdminNavGroupsForRole(ROLES.TRAINEE, t, { role: ROLES.TRAINEE }).length, 0);
   });
 
   it('removed QA / Risk / Recognition admin paths are not reachable', () => {

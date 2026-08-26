@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -15,21 +14,12 @@ import { StatCard } from '../../components/common/StatCard.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
-import { getTrainerDashboard } from '../../features/training/trainer.service.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { useTrainerDashboard } from '../../features/training/hooks/useTrainerDashboard.js';
 
 export function TrainerDashboardPage() {
-  const [data, setData] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    getTrainerDashboard()
-      .then(setData)
-      .catch((err) => setError(getApiErrorMessage(err, 'تعذر تحميل لوحة المدرب.')))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading: loading, error: queryError } = useTrainerDashboard();
+  const error = queryError ? getApiErrorMessage(queryError, 'تعذر تحميل لوحة المدرب.') : '';
 
   if (loading) {
     return (

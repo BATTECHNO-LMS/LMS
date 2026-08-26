@@ -586,6 +586,9 @@ model universities {
   university_specialties   university_specialties[]
   field_training_opportunities field_training_opportunities[]
   field_training_opportunity_eligibility field_training_opportunity_eligibility[]
+  field_training_evaluation_templates field_training_evaluation_templates[]
+  field_training_evaluation_policies field_training_evaluation_policies[]
+  field_training_final_evaluations field_training_final_evaluations[]
 
   @@index([code], map: "idx_universities_code")
   @@index([short_name], map: "idx_universities_short_name")
@@ -652,6 +655,8 @@ model users {
   preferred_organization_id String?                    @db.Uuid
   status_public_message     String?                    @db.VarChar(500)
   last_login_at             DateTime?                  @db.Timestamptz(6)
+  /// Official university student number used on Field Training evaluation reports. Never substitute the internal user UUID.
+  university_student_number String?                    @db.VarChar(80)
   created_at                DateTime                   @default(now()) @db.Timestamptz(6)
   updated_at                DateTime                   @default(now()) @db.Timestamptz(6)
 
@@ -661,6 +666,8 @@ model users {
   password_reset_otps            password_reset_otps[]
   user_organization_assignments  user_organization_assignments[] @relation("UserOrganizationAssignments")
   assigned_organization_members  user_organization_assignments[] @relation("OrganizationAssignmentActor")
+  field_training_supervisor_ratings field_training_supervisor_ratings[] @relation("FtSupervisorRatingStudent")
+  field_training_final_evaluations field_training_final_evaluations[] @relation("FtFinalEvaluationStudent")
 
   @@index([primary_university_id], map: "idx_users_primary_university_id")
   @@index([university_specialty_id], map: "idx_users_university_specialty_id")
@@ -668,6 +675,8 @@ model users {
   @@index([email_verified_at], map: "idx_users_email_verified_at")
   @@index([status], map: "idx_users_status")
   @@index([primary_university_id, status], map: "idx_users_university_status")
+  @@index([university_student_number], map: "idx_users_university_student_number")
+  @@index([primary_university_id, university_student_number], map: "idx_users_university_student_number_scope")
 }
 
 model email_verification_otps {
@@ -1287,6 +1296,9 @@ model field_training_opportunities {
   minimum_attendance_percentage    Int?
   minimum_post_assessment_score    Decimal?              @db.Decimal(5, 2)
   completion_rules                 Json?
+  /// Host organization contact fields used only to fill evaluation templates (department, email, phone, fax, address).
+  host_organization                Json?
+  evaluation_template_id           String?                           @db.Uuid
   status               field_training_opportunity_status @default(draft)
   training_started_at  DateTime?                         @db.Timestamptz(6)
   created_by_id        String?                           @db.Uuid
@@ -1296,12 +1308,15 @@ model field_training_opportunities {
 
   universities                universities?                 @relation(fields: [university_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   specialties                 specialties?                  @relation(fields: [specialty_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  evaluation_template         field_training_evaluation_templates? @relation("OpportunityEvaluationTemplate", fields: [evaluation_template_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   field_training_applications field_training_applications[]
   field_training_tasks        field_training_tasks[]
   field_training_sessions     field_training_sessions[]
   field_training_assessments  field_training_assessments[]
   field_training_completion_letters field_training_completion_letters[]
   field_training_opportunity_eligibility field_training_opportunity_eligibility[]
+  field_training_supervisor_ratings field_training_supervisor_ratings[]
+  field_training_final_evaluations field_training_final_evaluations[]
 
   @@index([status], map: "idx_field_training_opportunities_status")
   @@index([training_mode], map: "idx_field_training_opportunities_mode")
@@ -1309,6 +1324,7 @@ model field_training_opportunities {
   @@index([university_id], map: "idx_field_training_opportunities_university")
   @@index([specialty_id], map: "idx_field_training_opportunities_specialty")
   @@index([assigned_instructor_id], map: "idx_field_training_opportunities_instructor")
+  @@index([evaluation_template_id], map: "idx_field_training_opportunities_eval_template")
 }
 
 /// Eligible university programs for a field training opportunity (visibility + reporting).
@@ -1371,6 +1387,8 @@ model field_training_applications {
   field_training_attendance    field_training_attendance[]
   field_training_assessment_attempts field_training_assessment_attempts[]
   field_training_completion_letters field_training_completion_letters[]
+  field_training_supervisor_ratings field_training_supervisor_ratings[]
+  field_training_final_evaluations field_training_final_evaluations[]
 
   @@unique([opportunity_id, student_id], map: "uq_field_training_applications")
   @@index([opportunity_id], map: "idx_field_training_applications_opportunity")
@@ -1767,6 +1785,175 @@ model field_training_completion_letters {
   @@index([student_id], map: "idx_field_training_completion_letters_student")
   @@index([opportunity_id], map: "idx_field_training_completion_letters_opportunity")
   @@index([status], map: "idx_field_training_completion_letters_status")
+}
+
+enum field_training_eval_final_status {
+  PASSED
+  FAILED
+  NOT_ELIGIBLE
+}
+
+enum field_training_eval_template_validation {
+  pending
+  valid
+  invalid
+}
+
+/// University-owned DOCX evaluation form. Versioned in place: replace archives the previous row.
+model field_training_evaluation_templates {
+  id               String                                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id    String                                   @db.Uuid
+  name             String                                   @db.VarChar(255)
+  description      String?
+  original_file_id String                                   @db.Uuid
+  version          Int                                      @default(1)
+  is_active        Boolean                                  @default(true)
+  is_default       Boolean                                  @default(false)
+  validation_status field_training_eval_template_validation @default(pending)
+  validation_json  Json?
+  created_by_id    String?                                  @db.Uuid
+  created_at       DateTime                                 @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime                                 @default(now()) @db.Timestamptz(6)
+  archived_at      DateTime?                                @db.Timestamptz(6)
+
+  universities                     universities                      @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  opportunity_overrides            field_training_opportunities[]    @relation("OpportunityEvaluationTemplate")
+  field_training_final_evaluations field_training_final_evaluations[]
+
+  @@index([university_id], map: "idx_ft_eval_templates_university")
+  @@index([university_id, is_default, is_active], map: "idx_ft_eval_templates_default")
+  @@index([original_file_id], map: "idx_ft_eval_templates_file")
+  @@index([archived_at], map: "idx_ft_eval_templates_archived")
+}
+
+/// Per-university scoring policy. New versions archive the previous active row.
+model field_training_evaluation_policies {
+  id                               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id                    String   @db.Uuid
+  version                          Int      @default(1)
+  is_active                        Boolean  @default(true)
+  minimum_attendance_percentage    Decimal  @default(80) @db.Decimal(5, 2)
+  required_training_hours          Int?
+  required_tasks_required          Boolean  @default(true)
+  post_assessment_required         Boolean  @default(true)
+  professional_evaluation_required Boolean  @default(true)
+  minimum_passing_score            Decimal  @default(60) @db.Decimal(5, 2)
+  attendance_weight                Decimal  @default(20) @db.Decimal(5, 2)
+  tasks_weight                     Decimal  @default(20) @db.Decimal(5, 2)
+  post_assessment_weight           Decimal  @default(20) @db.Decimal(5, 2)
+  professional_evaluation_weight   Decimal  @default(40) @db.Decimal(5, 2)
+  attendance_bands                 Json?
+  created_by_id                    String?  @db.Uuid
+  created_at                       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                       DateTime @default(now()) @db.Timestamptz(6)
+  archived_at                      DateTime? @db.Timestamptz(6)
+
+  universities                     universities                      @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_final_evaluations field_training_final_evaluations[]
+
+  @@index([university_id], map: "idx_ft_eval_policies_university")
+  @@index([university_id, is_active], map: "idx_ft_eval_policies_active")
+}
+
+/// Periodic supervisor quick ratings for behavioral criteria that cannot be derived from attendance/tasks.
+model field_training_supervisor_ratings {
+  id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id            String   @db.Uuid
+  opportunity_id           String   @db.Uuid
+  application_id           String   @db.Uuid
+  student_id               String   @db.Uuid
+  thinking_and_initiative  Int
+  problem_solving          Int
+  teamwork                 Int
+  professional_conduct     Int
+  supervisor_cooperation   Int
+  rules_compliance         Int
+  notes                    String?
+  rated_by_id              String?  @db.Uuid
+  rated_at                 DateTime @default(now()) @db.Timestamptz(6)
+  created_at               DateTime @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_applications  field_training_applications  @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student                      users                        @relation("FtSupervisorRatingStudent", fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([application_id], map: "idx_ft_supervisor_ratings_application")
+  @@index([opportunity_id], map: "idx_ft_supervisor_ratings_opportunity")
+  @@index([student_id], map: "idx_ft_supervisor_ratings_student")
+  @@index([university_id], map: "idx_ft_supervisor_ratings_university")
+  @@index([rated_at], map: "idx_ft_supervisor_ratings_rated_at")
+}
+
+/// Persistent official evaluation snapshot. Historical rows are never silently overwritten.
+model field_training_final_evaluations {
+  id                          String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  university_id               String                          @db.Uuid
+  opportunity_id              String                          @db.Uuid
+  application_id              String                          @db.Uuid
+  student_id                  String                          @db.Uuid
+  template_id                 String?                         @db.Uuid
+  template_version            Int?
+  policy_id                   String?                         @db.Uuid
+  policy_version              Int?
+  eligibility_status          String                          @db.VarChar(32)
+  final_status                field_training_eval_final_status
+  eligibility_reasons         Json
+  attendance_component_score  Decimal?                        @db.Decimal(6, 2)
+  tasks_component_score       Decimal?                        @db.Decimal(6, 2)
+  post_assessment_component_score Decimal?                    @db.Decimal(6, 2)
+  professional_component_score Decimal?                       @db.Decimal(6, 2)
+  pre_assessment_score        Decimal?                        @db.Decimal(6, 2)
+  post_assessment_score       Decimal?                        @db.Decimal(6, 2)
+  improvement_percentage      Decimal?                        @db.Decimal(6, 2)
+  criterion_1_score           Int?
+  criterion_2_score           Int?
+  criterion_3_score           Int?
+  criterion_4_score           Int?
+  criterion_5_score           Int?
+  criterion_6_score           Int?
+  criterion_7_score           Int?
+  criterion_8_score           Int?
+  criterion_9_score           Int?
+  criterion_10_score          Int?
+  professional_total          Int?
+  professional_percentage     Decimal?                        @db.Decimal(6, 2)
+  final_score                 Decimal?                        @db.Decimal(6, 2)
+  final_percentage            Decimal?                        @db.Decimal(6, 2)
+  auto_comment                String?
+  general_comments            String?
+  comments_edited_by_id       String?                         @db.Uuid
+  comments_edited_at          DateTime?                       @db.Timestamptz(6)
+  score_evidence_json         Json?
+  pdf_file_id                 String?                         @db.Uuid
+  filled_docx_file_id         String?                         @db.Uuid
+  is_current                  Boolean                         @default(true)
+  version                     Int                             @default(1)
+  supersedes_evaluation_id    String?                         @db.Uuid
+  regeneration_reason         String?
+  generated_at                DateTime                        @default(now()) @db.Timestamptz(6)
+  generated_by_id             String?                         @db.Uuid
+  finalized_at                DateTime?                       @db.Timestamptz(6)
+  finalized_by_id             String?                         @db.Uuid
+  created_at                  DateTime                        @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime                        @default(now()) @db.Timestamptz(6)
+
+  universities                     universities                      @relation(fields: [university_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_opportunities     field_training_opportunities      @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_applications      field_training_applications       @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  student                          users                             @relation("FtFinalEvaluationStudent", fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  template                         field_training_evaluation_templates? @relation(fields: [template_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  policy                           field_training_evaluation_policies? @relation(fields: [policy_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([university_id], map: "idx_ft_final_eval_university")
+  @@index([opportunity_id], map: "idx_ft_final_eval_opportunity")
+  @@index([application_id], map: "idx_ft_final_eval_application")
+  @@index([student_id], map: "idx_ft_final_eval_student")
+  @@index([final_status], map: "idx_ft_final_eval_status")
+  @@index([is_current], map: "idx_ft_final_eval_current")
+  @@index([generated_at], map: "idx_ft_final_eval_generated")
+  @@index([university_id, opportunity_id, is_current], map: "idx_ft_final_eval_uni_opp_current")
+  @@index([pdf_file_id], map: "idx_ft_final_eval_pdf")
 }
 
 enum file_visibility {

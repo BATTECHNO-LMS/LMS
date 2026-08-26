@@ -9,6 +9,8 @@ const { enrollmentRequestBodySchema } = require('./student.validation');
 const router = express.Router();
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
 
+router.get('/dashboard-summary', authenticate, studentOnly, studentController.dashboardSummary);
+
 router.get('/available-cohorts', authenticate, studentOnly, studentController.availableCohorts);
 
 router.post(

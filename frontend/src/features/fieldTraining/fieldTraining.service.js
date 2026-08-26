@@ -53,6 +53,12 @@ export async function archiveAdminFieldTraining(id) {
   return unwrapApiData(res);
 }
 
+export async function fetchOpportunityOverviewSummary(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/overview-summary`);
+  return unwrapApiData(res);
+}
+
 export async function fetchOpportunityApplications(opportunityId, params = {}, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/${opportunityId}/applications`, { params });

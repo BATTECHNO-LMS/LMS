@@ -9,6 +9,7 @@
 
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
+const { buildProgressRequirements } = require('./trainingProgress.helpers');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const { recordAudit } = require('../../shared/services/audit.service');
@@ -117,9 +118,20 @@ async function calculateTrainingCompletionEligibility(enrollmentId) {
   };
 }
 
+function eligibilityFromSnapshot(enrollment, snapshot) {
+  const derived = deriveCompletionEligibility(enrollment.status, snapshot.requirements || {});
+  return {
+    enrollmentId: enrollment.id,
+    ...derived,
+    requirements: snapshot.requirements,
+    completionPct: snapshot.completionPct,
+  };
+}
+
 /**
  * Program-level readiness board for admins/trainers: per-trainee eligibility
  * plus aggregate counts, optionally scoped to one cohort.
+ * Read-only: does not persist progress or mutate enrollments.
  */
 async function getProgramCompletionReadiness(requester, programId, { cohortId } = {}) {
   const program = await prisma.training_programs.findUnique({ where: { id: programId } });
@@ -143,22 +155,111 @@ async function getProgramCompletionReadiness(requester, programId, { cohortId } 
   });
 
   const userIds = [...new Set(enrollments.map((e) => e.user_id))];
-  const users = userIds.length
-    ? await prisma.users.findMany({ where: { id: { in: userIds } }, select: { id: true, full_name: true, email: true } })
-    : [];
+  const enrollmentIds = enrollments.map((e) => e.id);
+  const cohortIds = [...new Set(enrollments.map((e) => e.cohort_id).filter(Boolean))];
+
+  const [users, tasks, reqRows, assessments, finalTaskRow, sessions, attendance, submissions, attempts, evaluations] =
+    await Promise.all([
+      userIds.length
+        ? prisma.users.findMany({
+            where: { id: { in: userIds } },
+            select: { id: true, full_name: true, email: true },
+          })
+        : Promise.resolve([]),
+      prisma.training_tasks.findMany({
+        where: { program_id: programId, is_required: true, published_at: { not: null } },
+        select: { id: true },
+      }),
+      prisma.training_requirements.findMany({ where: { program_id: programId } }),
+      prisma.training_assessments.findMany({
+        where: { program_id: programId, kind: { in: ['PRE_TEST', 'POST_TEST'] } },
+        select: { id: true, kind: true, pass_score: true },
+      }),
+      prisma.training_tasks.findFirst({
+        where: { program_id: programId, is_final_task: true },
+        select: { id: true },
+      }),
+      cohortIds.length
+        ? prisma.training_sessions.findMany({
+            where: { cohort_id: { in: cohortIds }, counts_toward_hours: true },
+            select: { id: true, hours: true, starts_at: true, ends_at: true, cohort_id: true },
+          })
+        : Promise.resolve([]),
+      enrollmentIds.length
+        ? prisma.training_attendance_records.findMany({
+            where: { enrollment_id: { in: enrollmentIds } },
+            select: { enrollment_id: true, session_id: true, status: true },
+          })
+        : Promise.resolve([]),
+      enrollmentIds.length
+        ? prisma.training_task_submissions.findMany({
+            where: { enrollment_id: { in: enrollmentIds }, status: { in: ['ACCEPTED', 'GRADED'] } },
+            select: { enrollment_id: true, task_id: true, score: true, submitted_at: true },
+          })
+        : Promise.resolve([]),
+      enrollmentIds.length
+        ? prisma.training_assessment_attempts.findMany({
+            where: { enrollment_id: { in: enrollmentIds } },
+            select: { enrollment_id: true, assessment_id: true, status: true, score: true, graded_at: true },
+          })
+        : Promise.resolve([]),
+      enrollmentIds.length
+        ? prisma.training_evaluation_assignments.findMany({
+            where: { enrollment_id: { in: enrollmentIds } },
+            select: { enrollment_id: true, status: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
   const byUser = new Map(users.map((u) => [u.id, u]));
+  const sessionsByCohort = new Map();
+  for (const s of sessions) {
+    if (!sessionsByCohort.has(s.cohort_id)) sessionsByCohort.set(s.cohort_id, []);
+    sessionsByCohort.get(s.cohort_id).push(s);
+  }
+  const attendanceByEnrollment = new Map();
+  for (const a of attendance) {
+    if (!attendanceByEnrollment.has(a.enrollment_id)) attendanceByEnrollment.set(a.enrollment_id, []);
+    attendanceByEnrollment.get(a.enrollment_id).push(a);
+  }
+  const submissionsByEnrollment = new Map();
+  for (const s of submissions) {
+    if (!submissionsByEnrollment.has(s.enrollment_id)) submissionsByEnrollment.set(s.enrollment_id, []);
+    submissionsByEnrollment.get(s.enrollment_id).push(s);
+  }
+  const attemptsByEnrollment = new Map();
+  for (const a of attempts) {
+    if (!attemptsByEnrollment.has(a.enrollment_id)) attemptsByEnrollment.set(a.enrollment_id, []);
+    attemptsByEnrollment.get(a.enrollment_id).push(a);
+  }
+  const evaluationByEnrollment = new Map(evaluations.map((e) => [e.enrollment_id, e]));
 
   const counts = { total: enrollments.length, completed: 0, eligible: 0, notCompleted: 0, pending: 0 };
-  const trainees = [];
-  for (const enrollment of enrollments) {
-    const eligibility = await calculateTrainingCompletionEligibility(enrollment.id);
+  const trainees = enrollments.map((enrollment) => {
+    const enrollmentAttempts = attemptsByEnrollment.get(enrollment.id) || [];
+    const assessmentsForEnrollment = assessments.map((a) => ({
+      ...a,
+      training_assessment_attempts: enrollmentAttempts.filter((x) => x.assessment_id === a.id),
+    }));
+    const snapshot = buildProgressRequirements({
+      program,
+      sessions: sessionsByCohort.get(enrollment.cohort_id) || [],
+      attendance: attendanceByEnrollment.get(enrollment.id) || [],
+      requiredTasks: tasks,
+      submissions: submissionsByEnrollment.get(enrollment.id) || [],
+      reqRows,
+      assessments: assessmentsForEnrollment,
+      finalTaskRow,
+      evaluationAssignment: evaluationByEnrollment.get(enrollment.id) || null,
+    });
+    const eligibility = eligibilityFromSnapshot(enrollment, snapshot);
     if (enrollment.status === 'COMPLETED') counts.completed += 1;
     else if (enrollment.status === 'NOT_COMPLETED') counts.notCompleted += 1;
     else if (eligibility.eligible) counts.eligible += 1;
     else counts.pending += 1;
 
     const user = byUser.get(enrollment.user_id);
-    trainees.push({
+    return {
       enrollmentId: enrollment.id,
       userId: enrollment.user_id,
       fullName: user?.full_name || '—',
@@ -167,8 +268,8 @@ async function getProgramCompletionReadiness(requester, programId, { cohortId } 
       cohortName: enrollment.training_cohorts?.name || null,
       enrollmentStatus: enrollment.status,
       ...eligibility,
-    });
-  }
+    };
+  });
 
   return { programId, cohortId: cohortId || null, counts, trainees };
 }
@@ -627,6 +728,7 @@ module.exports = {
   shouldIssueCertificateOnFinalize,
   deriveCompletionEligibility,
   calculateTrainingCompletionEligibility,
+  eligibilityFromSnapshot,
   getProgramCompletionReadiness,
   finalizeTraining,
   buildIndividualReportSnapshot,

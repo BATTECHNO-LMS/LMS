@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   ListChecks,
   ScrollText,
+  Stamp,
   Users,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ export const MANAGE_TABS = [
   'submissions',
   'post_assessment',
   'eligibility',
+  'evaluation_template',
   'completion',
   'reports',
 ];
@@ -37,6 +39,7 @@ const TAB_ICONS = {
   submissions: FileCheck2,
   post_assessment: ClipboardList,
   eligibility: FileText,
+  evaluation_template: Stamp,
   completion: ScrollText,
   reports: BarChart3,
 };

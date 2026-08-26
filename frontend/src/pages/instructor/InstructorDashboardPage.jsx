@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useQueries } from '@tanstack/react-query';
 import { CalendarDays, Layers, Upload, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
@@ -13,8 +12,7 @@ import { useCohorts } from '../../features/cohorts/index.js';
 import { useAssessments } from '../../features/assessments/index.js';
 import { useSubmissions } from '../../features/submissions/index.js';
 import { useLocale } from '../../features/locale/index.js';
-import { fetchSessionsByCohort } from '../../features/sessions/sessions.service.js';
-import { sessionsKeys } from '../../features/sessions/hooks/useSessions.js';
+import { useInstructorAssignedSessions } from '../../features/sessions/index.js';
 
 const AWAITING_GRADE_STATUSES = new Set(['submitted', 'late', 'resubmitted']);
 const UPCOMING_STATUSES = new Set(['published', 'open']);
@@ -25,28 +23,13 @@ export function InstructorDashboardPage() {
 
   const { data: cohortsPayload, isLoading: cohortsLoading } = useCohorts({}, { staleTime: 60_000 });
   const cohorts = cohortsPayload?.cohorts ?? [];
-  const cohortIds = useMemo(() => cohorts.map((c) => c.id).slice(0, 30), [cohorts]);
 
-  const sessionQueries = useQueries({
-    queries: cohortIds.map((cid) => ({
-      queryKey: sessionsKeys.byCohort(cid),
-      queryFn: () => fetchSessionsByCohort(cid),
-      enabled: Boolean(cid),
-      staleTime: 30_000,
-    })),
-  });
+  const { data: sessionsPayload, isLoading: sessionsLoading } = useInstructorAssignedSessions();
 
   const { data: assessmentsPayload, isLoading: assessmentsLoading } = useAssessments({}, { staleTime: 60_000 });
   const { data: submissionsPayload, isLoading: submissionsLoading } = useSubmissions({}, { staleTime: 60_000 });
 
-  const sessionsLoading = sessionQueries.some((q) => q.isLoading);
-  const sessionCount = useMemo(() => {
-    let n = 0;
-    for (const q of sessionQueries) {
-      n += q.data?.sessions?.length ?? 0;
-    }
-    return n;
-  }, [sessionQueries]);
+  const sessionCount = sessionsPayload?.sessions?.length ?? 0;
 
   const pendingGradingCount = useMemo(() => {
     const list = submissionsPayload?.submissions ?? [];
@@ -72,11 +55,7 @@ export function InstructorDashboardPage() {
       }));
   }, [assessmentsPayload, locale]);
 
-  const loading =
-    cohortsLoading ||
-    (cohortIds.length > 0 && sessionsLoading) ||
-    assessmentsLoading ||
-    submissionsLoading;
+  const loading = cohortsLoading || sessionsLoading || assessmentsLoading || submissionsLoading;
 
   return (
     <div className="page page--dashboard page--instructor">

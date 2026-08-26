@@ -615,7 +615,7 @@ async function getTrainerCourse(requester, programId, { sections } = {}) {
 
 async function getTrainerDashboard(requester) {
   const courses = await listTrainerCourses(requester);
-  const assignments = await listActiveTrainerAssignments(requester.userId);
+  const assignments = courses.flatMap((c) => c.assignments || []);
   const accessibleByProgram = new Map();
   for (const a of assignments) {
     const key = a.trainingProgramId;
@@ -636,21 +636,6 @@ async function getTrainerDashboard(requester) {
   const now = new Date();
   const sessionWhere = cohortFilters.length ? { OR: cohortFilters, starts_at: { gte: now } } : null;
 
-  const upcomingSessions = sessionWhere
-    ? await prisma.training_sessions.findMany({
-        where: sessionWhere,
-        orderBy: { starts_at: 'asc' },
-        take: 8,
-        select: {
-          id: true,
-          title: true,
-          starts_at: true,
-          ends_at: true,
-          cohort_id: true,
-        },
-      })
-    : [];
-
   const programIds = [...accessibleByProgram.keys()];
   const allCohortIds = assignments.map((a) => a.trainingCohortId).filter(Boolean);
   const hasProgramLevel = assignments.some((a) => !a.trainingCohortId);
@@ -661,7 +646,21 @@ async function getTrainerDashboard(requester) {
       ? { cohort_id: { in: allCohortIds } }
       : null;
 
-  const [pendingSubmissions, unconfirmedAttendance, atRisk] = await Promise.all([
+  const [upcomingSessions, pendingSubmissions, unconfirmedAttendance, atRisk] = await Promise.all([
+    sessionWhere
+      ? prisma.training_sessions.findMany({
+          where: sessionWhere,
+          orderBy: { starts_at: 'asc' },
+          take: 8,
+          select: {
+            id: true,
+            title: true,
+            starts_at: true,
+            ends_at: true,
+            cohort_id: true,
+          },
+        })
+      : Promise.resolve([]),
     programIds.length
       ? prisma.training_task_submissions.count({
           where: {

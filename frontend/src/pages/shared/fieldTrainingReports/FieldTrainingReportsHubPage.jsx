@@ -124,6 +124,17 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
             <Link className="btn btn--primary btn--sm" to={paths.university}>
               {t('hub.universityReportLink')}
             </Link>
+            {paths.evaluations ? (
+              <Link className="btn btn--outline btn--sm" to={paths.evaluations}>
+                <FileText size={16} aria-hidden />
+                {t('hub.evaluationReportsLink', { defaultValue: 'Evaluation reports' })}
+              </Link>
+            ) : null}
+            {mode === 'admin' ? (
+              <Link className="btn btn--outline btn--sm" to="/admin/field-training/evaluation-templates">
+                {t('hub.evaluationTemplatesLink', { defaultValue: 'Evaluation templates' })}
+              </Link>
+            ) : null}
           </div>
         }
       />

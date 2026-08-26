@@ -445,6 +445,7 @@ async function findStudentProfilesByIds(ids) {
       phone: true,
       status: true,
       primary_university_id: true,
+      university_student_number: true,
       university_specialty_id: true,
       specialty_id: true,
       specialties: {
@@ -489,6 +490,7 @@ async function findStudentProfilesByIds(ids) {
       phone: u.phone ?? null,
       status: u.status ?? null,
       primary_university_id: u.primary_university_id,
+      university_student_number: u.university_student_number ?? null,
       university: u.primary_university_id ? uniById[u.primary_university_id] ?? null : null,
       specialty: displaySpecialty,
       canonical_specialty: mapSpecialtySummary(u.specialties),

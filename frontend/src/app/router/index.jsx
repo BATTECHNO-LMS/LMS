@@ -134,6 +134,8 @@ export function AppRouter() {
               }
             />
             <Route path="field-training/reports" element={<Pages.AdminFieldTrainingReportsHubPage />} />
+            <Route path="field-training/reports/evaluations" element={<Pages.AdminFieldTrainingEvaluationReportsPage />} />
+            <Route path="field-training/evaluation-templates" element={<Pages.AdminFieldTrainingEvaluationTemplatesPage />} />
             <Route path="field-training/reports/global" element={<Pages.AdminFieldTrainingGlobalReportPage />} />
             <Route path="field-training/reports/university" element={<Pages.AdminFieldTrainingUniversityReportPage />} />
             <Route path="field-training/reports/students" element={<Pages.AdminFieldTrainingApplicationsReportPage />} />
@@ -350,6 +352,7 @@ export function AppRouter() {
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.ADMIN, ROLES.REVIEWER]} />}>
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="field-training/reports" element={<Pages.AcademicFieldTrainingReportsHubPage />} />
+              <Route path="field-training/reports/evaluations" element={<Pages.AcademicFieldTrainingEvaluationReportsPage />} />
               <Route path="field-training/reports/university" element={<Pages.AcademicFieldTrainingUniversityReportPage />} />
               <Route path="field-training/students" element={<Pages.AcademicFieldTrainingStudentsPage />} />
               <Route path="field-training/opportunities" element={<Pages.AcademicFieldTrainingOpportunitiesPage />} />
@@ -373,6 +376,10 @@ export function AppRouter() {
               <Route path="enrollment-requests" element={<Pages.ReviewerEnrollmentRequestsPage />} />
               <Route path="university-reports" element={<Pages.UniversityReportsPage />} />
               <Route path="field-training/reports" element={<Pages.ReviewerFieldTrainingHubPage />} />
+              <Route
+                path="field-training/reports/evaluations"
+                element={<Pages.ReviewerFieldTrainingEvaluationReportsPage />}
+              />
               <Route
                 path="field-training/reports/university"
                 element={<Pages.ReviewerFieldTrainingUniversityReportPage />}

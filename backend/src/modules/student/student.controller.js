@@ -29,8 +29,19 @@ async function semesterSchedule(req, res, next) {
   }
 }
 
+async function dashboardSummary(req, res, next) {
+  try {
+    const studentDashboardService = require('./studentDashboard.service');
+    const data = await studentDashboardService.getStudentDashboardSummary(req.user);
+    return success(res, data, { message: 'Dashboard summary retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   availableCohorts,
   createEnrollmentRequest,
   semesterSchedule,
+  dashboardSummary,
 };

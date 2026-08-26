@@ -71,8 +71,8 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics, univer
     prisma.rubrics.count(),
     prisma.submissions.groupBy({ by: ['status'], _count: { _all: true } }),
     prisma.grades.findMany({ select: { score: true } }),
-    prisma.qa_reviews.count(),
-    prisma.corrective_actions.count({ where: { status: { in: ['open', 'in_progress', 'overdue'] } } }),
+    0,
+    0,
     prisma.cohorts.count(),
     prisma.cohorts.count({ where: { status: 'completed' } }),
     prisma.sessions.count(),
@@ -80,8 +80,8 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics, univer
     prisma.sessions.count({ where: { documentation_status: { in: ['pending', 'incomplete'] } } }),
     prisma.learning_outcomes.count(),
     prisma.modules.count(),
-    prisma.integrity_cases.count(),
-    prisma.integrity_cases.count({ where: { status: { in: ['resolved', 'closed'] } } }),
+    0,
+    0,
   ]);
 
   const assessCohortWhere = cohortIdFilterForPrisma(scope, filters);
@@ -125,16 +125,16 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics, univer
   const failCount = grades.length - passCount;
   const avgScore = grades.length ? Math.round((grades.reduce((s, g) => s + Number(g.score), 0) / grades.length) * 100) / 100 : 0;
 
-  const evidenceAnalytics = await repo.getEvidenceAnalytics(filters);
+  const evidenceAnalytics = { totalEvidence: 0, missingEvidence: 0 };
   const attendanceAnalytics = await repo.getAttendanceAnalytics(filters);
-  const qaIntegrity = await repo.getQaIntegrityOverview(filters);
-  const recognitionFunnel = await repo.getRecognitionFunnel(filters);
-  const openQa = qaIntegrity.find((x) => x.key === 'openQa')?.value || 0;
-  const riskCases = qaIntegrity.find((x) => x.key === 'riskCases')?.value || 0;
-  const integrityCases = qaIntegrity.find((x) => x.key === 'integrityCases')?.value || 0;
-  const totalRecognition = recognitionFunnel.reduce((s, x) => s + x.count, 0);
-  const approvedRecognition = recognitionFunnel.find((x) => x.statusKey === 'approved')?.count || 0;
-  const approvedRate = totalRecognition ? Math.round((approvedRecognition / totalRecognition) * 10000) / 100 : 0;
+  const qaIntegrity = [];
+  const recognitionFunnel = [];
+  const openQa = 0;
+  const riskCases = 0;
+  const integrityCases = 0;
+  const totalRecognition = 0;
+  const approvedRecognition = 0;
+  const approvedRate = 0;
 
   let cohortList = scope.cohorts;
   if (!cohortList.length && !repo.hasScopedCohortFilter(filters)) {
@@ -336,7 +336,7 @@ async function buildModuleSummaries(filters, kpis, certificatesAnalytics, univer
 }
 
 async function getOverviewAnalytics(filters) {
-  const [{ kpis }, universitiesOverview, enrollmentGrowth, cohortStatus, assessmentHealth, attendance, evidence, qaIntegrity, recognitionFunnel, certificates] =
+  const [{ kpis }, universitiesOverview, enrollmentGrowth, cohortStatus, assessmentHealth, attendance, certificates] =
     await Promise.all([
       repo.getOverview(filters),
       repo.getUniversitiesOverview(filters),
@@ -344,11 +344,11 @@ async function getOverviewAnalytics(filters) {
       repo.getCohortStatusDistribution(filters),
       repo.getAssessmentHealth(filters),
       repo.getAttendanceAnalytics(filters),
-      repo.getEvidenceAnalytics(filters),
-      repo.getQaIntegrityOverview(filters),
-      repo.getRecognitionFunnel(filters),
       repo.getCertificatesAnalytics(filters),
     ]);
+  const evidence = { missingEvidence: 0, totalEvidence: 0, byType: [] };
+  const qaIntegrity = [];
+  const recognitionFunnel = [];
 
   const modules = await buildModuleSummaries(filters, kpis, certificates, universitiesOverview);
   const insightKeys = [

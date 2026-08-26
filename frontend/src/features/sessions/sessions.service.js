@@ -14,6 +14,16 @@ export async function fetchSessionsByCohort(cohortId) {
   return data;
 }
 
+/** Sessions for the instructor's assigned cohorts (GET /sessions/instructor). */
+export async function fetchInstructorAssignedSessions() {
+  const res = await apiClient.get(`${endpoints.sessions}/instructor`);
+  const data = unwrapApiData(res);
+  if (!data || typeof data !== 'object' || !Array.isArray(data.sessions)) {
+    throw new Error('Invalid sessions response');
+  }
+  return data;
+}
+
 /** Current student's sessions across enrolled cohorts (GET /sessions/me). */
 export async function fetchMySessions() {
   const res = await apiClient.get(`${endpoints.sessions}/me`);

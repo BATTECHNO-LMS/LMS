@@ -114,16 +114,8 @@ async function universitiesReport(filters) {
         )
       : [],
     allCohortIds.length
-      ? safeQuery(
-          () =>
-            prisma.recognition_requests.groupBy({
-              by: ['cohort_id'],
-              where: { cohort_id: { in: allCohortIds }, ...inDateRange('created_at', filters) },
-              _count: { _all: true },
-            }),
-          []
-        )
-      : [],
+      ? Promise.resolve([])
+      : Promise.resolve([]),
     allCohortIds.length
       ? safeQuery(
           () =>
@@ -228,15 +220,7 @@ async function cohortsReport(filters) {
         }),
       []
     ),
-    safeQuery(
-      () =>
-        prisma.qa_reviews.groupBy({
-          by: ['cohort_id'],
-          where: { cohort_id: { in: ids }, status: { in: ['open', 'in_progress'] } },
-          _count: { _all: true },
-        }),
-      []
-    ),
+    Promise.resolve([]),
   ]);
   const enrollmentsByCohort = new Map();
   for (const row of enrollments) {

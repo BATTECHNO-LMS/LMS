@@ -43,6 +43,10 @@ const reportController = require('./fieldTrainingReport.controller');
 const { applicationIdParamSchema: reportApplicationIdParamSchema } = require('./fieldTrainingReport.validation');
 const instructorOnly = authorizeRoles(...env.FIELD_TRAINING_INSTRUCTOR_ROLE_CODES);
 
+const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
+evaluationRoutes.mountReadRoutes(router, instructorOnly);
+evaluationRoutes.mountWriteRoutes(router, instructorOnly);
+
 /* -------- Static paths (must be before /:id) -------- */
 
 router.get(
@@ -366,6 +370,14 @@ router.post(
   instructorOnly,
   validateRequest({ params: assessmentTypeParamSchema }),
   workflowController.publishAssessment
+);
+
+router.get(
+  '/:id/overview-summary',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema }),
+  adminFieldTrainingController.overviewSummary
 );
 
 router.get(

@@ -49,8 +49,8 @@ export function ManagedPopupsHost({
   const viewTimerRef = useRef(null);
 
   const { data } = useQuery({
-    queryKey: ['cms', 'popups', 'active', location.pathname],
-    queryFn: () => fetchActivePopups({ route: location.pathname }),
+    queryKey: ['cms', 'popups', 'active'],
+    queryFn: () => fetchActivePopups(),
     enabled: Boolean(isAuthenticated),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
@@ -58,8 +58,13 @@ export function ManagedPopupsHost({
 
   const popups = useMemo(() => {
     const list = normalizePopupsPayload(data?.popups ?? data);
-    return list.filter((p) => p?.id && !localDismissed.has(p.id));
-  }, [data, localDismissed]);
+    return list.filter((p) => {
+      if (!p?.id || localDismissed.has(p.id)) return false;
+      const pages = p.target_pages || [];
+      if (!pages.length) return true;
+      return pages.includes(location.pathname);
+    });
+  }, [data, localDismissed, location.pathname]);
 
   useEffect(() => {
     onCandidatesChange?.(

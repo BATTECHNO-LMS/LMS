@@ -11,6 +11,15 @@ async function listMine(req, res, next) {
   }
 }
 
+async function listAssignedForInstructor(req, res, next) {
+  try {
+    const data = await sessionsService.listAssignedForInstructor(req.user);
+    return success(res, data, { message: 'Sessions retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function listByCohort(req, res, next) {
   try {
     const data = await sessionsService.listByCohort(req.validated.params.id, req.user);
@@ -80,6 +89,7 @@ async function saveAttendance(req, res, next) {
 
 module.exports = {
   listMine,
+  listAssignedForInstructor,
   listByCohort,
   createForCohort,
   getById,

@@ -60,8 +60,13 @@ describe('institution administration wiring', () => {
       __dirname,
       '../src/modules/trainingPrograms/trainingPrograms.service.js'
     );
-    const src = fs.readFileSync(servicePath, 'utf8');
+    const helpersPath = path.join(
+      __dirname,
+      '../src/modules/trainingPrograms/trainingProgress.helpers.js'
+    );
+    const src = `${fs.readFileSync(servicePath, 'utf8')}\n${fs.readFileSync(helpersPath, 'utf8')}`;
     assert.match(src, /preTest:\s*assessmentOk\('PRE_TEST'\)/);
     assert.match(src, /postTest:\s*assessmentOk\('POST_TEST'\)/);
+    assert.match(src, /buildProgressRequirements/);
   });
 });

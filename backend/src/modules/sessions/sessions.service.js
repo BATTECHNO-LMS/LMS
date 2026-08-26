@@ -39,8 +39,7 @@ async function loadModuleBrief(moduleId) {
   return { id: m.id, title: m.title, sequence_no: m.sequence_no };
 }
 
-async function serializeSession(row) {
-  const module = await loadModuleBrief(row.module_id);
+function serializeSessionWithModule(row, module) {
   return {
     id: row.id,
     cohort_id: row.cohort_id,
@@ -58,6 +57,22 @@ async function serializeSession(row) {
   };
 }
 
+async function serializeSessions(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const modules = await sessionsRepository.findModulesByIds(list.map((r) => r.module_id));
+  const moduleMap = new Map(
+    modules.map((m) => [m.id, { id: m.id, title: m.title, sequence_no: m.sequence_no }])
+  );
+  return list.map((row) =>
+    serializeSessionWithModule(row, row.module_id ? moduleMap.get(row.module_id) || null : null)
+  );
+}
+
+async function serializeSession(row) {
+  const [mapped] = await serializeSessions([row]);
+  return mapped;
+}
+
 async function assertCohortForSessions(cohortId, requester) {
   const cohort = await cohortsRepository.findById(cohortId);
   if (!cohort) throw new ApiError(404, 'Cohort not found');
@@ -73,7 +88,7 @@ async function assertCohortForSessions(cohortId, requester) {
 async function listByCohort(cohortId, requester) {
   await assertCohortForSessions(cohortId, requester);
   const rows = await sessionsRepository.findManyByCohort(cohortId);
-  const sessions = await Promise.all(rows.map((r) => serializeSession(r)));
+  const sessions = await serializeSessions(rows);
   return { sessions };
 }
 
@@ -90,32 +105,24 @@ async function listMine(requester) {
   if (!cohortIds.length) return { sessions: [] };
   const rows = await sessionsRepository.findManyByCohortIds(cohortIds);
   const sessionIds = rows.map((r) => r.id);
-  let recs = [];
-  try {
-    recs = await attendanceRepository.findRecordsForSessionsAndStudent(sessionIds, requester.userId);
-  } catch {
-    recs = [];
-  }
+  const distinctCohortIds = [...new Set(rows.map((r) => r.cohort_id))];
+  const [recs, serialized, cohortRows] = await Promise.all([
+    attendanceRepository.findRecordsForSessionsAndStudent(sessionIds, requester.userId).catch(() => []),
+    serializeSessions(rows),
+    cohortsRepository.findManyByIds(distinctCohortIds),
+  ]);
   const recMap = new Map(recs.map((r) => [r.session_id, r.attendance_status]));
-  const cohortCache = new Map();
-  for (const cid of new Set(rows.map((r) => r.cohort_id))) {
-    // eslint-disable-next-line no-await-in-loop
-    cohortCache.set(cid, await cohortsRepository.findById(cid));
-  }
-  const mcCache = new Map();
-  const sessions = [];
-  for (const row of rows) {
-    // eslint-disable-next-line no-await-in-loop
-    const base = await serializeSession(row);
-    const cohort = cohortCache.get(row.cohort_id);
+  const cohortById = new Map(cohortRows.map((c) => [c.id, c]));
+  const mcRows = await cohortsRepository.findMicroCredentialsByIds(
+    [...cohortById.values()].map((c) => c.micro_credential_id)
+  );
+  const mcMap = new Map(mcRows.map((mc) => [mc.id, mc]));
+  const sessions = serialized.map((base, idx) => {
+    const row = rows[idx];
+    const cohort = cohortById.get(row.cohort_id);
     let cohortPayload = null;
     if (cohort) {
-      let mc = mcCache.get(cohort.micro_credential_id);
-      if (mc === undefined) {
-        // eslint-disable-next-line no-await-in-loop
-        mc = await cohortsRepository.findMicroCredential(cohort.micro_credential_id);
-        mcCache.set(cohort.micro_credential_id, mc);
-      }
+      const mc = mcMap.get(cohort.micro_credential_id) || null;
       cohortPayload = {
         id: cohort.id,
         title: cohort.title,
@@ -123,12 +130,35 @@ async function listMine(requester) {
         micro_credential: mc ? { id: mc.id, title: mc.title, code: mc.code } : null,
       };
     }
-    sessions.push({
+    return {
       ...base,
       cohort: cohortPayload,
       my_attendance_status: recMap.get(row.id) ?? null,
-    });
+    };
+  });
+  return { sessions };
+}
+
+/**
+ * Sessions for cohorts the requester is assigned to (instructor), derived server-side.
+ * Does not accept client-supplied cohort IDs.
+ */
+async function listAssignedForInstructor(requester) {
+  const roles = normalizeRoles(requester.roles);
+  if (!roles.includes('instructor') && !requester.isGlobal) {
+    throw new ApiError(403, 'Forbidden');
   }
+  const { prisma } = require('../../config/db');
+  const assigned = await prisma.cohorts.findMany({
+    where: { instructor_id: requester.userId },
+    select: { id: true },
+    orderBy: { created_at: 'desc' },
+    take: 30,
+  });
+  const assignedIds = assigned.map((c) => c.id);
+  if (!assignedIds.length) return { sessions: [] };
+  const rows = await sessionsRepository.findManyByCohortIds(assignedIds);
+  const sessions = await serializeSessions(rows);
   return { sessions };
 }
 
@@ -226,6 +256,7 @@ async function patchDocumentation(id, body, requester) {
 module.exports = {
   listByCohort,
   listMine,
+  listAssignedForInstructor,
   createForCohort,
   getById,
   update,

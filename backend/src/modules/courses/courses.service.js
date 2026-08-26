@@ -390,15 +390,26 @@ async function listStudentCourses(query, studentId) {
     rows.map((c) => c.id)
   );
   const enrollmentByCourseId = new Map(enrollments.map((e) => [e.course_id, e]));
-  const courses = await Promise.all(
-    rows.map(async (c) => {
-      const enrollment = enrollmentByCourseId.get(c.id) || null;
-      const progressInfo = enrollment
-        ? await computeProgressPercent(c.id, studentId)
-        : { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };
-      return mapStudentCourseCard(c, enrollment, progressInfo);
-    })
-  );
+  const enrolledCourseIds = enrollments.map((e) => e.course_id);
+  const [lessonCounts, completedCounts] = await Promise.all([
+    repo.countPublishedLessonsByCourseIds(enrolledCourseIds),
+    repo.countCompletedLessonsByCourseIds(enrolledCourseIds, studentId),
+  ]);
+  const lessonMap = new Map(lessonCounts.map((g) => [g.course_id, g._count._all]));
+  const completedMap = new Map(completedCounts.map((g) => [g.course_id, g._count._all]));
+  const courses = rows.map((c) => {
+    const enrollment = enrollmentByCourseId.get(c.id) || null;
+    const total = enrollment ? lessonMap.get(c.id) || 0 : 0;
+    const completed = enrollment ? completedMap.get(c.id) || 0 : 0;
+    const progressInfo = enrollment
+      ? {
+          lessons_count: total,
+          completed_lessons: completed,
+          progress_percent: total ? Math.round((completed / total) * 100) : 0,
+        }
+      : { progress_percent: 0, completed_lessons: 0, lessons_count: 0 };
+    return mapStudentCourseCard(c, enrollment, progressInfo);
+  });
   return { courses };
 }
 

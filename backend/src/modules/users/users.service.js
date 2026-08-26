@@ -8,6 +8,7 @@ const {
   isSystemWideAdmin,
 } = require('../../utils/universityScope');
 const { prisma } = require('../../config/db');
+const { Prisma } = require('@prisma/client');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { buildUsersExportWorkbook } = require('./users.export.excel');
@@ -228,20 +229,28 @@ async function listUsers(query, requester = {}) {
 
 async function countUsersByCanonicalRole(scopedUniversityId, requester) {
   const counts = Object.fromEntries(CANONICAL_ROLE_CODES.map((c) => [c, 0]));
-  for (const code of CANONICAL_ROLE_CODES) {
-    const ids = await usersRepository.findUserIdsByRoleCode(code);
-    if (!ids.length) continue;
-    if (!scopedUniversityId || isSystemWideAdmin(requester)) {
-      counts[code] = ids.length;
-      continue;
+  const scoped = scopedUniversityId && !isSystemWideAdmin(requester) ? scopedUniversityId : null;
+  const rows = scoped
+    ? await prisma.$queryRaw`
+        SELECT r.code AS code, COUNT(ur.user_id)::int AS n
+        FROM user_roles ur
+        INNER JOIN roles r ON r.id = ur.role_id
+        INNER JOIN users u ON u.id = ur.user_id
+        WHERE r.code IN (${Prisma.join([...CANONICAL_ROLE_CODES])})
+          AND u.primary_university_id = ${scoped}
+        GROUP BY r.code
+      `
+    : await prisma.$queryRaw`
+        SELECT r.code AS code, COUNT(ur.user_id)::int AS n
+        FROM user_roles ur
+        INNER JOIN roles r ON r.id = ur.role_id
+        WHERE r.code IN (${Prisma.join([...CANONICAL_ROLE_CODES])})
+        GROUP BY r.code
+      `;
+  for (const row of rows || []) {
+    if (row.code && Object.prototype.hasOwnProperty.call(counts, row.code)) {
+      counts[row.code] = Number(row.n) || 0;
     }
-    const scoped = await prisma.users.count({
-      where: {
-        id: { in: ids },
-        primary_university_id: scopedUniversityId,
-      },
-    });
-    counts[code] = scoped;
   }
   return counts;
 }

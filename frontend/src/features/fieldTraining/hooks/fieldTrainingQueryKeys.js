@@ -23,6 +23,7 @@ export const fieldTrainingKeys = {
   sessionAttendance: (sessionId) => [...fieldTrainingKeys.all, 'attendance', sessionId],
   sessionParticipants: (sessionId) => [...fieldTrainingKeys.all, 'participants', sessionId],
   applicationProgress: (applicationId) => [...fieldTrainingKeys.all, 'progress', applicationId],
+  overviewSummary: (id, scope = 'admin') => [...fieldTrainingKeys.all, scope, 'overview-summary', id],
   eligibility: (opportunityId, scope = 'admin') =>
     [...fieldTrainingKeys.all, scope, 'eligibility', opportunityId],
 };

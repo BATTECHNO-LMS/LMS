@@ -64,7 +64,7 @@ function SidebarNavGroup({ group, onNavigate }) {
                   className={({ isActive }) =>
                     cn('sidebar-nav__link', isActive && 'sidebar-nav__link--active')
                   }
-                  end={item.to.endsWith('/dashboard')}
+                  end={item.end === true || item.to.endsWith('/dashboard')}
                   onClick={() => onNavigate?.()}
                 >
                   {Icon ? (

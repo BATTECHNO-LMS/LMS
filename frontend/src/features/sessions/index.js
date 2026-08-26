@@ -6,3 +6,4 @@ export * from './hooks/useCreateSession.js';
 export * from './hooks/useUpdateSession.js';
 export * from './hooks/useUpdateSessionDocumentationStatus.js';
 export * from './hooks/useStudentSessions.js';
+export * from './hooks/useInstructorAssignedSessions.js';

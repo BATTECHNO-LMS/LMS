@@ -130,4 +130,7 @@ router.get(
   reportController.academicDownloadTaskInstruction
 );
 
+const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
+evaluationRoutes.mountReadRoutes(router, academicRoles);
+
 module.exports = router;

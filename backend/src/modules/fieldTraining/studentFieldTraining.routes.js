@@ -26,11 +26,13 @@ const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
 const { attendanceConfirmLimiter } = require('./fieldTraining.attendanceRateLimit.middleware');
 const attendanceWindowService = require('./fieldTraining.attendanceWindow.service');
 const { success } = require('../../utils/apiResponse');
+const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
 
 const router = express.Router();
 router.use(authenticate);
 router.use(requireOrganizationType('UNIVERSITY'));
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
+evaluationRoutes.mountStudentRoutes(router, studentOnly);
 
 router.get(
   '/my-applications',

@@ -16,8 +16,10 @@ const router = express.Router();
 const deliveryRead = authorizeRoles(...env.DELIVERY_READ_ROLE_CODES);
 const deliveryWrite = authorizeRoles(...env.DELIVERY_WRITE_ROLE_CODES);
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
+const instructorOnly = authorizeRoles('instructor');
 
 router.get('/me', authenticate, studentOnly, sessionsController.listMine);
+router.get('/instructor', authenticate, instructorOnly, sessionsController.listAssignedForInstructor);
 
 router.get(
   '/:id/attendance',

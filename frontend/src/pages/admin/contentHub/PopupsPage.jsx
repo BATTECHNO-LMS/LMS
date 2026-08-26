@@ -43,6 +43,7 @@ const emptyForm = {
   display_rule: 'ONCE',
   cta_label: '',
   cta_url: '',
+  image_url: '',
   is_dismissible: true,
   requires_acknowledgement: false,
   target_roles: [],
@@ -128,6 +129,7 @@ export function PopupsPage() {
       display_rule: row.display_rule || 'ONCE',
       cta_label: row.cta_label || '',
       cta_url: row.cta_url || '',
+      image_url: row.image_url || '',
       is_dismissible: row.is_dismissible !== false,
       requires_acknowledgement: Boolean(row.requires_acknowledgement),
       target_roles: row.target_roles || [],
@@ -168,6 +170,7 @@ export function PopupsPage() {
       display_rule: form.display_rule,
       cta_label: form.cta_label?.trim() || null,
       cta_url: form.cta_url?.trim() || null,
+      image_url: form.image_url?.trim() || null,
       is_dismissible: Boolean(form.is_dismissible),
       requires_acknowledgement: Boolean(form.requires_acknowledgement),
       target_roles: form.target_roles,
@@ -325,6 +328,12 @@ export function PopupsPage() {
               label={t('رابط الزر', 'CTA URL')}
               value={form.cta_url}
               onChange={(e) => setForm((f) => ({ ...f, cta_url: e.target.value }))}
+            />
+            <FormInput
+              id="pp-image"
+              label={t('رابط الصورة', 'Image URL')}
+              value={form.image_url}
+              onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))}
             />
             <FormInput
               id="pp-pages"

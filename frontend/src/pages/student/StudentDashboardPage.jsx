@@ -18,20 +18,8 @@ import { Link } from 'react-router-dom';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { useAuth } from '../../features/auth/index.js';
-import { useStudentEnrollments } from '../../features/enrollments/index.js';
-import { useStudentSessions } from '../../features/sessions/index.js';
-import { useAssessments } from '../../features/assessments/index.js';
-import { useSubmissions } from '../../features/submissions/index.js';
-import { useStudentGrades } from '../../features/grades/index.js';
-import { useCertificates } from '../../features/certificates/index.js';
-import { useNotifications } from '../../features/notifications/hooks/useNotifications.js';
-import { useStudentCourses } from '../../features/courses/index.js';
-import {
-  useMyFieldTrainingApplications,
-  useStudentTrainingProgress,
-} from '../../features/fieldTraining/index.js';
+import { useStudentDashboardSummary } from '../../features/student/hooks/useStudentDashboardSummary.js';
 import { getNotificationLink } from '../../utils/notificationDeepLink.js';
-import { STALE } from '../../lib/queryDefaults.js';
 import {
   filterUpcomingSessions,
   isOpenAssessment,
@@ -40,14 +28,12 @@ import {
   averageEnrollmentAttendancePct,
   averageFinalGradePercent,
   sortGradesRecentFirst,
-  filterEnrolledCourses,
   averageCourseProgress,
   buildAttendanceBreakdown,
   deriveFieldTrainingNextAction,
   isActiveFieldTrainingApplication,
   friendlySectionError,
   latestGrade,
-  countIssuedCertificates,
   countReadyCompletionLetters,
 } from '../../features/student/studentDashboard.helpers.js';
 import {
@@ -90,36 +76,19 @@ export function StudentDashboardPage() {
   const { user } = useAuth();
   const lang = i18n.language || 'ar';
 
-  const enrollmentsQuery = useStudentEnrollments({ staleTime: STALE.dashboard });
-  const sessionsQuery = useStudentSessions({ staleTime: STALE.dashboard });
-  const assessmentsQuery = useAssessments(
-    { page: 1, page_size: 30 },
-    { staleTime: STALE.dashboard }
-  );
-  const submissionsQuery = useSubmissions({}, { staleTime: STALE.dashboard });
-  const gradesQuery = useStudentGrades({}, { staleTime: STALE.dashboard });
-  const certificatesQuery = useCertificates(
-    { page: 1, page_size: 50 },
-    { staleTime: STALE.dashboard }
-  );
-  const notificationsQuery = useNotifications(
-    { page: 1, page_size: 5 },
-    { staleTime: STALE.notifications }
-  );
-  const coursesQuery = useStudentCourses({}, { staleTime: STALE.dashboard });
-  const ftAppsQuery = useMyFieldTrainingApplications({ staleTime: STALE.fieldTraining });
+  const summaryQuery = useStudentDashboardSummary();
+  const summary = summaryQuery.data || {};
 
-  const enrollments = enrollmentsQuery.data?.enrollments ?? [];
-  const sessions = sessionsQuery.data?.sessions ?? [];
-  const assessments = assessmentsQuery.data?.assessments ?? [];
-  const submissions = submissionsQuery.data?.submissions ?? [];
-  const grades = gradesQuery.data?.grades ?? [];
-  const certificates = certificatesQuery.data?.certificates ?? [];
-  const notifications = notificationsQuery.data?.notifications ?? [];
-  const allCourses = coursesQuery.data?.courses ?? [];
-  const ftApplications = ftAppsQuery.data?.applications ?? [];
+  const enrollments = summary.enrollments ?? [];
+  const sessions = summary.sessions ?? [];
+  const assessments = summary.assessments ?? [];
+  const submissions = summary.submissions ?? [];
+  const grades = summary.grades ?? [];
+  const notifications = summary.notifications?.preview ?? [];
+  const enrolledCourses = summary.courses ?? [];
+  const ftApplications = summary.fieldTrainingApplications ?? [];
+  const primaryFtProgress = summary.fieldTrainingProgress ?? null;
 
-  const enrolledCourses = useMemo(() => filterEnrolledCourses(allCourses), [allCourses]);
   const completedCourses = useMemo(
     () => enrolledCourses.filter((c) => Number(c.progress_percent) >= 100),
     [enrolledCourses]
@@ -135,11 +104,6 @@ export function StudentDashboardPage() {
   );
 
   const primaryFtApp = activeFtApps[0] ?? null;
-  const ftProgressQuery = useStudentTrainingProgress(primaryFtApp?.opportunity_id, {
-    enabled: Boolean(primaryFtApp?.opportunity_id),
-    staleTime: STALE.fieldTraining,
-  });
-  const primaryFtProgress = ftProgressQuery.data?.progress ?? null;
 
   const activeEnrollments = useMemo(
     () =>
@@ -187,11 +151,8 @@ export function StudentDashboardPage() {
   const avgFinal = useMemo(() => averageFinalGradePercent(grades), [grades]);
   const latestGrades = useMemo(() => sortGradesRecentFirst(grades).slice(0, 6), [grades]);
   const lastGrade = useMemo(() => latestGrade(grades), [grades]);
-  const unreadNotifications = useMemo(
-    () => notifications.filter((x) => !x.is_read).length,
-    [notifications]
-  );
-  const issuedCerts = useMemo(() => countIssuedCertificates(certificates), [certificates]);
+  const unreadNotifications = summary.notifications?.unreadCount ?? notifications.filter((x) => !x.is_read).length;
+  const issuedCerts = summary.certificates?.issuedCount ?? 0;
   const readyLetters = useMemo(
     () => countReadyCompletionLetters(ftApplications),
     [ftApplications]
@@ -326,8 +287,7 @@ export function StudentDashboardPage() {
     hasIssuedCertificate,
   ]);
 
-  const initialShellLoading =
-    enrollmentsQuery.isLoading && !enrollmentsQuery.data && !enrollmentsQuery.isError;
+  const initialShellLoading = summaryQuery.isLoading && !summaryQuery.data && !summaryQuery.isError;
 
   if (initialShellLoading) {
     return (
@@ -431,14 +391,14 @@ export function StudentDashboardPage() {
           </Link>
         }
       >
-        {coursesQuery.isLoading ? <LoadingSpinner /> : null}
-        {coursesQuery.isError ? (
-          <SectionError error={coursesQuery.error} fallback={t('student.dashboard.error.courses')} />
+        {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+        {summaryQuery.isError ? (
+          <SectionError error={summaryQuery.error} fallback={t('student.dashboard.error.courses')} />
         ) : null}
-        {!coursesQuery.isLoading && !coursesQuery.isError && !enrolledCourses.length ? (
+        {!summaryQuery.isLoading && !summaryQuery.isError && !enrolledCourses.length ? (
           <StudentEmptyState title={t('student.dashboard.empty.courses')} />
         ) : null}
-        {!coursesQuery.isError && enrolledCourses.length ? (
+        {!summaryQuery.isError && enrolledCourses.length ? (
           <div className="student-portal-cards student-portal-cards--courses">
             {enrolledCourses.slice(0, 6).map((c) => (
               <StudentCourseCard key={c.id} course={c} />
@@ -456,17 +416,17 @@ export function StudentDashboardPage() {
           </Link>
         }
       >
-        {ftAppsQuery.isLoading ? <LoadingSpinner /> : null}
-        {ftAppsQuery.isError ? (
+        {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+        {summaryQuery.isError ? (
           <SectionError
-            error={ftAppsQuery.error}
+            error={summaryQuery.error}
             fallback={t('student.dashboard.error.fieldTraining')}
           />
         ) : null}
-        {!ftAppsQuery.isLoading && !ftAppsQuery.isError && !activeFtApps.length ? (
+        {!summaryQuery.isLoading && !summaryQuery.isError && !activeFtApps.length ? (
           <StudentEmptyState title={t('student.dashboard.empty.fieldTraining')} />
         ) : null}
-        {!ftAppsQuery.isError && activeFtApps.length ? (
+        {!summaryQuery.isError && activeFtApps.length ? (
           <div className="student-portal-cards student-portal-cards--ft">
             {activeFtApps.slice(0, 3).map((app) => (
               <StudentTrainingCard
@@ -481,17 +441,17 @@ export function StudentDashboardPage() {
 
       <div className="student-dash__grid-2">
         <StudentSection title={t('student.dashboard.sections.sessions')} icon={Calendar}>
-          {sessionsQuery.isLoading ? <LoadingSpinner /> : null}
-          {sessionsQuery.isError ? (
+          {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+          {summaryQuery.isError ? (
             <SectionError
-              error={sessionsQuery.error}
+              error={summaryQuery.error}
               fallback={t('student.dashboard.error.sessions')}
             />
           ) : null}
-          {!sessionsQuery.isLoading && !sessionsQuery.isError && !upcomingSessions.length ? (
+          {!summaryQuery.isLoading && !summaryQuery.isError && !upcomingSessions.length ? (
             <StudentEmptyState title={t('student.dashboard.empty.sessionsNotStarted')} />
           ) : null}
-          {!sessionsQuery.isError && upcomingSessions.length ? (
+          {!summaryQuery.isError && upcomingSessions.length ? (
             <ul className="student-dash__mini-list">
               {upcomingSessions.map((s) => {
                 const zoom = s.zoom_link || s.meeting_url || null;
@@ -540,8 +500,8 @@ export function StudentDashboardPage() {
         </StudentSection>
 
         <StudentSection title={t('student.dashboard.sections.attendance')} icon={Percent}>
-          {sessionsQuery.isLoading || enrollmentsQuery.isLoading ? <LoadingSpinner /> : null}
-          {!sessionsQuery.isLoading ? (
+          {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+          {!summaryQuery.isLoading ? (
             <StudentAttendanceWidget
               percentage={avgAttendance}
               breakdown={attendanceBreakdown}
@@ -552,27 +512,27 @@ export function StudentDashboardPage() {
 
       <div className="student-dash__grid-2">
         <StudentSection title={t('student.dashboard.sections.assessments')} icon={ClipboardList}>
-          {assessmentsQuery.isLoading || submissionsQuery.isLoading ? <LoadingSpinner /> : null}
-          {assessmentsQuery.isError ? (
+          {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+          {summaryQuery.isError ? (
             <SectionError
-              error={assessmentsQuery.error}
+              error={summaryQuery.error}
               fallback={t('student.dashboard.error.assessments')}
             />
           ) : null}
-          {submissionsQuery.isError ? (
+          {summaryQuery.isError ? (
             <SectionError
-              error={submissionsQuery.error}
+              error={summaryQuery.error}
               fallback={t('student.dashboard.error.assessments')}
             />
           ) : null}
-          {!assessmentsQuery.isLoading &&
-          !submissionsQuery.isLoading &&
-          !assessmentsQuery.isError &&
-          !submissionsQuery.isError &&
+          {!summaryQuery.isLoading &&
+          !summaryQuery.isLoading &&
+          !summaryQuery.isError &&
+          !summaryQuery.isError &&
           !openAssessments.length ? (
             <StudentEmptyState title={t('student.dashboard.empty.assessments')} />
           ) : null}
-          {!assessmentsQuery.isError && !submissionsQuery.isError && openAssessments.length ? (
+          {!summaryQuery.isError && !summaryQuery.isError && openAssessments.length ? (
             <ul className="student-dash__mini-list">
               {openAssessments.slice(0, 10).map((a) => {
                 const sub = latestSubmissionForAssessment(submissions, a.id);
@@ -615,11 +575,11 @@ export function StudentDashboardPage() {
         </StudentSection>
 
         <StudentSection title={t('student.dashboard.sections.grades')} icon={Award}>
-          {gradesQuery.isLoading ? <LoadingSpinner /> : null}
-          {gradesQuery.isError ? (
-            <SectionError error={gradesQuery.error} fallback={t('student.dashboard.error.grades')} />
+          {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+          {summaryQuery.isError ? (
+            <SectionError error={summaryQuery.error} fallback={t('student.dashboard.error.grades')} />
           ) : null}
-          {!gradesQuery.isLoading && !gradesQuery.isError ? (
+          {!summaryQuery.isLoading && !summaryQuery.isError ? (
             <StudentGradeList grades={latestGrades} />
           ) : null}
           {avgFinal != null ? (
@@ -631,14 +591,14 @@ export function StudentDashboardPage() {
       </div>
 
       <StudentSection title={t('student.dashboard.sections.certificate')} icon={GraduationCap}>
-        {certificatesQuery.isLoading ? <LoadingSpinner /> : null}
-        {certificatesQuery.isError ? (
+        {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+        {summaryQuery.isError ? (
           <SectionError
-            error={certificatesQuery.error}
+            error={summaryQuery.error}
             fallback={t('student.dashboard.error.certificates')}
           />
         ) : null}
-        {!certificatesQuery.isLoading && !certificatesQuery.isError ? (
+        {!summaryQuery.isLoading && !summaryQuery.isError ? (
           <>
             <StudentCertificateEligibility
               attendancePct={avgAttendance}
@@ -694,14 +654,14 @@ export function StudentDashboardPage() {
           </Link>
         }
       >
-        {notificationsQuery.isLoading ? <LoadingSpinner /> : null}
-        {notificationsQuery.isError ? (
+        {summaryQuery.isLoading ? <LoadingSpinner /> : null}
+        {summaryQuery.isError ? (
           <SectionError
-            error={notificationsQuery.error}
+            error={summaryQuery.error}
             fallback={t('student.dashboard.error.notifications')}
           />
         ) : null}
-        {!notificationsQuery.isLoading && !notificationsQuery.isError ? (
+        {!summaryQuery.isLoading && !summaryQuery.isError ? (
           <>
             <p className="student-dash__unread">
               {t('student.dashboard.notifications.unread', { count: unreadNotifications })}

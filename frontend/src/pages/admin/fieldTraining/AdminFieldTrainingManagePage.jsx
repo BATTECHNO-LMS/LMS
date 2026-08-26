@@ -8,6 +8,7 @@ import { EmptyState } from '../../../components/common/EmptyState.jsx';
 import {
   useAdminFieldTraining,
   useOpportunityApplications,
+  useOpportunityOverviewSummary,
   useOpportunitySubmissions,
   useOpportunitySessions,
   issueCompletionLetter,
@@ -27,6 +28,7 @@ import { ManageApplicationsTab } from './components/manage/ManageApplicationsTab
 import { ManageTasksTab } from './components/manage/ManageTasksTab.jsx';
 import { ManageSubmissionsTab } from './components/manage/ManageSubmissionsTab.jsx';
 import { ManageReportsTab } from './components/manage/ManageReportsTab.jsx';
+import { ManageEvaluationTemplateTab } from './components/manage/ManageEvaluationTemplateTab.jsx';
 
 function isForbiddenError(error) {
   return error?.response?.status === 403 || error?.status === 403 || error?.code === 'FIELD_TRAINING_FORBIDDEN';
@@ -46,9 +48,15 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
   const activeTab = visibleTabs.includes(requestedTab) ? requestedTab : 'overview';
   const attendanceSessionId = searchParams.get('session') || '';
 
-  const needsApplications = ['overview', 'completion'].includes(activeTab);
-  const needsSessions = ['overview'].includes(activeTab);
-  const needsSubmissions = ['overview'].includes(activeTab);
+  const needsApplications = ['completion'].includes(activeTab);
+  const needsSessions = false;
+  const needsSubmissions = false;
+
+  const overviewQuery = useOpportunityOverviewSummary(id, {
+    enabled: Boolean(id) && activeTab === 'overview',
+    scope: apiScope,
+  });
+  const overviewSummary = overviewQuery.data || null;
 
   const {
     data: oppData,
@@ -127,12 +135,10 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
           <ManageOverviewTab
             opportunityId={id}
             opp={opp}
-            applications={applications}
-            sessions={sessions}
-            submissions={submissions}
+            summary={overviewSummary}
+            summaryLoading={overviewQuery.isLoading}
+            summaryError={overviewQuery.isError}
             apiScope={apiScope}
-            appsLoading={appsLoading}
-            appsError={appsError}
           />
         );
       case 'applications':
@@ -171,6 +177,8 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
         return <ManageAssessmentsTab opportunityId={id} type="post" apiScope={apiScope} />;
       case 'eligibility':
         return <ManageEligibilityTab opportunityId={id} apiScope={apiScope} />;
+      case 'evaluation_template':
+        return <ManageEvaluationTemplateTab opportunityId={id} apiScope={apiScope} />;
       case 'completion':
         return (
           <ManageCompletionTab

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, Award, Bell } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
@@ -6,25 +5,16 @@ import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
-import { listMyPrograms } from '../../features/training/training.service.js';
 import { useAuth } from '../../features/auth/index.js';
 import { getRoleLabelAr } from '../../utils/authRouting.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
+import { useTraineePrograms } from '../../features/training/hooks/useTraineePrograms.js';
 
 export function TraineeDashboardPage() {
   const { user } = useAuth();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const roleLabel = getRoleLabelAr(user?.role || 'trainee', user?.organizationType);
-
-  useEffect(() => {
-    setLoading(true);
-    listMyPrograms()
-      .then((data) => setItems(Array.isArray(data) ? data : []))
-      .catch((err) => setError(getApiErrorMessage(err, 'تعذر تحميل الدورات.')))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: items = [], isLoading: loading, error: queryError } = useTraineePrograms();
+  const error = queryError ? getApiErrorMessage(queryError, 'تعذر تحميل الدورات.') : '';
 
   const active = items.filter((i) => ['ACTIVE', 'APPROVED', 'REQUIREMENTS_COMPLETED'].includes(i.status));
   const completed = items.filter((i) => i.status === 'COMPLETED');

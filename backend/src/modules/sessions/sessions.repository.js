@@ -32,6 +32,15 @@ async function findModule(id) {
   return prisma.modules.findUnique({ where: { id } });
 }
 
+async function findModulesByIds(ids) {
+  const unique = [...new Set((ids || []).filter(Boolean))];
+  if (!unique.length) return [];
+  return prisma.modules.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, title: true, sequence_no: true },
+  });
+}
+
 module.exports = {
   findManyByCohort,
   findManyByCohortIds,
@@ -39,4 +48,5 @@ module.exports = {
   create,
   update,
   findModule,
+  findModulesByIds,
 };
