@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth.js';
 import { getDefaultDashboardPath } from '../../../utils/authRouting.js';
 import { RegisterForm } from '../components/RegisterForm.jsx';
-import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { BrandLogo } from '../../../components/common/BrandLogo.jsx';
 import { AuthBackgroundDecor } from '../../../pages/auth/AuthBackgroundDecor.jsx';
 import { AuthVisualPanel } from '../../../pages/auth/AuthVisualPanel.jsx';
@@ -14,12 +13,8 @@ import registerIllustration from '../../../assets/landing/illustrations/journey-
 export function RegisterPage() {
   const { t } = useTranslation('auth');
   const { t: tCommon } = useTranslation('common');
-  const { isAuthenticated, user, isAuthReady } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const reduced = useReducedMotion();
-
-  if (!isAuthReady) {
-    return <LoadingSpinner />;
-  }
 
   if (isAuthenticated && user) {
     return <Navigate to={getDefaultDashboardPath(user)} replace />;

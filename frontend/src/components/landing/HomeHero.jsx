@@ -37,7 +37,7 @@ export function HomeHero() {
               transition={transition(MOTION_DURATION.slow)}
               className="flex flex-col items-center text-center"
             >
-              <BrandLogo variant="hero" alt={t('brand')} align="center" className="!h-16 sm:!h-20 lg:!h-[5.5rem]" />
+              <BrandLogo variant="hero" alt={t('brand')} align="center" />
 
               <motion.div
                 variants={staggerContainer(MOTION_STAGGER.relaxed, 0.06)}
@@ -55,7 +55,7 @@ export function HomeHero() {
 
                 <motion.h1
                   variants={fadeUp(MOTION_Y.md)}
-                  className={`hero-showcase__title mt-5 max-w-[22ch] text-balance font-bold leading-[1.1] tracking-tight text-bat-ink ${i18n.language.startsWith('ar') ? 'font-bold' : ''}`}
+                  className={`hero-showcase__title mt-5 max-w-[40rem] text-balance font-bold leading-[1.2] tracking-tight text-bat-ink ${i18n.language.startsWith('ar') ? 'font-bold' : ''}`}
                 >
                   {t('hero.headline')}
                 </motion.h1>

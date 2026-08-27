@@ -2,11 +2,11 @@
 export const FEATURE_KEYS = [
   'usersRoles',
   'universities',
-  'tracks',
+  'trainingCourses',
   'microCredentials',
   'gradesAssessments',
   'attendance',
-  'qualityAccreditation',
+  'fieldTraining',
   'reportsAnalytics',
 ];
 

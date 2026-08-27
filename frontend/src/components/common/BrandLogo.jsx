@@ -1,21 +1,18 @@
 import battechnoLogo from '../../assets/images/battechno-lms-logo-transparent.png';
 
-/** @typedef {'header' | 'hero' | 'cockpit' | 'phone' | 'footer' | 'auth' | 'app-header' | 'sidebar'} BrandLogoVariant */
+/** @typedef {'header' | 'hero' | 'portal' | 'cockpit' | 'phone' | 'footer' | 'auth' | 'app-header' | 'sidebar'} BrandLogoVariant */
 
-const VARIANTS = {
-  header:
-    'h-11 w-auto max-w-[min(300px,60vw)] shrink-0 object-contain object-start sm:h-12 lg:h-[3.375rem] lg:max-w-[320px]',
-  hero: 'h-[4.5rem] w-auto max-w-[min(440px,94vw)] object-contain sm:h-20 lg:h-24',
-  cockpit: 'h-14 w-auto max-w-[min(380px,72vw)] object-contain sm:h-16 lg:h-[4.5rem]',
-  phone: 'h-7 w-auto max-w-full shrink-0 object-contain object-start sm:h-8',
-  footer: 'mb-3 h-10 w-auto max-w-[260px] object-contain object-start sm:h-11',
+const EXTRA_CLASS = {
   auth: 'auth-card__logo',
   'app-header': 'app-header__logo-image',
   sidebar: 'app-sidebar__logo-image',
 };
 
+const PRIORITY_VARIANTS = new Set(['header', 'hero', 'portal', 'auth']);
+
 /**
  * Transparent LMS brand mark — no background box, aspect ratio preserved.
+ * Sizing lives in `_brand-logo.scss` so it works outside `#battechno-landing`.
  * @param {{
  *   variant?: BrandLogoVariant,
  *   alt: string,
@@ -31,14 +28,20 @@ export function BrandLogo({
   className = '',
   imgClassName = '',
 }) {
-  const alignClass = align === 'center' ? 'mx-auto object-center' : 'object-start';
+  const extra = EXTRA_CLASS[variant] || '';
+  const alignClass = align === 'center' ? 'brand-logo--center' : '';
+  const eager = PRIORITY_VARIANTS.has(variant);
 
   return (
     <img
       src={battechnoLogo}
       alt={alt}
-      className={`${VARIANTS[variant]} ${alignClass} ${className} ${imgClassName}`.trim()}
+      width={1024}
+      height={682}
+      className={`brand-logo brand-logo--${variant} ${alignClass} ${extra} ${className} ${imgClassName}`.trim()}
       decoding="async"
+      fetchPriority={eager ? 'high' : 'auto'}
+      loading={eager ? 'eager' : 'lazy'}
     />
   );
 }

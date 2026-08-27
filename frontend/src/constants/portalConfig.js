@@ -18,9 +18,11 @@ export const PORTAL_ENTRIES = Object.freeze({
     titleAr: 'بوابة الجامعات',
     titleEn: 'Universities portal',
     descriptionAr:
-      'لإدارة التدريب الميداني والطلاب والجلسات والحضور والمهمات والاختبارات والتقارير الجامعية.',
+      'لإدارة الدورات التدريبية، الشهادات المصغّرة، التدريب الميداني، الطلاب، الجلسات، الحضور، المهمات، التقييمات، والتقارير.',
     descriptionEn:
-      'Manage field training, students, sessions, attendance, tasks, assessments, and university reports.',
+      'Manage training courses, micro-credentials, field training, students, sessions, attendance, tasks, assessments, and reports.',
+    noteAr: 'التدريب الميداني متاح عبر بوابة الجامعات فقط.',
+    noteEn: 'Field Training is available only through the university portal.',
     primaryCtaAr: 'الدخول إلى بوابة الجامعات',
     primaryCtaEn: 'Enter universities portal',
     secondaryCtaAr: 'إنشاء حساب طالب',
@@ -34,21 +36,21 @@ export const PORTAL_ENTRIES = Object.freeze({
     titleAr: 'بوابة المؤسسات',
     titleEn: 'Institutions portal',
     descriptionAr:
-      'لإدارة الدورات التدريبية والمتدربين والموظفين والجلسات والتقييمات ومؤشرات الأداء والتقارير المؤسسية.',
+      'لإدارة الدورات التدريبية، الشهادات المصغّرة، المتدربين، الجلسات، الحضور، المهمات، التقييمات، والتقارير المؤسسية.',
     descriptionEn:
-      'Manage training courses, trainees, staff, sessions, evaluations, KPIs, and institutional reports.',
+      'Manage training courses, micro-credentials, trainees, sessions, attendance, tasks, assessments, and institutional reports.',
     primaryCtaAr: 'الدخول إلى بوابة المؤسسات',
     primaryCtaEn: 'Enter institutions portal',
     secondaryCtaAr: 'إنشاء حساب متدرب',
     secondaryCtaEn: 'Create trainee account',
     showSecondaryRegister: true,
     loginSubtitleAr:
-      'تسجيل دخول مسؤولي المؤسسات والمدربين والمتدربين والمراجعين لإدارة ومتابعة البرامج التدريبية.',
+      'تسجيل دخول مسؤولي المؤسسات والمدربين والمتدربين لإدارة الدورات التدريبية والشهادات المصغّرة.',
     loginSubtitleEn:
-      'Sign in for institution admins, trainers, trainees, and reviewers to manage training programs.',
+      'Sign in for institution admins, trainers, and trainees to manage training courses and micro-credentials.',
     loginPanelTitleAr: 'إدارة تدريب مؤسسي أكثر كفاءة',
     loginPanelSubtitleAr:
-      'منصة موحدة لإدارة الدورات التدريبية، المتدربين، الجلسات، الحضور، التقييمات، مؤشرات الأداء والشهادات المهنية.',
+      'منصة موحدة لإدارة الدورات التدريبية، المتدربين، الجلسات، الحضور، التقييمات، والتقارير والشهادات.',
     loginIllustrationAltAr: 'رسم توضيحي لإدارة البرامج التدريبية داخل المؤسسات',
     loginFeatureIndicatorsAr: ['إدارة الدورات', 'متابعة الأداء', 'تقارير وشهادات'],
     registerCtaPromptAr: 'متدرب جديد؟',

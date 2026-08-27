@@ -119,7 +119,7 @@ export function PortalsSection() {
 
                 </h3>
 
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-bat-muted sm:text-[0.9375rem]">
+                <p className="mt-2 flex-1 text-[0.975rem] leading-relaxed text-bat-muted sm:text-base">
 
                   {t(`portals.list.${key}.desc`)}
 

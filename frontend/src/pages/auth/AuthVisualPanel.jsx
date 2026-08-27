@@ -46,8 +46,11 @@ export function AuthVisualPanel({
             src={illustration}
             alt={illustrationAlt || ''}
             className="auth-visual-panel__img"
-            loading="lazy"
+            loading="eager"
             decoding="async"
+            fetchPriority="low"
+            width={640}
+            height={480}
           />
         </figure>
         <div className="auth-visual-panel__copy">

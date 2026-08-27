@@ -3,7 +3,7 @@
     "skipToMain": "Skip to main content"
   },
   "brand": "BATTECHNO-LMS",
-  "brandSubtitle": "Micro-credentials & academic operations",
+  "brandSubtitle": "Training courses, micro-credentials, and field training",
   "header": {
     "navPortals": "Portals",
     "navJourney": "Journey",
@@ -21,9 +21,9 @@
   },
   "hero": {
     "mainTitle": "BATTECHNO-LMS",
-    "headline": "A unified platform for micro-credentials and academic operations",
-    "title": "A unified platform for micro-credentials and academic operations",
-    "description": "Run micro-credential programs from enrollment through certificate issuance — with integrated attendance, assessment, quality, reporting, and academic recognition.",
+    "headline": "One platform for training courses, micro-credentials, and field training",
+    "title": "One platform for training courses, micro-credentials, and field training",
+    "description": "Manage registration, cohorts, sessions, attendance, tasks, assessments, reports, and certificates in a single system. Field training is available through the university portal only.",
     "ctaRegister": "Create student account",
     "ctaLogin": "Enter platform",
     "ctaExplore": "Explore portals",
@@ -31,7 +31,7 @@
     "partnersLine": "Supported by a network of academic and institutional partners",
     "companyTitle": "About BATTECHNO",
     "companyLead": "An IT company established in 2017, working in information technology and freelancing.",
-    "companyBody": "We deliver modern technical and educational solutions — from digital learning infrastructure to governance-ready academic workflows.",
+    "companyBody": "We deliver modern technical and educational solutions — from training courses and micro-credentials to university field training, reports, and digital certificates.",
     "badge": "Advanced learning platform",
     "stats": {
       "microCreds": "Micro-credentials",
@@ -48,14 +48,14 @@
     "floating": {
       "student": {
         "title": "Student portal",
-        "subtitle": "Programs & grades"
+        "subtitle": "Courses & grades"
       },
       "instructor": {
         "title": "Instructor activity",
         "subtitle": "Sessions & assessments"
       },
       "certificate": {
-        "title": "Accredited certificate",
+        "title": "Digital certificate",
         "subtitle": "Digitally verifiable"
       },
       "attendance": {
@@ -64,95 +64,101 @@
       },
       "assessment": {
         "title": "Assessment & submission",
-        "subtitle": "Rubrics & grades"
+        "subtitle": "Tasks & grades"
       },
       "analytics": {
         "title": "Live reports",
-        "subtitle": "Academic analytics"
+        "subtitle": "Operational analytics"
       }
     },
     "cockpit": {
       "bottomCta": "Start managing the platform",
       "callouts": {
         "certificates": "Verifiable digital certificates",
-        "grades": "Rubrics & grade dashboards",
+        "grades": "Assessment boards and grades",
         "attendance": "Smart attendance tracking",
-        "governance": "Governance, quality & accreditation",
+        "governance": "Permissions, audit trails, and trusted reports",
         "analytics": "Real-time reports & analytics"
       },
       "capabilities": {
         "academic": {
-          "title": "Academic management",
-          "desc": "Tracks, micro-credentials, cohorts, and sessions in one place."
+          "title": "Learning operations",
+          "desc": "Training courses, micro-credentials, cohorts, and sessions in one place."
         },
         "assessment": {
           "title": "Integrated assessment",
-          "desc": "Rubrics, submissions, grades, and precise performance tracking."
+          "desc": "Tasks, submissions, grades, and precise performance tracking."
         },
         "quality": {
-          "title": "Quality & accreditation",
-          "desc": "Evidence, QA reviews, corrective actions, and academic recognition."
+          "title": "University field training",
+          "desc": "Opportunities, attendance, hours, final evaluations, and reports — through the university portal only."
         },
         "portals": {
           "title": "Multi-portal access",
-          "desc": "Dedicated views for admin, instructor, student, and university reviewer."
+          "desc": "Dedicated views for admin, instructor/trainer, student/trainee, and university reviewer."
         }
       },
       "systemStatus": {
         "eyebrow": "Live dashboard",
-        "title": "Academic system status",
+        "title": "Platform status",
         "programs": "Active programs",
         "programsValue": "Available",
         "attendance": "Attendance",
         "attendanceValue": "94%",
         "certificates": "Certificates",
         "certificatesValue": "Ready",
-        "quality": "Quality",
-        "qualityValue": "In review"
+        "quality": "Reports",
+        "qualityValue": "Ready"
       }
     }
+  },
+  "entryPortals": {
+    "title": "Choose your entry portal",
+    "subtitle": "One platform with a shared engine and two separate portals: universities and institutions. Field training is available through the university portal only.",
+    "dashboardCta": "Go to dashboard",
+    "homeLink": "Back to home"
   },
   "portals": {
     "eyebrow": "Portals",
     "title": "Portals designed for every role",
-    "subtitle": "A dedicated experience for admins, instructors, students, and reviewers — within one integrated platform.",
+    "subtitle": "A dedicated experience for administration, teaching, learning, and review — within one platform.",
     "list": {
       "admin": {
-        "title": "Admin portal",
-        "desc": "Full control over universities, users, programs, cohorts, permissions, reports, quality, and certificates."
+        "title": "Administration portal",
+        "desc": "Manage users, organizations, courses, micro-credentials, university field training, reports, certificates, notifications, and permissions."
       },
       "instructor": {
-        "title": "Instructor portal",
-        "desc": "Manage sessions, record attendance, track submissions, assess learners, and enter grades."
+        "title": "Instructor / trainer portal",
+        "desc": "Run assigned courses or field-training opportunities, sessions, attendance, tasks, submissions, assessments, and grades according to granted permissions."
       },
       "student": {
-        "title": "Student portal",
-        "desc": "Follow programs and courses, attend sessions, submit assessments, view grades, and earn certificates."
+        "title": "Student / trainee portal",
+        "desc": "Access enrolled courses, content, sessions, attendance, tasks, assessments, progress, notifications, and certificates."
       },
       "reviewer": {
         "title": "University reviewer portal",
-        "desc": "Review enrollment and recognition requests, access evidence, and monitor certificates and reports."
+        "desc": "Read-only review and export of reports, certificates, enrollment requests, and existing field-training evaluation reports. Reviewers cannot modify or generate reports."
       }
     }
   },
   "lifecycle": {
     "eyebrow": "Lifecycle",
-    "title": "From program design to certificate issuance",
-    "subtitle": "An end-to-end academic journey covering every stage — from planning through verification and reporting.",
+    "title": "From creating a program to issuing a certificate",
+    "subtitle": "An operational path covering training courses, micro-credentials, and university field training.",
     "steps": {
-      "design": "Design track and micro-credential",
-      "cohort": "Open a teaching cohort",
-      "enrollment": "Enroll students and approve requests",
-      "sessions": "Manage sessions and attendance",
-      "assessments": "Run assessments and submissions",
-      "certificates": "Finalize grades and issue certificates",
-      "verify": "Verify certificates and track reports"
+      "design": "Create a course, micro-credential, or field-training opportunity",
+      "cohort": "Create a cohort and define requirements",
+      "enrollment": "Register learners and approve applications",
+      "sessions": "Manage sessions, attendance, and training hours",
+      "assessments": "Complete tasks, submissions, and assessments",
+      "certificates": "Calculate completion status and final results",
+      "verify": "Issue reports, completion documents, and verifiable certificates"
     }
   },
   "trust": {
     "eyebrow": "Trust & security",
-    "title": "Trust, security, and accreditation",
-    "subtitle": "Institution-ready governance, traceability, and verifiable credentials.",
+    "title": "Trust, security, and traceability",
+    "subtitle": "Built for educational institutions that need clear permissions, auditability, and trusted certificates.",
     "list": {
       "rbac": {
         "title": "Role-based permissions",
@@ -168,7 +174,7 @@
       },
       "institutions": {
         "title": "Institution-ready",
-        "desc": "Built for universities, partners, programs, quality assurance, and academic accreditation."
+        "desc": "Designed for universities and training institutions, with a clear split between portals and permissions."
       }
     }
   },
@@ -176,10 +182,10 @@
     "eyebrow": "Company",
     "title": "BATTECHNO in focus",
     "lead": "An IT company established in 2017, working in information technology and freelancing.",
-    "p1": "We build secure, scalable digital platforms for universities, training partners, and quality teams.",
-    "p2": "BATTECHNO-LMS unifies recognition, evidence, and learner journeys in one governed workspace.",
-    "chip1": "ISO-minded QA",
-    "chip2": "Role-based access",
+    "p1": "We build secure, scalable digital platforms for universities and training institutions.",
+    "p2": "BATTECHNO-LMS unifies training courses, micro-credentials, and university field training in one workspace.",
+    "chip1": "Role-based permissions",
+    "chip2": "Traceable reports",
     "chip3": "Digital certificates"
   },
   "showcase": {
@@ -189,46 +195,46 @@
   },
   "cta": {
     "title": "Manage your learning journey professionally",
-    "subtitle": "Join BATTECHNO LMS to run programs, cohorts, assessments, quality, and certificates from one platform.",
+    "subtitle": "Join BATTECHNO LMS to manage courses, micro-credentials, university field training, reports, and certificates from one platform.",
     "primary": "Enter platform",
     "secondary": "Create student account"
   },
   "features": {
     "eyebrow": "Platform",
-    "title": "Everything you need to run academic operations",
-    "subtitle": "Integrated modules for delivery, governance, quality, accreditation, and analytics — with clarity for every role.",
+    "title": "Everything you need to run learning operations",
+    "subtitle": "Integrated modules for training courses, micro-credentials, university field training, and reports — with clarity for every role.",
     "list": {
       "usersRoles": {
         "title": "Users & permissions",
         "desc": "Fine-grained roles, auditable access, and secure sign-in aligned with institutional policy."
       },
       "universities": {
-        "title": "University management",
-        "desc": "Institutional structure for universities, academic partners, and programs in one admin surface."
+        "title": "Universities & institutions",
+        "desc": "Institutional structure for universities and training organizations in one admin surface, with two separate portals."
       },
-      "tracks": {
-        "title": "Program & track management",
-        "desc": "Design learning paths, requirements, and measurable learning outcomes for accreditation."
+      "trainingCourses": {
+        "title": "Training courses",
+        "desc": "Create courses, cohorts, sessions, materials, and attendance from a shared training engine for universities and institutions."
       },
       "microCredentials": {
         "title": "Micro-credentials",
-        "desc": "Issue and monitor micro-credentials with clear review and publishing workflows."
+        "desc": "Define micro-credentials, learning outcomes, cohorts, and enrollment through to certificate issuance."
       },
       "gradesAssessments": {
         "title": "Assessments & grades",
-        "desc": "Rubrics, submissions, and gradebooks that reflect academic performance accurately."
+        "desc": "Tasks, submissions, pre- and post-assessments, and a gradebook that reflects performance accurately."
       },
       "attendance": {
         "title": "Sessions & attendance",
-        "desc": "Track sessions and presence to support commitment and quality of engagement."
+        "desc": "Track sessions, attendance, and training hours to support completion requirements."
       },
-      "qualityAccreditation": {
-        "title": "Quality & accreditation",
-        "desc": "Evidence, KPIs, QA reviews, and corrective actions that support external review and recognition."
+      "fieldTraining": {
+        "title": "Field training",
+        "desc": "University opportunities, applications, attendance, hours, final evaluation, and reports — through the university portal only."
       },
       "reportsAnalytics": {
-        "title": "Reports & analytics",
-        "desc": "Dashboards and exports for decisions grounded in operational data."
+        "title": "Reports & certificates",
+        "desc": "Operational reports, completion documents, and verifiable digital certificates."
       }
     }
   },
@@ -237,13 +243,13 @@
     "subtitle": "Role-aware workflows for institutions, instructors, reviewers, and learners.",
     "items": {
       "usersRoles": "Users & permissions",
-      "universities": "Universities",
-      "tracks": "Programs & tracks",
+      "universities": "Universities & institutions",
+      "tracks": "Training courses",
       "microCredentials": "Micro-credentials",
       "cohortsSessions": "Cohorts & sessions",
       "attendanceAssessments": "Attendance & assessments",
-      "evidenceQuality": "Evidence & QA",
-      "recognition": "Academic recognition",
+      "evidenceQuality": "University field training",
+      "recognition": "Notifications & help",
       "certificates": "Digital certificates",
       "reportsAnalytics": "Reports & analytics"
     }
@@ -283,10 +289,10 @@
       "greeting": "Welcome to",
       "dashboardTitle": "Dashboard",
       "platform": "BATTECHNO-LMS",
-      "tagline": "Academic operations overview",
+      "tagline": "Courses, credentials, and training at a glance",
       "activePrograms": "Active programs",
-      "program1": "Learning analytics",
-      "program2": "Academic quality management",
+      "program1": "Professional skills course",
+      "program2": "Data micro-credential",
       "statPrograms": "Active programs",
       "statProgramsVal": "12",
       "statMicro": "Micro-credentials",
@@ -307,10 +313,10 @@
     },
     "credentials": {
       "title": "Micro-credentials",
-      "subtitle": "Sample learning paths",
+      "subtitle": "Sample programs",
       "card1Title": "Learning analytics",
-      "card2Title": "Academic quality management",
-      "card3Title": "Adaptive learning",
+      "card2Title": "Job interview skills",
+      "card3Title": "University field training",
       "statusPublished": "Published",
       "statusDraft": "Draft",
       "statusReview": "In review",
@@ -330,13 +336,13 @@
     }
   },
   "footer": {
-    "description": "BATTECHNO LMS is an academic platform for managing micro-credentials, educational programs, quality, accreditation, and reports for educational and training institutions.",
+    "description": "BATTECHNO LMS is a platform for managing training courses, micro-credentials, university field training, reports, and digital certificates for educational and training institutions.",
     "rights": "© {{year}} BATTECHNO. All rights reserved.",
     "contact": "Contact",
     "support": "Support",
     "privacy": "Privacy",
     "accountDeletion": "Account deletion",
     "terms": "Terms",
-    "tagline": "Academic operations · Micro-credentials · Quality"
+    "tagline": "Training courses · Micro-credentials · Field training"
   }
 }

@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FormInput } from '../../components/forms/FormInput.jsx';
 import { Button } from '../../components/common/Button.jsx';
-import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { useAuth } from '../../features/auth/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { mapAuthErrorToLoginMessage } from '../../utils/authErrors.js';
@@ -38,7 +37,7 @@ export function LoginPage({
 }) {
   const { t, i18n } = useTranslation('auth');
   const { t: tCommon } = useTranslation('common');
-  const { login, isAuthenticated, user, isAuthReady } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -93,10 +92,6 @@ export function LoginPage({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
   });
-
-  if (!isAuthReady) {
-    return <LoadingSpinner />;
-  }
 
   if (isAuthenticated && user && !mismatchNotice) {
     const resolution = resolveAuthenticatedLandingRoute(user, {

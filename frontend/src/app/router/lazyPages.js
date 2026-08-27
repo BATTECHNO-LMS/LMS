@@ -592,10 +592,6 @@ export const ReviewerLayout = lazyNamed(
 );
 
 // —— Auth pages ——
-export const RegisterPage = lazyNamed(
-  () => import('../../features/auth/pages/RegisterPage.jsx'),
-  'RegisterPage'
-);
 export const VerifyEmailOtpPage = lazyNamed(
   () => import('../../pages/auth/VerifyEmailOtpPage.jsx'),
   'VerifyEmailOtpPage'
@@ -631,22 +627,6 @@ export const StudentLoginPage = lazyNamed(
 export const ReviewerLoginPage = lazyNamed(
   () => import('../../pages/auth/portalLogins.jsx'),
   'ReviewerLoginPage'
-);
-export const PortalPickerPage = lazyNamed(
-  () => import('../../pages/auth/PortalPickerPage.jsx'),
-  'PortalPickerPage'
-);
-export const InstitutionLoginPage = lazyNamed(
-  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
-  'InstitutionLoginPage'
-);
-export const UniversitiesLoginPage = lazyNamed(
-  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
-  'UniversitiesLoginPage'
-);
-export const InstitutionRegisterPage = lazyNamed(
-  () => import('../../pages/auth/InstitutionRegisterPage.jsx'),
-  'InstitutionRegisterPage'
 );
 export const SelectOrganizationPage = lazyNamed(
   () => import('../../pages/auth/SelectOrganizationPage.jsx'),

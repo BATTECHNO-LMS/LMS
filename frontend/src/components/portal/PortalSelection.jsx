@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BrandLogo } from '../common/BrandLogo.jsx';
 import { PortalCard } from './PortalCard.jsx';
 import { PORTAL_ENTRIES } from '../../constants/portalConfig.js';
@@ -8,6 +9,7 @@ import { resolveAuthenticatedPublicPageRedirect } from '../../utils/resolveAuthe
 
 /**
  * Shared portal-selection layout used by `/portals` and the public home section.
+ * Static structure renders immediately; auth is only used for an optional dashboard CTA.
  */
 export function PortalSelection({
   variant = 'page',
@@ -18,28 +20,25 @@ export function PortalSelection({
   className,
   id = 'portal-entry',
 }) {
-  const { isAuthenticated, user, isAuthReady } = useAuth();
-  const heading = 'اختر بوابة الدخول';
-  const subtitle = isArabic
-    ? 'منصة BATTECHNO LMS تعمل بمحرك واحد مع بوابتين منفصلتين: الجامعات والمؤسسات.'
-    : 'BATTECHNO LMS runs on one engine with two portals: universities and institutions.';
+  const { t } = useTranslation('landing');
+  const { isAuthenticated, user } = useAuth();
+  const heading = t('entryPortals.title');
+  const subtitle = t('entryPortals.subtitle');
 
   const authRedirect =
-    isAuthReady && isAuthenticated && user
-      ? resolveAuthenticatedPublicPageRedirect(user)
-      : null;
+    isAuthenticated && user ? resolveAuthenticatedPublicPageRedirect(user) : null;
 
   return (
     <section
       id={id}
       className={cn('portal-selection', `portal-selection--${variant}`, className)}
-      dir="rtl"
+      dir={isArabic ? 'rtl' : 'ltr'}
       aria-labelledby={`${id}-heading`}
     >
       <div className="portal-selection__inner">
         {showLogo ? (
           <div className="portal-selection__brand">
-            <BrandLogo variant="header" alt="BATTECHNO LMS" />
+            <BrandLogo variant="portal" alt="BATTECHNO LMS" align="center" />
           </div>
         ) : null}
 
@@ -53,15 +52,9 @@ export function PortalSelection({
         {showDashboardCta && authRedirect?.path ? (
           <div className="portal-selection__session">
             <Link to={authRedirect.path} className="portal-selection__dashboard-link">
-              الانتقال إلى لوحة التحكم
+              {t('entryPortals.dashboardCta')}
             </Link>
           </div>
-        ) : null}
-
-        {!isAuthReady ? (
-          <p className="portal-selection__status" role="status">
-            جاري التحميل...
-          </p>
         ) : null}
 
         <div className="portal-selection__grid">
@@ -71,7 +64,7 @@ export function PortalSelection({
 
         {showHomeLink ? (
           <p className="portal-selection__footer">
-            <Link to="/">العودة إلى الصفحة الرئيسية</Link>
+            <Link to="/">{t('entryPortals.homeLink')}</Link>
           </p>
         ) : null}
       </div>

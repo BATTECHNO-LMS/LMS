@@ -4,11 +4,13 @@
 .layout--auth {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: clamp(1rem, 3vw, 2rem);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: linear-gradient(
     165deg,
     color-mix(in srgb, $color-accent-soft 48%, white) 0%,
@@ -42,6 +44,11 @@
   .layout--auth:has(.auth-page--register) {
     align-items: center;
   }
+}
+
+.layout--auth:has(.portal-selection) {
+  padding: 0;
+  align-items: stretch;
 }
 
 /* ── Login ambient background ── */
@@ -478,11 +485,7 @@
 }
 
 .auth-split__logo {
-  height: 4.25rem !important;
-  width: auto !important;
-  max-width: min(100%, 17rem) !important;
   margin-bottom: 1.5rem;
-  object-fit: contain;
 }
 
 .auth-split__header {
@@ -808,7 +811,6 @@
 
 @media (max-width: 767px) {
   .auth-split--register .auth-split__logo {
-    height: 3.5rem !important;
     margin-bottom: 1.15rem;
   }
 
@@ -946,9 +948,8 @@
 }
 
 .auth-card__logo {
-  height: 6rem;
   width: auto;
-  max-width: min(100%, 16rem);
+  max-width: min(100%, 16.5rem);
   object-fit: contain;
 }
 

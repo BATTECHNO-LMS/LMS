@@ -30,14 +30,14 @@ export function HeroFloatingNav() {
 
   return (
     <header className="hero-floating-nav sticky top-0 z-50 w-full px-[var(--landing-container-pad)] pt-4 pb-2 sm:pt-5 sm:pb-2.5">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="hero-floating-nav__bar hero-floating-nav__bar--desktop hidden items-center gap-3 px-3 py-2 sm:gap-4 sm:px-4 sm:py-2.5 lg:flex">
+      <div className="mx-auto w-full max-w-7xl">
+        <div className="hero-floating-nav__bar hero-floating-nav__bar--desktop hidden xl:flex items-center gap-3 px-3 py-2 sm:gap-4 sm:px-4 sm:py-2.5">
         <span className="hero-floating-nav__wave" aria-hidden />
         <span className="hero-floating-nav__glow" aria-hidden />
         <span className="hero-floating-nav__wave-edge" aria-hidden />
         <div className="hero-floating-nav__inner flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
           <Link to="/" className="relative z-[1] shrink-0 ps-1" onClick={close}>
-            <BrandLogo variant="header" alt={t('brand')} className="!h-9 !max-h-9 sm:!h-10" />
+            <BrandLogo variant="header" alt={t('brand')} />
           </Link>
 
           <nav className="relative z-[1] flex min-w-0 flex-1 flex-wrap items-center justify-center gap-0.5" aria-label="Primary">
@@ -54,7 +54,7 @@ export function HeroFloatingNav() {
             </div>
             <Link
               to={PORTAL_SELECTION_PATH}
-              className="hidden rounded-full border border-bat-accent bg-bat-accent-soft px-3 py-2 text-xs font-semibold text-bat-primary transition hover:bg-bat-accent sm:inline-flex"
+              className="hidden rounded-full border border-bat-accent bg-bat-accent-soft px-3 py-2 text-xs font-semibold text-bat-primary transition hover:bg-bat-accent 2xl:inline-flex"
             >
               {t('header.register')}
             </Link>
@@ -69,14 +69,14 @@ export function HeroFloatingNav() {
         </div>
       </div>
 
-      <div className="hero-floating-nav__bar hero-floating-nav__bar--mobile flex items-center justify-between gap-2 px-3 py-2 lg:hidden">
+      <div className="hero-floating-nav__bar hero-floating-nav__bar--mobile flex items-center justify-between gap-2 px-3 py-2 xl:hidden">
         <span className="hero-floating-nav__wave" aria-hidden />
         <span className="hero-floating-nav__glow" aria-hidden />
         <span className="hero-floating-nav__wave-edge" aria-hidden />
         <div className="hero-floating-nav__inner flex w-full items-center justify-between gap-2">
-          <button
-            type="button"
-            className="relative z-[1] rounded-lg p-2 text-bat-ink"
+            <button
+              type="button"
+              className="relative z-[1] min-h-11 min-w-11 rounded-lg p-2 text-bat-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bat-accent"
             aria-expanded={open}
             aria-label={open ? t('header.menuClose') : t('header.menuOpen')}
             onClick={() => setOpen((v) => !v)}
@@ -84,7 +84,7 @@ export function HeroFloatingNav() {
             {open ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
           <Link to="/" className="relative z-[1] flex flex-1 justify-center" onClick={close}>
-            <BrandLogo variant="header" alt={t('brand')} className="!h-9" />
+            <BrandLogo variant="header" alt={t('brand')} />
           </Link>
           <div className="relative z-[1]">
             <PortalLoginMenu label={t('header.login')} compact />
@@ -98,7 +98,7 @@ export function HeroFloatingNav() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="hero-floating-nav__bar hero-floating-nav__bar--menu mt-2 overflow-hidden p-2 lg:hidden"
+            className="hero-floating-nav__bar hero-floating-nav__bar--menu mt-2 overflow-hidden p-2 xl:hidden"
             aria-label="Mobile"
           >
             <span className="hero-floating-nav__wave" aria-hidden />

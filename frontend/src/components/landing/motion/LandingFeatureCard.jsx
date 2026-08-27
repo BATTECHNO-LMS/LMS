@@ -33,7 +33,7 @@ export function LandingFeatureCard({ icon: Icon, title, description, variants, l
         <h3 className={`font-bold leading-snug text-bat-ink ${isHorizontal ? 'text-base sm:text-lg' : 'text-lg'}`}>
           {title}
         </h3>
-        <p className={`leading-relaxed text-bat-muted ${isHorizontal ? 'mt-1.5 text-sm' : 'mt-2 text-sm sm:text-[0.9375rem]'}`}>
+        <p className={`leading-relaxed text-bat-muted ${isHorizontal ? 'mt-1.5 text-[0.975rem]' : 'mt-2 text-[0.975rem] sm:text-base'}`}>
           {description}
         </p>
       </div>

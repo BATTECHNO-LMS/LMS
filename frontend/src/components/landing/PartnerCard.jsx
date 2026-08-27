@@ -35,6 +35,8 @@ export function PartnerCard({ initials, nameKey, category, logoUrl, descriptionK
             <img
               src={logoUrl}
               alt=""
+              width={180}
+              height={180}
               className="partner-card__logo-img"
               loading="lazy"
               decoding="async"

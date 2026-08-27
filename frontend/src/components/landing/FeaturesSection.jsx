@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import {
   FiUsers,
   FiHome,
-  FiLayers,
+  FiBookOpen,
   FiAward,
   FiTrendingUp,
   FiCalendar,
-  FiShield,
+  FiBriefcase,
   FiBarChart2,
 } from 'react-icons/fi';
 import { FEATURE_KEYS } from './home.constants.js';
@@ -24,11 +24,11 @@ import {
 const ICONS = {
   usersRoles: FiUsers,
   universities: FiHome,
-  tracks: FiLayers,
+  trainingCourses: FiBookOpen,
   microCredentials: FiAward,
   gradesAssessments: FiTrendingUp,
   attendance: FiCalendar,
-  qualityAccreditation: FiShield,
+  fieldTraining: FiBriefcase,
   reportsAnalytics: FiBarChart2,
 };
 
@@ -56,7 +56,7 @@ export function FeaturesSection() {
           className="landing-after-header landing-grid landing-grid--loose sm:grid-cols-2 xl:grid-cols-4"
         >
           {FEATURE_KEYS.map((key) => {
-            const Icon = ICONS[key] ?? FiLayers;
+            const Icon = ICONS[key] ?? FiBookOpen;
             return (
               <LandingFeatureCard
                 key={key}

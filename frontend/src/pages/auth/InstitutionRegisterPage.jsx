@@ -7,7 +7,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { FormInput } from '../../components/forms/FormInput.jsx';
 import { FormSelect } from '../../components/forms/FormSelect.jsx';
 import { BrandLogo } from '../../components/common/BrandLogo.jsx';
-import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { useAuth } from '../../features/auth/index.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import {
@@ -45,7 +44,7 @@ const schema = z
 export function InstitutionRegisterPage() {
   const navigate = useNavigate();
   const reduced = useReducedMotion();
-  const { isAuthenticated, user, isAuthReady } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [institutions, setInstitutions] = useState([]);
   const [branches, setBranches] = useState([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
@@ -110,8 +109,6 @@ export function InstitutionRegisterPage() {
       })),
     [institutions]
   );
-
-  if (!isAuthReady) return <LoadingSpinner />;
 
   if (isAuthenticated && user) {
     const dest = resolveAuthenticatedPublicPageRedirect(user);

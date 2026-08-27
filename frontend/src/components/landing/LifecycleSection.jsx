@@ -94,7 +94,7 @@ export function LifecycleSection() {
                   </motion.span>
 
                   <div className="min-w-0 flex-1 lg:flex-none">
-                    <p className="text-sm font-bold leading-snug text-bat-ink sm:text-base">
+                    <p className="text-[0.975rem] font-bold leading-snug text-bat-ink sm:text-base">
                       {t(`lifecycle.steps.${key}`)}
                     </p>
                   </div>

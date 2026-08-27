@@ -28,11 +28,7 @@ export function HomeFooter() {
           className="landing-footer__grid"
         >
           <div className="landing-footer__brand">
-            <LandingBrandLogo
-              variant="footer"
-              alt={t('brand')}
-              className="!mb-0 !h-11 sm:!h-12 lg:!h-[3.25rem] lg:max-w-[280px]"
-            />
+            <LandingBrandLogo variant="footer" alt={t('brand')} />
             <p className="landing-footer__desc">{t('footer.description')}</p>
             <p className="landing-footer__tagline">{t('footer.tagline')}</p>
           </div>

@@ -8,6 +8,10 @@ import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
 import { RootRedirect } from '../../components/common/RootRedirect.jsx';
 import { RoleShellPermissionOutlet } from '../../components/permissions/RoleShellPermissionOutlet.jsx';
 import { ADMIN_ROLE_SET, ROLES } from '../../constants/roles.js';
+import { PortalPickerPage } from '../../pages/auth/PortalPickerPage.jsx';
+import { InstitutionLoginPage, UniversitiesLoginPage } from '../../pages/auth/InstitutionLoginPage.jsx';
+import { InstitutionRegisterPage } from '../../pages/auth/InstitutionRegisterPage.jsx';
+import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
 import { getCurrentPortalKey } from '../../utils/portal.js';
 
 function SubdomainLoginRedirect() {
@@ -18,7 +22,7 @@ function SubdomainLoginRedirect() {
   if (portal === 'reviewer') return <Navigate to="/login/reviewer" replace />;
   if (portal === 'institutions') return <Navigate to="/institutions/login" replace />;
   if (portal === 'universities') return <Navigate to="/universities/login" replace />;
-  return <Pages.PortalPickerPage />;
+  return <PortalPickerPage />;
 }
 
 export function AppRouter() {
@@ -28,7 +32,7 @@ export function AppRouter() {
       <Route path="/" element={<RootRedirect />} />
 
       <Route path="/portals" element={<AuthLayout />}>
-        <Route index element={<Pages.PortalPickerPage />} />
+        <Route index element={<PortalPickerPage />} />
       </Route>
 
       <Route path="/login" element={<AuthLayout />}>
@@ -40,16 +44,16 @@ export function AppRouter() {
       </Route>
 
       <Route path="/institutions" element={<AuthLayout />}>
-        <Route path="login" element={<Pages.InstitutionLoginPage />} />
-        <Route path="register" element={<Pages.InstitutionRegisterPage />} />
+        <Route path="login" element={<InstitutionLoginPage />} />
+        <Route path="register" element={<InstitutionRegisterPage />} />
       </Route>
 
       <Route path="/universities" element={<AuthLayout />}>
-        <Route path="login" element={<Pages.UniversitiesLoginPage />} />
+        <Route path="login" element={<UniversitiesLoginPage />} />
       </Route>
 
       <Route path="/register" element={<AuthLayout />}>
-        <Route index element={<Pages.RegisterPage />} />
+        <Route index element={<RegisterPage />} />
       </Route>
 
       <Route path="/verify-email" element={<AuthLayout />}>

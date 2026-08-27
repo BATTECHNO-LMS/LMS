@@ -23,6 +23,7 @@ export function PortalCard({
   const description = isArabic ? portal.descriptionAr : portal.descriptionEn;
   const primaryCta = isArabic ? portal.primaryCtaAr : portal.primaryCtaEn;
   const secondaryCta = isArabic ? portal.secondaryCtaAr : portal.secondaryCtaEn;
+  const note = isArabic ? portal.noteAr : portal.noteEn;
 
   return (
     <article className={cn('portal-card', className)} data-portal={portal.type}>
@@ -31,6 +32,7 @@ export function PortalCard({
       </div>
       <h3 className="portal-card__title">{title}</h3>
       <p className="portal-card__desc">{description}</p>
+      {note ? <p className="portal-card__note">{note}</p> : null}
       <div className="portal-card__actions">
         <Link to={portal.loginPath} className="btn btn--primary btn--lg portal-card__btn">
           {primaryCta}
