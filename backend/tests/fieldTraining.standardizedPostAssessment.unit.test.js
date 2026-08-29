@@ -54,6 +54,28 @@ describe('standardized field-training post-assessment bank', () => {
     assert.equal(PASSING_SCORE, 60);
   });
 
+  it('exposes a string correct_answer to the admin editor so completeness does not stringify objects', () => {
+    const { toAdminQuestionDto, toStudentQuestionDto } = require('../src/modules/fieldTraining/fieldTraining.assessmentQuestions');
+    const stored = toStorageQuestions()[0];
+    const admin = toAdminQuestionDto({
+      id: 'q-admin',
+      assessment_id: 'a1',
+      ...stored,
+    });
+    assert.equal(typeof admin.correct_answer, 'string');
+    assert.equal(admin.correct_answer, stored.correct_answer.answer);
+    assert.ok(admin.options.includes(admin.correct_answer));
+    assert.equal(typeof admin.explanation, 'string');
+    const student = toStudentQuestionDto({
+      id: 'q-student',
+      assessment_id: 'a1',
+      ...stored,
+    });
+    assert.equal(student.correct_answer, undefined);
+    assert.equal(student.explanation, undefined);
+    assert.equal(student.options.length, 4);
+  });
+
   it('auto-grades an MCQ whose correct answer is stored as { answer, explanation }', () => {
     const prepared = prepareQuestionForStorage(
       {

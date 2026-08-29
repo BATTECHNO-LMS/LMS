@@ -145,8 +145,26 @@ async function calculateFieldTrainingEligibility(applicationId) {
       applicationId,
       opp.required_training_hours
     );
-    details.training_hours = hoursProgress;
-    if (hoursProgress.hours_completion_status !== hoursMod.HOURS_STATUS.COMPLETED) {
+    const storedHours = hoursMod.toNullableInt(app.completed_training_hours) || 0;
+    const attendanceHours = Number(hoursProgress.completed_training_hours) || 0;
+    const completedHours = Math.max(attendanceHours, storedHours);
+    const required = Number(opp.required_training_hours);
+    const remaining = Math.max(0, required - completedHours);
+    const mergedHours = {
+      ...hoursProgress,
+      completed_training_hours: completedHours,
+      remaining_training_hours: remaining,
+      excess_training_hours: completedHours > required ? Math.round((completedHours - required) * 100) / 100 : 0,
+      hours_completion_percentage: Math.min(100, Math.round((completedHours / required) * 10000) / 100),
+      hours_completion_status:
+        completedHours <= 0
+          ? hoursMod.HOURS_STATUS.NOT_STARTED
+          : completedHours >= required
+            ? hoursMod.HOURS_STATUS.COMPLETED
+            : hoursMod.HOURS_STATUS.IN_PROGRESS,
+    };
+    details.training_hours = mergedHours;
+    if (mergedHours.hours_completion_status !== hoursMod.HOURS_STATUS.COMPLETED) {
       reasons.push('training_hours_incomplete');
     }
   }
@@ -165,16 +183,21 @@ async function calculateFieldTrainingEligibility(applicationId) {
   }
 
   if (opp.requires_final_task) {
-    const finalSub = app.field_training_task_submissions.find(
-      (s) => s.field_training_tasks?.is_final_task
-    );
+    const finalTaskCount = await prisma.field_training_tasks.count({
+      where: { opportunity_id: opp.id, is_final_task: true },
+    });
     details.final_task_status = app.final_task_status;
-    if (!finalSub) {
-      reasons.push('final_task_not_submitted');
-    } else if (finalSub.review_status === 'rejected') {
-      reasons.push('final_task_rejected');
-    } else if (finalSub.review_status === 'pending' || finalSub.review_status === 'needs_revision') {
-      reasons.push('final_task_pending_review');
+    if (finalTaskCount > 0) {
+      const finalSub = app.field_training_task_submissions.find(
+        (s) => s.field_training_tasks?.is_final_task
+      );
+      if (!finalSub) {
+        reasons.push('final_task_not_submitted');
+      } else if (finalSub.review_status === 'rejected') {
+        reasons.push('final_task_rejected');
+      } else if (finalSub.review_status === 'pending' || finalSub.review_status === 'needs_revision') {
+        reasons.push('final_task_pending_review');
+      }
     }
   }
 

@@ -17,7 +17,12 @@ import {
 import { Button } from '../../../../../components/common/Button.jsx';
 import { FormTextarea } from '../../../../../components/forms/FormTextarea.jsx';
 import { cn } from '../../../../../utils/helpers.js';
-import { QUESTION_TYPES, adaptQuestionType, isQuestionIncomplete } from './assessmentQuestionBuilder.utils.js';
+import {
+  QUESTION_TYPES,
+  adaptQuestionType,
+  isQuestionIncomplete,
+  resolveMcqCorrectAnswer,
+} from './assessmentQuestionBuilder.utils.js';
 
 const TYPE_ICONS = {
   short_text: Type,
@@ -105,7 +110,7 @@ export function AssessmentQuestionCard({
 
   function isCorrectOption(opt) {
     if (!String(opt || '').trim()) return false;
-    if (type === 'multiple_choice') return question.correct_answer === opt;
+    if (type === 'multiple_choice') return resolveMcqCorrectAnswer(question) === opt;
     if (type === 'multi_select') {
       return Array.isArray(question.correct_answer) && question.correct_answer.includes(opt);
     }

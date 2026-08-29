@@ -285,6 +285,43 @@ function gradeAnswers(questions, answers) {
   return { scorePoints, maxPoints, scorePercent, questionResults };
 }
 
+function toStudentQuestionDto(row) {
+  const type = normalizeQuestionType(row.question_type);
+  return {
+    id: row.id,
+    assessment_id: row.assessment_id,
+    question_text: row.question_text,
+    question_type: type === 'short_answer' ? 'short_text' : type,
+    options: normalizeOptions(type, row.options),
+    points: row.points != null ? Number(row.points) : 1,
+    is_required: row.is_required !== false,
+    sort_order: row.sort_order,
+  };
+}
+
+/**
+ * Admin/editor DTO. MCQ `correct_answer` is the option text the builder selects,
+ * not the `{ answer, explanation }` storage object (that would stringify to
+ * "[object Object]" and mark every question incomplete in the sidebar).
+ */
+function toAdminQuestionDto(row) {
+  const student = toStudentQuestionDto(row);
+  const type = student.question_type;
+  if (type === 'multiple_choice') {
+    const options = student.options && student.options.length ? student.options : asStringArray(row.options);
+    return {
+      ...student,
+      options,
+      correct_answer: unwrapMcqAnswer(row.correct_answer),
+      explanation: extractMcqExplanation(row.correct_answer) || extractMcqExplanation(row),
+    };
+  }
+  return {
+    ...student,
+    correct_answer: row.correct_answer,
+  };
+}
+
 function prepareQuestionForStorage(q, index) {
   const type = normalizeQuestionType(q.question_type);
   const options = normalizeOptions(type, q.options);
@@ -319,4 +356,6 @@ module.exports = {
   gradeAnswers,
   gradeQuestion,
   prepareQuestionForStorage,
+  toStudentQuestionDto,
+  toAdminQuestionDto,
 };

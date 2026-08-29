@@ -1109,24 +1109,13 @@ function mapAssessmentRow(row, { includeQuestions = false } = {}) {
 }
 
 function mapAssessmentQuestionRow(row) {
-  const type = row.question_type === 'short_answer' ? 'short_text' : row.question_type;
-  return {
-    id: row.id,
-    assessment_id: row.assessment_id,
-    question_text: row.question_text,
-    question_type: type,
-    options: row.options,
-    points: row.points != null ? Number(row.points) : 1,
-    is_required: row.is_required !== false,
-    sort_order: row.sort_order,
-  };
+  const { toStudentQuestionDto } = require('./fieldTraining.assessmentQuestions');
+  return toStudentQuestionDto(row);
 }
 
 function mapAssessmentQuestionRowAdmin(row) {
-  return {
-    ...mapAssessmentQuestionRow(row),
-    correct_answer: row.correct_answer,
-  };
+  const { toAdminQuestionDto } = require('./fieldTraining.assessmentQuestions');
+  return toAdminQuestionDto(row);
 }
 
 async function findSessionsByOpportunity(opportunityId, { applicationId } = {}) {

@@ -27,6 +27,76 @@ export function createEmptyQuestion(overrides = {}) {
   };
 }
 
+/** Unwrap MCQ `correct_answer` stored as a string or `{ answer, explanation }`. */
+export function unwrapMcqCorrectAnswer(value) {
+  if (value == null || value === '') return '';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return String(value).trim();
+  }
+  if (Array.isArray(value)) {
+    return value.length ? unwrapMcqCorrectAnswer(value[0]) : '';
+  }
+  if (typeof value === 'object') {
+    if (value.answer != null && value.answer !== '') return String(value.answer).trim();
+    if (value.correct != null && value.correct !== '') return String(value.correct).trim();
+    if (value.value != null && value.value !== '') return String(value.value).trim();
+    if (value.text != null && value.text !== '') return String(value.text).trim();
+    if (value.correctOptionId != null) return String(value.correctOptionId).trim();
+    if (value.optionId != null) return String(value.optionId).trim();
+  }
+  return '';
+}
+
+export function extractMcqExplanation(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const raw = value.explanation ?? value.correct_answer?.explanation;
+    if (raw != null && String(raw).trim()) return String(raw).trim();
+  }
+  return '';
+}
+
+/**
+ * Normalize option rows to strings. Supports `{ text, isCorrect, id }` objects
+ * as well as the canonical string[] used by the save/grade path.
+ */
+export function normalizeMcqOptionList(raw) {
+  if (!Array.isArray(raw) || !raw.length) {
+    return { options: ['', ''], correctFromFlags: '', idToText: {} };
+  }
+  const options = [];
+  const idToText = {};
+  let correctFromFlags = '';
+  for (const item of raw) {
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const text = String(item.text ?? item.label ?? item.value ?? item.option ?? '').trim();
+      const id = item.id ?? item.optionId ?? item.option_id;
+      options.push(text);
+      if (id != null && text) idToText[String(id)] = text;
+      if ((item.isCorrect === true || item.is_correct === true) && text) {
+        correctFromFlags = text;
+      }
+    } else {
+      options.push(String(item ?? ''));
+    }
+  }
+  return {
+    options: options.length ? options : ['', ''],
+    correctFromFlags,
+    idToText,
+  };
+}
+
+export function resolveMcqCorrectAnswer(q) {
+  const { options, correctFromFlags, idToText } = normalizeMcqOptionList(q?.options);
+  const unwrapped = unwrapMcqCorrectAnswer(q?.correct_answer);
+  if (unwrapped && options.map((o) => o.trim()).filter(Boolean).includes(unwrapped)) {
+    return unwrapped;
+  }
+  if (unwrapped && idToText[unwrapped]) return idToText[unwrapped];
+  if (correctFromFlags) return correctFromFlags;
+  return unwrapped;
+}
+
 export function hydrateQuestionFromApi(q) {
   const type = q.question_type === 'short_answer' ? 'short_text' : q.question_type;
   const base = createEmptyQuestion({
@@ -38,11 +108,14 @@ export function hydrateQuestionFromApi(q) {
   });
 
   if (type === 'multiple_choice') {
-    const options = Array.isArray(q.options) && q.options.length ? q.options.map(String) : ['', ''];
+    const { options } = normalizeMcqOptionList(
+      Array.isArray(q.options) && q.options.length ? q.options : ['', '']
+    );
     return {
       ...base,
       options,
-      correct_answer: q.correct_answer != null ? String(q.correct_answer) : '',
+      correct_answer: resolveMcqCorrectAnswer(q),
+      explanation: extractMcqExplanation(q.correct_answer) || extractMcqExplanation(q) || '',
     };
   }
 
@@ -139,11 +212,14 @@ export function serializeQuestionForApi(q, index) {
   };
 
   if (type === 'multiple_choice') {
-    const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
+    const { options } = normalizeMcqOptionList(q.options || []);
+    const filled = options.map((o) => String(o).trim()).filter(Boolean);
+    const answer = resolveMcqCorrectAnswer(q);
+    const explanation = String(q.explanation || extractMcqExplanation(q.correct_answer) || '').trim();
     return {
       ...base,
-      options,
-      correct_answer: q.correct_answer != null ? String(q.correct_answer).trim() : null,
+      options: filled,
+      correct_answer: explanation ? { answer, explanation } : answer || null,
     };
   }
 
@@ -217,9 +293,11 @@ export function validateBuilderForPublish({ title, questions, passingScore }) {
 
     const type = q.question_type;
     if (type === 'multiple_choice') {
-      const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
-      if (options.length < 2) return `السؤال ${n}: أضف خيارين على الأقل.`;
-      if (!q.correct_answer || !options.includes(String(q.correct_answer).trim())) {
+      const { options } = normalizeMcqOptionList(q.options || []);
+      const filled = options.map((o) => String(o).trim()).filter(Boolean);
+      if (filled.length < 2) return `السؤال ${n}: أضف خيارين على الأقل.`;
+      const correct = resolveMcqCorrectAnswer(q);
+      if (!correct || !filled.includes(correct)) {
         return `السؤال ${n}: حدد إجابة صحيحة واحدة.`;
       }
     }
@@ -254,9 +332,11 @@ export function isQuestionIncomplete(q) {
   if (!(Number(q.points) > 0)) return true;
   const type = q.question_type;
   if (type === 'multiple_choice') {
-    const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
-    if (options.length < 2) return true;
-    if (!q.correct_answer || !options.includes(String(q.correct_answer).trim())) return true;
+    const { options } = normalizeMcqOptionList(q.options || []);
+    const filled = options.map((o) => String(o).trim()).filter(Boolean);
+    if (filled.length < 2) return true;
+    const correct = resolveMcqCorrectAnswer(q);
+    if (!correct || !filled.includes(correct)) return true;
   }
   if (type === 'multi_select') {
     const options = (q.options || []).map((o) => String(o).trim()).filter(Boolean);
