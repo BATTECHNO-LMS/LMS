@@ -33,6 +33,7 @@ import {
   truncateText,
   getOpportunitySpecialtyLabel,
   trainingStatusVariant,
+  TaskProgressBadge,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
@@ -266,6 +267,7 @@ export function StudentFieldTrainingPage() {
                         {t(`trainingStatus.${o.my_training_status}`, o.my_training_status)}
                       </StatusBadge>
                     ) : null}
+                    <TaskProgressBadge progress={o.my_task_progress} />
                   </header>
 
                   <div className="ft-opp-card__body">

@@ -2,7 +2,12 @@ import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
 import { uploadFileToStorage } from '../uploads/uploadFileToStorage.js';
-import { openRemoteDownloadUrl, saveFieldTrainingSubmissionBlob } from './fieldTrainingDownload.js';
+import {
+  openRemoteDownloadUrl,
+  saveFieldTrainingSubmissionBlob,
+  parseFilename,
+  rethrowBlobApiError,
+} from './fieldTrainingDownload.js';
 
 const admin = endpoints.adminFieldTraining;
 const student = endpoints.studentFieldTraining;
@@ -63,6 +68,24 @@ export async function fetchOpportunityApplications(opportunityId, params = {}, {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/${opportunityId}/applications`, { params });
   return unwrapApiData(res);
+}
+
+export async function exportOpportunityStudentsExcel(opportunityId, params = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  try {
+    const res = await apiClient.get(`${base}/${opportunityId}/applications/export/excel`, {
+      params,
+      responseType: 'blob',
+      timeout: 120_000,
+    });
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      'طلاب_التدريب_الميداني.xlsx'
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function reviewFieldTrainingApplication(applicationId, body) {
@@ -385,6 +408,11 @@ export async function publishOpportunityAssessment(opportunityId, type, { asInst
 
 export async function fetchStudentAssessment(opportunityId, type) {
   const res = await apiClient.get(`${student}/${opportunityId}/assessments/${type}`);
+  return unwrapApiData(res);
+}
+
+export async function saveStudentAssessmentProgress(opportunityId, type, answers) {
+  const res = await apiClient.post(`${student}/${opportunityId}/assessments/${type}/save`, { answers });
   return unwrapApiData(res);
 }
 

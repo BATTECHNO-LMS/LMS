@@ -1,5 +1,7 @@
 const fieldTrainingService = require('./fieldTraining.service');
+const studentsExcelExport = require('./fieldTrainingStudentsExport.service');
 const { success, created } = require('../../utils/apiResponse');
+const { recordAudit } = require('../../shared/services/audit.service');
 const fs = require('fs');
 
 async function list(req, res, next) {
@@ -90,6 +92,46 @@ async function listApplications(req, res, next) {
       req.user
     );
     return success(res, data, { message: 'Applications retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function exportApplicationsExcel(req, res, next) {
+  try {
+    const file = await studentsExcelExport.exportOpportunityStudentsExcel(
+      req.user,
+      req.validated.params.id,
+      req.validated.query ?? {}
+    );
+    try {
+      await recordAudit({
+        userId: req.user?.userId ?? null,
+        universityId: file.universityId ?? req.user?.universityId ?? null,
+        actionType: 'report.export',
+        entityType: 'field_training_report',
+        entityId: file.opportunityId ?? req.validated.params.id,
+        newValues: {
+          type: 'field_training_students_excel',
+          university_id: file.universityId ?? null,
+          opportunity_id: file.opportunityId ?? req.validated.params.id,
+          filters: file.filters ?? null,
+          row_count: file.rowCount ?? 0,
+        },
+        ipAddress: req.ip || null,
+      });
+    } catch {
+      /* export must not fail because audit write failed */
+    }
+    const payload = Buffer.isBuffer(file.buffer) ? file.buffer : Buffer.from(file.buffer);
+    const raw = String(file.filename || 'download.bin').replace(/[\r\n"]/g, '_');
+    const safeAscii = raw.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_').slice(0, 180) || 'download.bin';
+    res.setHeader('Content-Type', file.contentType);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(raw)}`
+    );
+    return res.send(payload);
   } catch (e) {
     return next(e);
   }
@@ -287,6 +329,7 @@ module.exports = {
   publish,
   archive,
   listApplications,
+  exportApplicationsExcel,
   overviewSummary,
   reviewApplication,
   listTasks,

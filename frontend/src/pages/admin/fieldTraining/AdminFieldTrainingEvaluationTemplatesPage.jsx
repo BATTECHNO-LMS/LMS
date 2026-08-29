@@ -93,6 +93,7 @@ export function FieldTrainingEvaluationTemplatesPage({ apiScope = 'admin' }) {
   });
 
   const rows = templatesQuery.data?.templates || [];
+  const activeDefault = rows.find((row) => row.isDefault && row.validationStatus !== 'invalid');
   const columns = useMemo(
     () => [
       { key: 'name', label: t('page.name') },
@@ -159,6 +160,11 @@ export function FieldTrainingEvaluationTemplatesPage({ apiScope = 'admin' }) {
     <div className="page page--admin">
       <AdminPageHeader title={t('page.templatesTitle')} description={t('page.templatesDescription')} />
       {error ? <p className="crud-muted" role="alert">{error}</p> : null}
+      <p className="crud-muted" data-testid="ft-eval-active-default">
+        {activeDefault
+          ? `${t('page.currentDefault')}: ${activeDefault.name} (v${activeDefault.version})`
+          : t('page.noDefault')}
+      </p>
       <SectionCard title={t('page.upload')}>
         <form
           className="admin-filter-bar"

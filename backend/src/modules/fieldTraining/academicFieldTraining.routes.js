@@ -81,6 +81,13 @@ router.get(
   reportController.academicStudentsList
 );
 router.get(
+  '/students/export/excel',
+  authenticate,
+  academicRoles,
+  validateRequest({ query: reportFiltersSchema }),
+  reportController.academicExportStudentsExcel
+);
+router.get(
   '/reports/students/:applicationId',
   authenticate,
   academicRoles,

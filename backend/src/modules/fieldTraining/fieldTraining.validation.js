@@ -70,11 +70,25 @@ const eligibilityItemSchema = z.object({
   is_active: z.coerce.boolean().optional(),
 });
 
+const hostOrganizationSchema = z
+  .object({
+    department: z.string().max(255).optional().nullable(),
+    email: z.string().max(255).optional().nullable(),
+    phone: z.string().max(80).optional().nullable(),
+    fax: z.string().max(80).optional().nullable(),
+    address: z.string().max(500).optional().nullable(),
+    contact_person: z.string().max(255).optional().nullable(),
+  })
+  .optional()
+  .nullable();
+
 const opportunityBodySchema = z.object({
   title: z.string().min(1).max(255),
   specialty_id: z.string().uuid(),
   eligibility: z.array(eligibilityItemSchema).min(1),
   assigned_instructor_id: z.string().uuid().optional().nullable(),
+  organization_name: z.string().max(255).optional().nullable(),
+  host_organization: hostOrganizationSchema,
   location: z.string().min(1).max(255),
   training_mode: trainingModeSchema,
   short_description: z.string().max(2000).optional().nullable(),
@@ -141,6 +155,7 @@ const taskBodySchema = z.object({
     .optional()
     .transform((v) => (v == null ? undefined : String(v).toUpperCase())),
   is_final_task: z.coerce.boolean().optional(),
+  is_required: z.coerce.boolean().optional(),
   instruction_file_id: z.string().uuid().optional().nullable(),
   remove_instruction_file: z.coerce.boolean().optional(),
 });

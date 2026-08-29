@@ -3,7 +3,7 @@ import { StatCard } from '../../../../components/common/StatCard.jsx';
 import { AdminStatsGrid } from '../../../../components/admin/AdminStatsGrid.jsx';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
 import { TrainingHoursProgressCard } from '../../../../components/fieldTraining/TrainingHoursProgressCard.jsx';
-import { trainingStatusVariant } from '../../../../features/fieldTraining/index.js';
+import { trainingStatusVariant, TaskProgressBadge } from '../../../../features/fieldTraining/index.js';
 import {
   StudentWorkflowTimeline,
   StudentOpportunityDescription,
@@ -73,12 +73,17 @@ export function buildOverviewKpiDisplay(progress, opp, t) {
     attendanceHint = t('studentTraining.kpi.attendanceHint');
   }
 
-  const tasksSubmitted = num(metrics.tasks_submitted ?? metrics.submitted_tasks_count);
-  const tasksTotal = num(metrics.tasks_count ?? metrics.total_tasks_count);
-  const tasksValue = t('studentTraining.kpi.tasksRatio', {
-    submitted: tasksSubmitted,
-    total: tasksTotal,
-  });
+  const tp = progress?.task_progress;
+  const tasksSubmitted = num(
+    metrics.submitted_required_tasks_count ?? metrics.tasks_submitted ?? metrics.submitted_tasks_count
+  );
+  const tasksTotal = num(metrics.required_tasks_count ?? metrics.tasks_count ?? metrics.total_tasks_count);
+  const tasksValue =
+    tp?.display ||
+    t('studentTraining.kpi.tasksRatio', {
+      submitted: tasksSubmitted,
+      total: tasksTotal,
+    });
 
   const postScore = metrics.post_assessment_score;
   const postPublished = Boolean(metrics.post_assessment_published);
@@ -140,12 +145,17 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
         </div>
       ) : null}
 
-      {application?.training_status && application.training_status !== 'none' ? (
+      {(application?.training_status && application.training_status !== 'none') ||
+      progress?.task_progress ||
+      application?.task_progress ? (
         <div className="ft-student-overview__status-row">
-          <StatusBadge variant={trainingStatusVariant(application.training_status)}>
-            {t(`trainingStatus.${application.training_status}`, application.training_status)}
-          </StatusBadge>
-          {application.admin_note ? (
+          {application?.training_status && application.training_status !== 'none' ? (
+            <StatusBadge variant={trainingStatusVariant(application.training_status)}>
+              {t(`trainingStatus.${application.training_status}`, application.training_status)}
+            </StatusBadge>
+          ) : null}
+          <TaskProgressBadge progress={progress?.task_progress || application?.task_progress} />
+          {application?.admin_note ? (
             <p className="ft-student-overview__admin-note">{application.admin_note}</p>
           ) : null}
         </div>

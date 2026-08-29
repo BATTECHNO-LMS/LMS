@@ -1537,6 +1537,7 @@ model field_training_tasks {
   requires_ai_self_evaluation Boolean @default(false)
   grading_mode   field_training_task_grading_mode @default(AI)
   is_final_task  Boolean  @default(false)
+  is_required    Boolean  @default(true)
   instruction_file_path String? @db.VarChar(500)
   instruction_file_name String? @db.VarChar(255)
   instruction_file_mime_type String? @db.VarChar(120)

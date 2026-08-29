@@ -169,8 +169,25 @@ describe('field training evaluation template payload', () => {
       'utf8'
     );
     assert.match(serviceSrc, /function buildFillFields\(ctx, evaluation\) \{\s*return buildFieldTrainingEvaluationTemplatePayload/s);
-    assert.match(serviceSrc, /const payload = buildFillFields\(ctx/);
+    assert.match(serviceSrc, /const fillFields = buildFillFields\(ctx/);
     assert.match(serviceSrc, /previewApplicationPayload/);
+  });
+
+  it('maps the organization contact as responsible_person_name and does not copy the supervisor', () => {
+    const payload = buildFieldTrainingEvaluationTemplatePayload({
+      student: studentAr,
+      application,
+      opportunity: {
+        ...opportunity,
+        host_organization: { contact_person: 'خالد العبادي', department: '', email: '', phone: '', fax: '' },
+      },
+      instructor: { full_name: 'مشرف الميدان' },
+      attendanceRows,
+    });
+    assert.equal(payload.field_supervisor_name, 'مشرف الميدان');
+    assert.equal(payload.responsible_person_name, 'خالد العبادي');
+    assert.equal(payload.organization_department, 'غير متوفر');
+    assert.equal(payload.organization_email, 'غير متوفر');
   });
 
   it('builds the filename from the mapped student name and university number', () => {
@@ -184,7 +201,7 @@ describe('field training evaluation template payload', () => {
       studentName: payload.student_name,
       universityNumber: payload.student_number,
     });
-    assert.equal(filename, 'راما_بكر_عبد_الجليل_الجلامده_202312345_FieldTrainingEvaluation.pdf');
+    assert.equal(filename, 'راما_بكر_عبد_الجليل_الجلامده_202312345_تقييم_التدريب_الميداني.pdf');
     assert.equal(filename.includes(studentAr.id), false);
   });
 });

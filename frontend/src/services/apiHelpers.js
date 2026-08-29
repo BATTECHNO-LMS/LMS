@@ -79,6 +79,7 @@ const TRAINING_ERROR_AR = {
   PDF_RENDER_UNAVAILABLE: 'تعذر إنشاء ملف PDF على الخادم حالياً.',
   REPORT_READ_ONLY: 'ليس لديك صلاحية إنشاء أو إعادة إنشاء التقارير. يمكنك عرض وتنزيل التقارير المتاحة فقط.',
   REPORT_EXPORT_FAILED: 'تعذر تصدير التقرير. حاول مرة أخرى بعد قليل.',
+  FIELD_TRAINING_STUDENTS_EXPORT_EMPTY: 'لا يوجد طلاب مطابقون للتصدير',
 };
 
 /**

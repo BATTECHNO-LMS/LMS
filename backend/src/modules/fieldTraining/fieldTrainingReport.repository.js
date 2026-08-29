@@ -3,10 +3,12 @@ const repo = require('./fieldTraining.repository');
 const ftEligibility = require('./fieldTraining.eligibility');
 const progressBuilder = require('./fieldTraining.progress');
 const hoursMod = require('./fieldTraining.hours');
+const taskProgress = require('./fieldTraining.taskProgress');
 const metrics = require('./fieldTrainingReport.metrics');
 const labels = require('./fieldTrainingReport.labels');
 const dates = require('./fieldTrainingReport.dates');
 const aggregations = require('./fieldTrainingReport.aggregations');
+const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
 
 function parseDateFilter(filters = {}) {
   const where = {};
@@ -153,6 +155,7 @@ async function loadReportDetailBatches(applicationIds, opportunityIds) {
             score: true,
             max_score: true,
             submitted_at: true,
+            grading_details: true,
             field_training_assessments: { select: { id: true, type: true, title: true, passing_score: true } },
           },
         })
@@ -430,12 +433,21 @@ async function buildUniversityReport(universityId, filters = {}) {
       opportunities.map((opp) => [opp.id, opp.required_training_hours != null ? Number(opp.required_training_hours) : null])
     )
   );
+  const progressByApp = await taskProgress.calculateTaskProgressForApplications(
+    apps.map((app) => ({
+      id: app.id,
+      opportunity_id: app.opportunity_id,
+      student_id: app.student_id,
+      status: app.status,
+    })),
+    { opportunitiesById: new Map(opportunities.map((opp) => [opp.id, opp])) }
+  );
 
   const batches = await loadReportDetailBatches(
     apps.map((app) => app.id),
     opportunityIds
   );
-  const sessionsByOpp = new Map();
+    const sessionsByOpp = new Map();
   for (const session of batches.sessions) {
     if (!sessionsByOpp.has(session.opportunity_id)) sessionsByOpp.set(session.opportunity_id, []);
     sessionsByOpp.get(session.opportunity_id).push(session);
@@ -444,6 +456,11 @@ async function buildUniversityReport(universityId, filters = {}) {
   for (const sub of batches.submissions) {
     if (!submissionsByApp.has(sub.application_id)) submissionsByApp.set(sub.application_id, []);
     submissionsByApp.get(sub.application_id).push(sub);
+  }
+  const postAttemptByApp = new Map();
+  for (const attempt of batches.attempts || []) {
+    if (attempt.field_training_assessments?.type !== 'post') continue;
+    postAttemptByApp.set(attempt.application_id, attempt);
   }
 
   const students = apps.map((app) => {
@@ -456,9 +473,16 @@ async function buildUniversityReport(universityId, filters = {}) {
     const instructor = opp?.assigned_instructor_id ? instructorById[opp.assigned_instructor_id] : null;
     const appSubs = submissionsByApp.get(app.id) || [];
     const pendingGrading = appSubs.some((s) => ['pending', 'submitted', 'under_review'].includes(s.review_status));
-    const taskTotal = (batches.tasks || []).filter((t) => t.opportunity_id === app.opportunity_id).length;
-    const taskDone = appSubs.filter((s) => ['approved', 'graded', 'submitted'].includes(s.review_status)).length;
-    const taskCompletion = taskTotal > 0 ? metrics.rate(taskDone, taskTotal) : null;
+    const progress = progressByApp.get(app.id) || taskProgress.deriveTaskProgress({
+      applicationStatus: app.status,
+      opportunityStatus: opp?.status,
+      totalRequired: 0,
+      submittedRequired: 0,
+    });
+    const taskTotal = progress.total_required ?? 0;
+    const taskDone = progress.submitted_required ?? 0;
+    const taskCompletion =
+      progress.status === 'no_required_tasks' ? null : taskTotal > 0 ? metrics.rate(taskDone, taskTotal) : null;
     const scheduled = scheduledHoursForOpportunity(sessionsByOpp.get(app.opportunity_id) || []);
     const eligibilityReasons = extractEligibilityReasons(app);
     const progressPct =
@@ -504,7 +528,16 @@ async function buildUniversityReport(universityId, filters = {}) {
       hours_progress_percentage: hours.hours_completion_percentage,
       pre_assessment_score: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       post_assessment_score: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
+      post_assessment_attempt_status: standardizedPost.resolveAttemptStatus(
+        postAttemptByApp.get(app.id),
+        app.post_assessment_score
+      ).key,
+      post_assessment_attempt_status_label: standardizedPost.resolveAttemptStatus(
+        postAttemptByApp.get(app.id),
+        app.post_assessment_score
+      ).label_ar,
       task_completion: taskCompletion,
+      task_progress: progress,
       pending_grading: pendingGrading,
       final_task_status: app.final_task_status,
       eligibility_status: app.completion_eligibility_status,
@@ -747,6 +780,7 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
         max_score: true,
         level: true,
         submitted_at: true,
+        grading_details: true,
         field_training_assessments: { select: { id: true, type: true, title: true, passing_score: true } },
       },
     }),
@@ -797,6 +831,11 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     solution_file_name: row.file_name ?? null,
     has_solution_file: Boolean(row.file_path),
   }));
+  const requiredTaskProgress = taskProgress.countProgressFromLoadedRows({
+    application: { ...app, opportunity_status: opp.status },
+    tasks,
+    submissions,
+  });
 
   const eligibilityMatch = eligibility.find(
     (row) =>
@@ -955,7 +994,10 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
       eligibility_used: eligibilityMatch ?? null,
       eligibility_grouped: ftEligibility.groupEligibilityByUniversity(eligibility),
     },
-    application: repo.mapApplicationRow(app),
+    application: {
+      ...repo.mapApplicationRow(app),
+      task_progress: requiredTaskProgress,
+    },
     training_hours: {
       ...hoursProgress,
       scheduled_training_hours: scheduledHours,
@@ -967,8 +1009,14 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
       attendance_percentage: attendancePct,
       completed_hours: hoursProgress.completed_training_hours,
       required_hours: hoursProgress.required_training_hours,
-      task_completion: tasks.length ? metrics.rate(submissions.length, tasks.length) : null,
-      tasks_required: Boolean(tasks.length || opp.requires_final_task),
+      task_completion:
+        requiredTaskProgress.status === 'no_required_tasks'
+          ? null
+          : requiredTaskProgress.total_required
+            ? metrics.rate(requiredTaskProgress.submitted_required, requiredTaskProgress.total_required)
+            : null,
+      task_progress: requiredTaskProgress,
+      tasks_required: requiredTaskProgress.status !== 'no_required_tasks',
       assessment_result: postScore,
       training_status: app.training_status,
       training_status_label: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
@@ -1016,6 +1064,9 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
               : null,
           answers: null,
           assessment: attemptByType.post.field_training_assessments ?? null,
+          attempt_status: standardizedPost.resolveAttemptStatus(attemptByType.post, postScore).key,
+          attempt_status_label: standardizedPost.resolveAttemptStatus(attemptByType.post, postScore)
+            .label_ar,
         }
       : {
           name: 'الاختبار البعدي',
@@ -1029,6 +1080,8 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
           passed: null,
           answers: null,
           assessment: assessments.find((row) => row.type === 'post') ?? null,
+          attempt_status: standardizedPost.resolveAttemptStatus(null, postScore).key,
+          attempt_status_label: standardizedPost.resolveAttemptStatus(null, postScore).label_ar,
         },
     learning_improvement: learning,
     sessions: sessions.map((session) => ({
@@ -1051,7 +1104,7 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
       review_status_label: labels.labelOf(labels.TASK_REVIEW_AR, sub.review_status),
       required: Boolean(sub.is_final_task) || true,
     })),
-    tasks_required: Boolean(tasks.length || opp.requires_final_task),
+    tasks_required: requiredTaskProgress.status !== 'no_required_tasks',
     completion_eligibility: {
       status: app.completion_eligibility_status,
       status_label: labels.labelOf(labels.ELIGIBILITY_AR, app.completion_eligibility_status),
@@ -1248,4 +1301,5 @@ module.exports = {
   getUniversityOpportunityDetail,
   loadUniversity,
   loadApplicationReportContext,
+  matchesExtraFilters,
 };

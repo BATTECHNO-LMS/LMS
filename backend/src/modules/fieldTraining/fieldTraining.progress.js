@@ -143,6 +143,10 @@ function buildParticipantProgress(app, opp, counts = {}) {
       post_assessment_published: Boolean(counts.postAssessmentPublished),
       post_assessment_score: postScore,
       post_assessment_passed: postPassed,
+      post_assessment_attempt_status:
+        counts.postAttemptStatus?.key || (postScore != null ? 'graded' : 'not_started'),
+      post_assessment_attempt_status_label:
+        counts.postAttemptStatus?.label_ar || (postScore != null ? 'تم التصحيح' : 'لم يبدأ'),
       completion_eligibility_status: app.completion_eligibility_status ?? 'pending',
       completion_letter_issued_at: app.completion_letter_issued_at ?? null,
       required_training_hours: hours.required_training_hours,

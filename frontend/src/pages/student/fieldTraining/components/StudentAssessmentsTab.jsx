@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../../../components/common/Button.jsx';
@@ -6,11 +6,36 @@ import { LoadingSpinner } from '../../../../components/common/LoadingSpinner.jsx
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
 import {
   fetchStudentAssessment,
+  saveStudentAssessmentProgress,
   submitStudentAssessment,
   useStudentFieldTrainingAssessments,
 } from '../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
+
+function formatRemaining(totalSeconds) {
+  const safe = Math.max(0, Number(totalSeconds) || 0);
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function attemptStatusVariant(status) {
+  if (status === 'graded' || status === 'submitted') return 'success';
+  if (status === 'in_progress') return 'warning';
+  return 'muted';
+}
+
+function attemptStatusLabel(t, item) {
+  const key = item?.attempt_status || (item?.attempt?.submitted_at ? 'graded' : item?.attempt ? 'in_progress' : 'not_started');
+  const map = {
+    not_started: t('studentTraining.assessment.statusNotStarted'),
+    in_progress: t('studentTraining.assessment.statusInProgress'),
+    submitted: t('studentTraining.assessment.statusSubmitted'),
+    graded: t('studentTraining.assessment.statusGraded'),
+  };
+  return item?.attempt_status_label || map[key] || map.not_started;
+}
 
 function StudentQuestionField({ question, value, onChange, disabled }) {
   const { t } = useTranslation('fieldTraining');
@@ -129,6 +154,10 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
   const [answers, setAnswers] = useState({});
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [remaining, setRemaining] = useState(null);
+  const [savedHint, setSavedHint] = useState(false);
+  const autoSubmitRef = useRef(false);
 
   const { data, isLoading } = useQuery({
     queryKey: [...fieldTrainingKeys.studentAssessments(opportunityId), type, 'take'],
@@ -136,8 +165,12 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
     enabled: Boolean(opportunityId && type),
   });
 
+  const assessment = data?.assessment;
+  const existingAttempt = data?.attempt;
+  const submitted = Boolean(existingAttempt?.submitted_at || result?.submitted_at);
+
   const submitMut = useMutation({
-    mutationFn: () => submitStudentAssessment(opportunityId, type, answers),
+    mutationFn: (payload) => submitStudentAssessment(opportunityId, type, payload),
     onSuccess: (res) => {
       setResult(res.attempt);
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.studentAssessments(opportunityId) });
@@ -147,37 +180,67 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
     onError: (err) => setError(getApiErrorMessage(err)),
   });
 
+  const saveMut = useMutation({
+    mutationFn: (payload) => saveStudentAssessmentProgress(opportunityId, type, payload),
+    onSuccess: () => {
+      setSavedHint(true);
+      window.setTimeout(() => setSavedHint(false), 2000);
+    },
+  });
+
+  useEffect(() => {
+    if (!data || hydrated) return;
+    if (existingAttempt?.answers && typeof existingAttempt.answers === 'object') {
+      setAnswers(existingAttempt.answers);
+    }
+    if (existingAttempt?.remaining_seconds != null) {
+      setRemaining(existingAttempt.remaining_seconds);
+    } else if (assessment?.settings?.duration_minutes) {
+      setRemaining(Number(assessment.settings.duration_minutes) * 60);
+    }
+    setHydrated(true);
+  }, [data, existingAttempt, assessment, hydrated]);
+
+  useEffect(() => {
+    if (submitted || remaining == null) return undefined;
+    const id = window.setInterval(() => {
+      setRemaining((prev) => {
+        if (prev == null) return prev;
+        return Math.max(0, prev - 1);
+      });
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [submitted, remaining == null]);
+
+  useEffect(() => {
+    if (submitted || remaining !== 0 || autoSubmitRef.current || !assessment?.questions?.length) return;
+    autoSubmitRef.current = true;
+    submitMut.mutate(answers);
+  }, [remaining, submitted, answers, assessment, submitMut]);
+
+  useEffect(() => {
+    if (!hydrated || submitted) return undefined;
+    const id = window.setTimeout(() => {
+      saveMut.mutate(answers);
+    }, 8000);
+    return () => window.clearTimeout(id);
+  }, [answers, hydrated, submitted]);
+
   if (isLoading) return <LoadingSpinner />;
 
-  const assessment = data?.assessment;
-  const existingAttempt = data?.attempt;
-
-  if (existingAttempt && !result) {
+  if ((existingAttempt?.submitted_at && !result) || result) {
+    const shown = result || existingAttempt;
     return (
-      <div className="ft-assessment-result" role="status">
-        <h3>{t('studentTraining.assessment.completed')}</h3>
-        <p>
-          {t('studentTraining.assessment.score')}: {existingAttempt.score}%
-        </p>
-        {existingAttempt.level ? <p>{t(`knowledgeLevel.${existingAttempt.level}`)}</p> : null}
-        <Button type="button" variant="outline" onClick={onDone}>
-          {t('cancel')}
-        </Button>
-      </div>
-    );
-  }
-
-  if (result) {
-    return (
-      <div className="ft-assessment-result" role="status">
+      <div className="ft-assessment-result" role="status" dir="rtl">
         <h3>{t('studentTraining.assessment.success')}</h3>
         <p>
-          {t('studentTraining.assessment.score')}: {result.score}%
+          {t('studentTraining.assessment.score')}: {shown.score}%
         </p>
-        {result.has_pending_manual ? (
+        <p>{shown.attempt_status_label || t('studentTraining.assessment.statusGraded')}</p>
+        {shown.has_pending_manual ? (
           <p className="ft-qb-hint">{t('studentTraining.assessment.pendingManual')}</p>
         ) : null}
-        {result.level ? <p>{t(`knowledgeLevel.${result.level}`)}</p> : null}
+        {shown.level ? <p>{t(`knowledgeLevel.${shown.level}`)}</p> : null}
         <Button type="button" variant="primary" onClick={onDone}>
           {t('studentTraining.assessment.done')}
         </Button>
@@ -192,6 +255,7 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
   return (
     <form
       className="ft-assessment-take"
+      dir="rtl"
       onSubmit={(e) => {
         e.preventDefault();
         setError('');
@@ -207,11 +271,23 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
             return;
           }
         }
-        submitMut.mutate();
+        submitMut.mutate(answers);
       }}
     >
       <h3>{assessment.title}</h3>
       {assessment.description ? <p>{assessment.description}</p> : null}
+      {assessment.student_instructions ? (
+        <p className="ft-qb-hint">
+          <strong>{t('studentTraining.assessment.instructions')}: </strong>
+          {assessment.student_instructions}
+        </p>
+      ) : null}
+      {remaining != null ? (
+        <p className="ft-qb-hint" role="timer">
+          {t('studentTraining.assessment.timeRemaining')}: {formatRemaining(remaining)}
+        </p>
+      ) : null}
+      {savedHint ? <p className="ft-qb-hint">{t('studentTraining.assessment.autoSaved')}</p> : null}
       {assessment.questions.map((q, idx) => (
         <div key={q.id || idx} className="ft-question-card">
           <p className="ft-question-card__text">
@@ -283,22 +359,23 @@ export function StudentAssessmentsTab({ opportunityId, enabled, opp }) {
       <article className="ft-assessment-card">
         <header className="ft-assessment-card__head">
           <h3>{item.title || t(titleKey)}</h3>
-          {item.attempt ? (
-            <StatusBadge variant="success">{t('studentTraining.assessment.completed')}</StatusBadge>
-          ) : item.can_take ? (
-            <StatusBadge variant="warning">{t('studentTraining.assessment.available')}</StatusBadge>
-          ) : (
-            <StatusBadge variant="muted">{t('studentTraining.assessment.locked')}</StatusBadge>
-          )}
+          <StatusBadge variant={attemptStatusVariant(item.attempt_status)}>
+            {attemptStatusLabel(t, item)}
+          </StatusBadge>
         </header>
         <p>{t(descKey)}</p>
-        {item.attempt ? (
+        {item.attempt?.submitted_at ? (
           <p>
             {t('studentTraining.assessment.score')}: {item.attempt.score}%
             {item.attempt.level ? ` · ${t(`knowledgeLevel.${item.attempt.level}`)}` : ''}
           </p>
         ) : null}
-        {item.can_take && !item.attempt ? (
+        {item.can_take && item.attempt_status === 'in_progress' ? (
+          <Button type="button" variant="primary" onClick={() => setActiveType(type)}>
+            {t('studentTraining.assessment.continue')}
+          </Button>
+        ) : null}
+        {item.can_take && item.attempt_status !== 'in_progress' ? (
           <Button type="button" variant="primary" onClick={() => setActiveType(type)}>
             {t(`studentTraining.assessment.start${type === 'pre' ? 'Pre' : 'Post'}`)}
           </Button>

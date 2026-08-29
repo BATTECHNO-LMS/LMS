@@ -381,6 +381,14 @@ router.get(
 );
 
 router.get(
+  '/:id/applications/export/excel',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema, query: listApplicationsQuerySchema }),
+  adminFieldTrainingController.exportApplicationsExcel
+);
+
+router.get(
   '/:id/applications',
   authenticate,
   instructorOnly,

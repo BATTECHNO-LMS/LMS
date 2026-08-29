@@ -63,6 +63,13 @@ const emptyForm = {
   specialty_id: '',
   assigned_instructor_id: '',
   location: '',
+  organization_name: '',
+  host_department: '',
+  host_email: '',
+  host_phone: '',
+  host_fax: '',
+  host_address: '',
+  host_contact_person: '',
   training_mode: 'onsite',
   short_description: '',
   description: '',
@@ -199,6 +206,13 @@ export function AdminFieldTrainingPage() {
       title: r.title ?? '',
       specialty_id: r.specialty_id ?? r.specialty?.id ?? '',
       location: r.location ?? '',
+      organization_name: r.organization_name ?? '',
+      host_department: r.host_organization?.department ?? '',
+      host_email: r.host_organization?.email ?? '',
+      host_phone: r.host_organization?.phone ?? '',
+      host_fax: r.host_organization?.fax ?? '',
+      host_address: r.host_organization?.address ?? '',
+      host_contact_person: r.host_organization?.contact_person ?? '',
       training_mode: r.training_mode ?? 'onsite',
       short_description: r.short_description ?? '',
       description: r.description ?? '',
@@ -271,6 +285,15 @@ export function AdminFieldTrainingPage() {
       title: form.title.trim(),
       specialty_id: form.specialty_id,
       location: form.location.trim(),
+      organization_name: form.organization_name.trim() || null,
+      host_organization: {
+        department: form.host_department.trim() || null,
+        email: form.host_email.trim() || null,
+        phone: form.host_phone.trim() || null,
+        fax: form.host_fax.trim() || null,
+        address: form.host_address.trim() || null,
+        contact_person: form.host_contact_person.trim() || null,
+      },
       training_mode: form.training_mode,
       short_description: form.short_description.trim() || null,
       description: form.description.trim() || null,
@@ -887,6 +910,48 @@ export function AdminFieldTrainingPage() {
                       label={t('form.location')}
                       value={form.location}
                       onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-org-name"
+                      label={t('form.organizationName')}
+                      value={form.organization_name}
+                      onChange={(e) => setForm((f) => ({ ...f, organization_name: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-contact"
+                      label={t('form.hostContactPerson')}
+                      value={form.host_contact_person}
+                      onChange={(e) => setForm((f) => ({ ...f, host_contact_person: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-dept"
+                      label={t('form.hostDepartment')}
+                      value={form.host_department}
+                      onChange={(e) => setForm((f) => ({ ...f, host_department: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-email"
+                      label={t('form.hostEmail')}
+                      value={form.host_email}
+                      onChange={(e) => setForm((f) => ({ ...f, host_email: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-phone"
+                      label={t('form.hostPhone')}
+                      value={form.host_phone}
+                      onChange={(e) => setForm((f) => ({ ...f, host_phone: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-fax"
+                      label={t('form.hostFax')}
+                      value={form.host_fax}
+                      onChange={(e) => setForm((f) => ({ ...f, host_fax: e.target.value }))}
+                    />
+                    <FormInput
+                      id="ft-host-address"
+                      label={t('form.hostAddress')}
+                      value={form.host_address}
+                      onChange={(e) => setForm((f) => ({ ...f, host_address: e.target.value }))}
                     />
                     <div className="form-field">
                       <label className="form-field__label" htmlFor="ft-mode-f">

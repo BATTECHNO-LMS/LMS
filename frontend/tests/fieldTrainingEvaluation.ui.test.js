@@ -12,11 +12,26 @@ import {
   selectTemplateValidation,
   templateValidationGroups,
 } from '../src/features/fieldTrainingEvaluation/selectTemplateValidation.js';
+import { translateEvaluationFieldLabel } from '../src/features/fieldTrainingEvaluation/evaluationFieldLabels.js';
 
 const tabSource = readFileSync(
   path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     '../src/pages/admin/fieldTraining/components/manage/ManageEvaluationTemplateTab.jsx'
+  ),
+  'utf8'
+);
+const dropzoneSource = readFileSync(
+  path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../src/features/fieldTrainingEvaluation/components/DocxTemplateDropzone.jsx'
+  ),
+  'utf8'
+);
+const templatesPageSource = readFileSync(
+  path.join(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../src/pages/admin/fieldTraining/AdminFieldTrainingEvaluationTemplatesPage.jsx'
   ),
   'utf8'
 );
@@ -26,6 +41,19 @@ describe('field training evaluation UI', () => {
     assert.equal(FINAL_STATUS_LABELS.PASSED.ar, 'ناجح');
     assert.equal(FINAL_STATUS_LABELS.FAILED.ar, 'راسب');
     assert.equal(FINAL_STATUS_LABELS.NOT_ELIGIBLE.ar, 'غير مؤهل');
+  });
+
+  it('shows task progress in the official evaluation reports student table', () => {
+    const reportsPage = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/pages/shared/fieldTrainingReports/FieldTrainingEvaluationReportsPage.jsx'),
+      'utf8'
+    );
+    const ar = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/i18n/locales/ar/fieldTrainingEvaluation.json'),
+      'utf8'
+    );
+    assert.match(reportsPage, /TaskProgressBadge progress=\{row\.task_progress\}/);
+    assert.match(ar, /"taskProgress": "تقدم المهمات"/);
   });
 
   it('exposes evaluation report routes for admin, academic, and reviewer', () => {
@@ -38,6 +66,12 @@ describe('field training evaluation UI', () => {
       '/reviewer/field-training/reports/evaluations'
     );
     assert.match(getReportPaths('', 'academic').evaluations, /evaluations/);
+  });
+
+  it('shows which university default template is currently active', () => {
+    assert.match(templatesPageSource, /currentDefault/);
+    assert.match(templatesPageSource, /activeDefault/);
+    assert.match(templatesPageSource, /ft-eval-active-default/);
   });
 });
 
@@ -94,5 +128,31 @@ describe('evaluation template tab validation source', () => {
     const selected = selectTemplateValidation({ lastValidation: null, resolvedTemplate });
     assert.equal(selected, resolvedTemplate.validation);
     assert.equal(templateValidationGroups(selected)[0].found, true);
+  });
+
+  it('hides the native file chooser and keeps generate-missing in the incomplete section', () => {
+    assert.match(dropzoneSource, /className="file-dropzone__input"/);
+    assert.match(dropzoneSource, /accept="\.docx/);
+    assert.doesNotMatch(tabSource, /<input[^>]*type="file"/);
+    const incompleteAt = tabSource.indexOf("t('manage.incompleteCard')");
+    const generateAt = tabSource.indexOf("t('page.generateMissing')");
+    const uploadAt = tabSource.indexOf("t('manage.uploadPrimary')");
+    assert.ok(incompleteAt > 0, 'incomplete reports card is required');
+    assert.ok(generateAt > incompleteAt, 'generate missing must live in the incomplete card');
+    assert.ok(uploadAt > 0 && uploadAt < incompleteAt, 'upload remains with template actions');
+    assert.match(tabSource, /canManage = apiScope === 'admin' \|\| apiScope === 'instructor'/);
+  });
+});
+
+describe('evaluation field labels', () => {
+  it('translates missing report fields to Arabic instead of raw keys', () => {
+    assert.equal(translateEvaluationFieldLabel('Student Name', 'ar'), 'اسم الطالب');
+    assert.equal(translateEvaluationFieldLabel('Student Number', 'ar'), 'الرقم الجامعي');
+    assert.equal(translateEvaluationFieldLabel('Training Dates', 'ar'), 'فترة التدريب');
+    assert.equal(translateEvaluationFieldLabel('Evaluation Grid', 'ar'), 'بنود التقييم');
+    assert.equal(translateEvaluationFieldLabel('Professional Total', 'ar'), 'مجموع التقييم المهني');
+    assert.equal(translateEvaluationFieldLabel('General Comments', 'ar'), 'الملاحظات العامة');
+    assert.equal(translateEvaluationFieldLabel('organization_name', 'ar'), 'اسم جهة التدريب');
+    assert.equal(translateEvaluationFieldLabel('responsible_person_name', 'ar'), 'اسم المسؤول في جهة التدريب');
   });
 });

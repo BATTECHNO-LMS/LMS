@@ -1,6 +1,9 @@
 'use strict';
 
+const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
+
 const INVALID_FS = /[<>:"/\\|?*\u0000-\u001f]/g;
+const FILENAME_SUFFIX = 'تقييم_التدريب_الميداني';
 
 function sanitizeNamePart(value) {
   const text = String(value || '')
@@ -12,28 +15,18 @@ function sanitizeNamePart(value) {
 }
 
 function resolveUniversityNumber(student = {}) {
-  const number =
-    student.universityStudentNumber ||
-    student.university_student_number ||
-    student.studentNumber ||
-    student.student_number ||
-    null;
-  const cleaned = sanitizeNamePart(number);
-  if (!cleaned) return 'NA';
-  const lower = String(number || '').toLowerCase();
-  if (
-    lower === String(student.id || '').toLowerCase() ||
-    lower === String(student.userId || '').toLowerCase()
-  ) {
-    return 'NA';
-  }
-  return cleaned;
+  return resolveOfficialUniversityNumber(student).number;
 }
 
 function buildEvaluationPdfFilename({ studentName, universityNumber, student } = {}) {
-  const name = sanitizeNamePart(studentName || student?.fullName || student?.full_name) || 'Student';
-  const number = universityNumber != null ? sanitizeNamePart(universityNumber) || 'NA' : resolveUniversityNumber(student);
-  return `${name}_${number}_FieldTrainingEvaluation.pdf`;
+  const name = sanitizeNamePart(studentName || student?.fullName || student?.full_name);
+  const number =
+    universityNumber != null && String(universityNumber).trim()
+      ? sanitizeNamePart(universityNumber)
+      : sanitizeNamePart(resolveUniversityNumber(student));
+  if (!name || !number) return '';
+  if (number.toUpperCase() === 'NA' || number.toLowerCase() === 'undefined') return '';
+  return `${name}_${number}_${FILENAME_SUFFIX}.pdf`;
 }
 
 function zipFolderForStatus(status) {
@@ -69,6 +62,7 @@ function uniqueZipEntry(used, folder, filename, mixed) {
 }
 
 module.exports = {
+  FILENAME_SUFFIX,
   sanitizeNamePart,
   resolveUniversityNumber,
   buildEvaluationPdfFilename,

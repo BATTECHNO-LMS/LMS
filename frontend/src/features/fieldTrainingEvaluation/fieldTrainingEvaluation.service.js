@@ -52,11 +52,11 @@ export async function fetchEvaluationTemplates(params = {}, scope = 'admin') {
   return unwrapApiData(res);
 }
 
-export async function uploadEvaluationTemplate(formData, scope = 'admin', opportunityId) {
+export async function uploadEvaluationTemplate(formData, scope = 'admin', opportunityId, options = {}) {
   const path = opportunityId
     ? `${apiBase(scope)}/${opportunityId}/evaluation-template`
     : `${apiBase(scope)}/evaluation-templates`;
-  const res = await apiClient.post(path, formData, { timeout: 120000 });
+  const res = await apiClient.post(path, formData, { timeout: 120000, ...options });
   return unwrapApiData(res);
 }
 

@@ -46,6 +46,30 @@ async function fillDocxTemplate(buffer, values) {
   return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
 }
 
+async function inspectFilledDocx(buffer) {
+  const { leftoverPlaceholders, countScoreGridCheckmarks, cellPlainText } = require('./fieldTrainingEvaluation.formFill');
+  const { zip, parts } = await readDocxXmlParts(buffer);
+  const leftovers = [];
+  let checkmarks = 0;
+  let documentXml = '';
+  for (const part of parts) {
+    leftovers.push(...leftoverPlaceholders(part.xml));
+    if (part.path === 'word/document.xml') {
+      documentXml = part.xml;
+      checkmarks = countScoreGridCheckmarks(part.xml);
+    }
+  }
+  const media = Object.keys(zip.files).filter((name) => name.startsWith('word/media/'));
+  return {
+    unresolvedPlaceholders: [...new Set(leftovers)],
+    checkmarks,
+    media,
+    hasOfficialStamp: /الختم الرسمي/.test(cellPlainText(documentXml)),
+    hasSignatures: /التوقيع/.test(cellPlainText(documentXml)),
+    text: cellPlainText(documentXml),
+  };
+}
+
 async function detectUniversityLabelFormFromBuffer(buffer) {
   const { detectUniversityLabelForm } = require('./fieldTrainingEvaluation.formFill');
   const { parts } = await readDocxXmlParts(buffer);
@@ -82,6 +106,7 @@ module.exports = {
   readDocxXmlParts,
   extractDocxPlaceholders,
   fillDocxTemplate,
+  inspectFilledDocx,
   detectUniversityLabelFormFromBuffer,
   assertDocxUpload,
 };

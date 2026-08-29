@@ -28,6 +28,7 @@ import {
   getOpportunitySpecialtyLabel,
   getOpportunityUniversityLabel,
   trainingStatusVariant,
+  TaskProgressBadge,
 } from '../../features/fieldTraining/index.js';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
@@ -146,6 +147,7 @@ function ApplicationStatusCard({
   cancelPending,
   application,
   trainingStatus,
+  taskProgress,
 }) {
   const summary = t(`student.statusSummary.${statusKey}`, { returnObjects: true });
 
@@ -174,6 +176,7 @@ function ApplicationStatusCard({
           {t(`trainingStatus.${trainingStatus}`, trainingStatus)}
         </StatusBadge>
       ) : null}
+      <TaskProgressBadge progress={taskProgress || application?.task_progress} />
       <div className="ft-app-status-card__actions">
         {canApply ? (
           <Button type="button" variant="primary" className="ft-app-status-card__btn" onClick={onApply}>
@@ -495,6 +498,13 @@ export function StudentFieldTrainingDetailPage() {
                       {t(`trainingStatus.${trainingStatus}`, trainingStatus)}
                     </StatusBadge>
                   ) : null}
+                  <TaskProgressBadge
+                    progress={
+                      application?.task_progress ||
+                      opp?.my_task_progress ||
+                      progressData?.progress?.task_progress
+                    }
+                  />
                 </div>
                 <h1 id="ft-opp-title" className="ft-student-hero__title">
                   {opp.title}
@@ -678,6 +688,11 @@ export function StudentFieldTrainingDetailPage() {
                   showTrainingCta={false}
                   application={application}
                   trainingStatus={trainingStatus}
+                  taskProgress={
+                    application?.task_progress ||
+                    opp?.my_task_progress ||
+                    progress?.task_progress
+                  }
                   onApply={() => setModalOpen(true)}
                   onCancel={handleCancel}
                   cancelPending={cancelMut.isPending}

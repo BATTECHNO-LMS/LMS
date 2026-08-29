@@ -20,7 +20,17 @@ function normalizeType(type) {
 async function createNotificationForUser(payload) {
   if (!payload?.userId) return null;
 
-  if (payload.dedupeWindowHours && payload.dedupeWindowHours > 0) {
+  if (payload.dedupeByActionUrl && payload.actionUrl) {
+    const existing = await prisma.notifications.findFirst({
+      where: {
+        user_id: payload.userId,
+        title: payload.title,
+        action_url: payload.actionUrl,
+      },
+      select: { id: true },
+    });
+    if (existing) return null;
+  } else if (payload.dedupeWindowHours && payload.dedupeWindowHours > 0) {
     const since = new Date(Date.now() - payload.dedupeWindowHours * 3600 * 1000);
     const existing = await prisma.notifications.findFirst({
       where: {

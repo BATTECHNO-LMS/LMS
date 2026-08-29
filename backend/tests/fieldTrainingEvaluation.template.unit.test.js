@@ -142,10 +142,11 @@ describe('field training evaluation filenames and ZIP', () => {
       studentName: 'Ahmad AlKhaldi',
       universityNumber: '202312345',
     });
-    assert.equal(filename, 'Ahmad_AlKhaldi_202312345_FieldTrainingEvaluation.pdf');
+    assert.equal(filename, 'Ahmad_AlKhaldi_202312345_تقييم_التدريب_الميداني.pdf');
     assert.equal(resolveUniversityNumber({ id: 'uuid-1', university_student_number: '202312345' }), '202312345');
-    assert.equal(resolveUniversityNumber({ id: 'uuid-1', university_student_number: 'uuid-1' }), 'NA');
-    assert.equal(resolveUniversityNumber({ id: 'uuid-1' }), 'NA');
+    assert.equal(resolveUniversityNumber({ id: 'uuid-1', university_student_number: 'uuid-1' }), '');
+    assert.equal(resolveUniversityNumber({ id: 'uuid-1' }), '');
+    assert.equal(filename.includes('NA'), false);
   });
 
   it('sanitizes filesystem characters only', () => {

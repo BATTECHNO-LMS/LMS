@@ -28,6 +28,7 @@ const emptyForm = {
   description: '',
   dueDate: '',
   isFinalTask: false,
+  isRequired: true,
   gradingMode: 'AI',
   aiPrompt: '',
   instructionFileId: null,
@@ -83,6 +84,7 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
       description: task.description || '',
       dueDate: task.due_date ? String(task.due_date).slice(0, 10) : '',
       isFinalTask: Boolean(task.is_final_task),
+      isRequired: task.is_required !== false,
       gradingMode: resolveTaskGradingMode(task),
       aiPrompt: task.ai_self_evaluation_prompt || '',
       instructionFileId: null,
@@ -99,6 +101,7 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
         description: form.description.trim() || null,
         due_date: form.dueDate || null,
         is_final_task: form.isFinalTask,
+        is_required: form.isRequired,
         grading_mode: form.gradingMode,
         requires_ai_self_evaluation: form.gradingMode === GRADING_MODES.AI,
         ai_self_evaluation_prompt:
@@ -214,6 +217,14 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
             />
             {t('tasks.finalTask')}
           </label>
+          <label className="ft-manage-check">
+            <input
+              type="checkbox"
+              checked={form.isRequired}
+              onChange={(e) => setForm((f) => ({ ...f, isRequired: e.target.checked }))}
+            />
+            {t('tasks.requiredTask')}
+          </label>
           <div className="form-field">
             <label className="form-field__label" htmlFor="ft-grading-mode">
               {t('tasks.gradingMode')}
@@ -299,6 +310,9 @@ export function ManageTasksTab({ opportunityId, apiScope = 'admin', onOpenSubmis
                     {task.is_final_task ? (
                       <StatusBadge variant="warning">{t('tasks.finalTaskBadge')}</StatusBadge>
                     ) : null}
+                    <StatusBadge variant={task.is_required === false ? 'muted' : 'warning'}>
+                      {task.is_required === false ? t('tasks.optionalBadge') : t('tasks.requiredBadge')}
+                    </StatusBadge>
                     <StatusBadge variant="info">
                       {t(gradingModeLabelKey(resolveTaskGradingMode(task)))}
                     </StatusBadge>

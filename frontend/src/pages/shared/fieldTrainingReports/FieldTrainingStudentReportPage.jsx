@@ -144,6 +144,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
               [t('attendance.percentage'), data.executive_summary?.attendance_percentage != null ? `${data.executive_summary.attendance_percentage}%` : t('common.unavailable')],
               [t('hours.completed'), data.executive_summary?.completed_hours ?? t('common.unavailable')],
               [t('hours.required'), data.executive_summary?.required_hours ?? t('common.unavailable')],
+              [t('table.taskProgress'), data.executive_summary?.task_progress?.display ?? t('common.unavailable')],
               [t('student.trainingStatus'), data.executive_summary?.training_status_label ?? data.application?.training_status],
               [t('letter.issued'), data.executive_summary?.certificate_status_label],
             ].map(([label, value]) => (
@@ -189,6 +190,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
                 [t('application.submittedAt'), formatFtDate(data.application?.created_at)],
                 [t('application.status'), data.application?.status],
                 [t('application.trainingStatus'), data.application?.training_status],
+                [t('table.taskProgress'), data.application?.task_progress?.display ?? data.executive_summary?.task_progress?.display],
                 [t('application.adminNote'), data.application?.admin_note],
                 [t('application.expulsionReason'), data.application?.expulsion_reason],
               ]}

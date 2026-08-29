@@ -8,6 +8,7 @@ import { Button } from '../../../../../components/common/Button.jsx';
 import {
   recalculateApplicationEligibility,
   useOpportunityEligibility,
+  TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
@@ -133,6 +134,7 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
                       ? t('trainingStatus.expelled')
                       : t(`eligibility.${status}`, status)}
                   </StatusBadge>
+                  <TaskProgressBadge progress={row.task_progress} />
                 </div>
                 <dl className="ft-eligibility-card__grid">
                   <div>

@@ -8,6 +8,7 @@ const enrollmentsRepository = require('../enrollments/enrollments.repository');
 const { dateOnlyISO } = require('../../utils/dateOnly');
 const { STEP_ORDER, resolveStepIndex } = require('../fieldTraining/fieldTraining.progress');
 const ftRepo = require('../fieldTraining/fieldTraining.repository');
+const taskProgress = require('../fieldTraining/fieldTraining.taskProgress');
 
 function timeToHHMMSS(d) {
   if (!d) return null;
@@ -164,7 +165,7 @@ async function buildFieldTrainings(studentId) {
     ),
   ];
 
-  const [sessions, instructors] = await Promise.all([
+  const [sessions, instructors, progressByApp] = await Promise.all([
     prisma.field_training_sessions.findMany({
       where: { opportunity_id: { in: oppIds } },
       orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
@@ -175,6 +176,22 @@ async function buildFieldTrainings(studentId) {
           select: { id: true, full_name: true },
         })
       : Promise.resolve([]),
+    taskProgress.calculateTaskProgressForApplications(
+      apps.map((a) => ({
+        id: a.id,
+        opportunity_id: a.opportunity_id,
+        student_id: a.student_id,
+        status: a.status,
+        opportunity_status: a.field_training_opportunities?.status,
+      })),
+      {
+        opportunitiesById: new Map(
+          apps
+            .filter((a) => a.field_training_opportunities)
+            .map((a) => [a.opportunity_id, a.field_training_opportunities])
+        ),
+      }
+    ),
   ]);
 
   const instructorMap = new Map(instructors.map((u) => [u.id, u]));
@@ -256,6 +273,7 @@ async function buildFieldTrainings(studentId) {
       hours_source: storedCompleted != null ? 'recorded' : 'session_estimate',
       application_status: app.status,
       training_status: app.training_status,
+      task_progress: progressByApp.get(app.id) || null,
       attendance_percentage:
         app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
       progress_percent: progressPercent(app.training_status, app.status),

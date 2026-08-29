@@ -37,17 +37,35 @@ function detectUniversityLabelForm(xml) {
   return text.includes('اسم الطالب') && (text.includes('مجال التقييم') || text.includes('الكفاءه في') || text.includes('الكفاءة في'));
 }
 
+function cellHasDrawing(xml) {
+  return /<w:drawing|<w:pict|<v:imagedata|<w:object/.test(String(xml || ''));
+}
+
 function setParagraphText(pXml, text) {
   const open = pXml.match(/^<w:p\b[^>]*>/);
   if (!open) return pXml;
   const pPr = (pXml.match(/<w:pPr>[\s\S]*?<\/w:pPr>/) || [''])[0];
   const rPr = (pPr.match(/<w:rPr>[\s\S]*?<\/w:rPr>/) || ['<w:rPr><w:rtl/></w:rPr>'])[0];
-  return `${open[0]}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r></w:p>`;
+  const drawings = [...pXml.matchAll(/<w:drawing[\s\S]*?<\/w:drawing>|<w:pict[\s\S]*?<\/w:pict>|<w:r\b[^>]*>[\s\S]*?<v:imagedata[\s\S]*?<\/w:r>/g)]
+    .map((m) => m[0])
+    .join('');
+  return `${open[0]}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>${drawings}</w:p>`;
 }
 
 function replaceFirstParagraph(cellXml, text) {
   if (!String(cellXml).includes('<w:p')) return cellXml;
   return cellXml.replace(/<w:p\b[\s\S]*?<\/w:p>/, (p) => setParagraphText(p, text));
+}
+
+function replaceTextRunsContaining(cellXml, matcher, nextText) {
+  let replaced = false;
+  const out = String(cellXml).replace(/<w:t\b[^>]*>[\s\S]*?<\/w:t>/g, (run) => {
+    const inner = run.replace(/<[^>]+>/g, '');
+    if (!matcher(inner)) return run;
+    replaced = true;
+    return run.replace(/>[\s\S]*</, `>${escapeXml(nextText)}<`);
+  });
+  return replaced ? out : cellXml;
 }
 
 function blank(value) {
@@ -78,13 +96,16 @@ function fillScoreGridTable(tableXml, values) {
     const rowXml = rows[i]?.[0];
     if (!rowXml) continue;
     const score = criterionScore(values, i);
-    if (!score) continue;
     const cells = [...rowXml.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
     if (cells.length < 5) continue;
-    const target = cells[score - 1];
-    if (!target) continue;
-    const filledCell = replaceFirstParagraph(target[0], CHECKMARK);
-    const filledRow = rowXml.replace(target[0], filledCell);
+    let filledRow = rowXml;
+    for (let col = 0; col < 5; col += 1) {
+      const target = cells[col];
+      if (!target) continue;
+      const cellText = score != null && col === score - 1 ? CHECKMARK : '';
+      const filledCell = replaceFirstParagraph(target[0], cellText);
+      filledRow = filledRow.replace(target[0], filledCell);
+    }
     out = out.replace(rowXml, filledRow);
   }
 
@@ -102,13 +123,30 @@ function fillScoreGridTable(tableXml, values) {
   return out;
 }
 
+function countScoreGridCheckmarks(xml) {
+  const tables = [...String(xml || '').matchAll(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g)].map((m) => m[0]);
+  let count = 0;
+  for (const table of tables) {
+    const rows = [...table.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+    if (rows.length < 11) continue;
+    const header = [...rows[0][0].matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((c) => cellPlainText(c[0])).join(' ');
+    if (!/مجال التقييم/.test(header) || !/(ممتاز|جيد)/.test(header)) continue;
+    for (let i = 1; i <= 10; i += 1) {
+      const cells = [...(rows[i]?.[0] || '').matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
+      const marks = cells.slice(0, 5).filter((c) => cellPlainText(c[0]).includes(CHECKMARK)).length;
+      count += marks;
+    }
+  }
+  return count;
+}
+
 function matchLabelKey(text) {
   const t = normalizeAr(text);
   if (!t) return null;
   if (/اسم الطالب/.test(t)) return { key: 'student_name', label: 'اسم الطالب:' };
   if (/^الرقم\s*:/.test(t) && !/مجال/.test(t)) return { key: 'student_number', label: 'الرقم:' };
-  if (/^التخصص/.test(t)) return { key: 'student_specialty', label: 'التخصص:' };
-  if (/^الفصل الدراسي/.test(t)) return { key: 'semester', label: 'الفصل الدراسي:' };
+  if (/التخصص/.test(t)) return { key: 'student_specialty', label: 'التخصص:' };
+  if (/الفصل الدراسي/.test(t)) return { key: 'semester', label: 'الفصل الدراسي:' };
   if (/السنه الدراسيه|السنة الدراسية/.test(t)) return { key: 'academic_year', label: 'السنة الدراسية:' };
   if (/فتره التدر|فترة التدر/.test(t)) return { key: 'period', label: null };
   if (/عدد الايام التي تدربها|عدد الأيام التي تدربها/.test(t) && !/تغيب/.test(t)) {
@@ -121,12 +159,12 @@ function matchLabelKey(text) {
   if (/اسم الشركه|اسم الشركة/.test(t)) return { key: 'organization_name', label: 'اسم الشركة أو المؤسسة:' };
   if (/الفرع او القسم|الفرع أو القسم/.test(t)) return { key: 'organization_department', label: 'الفرع أو القسم:' };
   if (/البريد/.test(t)) return { key: 'organization_email', label: 'البريد الإلكتروني:' };
-  if (/^الهاتف/.test(t)) return { key: 'organization_phone', label: 'الهاتف:' };
-  if (/^الفاكس/.test(t)) return { key: 'organization_fax', label: 'الفاكس:' };
-  if (/^العنوان/.test(t)) return { key: 'organization_address', label: 'العنوان:' };
+  if (/الهاتف/.test(t)) return { key: 'organization_phone', label: 'الهاتف:' };
+  if (/الفاكس/.test(t)) return { key: 'organization_fax', label: 'الفاكس:' };
+  if (/العنوان/.test(t)) return { key: 'organization_address', label: 'العنوان:' };
   if (/اسم المشرف/.test(t)) return { key: 'field_supervisor_name', label: 'اسم المشرف الميداني:' };
   if (/اسم المسؤول/.test(t)) return { key: 'responsible_person_name', label: 'اسم المسؤول:' };
-  if (/^التاريخ/.test(t)) return { key: 'evaluation_date', label: 'التاريخ:' };
+  if (/التاريخ/.test(t) && !/السنه|السنة/.test(t)) return { key: 'evaluation_date', label: 'التاريخ:' };
   return null;
 }
 
@@ -139,11 +177,35 @@ function fillLabeledCell(cellXml, values) {
     const end = blank(values.training_end_date);
     if (!start && !end) return cellXml;
     const filled = `فترة التدريب: ${start} إلى: ${end}`.trim();
+    if (cellHasDrawing(cellXml)) {
+      return replaceTextRunsContaining(cellXml, (inner) => /فترة|الى|إلى/.test(inner), filled);
+    }
     return replaceFirstParagraph(cellXml, filled);
+  }
+  if (match.key === 'evaluation_date') {
+    const value = blank(values.evaluation_date);
+    if (value === '') return cellXml;
+    if (cellHasDrawing(cellXml) || /توقيع/.test(text)) {
+      return replaceTextRunsContaining(
+        cellXml,
+        (inner) => /التاريخ/.test(inner),
+        `التاريخ: ${value}`
+      );
+    }
+    return replaceFirstParagraph(cellXml, `التاريخ: ${value}`);
   }
   const value = blank(values[match.key]);
   if (value === '') return cellXml;
-  return replaceFirstParagraph(cellXml, `${match.label} ${value}`);
+  const filled = `${match.label} ${value}`;
+  if (cellHasDrawing(cellXml)) {
+    const next = replaceTextRunsContaining(
+      cellXml,
+      (inner) => normalizeAr(inner).includes(normalizeAr(match.label.replace(':', ''))),
+      filled
+    );
+    if (next !== cellXml) return next;
+  }
+  return replaceFirstParagraph(cellXml, filled);
 }
 
 function fillCommentsTable(tableXml, comments) {
@@ -182,10 +244,19 @@ function fillUniversityLabelForm(xml, values = {}) {
   return out;
 }
 
+function leftoverPlaceholders(xml) {
+  const source = String(xml || '');
+  const mustache = source.match(/\{\{\s*[a-zA-Z0-9_]+\s*\}\}/g) || [];
+  const merge = /MERGEFIELD/i.test(source) ? ['MERGEFIELD'] : [];
+  return [...new Set([...mustache, ...merge])];
+}
+
 module.exports = {
   detectUniversityLabelForm,
   fillUniversityLabelForm,
   cellPlainText,
   normalizeAr,
   matchLabelKey,
+  countScoreGridCheckmarks,
+  leftoverPlaceholders,
 };

@@ -126,9 +126,14 @@ export function buildWorkflowStepDetails({
       break;
     }
     case 'tasks': {
-      const submitted = num(metrics.tasks_submitted ?? metrics.submitted_tasks_count);
-      const total = num(metrics.tasks_count ?? metrics.total_tasks_count);
-      if (total <= 0) {
+      const tp = progress?.task_progress;
+      const submitted = num(
+        metrics.submitted_required_tasks_count ?? metrics.tasks_submitted ?? metrics.submitted_tasks_count
+      );
+      const total = num(metrics.required_tasks_count ?? metrics.tasks_count ?? metrics.total_tasks_count);
+      if (tp?.display) {
+        detail = tp.display;
+      } else if (total <= 0) {
         detail = t('studentTraining.noTasks');
       } else if (submitted >= total && total > 0) {
         detail = t('studentTraining.workflowDetail.tasksDone', { submitted, total });

@@ -1,10 +1,8 @@
 'use strict';
 
-const { PLACEHOLDERS } = require('./fieldTrainingEvaluation.constants');
-const { resolveUniversityNumber } = require('./fieldTrainingEvaluation.filename');
+const { PLACEHOLDERS, UNAVAILABLE_AR, DATA_INCOMPLETE_CODE } = require('./fieldTrainingEvaluation.constants');
+const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
 const hoursMod = require('./fieldTraining.hours');
-
-const DATA_INCOMPLETE_CODE = 'FIELD_TRAINING_EVALUATION_DATA_INCOMPLETE';
 
 const REQUIRED_IDENTITY_FIELDS = Object.freeze([
   'student_name',
@@ -12,6 +10,33 @@ const REQUIRED_IDENTITY_FIELDS = Object.freeze([
   'student_specialty',
   'training_start_date',
   'training_end_date',
+]);
+
+const REQUIRED_COMPLETE_FIELDS = Object.freeze([
+  'student_name',
+  'student_number',
+  'student_specialty',
+  'semester',
+  'academic_year',
+  'training_start_date',
+  'training_end_date',
+  'training_days',
+  'actual_daily_hours',
+  'absence_days',
+  'organization_name',
+  'general_comments',
+  'field_supervisor_name',
+  'responsible_person_name',
+  'evaluation_date',
+  'professional_evaluation_total',
+]);
+
+const OPTIONAL_ORG_FIELDS = Object.freeze([
+  'organization_department',
+  'organization_email',
+  'organization_phone',
+  'organization_fax',
+  'organization_address',
 ]);
 
 const PREVIEW_PAYLOAD_KEYS = Object.freeze([
@@ -42,6 +67,11 @@ function textOrEmpty(value) {
   const text = String(value).trim();
   if (!text || text === 'undefined' || text === 'null') return '';
   return text;
+}
+
+function optionalOrgValue(value) {
+  const text = textOrEmpty(value);
+  return text || UNAVAILABLE_AR;
 }
 
 function formatDate(value) {
@@ -87,6 +117,14 @@ function hostOrg(opportunity = {}) {
     phone: raw.phone || raw.organization_phone || '',
     fax: raw.fax || raw.organization_fax || '',
     address: raw.address || raw.organization_address || opportunity.location || '',
+    contactPerson:
+      raw.contact_person ||
+      raw.contactPerson ||
+      raw.responsible_person ||
+      raw.responsible_person_name ||
+      raw.contact_name ||
+      opportunity.contact_person ||
+      '',
   };
 }
 
@@ -95,9 +133,7 @@ function resolveStudentDisplayName(student = {}) {
 }
 
 function resolveStudentNumber(student = {}) {
-  const resolved = resolveUniversityNumber(student);
-  if (!resolved || resolved === 'NA') return '';
-  return resolved;
+  return resolveOfficialUniversityNumber(student).number;
 }
 
 function resolveSpecialtyLabel(student = {}) {
@@ -140,6 +176,45 @@ function statusLabelAr(status) {
   return textOrEmpty(status);
 }
 
+function criterionScoreOf(evaluation = {}, index) {
+  const raw =
+    evaluation[`criterion${index}Score`] ??
+    evaluation[`criterion_${index}_score`] ??
+    evaluation.criteria?.[`criterion${index}`] ??
+    evaluation.criteria?.[`criterion_${index}_score`];
+  const n = Number(raw);
+  return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
+}
+
+function validateCriteriaGrid(evaluation = {}) {
+  const scores = [];
+  const missing = [];
+  const invalid = [];
+  for (let i = 1; i <= 10; i += 1) {
+    const score = criterionScoreOf(evaluation, i);
+    if (score == null) {
+      missing.push(`criterion_${i}_score`);
+      continue;
+    }
+    if (score < 1 || score > 5) invalid.push(`criterion_${i}_score`);
+    scores.push(score);
+  }
+  if (missing.length || invalid.length) {
+    return {
+      ok: false,
+      code: 'PROFESSIONAL_EVALUATION_INCOMPLETE',
+      missing: [...missing, ...invalid],
+      total: null,
+      scores,
+    };
+  }
+  const total = scores.reduce((sum, n) => sum + n, 0);
+  if (total < 10 || total > 50) {
+    return { ok: false, code: 'PROFESSIONAL_EVALUATION_TOTAL_INVALID', missing: ['professional_evaluation_total'], total, scores };
+  }
+  return { ok: true, code: null, missing: [], total, scores };
+}
+
 /**
  * Single mapping used by preview, generate, regenerate, DOCX, and PDF.
  */
@@ -159,6 +234,13 @@ function buildFieldTrainingEvaluationTemplatePayload({
   const reasons = Array.isArray(evaluation.eligibilityReasons)
     ? evaluation.eligibilityReasons
     : [];
+  const criteriaCheck = validateCriteriaGrid(evaluation);
+  const professionalTotal =
+    criteriaCheck.ok
+      ? criteriaCheck.total
+      : evaluation.professionalTotal == null
+        ? ''
+        : evaluation.professionalTotal;
 
   const payload = {
     student_name: resolveStudentDisplayName(student),
@@ -175,48 +257,47 @@ function buildFieldTrainingEvaluationTemplatePayload({
     attendance_percentage:
       hours.attendancePercentage == null ? '' : hours.attendancePercentage,
     organization_name: textOrEmpty(opportunity.organization_name),
-    organization_department: org.department,
-    organization_email: org.email,
-    organization_phone: org.phone,
-    organization_fax: org.fax,
-    organization_address: org.address,
+    organization_department: optionalOrgValue(org.department),
+    organization_email: optionalOrgValue(org.email),
+    organization_phone: optionalOrgValue(org.phone),
+    organization_fax: optionalOrgValue(org.fax),
+    organization_address: optionalOrgValue(org.address),
     completion_status: textOrEmpty(application.completion_eligibility_status),
     final_status: statusLabelAr(evaluation.finalStatus),
     final_score: evaluation.finalScore == null ? '' : evaluation.finalScore,
     final_percentage: evaluation.finalPercentage == null ? '' : evaluation.finalPercentage,
-    professional_evaluation_total:
-      evaluation.professionalTotal == null ? '' : evaluation.professionalTotal,
+    professional_evaluation_total: professionalTotal,
     professional_evaluation_percentage:
       evaluation.professionalPercentage == null ? '' : evaluation.professionalPercentage,
     general_comments: evaluation.generalComments || evaluation.autoComment || '',
     field_supervisor_name: instructor?.full_name || instructor?.fullName || '',
-    responsible_person_name: instructor?.full_name || instructor?.fullName || '',
-    evaluation_date: formatDate(evaluation.evaluationDate || new Date()),
+    responsible_person_name: textOrEmpty(org.contactPerson),
+    evaluation_date: formatDate(evaluation.evaluationDate || evaluation.finalizedAt || evaluation.finalized_at),
     eligibility_reasons: reasons
       .map((code) => evaluation.reasonLabels?.[code] || code)
       .filter(Boolean)
       .join('؛ '),
-    criterion_1_score: evaluation.criterion1Score,
-    criterion_2_score: evaluation.criterion2Score,
-    criterion_3_score: evaluation.criterion3Score,
-    criterion_4_score: evaluation.criterion4Score,
-    criterion_5_score: evaluation.criterion5Score,
-    criterion_6_score: evaluation.criterion6Score,
-    criterion_7_score: evaluation.criterion7Score,
-    criterion_8_score: evaluation.criterion8Score,
-    criterion_9_score: evaluation.criterion9Score,
-    criterion_10_score: evaluation.criterion10Score,
+    criterion_1_score: criterionScoreOf(evaluation, 1),
+    criterion_2_score: criterionScoreOf(evaluation, 2),
+    criterion_3_score: criterionScoreOf(evaluation, 3),
+    criterion_4_score: criterionScoreOf(evaluation, 4),
+    criterion_5_score: criterionScoreOf(evaluation, 5),
+    criterion_6_score: criterionScoreOf(evaluation, 6),
+    criterion_7_score: criterionScoreOf(evaluation, 7),
+    criterion_8_score: criterionScoreOf(evaluation, 8),
+    criterion_9_score: criterionScoreOf(evaluation, 9),
+    criterion_10_score: criterionScoreOf(evaluation, 10),
     criteria: {
-      criterion1: evaluation.criterion1Score,
-      criterion2: evaluation.criterion2Score,
-      criterion3: evaluation.criterion3Score,
-      criterion4: evaluation.criterion4Score,
-      criterion5: evaluation.criterion5Score,
-      criterion6: evaluation.criterion6Score,
-      criterion7: evaluation.criterion7Score,
-      criterion8: evaluation.criterion8Score,
-      criterion9: evaluation.criterion9Score,
-      criterion10: evaluation.criterion10Score,
+      criterion1: criterionScoreOf(evaluation, 1),
+      criterion2: criterionScoreOf(evaluation, 2),
+      criterion3: criterionScoreOf(evaluation, 3),
+      criterion4: criterionScoreOf(evaluation, 4),
+      criterion5: criterionScoreOf(evaluation, 5),
+      criterion6: criterionScoreOf(evaluation, 6),
+      criterion7: criterionScoreOf(evaluation, 7),
+      criterion8: criterionScoreOf(evaluation, 8),
+      criterion9: criterionScoreOf(evaluation, 9),
+      criterion10: criterionScoreOf(evaluation, 10),
     },
   };
 
@@ -228,6 +309,21 @@ function buildFieldTrainingEvaluationTemplatePayload({
 
 function missingRequiredIdentityFields(payload = {}) {
   return REQUIRED_IDENTITY_FIELDS.filter((key) => !textOrEmpty(payload[key]));
+}
+
+function missingRequiredCompleteFields(payload = {}) {
+  const missing = REQUIRED_COMPLETE_FIELDS.filter((key) => {
+    if (key === 'training_days' || key === 'absence_days') {
+      return payload[key] == null || payload[key] === '';
+    }
+    return !textOrEmpty(payload[key]);
+  });
+  const grid = validateCriteriaGrid(payload);
+  if (!grid.ok) missing.push(...grid.missing.filter((key) => !missing.includes(key)));
+  if (grid.ok && Number(payload.professional_evaluation_total) !== grid.total) {
+    missing.push('professional_evaluation_total');
+  }
+  return missing;
 }
 
 function publicPreviewPayload(payload = {}) {
@@ -242,9 +338,18 @@ function identitySnapshot(payload = {}) {
   return publicPreviewPayload(payload);
 }
 
+function shouldReuseStoredPdf(previous, { regenerate = false } = {}) {
+  const previousSnapshot = previous?.score_evidence_json?.templatePayload;
+  const previousIdentityOk =
+    previousSnapshot && missingRequiredIdentityFields(previousSnapshot).length === 0;
+  return Boolean(previous?.pdf_file_id && !regenerate && previousIdentityOk);
+}
+
 module.exports = {
   DATA_INCOMPLETE_CODE,
   REQUIRED_IDENTITY_FIELDS,
+  REQUIRED_COMPLETE_FIELDS,
+  OPTIONAL_ORG_FIELDS,
   PREVIEW_PAYLOAD_KEYS,
   num,
   formatDate,
@@ -255,8 +360,11 @@ module.exports = {
   resolveStudentNumber,
   resolveSpecialtyLabel,
   summarizeAttendance,
+  validateCriteriaGrid,
   buildFieldTrainingEvaluationTemplatePayload,
   missingRequiredIdentityFields,
+  missingRequiredCompleteFields,
   publicPreviewPayload,
   identitySnapshot,
+  shouldReuseStoredPdf,
 };

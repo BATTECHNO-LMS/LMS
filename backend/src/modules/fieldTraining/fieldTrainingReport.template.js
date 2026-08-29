@@ -580,7 +580,8 @@ function renderUniversityReportHtml(report, assets = {}) {
         r.attendance_percentage,
         r.required_training_hours,
         r.completed_training_hours,
-        r.task_completion != null ? fmtPct(r.task_completion) : metrics.NOT_REQUIRED,
+        r.task_progress?.display ||
+          (r.task_completion != null ? fmtPct(r.task_completion) : metrics.NOT_REQUIRED),
         r.post_assessment_score,
         r.progress_percentage,
         r.training_status_label || r.training_status,
@@ -644,6 +645,7 @@ function renderStudentReportHtml(report, assets = {}) {
       ['فترة التدريب', `${fmtDate(opp.start_date)} — ${fmtDate(opp.end_date)}`],
       ['حالة الطلب', labels.labelOf(labels.APPLICATION_STATUS_AR, app.status)],
       ['حالة التدريب', labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status)],
+      ['تقدم المهمات', app.task_progress?.display || exec.task_progress?.display || metrics.NOT_REQUIRED],
     ]),
     'identity'
   );
@@ -656,6 +658,7 @@ function renderStudentReportHtml(report, assets = {}) {
       ${kpiCard('الساعات المنجزة', exec.completed_hours)}
       ${kpiCard('الساعات المطلوبة', exec.required_hours)}
       ${kpiCard('إنجاز المهام', exec.tasks_required ? fmtPct(exec.task_completion) : metrics.NOT_REQUIRED)}
+      ${kpiCard('تقدم المهمات', exec.task_progress?.display || metrics.NOT_REQUIRED)}
       ${kpiCard('نتيجة الاختبار', exec.assessment_result)}
       ${kpiCard('حالة التدريب', exec.training_status_label)}
       ${kpiCard('الشهادة', exec.certificate_status_label)}

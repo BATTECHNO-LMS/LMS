@@ -27,6 +27,7 @@ const {
 const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
 const hoursMod = require('./fieldTraining.hours');
+const taskProgress = require('./fieldTraining.taskProgress');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
@@ -132,6 +133,27 @@ async function assertActiveInstructorUser(userId) {
   return userId;
 }
 
+function normalizeHostOrganization(raw) {
+  if (raw == null || typeof raw !== 'object') return null;
+  const department = String(raw.department || raw.organization_department || '').trim();
+  const email = String(raw.email || raw.organization_email || '').trim();
+  const phone = String(raw.phone || raw.organization_phone || '').trim();
+  const fax = String(raw.fax || raw.organization_fax || '').trim();
+  const address = String(raw.address || raw.organization_address || '').trim();
+  const contactPerson = String(
+    raw.contact_person || raw.contactPerson || raw.responsible_person || raw.responsible_person_name || ''
+  ).trim();
+  if (!department && !email && !phone && !fax && !address && !contactPerson) return null;
+  return {
+    department: department || null,
+    email: email || null,
+    phone: phone || null,
+    fax: fax || null,
+    address: address || null,
+    contact_person: contactPerson || null,
+  };
+}
+
 async function mapBodyToCreateData(body) {
   const specialty = await assertActiveSpecialty(body.specialty_id, {
     requiredMessage: 'يرجى اختيار المسار التدريبي الرئيسي.',
@@ -147,6 +169,7 @@ async function mapBodyToCreateData(body) {
     university_id: null,
     assigned_instructor_id: assignedInstructorId,
     organization_name: body.organization_name?.trim() || null,
+    host_organization: normalizeHostOrganization(body.host_organization),
     location: body.location.trim(),
     training_mode: body.training_mode,
     short_description: body.short_description ?? null,
@@ -185,6 +208,9 @@ async function mapBodyToUpdateData(body) {
   }
   if (body.organization_name !== undefined) {
     data.organization_name = body.organization_name?.trim() || null;
+  }
+  if (body.host_organization !== undefined) {
+    data.host_organization = normalizeHostOrganization(body.host_organization);
   }
   if (body.location != null) data.location = body.location.trim();
   if (body.training_mode != null) data.training_mode = body.training_mode;
@@ -420,6 +446,14 @@ async function createAdminOpportunity(body, userId, user) {
   }
   const mapped = repo.mapOpportunityRow(opportunity);
   mapped.eligibility = await ftEligibility.findActiveByOpportunityId(opportunity.id);
+  try {
+    const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
+    await standardizedPost.ensureStandardizedPostAssessmentForOpportunity(opportunity, {
+      notify: ['published', 'in_progress'].includes(opportunity.status),
+    });
+  } catch (err) {
+    console.error('Failed to attach standardized post-assessment', err);
+  }
   return { opportunity: mapped };
 }
 
@@ -495,6 +529,14 @@ async function publishOpportunity(id, userId, user) {
     entityId: id,
     newValues: { status: 'published' },
   });
+  try {
+    const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
+    await standardizedPost.ensureStandardizedPostAssessmentForOpportunity(opportunity, {
+      notify: true,
+    });
+  } catch (err) {
+    console.error('Failed to attach standardized post-assessment on publish', err);
+  }
   return { opportunity: repo.mapOpportunityRow(opportunity) };
 }
 
@@ -603,9 +645,32 @@ async function listOpportunityApplications(opportunityId, query = {}, user) {
       new Map([[opportunityId, opp.required_training_hours ?? null]])
     );
 
-    let applications = apps.map((app) =>
-      mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id))
+    const progressByApp = await taskProgress.calculateTaskProgressForApplications(
+      apps.map((app) => ({
+        id: app.id,
+        opportunity_id: opportunityId,
+        student_id: app.student_id,
+        status: app.status,
+      })),
+      { opportunitiesById: new Map([[opportunityId, opp]]) }
     );
+
+    const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
+    const postAttemptByApp = await standardizedPost.loadPostAssessmentAttemptStatusByApplicationIds(
+      apps.map((app) => app.id)
+    );
+
+    let applications = apps.map((app) => {
+      const postStatus =
+        postAttemptByApp.get(app.id) ||
+        standardizedPost.resolveAttemptStatus(null, app.post_assessment_score);
+      return {
+        ...mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id)),
+        task_progress: progressByApp.get(app.id) || null,
+        post_assessment_attempt_status: postStatus.key,
+        post_assessment_attempt_status_label: postStatus.label_ar,
+      };
+    });
 
     if (query.specialty_id && opp.specialty_id !== query.specialty_id) {
       applications = [];
@@ -740,6 +805,15 @@ async function listStudentOpportunities(query, studentId) {
   const oppIds = rows.map((row) => row.id);
   const myApps = await repo.findApplicationsByOpportunityIdsForStudent(oppIds, studentId);
   const appByOpp = Object.fromEntries(myApps.map((app) => [app.opportunity_id, app]));
+  const progressByApp = await taskProgress.calculateTaskProgressForApplications(
+    myApps.map((app) => ({
+      id: app.id,
+      opportunity_id: app.opportunity_id,
+      student_id: app.student_id,
+      status: app.status,
+    })),
+    { opportunitiesById: new Map(rows.map((row) => [row.id, row])) }
+  );
   const opportunities = rows.map((row) => {
     const app = appByOpp[row.id];
     return {
@@ -747,6 +821,7 @@ async function listStudentOpportunities(query, studentId) {
       my_application_status: app?.status ?? null,
       my_application_id: app?.id ?? null,
       my_training_status: app?.training_status ?? null,
+      my_task_progress: app ? progressByApp.get(app.id) || null : null,
       student_matching_university: matchingUniversity,
       student_matching_university_specialty: matchingSpecialty,
       student_matching_university_specialty_label: matchingSpecialtyLabel,
@@ -767,11 +842,28 @@ async function listMyApplications(studentId) {
   const apps = await repo.findApplicationsByStudent(studentId);
   const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
   const byId = Object.fromEntries(profiles.map((u) => [u.id, u]));
+  const progressByApp = await taskProgress.calculateTaskProgressForApplications(
+    apps.map((a) => ({
+      id: a.id,
+      opportunity_id: a.opportunity_id,
+      student_id: a.student_id,
+      status: a.status,
+      opportunity_status: a.field_training_opportunities?.status,
+    })),
+    {
+      opportunitiesById: new Map(
+        apps
+          .filter((a) => a.field_training_opportunities)
+          .map((a) => [a.opportunity_id, a.field_training_opportunities])
+      ),
+    }
+  );
   return {
     applications: apps.map((a) => ({
       ...repo.mapApplicationRow(a),
       student_university: byId[a.student_id]?.university?.name ?? null,
       student_specialty: byId[a.student_id]?.specialty ?? null,
+      task_progress: progressByApp.get(a.id) || null,
       opportunity: a.field_training_opportunities
         ? {
             id: a.field_training_opportunities.id,
@@ -805,6 +897,9 @@ async function getStudentOpportunityById(id, studentId) {
   await assertStudentCanAccessOpportunity(row, studentId);
   const app = await repo.findApplicationByOpportunityAndStudent(id, studentId);
   const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
+  const myTaskProgress = app
+    ? await taskProgress.calculateTaskProgressForApplication(app, { opportunity: row })
+    : null;
   let assignedInstructor = null;
   if (row.assigned_instructor_id) {
     const instructor = await prisma.users.findUnique({
@@ -822,6 +917,7 @@ async function getStudentOpportunityById(id, studentId) {
       my_application_id: app?.id ?? null,
       my_application_message: app?.student_message ?? null,
       my_training_status: app?.training_status ?? null,
+      my_task_progress: myTaskProgress,
       my_pre_assessment_level: app?.pre_assessment_level ?? null,
       my_attendance_percentage:
         app?.attendance_percentage != null ? Number(app.attendance_percentage) : null,
@@ -835,7 +931,9 @@ async function getStudentOpportunityById(id, studentId) {
         ? repo.formatSpecialtyLabel(studentProfile.university_specialty)
         : null,
     },
-    application: app ? repo.mapApplicationRow(app) : null,
+    application: app
+      ? { ...repo.mapApplicationRow(app), task_progress: myTaskProgress }
+      : null,
   };
 }
 
@@ -1080,6 +1178,7 @@ async function createOpportunityTask(opportunityId, body, user) {
     requires_ai_self_evaluation: requiresAi,
     grading_mode: gradingMode,
     is_final_task: body.is_final_task ?? false,
+    is_required: body.is_required !== false,
   });
 
   let taskRow = task;
@@ -1124,6 +1223,7 @@ async function updateOpportunityTask(taskId, body, user) {
     data.grading_mode = body.requires_ai_self_evaluation ? 'AI' : 'MANUAL';
   }
   if (body.is_final_task !== undefined) data.is_final_task = body.is_final_task;
+  if (body.is_required !== undefined) data.is_required = body.is_required;
   if (body.remove_instruction_file) {
     Object.assign(data, clearInstructionFileData());
   }
@@ -1519,6 +1619,15 @@ async function listOpportunityEligibility(opportunityId, user) {
     apps.map((app) => ({ id: app.id, opportunity_id: opportunityId })),
     new Map([[opportunityId, opp.required_training_hours ?? null]])
   );
+  const progressByApp = await taskProgress.calculateTaskProgressForApplications(
+    apps.map((app) => ({
+      id: app.id,
+      opportunity_id: opportunityId,
+      student_id: app.student_id,
+      status: app.status,
+    })),
+    { opportunitiesById: new Map([[opportunityId, opp]]) }
+  );
 
   const finalTasks = await prisma.field_training_tasks.findMany({
     where: { opportunity_id: opportunityId, is_final_task: true },
@@ -1564,6 +1673,7 @@ async function listOpportunityEligibility(opportunityId, user) {
       student_university: mapped.student_university,
       student_university_specialty_label: mapped.student_university_specialty_label,
       training_status: mapped.training_status,
+      task_progress: mapped.task_progress || progressByApp.get(app.id) || null,
       attendance_percentage: mapped.attendance_percentage,
       minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
       training_hours: mapped.training_hours,

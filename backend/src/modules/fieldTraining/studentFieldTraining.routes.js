@@ -213,6 +213,14 @@ router.get(
 );
 
 router.post(
+  '/:id/assessments/:type/save',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: assessmentTypeParamSchema, body: submitAssessmentBodySchema }),
+  studentFieldTrainingController.saveAssessmentProgress
+);
+
+router.post(
   '/:id/assessments/:type/submit',
   authenticate,
   studentOnly,

@@ -178,6 +178,9 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                   {task.is_final_task ? (
                     <StatusBadge variant="warning">{t('tasks.finalTaskBadge')}</StatusBadge>
                   ) : null}
+                  <StatusBadge variant={task.is_required === false ? 'muted' : 'warning'}>
+                    {task.is_required === false ? t('tasks.optionalBadge') : t('tasks.requiredBadge')}
+                  </StatusBadge>
                   <StatusBadge variant="info">
                     {gradingMode === GRADING_MODES.AI ? <Sparkles size={12} aria-hidden /> : null}{' '}
                     {t(gradingModeLabelKey(gradingMode))}

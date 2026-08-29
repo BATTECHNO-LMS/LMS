@@ -92,6 +92,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isFinalTask, setIsFinalTask] = useState(false);
+  const [isRequired, setIsRequired] = useState(true);
   const [gradingMode, setGradingMode] = useState(GRADING_MODES.AI);
   const [aiPrompt, setAiPrompt] = useState('');
   const [instructionFileId, setInstructionFileId] = useState(null);
@@ -103,6 +104,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
   const [editDescription, setEditDescription] = useState('');
   const [editDueDate, setEditDueDate] = useState('');
   const [editIsFinalTask, setEditIsFinalTask] = useState(false);
+  const [editIsRequired, setEditIsRequired] = useState(true);
   const [editGradingMode, setEditGradingMode] = useState(GRADING_MODES.AI);
   const [editAiPrompt, setEditAiPrompt] = useState('');
   const [editInstructionFileId, setEditInstructionFileId] = useState(null);
@@ -154,6 +156,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         description: description.trim() || null,
         due_date: dueDate || null,
         is_final_task: isFinalTask,
+        is_required: isRequired,
         grading_mode: gradingMode,
         requires_ai_self_evaluation: gradingMode === GRADING_MODES.AI,
         ai_self_evaluation_prompt:
@@ -165,6 +168,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
       setDescription('');
       setDueDate('');
       setIsFinalTask(false);
+      setIsRequired(true);
       setGradingMode(GRADING_MODES.AI);
       setAiPrompt('');
       setInstructionFileId(null);
@@ -181,6 +185,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
     setEditDescription(task.description || '');
     setEditDueDate(task.due_date ? String(task.due_date).slice(0, 10) : '');
     setEditIsFinalTask(Boolean(task.is_final_task));
+    setEditIsRequired(task.is_required !== false);
     setEditGradingMode(resolveTaskGradingMode(task));
     setEditAiPrompt(task.ai_self_evaluation_prompt || '');
     setEditInstructionFileId(null);
@@ -210,6 +215,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         description: editDescription.trim() || null,
         due_date: editDueDate || null,
         is_final_task: editIsFinalTask,
+        is_required: editIsRequired,
         grading_mode: editGradingMode,
         requires_ai_self_evaluation: editGradingMode === GRADING_MODES.AI,
         ai_self_evaluation_prompt:
@@ -376,6 +382,10 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
               <input type="checkbox" checked={isFinalTask} onChange={(e) => setIsFinalTask(e.target.checked)} />
               <span>{t('tasks.finalTask')}</span>
             </label>
+            <label className="form-field form-field--checkbox">
+              <input type="checkbox" checked={isRequired} onChange={(e) => setIsRequired(e.target.checked)} />
+              <span>{t('tasks.requiredTask')}</span>
+            </label>
             <div className="form-field">
               <label className="form-field__label" htmlFor="ft-task-grading-mode">
                 {t('tasks.gradingMode')}
@@ -541,6 +551,14 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                               />
                               <span>{t('tasks.finalTask')}</span>
                             </label>
+                            <label className="form-field form-field--checkbox">
+                              <input
+                                type="checkbox"
+                                checked={editIsRequired}
+                                onChange={(e) => setEditIsRequired(e.target.checked)}
+                              />
+                              <span>{t('tasks.requiredTask')}</span>
+                            </label>
                             <div className="form-field">
                               <label className="form-field__label">{t('tasks.gradingMode')}</label>
                               <select
@@ -634,6 +652,16 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                               {t('tasks.finalTaskBadge')}
                             </span>
                           ) : null}
+                          <span
+                            className={cn(
+                              'ft-task-item__badge',
+                              task.is_required === false
+                                ? 'ft-task-item__badge--pending'
+                                : 'ft-task-item__badge--final'
+                            )}
+                          >
+                            {task.is_required === false ? t('tasks.optionalBadge') : t('tasks.requiredBadge')}
+                          </span>
                           <span className="ft-task-item__badge ft-task-item__badge--ai">
                             {t(gradingModeLabelKey(resolveTaskGradingMode(task)))}
                           </span>

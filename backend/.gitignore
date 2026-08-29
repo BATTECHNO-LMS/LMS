@@ -3,5 +3,6 @@ node_modules/
 tmp/
 uploads/*
 !uploads/.gitkeep
+backups/
 *.log
 .DS_Store

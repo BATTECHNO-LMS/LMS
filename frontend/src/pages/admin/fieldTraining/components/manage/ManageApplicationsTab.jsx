@@ -10,7 +10,10 @@ import {
   useReviewApplication,
   expelFieldTrainingParticipant,
   requestFieldTrainingExpulsion,
+  exportOpportunityStudentsExcel,
 } from '../../../../../features/fieldTraining/index.js';
+import { studentsExcelErrorMessage } from '../../../../../features/fieldTraining/fieldTrainingDownload.js';
+import { FieldTrainingStudentsExcelButton } from '../../../../shared/fieldTrainingReports/FieldTrainingStudentsExcelButton.jsx';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { useDebouncedValue } from '../../../../../hooks/useDebouncedValue.js';
@@ -33,6 +36,8 @@ export function ManageApplicationsTab({ opportunityId, apiScope = 'admin' }) {
   const [adminNote, setAdminNote] = useState('');
   const [selectedApp, setSelectedApp] = useState(null);
   const [actionError, setActionError] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   const listParams = useMemo(() => {
     const params = {};
@@ -79,6 +84,21 @@ export function ManageApplicationsTab({ opportunityId, apiScope = 'admin' }) {
       refetch();
     } catch (err) {
       setActionError(getApiErrorMessage(err));
+    }
+  }
+
+  async function handleExportStudents() {
+    if (!opportunityId || exporting) return;
+    setExporting(true);
+    setExportSuccess(false);
+    setActionError('');
+    try {
+      await exportOpportunityStudentsExcel(opportunityId, listParams, { asInstructor: isInstructor });
+      setExportSuccess(true);
+    } catch (err) {
+      setActionError(studentsExcelErrorMessage(err, t, getApiErrorMessage(err, t('studentsExcel.failed'))));
+    } finally {
+      setExporting(false);
     }
   }
 
@@ -139,9 +159,20 @@ export function ManageApplicationsTab({ opportunityId, apiScope = 'admin' }) {
             </button>
           ))}
         </div>
+        <FieldTrainingStudentsExcelButton
+          onClick={handleExportStudents}
+          exporting={exporting}
+          label={t('studentsExcel.button')}
+          exportingLabel={t('studentsExcel.exporting')}
+        />
       </div>
 
       {actionError ? <p className="form-field__error">{actionError}</p> : null}
+      {exportSuccess && !actionError ? (
+        <p className="ft-students-excel-status ft-students-excel-status--ok" role="status">
+          {t('studentsExcel.success')}
+        </p>
+      ) : null}
       {isFetching && !isLoading ? (
         <p className="ft-manage-panel__desc" role="status">
           {t('loading')}

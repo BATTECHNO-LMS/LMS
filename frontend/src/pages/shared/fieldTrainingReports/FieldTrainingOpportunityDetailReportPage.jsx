@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
@@ -11,8 +11,13 @@ import { TableIconActions } from '../../../components/crud/TableIconActions.jsx'
 import { UnauthorizedPage } from '../../../components/permissions/UnauthorizedPage.jsx';
 import { useAuth } from '../../../features/auth/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
-import { useFieldTrainingOpportunityDetail } from '../../../features/fieldTrainingReports/index.js';
+import {
+  exportFieldTrainingStudentsExcel,
+  useFieldTrainingOpportunityDetail,
+} from '../../../features/fieldTrainingReports/index.js';
+import { studentsExcelErrorMessage } from '../../../features/fieldTraining/fieldTrainingDownload.js';
 import { resolveReportParams } from './FieldTrainingReportFilters.jsx';
+import { FieldTrainingStudentsExcelButton } from './FieldTrainingStudentsExcelButton.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
 import { Users, ClipboardList, CheckCircle2, BarChart3 } from 'lucide-react';
@@ -27,6 +32,9 @@ export function FieldTrainingOpportunityDetailReportPage({ mode = 'academic' }) 
     () => resolveReportParams({}, { mode, user, scopeId, isAllTenantsSelected }),
     [mode, user, scopeId, isAllTenantsSelected]
   );
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useFieldTrainingOpportunityDetail(
     opportunityId,
@@ -39,6 +47,21 @@ export function FieldTrainingOpportunityDetailReportPage({ mode = 'academic' }) 
 
   const opp = data?.opportunity;
   const students = data?.students ?? [];
+
+  async function handleExportStudents() {
+    if (!opportunityId || exporting) return;
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(false);
+    try {
+      await exportFieldTrainingStudentsExcel({ ...params, opportunity_id: opportunityId }, mode);
+      setExportSuccess(true);
+    } catch (err) {
+      setExportError(studentsExcelErrorMessage(err, t, getApiErrorMessage(err, t('studentsExcel.failed'))));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (isError && error?.response?.status === 403) {
     return (
@@ -62,11 +85,28 @@ export function FieldTrainingOpportunityDetailReportPage({ mode = 'academic' }) 
             >
               {t('hub.applicationsLink')}
             </Link>
+            <FieldTrainingStudentsExcelButton
+              onClick={handleExportStudents}
+              exporting={exporting}
+              disabled={!params.university_id}
+              label={t('studentsExcel.button')}
+              exportingLabel={t('studentsExcel.exporting')}
+            />
           </div>
         }
       />
 
       {isLoading ? <LoadingSpinner /> : null}
+      {exportError ? (
+        <p className="form-field__error" role="alert">
+          {exportError}
+        </p>
+      ) : null}
+      {exportSuccess && !exportError ? (
+        <p className="ft-students-excel-status ft-students-excel-status--ok" role="status">
+          {t('studentsExcel.success')}
+        </p>
+      ) : null}
       {isError && error?.response?.status !== 403 ? (
         <div className="ft-report-error" role="alert">
           <p className="crud-muted">{getApiErrorMessage(error, tCommon('errors.generic'))}</p>

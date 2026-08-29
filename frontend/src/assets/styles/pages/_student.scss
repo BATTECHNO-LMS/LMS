@@ -756,6 +756,15 @@
   gap: 0.75rem;
 }
 
+.semester-ft-card__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
 .semester-ft-card__title-wrap {
   display: flex;
   align-items: flex-start;

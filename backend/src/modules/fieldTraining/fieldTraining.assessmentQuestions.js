@@ -38,6 +38,23 @@ function asStringArray(value) {
   return [];
 }
 
+function unwrapMcqAnswer(correctAnswer) {
+  if (correctAnswer && typeof correctAnswer === 'object' && !Array.isArray(correctAnswer)) {
+    if (correctAnswer.answer != null) return correctAnswer.answer;
+    if (correctAnswer.correct != null) return correctAnswer.correct;
+    if (correctAnswer.value != null) return correctAnswer.value;
+  }
+  return correctAnswer;
+}
+
+function extractMcqExplanation(questionOrAnswer) {
+  if (questionOrAnswer && typeof questionOrAnswer === 'object' && !Array.isArray(questionOrAnswer)) {
+    const raw = questionOrAnswer.explanation ?? questionOrAnswer.correct_answer?.explanation;
+    if (raw != null && String(raw).trim()) return String(raw).trim();
+  }
+  return null;
+}
+
 function normalizeCorrectAnswer(type, correctAnswer, options = []) {
   const t = normalizeQuestionType(type);
   if (t === 'true_false') {
@@ -53,7 +70,8 @@ function normalizeCorrectAnswer(type, correctAnswer, options = []) {
     return v;
   }
   if (t === 'multiple_choice') {
-    return correctAnswer == null ? null : String(correctAnswer).trim();
+    const raw = unwrapMcqAnswer(correctAnswer);
+    return raw == null ? null : String(raw).trim();
   }
   if (t === 'multi_select') {
     return asStringArray(correctAnswer);
@@ -270,7 +288,13 @@ function gradeAnswers(questions, answers) {
 function prepareQuestionForStorage(q, index) {
   const type = normalizeQuestionType(q.question_type);
   const options = normalizeOptions(type, q.options);
-  const correct_answer = normalizeCorrectAnswer(type, q.correct_answer, options);
+  let correct_answer = normalizeCorrectAnswer(type, q.correct_answer, options);
+  if (type === 'multiple_choice') {
+    const explanation = extractMcqExplanation(q.correct_answer) || extractMcqExplanation(q);
+    if (explanation && correct_answer != null) {
+      correct_answer = { answer: correct_answer, explanation };
+    }
+  }
   return {
     question_text: String(q.question_text ?? '').trim(),
     question_type: type === 'short_answer' ? 'short_text' : type,
@@ -288,6 +312,8 @@ module.exports = {
   normalizeQuestionType,
   normalizeCorrectAnswer,
   normalizeOptions,
+  unwrapMcqAnswer,
+  extractMcqExplanation,
   validateQuestionForPublish,
   validateAssessmentQuestions,
   gradeAnswers,

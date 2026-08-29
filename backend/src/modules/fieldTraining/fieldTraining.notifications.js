@@ -287,6 +287,7 @@ async function notifyStudentsPostAssessmentAvailable(params) {
       body: `التقييم البعدي متاح الآن لفرصة "${opportunityTitle || ''}".`,
       type: 'action_required',
       actionUrl: `/student/field-training/${opportunityId}?tab=assessments`,
+      dedupeByActionUrl: true,
     });
     if (row) created += 1;
   }

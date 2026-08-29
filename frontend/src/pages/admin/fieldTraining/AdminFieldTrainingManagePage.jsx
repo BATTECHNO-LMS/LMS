@@ -178,7 +178,7 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
       case 'eligibility':
         return <ManageEligibilityTab opportunityId={id} apiScope={apiScope} />;
       case 'evaluation_template':
-        return <ManageEvaluationTemplateTab opportunityId={id} apiScope={apiScope} />;
+        return <ManageEvaluationTemplateTab opportunityId={id} opportunity={opp} apiScope={apiScope} />;
       case 'completion':
         return (
           <ManageCompletionTab

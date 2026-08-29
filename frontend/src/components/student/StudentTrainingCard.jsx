@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { StudentStatusBadge } from './StudentStatusBadge.jsx';
-import { trainingStatusVariant } from '../../features/fieldTraining/index.js';
+import { trainingStatusVariant, TaskProgressBadge } from '../../features/fieldTraining/index.js';
 import { deriveFieldTrainingNextAction } from '../../features/student/studentDashboard.helpers.js';
 
 /**
@@ -20,8 +20,11 @@ export function StudentTrainingCard({ application, progress }) {
 
   const title = opp.title || t('dashboard:student.dashboard.fieldTraining.untitled');
   const to = `/student/field-training/${application.opportunity_id}`;
-  const tasksSubmitted = Number(metrics.tasks_submitted ?? 0);
-  const tasksTotal = Number(metrics.tasks_count ?? 0);
+  const tp = application?.task_progress || progress?.task_progress;
+  const tasksSubmitted = Number(
+    metrics.submitted_required_tasks_count ?? metrics.tasks_submitted ?? 0
+  );
+  const tasksTotal = Number(metrics.required_tasks_count ?? metrics.tasks_count ?? 0);
   const attendance =
     application.attendance_percentage != null
       ? `${Math.round(Number(application.attendance_percentage))}%`
@@ -53,12 +56,13 @@ export function StudentTrainingCard({ application, progress }) {
       key: 'tasks',
       label: t('dashboard:student.dashboard.fieldTraining.tasks'),
       value:
-        tasksTotal > 0
+        tp?.display ||
+        (tasksTotal > 0
           ? t('dashboard:student.dashboard.fieldTraining.tasksRatio', {
               submitted: tasksSubmitted,
               total: tasksTotal,
             })
-          : t('dashboard:student.dashboard.fieldTraining.notYet'),
+          : t('dashboard:student.dashboard.fieldTraining.notYet')),
     },
     {
       key: 'post',
@@ -101,6 +105,9 @@ export function StudentTrainingCard({ application, progress }) {
               )}
             </StudentStatusBadge>
           ) : null}
+          <TaskProgressBadge
+            progress={application.task_progress || progress?.task_progress}
+          />
         </div>
       </header>
 

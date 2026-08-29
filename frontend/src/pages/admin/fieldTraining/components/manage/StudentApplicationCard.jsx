@@ -18,6 +18,7 @@ import {
   getOpportunitySpecialtyLabel,
   getStudentInitials,
   trainingStatusVariant,
+  TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
 
 export function computeCardProgressPercent(app) {
@@ -145,6 +146,21 @@ export function StudentApplicationCard({ app, t, i18n, onOpen, onApprove, onReje
         {app.training_status && app.training_status !== 'none' ? (
           <StatusBadge variant={trainingStatusVariant(app.training_status)}>
             {t(`trainingStatus.${app.training_status}`, app.training_status)}
+          </StatusBadge>
+        ) : null}
+        <TaskProgressBadge progress={app.task_progress} />
+        {app.post_assessment_attempt_status_label ? (
+          <StatusBadge
+            variant={
+              app.post_assessment_attempt_status === 'graded' ||
+              app.post_assessment_attempt_status === 'submitted'
+                ? 'success'
+                : app.post_assessment_attempt_status === 'in_progress'
+                  ? 'warning'
+                  : 'muted'
+            }
+          >
+            {app.post_assessment_attempt_status_label}
           </StatusBadge>
         ) : null}
       </div>

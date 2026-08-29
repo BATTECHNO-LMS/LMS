@@ -22,6 +22,7 @@ import {
   useReviewApplication,
   applicationBadgeVariant,
   trainingStatusVariant,
+  TaskProgressBadge,
   computeApplicationStats,
   displayFieldValue,
   formatFtDate,
@@ -34,7 +35,10 @@ import {
   fetchFieldTrainingEligibilityCatalog,
   fetchInstructorFieldTraining,
   requestFieldTrainingExpulsion,
+  exportOpportunityStudentsExcel,
 } from '../../../features/fieldTraining/index.js';
+import { studentsExcelErrorMessage } from '../../../features/fieldTraining/fieldTrainingDownload.js';
+import { FieldTrainingStudentsExcelButton } from '../../shared/fieldTrainingReports/FieldTrainingStudentsExcelButton.jsx';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
@@ -189,6 +193,11 @@ export function ApplicationReviewCard({
                 {t('progress.task')}: {t(`finalTaskStatus.${app.final_task_status}`)}
               </span>
             ) : null}
+            {app.task_progress?.display ? (
+              <span className="ft-review-card__tag">
+                <TaskProgressBadge progress={app.task_progress} />
+              </span>
+            ) : null}
             {app.completion_letter_issued_at ? (
               <span className="ft-review-card__tag ft-review-card__tag--success">
                 {t('progress.letterIssued')}
@@ -318,6 +327,9 @@ export function AdminFieldTrainingApplicationsPage({ apiScope = 'admin' } = {}) 
   const [expelReason, setExpelReason] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [progressModal, setProgressModal] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState('');
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   const applications = data?.applications ?? [];
   const opp = isInstructor ? instructorOppData?.opportunity : oppData?.opportunity;
@@ -332,6 +344,21 @@ export function AdminFieldTrainingApplicationsPage({ apiScope = 'admin' } = {}) 
   }, [catalog, universityFilter]);
 
   const filteredApplications = applications;
+
+  async function handleExportStudents() {
+    if (!id || exporting) return;
+    setExporting(true);
+    setExportError('');
+    setExportSuccess(false);
+    try {
+      await exportOpportunityStudentsExcel(id, listParams, { asInstructor: isInstructor });
+      setExportSuccess(true);
+    } catch (err) {
+      setExportError(studentsExcelErrorMessage(err, t, getApiErrorMessage(err, t('studentsExcel.failed'))));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function confirmReview() {
     if (!reviewModal || isInstructor) return;
@@ -451,15 +478,23 @@ export function AdminFieldTrainingApplicationsPage({ apiScope = 'admin' } = {}) 
               <h2 className="ft-apps-toolbar__title">{t('applicationsTitle')}</h2>
               <p className="ft-apps-toolbar__count">{t('applicationsCount', { count: applications.length })}</p>
             </div>
-            <div className="ft-admin-search ft-apps-toolbar__search">
-              <Search size={16} className="ft-admin-search__icon" aria-hidden />
-              <input
-                type="search"
-                className="ft-admin-search__input"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('applicationsSearchPlaceholder')}
-                aria-label={t('applicationsSearchPlaceholder')}
+            <div className="ft-apps-toolbar__actions">
+              <div className="ft-admin-search ft-apps-toolbar__search">
+                <Search size={16} className="ft-admin-search__icon" aria-hidden />
+                <input
+                  type="search"
+                  className="ft-admin-search__input"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('applicationsSearchPlaceholder')}
+                  aria-label={t('applicationsSearchPlaceholder')}
+                />
+              </div>
+              <FieldTrainingStudentsExcelButton
+                onClick={handleExportStudents}
+                exporting={exporting}
+                label={t('studentsExcel.button')}
+                exportingLabel={t('studentsExcel.exporting')}
               />
             </div>
           </div>
@@ -535,6 +570,16 @@ export function AdminFieldTrainingApplicationsPage({ apiScope = 'admin' } = {}) 
               </select>
             </label>
           </div>
+          {exportError ? (
+            <p className="form-field__error" role="alert">
+              {exportError}
+            </p>
+          ) : null}
+          {exportSuccess && !exportError ? (
+            <p className="ft-students-excel-status ft-students-excel-status--ok" role="status">
+              {t('studentsExcel.success')}
+            </p>
+          ) : null}
         </section>
 
         {isError ? (

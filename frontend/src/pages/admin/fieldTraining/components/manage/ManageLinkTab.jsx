@@ -7,6 +7,7 @@ import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
 import {
   downloadAdminCompletionLetter,
   trainingStatusVariant,
+  TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabEmpty } from './ManageTabStates.jsx';
@@ -55,6 +56,7 @@ export function ManageCompletionTab({ applications, onIssueLetter, issuePending 
                   <StatusBadge variant={trainingStatusVariant(app.training_status)}>
                     {t(`trainingStatus.${app.training_status}`, app.training_status)}
                   </StatusBadge>
+                  <TaskProgressBadge progress={app.task_progress} />
                 </div>
                 <Button
                   type="button"

@@ -214,6 +214,7 @@
     "opportunity": "Opportunity",
     "applicationStatus": "Application status",
     "trainingStatus": "Training status",
+    "taskProgress": "Task progress",
     "progress": "Progress",
     "attendance": "Attendance %",
     "requiredHours": "Required hours",
@@ -223,6 +224,7 @@
     "hoursStatus": "Hours status",
     "preAssessment": "Pre-assessment",
     "postAssessment": "Post-assessment",
+    "postAssessmentStatus": "Post-assessment status",
     "finalTask": "Final task",
     "eligibility": "Eligibility",
     "completionLetter": "Completion letter",
@@ -276,6 +278,13 @@
     "regenerate": "Regenerate report",
     "generating": "Generating report...",
     "ready": "Report generated successfully"
+  },
+  "studentsExcel": {
+    "button": "Export Students to Excel",
+    "exporting": "Exporting Excel…",
+    "empty": "No matching students to export",
+    "failed": "Could not export field training students",
+    "success": "Excel file exported successfully"
   },
   "states": {
     "emptyReviewer": "No reports are available within your authorized scope yet.",

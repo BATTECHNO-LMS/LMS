@@ -163,6 +163,7 @@ async function exportUniversityReportExcel(report, options = {}) {
       'المشرف',
       'حالة الطلب',
       'حالة التدريب',
+      'تقدم المهمات',
       'الحضور %',
       'ساعات مطلوبة',
       'ساعات منجزة',
@@ -171,6 +172,7 @@ async function exportUniversityReportExcel(report, options = {}) {
       'إنجاز المهام %',
       'قبلي',
       'بعدي',
+      'حالة التقييم البعدي',
       'التقدم %',
       'الأهلية',
       'الشهادة',
@@ -184,6 +186,7 @@ async function exportUniversityReportExcel(report, options = {}) {
       row.instructor_name,
       row.application_status_label || row.application_status,
       row.training_status_label || row.training_status,
+      row.task_progress?.display || '',
       row.attendance_percentage,
       row.required_training_hours,
       row.completed_training_hours,
@@ -192,6 +195,7 @@ async function exportUniversityReportExcel(report, options = {}) {
       row.task_completion,
       row.pre_assessment_score,
       row.post_assessment_score,
+      row.post_assessment_attempt_status_label || '',
       row.progress_percentage,
       row.eligibility_status_label || row.eligibility_status,
       row.completion_letter_status_label || row.completion_letter_status,
@@ -199,7 +203,7 @@ async function exportUniversityReportExcel(report, options = {}) {
   );
   if (students.length) {
     const last = students.length + 1;
-    studentsWs.getCell(`I${last + 1}`).value = { formula: `IF(COUNTA(I2:I${last})=0,"${metrics.NA}",AVERAGE(I2:I${last}))` };
+    studentsWs.getCell(`J${last + 1}`).value = { formula: `IF(COUNTA(J2:J${last})=0,"${metrics.NA}",AVERAGE(J2:J${last}))` };
     studentsWs.getCell(`A${last + 1}`).value = 'متوسط الحضور (مرجعي للعرض)';
   }
 
@@ -425,6 +429,7 @@ async function exportStudentReportExcel(report) {
     ['ساعات منجزة', exec.completed_hours],
     ['ساعات مطلوبة', exec.required_hours],
     ['إنجاز المهام', exec.tasks_required ? exec.task_completion : metrics.NOT_REQUIRED],
+    ['تقدم المهمات', exec.task_progress?.display || metrics.NOT_REQUIRED],
     ['نتيجة الاختبار', exec.assessment_result],
     ['حالة التدريب', exec.training_status_label],
     ['الشهادة', exec.certificate_status_label],
@@ -438,6 +443,7 @@ async function exportStudentReportExcel(report) {
     ['النهاية', dates.formatReportDate(opp.end_date)],
     ['حالة الطلب', labels.labelOf(labels.APPLICATION_STATUS_AR, report.application?.status)],
     ['حالة التدريب', labels.labelOf(labels.TRAINING_STATUS_AR, report.application?.training_status)],
+    ['تقدم المهمات', report.application?.task_progress?.display || exec.task_progress?.display || ''],
   ]);
 
   addTableSheet(

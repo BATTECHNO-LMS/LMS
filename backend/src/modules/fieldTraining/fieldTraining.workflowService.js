@@ -13,11 +13,13 @@ const workflow = require('./fieldTraining.workflow');
 const aiService = require('./fieldTraining.ai.service');
 const progressBuilder = require('./fieldTraining.progress');
 const hoursMod = require('./fieldTraining.hours');
+const taskProgress = require('./fieldTraining.taskProgress');
 const {
   gradeAnswers,
   prepareQuestionForStorage,
   validateAssessmentQuestions,
 } = require('./fieldTraining.assessmentQuestions');
+const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
 const {
   buildHoursSummary,
   validateCompletedHoursReplacement,
@@ -401,6 +403,36 @@ async function publishAssessment(opportunityId, type, userId, user) {
   return { ok: true };
 }
 
+function mapStudentAttempt(attempt, settings = null) {
+  if (!attempt) return null;
+  const status = standardizedPost.resolveAttemptStatus(attempt, attempt.score);
+  return {
+    id: attempt.id,
+    score: attempt.score != null ? Number(attempt.score) : null,
+    max_score: attempt.max_score != null ? Number(attempt.max_score) : null,
+    level: attempt.level,
+    submitted_at: attempt.submitted_at,
+    started_at: attempt.created_at,
+    answers: attempt.submitted_at ? undefined : attempt.answers ?? {},
+    attempt_status: status.key,
+    attempt_status_label: status.label_ar,
+    remaining_seconds: attempt.submitted_at
+      ? 0
+      : standardizedPost.remainingSeconds(attempt.created_at, settings?.duration_minutes),
+  };
+}
+
+function assertRequiredAnswers(questions, answers) {
+  for (const q of questions || []) {
+    if (q.is_required === false) continue;
+    const v = answers?.[q.id];
+    const empty = v == null || v === '' || (Array.isArray(v) && v.length === 0);
+    if (empty) {
+      throw new ApiError(400, 'يجب الإجابة عن جميع الأسئلة قبل التسليم');
+    }
+  }
+}
+
 async function getStudentAssessment(opportunityId, type, studentId) {
   const opp = await repo.findPublishedById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
@@ -422,25 +454,118 @@ async function getStudentAssessment(opportunityId, type, studentId) {
     throw new ApiError(404, 'التقييم غير منشور');
   }
 
-  const attempt = await repo.findAssessmentAttempt(assessment.id, app.id);
+  const mappedAssessment = repo.mapAssessmentRow(assessment);
+  const settings = mappedAssessment.settings;
+  standardizedPost.assertAssessmentWindow(settings);
+
+  let attempt = await repo.findAssessmentAttempt(assessment.id, app.id);
+  if (attempt?.submitted_at) {
+    return {
+      assessment: {
+        ...mappedAssessment,
+        questions: assessment.field_training_assessment_questions.map(repo.mapAssessmentQuestionRow),
+      },
+      attempt: mapStudentAttempt(attempt, settings),
+    };
+  }
+
+  if (
+    attempt &&
+    settings?.duration_minutes &&
+    standardizedPost.remainingSeconds(attempt.created_at, settings.duration_minutes) === 0
+  ) {
+    const submitted = await submitAssessment(opportunityId, type, attempt.answers || {}, studentId, {
+      skipRequiredCheck: true,
+    });
+    return {
+      assessment: {
+        ...mappedAssessment,
+        questions: assessment.field_training_assessment_questions.map(repo.mapAssessmentQuestionRow),
+      },
+      attempt: submitted.attempt,
+    };
+  }
+
+  if (!attempt && settings?.duration_minutes) {
+    attempt = await repo.saveAssessmentDraftAttempt({
+      assessment_id: assessment.id,
+      application_id: app.id,
+      student_id: studentId,
+      answers: {},
+    });
+  }
+
+  const questions = standardizedPost.shuffleQuestionsForStudent(
+    assessment.field_training_assessment_questions.map(repo.mapAssessmentQuestionRow),
+    {
+      studentId,
+      assessmentId: assessment.id,
+      shuffleQuestions: settings?.shuffle_questions === true,
+      shuffleOptions: settings?.shuffle_options === true,
+    }
+  );
+
   return {
     assessment: {
-      ...repo.mapAssessmentRow(assessment, { includeQuestions: true }),
-      questions: assessment.field_training_assessment_questions.map(repo.mapAssessmentQuestionRow),
+      ...mappedAssessment,
+      questions,
     },
-    attempt: attempt
-      ? {
-          id: attempt.id,
-          score: attempt.score != null ? Number(attempt.score) : null,
-          max_score: attempt.max_score != null ? Number(attempt.max_score) : null,
-          level: attempt.level,
-          submitted_at: attempt.submitted_at,
-        }
-      : null,
+    attempt: mapStudentAttempt(attempt, settings),
   };
 }
 
-async function submitAssessment(opportunityId, type, answers, studentId) {
+async function saveAssessmentProgress(opportunityId, type, answers, studentId) {
+  const opp = await repo.findPublishedById(opportunityId);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+
+  const app = await repo.findApplicationByOpportunityAndStudent(opportunityId, studentId);
+  if (!app || app.status !== 'approved' || workflow.isExpelled(app)) {
+    throw new ApiError(403, 'غير مصرح');
+  }
+
+  if (type === 'pre' && !workflow.canTakePreAssessment(app, opp)) {
+    throw new ApiError(403, 'التقييم القبلي غير متاح');
+  }
+  if (type === 'post' && !workflow.canTakePostAssessment(app, opp)) {
+    throw new ApiError(403, 'التقييم البعدي غير متاح');
+  }
+
+  const assessment = await repo.findAssessmentByOpportunityAndType(opportunityId, type);
+  if (!assessment || assessment.status !== 'published') {
+    throw new ApiError(404, 'التقييم غير منشور');
+  }
+
+  const settings = repo.mapAssessmentRow(assessment).settings;
+  standardizedPost.assertAssessmentWindow(settings);
+
+  const existing = await repo.findAssessmentAttempt(assessment.id, app.id);
+  if (existing?.submitted_at) {
+    throw new ApiError(409, 'تم تسليم التقييم مسبقًا');
+  }
+
+  const attempt = await repo.saveAssessmentDraftAttempt({
+    assessment_id: assessment.id,
+    application_id: app.id,
+    student_id: studentId,
+    answers: answers || {},
+  });
+  const status = standardizedPost.resolveAttemptStatus(attempt);
+  return {
+    attempt: {
+      id: attempt.id,
+      submitted_at: null,
+      started_at: attempt.created_at,
+      attempt_status: status.key,
+      attempt_status_label: status.label_ar,
+      remaining_seconds: standardizedPost.remainingSeconds(
+        attempt.created_at,
+        settings?.duration_minutes
+      ),
+    },
+  };
+}
+
+async function submitAssessment(opportunityId, type, answers, studentId, options = {}) {
   const opp = await repo.findPublishedById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
 
@@ -464,6 +589,14 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
   const existing = await repo.findAssessmentAttempt(assessment.id, app.id);
   if (existing?.submitted_at) {
     throw new ApiError(409, 'تم تسليم التقييم مسبقًا');
+  }
+
+  const settings = repo.mapAssessmentRow(assessment).settings;
+  if (!options.skipWindowCheck) {
+    standardizedPost.assertAssessmentWindow(settings);
+  }
+  if (!options.skipRequiredCheck) {
+    assertRequiredAnswers(assessment.field_training_assessment_questions, answers);
   }
 
   const { scorePoints, maxPoints, scorePercent, questionResults } = gradeAnswers(
@@ -548,6 +681,12 @@ async function submitAssessment(opportunityId, type, answers, studentId) {
       submitted_at: now,
       grading_details: questionResults,
       has_pending_manual: questionResults.some((r) => r.gradingStatus === 'pending_manual'),
+      attempt_status: questionResults.some((r) => r.gradingStatus === 'pending_manual')
+        ? standardizedPost.ATTEMPT_STATUS.submitted.key
+        : standardizedPost.ATTEMPT_STATUS.graded.key,
+      attempt_status_label: questionResults.some((r) => r.gradingStatus === 'pending_manual')
+        ? standardizedPost.ATTEMPT_STATUS.submitted.label_ar
+        : standardizedPost.ATTEMPT_STATUS.graded.label_ar,
     },
   };
 }
@@ -1093,17 +1232,21 @@ async function getApplicationProgress(applicationId, user) {
   const findAttempt = (type) =>
     attempts.find((a) => a.field_training_assessments?.type === type) || null;
 
-  const mapAttempt = (attempt) =>
-    attempt
-      ? {
-          attempt_id: attempt.id,
-          assessment_id: attempt.assessment_id,
-          score: attempt.score != null ? Number(attempt.score) : null,
-          max_score: attempt.max_score != null ? Number(attempt.max_score) : null,
-          level: attempt.level ?? null,
-          submitted_at: attempt.submitted_at ?? null,
-        }
-      : null;
+  const mapAttempt = (attempt) => {
+    if (!attempt) return null;
+    const status = standardizedPost.resolveAttemptStatus(attempt, attempt.score);
+    return {
+      attempt_id: attempt.id,
+      assessment_id: attempt.assessment_id,
+      score: attempt.score != null ? Number(attempt.score) : null,
+      max_score: attempt.max_score != null ? Number(attempt.max_score) : null,
+      level: attempt.level ?? null,
+      submitted_at: attempt.submitted_at ?? null,
+      started_at: attempt.created_at ?? null,
+      attempt_status: status.key,
+      attempt_status_label: status.label_ar,
+    };
+  };
 
   const preAttempt = mapAttempt(findAttempt('pre'));
   const postAttempt = mapAttempt(findAttempt('post'));
@@ -1138,6 +1281,9 @@ async function getApplicationProgress(applicationId, user) {
     excused_count: attendanceCounts.excused,
     pending_reviews: pendingReviews,
     sessions_attended: attendanceCounts.present + attendanceCounts.late,
+    post_assessment_attempt_status: postAttempt?.attempt_status ?? standardizedPost.ATTEMPT_STATUS.not_started.key,
+    post_assessment_attempt_status_label:
+      postAttempt?.attempt_status_label ?? standardizedPost.ATTEMPT_STATUS.not_started.label_ar,
   };
 
   const profile = profiles[0] || null;
@@ -1470,18 +1616,31 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
     opp.required_training_hours
   );
 
+  const taskProgressRow = await taskProgress.calculateTaskProgressForApplication(app, {
+    opportunity: opp,
+  });
+
+  const progress = progressBuilder.buildParticipantProgress(app, opp, {
+    sessionsCount,
+    requiredSessionsCount: requiredSessions.length,
+    sessionsAttended,
+    attendanceRecordsCount,
+    tasksCount,
+    tasksSubmitted,
+    preAssessmentPublished,
+    postAssessmentPublished,
+    hoursProgress,
+  });
+  progress.task_progress = taskProgressRow;
+  if (progress.metrics) {
+    progress.metrics.required_tasks_count = taskProgressRow?.total_required ?? 0;
+    progress.metrics.submitted_required_tasks_count = taskProgressRow?.submitted_required ?? 0;
+    progress.metrics.task_progress_status = taskProgressRow?.status ?? null;
+    progress.metrics.task_progress_display = taskProgressRow?.display ?? null;
+  }
+
   return {
-    progress: progressBuilder.buildParticipantProgress(app, opp, {
-      sessionsCount,
-      requiredSessionsCount: requiredSessions.length,
-      sessionsAttended,
-      attendanceRecordsCount,
-      tasksCount,
-      tasksSubmitted,
-      preAssessmentPublished,
-      postAssessmentPublished,
-      hoursProgress,
-    }),
+    progress,
     hours: hoursProgress,
     completion_letter_id: letter?.id ?? null,
   };
@@ -1619,23 +1778,37 @@ async function listStudentAssessments(opportunityId, studentId) {
   const attemptByAssessment = Object.fromEntries(attempts.map((x) => [x.assessment_id, x]));
 
   return {
-    assessments: visible.map((a) => ({
-      id: a.id,
-      type: a.type,
-      title: a.title,
-      status: a.status,
-      attempt: attemptByAssessment[a.id]
-        ? {
-            score: attemptByAssessment[a.id].score != null ? Number(attemptByAssessment[a.id].score) : null,
-            level: attemptByAssessment[a.id].level,
-            submitted_at: attemptByAssessment[a.id].submitted_at,
-          }
-        : null,
-      can_take:
+    assessments: visible.map((a) => {
+      const attempt = attemptByAssessment[a.id] || null;
+      const mapped = repo.mapAssessmentRow(a);
+      const status = standardizedPost.resolveAttemptStatus(attempt);
+      const canTake =
         a.type === 'pre'
           ? workflow.canTakePreAssessment(app, opp)
-          : workflow.canTakePostAssessment(app, opp),
-    })),
+          : workflow.canTakePostAssessment(app, opp);
+      return {
+        id: a.id,
+        type: a.type,
+        title: a.title,
+        status: a.status,
+        description: mapped.description,
+        settings: mapped.settings,
+        student_instructions: mapped.student_instructions,
+        attempt: attempt
+          ? {
+              score: attempt.score != null ? Number(attempt.score) : null,
+              level: attempt.level,
+              submitted_at: attempt.submitted_at,
+              started_at: attempt.created_at,
+              attempt_status: status.key,
+              attempt_status_label: status.label_ar,
+            }
+          : null,
+        attempt_status: status.key,
+        attempt_status_label: status.label_ar,
+        can_take: canTake && status.key !== 'submitted' && status.key !== 'graded',
+      };
+    }),
   };
 }
 
@@ -1704,6 +1877,7 @@ module.exports = {
   updateAssessmentById,
   publishAssessmentById,
   getStudentAssessment,
+  saveAssessmentProgress,
   listStudentAssessments,
   submitAssessment,
   submitAssessmentById,

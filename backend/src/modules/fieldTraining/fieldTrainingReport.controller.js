@@ -1,4 +1,5 @@
 const reportService = require('./fieldTrainingReport.service');
+const studentsExcelExport = require('./fieldTrainingStudentsExport.service');
 const { success } = require('../../utils/apiResponse');
 const { recordAudit } = require('../../shared/services/audit.service');
 
@@ -90,6 +91,40 @@ async function studentsList(req, res, next) {
     const data = await reportService.listUniversityApplications(req.user, req.validated.query);
     await auditReport(req, 'report.read', data.university?.id ?? null, { type: 'field_training_students' });
     return success(res, data, { message: 'Field training students loaded' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function auditStudentsExcelExport(req, file) {
+  await auditReport(req, 'report.export', file.universityId ?? null, {
+    type: 'field_training_students_excel',
+    university_id: file.universityId ?? null,
+    opportunity_id: file.opportunityId ?? null,
+    filters: file.filters ?? null,
+    row_count: file.rowCount ?? 0,
+  });
+}
+
+async function exportStudentsExcel(req, res, next) {
+  try {
+    const file = await studentsExcelExport.exportUniversityStudentsExcel(
+      req.user,
+      req.validated.query ?? {}
+    );
+    await auditStudentsExcelExport(req, file);
+    return sendExport(res, file);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function academicExportStudentsExcel(req, res, next) {
+  try {
+    const query = reportService.withAcademicUniversity(req.user, req.validated.query ?? {});
+    const file = await studentsExcelExport.exportUniversityStudentsExcel(req.user, query);
+    await auditStudentsExcelExport(req, file);
+    return sendExport(res, file);
   } catch (e) {
     return next(e);
   }
@@ -347,6 +382,8 @@ module.exports = {
   exportGlobalExcel,
   universityReport,
   studentsList,
+  exportStudentsExcel,
+  academicExportStudentsExcel,
   studentReport,
   exportUniversityPdf,
   exportUniversityExcel,

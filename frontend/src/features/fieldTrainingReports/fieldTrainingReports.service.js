@@ -1,7 +1,11 @@
 import { apiClient } from '../../services/apiClient.js';
 import { endpoints } from '../../services/endpoints.js';
 import { unwrapApiData } from '../../services/apiHelpers.js';
-import { saveFieldTrainingSubmissionBlob } from '../fieldTraining/fieldTrainingDownload.js';
+import {
+  saveFieldTrainingSubmissionBlob,
+  parseFilename,
+  rethrowBlobApiError,
+} from '../fieldTraining/fieldTrainingDownload.js';
 
 const LEGACY_BASE = `${endpoints.reports}/field-training`;
 const ADMIN_BASE = `${endpoints.adminFieldTraining}/reports`;
@@ -38,32 +42,6 @@ function apiBase(mode = 'admin') {
   return ADMIN_BASE;
 }
 
-function parseFilename(contentDisposition, fallback) {
-  const utf = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition || '');
-  if (utf?.[1]) {
-    try {
-      return decodeURIComponent(utf[1]);
-    } catch {
-      /* use quoted filename */
-    }
-  }
-  const match = /filename="([^"]+)"/i.exec(contentDisposition || '');
-  return match?.[1] ?? fallback;
-}
-
-async function rethrowBlobApiError(err) {
-  const data = err?.response?.data;
-  if (data && typeof data.text === 'function') {
-    try {
-      const parsed = JSON.parse(await data.text());
-      err.response.data = parsed;
-    } catch {
-      /* keep original blob */
-    }
-  }
-  throw err;
-}
-
 export async function fetchFieldTrainingDashboard(params = {}, mode = 'admin') {
   const base = apiBase(mode);
   const path = usesAcademicReportApi(mode) ? `${base}/dashboard` : `${base}`;
@@ -88,6 +66,25 @@ export async function fetchFieldTrainingApplicationsReport(params = {}, mode = '
   const path = `${base}/students`;
   const res = await apiClient.get(path, { params: normalizeParams(params) });
   return unwrapApiData(res);
+}
+
+export async function exportFieldTrainingStudentsExcel(params = {}, mode = 'admin') {
+  const base = apiBase(mode);
+  const path = `${base}/students/export/excel`;
+  try {
+    const res = await apiClient.get(path, {
+      params: normalizeParams(params),
+      responseType: 'blob',
+      timeout: 120_000,
+    });
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      'طلاب_التدريب_الميداني.xlsx'
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function fetchFieldTrainingOpportunities(params = {}, mode = 'academic') {

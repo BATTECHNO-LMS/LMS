@@ -9,12 +9,19 @@ import { DataTable } from '../../../components/tables/DataTable.jsx';
 import { TableIconActions } from '../../../components/crud/TableIconActions.jsx';
 import { useTenant } from '../../../features/tenant/index.js';
 import { useAuth, resolveAuthUniversityId } from '../../../features/auth/index.js';
-import { useFieldTrainingApplicationsReport } from '../../../features/fieldTrainingReports/index.js';
+import { ROLES } from '../../../constants/roles.js';
+import {
+  exportFieldTrainingStudentsExcel,
+  useFieldTrainingApplicationsReport,
+} from '../../../features/fieldTrainingReports/index.js';
+import { studentsExcelErrorMessage } from '../../../features/fieldTraining/fieldTrainingDownload.js';
 import { FieldTrainingReportFilters, resolveReportParams } from './FieldTrainingReportFilters.jsx';
 import { FieldTrainingReportRoleBanner } from './FieldTrainingReportRoleBanner.jsx';
+import { FieldTrainingStudentsExcelButton } from './FieldTrainingStudentsExcelButton.jsx';
 import { getReportPaths, mergeReportCapabilities, usesAcademicReportApi } from './reportCapabilities.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import { TaskProgressBadge } from '../../../features/fieldTraining/TaskProgressBadge.jsx';
 
 function ProgressBar({ value }) {
   if (value == null || Number.isNaN(Number(value))) {
@@ -38,6 +45,9 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
   const { scopeId, isAllTenantsSelected } = useTenant();
   const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState('cards');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
   const [filters, setFilters] = useState(() => ({
     status: searchParams.get('status') || undefined,
     training_status: searchParams.get('training_status') || undefined,
@@ -64,6 +74,23 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
   const capabilities = mergeReportCapabilities(data?.capabilities, user, mode);
   const studentDetailBase = paths.student;
   const hubPath = paths.hub;
+  const canExportWithoutUniversity = mode === 'admin' && user?.role === ROLES.SUPER_ADMIN;
+  const exportEnabled = Boolean(params.university_id) || canExportWithoutUniversity;
+
+  async function handleExportStudents() {
+    if (!exportEnabled || exporting) return;
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(false);
+    try {
+      await exportFieldTrainingStudentsExcel(params, mode);
+      setExportSuccess(true);
+    } catch (err) {
+      setExportError(studentsExcelErrorMessage(err, t, getApiErrorMessage(err, t('studentsExcel.failed'))));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (universityMissing) {
     return (
@@ -106,6 +133,13 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                 {t('applications.table')}
               </button>
             </div>
+            <FieldTrainingStudentsExcelButton
+              onClick={handleExportStudents}
+              exporting={exporting}
+              disabled={!exportEnabled}
+              label={t('studentsExcel.button')}
+              exportingLabel={t('studentsExcel.exporting')}
+            />
           </div>
         }
       />
@@ -127,6 +161,17 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
           onChange={(e) => setFilters((prev) => ({ ...prev, search: e.target.value || undefined }))}
         />
       </label>
+
+      {exportError ? (
+        <p className="form-field__error" role="alert">
+          {exportError}
+        </p>
+      ) : null}
+      {exportSuccess && !exportError ? (
+        <p className="ft-students-excel-status ft-students-excel-status--ok" role="status">
+          {t('studentsExcel.success')}
+        </p>
+      ) : null}
 
       {params.university_id && isLoading ? <LoadingSpinner /> : null}
       {params.university_id && isError ? (
@@ -153,6 +198,16 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                 { key: 'application_status', label: t('table.applicationStatus') },
                 { key: 'training_status', label: t('table.trainingStatus') },
                 {
+                  key: 'task_progress',
+                  label: t('table.taskProgress'),
+                  render: (row) =>
+                    row.task_progress?.display ? (
+                      <TaskProgressBadge progress={row.task_progress} />
+                    ) : (
+                      '—'
+                    ),
+                },
+                {
                   key: 'progress',
                   label: t('table.progress'),
                   render: (row) => <ProgressBar value={row.hours_completion_percentage ?? row.attendance_percentage} />,
@@ -160,6 +215,14 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                 { key: 'attendance_percentage', label: t('table.attendance') },
                 { key: 'pre_assessment_score', label: t('table.preAssessment') },
                 { key: 'post_assessment_score', label: t('table.postAssessment') },
+                {
+                  key: 'post_assessment_attempt_status',
+                  label: t('table.postAssessmentStatus'),
+                  render: (row) =>
+                    row.post_assessment_attempt_status_label || row.post_assessment_score != null
+                      ? row.post_assessment_attempt_status_label || 'تم التصحيح'
+                      : 'لم يبدأ',
+                },
                 { key: 'eligibility_status', label: t('table.eligibility') },
                 { key: 'completion_letter_status', label: t('table.completionLetter') },
                 {
@@ -199,6 +262,16 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.trainingStatus')}</dt>
                       <dd>{row.training_status || '—'}</dd>
+                    </div>
+                    <div className="ft-report-detail-grid__item">
+                      <dt>{t('table.taskProgress')}</dt>
+                      <dd>
+                        {row.task_progress?.display ? (
+                          <TaskProgressBadge progress={row.task_progress} />
+                        ) : (
+                          '—'
+                        )}
+                      </dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.attendance')}</dt>

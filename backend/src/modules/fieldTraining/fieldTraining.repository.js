@@ -129,6 +129,7 @@ function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
     specialty: mapSpecialtySummary(specialtySource),
     assigned_instructor_id: row.assigned_instructor_id ?? null,
     organization_name: row.organization_name,
+    host_organization: row.host_organization ?? null,
     location: row.location,
     training_mode: row.training_mode,
     short_description: row.short_description,
@@ -442,6 +443,7 @@ async function findStudentProfilesByIds(ids) {
       id: true,
       full_name: true,
       email: true,
+      email_verified_at: true,
       phone: true,
       status: true,
       primary_university_id: true,
@@ -487,6 +489,7 @@ async function findStudentProfilesByIds(ids) {
       id: u.id,
       full_name: u.full_name,
       email: u.email,
+      email_verified_at: u.email_verified_at ?? null,
       phone: u.phone ?? null,
       status: u.status ?? null,
       primary_university_id: u.primary_university_id,
@@ -570,6 +573,7 @@ function mapTaskRow(row, { exposeStudentSubmissionAudit = false } = {}) {
     requires_ai_self_evaluation: gradingMode === 'AI',
     grading_mode: gradingMode,
     is_final_task: Boolean(row.is_final_task),
+    is_required: row.is_required !== false,
     has_instruction_file: hasInstruction,
     instruction_file_name: hasInstruction ? row.instruction_file_name : null,
     instruction_file_mime_type: hasInstruction ? row.instruction_file_mime_type : null,
@@ -1076,17 +1080,27 @@ function mapAttendanceRow(row) {
 }
 
 function mapAssessmentRow(row, { includeQuestions = false } = {}) {
+  const {
+    parseAssessmentDescription,
+    publicSettings,
+  } = require('./fieldTraining.standardizedPostAssessment');
+  const parsed = parseAssessmentDescription(row.description);
+  const settings = publicSettings(parsed.settings);
   const base = {
     id: row.id,
     opportunity_id: row.opportunity_id,
     type: row.type,
     title: row.title,
-    description: row.description,
+    description: parsed.body,
     passing_score: row.passing_score != null ? Number(row.passing_score) : null,
     status: row.status,
     created_by_id: row.created_by_id,
     created_at: row.created_at,
     updated_at: row.updated_at,
+    settings,
+    student_instructions: parsed.settings?.student_instructions ?? null,
+    objectives: parsed.settings?.objectives ?? null,
+    learning_outcomes: parsed.settings?.learning_outcomes ?? null,
   };
   if (includeQuestions && row.field_training_assessment_questions) {
     base.questions = row.field_training_assessment_questions.map(mapAssessmentQuestionRow);
@@ -1258,6 +1272,36 @@ async function replaceAssessmentQuestions(assessmentId, questions) {
 async function findAssessmentAttempt(assessmentId, applicationId) {
   return prisma.field_training_assessment_attempts.findUnique({
     where: { assessment_id_application_id: { assessment_id: assessmentId, application_id: applicationId } },
+  });
+}
+
+async function saveAssessmentDraftAttempt(data) {
+  const existing = await prisma.field_training_assessment_attempts.findUnique({
+    where: {
+      assessment_id_application_id: {
+        assessment_id: data.assessment_id,
+        application_id: data.application_id,
+      },
+    },
+  });
+  if (existing?.submitted_at) return existing;
+  return prisma.field_training_assessment_attempts.upsert({
+    where: {
+      assessment_id_application_id: {
+        assessment_id: data.assessment_id,
+        application_id: data.application_id,
+      },
+    },
+    create: {
+      assessment_id: data.assessment_id,
+      application_id: data.application_id,
+      student_id: data.student_id,
+      answers: data.answers ?? {},
+      submitted_at: null,
+    },
+    update: {
+      answers: data.answers ?? {},
+    },
   });
 }
 
@@ -1515,6 +1559,10 @@ async function findAssessmentsByOpportunity(opportunityId) {
     attempts: (r.field_training_assessment_attempts || []).map((attempt) => {
       const app = attempt.field_training_applications;
       const profile = app?.student_id ? profileById[app.student_id] : null;
+      const {
+        resolveAttemptStatus,
+      } = require('./fieldTraining.standardizedPostAssessment');
+      const status = resolveAttemptStatus(attempt, attempt.score);
       return {
         id: attempt.id,
         application_id: attempt.application_id,
@@ -1525,6 +1573,7 @@ async function findAssessmentsByOpportunity(opportunityId) {
         score: attempt.score != null ? Number(attempt.score) : null,
         level: attempt.level ?? null,
         submitted_at: attempt.submitted_at,
+        started_at: attempt.created_at ?? null,
         training_status: app?.training_status ?? null,
         completion_eligibility_status: app?.completion_eligibility_status ?? null,
         grading_details: attempt.grading_details ?? null,
@@ -1532,6 +1581,8 @@ async function findAssessmentsByOpportunity(opportunityId) {
         has_pending_manual: Array.isArray(attempt.grading_details)
           ? attempt.grading_details.some((row) => row?.gradingStatus === 'pending_manual')
           : false,
+        attempt_status: status.key,
+        attempt_status_label: status.label_ar,
       };
     }),
   }));
@@ -1763,6 +1814,7 @@ module.exports = {
   replaceAssessmentQuestions,
   findAssessmentAttempt,
   findAssessmentAttemptById,
+  saveAssessmentDraftAttempt,
   upsertAssessmentAttempt,
   updateAssessmentAttempt,
   findActiveParticipants,

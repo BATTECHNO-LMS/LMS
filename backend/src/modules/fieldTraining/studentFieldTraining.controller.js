@@ -97,6 +97,20 @@ async function getAssessment(req, res, next) {
   }
 }
 
+async function saveAssessmentProgress(req, res, next) {
+  try {
+    const data = await workflowService.saveAssessmentProgress(
+      req.validated.params.id,
+      req.validated.params.type,
+      req.validated.body.answers,
+      req.user.userId
+    );
+    return success(res, data, { message: 'Progress saved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function submitAssessment(req, res, next) {
   try {
     const data = await workflowService.submitAssessment(
@@ -245,6 +259,7 @@ module.exports = {
   listTasks,
   listSessions,
   getAssessment,
+  saveAssessmentProgress,
   submitAssessment,
   aiSelfEvaluate,
   submitTask,

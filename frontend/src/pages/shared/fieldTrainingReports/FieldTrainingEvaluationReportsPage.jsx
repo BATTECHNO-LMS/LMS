@@ -7,6 +7,7 @@ import { Button } from '../../../components/common/Button.jsx';
 import { DataTable } from '../../../components/tables/DataTable.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { StatusBadge } from '../../../components/admin/StatusBadge.jsx';
+import { TaskProgressBadge } from '../../../features/fieldTraining/TaskProgressBadge.jsx';
 import { useAuth } from '../../../features/auth/index.js';
 import { useTenant } from '../../../features/tenant/index.js';
 import { ROLES } from '../../../constants/roles.js';
@@ -115,6 +116,12 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
       },
       { key: 'attendance', label: t('page.attendance') },
       { key: 'actualHours', label: t('page.hours') },
+      {
+        key: 'taskProgress',
+        label: t('page.taskProgress'),
+        render: (row) =>
+          row.task_progress?.display ? <TaskProgressBadge progress={row.task_progress} /> : '—',
+      },
       { key: 'professionalTotal', label: t('page.professional') },
       { key: 'finalScore', label: t('page.finalScore') },
       {

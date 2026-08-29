@@ -14,6 +14,7 @@ import { StudentProgressBar } from '../../components/student/StudentProgressBar.
 import {
   trainingStatusVariant,
   applicationBadgeVariant,
+  TaskProgressBadge,
 } from '../../features/fieldTraining/index.js';
 
 function formatDate(value, locale) {
@@ -76,7 +77,10 @@ export function SemesterFieldTrainingCard({ item }) {
             {specialty ? <p className="semester-ft-card__specialty">{specialty}</p> : null}
           </div>
         </div>
-        <StudentStatusBadge variant={statusVariant}>{statusLabel}</StudentStatusBadge>
+        <div className="semester-ft-card__status">
+          <StudentStatusBadge variant={statusVariant}>{statusLabel}</StudentStatusBadge>
+          <TaskProgressBadge progress={item.task_progress} />
+        </div>
       </header>
 
       <p className="semester-ft-card__phase">{phaseMessage}</p>

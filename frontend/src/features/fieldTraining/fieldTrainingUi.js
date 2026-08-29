@@ -38,6 +38,12 @@ export function trainingStatusVariant(status) {
   return 'muted';
 }
 
+export function taskProgressVariant(status) {
+  if (status === 'completed') return 'success';
+  if (status === 'in_progress') return 'warning';
+  return 'muted';
+}
+
 export function getApplicationTabKey(status) {
   if (!status || status === 'cancelled') return 'not_applied';
   return status;

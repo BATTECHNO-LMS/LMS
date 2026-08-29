@@ -217,6 +217,13 @@
     "generating": "جاري إنشاء التقرير...",
     "ready": "تم إنشاء التقرير بنجاح"
   },
+  "studentsExcel": {
+    "button": "تصدير الطلاب Excel",
+    "exporting": "جارٍ تصدير Excel…",
+    "empty": "لا يوجد طلاب مطابقون للتصدير",
+    "failed": "تعذر تصدير طلاب التدريب الميداني",
+    "success": "تم تصدير ملف Excel بنجاح"
+  },
   "states": {
     "emptyReviewer": "لا توجد تقارير متاحة ضمن نطاق صلاحياتك حاليًا.",
     "notGenerated": "لم يتم إنشاء التقرير بعد. يرجى التواصل مع مسؤول الجامعة لإنشاء التقرير.",
@@ -253,6 +260,7 @@
     "opportunity": "الفرصة",
     "applicationStatus": "حالة الطلب",
     "trainingStatus": "حالة التدريب",
+    "taskProgress": "تقدم المهمات",
     "progress": "التقدم",
     "attendance": "الحضور %",
     "requiredHours": "ساعات مطلوبة",
@@ -262,6 +270,7 @@
     "hoursStatus": "حالة الساعات",
     "preAssessment": "قبلي",
     "postAssessment": "بعدي",
+    "postAssessmentStatus": "حالة التقييم البعدي",
     "eligibility": "الأهلية",
     "completionLetter": "كتاب الإنهاء",
     "actions": "عرض",

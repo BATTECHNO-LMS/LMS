@@ -27,6 +27,7 @@ import {
   issueCompletionLetter,
   recalculateApplicationEligibility,
   useApplicationProgress,
+  TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
@@ -200,6 +201,7 @@ export function StudentDetailDrawer({
               <StatusBadge variant="info">
                 {t(`manageHub.studentCards.journey.${journeyKey}`)}
               </StatusBadge>
+              <TaskProgressBadge progress={app.task_progress || progress?.task_progress} />
             </div>
           </div>
           <button type="button" className="btn btn--icon" onClick={onClose} aria-label={t('cancel')}>
@@ -326,10 +328,18 @@ export function StudentDetailDrawer({
                     value={metrics.sessions_attended}
                   />
                   <MetricTile label={t('manageHub.studentCards.absences')} value={metrics.absent_count} />
-                  <MetricTile label={t('manageHub.studentCards.tasksTotal')} value={metrics.tasks_count} />
+                  <MetricTile
+                    label={t('taskProgress.label')}
+                    value={
+                      app.task_progress?.display ||
+                      progress?.task_progress?.display ||
+                      metrics.task_progress_display
+                    }
+                  />
+                  <MetricTile label={t('manageHub.studentCards.tasksTotal')} value={metrics.required_tasks_count ?? metrics.tasks_count} />
                   <MetricTile
                     label={t('manageHub.studentCards.tasksSubmitted')}
-                    value={metrics.tasks_submitted}
+                    value={metrics.submitted_required_tasks_count ?? metrics.tasks_submitted}
                   />
                   <MetricTile
                     label={t('manageHub.kpi.pendingReviews')}
@@ -353,6 +363,14 @@ export function StudentDetailDrawer({
                       metrics.post_assessment_score != null
                         ? `${metrics.post_assessment_score}`
                         : null
+                    }
+                  />
+                  <MetricTile
+                    label={t('manageHub.studentCards.postAssessmentStatus')}
+                    value={
+                      assessments.post?.attempt_status_label ||
+                      metrics.post_assessment_attempt_status_label ||
+                      null
                     }
                   />
                   <MetricTile
@@ -476,6 +494,12 @@ export function StudentDetailDrawer({
                     <p>
                       {t('manageHub.studentCards.score')}:{' '}
                       {assessments.post?.score ?? metrics.post_assessment_score ?? '—'}
+                    </p>
+                    <p>
+                      {t('manageHub.studentCards.postAssessmentStatus')}:{' '}
+                      {assessments.post?.attempt_status_label ||
+                        metrics.post_assessment_attempt_status_label ||
+                        'لم يبدأ'}
                     </p>
                     <p>
                       {t('manageHub.studentCards.attemptDate')}:{' '}
