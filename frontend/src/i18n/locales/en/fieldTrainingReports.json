@@ -204,7 +204,8 @@
     "number": "Letter number",
     "issuedAt": "Issue date",
     "verificationCode": "Verification code",
-    "download": "Download letter"
+    "download": "Download completion letter",
+    "preview": "Preview completion letter"
   },
   "table": {
     "student": "Student",

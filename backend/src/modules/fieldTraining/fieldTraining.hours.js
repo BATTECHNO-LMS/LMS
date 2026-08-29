@@ -127,6 +127,50 @@ function hoursStatusLabelAr(status) {
   return '—';
 }
 
+function formatCompletedHoursLabelAr(hours) {
+  const n = toNullableInt(hours) || 0;
+  return `${n} ساعة تدريبية تم إنجازها`;
+}
+
+/**
+ * Prefer admin-recorded Model A hours when they exceed attendance-derived hours.
+ * Reports, eligibility, and the UI all read this merged surface.
+ */
+function mergeStoredHoursIntoProgress(hoursProgress, storedHoursRaw) {
+  const progress =
+    hoursProgress ||
+    buildHoursProgress({ requiredHours: null, completedMinutes: 0 });
+  const storedHours = toNullableInt(storedHoursRaw) || 0;
+  const attendanceHours = Number(progress.completed_training_hours) || 0;
+  const completedHours = Math.max(attendanceHours, storedHours);
+  const required =
+    progress.required_training_hours != null && Number.isFinite(Number(progress.required_training_hours))
+      ? Number(progress.required_training_hours)
+      : null;
+
+  if (required == null || required <= 0) {
+    return {
+      ...progress,
+      completed_training_hours: completedHours,
+    };
+  }
+
+  const remaining = Math.max(0, required - completedHours);
+  return {
+    ...progress,
+    completed_training_hours: completedHours,
+    remaining_training_hours: remaining,
+    excess_training_hours: completedHours > required ? roundHours(completedHours - required) : 0,
+    hours_completion_percentage: Math.min(100, Math.round((completedHours / required) * 10000) / 100),
+    hours_completion_status:
+      completedHours <= 0
+        ? HOURS_STATUS.NOT_STARTED
+        : completedHours >= required
+          ? HOURS_STATUS.COMPLETED
+          : HOURS_STATUS.IN_PROGRESS,
+  };
+}
+
 /**
  * Sum session durations for attended records (unique sessions).
  * @param {Array<{ status: string, field_training_sessions?: { start_time?: string, end_time?: string } | null }>} records
@@ -173,8 +217,17 @@ async function calculateCompletedTrainingMinutes(applicationId, tx = prisma) {
  * @param {number | null | undefined} requiredHours
  */
 async function calculateHoursProgressForApplication(applicationId, requiredHours, tx = prisma) {
-  const completedMinutes = await calculateCompletedTrainingMinutes(applicationId, tx);
-  return buildHoursProgress({ requiredHours, completedMinutes });
+  const [completedMinutes, app] = await Promise.all([
+    calculateCompletedTrainingMinutes(applicationId, tx),
+    tx.field_training_applications.findUnique({
+      where: { id: applicationId },
+      select: { completed_training_hours: true },
+    }),
+  ]);
+  return mergeStoredHoursIntoProgress(
+    buildHoursProgress({ requiredHours, completedMinutes }),
+    app?.completed_training_hours
+  );
 }
 
 /**
@@ -214,6 +267,16 @@ async function calculateHoursProgressForApplications(applications, requiredByOpp
     return requiredByOpportunityId?.[opportunityId] ?? null;
   };
 
+  const missingStored = applications.filter((app) => app.completed_training_hours == null);
+  let storedById = new Map(applications.map((app) => [app.id, app.completed_training_hours]));
+  if (missingStored.length) {
+    const storedRows = await tx.field_training_applications.findMany({
+      where: { id: { in: missingStored.map((app) => app.id) } },
+      select: { id: true, completed_training_hours: true },
+    });
+    for (const row of storedRows) storedById.set(row.id, row.completed_training_hours);
+  }
+
   const result = new Map();
   for (const app of applications) {
     const minutes = sumCompletedMinutesFromRecords(byApp.get(app.id) || []);
@@ -221,7 +284,13 @@ async function calculateHoursProgressForApplications(applications, requiredByOpp
       app.required_training_hours != null
         ? app.required_training_hours
         : getRequired(app.opportunity_id);
-    result.set(app.id, buildHoursProgress({ requiredHours: required, completedMinutes: minutes }));
+    result.set(
+      app.id,
+      mergeStoredHoursIntoProgress(
+        buildHoursProgress({ requiredHours: required, completedMinutes: minutes }),
+        storedById.get(app.id)
+      )
+    );
   }
   return result;
 }
@@ -325,6 +394,8 @@ module.exports = {
   toNullableInt,
   buildHoursProgress,
   buildHoursSummary,
+  mergeStoredHoursIntoProgress,
+  formatCompletedHoursLabelAr,
   hoursStatusLabelAr,
   sumCompletedMinutesFromRecords,
   calculateCompletedTrainingMinutes,

@@ -144,7 +144,7 @@ function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
     application_deadline: formatDateOnly(row.application_deadline),
     requires_pre_assessment: row.requires_pre_assessment ?? true,
     requires_post_assessment: row.requires_post_assessment ?? true,
-    requires_final_task: row.requires_final_task ?? true,
+    requires_final_task: row.requires_final_task ?? false,
     minimum_attendance_percentage: row.minimum_attendance_percentage ?? null,
     minimum_post_assessment_score:
       row.minimum_post_assessment_score != null ? Number(row.minimum_post_assessment_score) : null,

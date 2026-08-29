@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Download,
   ExternalLink,
+  Eye,
   FileText,
   Phone,
   RefreshCw,
@@ -25,6 +26,7 @@ import {
   formatFtDate,
   getOpportunitySpecialtyLabel,
   issueCompletionLetter,
+  previewAdminCompletionLetter,
   recalculateApplicationEligibility,
   useApplicationProgress,
   TaskProgressBadge,
@@ -135,6 +137,11 @@ export function StudentDetailDrawer({
     onError: (err) => setActionError(getApiErrorMessage(err)),
   });
 
+  const previewMut = useMutation({
+    mutationFn: () => previewAdminCompletionLetter(app.id, { asInstructor: isInstructor }),
+    onError: (err) => setActionError(getApiErrorMessage(err)),
+  });
+
   if (!open || !app) return null;
 
   const progress = data?.progress;
@@ -170,14 +177,16 @@ export function StudentDetailDrawer({
   const canApproveReject = !readOnly && app.status === 'pending';
   const canExpel =
     app.status === 'approved' && app.training_status !== 'expelled' && app.training_status !== 'completed';
+  const letterGate = progress?.metrics?.completion_letter_gate;
   const canIssueLetter =
     !readOnly &&
-    app.completion_eligibility_status === 'eligible' &&
+    (letterGate ? letterGate.allowed : app.completion_eligibility_status === 'eligible') &&
     !app.completion_letter_issued_at &&
     app.training_status !== 'expelled';
   const canRecalc =
     !readOnly && app.status === 'approved' && app.training_status !== 'expelled';
   const canDownloadLetter = Boolean(letter?.has_pdf || app.completion_letter_issued_at);
+  const canPreviewLetter = Boolean(letterGate?.allowed || canDownloadLetter);
 
   return (
     <div className="ft-student-drawer-root" role="presentation">
@@ -532,6 +541,13 @@ export function StudentDetailDrawer({
                       : JSON.stringify(app.eligibility_reason?.reasons || app.eligibility_reason)}
                   </p>
                 ) : null}
+                {Array.isArray(letterGate?.reasons) && letterGate.reasons.length ? (
+                  <ul className="ft-eligibility-reasons">
+                    {letterGate.reasons.map((reason) => (
+                      <li key={String(reason)}>{String(reason)}</li>
+                    ))}
+                  </ul>
+                ) : null}
                 <p>
                   {t('progress.letterIssued')}:{' '}
                   {letter || app.completion_letter_issued_at ? t('commonYes') : t('commonNo')}
@@ -589,6 +605,20 @@ export function StudentDetailDrawer({
             >
               <Award size={16} aria-hidden />
               {issueMut.isPending ? t('saving') : t('completionLetter.issue')}
+            </Button>
+          ) : null}
+          {canPreviewLetter ? (
+            <Button
+              type="button"
+              variant="outline"
+              disabled={previewMut.isPending}
+              onClick={() => {
+                setActionError('');
+                previewMut.mutate();
+              }}
+            >
+              <Eye size={16} aria-hidden />
+              {t('completionLetter.preview')}
             </Button>
           ) : null}
           {canDownloadLetter ? (

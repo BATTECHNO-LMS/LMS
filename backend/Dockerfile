@@ -11,7 +11,8 @@ RUN apk add --no-cache \
     harfbuzz \
     ca-certificates \
     ttf-freefont \
-    font-noto
+    font-noto \
+    fontconfig
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
@@ -23,6 +24,8 @@ COPY prisma ./prisma
 RUN npm ci
 
 COPY . .
+COPY assets/fonts /usr/share/fonts/sakkal
+RUN fc-cache -f || true
 
 ENV NODE_ENV=production
 ENV PORT=4000

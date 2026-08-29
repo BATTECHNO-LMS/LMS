@@ -230,8 +230,7 @@ export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
 }
 
 function parseDownloadFilename(disposition, fallback) {
-  const match = /filename="?([^"]+)"?/i.exec(disposition || '');
-  return match?.[1] ? decodeURIComponent(match[1]) : fallback;
+  return parseFilename(disposition, fallback);
 }
 
 /**
@@ -515,33 +514,73 @@ export async function submitAssessmentById(assessmentId, answers) {
 }
 
 export async function downloadCompletionLetter(applicationId) {
-  const res = await apiClient.get(`${student}/completion-letters/${applicationId}/download`, {
-    responseType: 'blob',
-  });
-  const filename = parseDownloadFilename(
-    res.headers['content-disposition'],
-    `completion-letter-${applicationId}.pdf`
-  );
-  return { blob: res.data, filename };
+  try {
+    const res = await apiClient.get(`${student}/completion-letters/${applicationId}/download`, {
+      responseType: 'blob',
+    });
+    const filename = parseFilename(res.headers['content-disposition'], `كتاب_إنهاء_التدريب.pdf`);
+    return { blob: res.data, filename };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
-export async function downloadAdminCompletionLetter(applicationId, { asInstructor = false } = {}) {
-  const base = asInstructor ? instructor : admin;
-  const res = await apiClient.get(`${base}/applications/${applicationId}/completion-letter/download`, {
-    responseType: 'blob',
-  });
-  const filename = parseDownloadFilename(
-    res.headers['content-disposition'],
-    `completion-letter-${applicationId}.pdf`
-  );
-  const blob = res.data;
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-  return { blob, filename };
+export async function previewCompletionLetter(applicationId) {
+  try {
+    const res = await apiClient.get(`${student}/completion-letters/${applicationId}/preview`, {
+      responseType: 'blob',
+    });
+    const blob = res.data;
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return { blob };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function downloadAdminCompletionLetter(
+  applicationId,
+  { asInstructor = false, asAcademic = false } = {}
+) {
+  try {
+    const base = asAcademic ? academic : asInstructor ? instructor : admin;
+    const res = await apiClient.get(`${base}/applications/${applicationId}/completion-letter/download`, {
+      responseType: 'blob',
+    });
+    const filename = parseFilename(res.headers['content-disposition'], `كتاب_إنهاء_التدريب.pdf`);
+    const blob = res.data;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    return { blob, filename };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function previewAdminCompletionLetter(
+  applicationId,
+  { asInstructor = false, asAcademic = false } = {}
+) {
+  try {
+    const base = asAcademic ? academic : asInstructor ? instructor : admin;
+    const res = await apiClient.get(`${base}/applications/${applicationId}/completion-letter/preview`, {
+      responseType: 'blob',
+    });
+    const blob = res.data;
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return { blob };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function gradeAssessmentAttempt(attemptId, body, { asInstructor = false } = {}) {

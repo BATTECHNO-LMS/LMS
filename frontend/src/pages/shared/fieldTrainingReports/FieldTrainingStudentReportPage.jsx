@@ -1,6 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileDown, FileSpreadsheet, Printer } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Printer, Download, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AdminPageHeader } from '../../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../../components/admin/SectionCard.jsx';
@@ -16,6 +16,11 @@ import { getReportPaths, mergeReportCapabilities } from './reportCapabilities.js
 import { useAuth } from '../../../features/auth/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import {
+  downloadAdminCompletionLetter,
+  previewAdminCompletionLetter,
+} from '../../../features/fieldTraining/index.js';
+import { Button } from '../../../components/common/Button.jsx';
 
 function DetailGrid({ items }) {
   return (
@@ -36,7 +41,8 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
   const { user } = useAuth();
   const [exporting, setExporting] = useState(null);
   const [exportError, setExportError] = useState(null);
-  const [tab, setTab] = useState('summary');
+  const [letterBusy, setLetterBusy] = useState('');
+  const [letterError, setLetterError] = useState('');
   const paths = getReportPaths(basePath, mode);
 
   const { data, isLoading, isError, error } = useFieldTrainingStudentReport(applicationId, {
@@ -384,12 +390,56 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
                 [t('letter.verificationCode'), letter.verification_code],
               ]}
             />
-            {letter.pdf_url ? (
-              <p>
-                <a href={letter.pdf_url} target="_blank" rel="noopener noreferrer" className="btn btn--outline btn--sm">
+            {letterError ? <p className="form-field__error">{letterError}</p> : null}
+            {letter.issued || letter.has_pdf || data?.completion_eligibility?.status === 'eligible' ? (
+              <div className="ft-completion-card__actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--sm"
+                  disabled={Boolean(letterBusy)}
+                  onClick={async () => {
+                    setLetterError('');
+                    setLetterBusy('preview');
+                    try {
+                      await previewAdminCompletionLetter(applicationId, {
+                        asAcademic: mode === 'academic' || mode === 'reviewer',
+                      });
+                    } catch (err) {
+                      setLetterError(getApiErrorMessage(err));
+                    } finally {
+                      setLetterBusy('');
+                    }
+                  }}
+                >
+                  <Eye size={16} aria-hidden />
+                  {t('letter.preview')}
+                </Button>
+                {letter.issued || letter.has_pdf ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="btn--sm"
+                  disabled={Boolean(letterBusy)}
+                  onClick={async () => {
+                    setLetterError('');
+                    setLetterBusy('download');
+                    try {
+                      await downloadAdminCompletionLetter(applicationId, {
+                        asAcademic: mode === 'academic' || mode === 'reviewer',
+                      });
+                    } catch (err) {
+                      setLetterError(getApiErrorMessage(err));
+                    } finally {
+                      setLetterBusy('');
+                    }
+                  }}
+                >
+                  <Download size={16} aria-hidden />
                   {t('letter.download')}
-                </a>
-              </p>
+                </Button>
+                ) : null}
+              </div>
             ) : null}
           </SectionCard>
           </div>

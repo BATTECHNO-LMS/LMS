@@ -14,6 +14,8 @@ const ACTIVE_TRAINING_STATUSES = new Set([
 ]);
 
 const POST_TRAINING_STATUSES = new Set([
+  'pre_assessment_completed',
+  'ready_for_training',
   'in_training',
   'task_pending',
   'task_submitted',
@@ -41,6 +43,10 @@ function canTakePreAssessment(app, opp) {
 function canTakePostAssessment(app, opp) {
   if (!app || app.status !== 'approved' || isExpelled(app)) return false;
   if (!opp?.requires_post_assessment) return false;
+  // Pre must be finished first when the opportunity requires it.
+  if (opp.requires_pre_assessment && app.training_status === 'pre_assessment_pending') {
+    return false;
+  }
   return POST_TRAINING_STATUSES.has(app.training_status);
 }
 
@@ -145,24 +151,7 @@ async function calculateFieldTrainingEligibility(applicationId) {
       applicationId,
       opp.required_training_hours
     );
-    const storedHours = hoursMod.toNullableInt(app.completed_training_hours) || 0;
-    const attendanceHours = Number(hoursProgress.completed_training_hours) || 0;
-    const completedHours = Math.max(attendanceHours, storedHours);
-    const required = Number(opp.required_training_hours);
-    const remaining = Math.max(0, required - completedHours);
-    const mergedHours = {
-      ...hoursProgress,
-      completed_training_hours: completedHours,
-      remaining_training_hours: remaining,
-      excess_training_hours: completedHours > required ? Math.round((completedHours - required) * 100) / 100 : 0,
-      hours_completion_percentage: Math.min(100, Math.round((completedHours / required) * 10000) / 100),
-      hours_completion_status:
-        completedHours <= 0
-          ? hoursMod.HOURS_STATUS.NOT_STARTED
-          : completedHours >= required
-            ? hoursMod.HOURS_STATUS.COMPLETED
-            : hoursMod.HOURS_STATUS.IN_PROGRESS,
-    };
+    const mergedHours = hoursProgress;
     details.training_hours = mergedHours;
     if (mergedHours.hours_completion_status !== hoursMod.HOURS_STATUS.COMPLETED) {
       reasons.push('training_hours_incomplete');
@@ -221,12 +210,19 @@ async function persistEligibility(applicationId) {
     ineligible: 'ineligible',
     needs_review: 'needs_review',
   };
+  const current = await prisma.field_training_applications.findUnique({
+    where: { id: applicationId },
+    select: { training_status: true },
+  });
+  const terminal = ['completed', 'expelled', 'failed'].includes(current?.training_status);
   await prisma.field_training_applications.update({
     where: { id: applicationId },
     data: {
       completion_eligibility_status: statusMap[result.outcome],
       eligibility_reason: { reasons: result.reasons, details: result.details },
-      ...(result.outcome === 'eligible' ? { training_status: 'eligible_for_completion' } : {}),
+      ...(result.outcome === 'eligible' && !terminal
+        ? { training_status: 'eligible_for_completion' }
+        : {}),
     },
   });
   return result;

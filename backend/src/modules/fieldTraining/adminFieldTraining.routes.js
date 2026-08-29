@@ -118,6 +118,14 @@ router.post(
 );
 
 router.get(
+  '/applications/:applicationId/completion-letter/preview',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.previewCompletionLetterAsManager
+);
+
+router.get(
   '/applications/:applicationId/completion-letter/download',
   authenticate,
   fieldTrainingStaff,

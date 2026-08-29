@@ -37,6 +37,7 @@ const LEARNING_OUTCOMES = Object.freeze([
 ]);
 
 const TIMEZONE = 'Asia/Amman';
+/** Open immediately for trainees (Asia/Amman). */
 const OPENS_AT = '2026-08-29T00:00:00+03:00';
 const CLOSES_AT = null;
 const DURATION_MINUTES = 40;

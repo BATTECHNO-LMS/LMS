@@ -84,6 +84,8 @@ function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress
     post_assessment_attempt_status_label: app.post_assessment_attempt_status_label || null,
     eligibility_status: app.completion_eligibility_status,
     completion_eligibility_status: app.completion_eligibility_status,
+    completed_training_hours:
+      app.completed_training_hours != null ? Number(app.completed_training_hours) : 0,
     completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
     submitted_at: app.created_at,
     created_at: app.created_at,

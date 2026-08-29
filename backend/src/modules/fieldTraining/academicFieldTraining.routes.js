@@ -3,6 +3,7 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const reportController = require('./fieldTrainingReport.controller');
+const workflowController = require('./fieldTraining.workflow.controller');
 const {
   reportFiltersSchema,
   applicationIdParamSchema,
@@ -86,6 +87,20 @@ router.get(
   academicRoles,
   validateRequest({ query: reportFiltersSchema }),
   reportController.academicExportStudentsExcel
+);
+router.get(
+  '/applications/:applicationId/completion-letter/preview',
+  authenticate,
+  academicRoles,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.previewCompletionLetterAsAcademic
+);
+router.get(
+  '/applications/:applicationId/completion-letter/download',
+  authenticate,
+  academicRoles,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.downloadCompletionLetterAsAcademic
 );
 router.get(
   '/reports/students/:applicationId',

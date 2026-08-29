@@ -183,7 +183,7 @@ async function mapBodyToCreateData(body) {
     application_deadline: repo.toDateOnly(body.application_deadline),
     requires_pre_assessment: body.requires_pre_assessment ?? true,
     requires_post_assessment: body.requires_post_assessment ?? true,
-    requires_final_task: body.requires_final_task ?? true,
+    requires_final_task: body.requires_final_task ?? false,
     minimum_attendance_percentage: body.minimum_attendance_percentage ?? null,
     minimum_post_assessment_score: body.minimum_post_assessment_score ?? null,
     completion_rules: body.completion_rules ?? null,
@@ -1506,7 +1506,13 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     },
   });
 
-  const appUpdate = { training_status: 'task_submitted' };
+  const opp = await repo.findById(task.opportunity_id);
+  const appUpdate = {
+    training_status:
+      opp?.requires_post_assessment && app.post_assessment_score == null
+        ? 'post_assessment_pending'
+        : 'task_submitted',
+  };
   if (task.is_final_task) {
     appUpdate.final_task_status = gradingMode === 'NONE' ? 'approved' : 'submitted';
   }
@@ -1515,8 +1521,6 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
   if (task.is_final_task && gradingMode === 'NONE') {
     await workflow.persistEligibility(app.id);
   }
-
-  const opp = await repo.findById(task.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds([studentId]);
   await ftNotify.notifyFieldTrainingTaskSubmitted({
     opportunityId: task.opportunity_id,
@@ -1699,7 +1703,7 @@ async function listOpportunityEligibility(opportunityId, user) {
         opp.required_training_hours != null ? Number(opp.required_training_hours) : null,
       minimum_post_assessment_score:
         opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
-      requires_final_task: opp.requires_final_task ?? true,
+      requires_final_task: opp.requires_final_task ?? false,
       requires_post_assessment: opp.requires_post_assessment ?? true,
     },
     participants,

@@ -805,7 +805,11 @@
   },
   "completionLetter": {
     "issue": "Issue completion letter",
-    "download": "Download letter"
+    "download": "Download completion letter",
+    "preview": "Preview completion letter",
+    "notReadyTitle": "Not ready for a completion letter",
+    "notEligible": "Eligibility status is not Eligible.",
+    "hoursShort": "Completed hours ({{hours}}) are below {{min}} training hours."
   },
   "selfEval": {
     "title": "Self-evaluate before submit",
@@ -1000,6 +1004,8 @@
       "notPublished": "Assessment not published by administration yet.",
       "noneRequired": "This training does not require pre/post assessments.",
       "notReady": "Assessment is not ready yet.",
+      "postLockedUntilReady": "Complete the pre-assessment first to unlock the post-assessment.",
+      "preLocked": "The pre-assessment is not available yet.",
       "score": "Score",
       "statusNotStarted": "Not started",
       "statusInProgress": "In progress",
@@ -1033,6 +1039,7 @@
       "issuedAt": "Issued on",
       "download": "Download completion letter",
       "downloading": "Downloading…",
+      "previewing": "Opening preview…",
       "downloadError": "Could not download letter",
       "awaitingIssue": "You are eligible — awaiting letter issuance by administration.",
       "pending": "The completion letter will be issued after requirements are met and reviewed by administration."

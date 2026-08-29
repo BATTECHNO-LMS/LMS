@@ -10,6 +10,12 @@ const CHROME_CANDIDATES = [
   process.env.PUPPETEER_EXECUTABLE_PATH,
   process.env.CHROME_PATH,
   process.env.GOOGLE_CHROME_BIN,
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
+  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
 ].filter(Boolean);
 
 function resolveChromeExecutable() {
@@ -96,6 +102,33 @@ async function renderHtmlToPdfOnce(html, options = {}) {
     await page.emulateMediaType('print');
     await page.setContent(String(html || ''), { waitUntil: 'domcontentloaded', timeout: 20_000 });
 
+    if (options.waitForFonts || options.requiredFontFamily) {
+      try {
+        await page.evaluate(async (family) => {
+          await document.fonts.ready;
+          if (!family) return;
+          const loaded =
+            (await document.fonts.check(`18px "${family}"`)) ||
+            [...document.fonts].some((f) => String(f.family).includes(family) || String(f.family).includes('Majalla'));
+          if (!loaded) {
+            throw new Error('REQUIRED_FONT_NOT_LOADED');
+          }
+        }, options.requiredFontFamily || '');
+      } catch (err) {
+        const reason = err?.message || '';
+        if (/REQUIRED_FONT_NOT_LOADED/i.test(reason)) {
+          throw pdfFailed(
+            `تعذر إنشاء ملف PDF لأن الخط المطلوب «${options.requiredFontFamily}» لم يُحمَّل.`,
+            'required_font_not_loaded',
+            'PDF_REQUIRED_FONT_MISSING',
+            500
+          );
+        }
+        throw err;
+      }
+    }
+
+    const useHeaderFooter = options.displayHeaderFooter !== false;
     const footerNote = sanitizePdfFooterText(
       options.footerNote ||
         (lang === 'en' ? 'Internal administrative use only' : 'هذا التقرير للاستخدام الإداري الداخلي')
@@ -110,10 +143,11 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       printBackground: true,
       preferCSSPageSize: true,
       timeout: 30_000,
-      margin: { top: '14mm', right: '12mm', bottom: '18mm', left: '12mm' },
-      displayHeaderFooter: true,
-      headerTemplate: '<div></div>',
-      footerTemplate: `
+      margin: options.margin || { top: '14mm', right: '12mm', bottom: '18mm', left: '12mm' },
+      displayHeaderFooter: useHeaderFooter,
+      headerTemplate: useHeaderFooter ? '<div></div>' : undefined,
+      footerTemplate: useHeaderFooter
+        ? `
         <div style="width:100%;font-size:8px;color:#5c6675;padding:0 12mm;font-family:Tahoma,'Noto Naskh Arabic',Arial,sans-serif;direction:${isRtl ? 'rtl' : 'ltr'};">
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;">
             <span>${footerLeft}</span>
@@ -121,7 +155,8 @@ async function renderHtmlToPdfOnce(html, options = {}) {
             <span><span class="pageNumber"></span> / <span class="totalPages"></span></span>
           </div>
         </div>
-      `,
+      `
+        : undefined,
     });
 
     if (timedOut) {

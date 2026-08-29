@@ -82,7 +82,7 @@ const emptyForm = {
   application_deadline: '',
   requires_pre_assessment: true,
   requires_post_assessment: true,
-  requires_final_task: true,
+  requires_final_task: false,
   minimum_attendance_percentage: '80',
   minimum_post_assessment_score: '60',
   eligibility: [],
@@ -227,7 +227,7 @@ export function AdminFieldTrainingPage() {
       assigned_instructor_id: r.assigned_instructor_id ?? '',
       requires_pre_assessment: r.requires_pre_assessment ?? true,
       requires_post_assessment: r.requires_post_assessment ?? true,
-      requires_final_task: r.requires_final_task ?? true,
+      requires_final_task: r.requires_final_task ?? false,
       minimum_attendance_percentage:
         r.minimum_attendance_percentage != null ? String(r.minimum_attendance_percentage) : '',
       minimum_post_assessment_score:

@@ -165,6 +165,14 @@ router.post(
 );
 
 router.get(
+  '/completion-letters/:applicationId/preview',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.previewOwnCompletionLetter
+);
+
+router.get(
   '/completion-letters/:applicationId/download',
   authenticate,
   studentOnly,

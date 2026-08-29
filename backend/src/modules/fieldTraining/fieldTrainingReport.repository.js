@@ -847,22 +847,25 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     ? { id: instructorRows[0].id, full_name: instructorRows[0].full_name, email: instructorRows[0].email }
     : null;
 
-  const hoursProgress = hoursMod.buildHoursProgress({
-    requiredHours: opp.required_training_hours,
-    completedMinutes: hoursMod.sumCompletedMinutesFromRecords(
-      sessions
-        .filter((session) => session.attendance)
-        .map((session) => ({
-          status: session.attendance.status,
-          session_id: session.id,
-          field_training_sessions: {
-            id: session.id,
-            start_time: session.start_time,
-            end_time: session.end_time,
-          },
-        }))
-    ),
-  });
+  const hoursProgress = hoursMod.mergeStoredHoursIntoProgress(
+    hoursMod.buildHoursProgress({
+      requiredHours: opp.required_training_hours,
+      completedMinutes: hoursMod.sumCompletedMinutesFromRecords(
+        sessions
+          .filter((session) => session.attendance)
+          .map((session) => ({
+            status: session.attendance.status,
+            session_id: session.id,
+            field_training_sessions: {
+              id: session.id,
+              start_time: session.start_time,
+              end_time: session.end_time,
+            },
+          }))
+      ),
+    }),
+    app.completed_training_hours
+  );
 
   const progress = progressBuilder.buildParticipantProgress(app, opp, {
     sessionsCount: sessions.length,
@@ -1137,7 +1140,7 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
           letter_no: letter.letter_no,
           issued_at: letter.issued_at,
           verification_code: letter.verification_code ?? null,
-          pdf_url: letter.pdf_url ?? null,
+          has_pdf: Boolean(letter.pdf_url),
           status: letter.status,
           status_label: labels.labelOf(labels.CERTIFICATE_AR, 'issued'),
         }

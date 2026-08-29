@@ -51,6 +51,23 @@ test('approved student with pre_assessment_pending can take pre-assessment only'
   assert.strictEqual(workflow.canAccessTrainingContent(app), false);
 });
 
+test('approved student after pre can take post assessment', () => {
+  const app = {
+    status: 'approved',
+    training_status: 'pre_assessment_completed',
+    expelled_at: null,
+  };
+  const opp = { requires_pre_assessment: true, requires_post_assessment: true };
+  assert.strictEqual(workflow.canTakePreAssessment(app, opp), false);
+  assert.strictEqual(workflow.canTakePostAssessment(app, opp), true);
+});
+
+test('post_assessment_pending student can take post assessment', () => {
+  const app = { status: 'approved', training_status: 'post_assessment_pending', expelled_at: null };
+  const opp = { requires_pre_assessment: true, requires_post_assessment: true };
+  assert.strictEqual(workflow.canTakePostAssessment(app, opp), true);
+});
+
 test('buildParticipantProgress shows pre-assessment as next action when pending', () => {
   const app = {
     id: '00000000-0000-4000-8000-000000000099',

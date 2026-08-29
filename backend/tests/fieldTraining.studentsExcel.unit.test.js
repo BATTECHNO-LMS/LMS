@@ -150,6 +150,12 @@ describe('field training students excel mapping', () => {
     assert.equal(tasksDone.taskProgress, '8 / 8 — أكمل المهمات');
   });
 
+  it('maps completed hours to the Arabic completed-hours label', () => {
+    const row = mapStudentExcelRow(source({ completed_training_hours: 140, eligibility_status: 'eligible' }), 0);
+    assert.equal(row.completedHoursLabel, '140 ساعة تدريبية تم إنجازها');
+    assert.equal(row.eligibilityStatus, 'مؤهل');
+  });
+
   it('keeps different opportunities for the same student as separate rows', () => {
     const rows = [
       mapStudentExcelRow(source({ opportunity_title: 'فرصة أ', application_id: APP_A }), 0),
@@ -197,7 +203,8 @@ describe('field training students excel workbook', () => {
     const uniCell = ws.getRow(2).getCell(UNIVERSITY_NUMBER_COL);
     assert.equal(String(uniCell.value), '01234567');
     assert.equal(uniCell.numFmt, '@');
-    assert.equal(ws.getRow(3).getCell(16).value, 'راسب');
+    assert.equal(ws.getRow(3).getCell(17).value, 'راسب');
+    assert.equal(ws.getRow(1).getCell(16).value, 'الساعات التدريبية المنجزة');
     assert.equal(ws.views?.[0]?.rightToLeft, true);
     assert.equal(file.rowCount, 2);
   });

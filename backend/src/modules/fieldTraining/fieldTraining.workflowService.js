@@ -5,8 +5,8 @@ const fs = require('fs');
 const { ApiError } = require('../../utils/apiError');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { env } = require('../../config/env');
-const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { assertManageOpportunityAccess, assertApplicationStudentAccess } = require('./fieldTraining.access');
+const letterMod = require('./fieldTraining.completionLetter');
 const ftNotify = require('./fieldTraining.notifications');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
@@ -980,50 +980,68 @@ function combineFileExtracedText(fileExtractions) {
   };
 }
 
-function buildCompletionLetterHtml(data) {
-  return `<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8"/>
-<style>
-  body { font-family: Tajawal, 'IBM Plex Sans Arabic', sans-serif; color: #1a2332; margin: 0; padding: 24px; }
-  .header { text-align: center; border-bottom: 3px solid #0d4f8b; padding-bottom: 16px; margin-bottom: 24px; }
-  .brand { font-size: 22px; font-weight: 700; color: #0d4f8b; }
-  h1 { font-size: 20px; margin: 16px 0; }
-  .meta { margin: 12px 0; line-height: 1.8; }
-  .footer { margin-top: 40px; font-size: 12px; color: #5c6675; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div class="brand">BATTECHNO LMS</div>
-    <h1>كتاب إنهاء التدريب الميداني</h1>
-    <div>رقم الكتاب: ${data.letterNo}</div>
-  </div>
-  <div class="meta">
-    <p>نشهد بأن الطالب/ة <strong>${data.studentName}</strong></p>
-    <p>من جامعة <strong>${data.universityName || '—'}</strong> — تخصص <strong>${data.specialtyName || '—'}</strong></p>
-    <p>قد أتم/أتمت التدريب الميداني في فرصة: <strong>${data.opportunityTitle}</strong></p>
-    <p>الفترة: ${data.startDate || '—'} إلى ${data.endDate || '—'}</p>
-    <p>نسبة الحضور: ${data.attendancePct != null ? `${data.attendancePct}%` : '—'}</p>
-    <p>درجة التقييم البعدي: ${data.postScore != null ? data.postScore : '—'}</p>
-    <p>المدرب المسؤول: ${data.instructorName || '—'}</p>
-  </div>
-  <div class="footer">
-    رمز التحقق: ${data.verificationCode || '—'} · تاريخ الإصدار: ${data.issuedAt}
-  </div>
-</body>
-</html>`;
-}
-
-async function issueCompletionLetter(applicationId, userId, user) {
+async function loadCompletionLetterContext(applicationId) {
   const app = await repo.findApplicationById(applicationId);
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = await repo.findById(app.opportunity_id);
-  await assertManageOpportunityAccess(user, opp);
-  await assertApplicationStudentAccess(user, app.student_id);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+  const [student] = await repo.findStudentProfilesByIds([app.student_id]);
+  if (!student) throw new ApiError(404, 'Student not found');
+  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
+    app.id,
+    opp.required_training_hours
+  );
+  return {
+    app,
+    opp,
+    mappedOpp: repo.mapOpportunityRow(opp),
+    student,
+    hoursProgress,
+    completedHours: letterMod.completedHoursOf(app, hoursProgress),
+  };
+}
 
-  if (workflow.isExpelled(app)) {
+function persistLetterPdf(applicationId, letterNo, identity, pdfBuffer) {
+  const relDir = path.posix.join('field-training', 'completion-letters', String(applicationId));
+  const absDir = path.join(env.UPLOAD_DIR || 'uploads', relDir);
+  fs.mkdirSync(absDir, { recursive: true });
+  const fileName = `${letterNo}-${identity}.pdf`;
+  const relPath = path.posix.join(relDir, fileName);
+  fs.writeFileSync(path.join(env.UPLOAD_DIR || 'uploads', relPath), pdfBuffer);
+  return relPath;
+}
+
+async function renderOfficialCompletionLetter(ctx, { letter, isDraft = false } = {}) {
+  const payload = letterMod.buildLetterPayload({
+    app: ctx.app,
+    opportunity: ctx.mappedOpp,
+    student: ctx.student,
+    hoursProgress: ctx.hoursProgress,
+    letter,
+    issuedAt: letter?.issued_at || new Date(),
+    isDraft,
+  });
+  const identity = letterMod.buildGenerationIdentity({
+    applicationId: payload.applicationId,
+    studentId: payload.studentId,
+    opportunityId: payload.opportunityId,
+    updatedAt: payload.updatedAt,
+  });
+  const buffer = await letterMod.renderCompletionLetterPdf(payload);
+  return {
+    buffer,
+    payload,
+    identity,
+    filename: letterMod.buildDownloadFilename(payload.studentName, payload.universityNumber),
+  };
+}
+
+async function issueCompletionLetter(applicationId, userId, user) {
+  const ctx = await loadCompletionLetterContext(applicationId);
+  await assertManageOpportunityAccess(user, ctx.opp);
+  await assertApplicationStudentAccess(user, ctx.app.student_id);
+
+  if (workflow.isExpelled(ctx.app)) {
     throw new ApiError(400, 'لا يمكن إصدار كتاب لطالب مستبعد');
   }
 
@@ -1032,71 +1050,43 @@ async function issueCompletionLetter(applicationId, userId, user) {
     throw new ApiError(409, 'تم إصدار كتاب الإنهاء مسبقًا');
   }
 
-  const eligibility = await workflow.calculateFieldTrainingEligibility(applicationId);
-  if (eligibility.outcome !== 'eligible') {
-    throw new ApiError(400, 'الطالب غير مؤهل لإصدار كتاب الإنهاء', eligibility);
-  }
-
-  const profiles = await repo.findStudentProfilesByIds([app.student_id]);
-  const student = profiles[0];
-  let instructorName = null;
-  if (opp.assigned_instructor_id) {
-    const ins = await prisma.users.findUnique({
-      where: { id: opp.assigned_instructor_id },
-      select: { full_name: true },
-    });
-    instructorName = ins?.full_name ?? null;
-  }
+  letterMod.assertLetterEligible(ctx.app, ctx.completedHours);
 
   const letterNo = `FT-${Date.now().toString(36).toUpperCase()}`;
   const verificationCode = crypto.randomBytes(16).toString('hex');
-  const issuedAt = new Date().toISOString().slice(0, 10);
-
-  const html = buildCompletionLetterHtml({
-    letterNo,
-    studentName: student?.full_name || '—',
-    universityName: student?.university?.name,
-    specialtyName: student?.specialty?.name_ar || student?.specialty?.name_en,
-    opportunityTitle: opp.title,
-    startDate: repo.mapOpportunityRow(opp).start_date,
-    endDate: repo.mapOpportunityRow(opp).end_date,
-    attendancePct: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
-    postScore: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
-    instructorName,
-    verificationCode,
-    issuedAt,
+  const issuedAt = new Date();
+  const rendered = await renderOfficialCompletionLetter(ctx, {
+    letter: { letter_no: letterNo, verification_code: verificationCode, issued_at: issuedAt },
+    isDraft: false,
   });
-
-  const pdfBuffer = await renderHtmlToPdf(html, { lang: 'ar' });
-  const relDir = path.posix.join('field-training', 'completion-letters', applicationId);
-  const absDir = path.join(env.UPLOAD_DIR || 'uploads', relDir);
-  fs.mkdirSync(absDir, { recursive: true });
-  const fileName = `${letterNo}.pdf`;
-  const relPath = path.posix.join(relDir, fileName);
-  fs.writeFileSync(path.join(env.UPLOAD_DIR || 'uploads', relPath), pdfBuffer);
+  const relPath = persistLetterPdf(applicationId, letterNo, rendered.identity, rendered.buffer);
 
   const letter = await repo.createCompletionLetter({
     application_id: applicationId,
-    student_id: app.student_id,
-    opportunity_id: opp.id,
+    student_id: ctx.app.student_id,
+    opportunity_id: ctx.opp.id,
     letter_no: letterNo,
     status: 'issued',
     issued_by_id: userId,
     pdf_url: relPath,
     verification_code: verificationCode,
-    metadata: { eligibility: eligibility.details },
+    metadata: {
+      generation_identity: rendered.identity,
+      completed_hours: ctx.completedHours,
+      university_number: rendered.payload.universityNumber,
+    },
   });
 
   await repo.updateApplication(applicationId, {
-    completion_letter_issued_at: new Date(),
+    completion_letter_issued_at: issuedAt,
     training_status: 'completed',
     completion_eligibility_status: 'eligible',
   });
 
   await ftNotify.notifyStudentCompletionLetter({
-    studentId: app.student_id,
-    opportunityId: opp.id,
-    opportunityTitle: opp.title,
+    studentId: ctx.app.student_id,
+    opportunityId: ctx.opp.id,
+    opportunityTitle: ctx.opp.title,
   });
 
   await recordAudit({
@@ -1110,10 +1100,66 @@ async function issueCompletionLetter(applicationId, userId, user) {
     letter: {
       id: letter.id,
       letter_no: letter.letter_no,
-      pdf_url: letter.pdf_url,
       verification_code: letter.verification_code,
       issued_at: letter.issued_at,
+      filename: rendered.filename,
     },
+  };
+}
+
+async function previewCompletionLetterAsManager(applicationId, user) {
+  const ctx = await loadCompletionLetterContext(applicationId);
+  await assertManageOpportunityAccess(user, ctx.opp);
+  await assertApplicationStudentAccess(user, ctx.app.student_id);
+  if (workflow.isExpelled(ctx.app)) {
+    throw new ApiError(400, 'لا يمكن معاينة كتاب لطالب مستبعد');
+  }
+  letterMod.assertLetterEligible(ctx.app, ctx.completedHours);
+  const existing = await repo.findCompletionLetterByApplication(applicationId);
+  const rendered = await renderOfficialCompletionLetter(ctx, {
+    letter: existing,
+    isDraft: !existing,
+  });
+  return {
+    buffer: rendered.buffer,
+    filename: rendered.filename,
+    identity: rendered.identity,
+    inline: true,
+  };
+}
+
+async function previewCompletionLetterAsAcademic(applicationId, user) {
+  const reportService = require('./fieldTrainingReport.service');
+  await reportService.getAcademicStudentReport(user, applicationId);
+  const ctx = await loadCompletionLetterContext(applicationId);
+  if (workflow.isExpelled(ctx.app)) {
+    throw new ApiError(400, 'لا يمكن معاينة كتاب لطالب مستبعد');
+  }
+  letterMod.assertLetterEligible(ctx.app, ctx.completedHours);
+  const existing = await repo.findCompletionLetterByApplication(applicationId);
+  const rendered = await renderOfficialCompletionLetter(ctx, {
+    letter: existing,
+    isDraft: !existing,
+  });
+  return {
+    buffer: rendered.buffer,
+    filename: rendered.filename,
+    identity: rendered.identity,
+    inline: true,
+  };
+}
+
+async function renderIssuedLetterDownload(applicationId) {
+  const ctx = await loadCompletionLetterContext(applicationId);
+  const letter = await repo.findCompletionLetterByApplication(applicationId);
+  if (!letter) throw new ApiError(404, 'Completion letter not found');
+  const rendered = await renderOfficialCompletionLetter(ctx, { letter, isDraft: false });
+  persistLetterPdf(applicationId, letter.letter_no, rendered.identity, rendered.buffer);
+  return {
+    buffer: rendered.buffer,
+    filename: rendered.filename,
+    identity: rendered.identity,
+    mimeType: 'application/pdf',
   };
 }
 
@@ -1285,6 +1331,7 @@ async function getApplicationProgress(applicationId, user) {
     post_assessment_attempt_status_label:
       postAttempt?.attempt_status_label ?? standardizedPost.ATTEMPT_STATUS.not_started.label_ar,
   };
+  letterMod.attachLetterGate(progress, app);
 
   const profile = profiles[0] || null;
 
@@ -1638,6 +1685,7 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
     progress.metrics.task_progress_status = taskProgressRow?.status ?? null;
     progress.metrics.task_progress_display = taskProgressRow?.display ?? null;
   }
+  letterMod.attachLetterGate(progress, app);
 
   return {
     progress,
@@ -1823,42 +1871,22 @@ async function downloadCompletionLetter(applicationId, studentId) {
   if (!app) throw new ApiError(404, 'Application not found');
   if (app.student_id !== studentId) throw new ApiError(403, 'Forbidden');
   if (workflow.isExpelled(app)) throw new ApiError(403, 'Forbidden');
-
   const letter = await repo.findCompletionLetterByApplicationForStudent(applicationId, studentId);
-  if (!letter?.pdf_url) throw new ApiError(404, 'Completion letter not found');
-
-  const absPath = repo.resolveSubmissionAbsolutePath(letter.pdf_url);
-  if (!repo.submissionFileExists(letter.pdf_url)) {
-    throw new ApiError(404, 'File not found');
-  }
-
-  return {
-    absPath,
-    fileName: `${letter.letter_no}.pdf`,
-    mimeType: 'application/pdf',
-  };
+  if (!letter) throw new ApiError(404, 'Completion letter not found');
+  return renderIssuedLetterDownload(applicationId);
 }
 
 async function downloadCompletionLetterAsManager(applicationId, user) {
-  const app = await repo.findApplicationById(applicationId);
-  if (!app) throw new ApiError(404, 'Application not found');
-  const opp = await repo.findById(app.opportunity_id);
-  await assertManageOpportunityAccess(user, opp);
-  await assertApplicationStudentAccess(user, app.student_id);
+  const ctx = await loadCompletionLetterContext(applicationId);
+  await assertManageOpportunityAccess(user, ctx.opp);
+  await assertApplicationStudentAccess(user, ctx.app.student_id);
+  return renderIssuedLetterDownload(applicationId);
+}
 
-  const letter = await repo.findCompletionLetterByApplication(applicationId);
-  if (!letter?.pdf_url) throw new ApiError(404, 'Completion letter not found');
-
-  const absPath = repo.resolveSubmissionAbsolutePath(letter.pdf_url);
-  if (!repo.submissionFileExists(letter.pdf_url)) {
-    throw new ApiError(404, 'File not found');
-  }
-
-  return {
-    absPath,
-    fileName: `${letter.letter_no}.pdf`,
-    mimeType: 'application/pdf',
-  };
+async function downloadCompletionLetterAsAcademic(applicationId, user) {
+  const reportService = require('./fieldTrainingReport.service');
+  await reportService.getAcademicStudentReport(user, applicationId);
+  return renderIssuedLetterDownload(applicationId);
 }
 
 module.exports = {
@@ -1891,7 +1919,10 @@ module.exports = {
   requestExpulsion,
   runTaskAiSelfEvaluate,
   issueCompletionLetter,
+  previewCompletionLetterAsManager,
+  previewCompletionLetterAsAcademic,
   downloadCompletionLetter,
   downloadCompletionLetterAsManager,
+  downloadCompletionLetterAsAcademic,
   listInstructors,
 };

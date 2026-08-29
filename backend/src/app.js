@@ -37,6 +37,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Disposition', 'X-Completion-Letter-Identity'],
   optionsSuccessStatus: 204,
 };
 
@@ -95,6 +96,9 @@ app.get('/health/ready', async (req, res) => {
   }
 });
 
+app.use('/uploads/field-training/completion-letters', (_req, res) => {
+  res.status(404).json({ message: 'Not found' });
+});
 app.use(
   '/uploads',
   authenticate,

@@ -21,11 +21,15 @@ function stepStatus(currentIdx, targetKey, order) {
   return 'pending';
 }
 
-function resolveStepIndex(trainingStatus, appStatus) {
+function resolveStepIndex(trainingStatus, appStatus, opp = null) {
   const order = Object.fromEntries(STEP_ORDER.map((s, i) => [s, i]));
   if (appStatus === 'pending') return order.application_submitted;
   if (appStatus === 'rejected' || appStatus === 'cancelled') return order.application_reviewed;
   if (trainingStatus === 'expelled' || trainingStatus === 'failed') return order.application_reviewed;
+
+  // After tasks are submitted, the current step is the post-assessment when required.
+  const taskSubmittedStep =
+    opp?.requires_post_assessment === false ? order.tasks : order.post_assessment;
 
   const map = {
     none: order.application_reviewed,
@@ -34,7 +38,7 @@ function resolveStepIndex(trainingStatus, appStatus) {
     ready_for_training: order.training_started,
     in_training: order.sessions,
     task_pending: order.tasks,
-    task_submitted: order.tasks,
+    task_submitted: taskSubmittedStep,
     post_assessment_pending: order.post_assessment,
     post_assessment_completed: order.eligibility,
     eligible_for_completion: order.eligibility,
@@ -53,7 +57,19 @@ function resolveNextAction(app, opp) {
   if (['ready_for_training', 'pre_assessment_completed'].includes(app.training_status)) {
     return { key: 'await_training_start', label_ar: 'انتظار بدء التدريب' };
   }
-  if (app.training_status === 'post_assessment_pending' && opp.requires_post_assessment) {
+  const postScoreMissing = app.post_assessment_score == null;
+  if (
+    opp?.requires_post_assessment &&
+    postScoreMissing &&
+    [
+      'post_assessment_pending',
+      'task_submitted',
+      'in_training',
+      'task_pending',
+      'pre_assessment_completed',
+      'ready_for_training',
+    ].includes(app.training_status)
+  ) {
     return { key: 'complete_post_assessment', label_ar: 'أكمل التقييم البعدي' };
   }
   if (app.completion_eligibility_status === 'eligible' && !app.completion_letter_issued_at) {
@@ -81,7 +97,7 @@ function resolveNextAction(app, opp) {
  */
 function buildParticipantProgress(app, opp, counts = {}) {
   const order = Object.fromEntries(STEP_ORDER.map((s, i) => [s, i]));
-  const currentIdx = resolveStepIndex(app.training_status, app.status);
+  const currentIdx = resolveStepIndex(app.training_status, app.status, opp);
 
   const steps = STEP_ORDER.map((key) => ({
     key,

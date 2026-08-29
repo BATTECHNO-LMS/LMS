@@ -79,10 +79,12 @@ export function StudentEligibilityTab({
                 : t('hours.notConfigured')}
             </dd>
           </div>
-          <div>
-            <dt>{t('progress.task')}</dt>
-            <dd>{t(`finalTaskStatus.${finalTask}`, finalTask)}</dd>
-          </div>
+          {aiRequired ? (
+            <div>
+              <dt>{t('progress.task')}</dt>
+              <dd>{t(`finalTaskStatus.${finalTask}`, finalTask)}</dd>
+            </div>
+          ) : null}
           <div>
             <dt>{t('progress.postScore')}</dt>
             <dd>
@@ -90,16 +92,16 @@ export function StudentEligibilityTab({
               {minPost != null ? ` / ${minPost}` : ''}
             </dd>
           </div>
-          <div>
-            <dt>{t('studentTraining.eligibilityPanel.aiCompleted')}</dt>
-            <dd>
-              {!aiRequired
-                ? t('studentTraining.eligibilityPanel.aiNotRequired')
-                : aiCompleted
+          {aiRequired ? (
+            <div>
+              <dt>{t('studentTraining.eligibilityPanel.aiCompleted')}</dt>
+              <dd>
+                {aiCompleted
                   ? t('studentTraining.eligibilityPanel.aiYes')
                   : t('studentTraining.eligibilityPanel.aiNo')}
-            </dd>
-          </div>
+              </dd>
+            </div>
+          ) : null}
         </dl>
 
         <TrainingHoursProgressCard

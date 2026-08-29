@@ -375,10 +375,17 @@ export function StudentAssessmentsTab({ opportunityId, enabled, opp }) {
             {t('studentTraining.assessment.continue')}
           </Button>
         ) : null}
-        {item.can_take && item.attempt_status !== 'in_progress' ? (
+        {item.can_take && item.attempt_status !== 'in_progress' && !item.attempt?.submitted_at ? (
           <Button type="button" variant="primary" onClick={() => setActiveType(type)}>
             {t(`studentTraining.assessment.start${type === 'pre' ? 'Pre' : 'Post'}`)}
           </Button>
+        ) : null}
+        {!item.can_take && !item.attempt?.submitted_at ? (
+          <p className="ft-assessment-card__locked">
+            {type === 'post'
+              ? t('studentTraining.assessment.postLockedUntilReady')
+              : t('studentTraining.assessment.preLocked')}
+          </p>
         ) : null}
       </article>
     );

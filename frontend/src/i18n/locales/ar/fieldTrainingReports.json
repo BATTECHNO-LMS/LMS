@@ -204,7 +204,8 @@
     "number": "رقم الكتاب",
     "issuedAt": "تاريخ الإصدار",
     "verificationCode": "رمز التحقق",
-    "download": "تنزيل الكتاب"
+    "download": "تنزيل كتاب الإنهاء",
+    "preview": "معاينة كتاب الإنهاء"
   },
   "export": {
     "pdf": "تصدير PDF",
