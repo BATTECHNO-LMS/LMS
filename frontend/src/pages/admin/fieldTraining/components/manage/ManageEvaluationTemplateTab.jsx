@@ -37,6 +37,8 @@ import {
   useUniversityDefaultEvaluationTemplate,
 } from '../../../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
+import { SupervisorAssignmentSection } from './SupervisorAssignmentSection.jsx';
+import { SupervisorStudentGroups } from './SupervisorStudentGroups.jsx';
 
 const PREVIEW_FIELDS = [
   ['student_name', 'studentName'],
@@ -434,6 +436,9 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
           </div>
         )}
       </SectionCard>
+
+      <SupervisorAssignmentSection opportunityId={opportunityId} apiScope={apiScope} />
+      <SupervisorStudentGroups opportunityId={opportunityId} apiScope={apiScope} />
 
       <SectionCard title={t('manage.incompleteCard')} className="ft-eval-incomplete">
         <p className="ft-eval-incomplete__count">

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ShieldOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../../components/common/EmptyState.jsx';
 import {
@@ -11,7 +11,6 @@ import {
   useOpportunityOverviewSummary,
   useOpportunitySubmissions,
   useOpportunitySessions,
-  issueCompletionLetter,
   fetchInstructorFieldTraining,
 } from '../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
@@ -40,7 +39,6 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
   const listBase = isInstructor ? '/instructor/field-training' : '/admin/field-training';
   const { t } = useTranslation('fieldTraining');
   const [searchParams, setSearchParams] = useSearchParams();
-  const qc = useQueryClient();
 
   const requestedTab = searchParams.get('tab') || initialTab || 'overview';
   const hiddenTabs = isInstructor ? ['completion', 'reports'] : [];
@@ -48,7 +46,7 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
   const activeTab = visibleTabs.includes(requestedTab) ? requestedTab : 'overview';
   const attendanceSessionId = searchParams.get('session') || '';
 
-  const needsApplications = ['completion'].includes(activeTab);
+  const needsApplications = false;
   const needsSessions = false;
   const needsSubmissions = false;
 
@@ -115,11 +113,6 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
     [applications]
   );
 
-  const issueMut = useMutation({
-    mutationFn: (applicationId) => issueCompletionLetter(applicationId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(id) }),
-  });
-
   function setTab(tab, extra = {}) {
     const next = new URLSearchParams(searchParams);
     next.set('tab', tab);
@@ -180,13 +173,7 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
       case 'evaluation_template':
         return <ManageEvaluationTemplateTab opportunityId={id} opportunity={opp} apiScope={apiScope} />;
       case 'completion':
-        return (
-          <ManageCompletionTab
-            applications={applications}
-            onIssueLetter={(appId) => issueMut.mutate(appId)}
-            issuePending={issueMut.isPending}
-          />
-        );
+        return <ManageCompletionTab opportunityId={id} opportunity={opp} />;
       case 'reports':
         return <ManageReportsTab opportunityId={id} />;
       default:
@@ -206,7 +193,6 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
     submissions,
     attendanceSessionId,
     t,
-    issueMut.isPending,
     apiScope,
     appsLoading,
     appsError,

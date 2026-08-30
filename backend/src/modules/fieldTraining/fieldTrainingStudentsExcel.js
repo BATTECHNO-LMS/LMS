@@ -76,7 +76,7 @@ function textOrEmpty(value) {
 
 /**
  * Map one application (+ optional current evaluation) to Excel display values.
- * Academic supervisor is always blank for manual completion after download.
+ * Academic supervisor comes from the canonical assignment, never from Excel-only text.
  */
 function mapStudentExcelRow(source, index) {
   const email = textOrEmpty(source.student_email);
@@ -84,7 +84,7 @@ function mapStudentExcelRow(source, index) {
     seq: index + 1,
     studentName: textOrEmpty(source.student_name),
     universityNumber: extractUniversityNumberFromEmail(email),
-    academicSupervisor: '',
+    academicSupervisor: textOrEmpty(source.academic_supervisor_name || source.academicSupervisor),
     email,
     specialty: textOrEmpty(source.specialty_label || source.university_specialty_label),
     university: textOrEmpty(source.university_name || source.student_university),
@@ -186,7 +186,7 @@ async function exportFieldTrainingStudentsExcel(sources, { opportunityTitle } = 
     const uniCell = excelRow.getCell(UNIVERSITY_NUMBER_COL);
     uniCell.numFmt = '@';
     if (mapped.universityNumber) uniCell.value = String(mapped.universityNumber);
-    excelRow.getCell(SUPERVISOR_COL).value = '';
+    excelRow.getCell(SUPERVISOR_COL).value = mapped.academicSupervisor || '';
     excelRow.getCell(FINAL_RESULT_COL).value = mapped.finalResult;
   });
 

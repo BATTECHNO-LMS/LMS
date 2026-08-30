@@ -245,8 +245,17 @@ function gradeQuestion(question, given) {
     };
   }
 
-  // multiple_choice
-  const ok = String(given ?? '').trim() === String(correct ?? '').trim();
+  // multiple_choice: grade by stored option text, never by visible letter or position.
+  const givenStr = given == null ? '' : String(given).trim();
+  const optionList = asStringArray(question.options);
+  if (!givenStr || (optionList.length > 0 && !optionList.includes(givenStr))) {
+    return {
+      awardedPoints: 0,
+      maxPoints: points,
+      gradingStatus: 'auto_graded',
+    };
+  }
+  const ok = Boolean(correct) && givenStr === String(correct).trim();
   return {
     awardedPoints: ok ? points : 0,
     maxPoints: points,

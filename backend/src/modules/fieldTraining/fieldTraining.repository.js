@@ -109,6 +109,8 @@ function mapApplicationRow(row) {
     expelled_by_id: row.expelled_by_id ?? null,
     expulsion_reason: row.expulsion_reason ?? null,
     completion_letter_issued_at: row.completion_letter_issued_at ?? null,
+    academic_supervisor_name: row.academic_supervisor_name || null,
+    academic_supervisor_normalized: row.academic_supervisor_normalized || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
@@ -262,6 +264,7 @@ async function findApplicationsByOpportunity(opportunityId, filters = {}) {
   if (status) where.status = status;
   if (training_status) where.training_status = training_status;
   if (studentIds) where.student_id = { in: studentIds };
+  if (filters.academicSupervisorWhere) Object.assign(where, filters.academicSupervisorWhere);
 
   return prisma.field_training_applications.findMany({
     where,

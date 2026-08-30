@@ -19,14 +19,15 @@ function summarizeZipSelection({ selected, included, missing, failed }) {
   };
 }
 
-async function buildReportsZip(entries, { mixedFolders = true, onFile } = {}) {
+async function buildReportsZip(entries, { mixedFolders = true, folderFor, onFile } = {}) {
   const zip = new JSZip();
   const used = new Set();
   const included = [];
   const failed = [];
+  const resolveFolder = folderFor || ((entry) => zipFolderForStatus(entry.finalStatus || entry.final_status));
   for (const entry of entries) {
     try {
-      const folder = zipFolderForStatus(entry.finalStatus || entry.final_status);
+      const folder = resolveFolder(entry);
       const filename = entry.filename || buildEvaluationPdfFilename({
         studentName: entry.studentName,
         universityNumber: entry.universityNumber,

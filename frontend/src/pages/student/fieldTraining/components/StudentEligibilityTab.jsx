@@ -72,10 +72,10 @@ export function StudentEligibilityTab({
             </dd>
           </div>
           <div>
-            <dt>{t('hours.required')}</dt>
+            <dt>{t('hours.completed')}</dt>
             <dd>
-              {metrics.required_training_hours != null
-                ? `${metrics.required_training_hours} / ${metrics.completed_training_hours ?? 0}`
+              {metrics.completed_training_hours != null
+                ? t('hours.completedDone', { count: metrics.completed_training_hours })
                 : t('hours.notConfigured')}
             </dd>
           </div>

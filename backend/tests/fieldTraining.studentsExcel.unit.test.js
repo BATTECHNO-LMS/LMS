@@ -85,7 +85,7 @@ describe('universityNumberFromEmail', () => {
 });
 
 describe('field training students excel mapping', () => {
-  it('keeps المشرف الأكاديمي blank on every row', () => {
+  it('keeps المشرف الأكاديمي blank unless a canonical assignment is provided', () => {
     const rows = [
       mapStudentExcelRow(source({ instructor_id: SYNTH_USER_A }), 0),
       mapStudentExcelRow(source({ application_status: 'approved', training_status: 'completed' }), 1),
@@ -93,29 +93,26 @@ describe('field training students excel mapping', () => {
     for (const row of rows) {
       assert.equal(row.academicSupervisor, '');
     }
+    const assigned = mapStudentExcelRow(
+      source({ academic_supervisor_name: 'د. خالد الطراونة' }),
+      0
+    );
+    assert.equal(assigned.academicSupervisor, 'د. خالد الطراونة');
   });
 
-  it('does not copy instructor or opportunity supervisor into the supervisor column', () => {
-    const mapped = buildExcelSource({
-      app: {
-        id: APP_A,
-        student_id: STUDENT_UUID,
-        status: 'approved',
-        training_status: 'in_training',
-        completion_eligibility_status: 'pending',
-        created_at: new Date('2026-01-01'),
-      },
-      profile: { full_name: 'طالب', email: '202312345@university.edu.jo' },
-      opportunity: {
-        title: 'فرصة',
-        organization_name: 'جهة',
-        assigned_instructor_id: SYNTH_USER_A,
-      },
-      finalStatus: null,
-    });
-    const row = mapStudentExcelRow(mapped, 0);
-    assert.equal(row.academicSupervisor, '');
-    assert.equal(mapped.instructor_id, SYNTH_USER_A);
+  it('keeps academic supervisor blank unless a canonical assignment is provided', () => {
+    const rows = [
+      mapStudentExcelRow(source({ instructor_id: SYNTH_USER_A }), 0),
+      mapStudentExcelRow(source({ application_status: 'approved', training_status: 'completed' }), 1),
+    ];
+    for (const row of rows) {
+      assert.equal(row.academicSupervisor, '');
+    }
+    const assigned = mapStudentExcelRow(
+      source({ academic_supervisor_name: 'د. خالد الطراونة', academicSupervisor: 'د. خالد الطراونة' }),
+      0
+    );
+    assert.equal(assigned.academicSupervisor, 'د. خالد الطراونة');
   });
 
   it('maps application, training, eligibility, final evaluation, and task progress labels', () => {

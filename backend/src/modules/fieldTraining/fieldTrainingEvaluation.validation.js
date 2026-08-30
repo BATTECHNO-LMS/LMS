@@ -116,6 +116,19 @@ const commentsBodySchema = z.object({
   general_comments: z.string().max(8000),
 });
 
+const supervisorGroupsQuerySchema = z.object({
+  opportunity_id: uuid,
+  search: z.string().max(200).optional(),
+  supervisor_name: z.string().max(255).optional(),
+  supervisor_normalized: z.string().max(255).optional(),
+  evaluation_status: z.enum(['generated', 'missing_file', 'not_generated']).optional(),
+});
+
+const supervisorZipBodySchema = z.object({
+  opportunity_id: uuid,
+  supervisor_normalized: z.string().max(255).optional(),
+});
+
 const regenerateBodySchema = z.object({
   regeneration_reason: z.string().max(500).optional(),
 });
@@ -134,5 +147,7 @@ module.exports = {
   generateBodySchema,
   zipBodySchema,
   commentsBodySchema,
+  supervisorGroupsQuerySchema,
+  supervisorZipBodySchema,
   regenerateBodySchema,
 };

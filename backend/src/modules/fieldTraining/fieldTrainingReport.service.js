@@ -121,6 +121,7 @@ async function assertStudentReportAccess(
   }
 
   await ftAccess.assertApplicationStudentAccess(user, app.student_id);
+  await require('./fieldTraining.supervisorScope').assertReviewerCanAccessApplication(user, app);
   return {
     app,
     opp,
@@ -193,9 +194,15 @@ async function listUniversityApplications(user, query = {}) {
     reportAccess.REPORT_ACTIONS.VIEW_REPORT
   );
   const report = await reportRepo.buildUniversityReport(universityId, query);
+  const assigned = await require('./fieldTraining.supervisorScope').loadAssignedApplicationIds(user, {
+    universityId,
+  });
+  const students = assigned
+    ? (report.students || []).filter((row) => assigned.has(row.application_id))
+    : report.students;
   return {
     university: report.university,
-    students: report.students,
+    students,
     summary: report.summary,
     capabilities,
   };

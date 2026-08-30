@@ -168,4 +168,64 @@ export async function fetchSupervisorRatings(applicationId, scope = 'admin') {
   return unwrapApiData(res);
 }
 
+export async function fetchAcademicSupervisors(opportunityId, scope = 'admin') {
+  const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/academic-supervisors`);
+  return unwrapApiData(res);
+}
+
+export async function downloadSupervisorAssignmentTemplate(opportunityId, scope = 'admin') {
+  try {
+    const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/supervisor-assignments/template`, {
+      responseType: 'blob',
+    });
+    return saveBlobResponse(res, 'supervisor-template.xlsx');
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function previewSupervisorAssignments(opportunityId, file, scope = 'admin') {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await apiClient.post(`${apiBase(scope)}/${opportunityId}/supervisor-assignments/preview`, fd, {
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
+export async function resolveSupervisorAssignments(opportunityId, body, scope = 'admin') {
+  const res = await apiClient.post(`${apiBase(scope)}/${opportunityId}/supervisor-assignments/resolve`, body);
+  return unwrapApiData(res);
+}
+
+export async function applySupervisorAssignments(opportunityId, body, scope = 'admin') {
+  const res = await apiClient.post(`${apiBase(scope)}/${opportunityId}/supervisor-assignments/apply`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchSupervisorGroups(params, scope = 'admin') {
+  const res = await apiClient.get(`${apiBase(scope)}/evaluation-reports/supervisor-groups`, { params });
+  return unwrapApiData(res);
+}
+
+export async function downloadSupervisorReportsZip(body, scope = 'admin') {
+  try {
+    const res = await apiClient.post(`${apiBase(scope)}/evaluation-reports/supervisor-zip`, body, {
+      responseType: 'blob',
+      timeout: 180000,
+    });
+    const meta = {
+      selected: Number(res.headers?.['x-zip-selected'] || 0),
+      included: Number(res.headers?.['x-zip-included'] || 0),
+      missing: Number(res.headers?.['x-zip-missing'] || 0),
+      failed: Number(res.headers?.['x-zip-failed'] || 0),
+      skipped: Number(res.headers?.['x-zip-skipped'] || 0),
+    };
+    saveBlobResponse(res, 'supervisor-reports.zip');
+    return meta;
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
 export { FINAL_STATUS_LABELS } from './evaluationLabels.js';

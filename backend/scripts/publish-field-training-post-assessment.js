@@ -38,6 +38,10 @@ function printReport(report) {
     assessments: report.assessments,
     dry_run_targets: report.dryRunTargets,
     bank: report.bank,
+    grading_check: report.gradingCheck,
+    stored_answers_ok: Array.isArray(report.assessments)
+      ? report.assessments.every((row) => row.valid !== false && row.questionCount === 25 && row.totalPoints === 100)
+      : null,
   }, null, 2));
 }
 

@@ -172,6 +172,35 @@ function mergeStoredHoursIntoProgress(hoursProgress, storedHoursRaw) {
 }
 
 /**
+ * Model A recorded hours take precedence over attendance-derived progress
+ * once an instructor/admin/backfill has written completed_training_hours.
+ */
+function hasRecordedCompletedHours(app) {
+  if (!app) return false;
+  if (app.hours_updated_at) return true;
+  const stored = toNullableInt(app.completed_training_hours);
+  return stored != null && stored > 0 && Boolean(app.hours_updated_by_id);
+}
+
+function overlayRecordedHoursProgress(app, opp, attendanceProgress) {
+  const required =
+    toNullableInt(opp?.required_training_hours) ??
+    attendanceProgress?.required_training_hours ??
+    null;
+  if (!hasRecordedCompletedHours(app)) {
+    return (
+      attendanceProgress ||
+      buildHoursProgress({ requiredHours: required, completedMinutes: 0 })
+    );
+  }
+  const stored = toNullableInt(app.completed_training_hours) || 0;
+  return buildHoursProgress({
+    requiredHours: required,
+    completedMinutes: stored * 60,
+  });
+}
+
+/**
  * Sum session durations for attended records (unique sessions).
  * @param {Array<{ status: string, field_training_sessions?: { start_time?: string, end_time?: string } | null }>} records
  */
@@ -397,6 +426,8 @@ module.exports = {
   mergeStoredHoursIntoProgress,
   formatCompletedHoursLabelAr,
   hoursStatusLabelAr,
+  hasRecordedCompletedHours,
+  overlayRecordedHoursProgress,
   sumCompletedMinutesFromRecords,
   calculateCompletedTrainingMinutes,
   calculateHoursProgressForApplication,

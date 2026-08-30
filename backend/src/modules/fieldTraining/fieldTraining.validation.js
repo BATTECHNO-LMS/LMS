@@ -138,6 +138,39 @@ const listStudentQuerySchema = z.object({
   training_mode: trainingModeSchema.optional(),
 });
 
+const listCompletionLettersQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  page_size: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().optional(),
+  issuance_status: z.enum(['issued', 'pending', 'ineligible', 'error']).optional(),
+  supervisor_id: z.string().uuid().optional(),
+  supervisor_name: z.string().max(255).optional(),
+});
+
+const bulkIssueBodySchema = z.object({
+  retry_failed_ids: z.array(z.string().uuid()).optional().default([]),
+});
+
+const jobIdParamSchema = z.object({
+  id: z.string().uuid(),
+  jobId: z.string().uuid(),
+});
+
+const applySupervisorImportBodySchema = z.object({
+  batch_id: z.string().uuid(),
+  confirm_reassignments: z.boolean().optional().default(false),
+  preview: z.any().optional(),
+});
+
+const updateAcademicSupervisorNameBodySchema = z.object({
+  academic_supervisor_name: z.string().max(255).optional().nullable(),
+});
+
+const resolveSupervisorImportBodySchema = z.object({
+  batch_id: z.string().uuid(),
+  resolutions: z.record(z.string(), z.string().uuid()),
+});
+
 const taskIdParamSchema = z.object({
   taskId: z.string().uuid(),
 });
@@ -504,4 +537,10 @@ module.exports = {
   applyBodySchema,
   reviewApplicationBodySchema,
   listStudentQuerySchema,
+  listCompletionLettersQuerySchema,
+  bulkIssueBodySchema,
+  jobIdParamSchema,
+  applySupervisorImportBodySchema,
+  resolveSupervisorImportBodySchema,
+  updateAcademicSupervisorNameBodySchema,
 };

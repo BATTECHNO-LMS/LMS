@@ -28,6 +28,7 @@ import {
   issueCompletionLetter,
   previewAdminCompletionLetter,
   recalculateApplicationEligibility,
+  updateAcademicSupervisorName,
   useApplicationProgress,
   TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
@@ -81,6 +82,7 @@ export function StudentDetailDrawer({
   const qc = useQueryClient();
   const [actionError, setActionError] = useState('');
   const [actionOk, setActionOk] = useState('');
+  const [supervisorDraft, setSupervisorDraft] = useState(app?.academic_supervisor_name || '');
 
   const {
     data,
@@ -92,6 +94,10 @@ export function StudentDetailDrawer({
     enabled: open && Boolean(app?.id),
     scope: apiScope,
   });
+
+  useEffect(() => {
+    if (open) setSupervisorDraft(app?.academic_supervisor_name || '');
+  }, [open, app?.academic_supervisor_name]);
 
   useEffect(() => {
     if (!open) {
@@ -128,6 +134,18 @@ export function StudentDetailDrawer({
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(opportunityId) });
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.applicationProgress(app.id) });
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.eligibility(opportunityId, apiScope) });
+    },
+    onError: (err) => setActionError(getApiErrorMessage(err)),
+  });
+
+  const supervisorMut = useMutation({
+    mutationFn: () =>
+      updateAcademicSupervisorName(app.id, { academic_supervisor_name: supervisorDraft }),
+    onSuccess: (result) => {
+      setActionOk(t('manageHub.studentCards.supervisorSaved'));
+      setSupervisorDraft(result?.academic_supervisor_name || '');
+      qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(opportunityId) });
+      qc.invalidateQueries({ queryKey: ['ft-supervisor-groups'] });
     },
     onError: (err) => setActionError(getApiErrorMessage(err)),
   });
@@ -187,6 +205,7 @@ export function StudentDetailDrawer({
     !readOnly && app.status === 'approved' && app.training_status !== 'expelled';
   const canDownloadLetter = Boolean(letter?.has_pdf || app.completion_letter_issued_at);
   const canPreviewLetter = Boolean(letterGate?.allowed || canDownloadLetter);
+  const canEditSupervisor = !readOnly && !isInstructor;
 
   return (
     <div className="ft-student-drawer-root" role="presentation">
@@ -244,6 +263,31 @@ export function StudentDetailDrawer({
                   <div>
                     <dt>{t('manageHub.studentCards.specialty')}</dt>
                     <dd>{studentProgram}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('manageHub.studentCards.academicSupervisor')}</dt>
+                    <dd>
+                      {canEditSupervisor ? (
+                        <form
+                          className="ft-student-drawer__supervisor-form"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            supervisorMut.mutate();
+                          }}
+                        >
+                          <input
+                            value={supervisorDraft}
+                            onChange={(e) => setSupervisorDraft(e.target.value)}
+                            placeholder={t('manageHub.studentCards.unassignedSupervisor')}
+                          />
+                          <Button type="submit" variant="outline" size="sm" loading={supervisorMut.isPending}>
+                            {t('manageHub.studentCards.saveSupervisor')}
+                          </Button>
+                        </form>
+                      ) : (
+                        app.academic_supervisor_name || t('manageHub.studentCards.unassignedSupervisor')
+                      )}
+                    </dd>
                   </div>
                   {phone ? (
                     <div>
@@ -322,7 +366,11 @@ export function StudentDetailDrawer({
                   />
                   <MetricTile
                     label={t('hours.completed')}
-                    value={metrics.completed_training_hours}
+                    value={
+                      metrics.completed_training_hours != null
+                        ? t('hours.completedDone', { count: metrics.completed_training_hours })
+                        : null
+                    }
                   />
                   <MetricTile
                     label={t('hours.percentage')}

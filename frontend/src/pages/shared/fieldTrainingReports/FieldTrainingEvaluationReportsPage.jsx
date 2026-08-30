@@ -18,6 +18,7 @@ import {
   fetchEvaluationReports,
   generateEvaluationReports,
 } from '../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
+import { SupervisorStudentGroups } from '../../admin/fieldTraining/components/manage/SupervisorStudentGroups.jsx';
 
 const STATUS_VARIANT = { PASSED: 'success', FAILED: 'danger', NOT_ELIGIBLE: 'warning' };
 
@@ -106,6 +107,7 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
       },
       { key: 'studentName', label: t('page.studentName') },
       { key: 'universityNumber', label: t('page.universityNumber') },
+      { key: 'academicSupervisorName', label: t('page.academicSupervisor') },
       { key: 'universityName', label: t('page.university') },
       { key: 'opportunityTitle', label: t('page.opportunity') },
       {
@@ -175,6 +177,19 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
           value={filters.university_number || ''}
           onChange={(e) => setFilters((f) => ({ ...f, university_number: e.target.value }))}
         />
+        <select
+          value={filters.opportunity_id || ''}
+          onChange={(e) => setFilters((f) => ({ ...f, opportunity_id: e.target.value }))}
+        >
+          <option value="">{t('page.opportunity')}</option>
+          {[...new Map(reports.map((row) => [row.opportunityId, row.opportunityTitle])).entries()]
+            .filter(([id]) => id)
+            .map(([id, title]) => (
+              <option key={id} value={id}>
+                {title}
+              </option>
+            ))}
+        </select>
         <input
           placeholder={t('page.academicYear')}
           value={filters.academic_year || ''}
@@ -225,6 +240,11 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
         ) : null}
       </div>
       {query.isLoading ? <LoadingSpinner /> : <DataTable columns={columns} rows={reports} />}
+      {filters.opportunity_id ? (
+        <SupervisorStudentGroups opportunityId={filters.opportunity_id} apiScope={scope} />
+      ) : (
+        <p className="muted">{t('groups.selectOpportunity')}</p>
+      )}
     </div>
   );
 }

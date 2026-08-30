@@ -1260,7 +1260,7 @@ function mapEvaluationListRow(row) {
     professionalTotal: row.professional_total,
     finalScore: num(row.final_score),
     finalStatus: row.final_status,
-    eligibilityStatus: row.eligibility_status,
+    eligibilityStatus: row.eligibility_status || row.field_training_applications?.completion_eligibility_status,
     eligibilityReasons: row.eligibility_reasons,
     reportStatus: row.pdf_file_id ? 'generated' : 'missing_file',
     generatedAt: row.generated_at,
@@ -1269,6 +1269,7 @@ function mapEvaluationListRow(row) {
     hasPdf: Boolean(row.pdf_file_id),
     applicationStatus: row.field_training_applications?.status || 'approved',
     opportunityStatus: row.field_training_opportunities?.status,
+    academicSupervisorName: row.field_training_applications?.academic_supervisor_name || null,
   };
 }
 
@@ -1316,6 +1317,7 @@ async function listFinalReports(user, query = {}) {
   if (scoped.instructor && user.userId) {
     where.field_training_opportunities = { assigned_instructor_id: user.userId };
   }
+  Object.assign(where, require('./fieldTraining.supervisorScope').evaluationSupervisorWhere(user));
 
   const studentFilter = {};
   if (query.student_name) studentFilter.full_name = { contains: query.student_name, mode: 'insensitive' };
@@ -1342,7 +1344,9 @@ async function listFinalReports(user, query = {}) {
           status: true,
         },
       },
-      field_training_applications: { select: { id: true, completed_training_hours: true, status: true } },
+      field_training_applications: {
+        select: { id: true, completed_training_hours: true, status: true, academic_supervisor_name: true, completion_eligibility_status: true },
+      },
     },
     orderBy: { generated_at: 'desc' },
     take: 2000,
@@ -1356,7 +1360,7 @@ async function listFinalReports(user, query = {}) {
     list = list.filter((row) => academicPeriod(row.trainingStart).semester === query.semester);
   }
   if (generated === 'no') {
-    const appWhere = { status: 'approved' };
+    const appWhere = { status: 'approved', ...require('./fieldTraining.supervisorScope').applicationSupervisorWhere(user) };
     if (universityId) appWhere.field_training_opportunities = { university_id: universityId };
     if (query.opportunity_id) appWhere.opportunity_id = query.opportunity_id;
     const apps = await prisma.field_training_applications.findMany({
@@ -1421,6 +1425,9 @@ async function getEvaluation(user, evaluationId) {
   });
   if (!row) throw new ApiError(404, 'Evaluation not found');
   access.assertCanDownloadEvaluation(user, row);
+  await require('./fieldTraining.supervisorScope').assertReviewerCanAccessApplication(user, {
+    id: row.application_id,
+  });
   if (access.isInstructor(user) && !access.isUniversityAdmin(user) && !access.isSuperAdmin(user) && !access.isReviewer(user)) {
     if (!ftAccess.isAssignedInstructor(user, row.field_training_opportunities)) {
       throw new ApiError(403, access.MSG.instructorUnassigned, null, 'FIELD_TRAINING_FORBIDDEN');

@@ -62,7 +62,7 @@ function applyStudentExcelFilters(rows, filters = {}) {
   });
 }
 
-function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress }) {
+function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress, academic_supervisor_name }) {
   return {
     application_id: app.id,
     student_id: app.student_id,
@@ -74,6 +74,8 @@ function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress
     opportunity_title: opportunity?.title ?? '',
     training_organization: opportunity?.organization_name ?? '',
     instructor_id: opportunity?.assigned_instructor_id ?? null,
+    academic_supervisor_name: academic_supervisor_name || '',
+    academicSupervisor: academic_supervisor_name || '',
     application_status: app.status,
     status: app.status,
     training_status: app.training_status,
@@ -120,7 +122,7 @@ async function hydrateExcelSources(applications) {
   const apps = uniqueById(applications);
   if (!apps.length) return [];
 
-  const [profiles, opportunities, evalMap, progressByApp, postAttemptByApp] = await Promise.all([
+  const [profiles, opportunities, evalMap, progressByApp, postAttemptByApp, assignments] = await Promise.all([
     repo.findStudentProfilesByIds([...new Set(apps.map((app) => app.student_id))]),
     (async () => {
       const opportunityIds = [...new Set(apps.map((app) => app.opportunity_id).filter(Boolean))];
@@ -148,6 +150,7 @@ async function hydrateExcelSources(applications) {
     require('./fieldTraining.standardizedPostAssessment').loadPostAssessmentAttemptStatusByApplicationIds(
       apps.map((app) => app.id)
     ),
+    require('./fieldTraining.supervisorScope').loadAssignmentsByApplicationIds(apps.map((app) => app.id)),
   ]);
 
   const profileById = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
@@ -168,6 +171,7 @@ async function hydrateExcelSources(applications) {
       opportunity: oppById[app.opportunity_id],
       finalStatus: evalMap.get(app.id) || null,
       taskProgress: progressByApp.get(app.id) || null,
+      academic_supervisor_name: assignments.get(app.id)?.supervisor_name || app.academic_supervisor_name || '',
     });
   });
 }
@@ -207,10 +211,15 @@ function sanitiseExportFilters(query = {}) {
 async function exportUniversityStudentsExcel(user, query = {}) {
   const access = resolveStudentsExcelScope(user, query.university_id);
   const universityId = access.universityId || null;
-  const sources = await collectUniversityStudentSources(universityId, {
+  let sources = await collectUniversityStudentSources(universityId, {
     ...query,
     university_id: universityId || undefined,
   });
+  const assigned = await require('./fieldTraining.supervisorScope').loadAssignedApplicationIds(user, {
+    universityId,
+    opportunityId: query.opportunity_id,
+  });
+  if (assigned) sources = sources.filter((row) => assigned.has(row.application_id));
   if (!sources.length) throwEmptyExport();
 
   const opportunityTitle =
@@ -252,6 +261,8 @@ async function exportOpportunityStudentsExcel(user, opportunityId, query = {}) {
     opportunity_title: app.opportunity_title || opp.title || '',
     training_organization: opp.organization_name || '',
     instructor_id: opp.assigned_instructor_id || null,
+    academic_supervisor_name: app.academic_supervisor_name || '',
+    academicSupervisor: app.academic_supervisor_name || '',
     application_status: app.status,
     status: app.status,
     training_status: app.training_status,

@@ -134,6 +134,10 @@ export function StudentApplicationCard({ app, t, i18n, onOpen, onApprove, onReje
           <Clock size={14} aria-hidden />
           {formatFtDate(app.created_at) ?? '—'}
         </span>
+        <span>
+          <UserRound size={14} aria-hidden />
+          {app.academic_supervisor_name || t('manageHub.studentCards.unassignedSupervisor')}
+        </span>
       </div>
 
       <div className="ft-student-card__badges">

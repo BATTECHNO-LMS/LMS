@@ -146,6 +146,18 @@ function mountReadRoutes(router, authorize) {
     validateRequest({ body: v.zipBodySchema }),
     controller.bulkZip
   );
+  router.get(
+    '/evaluation-reports/supervisor-groups',
+    authorize,
+    validateRequest({ query: v.supervisorGroupsQuerySchema }),
+    controller.listSupervisorGroups
+  );
+  router.post(
+    '/evaluation-reports/supervisor-zip',
+    authorize,
+    validateRequest({ body: v.supervisorZipBodySchema }),
+    controller.zipSupervisorReports
+  );
 }
 
 function mountStudentRoutes(router, authorize) {

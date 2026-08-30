@@ -443,6 +443,52 @@ export async function issueCompletionLetter(applicationId) {
   return unwrapApiData(res);
 }
 
+export async function fetchCompletionLetters(opportunityId, params = {}) {
+  const res = await apiClient.get(`${admin}/${opportunityId}/completion-letters`, { params });
+  return unwrapApiData(res);
+}
+
+export async function previewBulkCompletionLetters(opportunityId, body = {}) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/completion-letters/preview-bulk-issue`, body);
+  return unwrapApiData(res);
+}
+
+export async function startBulkCompletionLetters(opportunityId, body = {}) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/completion-letters/bulk-issue`, body, {
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
+export async function fetchBulkCompletionLetterJob(opportunityId, jobId) {
+  const res = await apiClient.get(`${admin}/${opportunityId}/completion-letters/jobs/${jobId}`);
+  return unwrapApiData(res);
+}
+
+export async function retryBulkCompletionLetters(opportunityId, jobId) {
+  const res = await apiClient.post(`${admin}/${opportunityId}/completion-letters/jobs/${jobId}/retry`);
+  return unwrapApiData(res);
+}
+
+export async function downloadAllCompletionLetters(opportunityId) {
+  try {
+    const res = await apiClient.get(`${admin}/${opportunityId}/completion-letters/zip`, {
+      responseType: 'blob',
+      timeout: 180000,
+    });
+    const filename = parseFilename(res.headers['content-disposition'], 'completion-letters.zip');
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+    return {
+      filename,
+      unissued: Number(res.headers['x-zip-unissued'] || 0),
+      failed: Number(res.headers['x-zip-failed'] || 0),
+      included: Number(res.headers['x-zip-included'] || 0),
+    };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
 export async function fetchApplicationProgress(applicationId, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/applications/${applicationId}/progress`);
@@ -459,6 +505,12 @@ export async function fetchApplicationHours(applicationId, { asInstructor = fals
 export async function updateApplicationHours(applicationId, body, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.patch(`${base}/applications/${applicationId}/hours`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateAcademicSupervisorName(applicationId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/applications/${applicationId}/academic-supervisor`, body);
   return unwrapApiData(res);
 }
 

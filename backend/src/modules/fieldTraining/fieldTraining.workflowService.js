@@ -504,6 +504,9 @@ async function getStudentAssessment(opportunityId, type, studentId) {
       shuffleOptions: settings?.shuffle_options === true,
     }
   );
+  if (standardizedPost.studentPayloadLeaksAnswers(questions)) {
+    throw new ApiError(500, 'تعذر تجهيز التقييم دون كشف الإجابات الصحيحة');
+  }
 
   return {
     assessment: {
@@ -1313,9 +1316,10 @@ async function getApplicationProgress(applicationId, user) {
     tasksSubmitted: submissions.length,
     preAssessmentPublished: assessments.some((a) => a.type === 'pre' && a.status === 'published'),
     postAssessmentPublished: assessments.some((a) => a.type === 'post' && a.status === 'published'),
-    hoursProgress: await hoursMod.calculateHoursProgressForApplication(
-      app.id,
-      opp.required_training_hours
+    hoursProgress: hoursMod.overlayRecordedHoursProgress(
+      app,
+      opp,
+      await hoursMod.calculateHoursProgressForApplication(app.id, opp.required_training_hours)
     ),
   });
 
@@ -1658,9 +1662,10 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(app.id, studentId);
 
-  const hoursProgress = await hoursMod.calculateHoursProgressForApplication(
-    app.id,
-    opp.required_training_hours
+  const hoursProgress = hoursMod.overlayRecordedHoursProgress(
+    app,
+    opp,
+    await hoursMod.calculateHoursProgressForApplication(app.id, opp.required_training_hours)
   );
 
   const taskProgressRow = await taskProgress.calculateTaskProgressForApplication(app, {

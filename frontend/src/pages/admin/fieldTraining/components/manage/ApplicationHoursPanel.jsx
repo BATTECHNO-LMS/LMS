@@ -74,7 +74,11 @@ export function ApplicationHoursPanel({
         </div>
         <div>
           <dt>{t('form.completedTrainingHours')}</dt>
-          <dd>{completed != null ? completed : t('form.hoursNotRecorded')}</dd>
+          <dd>
+            {completed != null
+              ? t('hours.completedDone', { count: completed })
+              : t('form.hoursNotRecorded')}
+          </dd>
         </div>
         <div>
           <dt>{t('form.remainingTrainingHours')}</dt>

@@ -28,6 +28,7 @@ const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
 const hoursMod = require('./fieldTraining.hours');
 const taskProgress = require('./fieldTraining.taskProgress');
+const supervisorScope = require('./fieldTraining.supervisorScope');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
 const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
@@ -635,6 +636,7 @@ async function listOpportunityApplications(opportunityId, query = {}, user) {
       university_id: query.university_id,
       university_specialty_id: query.university_specialty_id,
       studentUniversityId,
+      academicSupervisorWhere: supervisorScope.applicationSupervisorWhere(user),
     });
 
     const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
@@ -644,6 +646,9 @@ async function listOpportunityApplications(opportunityId, query = {}, user) {
       apps.map((app) => ({ id: app.id, opportunity_id: opportunityId })),
       new Map([[opportunityId, opp.required_training_hours ?? null]])
     );
+    for (const app of apps) {
+      hoursByApp.set(app.id, hoursMod.overlayRecordedHoursProgress(app, opp, hoursByApp.get(app.id)));
+    }
 
     const progressByApp = await taskProgress.calculateTaskProgressForApplications(
       apps.map((app) => ({
@@ -660,16 +665,20 @@ async function listOpportunityApplications(opportunityId, query = {}, user) {
       apps.map((app) => app.id)
     );
 
+    const assignments = await supervisorScope.loadAssignmentsByApplicationIds(apps.map((app) => app.id));
     let applications = apps.map((app) => {
       const postStatus =
         postAttemptByApp.get(app.id) ||
         standardizedPost.resolveAttemptStatus(null, app.post_assessment_score);
-      return {
-        ...mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id)),
-        task_progress: progressByApp.get(app.id) || null,
-        post_assessment_attempt_status: postStatus.key,
-        post_assessment_attempt_status_label: postStatus.label_ar,
-      };
+      return supervisorScope.attachAssignment(
+        {
+          ...mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id)),
+          task_progress: progressByApp.get(app.id) || null,
+          post_assessment_attempt_status: postStatus.key,
+          post_assessment_attempt_status_label: postStatus.label_ar,
+        },
+        assignments.get(app.id)
+      );
     });
 
     if (query.specialty_id && opp.specialty_id !== query.specialty_id) {
@@ -1615,6 +1624,7 @@ async function listOpportunityEligibility(opportunityId, user) {
   const apps = await repo.findApplicationsByOpportunity(opportunityId, {
     status: 'approved',
     studentUniversityId,
+    academicSupervisorWhere: supervisorScope.applicationSupervisorWhere(user),
   });
   const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
   const byId = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
@@ -1623,6 +1633,9 @@ async function listOpportunityEligibility(opportunityId, user) {
     apps.map((app) => ({ id: app.id, opportunity_id: opportunityId })),
     new Map([[opportunityId, opp.required_training_hours ?? null]])
   );
+  for (const app of apps) {
+    hoursByApp.set(app.id, hoursMod.overlayRecordedHoursProgress(app, opp, hoursByApp.get(app.id)));
+  }
   const progressByApp = await taskProgress.calculateTaskProgressForApplications(
     apps.map((app) => ({
       id: app.id,

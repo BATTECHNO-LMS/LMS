@@ -37,7 +37,16 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  exposedHeaders: ['Content-Disposition', 'X-Completion-Letter-Identity'],
+  exposedHeaders: [
+    'Content-Disposition',
+    'X-Completion-Letter-Identity',
+    'X-Zip-Selected',
+    'X-Zip-Included',
+    'X-Zip-Missing',
+    'X-Zip-Failed',
+    'X-Zip-Skipped',
+    'X-Zip-Unissued',
+  ],
   optionsSuccessStatus: 204,
 };
 

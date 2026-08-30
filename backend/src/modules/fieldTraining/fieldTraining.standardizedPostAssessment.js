@@ -12,6 +12,8 @@ const workflow = require('./fieldTraining.workflow');
 const {
   prepareQuestionForStorage,
   validateAssessmentQuestions,
+  normalizeCorrectAnswer,
+  gradeAnswers,
 } = require('./fieldTraining.assessmentQuestions');
 const { STANDARDIZED_POST_QUESTIONS } = require('./fieldTraining.standardizedPostAssessment.questions');
 
@@ -47,6 +49,18 @@ const TOTAL_GRADE = 100;
 const QUESTION_POINTS = 4;
 const QUESTION_COUNT = 25;
 
+const OPTION_LETTERS_AR = Object.freeze(['أ', 'ب', 'ج', 'د']);
+const TOPIC_LABEL_AR = Object.freeze({
+  frontend: 'الواجهة الأمامية (Frontend)',
+  backend: 'الأنظمة الخلفية (Backend)',
+  database: 'قواعد البيانات (Database)',
+});
+const DIFFICULTY_LABEL_AR = Object.freeze({
+  basic: 'أساسي',
+  intermediate: 'متوسط',
+  advanced: 'متقدم',
+});
+const REQUIRED_POSITION_COUNTS = Object.freeze([7, 6, 6, 6]);
 const SKIP_OPPORTUNITY_STATUSES = new Set(['archived']);
 
 const ATTEMPT_STATUS = Object.freeze({
@@ -162,7 +176,7 @@ function shuffleCopy(items, rng) {
 }
 
 function shuffleQuestionsForStudent(questions, { studentId, assessmentId, shuffleQuestions, shuffleOptions }) {
-  const list = Array.isArray(questions) ? [...questions] : [];
+  const list = sanitizeStudentQuestions(Array.isArray(questions) ? questions : []);
   if (!list.length) return list;
   const qRng = mulberry32(hashSeed(`${studentId}|${assessmentId}|questions`));
   const ordered = shuffleQuestions ? shuffleCopy(list, qRng) : list;
@@ -173,6 +187,35 @@ function shuffleQuestionsForStudent(questions, { studentId, assessmentId, shuffl
     const oRng = mulberry32(hashSeed(`${studentId}|${assessmentId}|options|${question.id || question.question_text}`));
     return { ...question, options: shuffleCopy(question.options, oRng) };
   });
+}
+
+function sanitizeStudentQuestion(question) {
+  if (!question || typeof question !== 'object') return question;
+  const options = Array.isArray(question.options)
+    ? question.options.map((opt) => {
+        if (opt && typeof opt === 'object') return String(opt.text ?? opt.label ?? opt.value ?? '').trim();
+        return String(opt ?? '').trim();
+      }).filter(Boolean)
+    : question.options;
+  return {
+    id: question.id,
+    assessment_id: question.assessment_id,
+    question_text: question.question_text,
+    question_type: question.question_type === 'short_answer' ? 'short_text' : question.question_type,
+    options,
+    points: question.points != null ? Number(question.points) : 1,
+    is_required: question.is_required !== false,
+    sort_order: question.sort_order,
+  };
+}
+
+function sanitizeStudentQuestions(questions) {
+  return (questions || []).map(sanitizeStudentQuestion);
+}
+
+function studentPayloadLeaksAnswers(questions) {
+  const blob = JSON.stringify(questions || []);
+  return /correct_answer|isCorrect|explanation|_correctIndex/.test(blob);
 }
 
 function resolveAttemptStatus(attempt, fallbackScore = null) {
@@ -275,12 +318,167 @@ function validateStandardizedBank() {
   ) {
     return 'توزيع الصعوبة غير مطابق (6 أساسي / 13 متوسط / 6 متقدم).';
   }
-  const maxPos = Math.max(...positionCounts);
-  const minPos = Math.min(...positionCounts);
-  if (maxPos - minPos > 1) {
-    return 'توزيع مواضع الإجابة الصحيحة غير متوازن عبر أ، ب، ج، د.';
+  if (
+    positionCounts[0] !== REQUIRED_POSITION_COUNTS[0] ||
+    positionCounts[1] !== REQUIRED_POSITION_COUNTS[1] ||
+    positionCounts[2] !== REQUIRED_POSITION_COUNTS[2] ||
+    positionCounts[3] !== REQUIRED_POSITION_COUNTS[3]
+  ) {
+    return 'توزيع مواضع الإجابة الصحيحة يجب أن يكون 7 للأول و6 للثاني و6 للثالث و6 للرابع قبل الخلط.';
   }
   return { ok: true, totalPoints: points, questionCount: questions.length, positionCounts };
+}
+
+function bankMetaByText() {
+  const map = new Map();
+  for (const q of STANDARDIZED_POST_QUESTIONS) {
+    map.set(q.question_text, q);
+  }
+  return map;
+}
+
+function validateStoredAssessmentCopy(rows) {
+  if (!Array.isArray(rows) || rows.length !== QUESTION_COUNT) {
+    return `يجب أن يحتوي التقييم المنشور على ${QUESTION_COUNT} سؤالًا محفوظًا.`;
+  }
+  const texts = new Set();
+  const topicCounts = { frontend: 0, backend: 0, database: 0 };
+  let points = 0;
+  const metaByText = bankMetaByText();
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const q = rows[i];
+    const n = i + 1;
+    const text = String(q.question_text ?? '').trim();
+    if (!text) return `السؤال ${n}: نص السؤال مفقود.`;
+    if (texts.has(text)) return `السؤال ${n}: مكرر.`;
+    texts.add(text);
+    const options = Array.isArray(q.options) ? q.options.map((opt) => String(opt ?? '').trim()).filter(Boolean) : [];
+    if (options.length !== 4) return `السؤال ${n}: يجب حفظ أربعة خيارات غير فارغة.`;
+    if (new Set(options).size !== 4) return `السؤال ${n}: الخيارات غير فريدة.`;
+    const answer = normalizeCorrectAnswer(q.question_type || 'multiple_choice', q.correct_answer, options);
+    if (!answer) return `السؤال ${n}: لا توجد إجابة صحيحة محفوظة في correct_answer.`;
+    if (!options.includes(answer)) return `السؤال ${n}: الإجابة الصحيحة المحفوظة لا تنتمي إلى خيارات السؤال.`;
+    if (Number(q.points) !== QUESTION_POINTS) return `السؤال ${n}: العلامة يجب أن تكون ${QUESTION_POINTS}.`;
+    points += Number(q.points) || 0;
+    const meta = metaByText.get(text);
+    if (!meta) return `السؤال ${n}: غير موجود في بنك التقييم المعياري.`;
+    topicCounts[meta.topic] += 1;
+  }
+
+  if (points !== TOTAL_GRADE) return `مجموع العلامات المحفوظة يجب أن يكون ${TOTAL_GRADE}.`;
+  if (topicCounts.frontend !== 8 || topicCounts.backend !== 9 || topicCounts.database !== 8) {
+    return 'توزيع المحاور المحفوظ غير مطابق (8 واجهة / 9 خلفية / 8 قواعد بيانات).';
+  }
+
+  const studentView = sanitizeStudentQuestions(rows);
+  if (studentPayloadLeaksAnswers(studentView)) {
+    return 'حمولة الطالب تسرب الإجابة الصحيحة أو الشرح الداخلي.';
+  }
+  return { ok: true, totalPoints: points, questionCount: rows.length };
+}
+
+function withQuestionIds(questions) {
+  return (questions || []).map((q, i) => ({ ...q, id: q.id || `q-${i}` }));
+}
+
+function buildCorrectAnswerMap(questions) {
+  const answers = {};
+  for (const q of questions) {
+    answers[q.id] = normalizeCorrectAnswer(q.question_type, q.correct_answer, q.options);
+  }
+  return answers;
+}
+
+function verifyAutomaticGrading(rawQuestions) {
+  const questions = withQuestionIds(rawQuestions);
+  const correctMap = buildCorrectAnswerMap(questions);
+  const ids = questions.map((q) => q.id);
+
+  function scoreSelecting(count, extra = {}) {
+    const answers = {};
+    ids.forEach((id, i) => {
+      if (i < count) answers[id] = correctMap[id];
+      else if (extra.blank) answers[id] = '';
+      else if (extra.invalid) answers[id] = '__invalid__';
+      else {
+        const opts = questions[i].options || [];
+        answers[id] = opts.find((opt) => opt !== correctMap[id]) || '';
+      }
+    });
+    return gradeAnswers(questions, answers);
+  }
+
+  const all = scoreSelecting(25);
+  const twentyFour = scoreSelecting(24);
+  const fifteen = scoreSelecting(15);
+  const fourteen = scoreSelecting(14);
+  const blanks = scoreSelecting(0, { blank: true });
+  const invalids = scoreSelecting(0, { invalid: true });
+
+  const shuffled = shuffleQuestionsForStudent(sanitizeStudentQuestions(questions), {
+    studentId: 'verify-student',
+    assessmentId: 'verify-assessment',
+    shuffleQuestions: true,
+    shuffleOptions: true,
+  });
+  if (studentPayloadLeaksAnswers(shuffled)) {
+    return 'خلط الأسئلة سرّب الإجابة الصحيحة إلى حمولة الطالب.';
+  }
+  const shuffledAnswers = {};
+  for (const sq of shuffled) {
+    const original = questions.find((q) => q.id === sq.id);
+    const correct = correctMap[sq.id];
+    if (!sq.options.includes(correct)) {
+      return `الخلط فقد خيار الإجابة الصحيحة للسؤال ${sq.id}.`;
+    }
+    shuffledAnswers[sq.id] = correct;
+  }
+  const shuffledGrade = gradeAnswers(questions, shuffledAnswers);
+
+  const failures = [];
+  if (all.scorePercent !== 100 || all.scorePoints !== 100) failures.push('25 إجابة صحيحة يجب أن تنتج 100/100.');
+  if (twentyFour.scorePercent !== 96 || twentyFour.scorePoints !== 96) failures.push('24 إجابة صحيحة يجب أن تنتج 96/100.');
+  if (fifteen.scorePercent !== 60 || fifteen.scorePoints !== 60) failures.push('15 إجابة صحيحة يجب أن تنتج 60/100.');
+  if (fourteen.scorePercent !== 56 || fourteen.scorePoints !== 56) failures.push('14 إجابة صحيحة يجب أن تنتج 56/100.');
+  if (blanks.scorePoints !== 0 || invalids.scorePoints !== 0) {
+    failures.push('الخيار الفارغ أو غير الصالح يجب ألا يُحتسب صحيحًا.');
+  }
+  if (shuffledGrade.scorePercent !== 100) failures.push('الخلط كسر ربط الإجابة الصحيحة.');
+  if (failures.length) return failures.join(' ');
+
+  return {
+    ok: true,
+    allCorrect: all.scorePercent,
+    twentyFourCorrect: twentyFour.scorePercent,
+    fifteenCorrect: fifteen.scorePercent,
+    fourteenCorrect: fourteen.scorePercent,
+    passAtSixty: fifteen.scorePercent >= PASSING_SCORE,
+    failAtFiftySix: fourteen.scorePercent < PASSING_SCORE,
+    blankAndInvalidZero: true,
+    shufflePreservesMapping: true,
+  };
+}
+
+function buildAdminAnswerKey(questions = STANDARDIZED_POST_QUESTIONS) {
+  return questions.map((q, index) => {
+    const options = q.options || [];
+    const answer = normalizeCorrectAnswer(q.question_type, q.correct_answer, options);
+    const correctIndex = options.indexOf(answer);
+    return {
+      question_number: index + 1,
+      question_text: q.question_text,
+      options: options.map((text, i) => ({
+        letter: OPTION_LETTERS_AR[i],
+        text,
+      })),
+      correct_option: OPTION_LETTERS_AR[correctIndex] || null,
+      correct_answer_text: answer,
+      explanation: q.correct_answer?.explanation || q.explanation || null,
+      topic: TOPIC_LABEL_AR[q.topic] || q.topic,
+      difficulty: DIFFICULTY_LABEL_AR[q.difficulty] || q.difficulty,
+    };
+  });
 }
 
 function opportunityAttachable(opp) {
@@ -293,8 +491,57 @@ function opportunityAttachable(opp) {
 
 async function countSubmittedAttempts(tx, assessmentId) {
   return tx.field_training_assessment_attempts.count({
+    where: { assessment_id: assessmentId, submitted_at: { not: null } },
+  });
+}
+
+async function syncStandardizedQuestions(tx, assessmentId, prepared) {
+  const existing = await tx.field_training_assessment_questions.findMany({
+    where: { assessment_id: assessmentId },
+    orderBy: { sort_order: 'asc' },
+  });
+  const submittedCount = await countSubmittedAttempts(tx, assessmentId);
+
+  if (submittedCount > 0) {
+    if (existing.length !== prepared.length) {
+      throw new Error('لا يمكن استبدال أسئلة تقييم توجد له محاولات مُسلَّمة.');
+    }
+    await Promise.all(
+      prepared.map((q, i) =>
+        tx.field_training_assessment_questions.update({
+          where: { id: existing[i].id },
+          data: {
+            question_text: q.question_text,
+            question_type: q.question_type,
+            options: q.options ?? null,
+            correct_answer: q.correct_answer ?? null,
+            points: q.points ?? QUESTION_POINTS,
+            is_required: q.is_required !== false,
+            sort_order: q.sort_order ?? i,
+            updated_at: new Date(),
+          },
+        })
+      )
+    );
+    return { replaced: false, updatedInPlace: true };
+  }
+
+  await tx.field_training_assessment_questions.deleteMany({
     where: { assessment_id: assessmentId },
   });
+  await tx.field_training_assessment_questions.createMany({
+    data: prepared.map((q, i) => ({
+      assessment_id: assessmentId,
+      question_text: q.question_text,
+      question_type: q.question_type,
+      options: q.options ?? null,
+      correct_answer: q.correct_answer ?? null,
+      points: q.points ?? QUESTION_POINTS,
+      is_required: q.is_required !== false,
+      sort_order: q.sort_order ?? i,
+    })),
+  });
+  return { replaced: existing.length > 0, updatedInPlace: false };
 }
 
 async function eligibleStudentsForOpportunity(tx, opportunity) {
@@ -322,6 +569,10 @@ async function ensureStandardizedPostAssessmentForOpportunity(opportunity, optio
     throw new Error(bankCheck);
   }
   const prepared = toStorageQuestions();
+  const gradingCheck = verifyAutomaticGrading(prepared);
+  if (typeof gradingCheck === 'string') {
+    throw new Error(gradingCheck);
+  }
   const description = serializeDescription();
 
   const existing = await tx.field_training_assessments.findUnique({
@@ -344,46 +595,30 @@ async function ensureStandardizedPostAssessmentForOpportunity(opportunity, optio
       title: ASSESSMENT_TITLE,
       description,
       passing_score: PASSING_SCORE,
-      status: 'published',
+      status: 'draft',
     },
     update: {
       title: ASSESSMENT_TITLE,
       description,
       passing_score: PASSING_SCORE,
-      status: 'published',
       updated_at: new Date(),
     },
   });
 
-  const attemptCount = existing
-    ? existing._count?.field_training_assessment_attempts || (await countSubmittedAttempts(tx, assessment.id))
-    : 0;
-  let questionsReplaced = false;
-  let questionsKeptReason = null;
-  if (attemptCount > 0) {
-    questionsKeptReason = 'existing_attempts';
-  } else {
-    await tx.field_training_assessment_questions.deleteMany({
-      where: { assessment_id: assessment.id },
-    });
-    await tx.field_training_assessment_questions.createMany({
-      data: prepared.map((q, i) => ({
-        assessment_id: assessment.id,
-        question_text: q.question_text,
-        question_type: q.question_type,
-        options: q.options ?? null,
-        correct_answer: q.correct_answer ?? null,
-        points: q.points ?? QUESTION_POINTS,
-        is_required: q.is_required !== false,
-        sort_order: q.sort_order ?? i,
-      })),
-    });
-    questionsReplaced = true;
-  }
+  const sync = await syncStandardizedQuestions(tx, assessment.id, prepared);
 
   const questions = await tx.field_training_assessment_questions.findMany({
     where: { assessment_id: assessment.id },
     orderBy: { sort_order: 'asc' },
+  });
+  const storedCheck = validateStoredAssessmentCopy(questions);
+  if (typeof storedCheck === 'string') {
+    throw new Error(storedCheck);
+  }
+
+  await tx.field_training_assessments.update({
+    where: { id: assessment.id },
+    data: { status: 'published', updated_at: new Date() },
   });
   const totalPoints = questions.reduce((sum, q) => sum + (q.points != null ? Number(q.points) : 0), 0);
 
@@ -408,19 +643,13 @@ async function ensureStandardizedPostAssessmentForOpportunity(opportunity, optio
     assessmentId: assessment.id,
     questionCount: questions.length,
     totalPoints,
-    questionsReplaced,
-    questionsKeptReason,
+    questionsReplaced: Boolean(sync.replaced),
+    questionsUpdatedInPlace: Boolean(sync.updatedInPlace),
+    questionsKeptReason: null,
     notified,
-    valid:
-      questions.length === QUESTION_COUNT &&
-      totalPoints === TOTAL_GRADE &&
-      questions.every(
-        (q) =>
-          q.question_type === 'multiple_choice' &&
-          Array.isArray(q.options) &&
-          q.options.length === 4 &&
-          q.is_required !== false
-      ),
+    gradingCheck,
+    storedCheck,
+    valid: storedCheck.ok === true,
   };
 }
 
@@ -428,6 +657,10 @@ async function applyToAllOpportunities({ apply = false, notify = true } = {}) {
   const bankCheck = validateStandardizedBank();
   if (typeof bankCheck === 'string') {
     throw new Error(bankCheck);
+  }
+  const gradingCheck = verifyAutomaticGrading(toStorageQuestions());
+  if (typeof gradingCheck === 'string') {
+    throw new Error(gradingCheck);
   }
 
   const opportunities = await prisma.field_training_opportunities.findMany({
@@ -474,8 +707,9 @@ async function applyToAllOpportunities({ apply = false, notify = true } = {}) {
   const results = [];
   if (apply) {
     for (const opp of targets) {
-      const row = await prisma.$transaction(async (tx) =>
-        ensureStandardizedPostAssessmentForOpportunity(opp, { tx, notify: false })
+      const row = await prisma.$transaction(
+        async (tx) => ensureStandardizedPostAssessmentForOpportunity(opp, { tx, notify: false }),
+        { timeout: 60000, maxWait: 20000 }
       );
       results.push(row);
     }
@@ -544,6 +778,8 @@ async function applyToAllOpportunities({ apply = false, notify = true } = {}) {
           existingAttempts: opp.field_training_assessments[0]?._count?.field_training_assessment_attempts ?? 0,
         })),
     bank: bankCheck,
+    gradingCheck,
+    answerKey: buildAdminAnswerKey(),
   };
 }
 
@@ -591,11 +827,16 @@ module.exports = {
   parseAssessmentDescription,
   publicSettings,
   shuffleQuestionsForStudent,
+  sanitizeStudentQuestions,
+  studentPayloadLeaksAnswers,
   resolveAttemptStatus,
   remainingSeconds,
   assertAssessmentWindow,
   toStorageQuestions,
   validateStandardizedBank,
+  validateStoredAssessmentCopy,
+  verifyAutomaticGrading,
+  buildAdminAnswerKey,
   ensureStandardizedPostAssessmentForOpportunity,
   applyToAllOpportunities,
   loadPostAssessmentAttemptStatusByApplicationIds,

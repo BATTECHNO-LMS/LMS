@@ -466,10 +466,15 @@ async function buildUniversityReport(universityId, filters = {}) {
   const students = apps.map((app) => {
     const profile = profileById[app.student_id];
     const opp = oppById[app.opportunity_id];
-    const hours = hoursByApp.get(app.id) || hoursMod.buildHoursProgress({
-      requiredHours: opp?.required_training_hours,
-      completedMinutes: 0,
-    });
+    const hours = hoursMod.overlayRecordedHoursProgress(
+      app,
+      opp,
+      hoursByApp.get(app.id) ||
+        hoursMod.buildHoursProgress({
+          requiredHours: opp?.required_training_hours,
+          completedMinutes: 0,
+        })
+    );
     const instructor = opp?.assigned_instructor_id ? instructorById[opp.assigned_instructor_id] : null;
     const appSubs = submissionsByApp.get(app.id) || [];
     const pendingGrading = appSubs.some((s) => ['pending', 'submitted', 'under_review'].includes(s.review_status));

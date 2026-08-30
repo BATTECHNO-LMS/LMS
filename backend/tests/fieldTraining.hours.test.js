@@ -174,6 +174,19 @@ test('fieldTraining.hours Model A — validateCompletedHoursReplacement', async 
   });
 });
 
+test('overlayRecordedHoursProgress prefers stored hours after a recorded update', () => {
+  const { overlayRecordedHoursProgress, hasRecordedCompletedHours } = require('../src/modules/fieldTraining/fieldTraining.hours');
+  const attendance = buildHoursProgress({ requiredHours: 140, completedMinutes: 8 * 60 });
+  assert.equal(hasRecordedCompletedHours({ completed_training_hours: 0 }), false);
+  const overlaid = overlayRecordedHoursProgress(
+    { completed_training_hours: 140, hours_updated_at: new Date() },
+    { required_training_hours: 140 },
+    attendance
+  );
+  assert.equal(overlaid.completed_training_hours, 140);
+  assert.equal(overlaid.hours_completion_status, HOURS_STATUS.COMPLETED);
+});
+
 test('fieldTraining.hours Model A — validateRequiredHoursValue', async (t) => {
   await t.test('allows clearing with null', () => {
     assert.deepEqual(validateRequiredHoursValue(null), { ok: true, value: null });

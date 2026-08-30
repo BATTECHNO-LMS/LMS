@@ -5,6 +5,7 @@ const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const adminFieldTrainingController = require('./adminFieldTraining.controller');
 const workflowController = require('./fieldTraining.workflow.controller');
+const lettersController = require('./fieldTraining.lettersAndSupervisors.controller');
 const {
   uuidParamSchema,
   applicationIdParamSchema,
@@ -36,6 +37,12 @@ const {
   expelBodySchema,
   reviewSubmissionBodySchema,
   updateApplicationHoursBodySchema,
+  listCompletionLettersQuerySchema,
+  bulkIssueBodySchema,
+  jobIdParamSchema,
+  applySupervisorImportBodySchema,
+  resolveSupervisorImportBodySchema,
+  updateAcademicSupervisorNameBodySchema,
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
@@ -67,6 +74,95 @@ router.get(
   authenticate,
   fieldTrainingStaff,
   workflowController.listInstructors
+);
+
+router.get(
+  '/:id/completion-letters',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, query: listCompletionLettersQuerySchema }),
+  lettersController.listCompletionLetters
+);
+
+router.post(
+  '/:id/completion-letters/preview-bulk-issue',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: bulkIssueBodySchema }),
+  lettersController.previewBulkIssue
+);
+
+router.post(
+  '/:id/completion-letters/bulk-issue',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: bulkIssueBodySchema }),
+  lettersController.startBulkIssue
+);
+
+router.get(
+  '/:id/completion-letters/jobs/:jobId',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: jobIdParamSchema }),
+  lettersController.getBulkIssueJob
+);
+
+router.post(
+  '/:id/completion-letters/jobs/:jobId/retry',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: jobIdParamSchema }),
+  lettersController.retryBulkIssueJob
+);
+
+router.get(
+  '/:id/completion-letters/zip',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  lettersController.downloadIssuedZip
+);
+
+router.get(
+  '/:id/academic-supervisors',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  lettersController.listAcademicSupervisors
+);
+
+router.get(
+  '/:id/supervisor-assignments/template',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  lettersController.downloadSupervisorTemplate
+);
+
+router.post(
+  '/:id/supervisor-assignments/preview',
+  authenticate,
+  fieldTrainingStaff,
+  lettersController.handleExcelMulter,
+  validateRequest({ params: uuidParamSchema }),
+  lettersController.previewSupervisorImport
+);
+
+router.post(
+  '/:id/supervisor-assignments/resolve',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: resolveSupervisorImportBodySchema }),
+  lettersController.resolveSupervisorImport
+);
+
+router.post(
+  '/:id/supervisor-assignments/apply',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: applySupervisorImportBodySchema }),
+  lettersController.applySupervisorImport
 );
 
 router.get(
@@ -155,6 +251,14 @@ router.patch(
   fieldTrainingStaff,
   validateRequest({ params: applicationIdParamSchema, body: updateApplicationHoursBodySchema }),
   workflowController.updateApplicationHours
+);
+
+router.patch(
+  '/applications/:applicationId/academic-supervisor',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema, body: updateAcademicSupervisorNameBodySchema }),
+  lettersController.updateAcademicSupervisorName
 );
 
 router.post(

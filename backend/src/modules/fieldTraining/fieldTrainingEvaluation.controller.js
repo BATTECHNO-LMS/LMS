@@ -237,6 +237,35 @@ async function bulkZip(req, res, next) {
   }
 }
 
+async function listSupervisorGroups(req, res, next) {
+  try {
+    const supervisorReports = require('./fieldTraining.supervisorReports.service');
+    return success(res, await supervisorReports.listSupervisorGroups(req.user, req.validated.query || {}));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function zipSupervisorReports(req, res, next) {
+  try {
+    const supervisorReports = require('./fieldTraining.supervisorReports.service');
+    const result = await supervisorReports.zipSupervisorReports(req.user, req.validated.body || {});
+    res.setHeader('X-Zip-Selected', String(result.summary.selected));
+    res.setHeader('X-Zip-Included', String(result.summary.included));
+    res.setHeader('X-Zip-Missing', String(result.summary.missing));
+    res.setHeader('X-Zip-Failed', String(result.summary.failed));
+    res.setHeader('X-Zip-Skipped', String(result.summary.skipped?.length || 0));
+    return sendFile(res, {
+      buffer: result.buffer,
+      filename: result.filename,
+      mimeType: 'application/zip',
+      summary: result.summary,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 async function studentDownload(req, res, next) {
   try {
     const file = await service.studentOwnPdf(req.user, req.validated.params.applicationId);
@@ -269,5 +298,7 @@ module.exports = {
   downloadReport,
   updateComments,
   bulkZip,
+  listSupervisorGroups,
+  zipSupervisorReports,
   studentDownload,
 };

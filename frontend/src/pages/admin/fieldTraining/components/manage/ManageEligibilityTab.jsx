@@ -149,9 +149,9 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
                     <dt>{t('hours.completed')}</dt>
                     <dd>
                       {row.training_hours?.completed_training_hours != null
-                        ? `${row.training_hours.completed_training_hours} / ${
-                            row.training_hours.required_training_hours ?? '—'
-                          }`
+                        ? t('hours.completedDone', {
+                            count: row.training_hours.completed_training_hours,
+                          })
                         : t('notAvailable')}
                     </dd>
                   </div>

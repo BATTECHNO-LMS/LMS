@@ -14,8 +14,13 @@ const {
   TOTAL_GRADE,
   PASSING_SCORE,
   validateStandardizedBank,
+  validateStoredAssessmentCopy,
   toStorageQuestions,
   shuffleQuestionsForStudent,
+  sanitizeStudentQuestions,
+  studentPayloadLeaksAnswers,
+  verifyAutomaticGrading,
+  buildAdminAnswerKey,
   resolveAttemptStatus,
   parseAssessmentDescription,
   serializeDescription,
@@ -30,9 +35,7 @@ describe('standardized field-training post-assessment bank', () => {
     assert.equal(result.questionCount, QUESTION_COUNT);
     assert.equal(result.totalPoints, TOTAL_GRADE);
     assert.equal(STANDARDIZED_POST_QUESTIONS.length, 25);
-    const positions = result.positionCounts;
-    assert.equal(positions.length, 4);
-    assert.ok(Math.max(...positions) - Math.min(...positions) <= 1);
+    assert.deepEqual(result.positionCounts, [7, 6, 6, 6]);
   });
 
   it('stores four options, one correct answer, and a reviewer explanation', () => {
@@ -142,5 +145,59 @@ describe('standardized field-training post-assessment bank', () => {
     assert.equal(parsed.settings.template_id, TEMPLATE_ID);
     assert.match(parsed.body, /تقييم بعدي/);
     assert.equal(parsed.body.startsWith('{'), false);
+  });
+
+  it('auto-grades 25/24/15/14 correct answers and never scores blank or invalid options', () => {
+    const stored = toStorageQuestions();
+    const storedCheck = validateStoredAssessmentCopy(
+      stored.map((q, i) => ({ ...q, id: `q-${i}`, question_type: 'multiple_choice' }))
+    );
+    assert.equal(storedCheck.ok, true);
+    const result = verifyAutomaticGrading(stored);
+    assert.equal(typeof result, 'object');
+    assert.equal(result.allCorrect, 100);
+    assert.equal(result.twentyFourCorrect, 96);
+    assert.equal(result.fifteenCorrect, 60);
+    assert.equal(result.fourteenCorrect, 56);
+    assert.equal(result.passAtSixty, true);
+    assert.equal(result.failAtFiftySix, true);
+    assert.equal(result.blankAndInvalidZero, true);
+    assert.equal(result.shufflePreservesMapping, true);
+  });
+
+  it('strips correct answers from the student payload and keeps mapping after shuffle', () => {
+    const stored = toStorageQuestions().map((q, i) => ({ ...q, id: `q-${i}` }));
+    const studentView = shuffleQuestionsForStudent(stored, {
+      studentId: 's1',
+      assessmentId: 'a1',
+      shuffleQuestions: true,
+      shuffleOptions: true,
+    });
+    assert.equal(studentPayloadLeaksAnswers(studentView), false);
+    assert.equal(studentView.every((q) => q.options.length === 4), true);
+    const answers = {};
+    for (const sq of studentView) {
+      const original = stored.find((q) => q.id === sq.id);
+      const correct = normalizeCorrectAnswer(original.question_type, original.correct_answer, original.options);
+      assert.ok(sq.options.includes(correct));
+      answers[sq.id] = correct;
+    }
+    const graded = gradeAnswers(stored, answers);
+    assert.equal(graded.scorePercent, 100);
+    assert.equal(sanitizeStudentQuestions(stored).every((q) => q.correct_answer == null), true);
+  });
+
+  it('builds a complete admin answer key with one correct option per question', () => {
+    const key = buildAdminAnswerKey();
+    assert.equal(key.length, 25);
+    const letters = { أ: 0, ب: 0, ج: 0, د: 0 };
+    for (const row of key) {
+      assert.equal(row.options.length, 4);
+      assert.ok(['أ', 'ب', 'ج', 'د'].includes(row.correct_option));
+      assert.equal(row.options.find((opt) => opt.letter === row.correct_option).text, row.correct_answer_text);
+      assert.ok(String(row.explanation || '').length > 8);
+      letters[row.correct_option] += 1;
+    }
+    assert.deepEqual(letters, { أ: 7, ب: 6, ج: 6, د: 6 });
   });
 });
