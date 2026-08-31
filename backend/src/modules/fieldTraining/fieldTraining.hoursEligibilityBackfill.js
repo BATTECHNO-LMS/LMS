@@ -16,6 +16,7 @@
 const { prisma: defaultPrisma } = require('../../config/db');
 const { recordAudit } = require('../../shared/services/audit.service');
 const hoursMod = require('./fieldTraining.hours');
+const { resolveAttemptStatus } = require('./fieldTraining.standardizedPostAssessment');
 
 const OPERATION_ID = 'FIELD_TRAINING_140_HOURS_ELIGIBILITY_BACKFILL_V1';
 const TARGET_HOURS = 140;
@@ -27,12 +28,23 @@ const VALID_TASK_REVIEW_STATUSES = Object.freeze([
   'graded',
   'approved',
 ]);
+const INVALID_ATTEMPT_KEYS = Object.freeze([
+  'not_started',
+  'in_progress',
+  'draft',
+  'cancelled',
+  'deleted',
+]);
+const APPLY_BATCH_SIZE = 25;
 
 const SKIPPED_APPLICATION_STATUSES = Object.freeze(['pending', 'rejected', 'cancelled']);
 const TERMINAL_TRAINING_STATUSES = Object.freeze(['completed', 'expelled', 'failed']);
 
 function isValidSubmittedAttempt(attempt) {
-  return Boolean(attempt?.id && attempt.submitted_at);
+  if (!attempt?.id || attempt.deleted_at || attempt.archived_at) return false;
+  const status = resolveAttemptStatus(attempt, attempt.score);
+  if (INVALID_ATTEMPT_KEYS.includes(status.key)) return false;
+  return Boolean(attempt.submitted_at);
 }
 
 function isValidTaskSubmission(submission, application) {
@@ -279,21 +291,24 @@ function indexSnapshot(snapshot) {
   const studentById = new Map((snapshot.students || []).map((s) => [s.id, s]));
   const assessmentsByOppType = new Map();
   for (const a of snapshot.assessments) {
-    assessmentsByOppType.set(`${a.opportunity_id}:${a.type}`, a);
+    const key = `${a.opportunity_id}:${a.type}`;
+    if (!assessmentsByOppType.has(key)) assessmentsByOppType.set(key, []);
+    assessmentsByOppType.get(key).push(a);
   }
 
   const attemptByAppAssessment = new Map();
-  const crossOpportunityAttempts = [];
+  const unusedAttemptWarnings = [];
   const assessmentById = new Map(snapshot.assessments.map((a) => [a.id, a]));
   for (const attempt of snapshot.attempts) {
     const assessment = assessmentById.get(attempt.assessment_id);
     if (!assessment) {
-      crossOpportunityAttempts.push({ attemptId: attempt.id, reason: 'assessment_missing' });
+      unusedAttemptWarnings.push({ attemptId: attempt.id, reason: 'assessment_missing' });
       continue;
     }
-    attemptByAppAssessment.set(`${attempt.application_id}:${assessment.type}`, {
+    attemptByAppAssessment.set(`${attempt.application_id}:${assessment.id}`, {
       ...attempt,
       opportunity_id: assessment.opportunity_id,
+      type: assessment.type,
     });
   }
 
@@ -332,8 +347,21 @@ function indexSnapshot(snapshot) {
     sessionsByOpp,
     sessionOpp,
     attendanceByApp,
-    crossOpportunityAttempts,
+    unusedAttemptWarnings,
   };
+}
+
+function pickValidAttempt(application, indexed, type) {
+  const assessments = indexed.assessmentsByOppType.get(`${application.opportunity_id}:${type}`) || [];
+  for (const assessment of assessments) {
+    const attempt = indexed.attemptByAppAssessment.get(`${application.id}:${assessment.id}`);
+    if (!attempt) continue;
+    if (attempt.student_id !== application.student_id) continue;
+    if (attempt.opportunity_id !== application.opportunity_id) continue;
+    if (!isValidSubmittedAttempt(attempt)) continue;
+    return attempt;
+  }
+  return null;
 }
 
 function pickValidTaskSubmission(application, submissions) {
@@ -377,11 +405,12 @@ function buildDryRun(snapshot) {
   const counters = emptyCounters();
   counters.opportunitiesScanned = snapshot.opportunities.length;
   counters.duplicateEnrollmentIds = detectDuplicateEnrollments(snapshot.applications);
-  if (indexed.crossOpportunityAttempts.length) {
-    counters.integrityErrors.push(
-      ...indexed.crossOpportunityAttempts.slice(0, 20).map((row) => ({
-        type: 'cross_opportunity_attempt',
-        ...row,
+  if (indexed.unusedAttemptWarnings.length) {
+    counters.skippedFailed.push(
+      ...indexed.unusedAttemptWarnings.slice(0, 20).map((row) => ({
+        applicationId: null,
+        reason: row.reason,
+        attemptId: row.attemptId,
       }))
     );
   }
@@ -413,14 +442,8 @@ function buildDryRun(snapshot) {
       continue;
     }
 
-    const preAssessment = indexed.assessmentsByOppType.get(`${opportunity.id}:pre`);
-    const postAssessment = indexed.assessmentsByOppType.get(`${opportunity.id}:post`);
-    const preAttempt = preAssessment
-      ? indexed.attemptByAppAssessment.get(`${application.id}:pre`)
-      : null;
-    const postAttempt = postAssessment
-      ? indexed.attemptByAppAssessment.get(`${application.id}:post`)
-      : null;
+    const preAttempt = pickValidAttempt(application, indexed, 'pre');
+    const postAttempt = pickValidAttempt(application, indexed, 'post');
 
     if (preAttempt && preAttempt.opportunity_id !== opportunity.id) {
       counters.integrityErrors.push({
@@ -542,14 +565,16 @@ function buildDryRun(snapshot) {
     qualifyingCount: qualifying.length,
     mutationCount: mutations.length,
     mutations,
-    integrityErrorCount: counters.integrityErrors.length + counters.duplicateEnrollmentIds.length,
+    integrityErrorCount: counters.integrityErrors.length,
   };
 }
 
 async function applyMutations({ prisma, mutations, actorUserId, now = new Date() }) {
   const updated = [];
   const failed = [];
-  for (const item of mutations) {
+  for (let i = 0; i < mutations.length; i += APPLY_BATCH_SIZE) {
+    const batch = mutations.slice(i, i + APPLY_BATCH_SIZE);
+    for (const item of batch) {
     try {
       const applied = await prisma.$transaction(
         async (tx) => {
@@ -620,6 +645,7 @@ async function applyMutations({ prisma, mutations, actorUserId, now = new Date()
         applicationId: item.applicationId,
         reason: err.message || 'transaction_failed',
       });
+    }
     }
   }
   return { updated, failed };

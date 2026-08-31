@@ -144,7 +144,6 @@ const listCompletionLettersQuerySchema = z.object({
   search: z.string().optional(),
   issuance_status: z.enum(['issued', 'pending', 'ineligible', 'error']).optional(),
   supervisor_id: z.string().uuid().optional(),
-  supervisor_name: z.string().max(255).optional(),
 });
 
 const bulkIssueBodySchema = z.object({
@@ -160,10 +159,6 @@ const applySupervisorImportBodySchema = z.object({
   batch_id: z.string().uuid(),
   confirm_reassignments: z.boolean().optional().default(false),
   preview: z.any().optional(),
-});
-
-const updateAcademicSupervisorNameBodySchema = z.object({
-  academic_supervisor_name: z.string().max(255).optional().nullable(),
 });
 
 const resolveSupervisorImportBodySchema = z.object({
@@ -542,5 +537,4 @@ module.exports = {
   jobIdParamSchema,
   applySupervisorImportBodySchema,
   resolveSupervisorImportBodySchema,
-  updateAcademicSupervisorNameBodySchema,
 };

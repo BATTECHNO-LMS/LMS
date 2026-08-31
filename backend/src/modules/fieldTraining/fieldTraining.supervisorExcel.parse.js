@@ -1,7 +1,6 @@
 'use strict';
 
 const ExcelJS = require('exceljs');
-const names = require('./fieldTraining.supervisorName');
 
 const SHEET_NAME = 'طلاب التدريب الميداني';
 const MAX_EXCEL_BYTES = 10 * 1024 * 1024;
@@ -53,11 +52,11 @@ function normalizeHeader(value) {
 }
 
 function normalizePersonLabel(value) {
-  return names.normalizeSupervisorKey(value);
-}
-
-function displaySupervisorLabel(value) {
-  return names.displaySupervisorName(value);
+  return String(value || '')
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/\u0640/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function normalizeScopeLabel(value) {
@@ -168,8 +167,8 @@ function parseWorkbookRows(workbook) {
       studentName,
       studentNameNormalized: normalizePersonLabel(studentName),
       supervisorName,
-      supervisorLabel: displaySupervisorLabel(supervisorName),
-      supervisorNormalized: names.normalizeSupervisorKey(supervisorName),
+      supervisorLabel: supervisorName.trim(),
+      supervisorNormalized: normalizePersonLabel(supervisorName),
       universityEmail: universityEmail.trim(),
       specialty: get('specialty'),
       university: get('university'),
@@ -217,9 +216,8 @@ function detectRowIssues(rows) {
     if (!row.universityEmail) {
       row.errors.push({ code: 'missing_email', label: 'بريد جامعي فارغ' });
     }
-    row.warnings = Array.isArray(row.warnings) ? row.warnings : [];
     if (!row.supervisorNormalized) {
-      row.warnings.push({ code: 'missing_supervisor', label: 'اسم المشرف الأكاديمي غير محدد' });
+      row.errors.push({ code: 'missing_supervisor', label: 'اسم المشرف فارغ' });
     }
 
     const numKey = String(row.universityNumber || '').trim();
@@ -268,25 +266,18 @@ function detectRowIssues(rows) {
 function groupRowsBySupervisor(rows) {
   const groups = new Map();
   for (const row of rows) {
-    const key = row.supervisorNormalized || '';
+    const key = row.supervisorNormalized || '__empty__';
     const current = groups.get(key) || {
-      supervisorLabel: row.supervisorLabel || names.UNASSIGNED_SUPERVISOR_LABEL,
-      supervisorNormalized: key,
+      supervisorLabel: row.supervisorLabel || '',
+      supervisorNormalized: row.supervisorNormalized || '',
       supervisorEmail: row.supervisorEmail || '',
       supervisorId: row.supervisorId || '',
-      unassigned: !key,
       rows: [],
     };
-    if (row.supervisorLabel && current.unassigned === false && !current.supervisorLabel) {
-      current.supervisorLabel = row.supervisorLabel;
-    }
     current.rows.push(row);
     groups.set(key, current);
   }
-  return [...groups.values()].sort((a, b) => {
-    if (a.unassigned !== b.unassigned) return a.unassigned ? 1 : -1;
-    return b.rows.length - a.rows.length || a.supervisorLabel.localeCompare(b.supervisorLabel, 'ar');
-  });
+  return [...groups.values()].sort((a, b) => b.rows.length - a.rows.length || a.supervisorLabel.localeCompare(b.supervisorLabel, 'ar'));
 }
 
 function summarizeParse(rows) {
@@ -306,7 +297,6 @@ function summarizeParse(rows) {
     missingUniversityNumbers: rows.filter((row) => !row.universityNumber).length,
     missingEmails: rows.filter((row) => !row.universityEmail).length,
     missingSupervisors: rows.filter((row) => !row.supervisorNormalized).length,
-    warningRows: rows.filter((row) => row.warnings?.length).length,
     distinctSupervisors: groups.filter((g) => g.supervisorNormalized).length,
     groups,
     universities: [...new Set(rows.map((row) => row.university).filter(Boolean))],
@@ -348,7 +338,6 @@ module.exports = {
   normalizeHeader,
   normalizePersonLabel,
   normalizeScopeLabel,
-  displaySupervisorLabel,
   universityNumberFromCell,
   parseSupervisorAssignmentWorkbook,
   detectRowIssues,

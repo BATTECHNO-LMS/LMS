@@ -155,90 +155,6 @@ async function issueCompletionLetter(req, res, next) {
   }
 }
 
-function sendCompletionLetterPdf(res, file, inline = false) {
-  const letterMod = require('./fieldTraining.completionLetter');
-  const buffer = file.buffer;
-  const filename = file.filename || 'كتاب_إنهاء_التدريب.pdf';
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', letterMod.buildContentDisposition(filename, inline || file.inline));
-  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('X-Completion-Letter-Identity', String(file.identity || ''));
-  return res.send(buffer);
-}
-
-async function previewCompletionLetterAsManager(req, res, next) {
-  try {
-    const file = await workflowService.previewCompletionLetterAsManager(
-      req.validated.params.applicationId,
-      req.user
-    );
-    return sendCompletionLetterPdf(res, file, true);
-  } catch (e) {
-    return next(e);
-  }
-}
-
-async function previewCompletionLetterAsAcademic(req, res, next) {
-  try {
-    const file = await workflowService.previewCompletionLetterAsAcademic(
-      req.validated.params.applicationId,
-      req.user
-    );
-    return sendCompletionLetterPdf(res, file, true);
-  } catch (e) {
-    return next(e);
-  }
-}
-
-async function downloadCompletionLetter(req, res, next) {
-  try {
-    const file = await workflowService.downloadCompletionLetter(
-      req.validated.params.applicationId,
-      req.user.userId
-    );
-    return sendCompletionLetterPdf(res, file, false);
-  } catch (e) {
-    return next(e);
-  }
-}
-
-async function previewOwnCompletionLetter(req, res, next) {
-  try {
-    const file = await workflowService.downloadCompletionLetter(
-      req.validated.params.applicationId,
-      req.user.userId
-    );
-    return sendCompletionLetterPdf(res, file, true);
-  } catch (e) {
-    return next(e);
-  }
-}
-
-async function downloadCompletionLetterAsManager(req, res, next) {
-  try {
-    const file = await workflowService.downloadCompletionLetterAsManager(
-      req.validated.params.applicationId,
-      req.user
-    );
-    return sendCompletionLetterPdf(res, file, false);
-  } catch (e) {
-    return next(e);
-  }
-}
-
-async function downloadCompletionLetterAsAcademic(req, res, next) {
-  try {
-    const file = await workflowService.downloadCompletionLetterAsAcademic(
-      req.validated.params.applicationId,
-      req.user
-    );
-    return sendCompletionLetterPdf(res, file, false);
-  } catch (e) {
-    return next(e);
-  }
-}
-
 async function listInstructors(req, res, next) {
   try {
     const data = await workflowService.listInstructors();
@@ -411,6 +327,69 @@ async function submitAssessmentById(req, res, next) {
   }
 }
 
+function sendLetterPdf(res, next, file, { inline = false } = {}) {
+  const fs = require('fs');
+  res.setHeader('Content-Type', file.mimeType || 'application/pdf');
+  const fallback = `${inline ? 'inline' : 'attachment'}; filename="${encodeURIComponent(file.fileName || 'completion-letter.pdf')}"`;
+  let disposition = file.contentDisposition || fallback;
+  if (inline) disposition = disposition.replace(/^attachment/i, 'inline');
+  res.setHeader('Content-Disposition', disposition);
+  const stream = fs.createReadStream(file.absPath);
+  stream.on('error', (err) => next(err));
+  stream.pipe(res);
+}
+
+async function downloadCompletionLetter(req, res, next) {
+  try {
+    const file = await workflowService.downloadCompletionLetter(
+      req.validated.params.applicationId,
+      req.user.userId
+    );
+    sendLetterPdf(res, next, file);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function previewOwnCompletionLetter(req, res, next) {
+  try {
+    const file = await workflowService.downloadCompletionLetter(
+      req.validated.params.applicationId,
+      req.user.userId
+    );
+    sendLetterPdf(res, next, file, { inline: true });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function downloadCompletionLetterAsManager(req, res, next) {
+  try {
+    const file = await workflowService.downloadCompletionLetterAsManager(
+      req.validated.params.applicationId,
+      req.user
+    );
+    sendLetterPdf(res, next, file);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function previewCompletionLetterAsManager(req, res, next) {
+  try {
+    const file = await workflowService.downloadCompletionLetterAsManager(
+      req.validated.params.applicationId,
+      req.user
+    );
+    sendLetterPdf(res, next, file, { inline: true });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+const downloadCompletionLetterAsAcademic = downloadCompletionLetterAsManager;
+const previewCompletionLetterAsAcademic = previewCompletionLetterAsManager;
+
 function requestMeta(req) {
   return {
     ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
@@ -536,9 +515,9 @@ module.exports = {
   expelParticipant,
   requestExpulsion,
   issueCompletionLetter,
-  previewCompletionLetterAsManager,
-  previewCompletionLetterAsAcademic,
   downloadCompletionLetterAsManager,
+  previewCompletionLetterAsManager,
   downloadCompletionLetterAsAcademic,
+  previewCompletionLetterAsAcademic,
   listInstructors,
 };

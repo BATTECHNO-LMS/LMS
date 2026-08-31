@@ -23,7 +23,7 @@ describe('bulk completion letters UI', () => {
   it('exposes إصدار الكل and تنزيل الكل as primary toolbar actions', () => {
     assert.match(arFt, /"issueAll": "إصدار الكل"/);
     assert.match(arFt, /"downloadAll": "تنزيل الكل"/);
-    assert.match(arFt, /"issuing": "جاري الإصدار"/);
+    assert.match(arFt, /"issuing": "جاري إصدار كتب الإنهاء..."/);
     assert.match(completionTab, /completionLetter.issueAll/);
     assert.match(completionTab, /completionLetter.downloadAll/);
     assert.match(completionTab, /ft-completion-toolbar/);
@@ -40,8 +40,14 @@ describe('bulk completion letters UI', () => {
     assert.match(completionTab, /ConfirmationModal/);
     assert.match(completionTab, /ft-completion-progress/);
     assert.match(completionTab, /previewBulkCompletionLetters/);
+    assert.match(completionTab, /completionLetter.zipPreparing/);
+    assert.match(completionTab, /completionLetter.issueSummary/);
     assert.match(service, /completion-letters\/bulk-issue/);
     assert.match(service, /completion-letters\/zip/);
+    assert.match(service, /previewAdminCompletionLetter/);
+    assert.match(service, /completion-letter\/preview/);
+    assert.match(evalService, /evaluation-reports\/supervisor-groups/);
+    assert.match(evalService, /evaluation-reports\/supervisor-zip/);
   });
 });
 
@@ -55,12 +61,5 @@ describe('supervisor excel assignment UI', () => {
     assert.match(dropzone, /\.xlsx/);
     assert.match(evalService, /supervisor-assignments\/preview/);
     assert.match(evalService, /supervisor-assignments\/apply/);
-    assert.match(evalService, /evaluation-reports\/supervisor-groups/);
-    assert.match(evalService, /evaluation-reports\/supervisor-zip/);
-    assert.match(arEval, /"downloadSupervisor": "تنزيل تقارير المشرف"/);
-    assert.match(arEval, /"downloadAll": "تنزيل تقارير الكل"/);
-    assert.match(arEval, /"unassigned": "مشرف غير محدد"/);
-    assert.equal(assignment.includes('selectAccount'), false);
-    assert.match(service, /academic-supervisor/);
   });
 });

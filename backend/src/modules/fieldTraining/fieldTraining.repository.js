@@ -146,7 +146,7 @@ function mapOpportunityRow(row, { applicationsCount, compact = false } = {}) {
     application_deadline: formatDateOnly(row.application_deadline),
     requires_pre_assessment: row.requires_pre_assessment ?? true,
     requires_post_assessment: row.requires_post_assessment ?? true,
-    requires_final_task: row.requires_final_task ?? false,
+    requires_final_task: row.requires_final_task ?? true,
     minimum_attendance_percentage: row.minimum_attendance_percentage ?? null,
     minimum_post_assessment_score:
       row.minimum_post_assessment_score != null ? Number(row.minimum_post_assessment_score) : null,
@@ -1112,13 +1112,27 @@ function mapAssessmentRow(row, { includeQuestions = false } = {}) {
 }
 
 function mapAssessmentQuestionRow(row) {
-  const { toStudentQuestionDto } = require('./fieldTraining.assessmentQuestions');
-  return toStudentQuestionDto(row);
+  const type = row.question_type === 'short_answer' ? 'short_text' : row.question_type;
+  const options = Array.isArray(row.options)
+    ? row.options.map((opt) => (opt && typeof opt === 'object' ? String(opt.text ?? opt.label ?? opt.value ?? '') : String(opt ?? ''))).filter((s) => s.length > 0)
+    : row.options;
+  return {
+    id: row.id,
+    assessment_id: row.assessment_id,
+    question_text: row.question_text,
+    question_type: type,
+    options,
+    points: row.points != null ? Number(row.points) : 1,
+    is_required: row.is_required !== false,
+    sort_order: row.sort_order,
+  };
 }
 
 function mapAssessmentQuestionRowAdmin(row) {
-  const { toAdminQuestionDto } = require('./fieldTraining.assessmentQuestions');
-  return toAdminQuestionDto(row);
+  return {
+    ...mapAssessmentQuestionRow(row),
+    correct_answer: row.correct_answer,
+  };
 }
 
 async function findSessionsByOpportunity(opportunityId, { applicationId } = {}) {

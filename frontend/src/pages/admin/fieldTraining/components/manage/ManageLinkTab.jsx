@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Award, Download, RefreshCw, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +36,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
   const [jobId, setJobId] = useState(null);
   const [banner, setBanner] = useState(null);
   const [unissuedWarning, setUnissuedWarning] = useState(null);
+  const lastJobStatus = useRef('');
 
   const params = useMemo(
     () => ({
@@ -65,11 +66,24 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
   });
 
   useEffect(() => {
-    if (jobQuery.data?.status === 'completed' || jobQuery.data?.status === 'failed') {
+    const status = jobQuery.data?.status;
+    if (status === 'completed' || status === 'failed') {
       qc.invalidateQueries({ queryKey: fieldTrainingKeys.adminApplications(opportunityId) });
       query.refetch();
+      if (lastJobStatus.current !== `${jobQuery.data.id}:${status}`) {
+        lastJobStatus.current = `${jobQuery.data.id}:${status}`;
+        const progress = jobQuery.data.progress || {};
+        setBanner({
+          variant: progress.failed ? 'warning' : 'success',
+          title: t('completionLetter.issueSummary', {
+            generated: progress.newly_issued ?? 0,
+            alreadyCurrent: (progress.previously_issued ?? 0) + (progress.skipped ?? 0),
+            failed: progress.failed ?? 0,
+          }),
+        });
+      }
     }
-  }, [jobQuery.data?.status, opportunityId, qc]);
+  }, [jobQuery.data, opportunityId, qc, query, t]);
 
   const previewMut = useMutation({
     mutationFn: () => previewBulkCompletionLetters(opportunityId, {}),
@@ -163,6 +177,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
             variant="outline"
             disabled={downloadMut.isPending || issuing || counters.issued === 0}
             onClick={() => {
+              if (downloadMut.isPending || issuing) return;
               if (counters.pending > 0) {
                 setUnissuedWarning(counters.pending);
                 return;
@@ -171,7 +186,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
             }}
           >
             <Download size={16} aria-hidden />
-            {t('completionLetter.downloadAll')}
+            {downloadMut.isPending ? t('completionLetter.zipPreparing') : t('completionLetter.downloadAll')}
           </Button>
         </div>
       </header>

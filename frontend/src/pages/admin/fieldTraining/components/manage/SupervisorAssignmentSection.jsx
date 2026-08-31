@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, Download, Search } from 'lucide-react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SectionCard } from '../../../../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
@@ -11,7 +11,9 @@ import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import {
   applySupervisorAssignments,
   downloadSupervisorAssignmentTemplate,
+  fetchAcademicSupervisors,
   previewSupervisorAssignments,
+  resolveSupervisorAssignments,
 } from '../../../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
 import { ExcelAssignmentDropzone } from '../../../../../features/fieldTrainingEvaluation/components/ExcelAssignmentDropzone.jsx';
 
@@ -31,16 +33,34 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
   const [expanded, setExpanded] = useState(() => new Set());
   const [confirmApply, setConfirmApply] = useState(false);
 
+  const supervisorsQuery = useQuery({
+    queryKey: ['ft-academic-supervisors', opportunityId],
+    queryFn: () => fetchAcademicSupervisors(opportunityId, apiScope),
+    enabled: Boolean(opportunityId) && canManage,
+  });
+  const supervisorOptions = supervisorsQuery.data?.supervisors || [];
+
   const previewMut = useMutation({
     mutationFn: () => previewSupervisorAssignments(opportunityId, file, apiScope),
     onSuccess: (data) => {
       setPreview(data);
       setExpanded(new Set((data.groups || []).map((g) => g.supervisor_normalized)));
       setAlert({
-        variant: data.can_apply ? (data.warnings?.length ? 'warning' : 'success') : 'warning',
+        variant: data.can_apply ? 'success' : 'warning',
         title: t('assignment.previewReady', { count: data.totals?.excel_rows || 0 }),
       });
     },
+    onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err) }),
+  });
+
+  const resolveMut = useMutation({
+    mutationFn: ({ normalized, supervisorId }) =>
+      resolveSupervisorAssignments(
+        opportunityId,
+        { batch_id: preview.batch_id, resolutions: { [normalized]: supervisorId } },
+        apiScope
+      ),
+    onSuccess: (data) => setPreview(data),
     onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err) }),
   });
 
@@ -65,7 +85,6 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
         }),
       });
       qc.invalidateQueries({ queryKey: ['ft-eval-opp-template', apiScope, opportunityId] });
-      qc.invalidateQueries({ queryKey: ['ft-supervisor-groups'] });
     },
     onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err) }),
   });
@@ -137,9 +156,6 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
 
       {preview ? (
         <>
-          {preview.warnings?.length ? (
-            <AlertBanner variant="warning" title={preview.warnings[0]} />
-          ) : null}
           <dl className="ft-eval-payload-preview">
             <div>
               <dt>{t('assignment.totalRows')}</dt>
@@ -166,8 +182,12 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
               <dd>{preview.totals.distinct_supervisors}</dd>
             </div>
             <div>
-              <dt>{t('assignment.missingSupervisors')}</dt>
-              <dd>{preview.totals.missing_supervisors || 0}</dd>
+              <dt>{t('assignment.linkedSupervisors')}</dt>
+              <dd>{preview.totals.linked_supervisors}</dd>
+            </div>
+            <div>
+              <dt>{t('assignment.unresolvedSupervisors')}</dt>
+              <dd>{preview.totals.unresolved_supervisors}</dd>
             </div>
           </dl>
 
@@ -218,15 +238,42 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
                     }}
                   >
                     <span>
-                      {group.title || `${group.supervisor_label} — ${group.student_count}`}
+                      {group.supervisor_label} — {group.student_count}
                     </span>
-                    <StatusBadge variant={group.unassigned ? 'warning' : 'success'}>
-                      {group.unassigned ? t('groups.unassigned') : t('assignment.namedFromExcel')}
+                    <StatusBadge variant={group.resolution_status === 'linked' ? 'success' : 'warning'}>
+                      {group.resolution_label}
                     </StatusBadge>
                     {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
                   {open ? (
                     <div className="ft-supervisor-card__body">
+                      {group.resolution_status !== 'linked' ? (
+                        <label className="ft-supervisor-resolve">
+                          {t('assignment.selectAccount')}
+                          <select
+                            value={group.account?.id || ''}
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                resolveMut.mutate({
+                                  normalized: group.supervisor_normalized,
+                                  supervisorId: e.target.value,
+                                });
+                              }
+                            }}
+                          >
+                            <option value="">{t('assignment.selectAccount')}</option>
+                            {supervisorOptions.map((row) => (
+                              <option key={row.id} value={row.id}>
+                                {row.full_name} ({row.email})
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      ) : (
+                        <p className="muted">
+                          {group.account?.full_name} — {group.account?.email}
+                        </p>
+                      )}
                       <ul className="ft-supervisor-students">
                         {students.map((row) => (
                           <li key={`${row.excel_row}-${row.university_number}`}>

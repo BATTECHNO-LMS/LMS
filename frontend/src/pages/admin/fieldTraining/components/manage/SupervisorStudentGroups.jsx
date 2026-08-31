@@ -32,6 +32,8 @@ export function SupervisorStudentGroups({ opportunityId, apiScope = 'admin' }) {
   const [evaluationFilter, setEvaluationFilter] = useState('');
   const [expanded, setExpanded] = useState(() => new Set());
   const [zipSkipped, setZipSkipped] = useState([]);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
   const params = useMemo(
     () => ({

@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
-const { env } = require('../../config/env');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { assertManageOpportunityAccess, assertApplicationStudentAccess } = require('./fieldTraining.access');
@@ -15,6 +14,8 @@ const workflow = require('./fieldTraining.workflow');
 const supervisorScope = require('./fieldTraining.supervisorScope');
 const names = require('./fieldTraining.supervisorName');
 const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
+const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
+const { log } = require('../../utils/logger');
 const {
   MIN_COMPLETION_LETTER_HOURS,
   computeLetterSourceHash,
@@ -70,6 +71,30 @@ function completedHoursOf(app) {
   return app?.completed_training_hours != null ? Number(app.completed_training_hours) : 0;
 }
 
+function resolveLetterUniversityNumber(profile) {
+  return (
+    resolveOfficialUniversityNumber(profile).number ||
+    extractUniversityNumberFromEmail(profile?.email) ||
+    ''
+  );
+}
+
+function selectBulkIssueTargets(students, retryFailedIds = []) {
+  const retrySet = new Set((retryFailedIds || []).filter(Boolean));
+  return (students || []).filter((row) => {
+    if (retrySet.size) return retrySet.has(row.id);
+    return row.will_issue || row.will_regenerate;
+  });
+}
+
+function letterFileReady(letter) {
+  if (!letter) return false;
+  if (letter.file_ready === true) return true;
+  if (letter.file_ready === false) return false;
+  if (!letter.pdf_url) return false;
+  return repo.submissionFileExists(letter.pdf_url);
+}
+
 function classifyStudent(app, letter, sourceHash) {
   if (workflow.isExpelled(app)) {
     return { eligible: false, skipReason: SKIP_REASONS.EXPELLED };
@@ -81,6 +106,9 @@ function classifyStudent(app, letter, sourceHash) {
     return { eligible: false, skipReason: SKIP_REASONS.HOURS_BELOW_MINIMUM };
   }
   if (letter?.status === 'issued') {
+    if (!letterFileReady(letter)) {
+      return { eligible: true, regenerate: true };
+    }
     const existingHash = letter.source_data_hash || letter.metadata?.source_data_hash;
     if (existingHash && existingHash === sourceHash) {
       return { eligible: true, skipReason: SKIP_REASONS.SOURCE_UNCHANGED, alreadyIssued: true };
@@ -93,7 +121,7 @@ function classifyStudent(app, letter, sourceHash) {
   return { eligible: true };
 }
 
-async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, supervisorId, supervisorName } = {}) {
+async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, supervisorId } = {}) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
@@ -111,13 +139,17 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
     orderBy: { created_at: 'desc' },
   });
 
+  const profiles = apps.length
+    ? await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))])
+    : [];
+  const profileByIdAll = Object.fromEntries(profiles.map((p) => [p.id, p]));
+
   let scoped = apps;
   if (studentUniversityId) {
-    const profiles = await repo.findStudentProfilesByIds([...new Set(apps.map((a) => a.student_id))]);
-    const allowed = new Set(
-      profiles.filter((p) => String(p.primary_university_id) === String(studentUniversityId)).map((p) => p.id)
-    );
-    scoped = apps.filter((app) => allowed.has(app.student_id));
+    scoped = apps.filter((app) => {
+      const profile = profileByIdAll[app.student_id];
+      return String(profile?.primary_university_id || '') === String(studentUniversityId);
+    });
   }
 
   const letters = scoped.length
@@ -126,8 +158,7 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
       })
     : [];
   const letterByApp = new Map(letters.map((row) => [row.application_id, row]));
-  const profiles = await repo.findStudentProfilesByIds([...new Set(scoped.map((a) => a.student_id))]);
-  const profileById = Object.fromEntries(profiles.map((p) => [p.id, p]));
+  const profileById = profileByIdAll;
   const assignments = await supervisorScope.loadAssignmentsByApplicationIds(scoped.map((a) => a.id));
 
   const university = opp.university_id
@@ -136,9 +167,12 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
 
   const mapped = scoped.map((app) => {
     const profile = profileById[app.student_id];
-    const letter = letterByApp.get(app.id) || null;
+    const rawLetter = letterByApp.get(app.id) || null;
+    const letter = rawLetter
+      ? { ...rawLetter, file_ready: Boolean(rawLetter.pdf_url) && repo.submissionFileExists(rawLetter.pdf_url) }
+      : null;
     const assignment = assignments.get(app.id);
-    const universityNumber = resolveOfficialUniversityNumber(profile).number || '';
+    const universityNumber = resolveLetterUniversityNumber(profile);
     const sourceHash = computeLetterSourceHash({
       studentId: app.student_id,
       applicationId: app.id,
@@ -165,8 +199,12 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
           repo.formatSpecialtyLabel(profile?.university_specialty || profile?.specialty, null),
         letter_id: letter?.id || null,
         letter_no: letter?.letter_no || null,
-        has_pdf: Boolean(letter?.pdf_url),
-        issuance_status: letter ? 'issued' : classification.eligible ? 'pending' : 'ineligible',
+        has_pdf: Boolean(letter?.file_ready),
+        issuance_status: letter?.file_ready
+          ? 'issued'
+          : classification.eligible
+            ? 'pending'
+            : 'ineligible',
         skip_reason: classification.skipReason || null,
         skip_reason_label: classification.skipReason ? skipLabel(classification.skipReason) : null,
         source_data_hash: sourceHash,
@@ -179,10 +217,11 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
   });
 
   const filtered = mapped.filter((row) => {
-    if (supervisorId && String(row.academic_supervisor_id || '') !== String(supervisorId)) return false;
-    if (supervisorName != null && String(supervisorName).trim() !== '') {
-      const wanted = names.normalizeSupervisorKey(supervisorName);
-      if ((names.normalizeSupervisorKey(row.academic_supervisor_name) || '') !== wanted) return false;
+    if (supervisorId) {
+      const wanted = String(supervisorId);
+      const matchesAccount = String(row.academic_supervisor_id || '') === wanted;
+      const matchesName = names.normalizeSupervisorKey(row.academic_supervisor_name) === wanted;
+      if (!matchesAccount && !matchesName) return false;
     }
     if (issuanceStatus === 'issued' && !row.already_issued) return false;
     if (issuanceStatus === 'pending' && (row.already_issued || !row.will_issue)) return false;
@@ -226,7 +265,6 @@ async function listCompletionLetters(opportunityId, user, query = {}) {
     search: query.search,
     issuanceStatus: query.issuance_status,
     supervisorId: query.supervisor_id,
-    supervisorName: query.supervisor_name,
   });
   const page = Math.max(1, Number(query.page) || 1);
   const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 20));
@@ -235,11 +273,11 @@ async function listCompletionLetters(opportunityId, user, query = {}) {
   const supervisors = [];
   const seenSupervisors = new Set();
   for (const row of allStudents) {
-    const label = names.resolvedSupervisorDisplay(row.academic_supervisor_name);
-    const key = names.normalizeSupervisorKey(row.academic_supervisor_name) || '';
-    if (seenSupervisors.has(key)) continue;
-    seenSupervisors.add(key);
-    supervisors.push({ id: key || 'unassigned', name: label, normalized: key });
+    const label = names.displaySupervisorName(row.academic_supervisor_name);
+    const id = row.academic_supervisor_id || names.normalizeSupervisorKey(label);
+    if (!id || seenSupervisors.has(id)) continue;
+    seenSupervisors.add(id);
+    supervisors.push({ id, name: label || names.UNASSIGNED_SUPERVISOR_LABEL });
   }
   return {
     opportunity: { id: opp.id, title: opp.title, university_name: university?.name || null },
@@ -259,10 +297,7 @@ async function listCompletionLetters(opportunityId, user, query = {}) {
 async function previewBulkIssue(opportunityId, user, { retryFailedIds = [] } = {}) {
   const { opp, university, allStudents } = await loadScopeStudents(opportunityId, user);
   const retrySet = new Set((retryFailedIds || []).filter(Boolean));
-  const toIssue = allStudents.filter((row) => {
-    if (retrySet.size) return retrySet.has(row.id);
-    return row.will_issue || row.will_regenerate;
-  });
+  const toIssue = selectBulkIssueTargets(allStudents, retryFailedIds);
   const skipped = allStudents
     .filter((row) => !toIssue.some((item) => item.id === row.id))
     .map((row) => ({
@@ -285,6 +320,17 @@ async function previewBulkIssue(opportunityId, user, { retryFailedIds = [] } = {
     ).length,
     letters_already_issued: allStudents.filter((row) => row.already_issued).length,
     letters_to_issue: toIssue.length,
+    to_issue_ids: toIssue.map((row) => row.id),
+    total: allStudents.length,
+    eligible: allStudents.filter(
+      (row) =>
+        row.completion_eligibility_status === 'eligible' &&
+        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS
+    ).length,
+    generated: 0,
+    alreadyCurrent: allStudents.filter((row) => row.skip_reason === SKIP_REASONS.SOURCE_UNCHANGED).length,
+    skipped: skipped.length,
+    failed: 0,
     skipped,
     active_job: running ? mapJob(running) : null,
   };
@@ -332,7 +378,7 @@ async function buildLetterPayload(app, opp, userId) {
     });
     instructorName = ins?.full_name ?? null;
   }
-  const universityNumber = resolveOfficialUniversityNumber(student).number || '';
+  const universityNumber = resolveLetterUniversityNumber(student);
   const mappedOpp = repo.mapOpportunityRow(opp);
   return {
     studentId: app.student_id,
@@ -353,41 +399,72 @@ async function buildLetterPayload(app, opp, userId) {
 }
 
 async function writeLetterPdf(applicationId, letterNo, html) {
-  const pdfBuffer = await renderHtmlToPdf(html, { lang: 'ar' });
-  const relDir = path.posix.join('field-training', 'completion-letters', applicationId);
-  const absDir = path.join(env.UPLOAD_DIR || 'uploads', relDir);
-  fs.mkdirSync(absDir, { recursive: true });
-  const fileName = `${letterNo}.pdf`;
-  const relPath = path.posix.join(relDir, fileName);
-  fs.writeFileSync(path.join(env.UPLOAD_DIR || 'uploads', relPath), pdfBuffer);
-  return relPath;
+  let pdfBuffer;
+  try {
+    pdfBuffer = await renderHtmlToPdf(html, {
+      lang: 'ar',
+      displayHeaderFooter: false,
+      margin: { top: '0', right: '0', bottom: '0', left: '0' },
+      waitForFonts: true,
+    });
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    log('error', 'PDF_RENDER_FAILED', { applicationId, code: 'PDF_RENDER_FAILED' });
+    throw new ApiError(500, 'تعذر إنشاء كتاب الإنهاء', { reason: 'pdf_render_failed' }, 'PDF_RENDER_FAILED');
+  }
+  if (!pdfBuffer || !pdfBuffer.length) {
+    throw new ApiError(500, 'تعذر إنشاء كتاب الإنهاء', { reason: 'empty_pdf' }, 'PDF_RENDER_FAILED');
+  }
+  try {
+    const relPath = path.posix.join(
+      'field-training',
+      'completion-letters',
+      applicationId,
+      `${letterNo}.pdf`
+    );
+    const absPath = repo.resolveSubmissionAbsolutePath(relPath);
+    fs.mkdirSync(path.dirname(absPath), { recursive: true });
+    fs.writeFileSync(absPath, pdfBuffer);
+    if (!fs.existsSync(absPath) || !fs.statSync(absPath).size) {
+      throw new Error('empty_output');
+    }
+    return relPath;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    log('error', 'OUTPUT_WRITE_FAILED', { applicationId, code: 'OUTPUT_WRITE_FAILED' });
+    throw new ApiError(500, 'تعذر حفظ كتاب الإنهاء', { reason: 'output_write_failed' }, 'OUTPUT_WRITE_FAILED');
+  }
 }
 
-async function issueOne(applicationId, userId, user, { allowSkip = false } = {}) {
-  const app = await repo.findApplicationById(applicationId);
+async function issueOne(applicationId, userId, user, { allowSkip = false, preloaded = null } = {}) {
+  const app = preloaded?.app || (await repo.findApplicationById(applicationId));
   if (!app) throw new ApiError(404, 'Application not found');
-  const opp = await repo.findById(app.opportunity_id);
-  await assertManageOpportunityAccess(user, opp);
-  await assertApplicationStudentAccess(user, app.student_id);
-  await supervisorScope.assertReviewerCanAccessApplication(user, app);
+  const opp = preloaded?.opp || (await repo.findById(app.opportunity_id));
+  if (!preloaded) {
+    await assertManageOpportunityAccess(user, opp);
+    await assertApplicationStudentAccess(user, app.student_id);
+    await supervisorScope.assertReviewerCanAccessApplication(user, app);
+  }
 
   if (workflow.isExpelled(app)) {
     throw new ApiError(400, 'لا يمكن إصدار كتاب لطالب مستبعد');
   }
 
-  const eligibility = await workflow.calculateFieldTrainingEligibility(applicationId);
   if (app.completion_eligibility_status !== 'eligible') {
-    throw new ApiError(400, 'الطالب غير مؤهل لإصدار كتاب الإنهاء', eligibility);
+    throw new ApiError(400, 'الطالب غير مؤهل لإصدار كتاب الإنهاء', app.eligibility_reason, 'NO_ELIGIBLE_STUDENTS');
   }
   if (completedHoursOf(app) < MIN_COMPLETION_LETTER_HOURS) {
     throw new ApiError(400, 'يجب إكمال 140 ساعة تدريبية على الأقل قبل إصدار كتاب الإنهاء');
   }
 
-  const payload = await buildLetterPayload(app, opp, userId);
+  const payload = preloaded?.payload || (await buildLetterPayload(app, opp, userId));
   const sourceHash = computeLetterSourceHash(payload);
-  const existing = await repo.findCompletionLetterByApplication(applicationId);
+  const existing =
+    preloaded?.letter !== undefined
+      ? preloaded.letter
+      : await repo.findCompletionLetterByApplication(applicationId);
 
-  if (existing) {
+  if (existing && letterFileReady(existing)) {
     const existingHash = existing.source_data_hash || existing.metadata?.source_data_hash;
     if (existingHash === sourceHash || !existingHash) {
       if (allowSkip) {
@@ -400,12 +477,18 @@ async function issueOne(applicationId, userId, user, { allowSkip = false } = {})
   const letterNo = existing?.letter_no || `FT-${Date.now().toString(36).toUpperCase()}`;
   const verificationCode = existing?.verification_code || crypto.randomBytes(16).toString('hex');
   const issuedAt = new Date().toISOString().slice(0, 10);
-  const html = buildOfficialCompletionLetterHtml({
-    ...payload,
-    letterNo,
-    verificationCode,
-    issuedAt,
-  });
+  let html;
+  try {
+    html = buildOfficialCompletionLetterHtml({
+      ...payload,
+      letterNo,
+      verificationCode,
+      issuedAt,
+    });
+  } catch (err) {
+    log('error', 'TEMPLATE_RENDER_FAILED', { applicationId, code: 'TEMPLATE_RENDER_FAILED' });
+    throw new ApiError(500, 'تعذر إنشاء كتاب الإنهاء', { reason: 'template_render_failed' }, 'TEMPLATE_RENDER_FAILED');
+  }
   const relPath = await writeLetterPdf(applicationId, letterNo, html);
 
   let letter;
@@ -417,7 +500,7 @@ async function issueOne(applicationId, userId, user, { allowSkip = false } = {})
         source_data_hash: sourceHash,
         issued_by_id: userId,
         issued_at: new Date(),
-        metadata: { ...(existing.metadata || {}), eligibility: eligibility.details, source_data_hash: sourceHash },
+        metadata: { ...(existing.metadata || {}), eligibility: app.eligibility_reason, source_data_hash: sourceHash },
         updated_at: new Date(),
       },
     });
@@ -432,7 +515,7 @@ async function issueOne(applicationId, userId, user, { allowSkip = false } = {})
       pdf_url: relPath,
       verification_code: verificationCode,
       source_data_hash: sourceHash,
-      metadata: { eligibility: eligibility.details, source_data_hash: sourceHash },
+      metadata: { eligibility: app.eligibility_reason, source_data_hash: sourceHash },
     });
   }
 
@@ -475,14 +558,19 @@ async function issueOne(applicationId, userId, user, { allowSkip = false } = {})
 async function startBulkIssue(opportunityId, user, { retryFailedIds = [], sync = false } = {}) {
   const preview = await previewBulkIssue(opportunityId, user, { retryFailedIds });
   if (preview.active_job) {
-    throw new ApiError(409, 'عملية إصدار جماعية قيد التنفيذ حالياً', preview.active_job, 'BULK_ISSUE_IN_PROGRESS');
+    throw new ApiError(
+      409,
+      'يوجد إصدار جماعي قيد التنفيذ حالياً، يرجى الانتظار حتى اكتماله.',
+      preview.active_job,
+      'BULK_ISSUE_IN_PROGRESS'
+    );
   }
 
-  const { allStudents } = await loadScopeStudents(opportunityId, user);
+  const targetIds = preview.to_issue_ids || [];
+  if (!targetIds.length) {
+    throw new ApiError(400, 'لا يوجد طلاب مؤهلون لإصدار كتب الإنهاء.', preview, 'NO_ELIGIBLE_STUDENTS');
+  }
   const retrySet = new Set((retryFailedIds || []).filter(Boolean));
-  const targetIds = allStudents
-    .filter((row) => (retrySet.size ? retrySet.has(row.id) : row.will_issue || row.will_regenerate))
-    .map((row) => row.id);
 
   const job = await prisma.field_training_completion_letter_jobs.create({
     data: {
@@ -527,11 +615,59 @@ async function processJob(jobId) {
     data: { status: 'running', started_at: new Date(), progress, updated_at: new Date() },
   });
 
+  const opp = job.opportunity_id ? await repo.findById(job.opportunity_id) : null;
+  const apps = ids.length
+    ? await prisma.field_training_applications.findMany({ where: { id: { in: ids } } })
+    : [];
+  const appById = new Map(apps.map((row) => [row.id, row]));
+  const profiles = apps.length
+    ? await repo.findStudentProfilesByIds([...new Set(apps.map((row) => row.student_id))])
+    : [];
+  const profileById = Object.fromEntries(profiles.map((row) => [row.id, row]));
+  const letters = ids.length
+    ? await prisma.field_training_completion_letters.findMany({
+        where: { application_id: { in: ids }, status: 'issued' },
+      })
+    : [];
+  const letterByApp = new Map(letters.map((row) => [row.application_id, row]));
+  let instructorName = null;
+  if (opp?.assigned_instructor_id) {
+    const ins = await prisma.users.findUnique({
+      where: { id: opp.assigned_instructor_id },
+      select: { full_name: true },
+    });
+    instructorName = ins?.full_name ?? null;
+  }
+
   for (let i = 0; i < ids.length; i += ISSUE_BATCH_SIZE) {
     const batch = ids.slice(i, i + ISSUE_BATCH_SIZE);
     for (const applicationId of batch) {
       try {
-        const result = await issueOne(applicationId, user.userId, user, { allowSkip: true });
+        const app = appById.get(applicationId);
+        const student = app ? profileById[app.student_id] : null;
+        const payload = app && opp
+          ? {
+              studentId: app.student_id,
+              applicationId: app.id,
+              studentName: student?.full_name || '—',
+              universityNumber: resolveLetterUniversityNumber(student),
+              universityName: student?.university?.name,
+              specialtyName:
+                student?.specialty?.name_ar || student?.specialty?.name_en || student?.university_specialty?.name_ar,
+              opportunityTitle: opp.title,
+              startDate: repo.mapOpportunityRow(opp).start_date,
+              endDate: repo.mapOpportunityRow(opp).end_date,
+              completedHours: completedHoursOf(app),
+              attendancePct: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+              postScore: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
+              instructorName,
+              issuedById: user.userId,
+            }
+          : null;
+        const result = await issueOne(applicationId, user.userId, user, {
+          allowSkip: true,
+          preloaded: { app, opp, letter: letterByApp.get(applicationId) || null, payload },
+        });
         if (result.outcome === 'issued' || result.outcome === 'regenerated') {
           progress.newly_issued += 1;
         } else if (result.outcome === 'previously_issued') {
@@ -546,7 +682,7 @@ async function processJob(jobId) {
         progress.results.push({
           application_id: applicationId,
           outcome: 'failed',
-          error: err?.message || 'failed',
+          error: err?.code || err?.message || 'failed',
         });
       }
       progress.completed = progress.newly_issued + progress.previously_issued + progress.skipped + progress.failed;
@@ -598,12 +734,14 @@ async function downloadIssuedZip(opportunityId, user) {
   const pendingEligible = allStudents.filter((row) => row.will_issue);
   const failedCount = allStudents.filter((row) => row.issuance_status === 'error').length;
 
-  if (!issued.length && pendingEligible.length) {
+  if (!issued.length) {
     throw new ApiError(
       409,
-      `لم يُصدر ${pendingEligible.length} كتاباً بعد. استخدم إصدار الكل أولاً.`,
-      { unissued: pendingEligible.length },
-      'COMPLETION_LETTERS_NOT_ISSUED'
+      pendingEligible.length
+        ? `لم يُصدر ${pendingEligible.length} كتاباً بعد. استخدم إصدار الكل أولاً.`
+        : 'لا توجد كتب إنهاء جاهزة للتنزيل لهذه الفرصة.',
+      { unissued: pendingEligible.length, missing: pendingEligible.length, available: 0 },
+      pendingEligible.length ? 'COMPLETION_LETTERS_NOT_ISSUED' : 'NO_READY_LETTERS'
     );
   }
 
@@ -625,7 +763,7 @@ async function downloadIssuedZip(opportunityId, user) {
         universityNumber: row.university_number,
       }),
       supervisorFolder: names.sanitizeZipFolder(row.academic_supervisor_name),
-      supervisorName: names.resolvedSupervisorDisplay(row.academic_supervisor_name),
+      supervisorName: row.academic_supervisor_name,
       pdfUrl: letter?.pdf_url,
     };
   });
@@ -647,6 +785,7 @@ async function downloadIssuedZip(opportunityId, user) {
       selected: entries.length,
       included: included.length,
       failed: failed.length + failedCount,
+      missing: pendingEligible.length,
       unissued: pendingEligible.length,
       university_name: university?.name || null,
       opportunity_name: opp.title,
@@ -669,6 +808,7 @@ module.exports = {
   SKIP_REASONS,
   skipLabel,
   classifyStudent,
+  letterFileReady,
   listCompletionLetters,
   previewBulkIssue,
   issueOne,
@@ -680,4 +820,7 @@ module.exports = {
   downloadHeaders,
   findActiveJob,
   summarizeStudents,
+  selectBulkIssueTargets,
+  resolveLetterUniversityNumber,
+  letterFileReady,
 };

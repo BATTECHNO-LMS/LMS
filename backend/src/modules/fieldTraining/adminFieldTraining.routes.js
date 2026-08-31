@@ -42,7 +42,6 @@ const {
   jobIdParamSchema,
   applySupervisorImportBodySchema,
   resolveSupervisorImportBodySchema,
-  updateAcademicSupervisorNameBodySchema,
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
@@ -251,14 +250,6 @@ router.patch(
   fieldTrainingStaff,
   validateRequest({ params: applicationIdParamSchema, body: updateApplicationHoursBodySchema }),
   workflowController.updateApplicationHours
-);
-
-router.patch(
-  '/applications/:applicationId/academic-supervisor',
-  authenticate,
-  fieldTrainingStaff,
-  validateRequest({ params: applicationIdParamSchema, body: updateAcademicSupervisorNameBodySchema }),
-  lettersController.updateAcademicSupervisorName
 );
 
 router.post(

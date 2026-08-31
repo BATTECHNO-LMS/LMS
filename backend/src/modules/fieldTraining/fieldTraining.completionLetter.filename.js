@@ -41,8 +41,9 @@ function buildCompletionLettersZipFilename({ opportunityName, date } = {}) {
 }
 
 function uniqueZipEntry(used, filename, folder = '') {
-  const folderName = folder ? require('./fieldTraining.supervisorName').sanitizeZipFolder(folder) : '';
-  const relative = folderName ? `${folderName}/${filename}` : filename;
+  const { sanitizeZipFolder } = require('./fieldTraining.supervisorName');
+  const folderName = sanitizeZipFolder(folder);
+  const relative = `${folderName}/${filename}`;
   if (!used.has(relative)) {
     used.add(relative);
     return relative;
@@ -51,10 +52,10 @@ function uniqueZipEntry(used, filename, folder = '') {
   const stem = dot > 0 ? filename.slice(0, dot) : filename;
   const ext = dot > 0 ? filename.slice(dot) : '';
   let i = 2;
-  let candidate = folderName ? `${folderName}/${stem}_${i}${ext}` : `${stem}_${i}${ext}`;
+  let candidate = `${folderName}/${stem}_${i}${ext}`;
   while (used.has(candidate)) {
     i += 1;
-    candidate = folderName ? `${folderName}/${stem}_${i}${ext}` : `${stem}_${i}${ext}`;
+    candidate = `${folderName}/${stem}_${i}${ext}`;
   }
   used.add(candidate);
   return candidate;

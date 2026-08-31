@@ -95,6 +95,7 @@ async function downloadIssuedZip(req, res, next) {
     res.setHeader('X-Zip-Included', String(file.summary.included));
     res.setHeader('X-Zip-Failed', String(file.summary.failed));
     res.setHeader('X-Zip-Unissued', String(file.summary.unissued));
+    res.setHeader('X-Zip-Missing', String(file.summary.missing || 0));
     file.stream.on('error', (err) => next(err));
     return file.stream.pipe(res);
   } catch (err) {
@@ -137,22 +138,6 @@ async function applySupervisorImport(req, res, next) {
   }
 }
 
-async function updateAcademicSupervisorName(req, res, next) {
-  try {
-    return success(
-      res,
-      await supervisorService.updateEnrollmentSupervisorName(
-        req.validated.params.applicationId,
-        req.user,
-        req.validated.body
-      ),
-      { message: 'تم تحديث اسم المشرف الأكاديمي' }
-    );
-  } catch (err) {
-    return next(err);
-  }
-}
-
 async function listAcademicSupervisors(req, res, next) {
   try {
     return success(res, await supervisorService.listAcademicSupervisors(req.validated.params.id, req.user));
@@ -184,7 +169,6 @@ module.exports = {
   previewSupervisorImport,
   resolveSupervisorImport,
   applySupervisorImport,
-  updateAcademicSupervisorName,
   listAcademicSupervisors,
   downloadSupervisorTemplate,
 };

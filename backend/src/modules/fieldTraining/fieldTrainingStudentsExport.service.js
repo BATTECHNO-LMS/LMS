@@ -84,10 +84,10 @@ function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress
       app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
     post_assessment_attempt_status: app.post_assessment_attempt_status || null,
     post_assessment_attempt_status_label: app.post_assessment_attempt_status_label || null,
-    eligibility_status: app.completion_eligibility_status,
-    completion_eligibility_status: app.completion_eligibility_status,
     completed_training_hours:
       app.completed_training_hours != null ? Number(app.completed_training_hours) : 0,
+    eligibility_status: app.completion_eligibility_status,
+    completion_eligibility_status: app.completion_eligibility_status,
     completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
     submitted_at: app.created_at,
     created_at: app.created_at,
@@ -171,7 +171,7 @@ async function hydrateExcelSources(applications) {
       opportunity: oppById[app.opportunity_id],
       finalStatus: evalMap.get(app.id) || null,
       taskProgress: progressByApp.get(app.id) || null,
-      academic_supervisor_name: assignments.get(app.id)?.supervisor_name || app.academic_supervisor_name || '',
+      academic_supervisor_name: assignments.get(app.id)?.supervisor_name || '',
     });
   });
 }

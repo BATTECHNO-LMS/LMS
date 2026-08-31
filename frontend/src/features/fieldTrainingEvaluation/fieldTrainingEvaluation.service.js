@@ -214,15 +214,14 @@ export async function downloadSupervisorReportsZip(body, scope = 'admin') {
       responseType: 'blob',
       timeout: 180000,
     });
-    const meta = {
+    saveBlobResponse(res, 'supervisor-reports.zip');
+    return {
       selected: Number(res.headers?.['x-zip-selected'] || 0),
       included: Number(res.headers?.['x-zip-included'] || 0),
       missing: Number(res.headers?.['x-zip-missing'] || 0),
       failed: Number(res.headers?.['x-zip-failed'] || 0),
       skipped: Number(res.headers?.['x-zip-skipped'] || 0),
     };
-    saveBlobResponse(res, 'supervisor-reports.zip');
-    return meta;
   } catch (err) {
     await rethrowBlobApiError(err);
   }

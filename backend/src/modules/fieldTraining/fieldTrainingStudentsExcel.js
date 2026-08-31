@@ -4,7 +4,7 @@ const ExcelJS = require('exceljs');
 const dates = require('./fieldTrainingReport.dates');
 const labels = require('./fieldTrainingReport.labels');
 const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
-const { formatCompletedHoursLabelAr } = require('./fieldTraining.hours');
+const hoursMod = require('./fieldTraining.hours');
 
 const NAVY = 'FF132D4A';
 const GOLD = 'FFC9A227';
@@ -32,16 +32,15 @@ const COLUMN_HEADERS = Object.freeze([
   'تقدم المهمات',
   'حالة التقييم البعدي',
   'درجة التقييم البعدي',
-  'حالة الأهلية',
   'الساعات التدريبية المنجزة',
+  'حالة الأهلية',
   'النتيجة النهائية',
   'تاريخ التقديم',
 ]);
 
-const COLUMN_WIDTHS = [6, 26, 18, 22, 30, 22, 22, 28, 24, 16, 22, 28, 22, 18, 18, 28, 16, 18];
+const COLUMN_WIDTHS = [6, 26, 18, 22, 30, 22, 22, 28, 24, 16, 22, 28, 22, 18, 28, 18, 16, 18];
 const UNIVERSITY_NUMBER_COL = 3;
 const SUPERVISOR_COL = 4;
-const COMPLETED_HOURS_COL = 16;
 const FINAL_RESULT_COL = 17;
 
 const FINAL_STATUS_AR = Object.freeze({
@@ -100,11 +99,14 @@ function mapStudentExcelRow(source, index) {
       source.post_assessment_score != null && source.post_assessment_score !== ''
         ? Number(source.post_assessment_score)
         : '',
+    completedHoursLabel: (() => {
+      const hours =
+        source.completed_training_hours ?? source.training_hours?.completed_training_hours;
+      if (hours == null || hours === '') return '';
+      return hoursMod.formatCompletedHoursLabelAr(hours);
+    })(),
     eligibilityStatus: eligibilityStatusLabel(
       source.eligibility_status || source.completion_eligibility_status
-    ),
-    completedHoursLabel: formatCompletedHoursLabelAr(
-      source.completed_training_hours ?? source.completedHours
     ),
     finalResult: finalResultLabel(source.final_evaluation_status),
     submittedAt: dates.formatReportDateAr(source.submitted_at || source.created_at) || '',
@@ -127,8 +129,8 @@ function toCellArray(row) {
     row.taskProgress,
     row.postAssessmentStatus,
     row.postAssessmentScore,
-    row.eligibilityStatus,
     row.completedHoursLabel,
+    row.eligibilityStatus,
     row.finalResult,
     row.submittedAt,
   ];
@@ -210,8 +212,6 @@ module.exports = {
   COLUMN_HEADERS,
   UNIVERSITY_NUMBER_COL,
   SUPERVISOR_COL,
-  COMPLETED_HOURS_COL,
-  FINAL_RESULT_COL,
   FINAL_STATUS_AR,
   mapStudentExcelRow,
   buildStudentsExcelFilename,

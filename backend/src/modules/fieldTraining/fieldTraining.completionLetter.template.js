@@ -6,15 +6,33 @@ const path = require('path');
 
 const SIGNATORY_TITLE = 'مسؤول التدريب';
 const SIGNATORY_NAME = 'عاصم القيسي';
+const LETTER_TITLE = 'كتاب إنهاء تدريب ميداني';
 const FONT_FAMILY = 'Sakkal Majalla';
 const MIN_COMPLETION_LETTER_HOURS = 140;
+const TEMPLATE_VERSION = 'official-batman-v1';
+
+const FONT_REGULAR = path.join(__dirname, '../../../assets/fonts/SakkalMajalla.ttf');
+const FONT_BOLD = path.join(__dirname, '../../../assets/fonts/SakkalMajalla-Bold.ttf');
+const OFFICIAL_LOGO = path.join(
+  __dirname,
+  '../../../assets/field-training/completion-letter/batman-technology-logo.png'
+);
+const OFFICIAL_STAMP = path.join(
+  __dirname,
+  '../../../assets/field-training/completion-letter/official-company-stamp.png'
+);
+const FALLBACK_LOGO = path.join(__dirname, 'assets', 'battechno-logo.png');
+const FALLBACK_STAMP = path.join(__dirname, 'assets', 'battechno-stamp.svg');
 
 const FONT_CANDIDATES = [
   process.env.SAKKAL_MAJALLA_FONT_PATH,
+  FONT_REGULAR,
   'C:\\Windows\\Fonts\\majalla.ttf',
   'C:\\Windows\\Fonts\\SakkalMajalla.ttf',
   '/usr/share/fonts/truetype/msttcorefonts/SakkalMajalla.ttf',
 ].filter(Boolean);
+
+const { log } = require('../../utils/logger');
 
 let cachedFontCss = null;
 let cachedLogoUri = null;
@@ -28,49 +46,76 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
+function toDataUri(absPath, mime) {
+  try {
+    if (!absPath || !fs.existsSync(absPath)) return '';
+    return `data:${mime};base64,${fs.readFileSync(absPath).toString('base64')}`;
+  } catch {
+    return '';
+  }
+}
+
 function loadFontFaceCss() {
   if (cachedFontCss != null) return cachedFontCss;
+  const faces = [];
+  let regularUri = '';
   for (const candidate of FONT_CANDIDATES) {
-    try {
-      if (!candidate || !fs.existsSync(candidate)) continue;
-      const buf = fs.readFileSync(candidate);
-      const b64 = buf.toString('base64');
-      cachedFontCss = `@font-face { font-family: '${FONT_FAMILY}'; src: url('data:font/ttf;base64,${b64}') format('truetype'); font-weight: normal; font-style: normal; }`;
-      return cachedFontCss;
-    } catch {
-      /* try next */
-    }
+    regularUri = toDataUri(candidate, 'font/ttf');
+    if (regularUri) break;
   }
-  cachedFontCss = '';
+  const boldUri = toDataUri(FONT_BOLD, 'font/ttf');
+  if (regularUri) {
+    faces.push(
+      `@font-face { font-family: '${FONT_FAMILY}'; src: url('${regularUri}') format('truetype'); font-weight: 400; font-style: normal; font-display: block; }`
+    );
+  }
+  if (boldUri) {
+    faces.push(
+      `@font-face { font-family: '${FONT_FAMILY}'; src: url('${boldUri}') format('truetype'); font-weight: 700; font-style: normal; font-display: block; }`
+    );
+  }
+  if (!faces.length) {
+    log('warn', 'MISSING_FONT', { font: FONT_FAMILY, code: 'MISSING_FONT' });
+    cachedFontCss = '';
+    return cachedFontCss;
+  }
+  cachedFontCss = faces.join('\n');
   return cachedFontCss;
 }
 
 function loadLogoDataUri() {
   if (cachedLogoUri != null) return cachedLogoUri;
-  const file = path.join(__dirname, 'assets', 'battechno-logo.png');
-  try {
-    const buf = fs.readFileSync(file);
-    cachedLogoUri = `data:image/png;base64,${buf.toString('base64')}`;
-  } catch {
-    cachedLogoUri = '';
-  }
+  cachedLogoUri = toDataUri(OFFICIAL_LOGO, 'image/png') || toDataUri(FALLBACK_LOGO, 'image/png');
+  if (!cachedLogoUri) log('warn', 'LOGO_NOT_FOUND', { code: 'LOGO_NOT_FOUND' });
   return cachedLogoUri;
 }
 
 function loadStampDataUri() {
   if (cachedStampUri != null) return cachedStampUri;
-  const file = path.join(__dirname, 'assets', 'battechno-stamp.svg');
-  try {
-    const buf = fs.readFileSync(file);
-    cachedStampUri = `data:image/svg+xml;base64,${buf.toString('base64')}`;
-  } catch {
-    cachedStampUri = '';
+  cachedStampUri = toDataUri(OFFICIAL_STAMP, 'image/png');
+  if (!cachedStampUri) {
+    const svg = toDataUri(FALLBACK_STAMP, 'image/svg+xml');
+    cachedStampUri = svg;
   }
+  if (!cachedStampUri) log('warn', 'STAMP_NOT_FOUND', { code: 'STAMP_NOT_FOUND' });
   return cachedStampUri;
+}
+
+function formatArDate(value) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return new Intl.DateTimeFormat('ar-EG', {
+    timeZone: 'Asia/Amman',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }).format(date);
 }
 
 function computeLetterSourceHash(data) {
   const payload = [
+    TEMPLATE_VERSION,
     data.studentId || '',
     data.applicationId || '',
     data.studentName || '',
@@ -89,101 +134,204 @@ function computeLetterSourceHash(data) {
   return crypto.createHash('sha256').update(payload, 'utf8').digest('hex');
 }
 
+function buildOfficialParagraphs(data) {
+  const name = data.studentName || '—';
+  const number = data.universityNumber || '—';
+  const university = data.universityName || '—';
+  const hours = data.completedHours != null ? String(data.completedHours) : '—';
+  const start = formatArDate(data.startDate) || data.startDate || '—';
+  const end = formatArDate(data.endDate) || data.endDate || '—';
+  return [
+    `تشهد شركة الرجل الوطواط للتكنولوجيا بأن الطالب/الطالبة ${name}، والرقم الجامعي ${number}، من ${university}، قد أتم/أتمت متطلبات التدريب الميداني لدى الشركة بنجاح، بواقع ${hours} ساعة تدريبية، خلال الفترة من ${start} إلى ${end}.`,
+    'وقد أظهر/أظهرت خلال فترة التدريب الالتزام والتعاون والقدرة على تطبيق المهارات والمعارف المكتسبة، وقد مُنح/مُنحت هذا الكتاب بناءً على طلبه/طلبها دون أن يترتب على الشركة أي التزام آخر.',
+    'مع تمنياتنا له/لها بدوام التوفيق والنجاح.',
+  ];
+}
+
 function buildOfficialCompletionLetterHtml(data) {
   const fontCss = loadFontFaceCss();
   const logo = loadLogoDataUri();
   const stamp = loadStampDataUri();
   const fontStack = `'${FONT_FAMILY}', 'Traditional Arabic', Tahoma, Arial, sans-serif`;
+  const paragraphs = buildOfficialParagraphs(data)
+    .map((p) => `<p>${escapeHtml(p)}</p>`)
+    .join('');
+  const startLabel = formatArDate(data.startDate) || data.startDate || '—';
+  const endLabel = formatArDate(data.endDate) || data.endDate || '—';
+  const issueLabel = formatArDate(data.issuedAt) || data.issuedAt || '—';
+  const infoRows = [
+    ['اسم الطالب/ة', data.studentName || '—'],
+    ['الرقم الجامعي', data.universityNumber || '—'],
+    ['الجامعة', data.universityName || '—'],
+    ['التخصص', data.specialtyName || '—'],
+    ['فرصة التدريب', data.opportunityTitle || '—'],
+    ['فترة التدريب', `${startLabel} — ${endLabel}`],
+    ['الساعات التدريبية المنجزة', `${data.completedHours != null ? data.completedHours : '—'} ساعة`],
+    ['حالة الأهلية', data.eligibilityLabel || 'مؤهل'],
+    ['تاريخ الإصدار', issueLabel],
+    ['رقم الكتاب', data.letterNo || '—'],
+  ]
+    .map(
+      ([label, value]) =>
+        `<div class="info-row"><span class="info-label">${escapeHtml(label)}</span><span class="info-value">${escapeHtml(value)}</span></div>`
+    )
+    .join('');
+  const verification = data.verificationCode
+    ? `<div class="verify">رمز التحقق: ${escapeHtml(data.verificationCode)}</div>`
+    : '';
+
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"/>
+<title>${escapeHtml(LETTER_TITLE)}</title>
 <style>
   ${fontCss}
+  @page { size: A4 portrait; margin: 0; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 210mm;
+    height: 297mm;
+    background: #fffdf8;
+    color: #0b1f3a;
     font-family: ${fontStack};
-    color: #132D4A;
-    background: #fff;
+    font-weight: 400;
     direction: rtl;
     text-align: right;
-    padding: 28px 36px;
+    unicode-bidi: isolate;
+    -webkit-font-smoothing: antialiased;
   }
-  .sheet { min-height: 980px; border: 2px solid #132D4A; padding: 28px 32px 36px; position: relative; }
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    border-bottom: 3px solid #C9A227;
-    padding-bottom: 16px;
-    margin-bottom: 24px;
+  .page {
+    width: 210mm;
+    height: 297mm;
+    padding: 14mm 16mm 12mm;
+    position: relative;
+    overflow: hidden;
+    background: #fffdf8;
   }
-  .logo { height: 78px; width: auto; }
-  .brand { text-align: center; flex: 1; }
-  .brand h1 { margin: 0 0 6px; font-size: 26px; color: #132D4A; }
-  .brand .sub { font-size: 15px; color: #8B6914; }
-  .letter-no { font-size: 13px; color: #5c6675; white-space: nowrap; }
-  h2 { text-align: center; font-size: 22px; margin: 8px 0 22px; color: #132D4A; }
-  .body { font-size: 18px; line-height: 2; }
-  .body p { margin: 0 0 10px; }
-  .meta { margin: 18px 0; }
-  .meta-row { display: flex; gap: 8px; margin: 4px 0; }
-  .meta-row dt { min-width: 150px; font-weight: 700; }
-  .sign {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    margin-top: 48px;
-    gap: 24px;
+  .page::before {
+    content: '';
+    position: absolute;
+    inset: 7mm;
+    border: 0.35mm solid #0b1f3a;
+    pointer-events: none;
   }
-  .signatory { text-align: center; min-width: 180px; }
-  .signatory .title { font-size: 16px; font-weight: 700; }
-  .signatory .name { font-size: 20px; margin-top: 8px; }
-  .stamp { width: 130px; height: 130px; }
-  .footer {
-    margin-top: 36px;
-    border-top: 1px solid #d6c9a8;
-    padding-top: 10px;
-    font-size: 12px;
-    color: #5c6675;
+  .logo {
+    display: block;
+    margin: 0 auto 5px;
+    height: 28mm;
+    width: auto;
+    max-width: 148mm;
+    object-fit: contain;
+    object-position: center;
+  }
+  .header-rule { height: 1.15mm; background: #0b1f3a; margin: 2mm 0 0; }
+  .header-gold { height: 0.45mm; background: #c5a057; margin: 1.1mm 0 5mm; }
+  h1 {
+    margin: 0 0 3mm;
     text-align: center;
+    font-size: 22pt;
+    font-weight: 700;
+    color: #0b1f3a;
   }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8mm;
+    font-size: 11.5pt;
+    color: #3b4a63;
+    margin-bottom: 4mm;
+  }
+  .recipient {
+    text-align: center;
+    font-size: 15pt;
+    font-weight: 700;
+    margin: 0 0 4mm;
+  }
+  .body p {
+    margin: 0 0 3mm;
+    font-size: 12.7pt;
+    line-height: 1.85;
+    text-align: justify;
+    text-justify: inter-word;
+  }
+  .info {
+    border: 0.28mm solid #d7deea;
+    background: #f7f4ec;
+    padding: 3mm 4mm;
+    margin: 3mm 0 4mm;
+  }
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 6mm;
+    padding: 1.1mm 0;
+    border-bottom: 0.18mm solid #e6e0d2;
+    font-size: 11.6pt;
+  }
+  .info-row:last-child { border-bottom: 0; }
+  .info-label { color: #5a6578; min-width: 42mm; }
+  .info-value {
+    font-weight: 700;
+    color: #0b1f3a;
+    text-align: right;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .sign-wrap { position: relative; min-height: 52mm; margin-top: 1mm; }
+  .sign-text { position: absolute; top: 10mm; right: 4mm; text-align: center; z-index: 2; }
+  .sign-role { font-size: 12.5pt; color: #3b4a63; margin-bottom: 1mm; }
+  .sign-name { font-size: 16pt; font-weight: 700; color: #0b1f3a; }
+  .stamp {
+    position: absolute;
+    left: 8mm;
+    bottom: 1mm;
+    height: 50mm;
+    width: auto;
+    max-width: 52mm;
+    object-fit: contain;
+    object-position: center;
+    z-index: 1;
+  }
+  .footer {
+    position: absolute;
+    right: 16mm;
+    left: 16mm;
+    bottom: 9mm;
+    text-align: center;
+    font-size: 9.5pt;
+    color: #5a6578;
+    border-top: 0.28mm solid #c5a057;
+    padding-top: 2.2mm;
+  }
+  .verify { margin-top: 0.8mm; font-size: 9pt; color: #7a8494; }
 </style>
 </head>
 <body>
-  <div class="sheet">
-    <header class="header">
-      ${logo ? `<img class="logo" src="${logo}" alt="BATTECHNO"/>` : '<div class="logo"></div>'}
-      <div class="brand">
-        <h1>بات تكنو</h1>
-        <div class="sub">BATTECHNO LMS</div>
-      </div>
-      <div class="letter-no">رقم الكتاب: ${escapeHtml(data.letterNo)}</div>
-    </header>
-    <h2>كتاب إنهاء التدريب الميداني</h2>
-    <div class="body">
-      <p>نشهد نحن شركة بات تكنو بأن الطالب/ة <strong>${escapeHtml(data.studentName)}</strong></p>
-      <p>حامل/ة الرقم الجامعي <strong>${escapeHtml(data.universityNumber || '—')}</strong></p>
-      <p>من جامعة <strong>${escapeHtml(data.universityName || '—')}</strong> — تخصص <strong>${escapeHtml(data.specialtyName || '—')}</strong></p>
-      <p>قد أتم/أتمت التدريب الميداني في فرصة: <strong>${escapeHtml(data.opportunityTitle || '—')}</strong></p>
-      <p>وذلك خلال الفترة من <strong>${escapeHtml(data.startDate || '—')}</strong> إلى <strong>${escapeHtml(data.endDate || '—')}</strong></p>
-      <p>بعدد ساعات تدريبية مكتملة يبلغ <strong>${escapeHtml(data.completedHours != null ? String(data.completedHours) : '—')}</strong> ساعة.</p>
+  <div class="page">
+    ${logo ? `<img class="logo" src="${logo}" alt="BATMAN TECHNOLOGY"/>` : ''}
+    <div class="header-rule"></div>
+    <div class="header-gold"></div>
+    <h1>${escapeHtml(LETTER_TITLE)}</h1>
+    <div class="meta">
+      <span>تاريخ الإصدار: ${escapeHtml(issueLabel)}</span>
+      <span>الرقم المرجعي: ${escapeHtml(data.letterNo || '—')}</span>
     </div>
-    <dl class="meta">
-      <div class="meta-row"><dt>نسبة الحضور</dt><dd>${data.attendancePct != null ? `${escapeHtml(String(data.attendancePct))}%` : '—'}</dd></div>
-      <div class="meta-row"><dt>درجة التقييم البعدي</dt><dd>${data.postScore != null ? escapeHtml(String(data.postScore)) : '—'}</dd></div>
-    </dl>
-    <div class="sign">
-      <div class="signatory">
-        <div class="title">${SIGNATORY_TITLE}</div>
-        <div class="name">${SIGNATORY_NAME}</div>
+    <div class="recipient">إلى من يهمه الأمر</div>
+    <div class="body">${paragraphs}</div>
+    <div class="info">${infoRows}</div>
+    <div class="sign-wrap">
+      <div class="sign-text">
+        <div class="sign-role">${escapeHtml(SIGNATORY_TITLE)}</div>
+        <div class="sign-name">${escapeHtml(SIGNATORY_NAME)}</div>
       </div>
-      ${stamp ? `<img class="stamp" src="${stamp}" alt="الختم الرسمي"/>` : ''}
+      ${stamp ? `<img class="stamp" src="${stamp}" alt=""/>` : ''}
     </div>
     <div class="footer">
-      رمز التحقق: ${escapeHtml(data.verificationCode || '—')} · تاريخ الإصدار: ${escapeHtml(data.issuedAt || '—')}
+      شركة الرجل الوطواط للتكنولوجيا · المملكة الأردنية الهاشمية — عمّان · privacy@battechno.com
+      ${verification}
     </div>
   </div>
 </body>
@@ -199,9 +347,12 @@ function resetTemplateCachesForTests() {
 module.exports = {
   SIGNATORY_TITLE,
   SIGNATORY_NAME,
+  LETTER_TITLE,
   FONT_FAMILY,
   MIN_COMPLETION_LETTER_HOURS,
+  TEMPLATE_VERSION,
   escapeHtml,
+  formatArDate,
   loadFontFaceCss,
   loadLogoDataUri,
   loadStampDataUri,

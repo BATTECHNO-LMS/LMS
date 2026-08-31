@@ -1260,7 +1260,7 @@ function mapEvaluationListRow(row) {
     professionalTotal: row.professional_total,
     finalScore: num(row.final_score),
     finalStatus: row.final_status,
-    eligibilityStatus: row.eligibility_status || row.field_training_applications?.completion_eligibility_status,
+    eligibilityStatus: row.eligibility_status,
     eligibilityReasons: row.eligibility_reasons,
     reportStatus: row.pdf_file_id ? 'generated' : 'missing_file',
     generatedAt: row.generated_at,
@@ -1269,7 +1269,6 @@ function mapEvaluationListRow(row) {
     hasPdf: Boolean(row.pdf_file_id),
     applicationStatus: row.field_training_applications?.status || 'approved',
     opportunityStatus: row.field_training_opportunities?.status,
-    academicSupervisorName: row.field_training_applications?.academic_supervisor_name || null,
   };
 }
 
@@ -1344,9 +1343,7 @@ async function listFinalReports(user, query = {}) {
           status: true,
         },
       },
-      field_training_applications: {
-        select: { id: true, completed_training_hours: true, status: true, academic_supervisor_name: true, completion_eligibility_status: true },
-      },
+      field_training_applications: { select: { id: true, completed_training_hours: true, status: true } },
     },
     orderBy: { generated_at: 'desc' },
     take: 2000,

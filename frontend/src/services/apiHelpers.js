@@ -75,11 +75,19 @@ const TRAINING_ERROR_AR = {
   INDIVIDUAL_REPORT_NOT_FOUND: 'لا يوجد تقرير فردي لهذا المتدرب بعد.',
   COURSE_REPORT_NOT_FOUND: 'لا يوجد تقرير للدورة بعد.',
   ENROLLMENT_NOT_FOUND: 'التسجيل غير موجود.',
-  PDF_RENDER_FAILED: 'تعذر إنشاء ملف PDF. حاول مرة أخرى بعد قليل.',
+  PDF_RENDER_FAILED: 'تعذر إنشاء كتاب الإنهاء. حاول مرة أخرى بعد قليل.',
   PDF_RENDER_UNAVAILABLE: 'تعذر إنشاء ملف PDF على الخادم حالياً.',
   REPORT_READ_ONLY: 'ليس لديك صلاحية إنشاء أو إعادة إنشاء التقارير. يمكنك عرض وتنزيل التقارير المتاحة فقط.',
   REPORT_EXPORT_FAILED: 'تعذر تصدير التقرير. حاول مرة أخرى بعد قليل.',
   FIELD_TRAINING_STUDENTS_EXPORT_EMPTY: 'لا يوجد طلاب مطابقون للتصدير',
+  BULK_ISSUE_IN_PROGRESS: 'يوجد إصدار جماعي قيد التنفيذ حالياً، يرجى الانتظار حتى اكتماله.',
+  NO_READY_LETTERS: 'لا توجد كتب إنهاء جاهزة للتنزيل لهذه الفرصة.',
+  NO_ELIGIBLE_STUDENTS: 'لا يوجد طلاب مؤهلون لإصدار كتب الإنهاء.',
+  COMPLETION_LETTERS_NOT_ISSUED: 'لا توجد كتب إنهاء جاهزة للتنزيل. استخدم إصدار الكل أولاً.',
+  TEMPLATE_RENDER_FAILED: 'تعذر إنشاء كتاب الإنهاء لبعض الطلاب.',
+  OUTPUT_WRITE_FAILED: 'تعذر حفظ كتاب الإنهاء. حاول مرة أخرى.',
+  UNAUTHORIZED: 'غير مصرح لك بتنفيذ هذه العملية.',
+  FIELD_TRAINING_FORBIDDEN: 'غير مصرح لك بتنفيذ هذه العملية.',
 };
 
 /**

@@ -10,9 +10,7 @@ const {
   normalizePersonLabel,
   groupRowsBySupervisor,
 } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.parse');
-const { resolveSupervisorAccount, majorityId, matchUniversityByOpportunityTitle, matchExcelRow } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.service');
-const names = require('../src/modules/fieldTraining/fieldTraining.supervisorName');
-const zipUtil = require('../src/modules/fieldTraining/fieldTrainingEvaluation.zip');
+const { resolveSupervisorAccount } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.service');
 const {
   buildCompletionLetterPdfFilename,
   buildCompletionLettersZipFilename,
@@ -29,7 +27,7 @@ const {
   loadStampDataUri,
   loadFontFaceCss,
 } = require('../src/modules/fieldTraining/fieldTraining.completionLetter.template');
-const { classifyStudent } = require('../src/modules/fieldTraining/fieldTraining.completionLetter.service');
+const { classifyStudent, selectBulkIssueTargets } = require('../src/modules/fieldTraining/fieldTraining.completionLetter.service');
 const { buildCompletionLettersZip } = require('../src/modules/fieldTraining/fieldTraining.completionLetter.zip');
 const supervisorScope = require('../src/modules/fieldTraining/fieldTraining.supervisorScope');
 const { ApiError } = require('../src/utils/apiError');
@@ -103,180 +101,38 @@ describe('mutah supervisor excel fixture', () => {
   });
 });
 
-describe('plain-text academic supervisor names', () => {
-  it('does not require a supervisor platform account', () => {
+describe('academic supervisor resolution', () => {
+  const reviewers = [
+    { id: 'u1', full_name: 'د. خالد الطراونة', email: 'khaled@mutah.edu.jo' },
+    { id: 'u2', full_name: 'د.احمد الطراونة', email: 'ahmad@mutah.edu.jo' },
+    { id: 'u3', full_name: 'د. خالد الطراونة', email: 'khaled2@mutah.edu.jo' },
+  ];
+
+  it('matches only an exact unique name and never a partial الطراونة guess', () => {
     const unique = resolveSupervisorAccount({
-      group: { supervisorLabel: 'زكريا الطراونه', supervisorNormalized: 'زكريا الطراونه', rows: [] },
-      reviewers: [],
+      group: { supervisorLabel: 'د.احمد الطراونة', supervisorNormalized: normalizePersonLabel('د.احمد الطراونة'), rows: [] },
+      reviewers: reviewers.slice(0, 2),
       mappings: new Map(),
     });
-    assert.equal(unique.status, 'unlinked');
-    assert.equal(unique.account, null);
-  });
-  it('normalizes periods without merging different الطراونة people', () => {
-    assert.equal(names.normalizeSupervisorKey('د . خالد الطراونة'), names.normalizeSupervisorKey('د. خالد الطراونة'));
-    assert.notEqual(names.normalizeSupervisorKey('د. خالد الطراونة'), names.normalizeSupervisorKey('د.احمد الطراونة'));
-    assert.notEqual(names.normalizeSupervisorKey('زكريا الطراونه'), names.normalizeSupervisorKey('وفاء الطراونة'));
-  });
+    assert.equal(unique.status, 'linked');
+    assert.equal(unique.account.id, 'u2');
 
-  it('keeps unassigned students in مشرف غير محدد', () => {
-    const grouped = names.groupRowsBySupervisorName(
-      [
-        { academic_supervisor_name: 'زكريا الطراونه' },
-        { academic_supervisor_name: '' },
-        { academic_supervisor_name: null },
-      ],
-      (row) => row.academic_supervisor_name
-    );
-    assert.equal(grouped.length, 2);
-    assert.equal(grouped[0].supervisor_label, 'زكريا الطراونه');
-    assert.equal(grouped[1].supervisor_label, names.UNASSIGNED_SUPERVISOR_LABEL);
-    assert.equal(grouped[1].students.length, 2);
-  });
-
-  it('builds supervisor ZIP folders and تقرير_التقييم filenames', async () => {
-    const built = await zipUtil.buildReportsZip(
-      [
-        {
-          studentName: 'أحمد عودةالله سالم الرماضين',
-          universityNumber: '120232221002',
-          supervisorFolder: names.sanitizeZipFolder('زكريا الطراونه'),
-          filename: names.buildSupervisorReportPdfFilename({
-            studentName: 'أحمد عودةالله سالم الرماضين',
-            universityNumber: '120232221002',
-          }),
-          buffer: Buffer.from('%PDF-1.4 A'),
-        },
-        {
-          studentName: 'وفاء رمضان خلف الجعافرة',
-          universityNumber: '120232211066',
-          supervisorFolder: names.sanitizeZipFolder('زكريا الطراونه'),
-          filename: names.buildSupervisorReportPdfFilename({
-            studentName: 'وفاء رمضان خلف الجعافرة',
-            universityNumber: '120232211066',
-          }),
-          buffer: Buffer.from('%PDF-1.4 B'),
-        },
-      ],
-      { mixedFolders: true, folderFor: (entry) => entry.supervisorFolder }
-    );
-    assert.equal(built.included.length, 2);
-    assert.ok(built.included[0].zipPath.startsWith('زكريا الطراونه/'));
-    assert.match(built.included[0].zipPath, /تقرير_التقييم\.pdf$/);
-    assert.equal(names.buildSupervisorReportsZipFilename('زكريا الطراونه'), 'تقارير_زكريا_الطراونه.zip');
-  });
-
-  it('places every Mutah Excel student under the exact supervisor folder in both report and letter ZIPs', async () => {
-    const parsed = await parseSupervisorAssignmentWorkbook(FIXTURE);
-    const reportEntries = parsed.rows.map((row) => ({
-      studentName: row.studentName,
-      universityNumber: row.universityNumber,
-      supervisorFolder: names.sanitizeZipFolder(row.supervisorLabel),
-      filename: names.buildSupervisorReportPdfFilename({
-        studentName: row.studentName,
-        universityNumber: row.universityNumber,
-      }),
-      buffer: Buffer.from(`%PDF-1.4 report ${row.universityNumber}`),
-    }));
-    const reports = await zipUtil.buildReportsZip(reportEntries, {
-      mixedFolders: true,
-      folderFor: (entry) => entry.supervisorFolder,
+    const none = resolveSupervisorAccount({
+      group: { supervisorLabel: 'الطراونة', supervisorNormalized: normalizePersonLabel('الطراونة'), rows: [] },
+      reviewers: reviewers.slice(0, 2),
+      mappings: new Map(),
     });
-    const reportZip = await JSZip.loadAsync(reports.buffer);
-    const reportPdfs = Object.keys(reportZip.files).filter((name) => name.endsWith('.pdf'));
-    assert.equal(reportPdfs.length, 98);
-    assert.equal(new Set(reportPdfs.map((name) => name.split('/')[0])).size, 16);
+    assert.equal(none.status, 'unlinked');
+  });
 
-    const letterEntries = parsed.rows.map((row) => ({
-      applicationId: row.universityNumber,
-      studentName: row.studentName,
-      universityNumber: row.universityNumber,
-      supervisorFolder: names.sanitizeZipFolder(row.supervisorLabel),
-      buffer: Buffer.from(`%PDF-1.4 letter ${row.universityNumber}`),
-    }));
-    const { stream, included } = await buildCompletionLettersZip(letterEntries);
-    const chunks = [];
-    await new Promise((resolve, reject) => {
-      stream.on('data', (c) => chunks.push(c));
-      stream.on('end', resolve);
-      stream.on('error', reject);
+  it('requires manual selection when multiple accounts share the same full name', () => {
+    const result = resolveSupervisorAccount({
+      group: { supervisorLabel: 'د. خالد الطراونة', supervisorNormalized: normalizePersonLabel('د. خالد الطراونة'), rows: [] },
+      reviewers,
+      mappings: new Map(),
     });
-    const letterZip = await JSZip.loadAsync(Buffer.concat(chunks));
-    const letterPdfs = Object.keys(letterZip.files).filter((name) => name.endsWith('.pdf'));
-    assert.equal(included.length, 98);
-    assert.equal(letterPdfs.length, 98);
-    assert.equal(new Set(letterPdfs.map((name) => name.split('/')[0])).size, 16);
-
-    for (const row of parsed.rows) {
-      const folder = names.sanitizeZipFolder(row.supervisorLabel);
-      const reportName = names.buildSupervisorReportPdfFilename({
-        studentName: row.studentName,
-        universityNumber: row.universityNumber,
-      });
-      const letterName = buildCompletionLetterPdfFilename({
-        studentName: row.studentName,
-        universityNumber: row.universityNumber,
-      });
-      assert.ok(reportZip.files[`${folder}/${reportName}`], `${folder}/${reportName}`);
-      assert.ok(letterZip.files[`${folder}/${letterName}`], `${folder}/${letterName}`);
-      assert.match(reportName, new RegExp(`${row.universityNumber}_تقرير_التقييم\\.pdf$`));
-      assert.match(letterName, new RegExp(`${row.universityNumber}_كتاب_إنهاء_التدريب\\.pdf$`));
-    }
-  });
-
-  it('picks a unique majority id and ignores ties', () => {
-    assert.equal(majorityId(['a', 'a', 'b']), 'a');
-    assert.equal(majorityId(['a', 'b']), null);
-    assert.equal(majorityId([null, undefined, '']), null);
-  });
-
-  it('matches جامعة مؤتة from the opportunity title without colliding with TTU', () => {
-    const universities = [
-      { id: 'mutah', name: 'جامعة مؤتة' },
-      { id: 'ttu', name: 'جامعة الطفيلة التقنية' },
-    ];
-    const mutah = matchUniversityByOpportunityTitle(
-      'التدريب الميداني الصيفي لطلبة جامعة مؤتة 2025/2026',
-      universities
-    );
-    assert.equal(mutah.id, 'mutah');
-    const ttu = matchUniversityByOpportunityTitle(
-      'التدريب الميداني الصيفي لطلبة جامعة الطفيلة التقنية 2025/2026',
-      universities
-    );
-    assert.equal(ttu.id, 'ttu');
-  });
-});
-
-describe('supervisor excel live eligibility overlay', () => {
-  it('replaces stale Excel eligibility with the live application status', () => {
-    const row = {
-      universityNumber: '120232221002',
-      universityEmail: '120232221002@mutah.edu.jo',
-      eligibilityStatus: 'غير مؤهل',
-      trainingStatus: 'تم تسليم المهام',
-      applicationStatus: 'مقبول',
-      errors: [],
-    };
-    const record = {
-      application: {
-        id: 'app-1',
-        opportunity_id: 'opp-1',
-        status: 'approved',
-        training_status: 'eligible_for_completion',
-        completion_eligibility_status: 'eligible',
-      },
-      profile: { primary_university_id: 'uni-1', email: '120232221002@mutah.edu.jo' },
-      email: '120232221002@mutah.edu.jo',
-      assignment: null,
-    };
-    const matched = matchExcelRow(row, { byNumber: new Map([['120232221002', record]]), byEmail: new Map() }, {
-      opportunity: { id: 'opp-1' },
-      university: { id: 'uni-1' },
-    });
-    assert.equal(matched.eligibilityStatus, 'مؤهل');
-    assert.equal(matched.trainingStatus, 'مؤهل للإنهاء');
-    assert.equal(matched.applicationStatus, 'مقبول');
+    assert.equal(result.status, 'ambiguous');
+    assert.equal(result.matches.length, 2);
   });
 });
 
@@ -298,13 +154,16 @@ describe('completion letter template and filenames', () => {
       issuedAt: '2026-08-30',
     });
     assert.match(html, /dir="rtl"/);
+    assert.match(html, /كتاب إنهاء تدريب ميداني/);
+    assert.match(html, /إلى من يهمه الأمر/);
+    assert.match(html, /الرجل الوطواط للتكنولوجيا/);
     assert.match(html, new RegExp(SIGNATORY_TITLE));
     assert.match(html, new RegExp(SIGNATORY_NAME));
     assert.match(html, new RegExp(FONT_FAMILY));
     assert.match(html, /أحمد الرماضين/);
     assert.match(html, /120232221002/);
     assert.ok(loadLogoDataUri().startsWith('data:image/png'));
-    assert.ok(loadStampDataUri().startsWith('data:image/svg+xml'));
+    assert.ok(loadStampDataUri().startsWith('data:image/png'));
     const fontCss = loadFontFaceCss();
     assert.ok(fontCss.includes(FONT_FAMILY) || fontCss === '');
   });
@@ -330,10 +189,17 @@ describe('completion letter template and filenames', () => {
     const hash = computeLetterSourceHash({ studentName: 'أ', universityNumber: '1' });
     const skip = classifyStudent(
       { completion_eligibility_status: 'eligible', completed_training_hours: 140, training_status: 'completed' },
-      { status: 'issued', source_data_hash: hash },
+      { status: 'issued', source_data_hash: hash, pdf_url: 'letters/a.pdf', file_ready: true },
       hash
     );
     assert.equal(skip.skipReason, 'source_unchanged');
+    const missingFile = classifyStudent(
+      { completion_eligibility_status: 'eligible', completed_training_hours: 140, training_status: 'completed' },
+      { status: 'issued', source_data_hash: hash, pdf_url: null, file_ready: false },
+      hash
+    );
+    assert.equal(missingFile.regenerate, true);
+    assert.equal(Boolean(missingFile.alreadyIssued), false);
     const hours = classifyStudent(
       { completion_eligibility_status: 'eligible', completed_training_hours: 120, training_status: 'in_training' },
       null,
@@ -349,25 +215,44 @@ describe('completion letter template and filenames', () => {
     assert.equal(ineligible.skipReason, 'not_eligible');
   });
 
-  it('packs distinct student PDFs into supervisor folders with readable Arabic names', async () => {
-    const { stream, included } = await buildCompletionLettersZip(
-      [
-        {
-          applicationId: 'a1',
-          studentName: 'أحمد',
-          universityNumber: '111',
-          supervisorFolder: 'زكريا الطراونه',
-          buffer: Buffer.from('%PDF-1.4 A'),
-        },
-        {
-          applicationId: 'a2',
-          studentName: 'سارة',
-          universityNumber: '222',
-          supervisorFolder: 'د. خالد الطراونة',
-          buffer: Buffer.from('%PDF-1.4 B'),
-        },
-      ]
-    );
+  it('packs PDFs into supervisor folders without merging similar الطراونة names', async () => {
+    const { stream, included } = await buildCompletionLettersZip([
+      {
+        applicationId: 'a1',
+        studentName: 'أحمد',
+        universityNumber: '111',
+        supervisorName: 'زكريا الطراونه',
+        buffer: Buffer.from('%PDF-1.4 A'),
+      },
+      {
+        applicationId: 'a2',
+        studentName: 'محمد',
+        universityNumber: '112',
+        supervisorName: 'زكريا الطراونه',
+        buffer: Buffer.from('%PDF-1.4 B'),
+      },
+      {
+        applicationId: 'a3',
+        studentName: 'سارة',
+        universityNumber: '113',
+        supervisorName: 'د. خالد الطراونة',
+        buffer: Buffer.from('%PDF-1.4 C'),
+      },
+      {
+        applicationId: 'a4',
+        studentName: 'ليلى',
+        universityNumber: '114',
+        supervisorName: 'د.احمد الطراونة',
+        buffer: Buffer.from('%PDF-1.4 D'),
+      },
+      {
+        applicationId: 'a5',
+        studentName: 'طالب',
+        universityNumber: '115',
+        supervisorName: '',
+        buffer: Buffer.from('%PDF-1.4 E'),
+      },
+    ]);
     const chunks = [];
     await new Promise((resolve, reject) => {
       stream.on('data', (c) => chunks.push(c));
@@ -376,28 +261,138 @@ describe('completion letter template and filenames', () => {
     });
     const zip = await JSZip.loadAsync(Buffer.concat(chunks));
     const names = Object.keys(zip.files);
-    assert.equal(included.length, 2);
+    assert.equal(included.length, 5);
     assert.ok(names.includes('زكريا الطراونه/أحمد_111_كتاب_إنهاء_التدريب.pdf'));
-    assert.ok(names.includes('د. خالد الطراونة/سارة_222_كتاب_إنهاء_التدريب.pdf'));
+    assert.ok(names.includes('زكريا الطراونه/محمد_112_كتاب_إنهاء_التدريب.pdf'));
+    assert.ok(names.includes('د. خالد الطراونة/سارة_113_كتاب_إنهاء_التدريب.pdf'));
+    assert.ok(names.includes('د.احمد الطراونة/ليلى_114_كتاب_إنهاء_التدريب.pdf'));
+    assert.ok(names.includes('مشرف غير محدد/طالب_115_كتاب_إنهاء_التدريب.pdf'));
+    assert.equal(names.some((n) => n === 'أحمد_111_كتاب_إنهاء_التدريب.pdf'), false);
     const first = await zip.file('زكريا الطراونه/أحمد_111_كتاب_إنهاء_التدريب.pdf').async('nodebuffer');
-    const second = await zip.file('د. خالد الطراونة/سارة_222_كتاب_إنهاء_التدريب.pdf').async('nodebuffer');
+    const second = await zip.file('زكريا الطراونه/محمد_112_كتاب_إنهاء_التدريب.pdf').async('nodebuffer');
     assert.notEqual(first.toString(), second.toString());
   });
 });
 
 describe('academic supervisor isolation', () => {
-  it('does not filter reviewer students by a supervisor account', () => {
+  it('scopes reviewers to assigned students only and lets admin see all', () => {
     const reviewer = makeRequester({ roles: ['reviewer'], userId: SYNTH_USER_A, universityId: SYNTH_UNI_A });
     const admin = makeRequester({ roles: ['admin'], userId: SYNTH_USER_B, universityId: SYNTH_UNI_A });
     const superAdmin = makeGlobalSuperAdmin();
-    assert.equal(supervisorScope.shouldScopeToAssignedSupervisor(reviewer), false);
+    assert.equal(supervisorScope.shouldScopeToAssignedSupervisor(reviewer), true);
     assert.equal(supervisorScope.shouldScopeToAssignedSupervisor(admin), false);
     assert.equal(supervisorScope.shouldScopeToAssignedSupervisor(superAdmin), false);
-    assert.deepEqual(supervisorScope.applicationSupervisorWhere(reviewer), {});
+    const where = supervisorScope.applicationSupervisorWhere(reviewer);
+    assert.equal(where.field_training_academic_supervisor_assignments.is.supervisor_user_id, SYNTH_USER_A);
   });
 
-  it('does not treat the reviewer account as a supervisor identity', async () => {
+  it('denies a reviewer accessing another reviewer student', async () => {
     const reviewer = makeRequester({ roles: ['reviewer'], userId: SYNTH_USER_A, universityId: SYNTH_UNI_A });
-    await supervisorScope.assertReviewerCanAccessApplication(reviewer, { id: null });
+    let thrown = null;
+    try {
+      await supervisorScope.assertReviewerCanAccessApplication(reviewer, { id: null });
+    } catch (err) {
+      thrown = err;
+    }
+    assert.ok(thrown instanceof ApiError);
+    assert.equal(thrown.statusCode, 403);
+  });
+});
+
+describe('completion letter route handlers', () => {
+  it('exports preview and academic download handlers required by mounted routes', () => {
+    const ctrl = require('../src/modules/fieldTraining/fieldTraining.workflow.controller');
+    assert.equal(typeof ctrl.previewOwnCompletionLetter, 'function');
+    assert.equal(typeof ctrl.previewCompletionLetterAsManager, 'function');
+    assert.equal(typeof ctrl.previewCompletionLetterAsAcademic, 'function');
+    assert.equal(typeof ctrl.downloadCompletionLetterAsAcademic, 'function');
+    assert.equal(typeof ctrl.downloadCompletionLetterAsManager, 'function');
+  });
+});
+
+describe('completion letter bulk targeting and isolation', () => {
+  it('retries failed students only and skips unchanged hashes', () => {
+    const hash = computeLetterSourceHash({ studentName: 'أ', universityNumber: '1' });
+    const students = [
+      { id: 'ok', will_issue: false, will_regenerate: false, skip_reason: 'source_unchanged' },
+      { id: 'fail-1', will_issue: false, will_regenerate: false },
+      { id: 'new', will_issue: true, will_regenerate: false },
+    ];
+    const retry = selectBulkIssueTargets(students, ['fail-1']);
+    assert.deepEqual(retry.map((row) => row.id), ['fail-1']);
+    const first = selectBulkIssueTargets(students, []);
+    assert.deepEqual(first.map((row) => row.id), ['new']);
+    const skip = classifyStudent(
+      { completion_eligibility_status: 'eligible', completed_training_hours: 140 },
+      { status: 'issued', source_data_hash: hash, pdf_url: 'letters/a.pdf', file_ready: true },
+      hash
+    );
+    assert.equal(skip.skipReason, 'source_unchanged');
+    assert.equal(skip.alreadyIssued, true);
+  });
+});
+
+describe('completion letter PDF identity isolation', () => {
+  it('renders two student letters without mixing names or university numbers', { timeout: 120000 }, async () => {
+    const { renderHtmlToPdf } = require('../src/modules/analytics/pdfRenderer');
+    const htmlA = buildOfficialCompletionLetterHtml({
+      letterNo: 'FT-A',
+      studentName: 'أحمد الرماضين',
+      universityNumber: '120232221002',
+      universityName: 'جامعة مؤتة',
+      specialtyName: 'هندسة',
+      opportunityTitle: 'التدريب الميداني الصيفي',
+      startDate: '2025-07-01',
+      endDate: '2025-08-31',
+      completedHours: 140,
+      attendancePct: 95,
+      postScore: 80,
+      verificationCode: 'aaa',
+      issuedAt: '2026-08-31',
+    });
+    const htmlB = buildOfficialCompletionLetterHtml({
+      letterNo: 'FT-B',
+      studentName: 'سارة الطراونة',
+      universityNumber: '120232221099',
+      universityName: 'جامعة مؤتة',
+      specialtyName: 'علوم',
+      opportunityTitle: 'التدريب الميداني الصيفي',
+      startDate: '2025-07-01',
+      endDate: '2025-08-31',
+      completedHours: 160,
+      attendancePct: 90,
+      postScore: 88,
+      verificationCode: 'bbb',
+      issuedAt: '2026-08-31',
+    });
+    assert.match(htmlA, /أحمد الرماضين/);
+    assert.match(htmlA, /120232221002/);
+    assert.equal(htmlA.includes('سارة الطراونة'), false);
+    assert.match(htmlB, /سارة الطراونة/);
+    assert.match(htmlB, /120232221099/);
+    assert.equal(htmlB.includes('أحمد الرماضين'), false);
+
+    const pdfA = await renderHtmlToPdf(htmlA, { lang: 'ar' });
+    const pdfB = await renderHtmlToPdf(htmlB, { lang: 'ar' });
+    assert.ok(Buffer.isBuffer(pdfA) && pdfA.length > 1000);
+    assert.ok(Buffer.isBuffer(pdfB) && pdfB.length > 1000);
+    assert.notEqual(pdfA.equals(pdfB), true);
+
+    let parsePdf;
+    try {
+      parsePdf = require('pdf-parse');
+    } catch {
+      parsePdf = null;
+    }
+    if (parsePdf) {
+      const textA = String((await parsePdf(pdfA)).text || '');
+      const textB = String((await parsePdf(pdfB)).text || '');
+      assert.match(textA, /120232221002/);
+      assert.equal(textA.includes('120232221099'), false);
+      assert.match(textB, /120232221099/);
+      assert.equal(textB.includes('120232221002'), false);
+      assert.match(textA, /عاصم/);
+      assert.match(textB, /عاصم/);
+    }
   });
 });
