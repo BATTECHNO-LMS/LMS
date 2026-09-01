@@ -45,11 +45,18 @@ function setParagraphText(pXml, text) {
   const open = pXml.match(/^<w:p\b[^>]*>/);
   if (!open) return pXml;
   const pPr = (pXml.match(/<w:pPr>[\s\S]*?<\/w:pPr>/) || [''])[0];
-  const rPr = (pPr.match(/<w:rPr>[\s\S]*?<\/w:rPr>/) || ['<w:rPr><w:rtl/></w:rPr>'])[0];
+  const rPr = (pXml.match(/<w:rPr>[\s\S]*?<\/w:rPr>/) || [''])[0];
   const drawings = [...pXml.matchAll(/<w:drawing[\s\S]*?<\/w:drawing>|<w:pict[\s\S]*?<\/w:pict>|<w:r\b[^>]*>[\s\S]*?<v:imagedata[\s\S]*?<\/w:r>/g)]
     .map((m) => m[0])
     .join('');
-  return `${open[0]}${pPr}<w:r>${rPr}<w:t xml:space="preserve">${escapeXml(text)}</w:t></w:r>${drawings}</w:p>`;
+  const lines = String(text ?? '').split(/\r?\n/);
+  const runs = lines
+    .map(
+      (line, index) =>
+        `<w:r>${rPr}${index ? '<w:br/>' : ''}<w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r>`
+    )
+    .join('');
+  return `${open[0]}${pPr}${runs}${drawings}</w:p>`;
 }
 
 function replaceFirstParagraph(cellXml, text) {
@@ -84,34 +91,84 @@ function criterionScore(values, index) {
   return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
 }
 
+function reverseTableRowCells(rowXml) {
+  const open = (rowXml.match(/^<w:tr\b[^>]*>/) || [''])[0];
+  const trPr = (rowXml.match(/<w:trPr>[\s\S]*?<\/w:trPr>/) || [''])[0];
+  const cells = [...rowXml.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((match) => match[0]);
+  if (cells.length < 2) return rowXml;
+  return `${open}${trPr}${[...cells].reverse().join('')}</w:tr>`;
+}
+
+function scoreGridHeaderCells(tableXml) {
+  const rows = [...tableXml.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+  if (!rows.length) return [];
+  return [...rows[0][0].matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((cell) => cellPlainText(cell[0]));
+}
+
+function scoreGridNeedsRtlFlip(tableXml) {
+  const headerCells = scoreGridHeaderCells(tableXml).map((text) => normalizeAr(text));
+  return /(?:ف|ض)عيف\s*1/.test(headerCells[0] || '');
+}
+
+function normalizeDocumentScoreGridTables(xml) {
+  return String(xml || '').replace(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g, (table) => {
+    if (!/مجال التقييم/.test(cellPlainText(table))) return table;
+    return ensureScoreGridRtl(table);
+  });
+}
+
+function ensureScoreGridRtl(tableXml) {
+  if (!/مجال التقييم/.test(cellPlainText(tableXml))) return tableXml;
+  if (/<w:bidiVisual/.test(tableXml)) return tableXml;
+  return tableXml.replace(/<w:tblPr>/, '<w:tblPr><w:bidiVisual/>');
+}
+
+function ratingColumnIndexForScore(headerCells, score) {
+  const patterns = {
+    5: /ممتاز\s*5/,
+    4: /جيد\s*جدا\s*4/,
+    3: /جيد\s*3/,
+    2: /متوسط\s*2/,
+    1: /(?:ف|ض)عيف\s*1/,
+  };
+  const pattern = patterns[score];
+  if (!pattern) return -1;
+  return headerCells.findIndex((text) => pattern.test(normalizeAr(text)));
+}
+
 function fillScoreGridTable(tableXml, values) {
   const rows = [...tableXml.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
   if (rows.length < 11) return tableXml;
-  const headerCells = [...rows[0][0].matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((c) => cellPlainText(c[0]));
+  const headerCells = scoreGridHeaderCells(tableXml);
   const header = headerCells.join(' ');
   if (!/مجال التقييم/.test(header) || !/(ممتاز|جيد)/.test(header)) return tableXml;
 
-  let out = tableXml;
+  const hasScores = Array.from({ length: 10 }, (_, index) => criterionScore(values, index + 1)).some(
+    (score) => score != null
+  );
+  const hasTotal = blank(values.professional_evaluation_total) !== '';
+  if (!hasScores && !hasTotal) return tableXml;
+
+  const table = ensureScoreGridRtl(tableXml);
+  const rtlHeaderCells = scoreGridHeaderCells(table);
+  const rtlRows = [...table.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+  let out = table;
   for (let i = 1; i <= 10; i += 1) {
-    const rowXml = rows[i]?.[0];
+    const rowXml = rtlRows[i]?.[0];
     if (!rowXml) continue;
     const score = criterionScore(values, i);
     const cells = [...rowXml.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
-    if (cells.length < 5) continue;
+    const colIndex = score != null ? ratingColumnIndexForScore(rtlHeaderCells, score) : -1;
+    if (colIndex < 0 || !cells[colIndex]) continue;
     let filledRow = rowXml;
-    for (let col = 0; col < 5; col += 1) {
-      const target = cells[col];
-      if (!target) continue;
-      const cellText = score != null && col === score - 1 ? CHECKMARK : '';
-      const filledCell = replaceFirstParagraph(target[0], cellText);
-      filledRow = filledRow.replace(target[0], filledCell);
-    }
+    const filledCell = replaceFirstParagraph(cells[colIndex][0], CHECKMARK);
+    filledRow = filledRow.replace(cells[colIndex][0], filledCell);
     out = out.replace(rowXml, filledRow);
   }
 
   const total = blank(values.professional_evaluation_total);
   if (total !== '') {
-    const last = rows[rows.length - 1]?.[0];
+    const last = rtlRows[rtlRows.length - 1]?.[0];
     if (last && /المجموع/.test(cellPlainText(last))) {
       const cells = [...last.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
       const totalCell = cells.find((c) => /المجموع/.test(cellPlainText(c[0]))) || cells[cells.length - 1];
@@ -127,13 +184,14 @@ function countScoreGridCheckmarks(xml) {
   const tables = [...String(xml || '').matchAll(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g)].map((m) => m[0]);
   let count = 0;
   for (const table of tables) {
-    const rows = [...table.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+    const rtlTable = ensureScoreGridRtl(table);
+    const rows = [...rtlTable.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
     if (rows.length < 11) continue;
-    const header = [...rows[0][0].matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((c) => cellPlainText(c[0])).join(' ');
+    const header = scoreGridHeaderCells(rtlTable).join(' ');
     if (!/مجال التقييم/.test(header) || !/(ممتاز|جيد)/.test(header)) continue;
     for (let i = 1; i <= 10; i += 1) {
       const cells = [...(rows[i]?.[0] || '').matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
-      const marks = cells.slice(0, 5).filter((c) => cellPlainText(c[0]).includes(CHECKMARK)).length;
+      const marks = cells.filter((c) => cellPlainText(c[0]).includes(CHECKMARK)).length;
       count += marks;
     }
   }
@@ -153,7 +211,7 @@ function matchLabelKey(text) {
     return { key: 'training_days', label: 'عدد الأيام التي تدربها الطالب:' };
   }
   if (/عدد الساعات اليوميه|عدد الساعات اليومية/.test(t)) {
-    return { key: 'actual_daily_hours', label: 'عدد الساعات اليومية (الفعلية) التي تدربها الطالب:' };
+    return { key: 'training_hours_display', label: 'عدد الساعات اليومية (الفعلية) التي تدربها الطالب:' };
   }
   if (/تغيب/.test(t)) return { key: 'absence_days', label: 'عدد الأيام التي تغيب فيها الطالب عن التدريب:' };
   if (/اسم الشركه|اسم الشركة/.test(t)) return { key: 'organization_name', label: 'اسم الشركة أو المؤسسة:' };
@@ -164,7 +222,6 @@ function matchLabelKey(text) {
   if (/العنوان/.test(t)) return { key: 'organization_address', label: 'العنوان:' };
   if (/اسم المشرف/.test(t)) return { key: 'field_supervisor_name', label: 'اسم المشرف الميداني:' };
   if (/اسم المسؤول/.test(t)) return { key: 'responsible_person_name', label: 'اسم المسؤول:' };
-  if (/التاريخ/.test(t) && !/السنه|السنة/.test(t)) return { key: 'evaluation_date', label: 'التاريخ:' };
   return null;
 }
 
@@ -182,37 +239,107 @@ function fillLabeledCell(cellXml, values) {
     }
     return replaceFirstParagraph(cellXml, filled);
   }
-  if (match.key === 'evaluation_date') {
-    const value = blank(values.evaluation_date);
-    if (value === '') return cellXml;
-    if (cellHasDrawing(cellXml) || /توقيع/.test(text)) {
-      return replaceTextRunsContaining(
-        cellXml,
-        (inner) => /التاريخ/.test(inner),
-        `التاريخ: ${value}`
-      );
-    }
-    return replaceFirstParagraph(cellXml, `التاريخ: ${value}`);
-  }
-  const value = blank(values[match.key]);
+  const value =
+    match.key === 'training_hours_display'
+      ? blank(values.training_hours_display !== '' && values.training_hours_display != null
+          ? values.training_hours_display
+          : values.actual_training_hours)
+      : blank(values[match.key]);
   if (value === '') return cellXml;
   const filled = `${match.label} ${value}`;
-  if (cellHasDrawing(cellXml)) {
-    const next = replaceTextRunsContaining(
-      cellXml,
-      (inner) => normalizeAr(inner).includes(normalizeAr(match.label.replace(':', ''))),
+  if (cellHasDrawing(cellXml) || /MERGEFIELD|fldChar|instrText/.test(cellXml)) {
+    let next = stripMergeFieldMarkup(cellXml);
+    next = replaceTextRunsContaining(
+      next,
+      (inner) =>
+        normalizeAr(inner).includes(normalizeAr(match.label.replace(':', ''))) ||
+        /MERGEFIELD|البريد_الالكتروني/.test(inner),
       filled
     );
-    if (next !== cellXml) return next;
+    if (next !== cellXml && next !== stripMergeFieldMarkup(cellXml)) return next;
+    return replaceFirstParagraph(stripMergeFieldMarkup(cellXml), filled);
   }
   return replaceFirstParagraph(cellXml, filled);
+}
+
+function stripMergeFieldMarkup(xml) {
+  return String(xml)
+    .replace(/<w:fldChar\b[^/]*\/>/g, '')
+    .replace(/<w:instrText\b[^>]*>[\s\S]*?<\/w:instrText>/g, '');
+}
+
+function fillDateInCell(cellXml, dateValue) {
+  const value = blank(dateValue);
+  if (!value) return cellXml;
+  let sawDate = false;
+  const stripped = stripMergeFieldMarkup(cellXml);
+  const out = String(stripped).replace(/<w:t\b[^>]*>[\s\S]*?<\/w:t>/g, (run) => {
+    const inner = run.replace(/<[^>]+>/g, '');
+    if (/التاريخ/.test(inner)) {
+      sawDate = true;
+      return run.replace(/>[\s\S]*</, `>التاريخ : ${value}<`);
+    }
+    if (sawDate && /^\s*\d{4}\s*$/.test(inner)) {
+      return run.replace(/>[\s\S]*</, '><');
+    }
+    return run;
+  });
+  if (sawDate) return out;
+  if (cellHasDrawing(cellXml)) return cellXml;
+  return replaceFirstParagraph(cellXml, `التاريخ : ${value}`);
+}
+
+function fillSignatureTable(tableXml, values) {
+  const text = cellPlainText(tableXml);
+  if (!/اسم المشرف/.test(text) || !/اسم المسؤول/.test(text)) return tableXml;
+  const rows = [...tableXml.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+  if (!rows.length) return tableXml;
+  let out = tableXml;
+  const nameRow = rows[0]?.[0];
+  if (nameRow) {
+    const cells = [...nameRow.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
+    let filledRow = nameRow;
+    if (cells[0]) {
+      const filled = fillLabeledCell(cells[0][0], values);
+      filledRow = filledRow.replace(cells[0][0], filled);
+    }
+    if (cells[1]) {
+      const filled = fillLabeledCell(cells[1][0], values);
+      filledRow = filledRow.replace(cells[1][0], filled);
+    }
+    out = out.replace(nameRow, filledRow);
+  }
+  const dateRow = rows[1]?.[0];
+  if (dateRow) {
+    const cells = [...dateRow.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
+    let filledRow = dateRow;
+    if (cells[0]) {
+      filledRow = filledRow.replace(
+        cells[0][0],
+        fillDateInCell(cells[0][0], values.field_supervisor_date || values.evaluation_date)
+      );
+    }
+    if (cells[1]) {
+      filledRow = filledRow.replace(
+        cells[1][0],
+        fillDateInCell(cells[1][0], values.academic_supervisor_date || values.evaluation_date)
+      );
+    }
+    out = out.replace(dateRow, filledRow);
+  }
+  return out;
 }
 
 function fillCommentsTable(tableXml, comments) {
   const text = cellPlainText(tableXml);
   if (text) return tableXml;
   if (!comments) return tableXml;
-  return tableXml.replace(/<w:p\b[\s\S]*?<\/w:p>/, (p) => setParagraphText(p, comments));
+  const compact = String(comments)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ');
+  return tableXml.replace(/<w:p\b[\s\S]*?<\/w:p>/, (p) => setParagraphText(p, compact));
 }
 
 function fillUniversityLabelForm(xml, values = {}) {
@@ -220,8 +347,9 @@ function fillUniversityLabelForm(xml, values = {}) {
   let out = xml;
   const tables = [...out.matchAll(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g)].map((m) => m[0]);
   for (const table of tables) {
-    let next = fillScoreGridTable(table, values);
-    const header = cellPlainText(table);
+    let next = fillSignatureTable(table, values);
+    next = fillScoreGridTable(next, values);
+    const header = cellPlainText(next === table ? table : next);
     if (!header && blank(values.general_comments)) {
       next = fillCommentsTable(next, blank(values.general_comments));
     }
@@ -231,15 +359,6 @@ function fillUniversityLabelForm(xml, values = {}) {
       if (filled !== cell[0]) next = next.replace(cell[0], filled);
     }
     if (next !== table) out = out.replace(table, next);
-  }
-  const comments = blank(values.general_comments);
-  if (comments) {
-    out = out.replace(/<w:p\b[\s\S]*?<\/w:p>/g, (p) => {
-      const paragraph = cellPlainText(p);
-      if (!/ملاحظات عامه|ملاحظات عامة/.test(paragraph)) return p;
-      if (paragraph.includes(comments)) return p;
-      return setParagraphText(p, `${paragraph.replace(/:?\s*$/, ':')} ${comments}`);
-    });
   }
   return out;
 }
@@ -258,5 +377,9 @@ module.exports = {
   normalizeAr,
   matchLabelKey,
   countScoreGridCheckmarks,
+  normalizeDocumentScoreGridTables,
+  ensureScoreGridRtl,
+  ratingColumnIndexForScore,
+  scoreGridHeaderCells,
   leftoverPlaceholders,
 };

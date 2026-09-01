@@ -151,6 +151,10 @@ test('HTML template embeds Sakkal Majalla, officer name, and isolated student fi
   assert.match(htmlA, /إلى من يهمه الأمر/);
   assert.match(htmlA, /آية تركي محمد الخوالده/);
   assert.match(htmlA, /120220612060/);
+  assert.match(htmlA, /info-label">اسم الطالب\/ة:<\/span>/);
+  assert.match(htmlA, /info-value--ltr">FT-TEST-A<\/span>/);
+  assert.doesNotMatch(htmlA, /\.info-row[\s\S]*justify-content:\s*space-between/);
+  assert.doesNotMatch(htmlA, /min-width:\s*42mm/);
   assert.match(htmlA, /جامعة الحسين بن طلال/);
   assert.match(htmlA, /تدريب الويب - مؤتة/);
   assert.doesNotMatch(htmlA, /Arial|Times New Roman|Tajawal/i);

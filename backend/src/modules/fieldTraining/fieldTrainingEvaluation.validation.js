@@ -69,15 +69,24 @@ const policyBodySchema = z.object({
     .optional(),
 });
 
-const ratingBodySchema = z.object({
-  thinking_and_initiative: score15,
-  problem_solving: score15,
-  teamwork: score15,
-  professional_conduct: score15,
-  supervisor_cooperation: score15,
-  rules_compliance: score15,
-  notes: z.string().max(4000).optional(),
-});
+const ratingBodySchema = z
+  .object({
+    thinking_and_initiative: score15.optional(),
+    problem_solving: score15.optional(),
+    teamwork: score15.optional(),
+    professional_conduct: score15.optional(),
+    supervisor_cooperation: score15.optional(),
+    rules_compliance: score15.optional(),
+    notes: z.string().max(4000).optional(),
+    source: z.enum(['SUPERVISOR', 'MANUAL_AUTHORIZED_EVALUATION']).optional(),
+  })
+  .refine(
+    (body) =>
+      ['thinking_and_initiative', 'problem_solving', 'teamwork', 'professional_conduct', 'supervisor_cooperation', 'rules_compliance'].some(
+        (key) => body[key] != null
+      ),
+    { message: 'At least one rating field is required' }
+  );
 
 const reportListQuerySchema = z.object({
   university_id: uuid.optional(),
@@ -129,6 +138,30 @@ const supervisorZipBodySchema = z.object({
   supervisor_normalized: z.string().max(255).optional(),
 });
 
+const bulkRatingPreviewQuerySchema = z.object({
+  application_ids: z.array(uuid).max(500).optional(),
+});
+
+const bulkEligibleRatingBodySchema = z.object({
+  confirmed: z.literal(true),
+  application_ids: z.array(uuid).max(500).optional(),
+  reason: z.string().max(500).optional(),
+});
+
+const reportDefaultsBodySchema = z.object({
+  organization_name: z.string().max(255).optional(),
+  department: z.string().max(255).optional().nullable(),
+  email: z.string().max(255).optional().nullable(),
+  phone: z.string().max(80).optional().nullable(),
+  fax: z.string().max(80).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  field_supervisor_name: z.string().max(255).optional().nullable(),
+  contact_person: z.string().max(255).optional().nullable(),
+  semester: z.string().max(80).optional().nullable(),
+  academic_year: z.string().max(40).optional().nullable(),
+  trainingHoursDisplayMode: z.enum(['TOTAL_COMPLETED_HOURS', 'DAILY_HOURS']).optional(),
+});
+
 const regenerateBodySchema = z.object({
   regeneration_reason: z.string().max(500).optional(),
 });
@@ -149,5 +182,8 @@ module.exports = {
   commentsBodySchema,
   supervisorGroupsQuerySchema,
   supervisorZipBodySchema,
+  reportDefaultsBodySchema,
+  bulkRatingPreviewQuerySchema,
+  bulkEligibleRatingBodySchema,
   regenerateBodySchema,
 };

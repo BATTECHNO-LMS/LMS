@@ -1,83 +1,59 @@
 'use strict';
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const { spawn } = require('child_process');
-const { randomUUID } = require('crypto');
-const mammoth = require('mammoth');
-const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
+const { ApiError } = require('../../utils/apiError');
+const { PDF_RENDER_FAILED_CODE, TEMPLATE_FONT_UNAVAILABLE } = require('./fieldTrainingEvaluation.constants');
+const { verifyOfficialEvaluationPdf } = require('./fieldTrainingEvaluation.fidelity');
+const {
+  findSoffice,
+  getOfficialDocumentRendererStatus,
+  convertDocxBufferWithLibreOffice,
+  CONVERSION_TIMEOUT_MS,
+} = require('./fieldTrainingEvaluation.renderer');
 
-function findSoffice() {
-  const candidates = [
-    process.env.LIBREOFFICE_PATH,
-    process.env.SOFFICE_PATH,
-    'soffice',
-    'soffice.exe',
-    'C:\\Program Files\\LibreOffice\\program\\soffice.exe',
-    '/usr/bin/soffice',
-    '/usr/bin/libreoffice',
-  ].filter(Boolean);
-  for (const candidate of candidates) {
-    if (candidate === 'soffice' || candidate === 'soffice.exe') continue;
-    try {
-      if (fs.existsSync(candidate)) return candidate;
-    } catch {
-      /* next */
-    }
-  }
-  return process.env.LIBREOFFICE_PATH || process.env.SOFFICE_PATH || null;
-}
-
-function run(command, args, cwd) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, windowsHide: true });
-    let stderr = '';
-    child.stderr.on('data', (chunk) => {
-      stderr += String(chunk);
-    });
-    child.on('error', reject);
-    child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(stderr || `Converter exited ${code}`));
-    });
-  });
-}
-
-async function convertWithLibreOffice(docxBuffer, soffice) {
-  const dir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'ft-eval-'));
-  const input = path.join(dir, `${randomUUID()}.docx`);
-  try {
-    await fs.promises.writeFile(input, docxBuffer);
-    await run(soffice, ['--headless', '--convert-to', 'pdf', '--outdir', dir, input], dir);
-    const pdfName = fs.readdirSync(dir).find((name) => name.toLowerCase().endsWith('.pdf'));
-    if (!pdfName) throw new Error('LibreOffice did not produce a PDF');
-    return fs.promises.readFile(path.join(dir, pdfName));
-  } finally {
-    await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => null);
-  }
-}
-
-function wrapHtml(body) {
-  return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>
-    body{font-family:"Noto Naskh Arabic","Segoe UI",Tahoma,sans-serif;color:#111;line-height:1.5}
-    img{max-width:100%}
-    table{border-collapse:collapse;width:100%}
-    td,th{border:1px solid #ccc;padding:4px}
-  </style></head><body>${body}</body></html>`;
-}
-
-async function convertFilledDocxToPdf(docxBuffer) {
+function assertOfficialRendererAvailable() {
   const soffice = findSoffice();
-  if (soffice) {
-    try {
-      return await convertWithLibreOffice(docxBuffer, soffice);
-    } catch {
-      /* fall through to mammoth + Chromium */
-    }
-  }
-  const { value } = await mammoth.convertToHtml({ buffer: docxBuffer });
-  return renderHtmlToPdf(wrapHtml(value), { lang: 'ar' });
+  if (soffice) return soffice;
+  throw new ApiError(
+    503,
+    'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+    { converter: 'libreoffice', reason: 'approved_docx_renderer_unavailable' },
+    PDF_RENDER_FAILED_CODE
+  );
 }
 
-module.exports = { convertFilledDocxToPdf, findSoffice };
+async function convertFilledDocxToPdf(
+  docxBuffer,
+  { fontIssues = [], expectedPageCount = 2 } = {}
+) {
+  if (Array.isArray(fontIssues) && fontIssues.length) {
+    const first = fontIssues[0];
+    throw new ApiError(
+      409,
+      first.messageAr || `الخط غير متوفر: ${first.font}`,
+      { font: first.font, issues: fontIssues },
+      TEMPLATE_FONT_UNAVAILABLE
+    );
+  }
+  const soffice = assertOfficialRendererAvailable();
+  try {
+    const pdfBuffer = await convertDocxBufferWithLibreOffice(docxBuffer, soffice);
+    await verifyOfficialEvaluationPdf(pdfBuffer, { expectedPageCount });
+    return pdfBuffer;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(
+      500,
+      'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+      { error: err?.message || 'pdf_failed' },
+      PDF_RENDER_FAILED_CODE
+    );
+  }
+}
+
+module.exports = {
+  convertFilledDocxToPdf,
+  findSoffice,
+  assertOfficialRendererAvailable,
+  getOfficialDocumentRendererStatus,
+  CONVERSION_TIMEOUT_MS,
+};

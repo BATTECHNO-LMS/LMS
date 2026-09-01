@@ -28,6 +28,7 @@ const ftEligibility = require('./fieldTraining.eligibility');
 const ftNotify = require('./fieldTraining.notifications');
 const hoursMod = require('./fieldTraining.hours');
 const taskProgress = require('./fieldTraining.taskProgress');
+const { eligibilityBucket } = require('./fieldTrainingEvaluation.eligibilityReasons');
 const supervisorScope = require('./fieldTraining.supervisorScope');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
@@ -142,9 +143,26 @@ function normalizeHostOrganization(raw) {
   const fax = String(raw.fax || raw.organization_fax || '').trim();
   const address = String(raw.address || raw.organization_address || '').trim();
   const contactPerson = String(
-    raw.contact_person || raw.contactPerson || raw.responsible_person || raw.responsible_person_name || ''
+    raw.contact_person || raw.contactPerson || raw.contact_name || ''
   ).trim();
-  if (!department && !email && !phone && !fax && !address && !contactPerson) return null;
+  const fieldSupervisor = String(raw.field_supervisor_name || raw.fieldSupervisorName || '').trim();
+  const semester = String(raw.semester || '').trim();
+  const academicYear = String(raw.academic_year || raw.academicYear || '').trim();
+  const hoursMode = String(raw.trainingHoursDisplayMode || raw.training_hours_display_mode || '').trim();
+  if (
+    !department &&
+    !email &&
+    !phone &&
+    !fax &&
+    !address &&
+    !contactPerson &&
+    !fieldSupervisor &&
+    !semester &&
+    !academicYear &&
+    !hoursMode
+  ) {
+    return null;
+  }
   return {
     department: department || null,
     email: email || null,
@@ -152,6 +170,10 @@ function normalizeHostOrganization(raw) {
     fax: fax || null,
     address: address || null,
     contact_person: contactPerson || null,
+    field_supervisor_name: fieldSupervisor || null,
+    semester: semester || null,
+    academic_year: academicYear || null,
+    trainingHoursDisplayMode: hoursMode || null,
   };
 }
 
@@ -1777,10 +1799,16 @@ async function getOpportunityOverviewSummary(opportunityId, user) {
     return {
       applicationCount: scopedApps.length,
       approvedCount: approved.length,
+      approvedNonExpelledCount: approved.filter((a) => a.training_status !== 'expelled').length,
       inTrainingCount: approved.filter((a) => inTrainingStatuses.has(a.training_status)).length,
       avgAttendance,
       pendingReviews,
       eligibleCount: approved.filter((a) => a.completion_eligibility_status === 'eligible').length,
+      ineligibleCount: approved.filter((a) => a.completion_eligibility_status === 'ineligible').length,
+      eligibilityPendingCount: approved.filter((a) => {
+        const bucket = eligibilityBucket(a);
+        return bucket === 'PENDING';
+      }).length,
       lettersIssued: approved.filter(
         (a) => a.completion_letter_issued_at || a.training_status === 'completed'
       ).length,

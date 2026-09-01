@@ -48,7 +48,7 @@ export function AuthVisualPanel({
             className="auth-visual-panel__img"
             loading="eager"
             decoding="async"
-            fetchPriority="low"
+            fetchpriority="low"
             width={640}
             height={480}
           />

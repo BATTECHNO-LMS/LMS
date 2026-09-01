@@ -1909,6 +1909,7 @@ model field_training_final_evaluations {
   student_id                  String                          @db.Uuid
   template_id                 String?                         @db.Uuid
   template_version            Int?
+  source_template_file_id     String?                         @db.Uuid
   policy_id                   String?                         @db.Uuid
   policy_version              Int?
   eligibility_status          String                          @db.VarChar(32)
@@ -1969,6 +1970,7 @@ model field_training_final_evaluations {
   @@index([generated_at], map: "idx_ft_final_eval_generated")
   @@index([university_id, opportunity_id, is_current], map: "idx_ft_final_eval_uni_opp_current")
   @@index([pdf_file_id], map: "idx_ft_final_eval_pdf")
+  @@index([source_template_file_id], map: "idx_ft_final_eval_source_template_file")
 }
 
 enum file_visibility {

@@ -70,9 +70,60 @@ export async function previewEvaluationTemplate(templateId, scope = 'admin') {
   return unwrapApiData(res);
 }
 
-export async function previewEvaluationApplicationPayload(applicationId, scope = 'admin') {
-  const res = await apiClient.get(`${apiBase(scope)}/applications/${applicationId}/evaluation-report/preview`);
+export async function previewEvaluationApplicationPayload(applicationId, scope = 'admin', { pdf = false } = {}) {
+  const res = await apiClient.get(`${apiBase(scope)}/applications/${applicationId}/evaluation-report/preview`, {
+    params: pdf ? { format: 'pdf' } : undefined,
+    timeout: pdf ? 180000 : undefined,
+  });
   return unwrapApiData(res);
+}
+
+export async function fetchOpportunityEvaluationReadiness(opportunityId, scope = 'admin') {
+  const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/evaluation-reports/readiness`);
+  return unwrapApiData(res);
+}
+
+export async function fetchBulkEligibleRatingPreview(opportunityId, scope = 'admin', params = {}) {
+  const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/evaluation-reports/bulk-eligible-ratings/preview`, {
+    params,
+  });
+  return unwrapApiData(res);
+}
+
+export async function applyBulkEligibleProfessionalRatings(opportunityId, body, scope = 'admin') {
+  const res = await apiClient.post(
+    `${apiBase(scope)}/${opportunityId}/evaluation-reports/bulk-eligible-ratings`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export async function downloadOpportunityEvaluationZip(opportunityId, scope = 'admin') {
+  try {
+    const res = await apiClient.post(`${apiBase(scope)}/${opportunityId}/evaluation-reports/zip`, {}, {
+      responseType: 'blob',
+      timeout: 180000,
+    });
+    return saveBlobResponse(res, 'evaluations.zip');
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function saveOpportunityReportDefaults(opportunityId, body, scope = 'admin') {
+  const res = await apiClient.put(`${apiBase(scope)}/${opportunityId}/evaluation-report-defaults`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchEvaluationReportPdfBlob(evaluationId, scope = 'admin') {
+  try {
+    const res = await apiClient.get(`${apiBase(scope)}/evaluation-reports/${evaluationId}/download`, {
+      responseType: 'blob',
+    });
+    return { blob: res.data, filename: parseFilename(res.headers?.['content-disposition'], 'evaluation.pdf') };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
 }
 
 export async function downloadEvaluationTemplate(templateId, scope = 'admin') {

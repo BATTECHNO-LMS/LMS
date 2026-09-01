@@ -134,6 +134,56 @@ function computeLetterSourceHash(data) {
   return crypto.createHash('sha256').update(payload, 'utf8').digest('hex');
 }
 
+const INFO_SECTION_CSS = `
+  .info {
+    border: 0.28mm solid #d7deea;
+    background: #f7f4ec;
+    padding: 3mm 4mm;
+    margin: 3mm 0 4mm;
+    direction: rtl;
+    text-align: right;
+  }
+  .info-row {
+    padding: 1.1mm 0;
+    border-bottom: 0.18mm solid #e6e0d2;
+    font-size: 11.6pt;
+    line-height: 1.6;
+    text-align: right;
+  }
+  .info-row:last-child { border-bottom: 0; }
+  .info-label {
+    color: #5a6578;
+    font-weight: 600;
+    display: inline;
+  }
+  .info-value {
+    font-weight: 700;
+    color: #0b1f3a;
+    display: inline;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .info-value--ltr {
+    direction: ltr;
+    unicode-bidi: embed;
+    display: inline;
+  }`;
+
+function needsIsolatedLtrInfoValue(label, value) {
+  if (label === 'رقم الكتاب') return true;
+  const text = String(value ?? '').trim();
+  return /^[A-Za-z0-9][A-Za-z0-9-]*$/.test(text);
+}
+
+function buildInfoRowHtml(label, value) {
+  const safeLabel = escapeHtml(label);
+  const safeValue = escapeHtml(value);
+  const valueClass = needsIsolatedLtrInfoValue(label, value)
+    ? 'info-value info-value--ltr'
+    : 'info-value';
+  return `<div class="info-row"><span class="info-label">${safeLabel}:</span> <span class="${valueClass}">${safeValue}</span></div>`;
+}
+
 function buildOfficialParagraphs(data) {
   const name = data.studentName || '—';
   const number = data.universityNumber || '—';
@@ -171,10 +221,7 @@ function buildOfficialCompletionLetterHtml(data) {
     ['تاريخ الإصدار', issueLabel],
     ['رقم الكتاب', data.letterNo || '—'],
   ]
-    .map(
-      ([label, value]) =>
-        `<div class="info-row"><span class="info-label">${escapeHtml(label)}</span><span class="info-value">${escapeHtml(value)}</span></div>`
-    )
+    .map(([label, value]) => buildInfoRowHtml(label, value))
     .join('');
   const verification = data.verificationCode
     ? `<div class="verify">رمز التحقق: ${escapeHtml(data.verificationCode)}</div>`
@@ -257,29 +304,7 @@ function buildOfficialCompletionLetterHtml(data) {
     text-align: justify;
     text-justify: inter-word;
   }
-  .info {
-    border: 0.28mm solid #d7deea;
-    background: #f7f4ec;
-    padding: 3mm 4mm;
-    margin: 3mm 0 4mm;
-  }
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 6mm;
-    padding: 1.1mm 0;
-    border-bottom: 0.18mm solid #e6e0d2;
-    font-size: 11.6pt;
-  }
-  .info-row:last-child { border-bottom: 0; }
-  .info-label { color: #5a6578; min-width: 42mm; }
-  .info-value {
-    font-weight: 700;
-    color: #0b1f3a;
-    text-align: right;
-    overflow-wrap: anywhere;
-    word-break: break-word;
-  }
+  ${INFO_SECTION_CSS}
   .sign-wrap { position: relative; min-height: 52mm; margin-top: 1mm; }
   .sign-text { position: absolute; top: 10mm; right: 4mm; text-align: center; z-index: 2; }
   .sign-role { font-size: 12.5pt; color: #3b4a63; margin-bottom: 1mm; }
@@ -358,5 +383,7 @@ module.exports = {
   loadStampDataUri,
   computeLetterSourceHash,
   buildOfficialCompletionLetterHtml,
+  buildInfoRowHtml,
+  INFO_SECTION_CSS,
   resetTemplateCachesForTests,
 };

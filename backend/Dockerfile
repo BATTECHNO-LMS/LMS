@@ -2,7 +2,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# wget: compose healthcheck. Chromium + fonts: server-side PDF export (Puppeteer).
+# wget: compose healthcheck. Chromium + fonts: analytics PDF export (Puppeteer).
+# libreoffice: official field-training evaluation DOCX → PDF (headless soffice).
 RUN apk add --no-cache \
     wget \
     chromium \
@@ -12,7 +13,8 @@ RUN apk add --no-cache \
     ca-certificates \
     ttf-freefont \
     font-noto \
-    fontconfig
+    fontconfig \
+    libreoffice
 
 ENV PUPPETEER_SKIP_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium

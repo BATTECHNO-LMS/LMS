@@ -40,7 +40,7 @@ export function BrandLogo({
       height={682}
       className={`brand-logo brand-logo--${variant} ${alignClass} ${extra} ${className} ${imgClassName}`.trim()}
       decoding="async"
-      fetchPriority={eager ? 'high' : 'auto'}
+      fetchpriority={eager ? 'high' : 'auto'}
       loading={eager ? 'eager' : 'lazy'}
     />
   );

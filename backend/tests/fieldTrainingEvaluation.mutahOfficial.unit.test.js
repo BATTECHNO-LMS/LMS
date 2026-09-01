@@ -54,13 +54,19 @@ function samplePayload(overrides = {}) {
       university_student_number: '2020123456',
       university_specialty: { name_ar: 'الأمن السيبراني' },
     },
-    application: { completed_training_hours: 140, attendance_percentage: 100 },
+    application: {
+      completed_training_hours: 140,
+      attendance_percentage: 100,
+      completion_eligibility_status: 'eligible',
+      academic_supervisor_name: 'زكريا الطراونه',
+    },
     opportunity: {
       start_date: new Date('2026-07-23T00:00:00.000Z'),
       end_date: new Date('2026-09-05T00:00:00.000Z'),
       organization_name: 'شركة الاختبار',
       host_organization: {
-        contact_person: 'أحمد المسؤول',
+        field_supervisor_name: 'المشرف الميداني',
+        contact_person: 'المشرف الميداني',
         department: 'تقنية المعلومات',
         email: 'org@example.com',
         phone: '032345678',
@@ -121,6 +127,16 @@ describe('Mutah template resolution priority', () => {
     assert.equal(resolved.template.id, 'opp-override');
   });
 
+  it('does not silently replace a missing assigned version with the university default', () => {
+    const resolved = resolveEvaluationTemplate({
+      opportunity: { university_id: 'mutah', evaluation_template_id: 'missing-version' },
+      assignedTemplate: null,
+      universityDefault: mutahDefault,
+    });
+    assert.equal(resolved.source, 'assigned_template_unavailable');
+    assert.equal(resolved.template, null);
+  });
+
   it('does not assign the Mutah default to another university that already has its own default', () => {
     const resolved = resolveEvaluationTemplate({
       opportunity: { university_id: 'ttu' },
@@ -132,14 +148,14 @@ describe('Mutah template resolution priority', () => {
     assert.equal(resolved.template.university_id, 'ttu');
   });
 
-  it('uses the existing global fallback only when the university has no default', () => {
+  it('fails closed instead of borrowing a global template from another university', () => {
     const resolved = resolveEvaluationTemplate({
       opportunity: { university_id: 'new-uni' },
       universityDefault: null,
       globalFallback,
     });
-    assert.equal(resolved.source, 'global_fallback');
-    assert.equal(resolved.template.id, 'global');
+    assert.equal(resolved.source, 'missing');
+    assert.equal(resolved.template, null);
   });
 });
 
@@ -163,11 +179,14 @@ describe('official Mutah DOCX fill', () => {
     assert.match(inspection.text, /محمد أحمد الطراونة/);
     assert.match(inspection.text, /2020123456/);
     assert.match(inspection.text, /المشرف الميداني/);
-    assert.match(inspection.text, /أحمد المسؤول/);
+    assert.match(inspection.text, /زكريا الطراونه/);
     assert.equal(inspection.text.includes('{{student_name}}'), false);
     assert.equal(/MERGEFIELD/i.test(inspection.text), false);
     assert.equal(inspection.text.includes(payload.field_supervisor_name), true);
+    assert.equal(payload.responsible_person_name, 'زكريا الطراونه');
     assert.equal(payload.responsible_person_name !== payload.field_supervisor_name, true);
+    assert.equal(payload.training_hours_display, 140);
+    assert.equal(String(payload.training_hours_display).includes('3.11'), false);
 
     const zip = await JSZip.loadAsync(filled);
     assert.ok(zip.file('word/media/image1.png') || zip.file('word/media/image2.png'));
@@ -235,13 +254,21 @@ describe('complete-data and criteria validation', () => {
     assert.equal(bad.ok, false);
   });
 
-  it('requires comments, supervisor, responsible person, and evaluation date before approval', () => {
+  it('requires comments, field supervisor, academic supervisor, and evaluation date before approval', () => {
     const payload = samplePayload({
       instructor: null,
+      application: { completed_training_hours: 140, attendance_percentage: 100, academic_supervisor_name: '' },
+      opportunity: {
+        start_date: new Date('2026-07-23T00:00:00.000Z'),
+        end_date: new Date('2026-09-05T00:00:00.000Z'),
+        organization_name: 'شركة الاختبار',
+        host_organization: {},
+      },
       evaluation: { ...scores, professionalTotal: 44, generalComments: '', evaluationDate: null },
     });
     const missing = missingRequiredCompleteFields(payload);
     assert.ok(missing.includes('field_supervisor_name'));
+    assert.ok(missing.includes('responsible_person_name'));
     assert.ok(missing.includes('general_comments'));
     assert.ok(missing.includes('evaluation_date'));
   });
@@ -272,18 +299,38 @@ describe('report download permissions and idempotent PDF reuse', () => {
       pdf_file_id: 'file-1',
       final_status: 'PASSED',
       score_evidence_json: {
+        sourceHash: 'same-source',
+        sourceTemplateFileId: 'template-file-1',
+        fidelity: { mediaPreserved: true },
+        generatedPageCount: 2,
         templatePayload: {
           student_name: 'محمد أحمد الطراونة',
           student_number: '2020123456',
           student_specialty: 'الأمن السيبراني',
-          training_start_date: '23/07/2026',
-          training_end_date: '05/09/2026',
+          training_start_date: '23 / 7 / 2026',
+          training_end_date: '5 / 9 / 2026',
         },
       },
     };
-    assert.equal(shouldReuseStoredPdf(previous, { regenerate: false }), true);
-    assert.equal(shouldReuseStoredPdf(previous, { regenerate: true }), false);
-    assert.equal(shouldReuseStoredPdf({ ...previous, pdf_file_id: null }, { regenerate: false }), false);
+    assert.equal(
+      shouldReuseStoredPdf(previous, { regenerate: false, sourceHash: 'same-source' }),
+      true
+    );
+    assert.equal(
+      shouldReuseStoredPdf(previous, { regenerate: true, sourceHash: 'same-source' }),
+      false
+    );
+    assert.equal(
+      shouldReuseStoredPdf(
+        { ...previous, pdf_file_id: null },
+        { regenerate: false, sourceHash: 'same-source' }
+      ),
+      false
+    );
+    assert.equal(
+      shouldReuseStoredPdf(previous, { regenerate: false, sourceHash: 'changed-source' }),
+      false
+    );
   });
 });
 

@@ -7,6 +7,10 @@ const { ApiError } = require('../../utils/apiError');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const hoursMod = require('./fieldTraining.hours');
 const {
+  buildInfoRowHtml,
+  INFO_SECTION_CSS,
+} = require('./fieldTraining.completionLetter.template');
+const {
   resolveOfficialUniversityNumber,
   STUDENT_NUMBER_UNRESOLVED_CODE,
 } = require('./fieldTrainingEvaluation.universityNumber');
@@ -254,10 +258,7 @@ function buildCompletionLetterHtml(payload) {
     ['تاريخ الإصدار', payload.issueDateLabel],
     ['رقم الكتاب', payload.letterNo],
   ]
-    .map(
-      ([label, value]) =>
-        `<div class="info-row"><span class="info-label">${escapeHtml(label)}</span><span class="info-value">${escapeHtml(value)}</span></div>`
-    )
+    .map(([label, value]) => buildInfoRowHtml(label, value))
     .join('');
 
   const verification = payload.verificationCode
@@ -363,29 +364,7 @@ function buildCompletionLetterHtml(payload) {
     text-align: justify;
     text-justify: inter-word;
   }
-  .info {
-    border: 0.28mm solid #d7deea;
-    background: #f7f4ec;
-    padding: 3mm 4mm;
-    margin: 3mm 0 4mm;
-  }
-  .info-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 6mm;
-    padding: 1.1mm 0;
-    border-bottom: 0.18mm solid #e6e0d2;
-    font-size: 11.6pt;
-  }
-  .info-row:last-child { border-bottom: 0; }
-  .info-label { color: #5a6578; min-width: 42mm; }
-    .info-value {
-      font-weight: 700;
-      color: #0b1f3a;
-      text-align: right;
-      overflow-wrap: anywhere;
-      word-break: break-word;
-    }
+  ${INFO_SECTION_CSS}
   .sign-wrap {
     position: relative;
     min-height: 52mm;

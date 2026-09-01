@@ -78,6 +78,10 @@ const hostOrganizationSchema = z
     fax: z.string().max(80).optional().nullable(),
     address: z.string().max(500).optional().nullable(),
     contact_person: z.string().max(255).optional().nullable(),
+    field_supervisor_name: z.string().max(255).optional().nullable(),
+    semester: z.string().max(80).optional().nullable(),
+    academic_year: z.string().max(40).optional().nullable(),
+    trainingHoursDisplayMode: z.enum(['TOTAL_COMPLETED_HOURS', 'DAILY_HOURS']).optional().nullable(),
   })
   .optional()
   .nullable();

@@ -3,9 +3,10 @@
 const JSZip = require('jszip');
 const {
   buildEvaluationPdfFilename,
-  buildZipFilename,
+  buildOfficialEvaluationsZipFilename,
   uniqueZipEntry,
   zipFolderForStatus,
+  buildOfficialEvaluationZipPath,
 } = require('./fieldTrainingEvaluation.filename');
 
 function summarizeZipSelection({ selected, included, missing, failed }) {
@@ -19,21 +20,46 @@ function summarizeZipSelection({ selected, included, missing, failed }) {
   };
 }
 
-async function buildReportsZip(entries, { mixedFolders = true, folderFor, onFile } = {}) {
+async function buildReportsZip(entries, { mixedFolders = true, folderFor, onFile, officialFolders = false } = {}) {
   const zip = new JSZip();
   const used = new Set();
   const included = [];
   const failed = [];
-  const resolveFolder = folderFor || ((entry) => zipFolderForStatus(entry.finalStatus || entry.final_status));
+  const resolveFolder =
+    folderFor ||
+    (officialFolders
+      ? (entry) =>
+          buildOfficialEvaluationZipPath({
+            universityName: entry.universityName,
+            academicSupervisorName: entry.academicSupervisorName,
+            eligibilityStatus: entry.eligibilityStatus || entry.eligibility_status,
+            filename: '',
+          }).replace(/\/$/, '')
+      : (entry) => zipFolderForStatus(entry.finalStatus || entry.final_status));
   for (const entry of entries) {
     try {
-      const folder = resolveFolder(entry);
       const filename = entry.filename || buildEvaluationPdfFilename({
         studentName: entry.studentName,
         universityNumber: entry.universityNumber,
         student: entry.student,
       });
-      const path = uniqueZipEntry(used, folder, filename, mixedFolders);
+      let path;
+      if (officialFolders && !folderFor) {
+        path = uniqueZipEntry(
+          used,
+          '',
+          buildOfficialEvaluationZipPath({
+            universityName: entry.universityName,
+            academicSupervisorName: entry.academicSupervisorName,
+            eligibilityStatus: entry.eligibilityStatus || entry.eligibility_status,
+            filename,
+          }),
+          false
+        );
+      } else {
+        const folder = resolveFolder(entry);
+        path = uniqueZipEntry(used, folder, filename, mixedFolders);
+      }
       const buffer = onFile ? await onFile(entry) : entry.buffer;
       if (!buffer) {
         failed.push(entry);
@@ -52,5 +78,5 @@ async function buildReportsZip(entries, { mixedFolders = true, folderFor, onFile
 module.exports = {
   summarizeZipSelection,
   buildReportsZip,
-  buildZipFilename,
+  buildZipFilename: buildOfficialEvaluationsZipFilename,
 };

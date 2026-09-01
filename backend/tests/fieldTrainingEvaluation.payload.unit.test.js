@@ -85,12 +85,12 @@ describe('field training evaluation template payload', () => {
   it('maps semester and academic year from the stored opportunity start date', () => {
     const period = academicPeriod(opportunity.start_date);
     assert.equal(period.semester, 'الصيفي');
-    assert.equal(period.academicYear, '2025/2026');
+    assert.equal(period.academicYear, '2025-2026');
     const payload = buildFieldTrainingEvaluationTemplatePayload({ student: studentAr, application, opportunity });
     assert.equal(payload.semester, 'الصيفي');
-    assert.equal(payload.academic_year, '2025/2026');
-    assert.equal(payload.training_start_date, '23/07/2026');
-    assert.equal(payload.training_end_date, '05/09/2026');
+    assert.equal(payload.academic_year, '2025-2026');
+    assert.equal(payload.training_start_date, '23 / 7 / 2026');
+    assert.equal(payload.training_end_date, '5 / 9 / 2026');
   });
 
   it('maps attendance days, absence, hours, and percentage from Field Training records', () => {
@@ -106,22 +106,30 @@ describe('field training evaluation template payload', () => {
       opportunity,
       attendanceRows,
     });
-    assert.equal(payload.training_days, 2);
+    assert.equal(payload.training_days, 45);
     assert.equal(payload.actual_training_hours, 14);
     assert.equal(payload.actual_daily_hours, 7);
+    assert.equal(payload.training_hours_display, 14);
     assert.equal(payload.absence_days, 1);
     assert.equal(payload.attendance_percentage, 100);
   });
 
-  it('does not divide daily hours by zero when nobody attended', () => {
+  it('keeps training days unknown when attendance rows were not loaded for ineligible students', () => {
     const payload = buildFieldTrainingEvaluationTemplatePayload({
       student: studentAr,
-      application: { completed_training_hours: 10, attendance_percentage: 0 },
+      application: {
+        completed_training_hours: 10,
+        attendance_percentage: 0,
+        completion_eligibility_status: 'ineligible',
+      },
       opportunity,
       attendanceRows: [],
+      evaluation: { eligibilityStatus: 'NOT_ELIGIBLE' },
     });
-    assert.equal(payload.training_days, 0);
-    assert.equal(payload.actual_daily_hours, '');
+    assert.equal(payload.training_days, null);
+    assert.equal(payload.actual_training_hours, 10);
+    assert.equal(payload.actual_daily_hours, null);
+    assert.equal(payload.absence_days, null);
   });
 
   it('never substitutes the internal user id as a university number', () => {
@@ -168,26 +176,34 @@ describe('field training evaluation template payload', () => {
       path.join(__dirname, '../src/modules/fieldTraining/fieldTrainingEvaluation.service.js'),
       'utf8'
     );
-    assert.match(serviceSrc, /function buildFillFields\(ctx, evaluation\) \{\s*return buildFieldTrainingEvaluationTemplatePayload/s);
-    assert.match(serviceSrc, /const fillFields = buildFillFields\(ctx/);
+    assert.match(serviceSrc, /function buildFillFields\(ctx, evaluation/);
+    assert.match(serviceSrc, /return buildFieldTrainingEvaluationTemplatePayload/);
+    assert.match(serviceSrc, /const fillFields = buildFillFields\(/);
     assert.match(serviceSrc, /previewApplicationPayload/);
   });
 
-  it('maps the organization contact as responsible_person_name and does not copy the supervisor', () => {
+  it('maps academic_supervisor_name into اسم المسؤول and keeps the field supervisor separate', () => {
     const payload = buildFieldTrainingEvaluationTemplatePayload({
       student: studentAr,
-      application,
+      application: { ...application, academic_supervisor_name: 'زكريا الطراونه' },
       opportunity: {
         ...opportunity,
-        host_organization: { contact_person: 'خالد العبادي', department: '', email: '', phone: '', fax: '' },
+        host_organization: {
+          field_supervisor_name: 'مشرف الميدان',
+          contact_person: 'مشرف الميدان',
+          department: '',
+          email: '',
+          phone: '',
+          fax: '',
+        },
       },
-      instructor: { full_name: 'مشرف الميدان' },
       attendanceRows,
     });
     assert.equal(payload.field_supervisor_name, 'مشرف الميدان');
-    assert.equal(payload.responsible_person_name, 'خالد العبادي');
-    assert.equal(payload.organization_department, 'غير متوفر');
-    assert.equal(payload.organization_email, 'غير متوفر');
+    assert.equal(payload.responsible_person_name, 'زكريا الطراونه');
+    assert.equal(payload.academic_supervisor_name, 'زكريا الطراونه');
+    assert.equal(payload.organization_department, '');
+    assert.equal(payload.organization_email, '');
   });
 
   it('builds the filename from the mapped student name and university number', () => {
@@ -248,7 +264,7 @@ describe('Mutah label-form table replacement', () => {
     assert.match(filled, /الرقم: 202312345/);
     assert.match(filled, /التخصص: الأمن السيبراني/);
     assert.match(filled, /الفصل الدراسي: الصيفي/);
-    assert.match(filled, /السنة الدراسية: 2025\/2026/);
-    assert.match(filled, /فترة التدريب: 23\/07\/2026 إلى: 05\/09\/2026/);
+    assert.match(filled, /السنة الدراسية: 2025-2026/);
+    assert.match(filled, /فترة التدريب: 23 \/ 7 \/ 2026 إلى: 5 \/ 9 \/ 2026/);
   });
 });

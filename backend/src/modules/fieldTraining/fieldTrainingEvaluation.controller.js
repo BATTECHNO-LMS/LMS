@@ -11,13 +11,21 @@ const upload = multer({
   limits: { fileSize: MAX_TEMPLATE_BYTES, files: 1 },
 });
 
-function sendFile(res, { buffer, filename, mimeType }) {
+function sendFile(res, file) {
+  const { buffer, filename, mimeType } = file;
   const payload = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
   const raw = String(filename || 'download.bin').replace(/[\r\n"]/g, '_');
   const safeAscii = raw.replace(/[^\x20-\x7E]/g, '_').replace(/_+/g, '_').slice(0, 180) || 'download.bin';
   res.setHeader('Content-Type', mimeType || 'application/octet-stream');
   res.setHeader('Content-Disposition', `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(raw)}`);
-  res.setHeader('X-Eval-Selected', String(arguments[1]?.summary?.selected || ''));
+  res.setHeader('X-Eval-Selected', String(file.summary?.selected || ''));
+  if (file.templateId) res.setHeader('X-Evaluation-Template-Id', String(file.templateId));
+  if (file.templateVersion != null) {
+    res.setHeader('X-Evaluation-Template-Version', String(file.templateVersion));
+  }
+  if (file.sourceTemplateFileId) {
+    res.setHeader('X-Evaluation-Source-Template-File-Id', String(file.sourceTemplateFileId));
+  }
   return res.send(payload);
 }
 
@@ -63,7 +71,74 @@ async function previewTemplate(req, res, next) {
 
 async function previewApplication(req, res, next) {
   try {
+    if (req.query?.format === 'pdf') {
+      return success(res, await service.previewApplicationReportPdf(req.user, req.validated.params.applicationId));
+    }
     return success(res, await service.previewApplicationPayload(req.user, req.validated.params.applicationId));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function reportReadiness(req, res, next) {
+  try {
+    return success(res, await service.getOpportunityReportReadiness(req.user, req.validated.params.id));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function bulkRatingPreview(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.getBulkEligibleRatingPreview(req.user, req.validated.params.id, req.validated?.query || {})
+    );
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function applyBulkEligibleRatings(req, res, next) {
+  try {
+    return success(
+      res,
+      await service.applyBulkEligibleProfessionalRatings(
+        req.user,
+        req.validated.params.id,
+        req.validated.body
+      ),
+      { message: 'Bulk eligible ratings applied' }
+    );
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function zipOpportunity(req, res, next) {
+  try {
+    const result = await service.zipOpportunityReports(req.user, req.validated.params.id);
+    res.setHeader('X-Zip-Selected', String(result.summary.selected));
+    res.setHeader('X-Zip-Included', String(result.summary.included));
+    res.setHeader('X-Zip-Missing', String(result.summary.missing));
+    res.setHeader('X-Zip-Failed', String(result.summary.failed));
+    res.setHeader('X-Zip-Total-Students', String(result.summary.totalStudents || ''));
+    res.setHeader('X-Zip-Generated-Reports', String(result.summary.generatedReports || ''));
+    res.setHeader('X-Zip-Missing-Reports', String(result.summary.missingReports || ''));
+    return sendFile(res, {
+      buffer: result.buffer,
+      filename: result.filename,
+      mimeType: 'application/zip',
+      summary: result.summary,
+    });
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function saveReportDefaults(req, res, next) {
+  try {
+    return success(res, await service.saveOpportunityReportDefaults(req.user, req.validated.params.id, req.validated.body || {}));
   } catch (err) {
     return next(err);
   }
@@ -282,6 +357,11 @@ module.exports = {
   setDefaultTemplate,
   previewTemplate,
   previewApplication,
+  reportReadiness,
+  bulkRatingPreview,
+  applyBulkEligibleRatings,
+  zipOpportunity,
+  saveReportDefaults,
   downloadTemplate,
   opportunityTemplate,
   assignOpportunityTemplate,

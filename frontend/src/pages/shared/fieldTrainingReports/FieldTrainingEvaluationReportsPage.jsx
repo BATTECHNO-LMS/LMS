@@ -15,6 +15,7 @@ import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import {
   downloadEvaluationReportPdf,
   downloadEvaluationReportsZip,
+  fetchEvaluationReportPdfBlob,
   fetchEvaluationReports,
   generateEvaluationReports,
 } from '../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
@@ -149,9 +150,24 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
         label: t('page.actions'),
         render: (row) =>
           row.id && row.hasPdf ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => downloadEvaluationReportPdf(row.id, scope)}>
-              {t('page.downloadPdf')}
-            </Button>
+            <div className="ft-eval-actions">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const file = await fetchEvaluationReportPdfBlob(row.id, scope);
+                  if (!file?.blob) return;
+                  const url = URL.createObjectURL(file.blob);
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                {t('page.previewOfficial')}
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => downloadEvaluationReportPdf(row.id, scope)}>
+                {t('page.downloadPdf')}
+              </Button>
+            </div>
           ) : null,
       },
     ],

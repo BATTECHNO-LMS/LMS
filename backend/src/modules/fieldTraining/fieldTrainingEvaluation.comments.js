@@ -1,11 +1,10 @@
 'use strict';
 
-const { FINAL_STATUS, GATE_REASON_LABELS_AR } = require('./fieldTrainingEvaluation.constants');
+const { reportEligibilityStatus } = require('./fieldTrainingEvaluation.eligibilityReasons');
 
-function strengthPhrase(score, strong, mid) {
+function strengthPhrase(score, strong) {
   if (score == null) return null;
   if (score >= 4) return strong;
-  if (score >= 3) return mid;
   return null;
 }
 
@@ -15,75 +14,67 @@ function weaknessPhrase(score, text) {
   return null;
 }
 
-function buildAutoComment(evaluation = {}) {
-  const status = evaluation.finalStatus;
-  const reasons = Array.isArray(evaluation.eligibilityReasons) ? evaluation.eligibilityReasons : [];
-  const attendance = evaluation.attendanceComponentScore;
-  const tasks = evaluation.tasksComponentScore;
-  const post = evaluation.postAssessmentScore;
-  const c3 = evaluation.criterion3Score;
-  const c4 = evaluation.criterion4Score;
-  const c6 = evaluation.criterion6Score;
-  const c8 = evaluation.criterion8Score;
-
-  if (status === FINAL_STATUS.NOT_ELIGIBLE) {
-    const labels = reasons.map((code) => GATE_REASON_LABELS_AR[code] || code).filter(Boolean);
-    const reasonText = labels.length ? labels.join('، ') : 'لم تُستكمل متطلبات الأهلية';
-    return `لم يستكمل الطالب متطلبات الأهلية لإصدار نتيجة نجاح أو رسوب. الأسباب: ${reasonText}.`;
-  }
-
+function performanceSummary(evaluation = {}) {
   const parts = [];
+  const attendance = evaluation.attendanceComponentScore;
+  const total = evaluation.professionalTotal;
+  if (total != null) {
+    if (total >= 40) parts.push('وأظهر أداءً مهنياً متميزاً وفق بنود التقييم المعتمدة');
+    else if (total >= 30) parts.push('وأظهر أداءً مهنياً جيدًا وفق بنود التقييم المعتمدة');
+    else parts.push('ويحتاج إلى مزيد من التطوير في بعض جوانب الأداء المهني');
+  }
   if (attendance != null && attendance >= 95) {
-    parts.push('أظهر الطالب مستوى متميزاً من الالتزام بالحضور وأوقات العمل');
+    parts.push('مع التزام واضح بالحضور');
   } else if (attendance != null && attendance >= 80) {
-    parts.push('التزم الطالب بنسبة حضور مقبولة خلال فترة التدريب');
-  } else if (attendance != null) {
-    parts.push('كان الالتزام بالحضور أقل من المستوى المطلوب');
+    parts.push('مع التزام مقبول بالحضور');
   }
-
-  if (tasks != null && tasks >= 90) {
-    parts.push('وأتم المهام المطلوبة بكفاءة عالية');
-  } else if (tasks != null && tasks >= 60) {
-    parts.push('وأنجز معظم المهام المطلوبة');
-  } else if (tasks != null) {
-    parts.push('ولم يستكمل المهام المطلوبة بالمستوى المتوقع');
-  }
-
   const strengths = [
-    strengthPhrase(c4, 'حل المشكلات', 'حل المشكلات'),
-    strengthPhrase(c6, 'التعاون', 'التعاون'),
-    strengthPhrase(c8, 'الالتزام بتعليمات المؤسسة', 'التعاون مع المشرف'),
-    strengthPhrase(c3, 'المبادرة والتفكير', null),
+    strengthPhrase(evaluation.criterion4Score, 'حل المشكلات'),
+    strengthPhrase(evaluation.criterion6Score, 'التعاون مع الزملاء'),
+    strengthPhrase(evaluation.criterion3Score, 'التفكير والمبادرة'),
   ].filter(Boolean);
-
   if (strengths.length) {
-    parts.push(`كما أظهر مستوى جيداً جداً في ${strengths.join(' و')}`);
+    parts.push(`وبرز في ${strengths.join(' و')}`);
   }
-
-  const weaknesses = [
-    weaknessPhrase(c4, 'يحتاج إلى تعزيز مهارات حل المشكلات'),
-    weaknessPhrase(c6, 'يحتاج إلى تطوير التعاون مع الزملاء'),
-    weaknessPhrase(evaluation.criterion2Score, 'يحتاج إلى رفع دقة العمل'),
-  ].filter(Boolean);
-
-  if (post != null && post >= 80) {
-    parts.push('وحقق نتيجة جيدة في الامتحان البعدي');
-  } else if (post != null && post < 60) {
-    parts.push('وكانت نتيجة الامتحان البعدي دون المستوى المطلوب');
-  }
-
-  if (weaknesses.length && status === FINAL_STATUS.FAILED) {
-    parts.push(weaknesses[0]);
-  }
-
-  let sentence = parts.join('، ');
-  if (!sentence) sentence = 'أُعد هذا التقييم بناءً على سجلات الحضور والمهام والنتائج المتاحة';
-  if (!sentence.endsWith('.')) sentence += '.';
-
-  if (status === FINAL_STATUS.PASSED) {
-    return sentence.charAt(0) === 'أ' ? sentence : `أ${sentence.replace(/^و/, '')}`;
-  }
-  return `أظهر الطالب أداءً دون درجة النجاح المعتمدة. ${sentence}`;
+  const weakness = weaknessPhrase(evaluation.criterion2Score, 'مع الحاجة إلى رفع دقة العمل');
+  if (weakness) parts.push(weakness);
+  return parts.join('، ');
 }
 
-module.exports = { buildAutoComment };
+function buildEligibleComment() {
+  return 'حالة الطالب: مؤهل\n\nأتم الطالب متطلبات التدريب الميداني واستوفى متطلبات الحضور والساعات والتسليمات والتقييم البعدي، وقد تم تقييم أدائه وفق البيانات المسجلة في المنصة.';
+}
+
+function buildNotEligibleComment(reasonLines = []) {
+  const lines = (reasonLines || []).filter(Boolean);
+  const reasons = lines.length
+    ? lines.map((line) => `* ${String(line).replace(/^\*\s*/, '')}`).join('\n')
+    : '* لم يستوف الطالب متطلبات الأهلية المعتمدة في المنصة.';
+  return `حالة الطالب: غير مؤهل\n\nأسباب عدم التأهيل:\n${reasons}`;
+}
+
+function buildAutoComment(evaluation = {}, options = {}) {
+  const eligibility =
+    options.eligibilityStatus ||
+    evaluation.eligibilityStatus ||
+    reportEligibilityStatus({ completion_eligibility_status: evaluation.completionStatus }, evaluation.finalStatus);
+  const reasonLines = Array.isArray(options.reasonLabels)
+    ? options.reasonLabels
+    : Array.isArray(evaluation.eligibilityReasonLabels)
+      ? evaluation.eligibilityReasonLabels
+      : [];
+  if (String(eligibility).toUpperCase() === 'ELIGIBLE' || eligibility === 'eligible') {
+    return buildEligibleComment(evaluation);
+  }
+  if (reasonLines.length) {
+    return buildNotEligibleComment(reasonLines);
+  }
+  return buildNotEligibleComment([]);
+}
+
+module.exports = {
+  buildAutoComment,
+  buildEligibleComment,
+  buildNotEligibleComment,
+  performanceSummary,
+};

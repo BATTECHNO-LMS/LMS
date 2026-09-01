@@ -165,6 +165,8 @@ describe('completion letter template and filenames', () => {
       issuedAt: '2026-08-30',
     });
     assert.match(html, /dir="rtl"/);
+    assert.match(html, /info-label">الرقم الجامعي:<\/span>/);
+    assert.doesNotMatch(html, /\.info-row[\s\S]*justify-content:\s*space-between/);
     assert.match(html, /كتاب إنهاء تدريب ميداني/);
     assert.match(html, /إلى من يهمه الأمر/);
     assert.match(html, /الرجل الوطواط للتكنولوجيا/);

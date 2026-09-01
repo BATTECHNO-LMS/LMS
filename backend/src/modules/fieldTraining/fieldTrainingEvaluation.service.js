@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { recordAudit } = require('../../utils/auditRecorder');
@@ -11,18 +12,41 @@ const scoring = require('./fieldTrainingEvaluation.scoring');
 const { buildAutoComment } = require('./fieldTrainingEvaluation.comments');
 const { buildPlaceholderMap, validatePlaceholderSet } = require('./fieldTrainingEvaluation.placeholders');
 const { assertDocxUpload, extractDocxPlaceholders, fillDocxTemplate, inspectFilledDocx, detectUniversityLabelFormFromBuffer } = require('./fieldTrainingEvaluation.docx');
-const { convertFilledDocxToPdf } = require('./fieldTrainingEvaluation.pdf');
+const {
+  convertFilledDocxToPdf,
+  findSoffice,
+  assertOfficialRendererAvailable,
+  getOfficialDocumentRendererStatus,
+} = require('./fieldTrainingEvaluation.pdf');
+const { preflightEvaluationTemplate } = require('./fieldTrainingEvaluation.preflight');
+const { verifyFilledDocxFidelity } = require('./fieldTrainingEvaluation.fidelity');
+const { buildFieldTrainingEligibilityReasons, reportEligibilityStatus } = require('./fieldTrainingEvaluation.eligibilityReasons');
+const { toMissingFieldEntries } = require('./fieldTrainingEvaluation.missingFields');
 const {
   TEMPLATE_MISSING_CODE,
   DATA_INCOMPLETE_CODE,
   STUDENT_NUMBER_UNRESOLVED_CODE,
   UNRESOLVED_PLACEHOLDERS_CODE,
   PDF_RENDER_FAILED_CODE,
+  TEMPLATE_FIDELITY_FAIL,
+  TEMPLATE_FONT_UNAVAILABLE,
   PROFESSIONAL_INCOMPLETE_CODE,
+  GATE_REASONS,
   GATE_REASON_LABELS_AR,
   ACCEPTED_TASK_STATUSES,
   STORAGE_FOLDER,
   DEFAULT_POLICY,
+  ALREADY_GENERATED,
+  MISSING_REQUIRED_DATA,
+  READY_STATUS,
+  MANUAL_AUTHORIZED_EVALUATION,
+  MANUAL_AUTHORIZED_BULK_RATING,
+  BULK_RATING_REASON_AR,
+  READY_AUTOMATIC,
+  READY_WITH_MANUAL_RATING,
+  MISSING_STATIC_DATA,
+  MISSING_PROFESSIONAL_EVIDENCE,
+  GENERATED_STATUS,
 } = require('./fieldTrainingEvaluation.constants');
 const {
   buildEvaluationPdfFilename,
@@ -35,13 +59,48 @@ const {
   buildFieldTrainingEvaluationTemplatePayload,
   missingRequiredIdentityFields,
   missingRequiredCompleteFields,
+  missingFieldEntries,
   publicPreviewPayload,
   identitySnapshot,
+  summarizeAttendance,
   shouldReuseStoredPdf,
+  templatePayloadHash,
 } = require('./fieldTrainingEvaluation.payload');
 const ftRepo = require('./fieldTraining.repository');
 const zipUtil = require('./fieldTrainingEvaluation.zip');
 const taskProgress = require('./fieldTraining.taskProgress');
+const readinessMod = require('./fieldTrainingEvaluation.readiness');
+const bulkRatingMod = require('./fieldTrainingEvaluation.bulkRating');
+const readinessAggregate = require('./fieldTrainingEvaluation.readinessAggregate');
+const supervisorScope = require('./fieldTraining.supervisorScope');
+const academicSupervisorResolve = require('./fieldTrainingEvaluation.academicSupervisorResolve');
+const officialPopulation = require('./fieldTrainingEvaluation.officialPopulation');
+const supervisorNames = require('./fieldTraining.supervisorName');
+const { buildFieldTrainingStudentPerformanceSnapshot } = require('./fieldTrainingEvaluation.performanceSnapshot');
+
+function sha256Buffer(buffer) {
+  return crypto.createHash('sha256').update(buffer).digest('hex');
+}
+
+function resolveOpportunityUniversityName(opportunity = {}) {
+  return (
+    opportunity.universities?.name ||
+    opportunity.universities?.short_name ||
+    opportunity.universities?.name_en ||
+    opportunity.field_training_opportunity_eligibility?.[0]?.universities?.name ||
+    opportunity.field_training_opportunity_eligibility?.[0]?.universities?.short_name ||
+    ''
+  );
+}
+
+function resolveOpportunityUniversityId(opportunity = {}, user = {}) {
+  return (
+    opportunity.university_id ||
+    opportunity.field_training_opportunity_eligibility?.[0]?.university_id ||
+    user.universityId ||
+    null
+  );
+}
 
 function templateIsUsable(template) {
   if (!template || template.archived_at) return false;
@@ -49,91 +108,76 @@ function templateIsUsable(template) {
   return template.validation_json?.fillMode === 'label_form';
 }
 
-function isPrismaUniqueConflict(err) {
-  if (!err) return false;
-  if (err.code === 'P2002') return true;
-  return /unique constraint/i.test(String(err.message || ''));
+function sourceTemplateFileIdOf(row = {}) {
+  return (
+    row.source_template_file_id ||
+    row.score_evidence_json?.sourceTemplateFileId ||
+    null
+  );
 }
 
-async function upsertCurrentEvaluationRow(applicationId, payload) {
-  const existing = await prisma.field_training_final_evaluations.findFirst({
-    where: { application_id: applicationId },
-    orderBy: [{ is_current: 'desc' }, { generated_at: 'desc' }, { created_at: 'desc' }],
-    select: { id: true, pdf_file_id: true },
+function hasVerifiedFidelityArtifact(row = {}, expectedTemplate = null) {
+  const sourceTemplateFileId = sourceTemplateFileIdOf(row);
+  const baseVerified = Boolean(
+    row.pdf_file_id &&
+      sourceTemplateFileId &&
+      row.score_evidence_json?.fidelity &&
+      Number(row.score_evidence_json?.generatedPageCount) === 2 &&
+      row.score_evidence_json?.pdfSha256
+  );
+  if (!baseVerified) return false;
+  const template = expectedTemplate || row.template || null;
+  if (!template) return true;
+  return Boolean(
+    String(row.template_id || '') === String(template.id || '') &&
+      Number(row.template_version) === Number(template.version) &&
+      String(sourceTemplateFileId) ===
+        String(template.original_file_id || template.originalFileId || '')
+  );
+}
+
+async function stageEvaluationVersion(applicationId, payload, previous = null) {
+  return prisma.field_training_final_evaluations.create({
+    data: {
+      ...payload,
+      application_id: applicationId,
+      is_current: false,
+      supersedes_evaluation_id: previous?.id || null,
+    },
   });
-  if (existing) {
-    return prisma.field_training_final_evaluations.update({
-      where: { id: existing.id },
-      data: { ...payload, is_current: true },
+}
+
+async function publishEvaluationVersion({ applicationId, stagedId, stored }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.field_training_final_evaluations.updateMany({
+      where: {
+        application_id: applicationId,
+        is_current: true,
+        id: { not: stagedId },
+      },
+      data: { is_current: false, updated_at: new Date() },
     });
-  }
-  try {
-    return await prisma.field_training_final_evaluations.create({
-      data: { ...payload, application_id: applicationId, is_current: true },
+    return tx.field_training_final_evaluations.update({
+      where: { id: stagedId },
+      data: {
+        is_current: true,
+        pdf_file_id: stored.pdfFile.id,
+        filled_docx_file_id: stored.docxFile.id,
+        updated_at: new Date(),
+      },
     });
-  } catch (err) {
-    if (!isPrismaUniqueConflict(err)) throw err;
-    const raced = await prisma.field_training_final_evaluations.findFirst({
-      where: { application_id: applicationId },
-      orderBy: [{ is_current: 'desc' }, { generated_at: 'desc' }, { created_at: 'desc' }],
-      select: { id: true },
-    });
-    if (!raced) throw err;
-    return prisma.field_training_final_evaluations.update({
-      where: { id: raced.id },
-      data: { ...payload, is_current: true },
-    });
-  }
+  });
 }
 
 async function findUsableTemplate({ opportunity, universityId }) {
   const resolved = await resolveTemplate({ ...opportunity, university_id: universityId });
-  if (templateIsUsable(resolved.template)) return resolved.template;
-
-  const sameUniversity = universityId
-    ? await prisma.field_training_evaluation_templates.findMany({
-        where: { university_id: universityId, archived_at: null },
-        orderBy: [{ is_default: 'desc' }, { created_at: 'desc' }],
-        take: 20,
-      })
-    : [];
-
-  for (const row of sameUniversity) {
-    if (templateIsUsable(row)) return row;
-    try {
-      const { buffer } = await loadFileBuffer(row.original_file_id);
-      if (!(await detectUniversityLabelFormFromBuffer(buffer))) continue;
-      return prisma.field_training_evaluation_templates.update({
-        where: { id: row.id },
-        data: {
-          is_active: true,
-          validation_status: 'valid',
-          validation_json: { ...(row.validation_json || {}), valid: true, fillMode: 'label_form' },
-          updated_at: new Date(),
-        },
-      });
-    } catch {
-      /* try next uploaded file for this university only */
-    }
-  }
-
-  const globalFallback = await prisma.field_training_evaluation_templates.findFirst({
-    where: {
-      archived_at: null,
-      is_active: true,
-      is_default: true,
-      validation_status: 'valid',
-      ...(universityId ? { university_id: { not: universityId } } : {}),
-    },
-    orderBy: { created_at: 'desc' },
-  });
-  if (templateIsUsable(globalFallback)) return globalFallback;
   return resolved.template || null;
 }
 
 function resolveEvalUniversityId(ctx, user) {
   return (
     ctx?.opportunity?.university_id ||
+    ctx?.opportunity?.field_training_opportunity_eligibility?.[0]?.university_id ||
     ctx?.student?.primary_university_id ||
     user?.universityId ||
     null
@@ -187,7 +231,8 @@ function mapTemplateRow(row, extras = {}) {
     name: row.name,
     description: row.description,
     originalFileId: row.original_file_id,
-    version: row.version,
+    version: row.version ?? null,
+    versionLabel: row.version != null ? String(row.version) : null,
     isActive: row.is_active,
     isDefault: row.is_default,
     validationStatus: row.validation_status,
@@ -226,26 +271,10 @@ async function resolveTemplate(opportunity) {
         },
       })
     : null;
-  let globalFallback = null;
-  if (!assigned?.id || assigned.archived_at) {
-    if (!universityDefault) {
-      globalFallback = await prisma.field_training_evaluation_templates.findFirst({
-        where: {
-          archived_at: null,
-          is_active: true,
-          is_default: true,
-          validation_status: 'valid',
-          ...(universityId ? { university_id: { not: universityId } } : {}),
-        },
-        orderBy: { created_at: 'desc' },
-      });
-    }
-  }
   return resolveEvaluationTemplate({
     opportunity,
     assignedTemplate: assigned,
     universityDefault,
-    globalFallback,
   });
 }
 
@@ -354,6 +383,24 @@ async function uploadTemplate(user, body, file) {
   if (labelForm && !validation.valid) {
     validation = { ...validation, valid: true, fillMode: 'label_form' };
   }
+  const templatePreflight = labelForm
+    ? await preflightEvaluationTemplate(file.buffer, {
+        requireStamp: true,
+        requireSignature: true,
+      })
+    : null;
+  if (templatePreflight) {
+    validation = {
+      ...validation,
+      valid: Boolean(validation.valid && templatePreflight.ok),
+      fillMode: 'label_form',
+      preflight: templatePreflight.inspection,
+      issues: [
+        ...(validation.issues || validation.errors || []),
+        ...(templatePreflight.issues || []),
+      ],
+    };
+  }
   const usable = Boolean(validation.valid);
   const stored = await filesService.storePrivateBuffer({
     buffer: file.buffer,
@@ -450,13 +497,23 @@ async function setDefaultTemplate(user, templateId) {
 
 async function getOpportunityTemplateState(user, opportunityId) {
   try {
-    const opportunity = await prisma.field_training_opportunities.findUnique({ where: { id: opportunityId } });
+    const opportunity = await prisma.field_training_opportunities.findUnique({
+      where: { id: opportunityId },
+      include: {
+        field_training_opportunity_eligibility: {
+          where: { is_active: true },
+          select: { university_id: true },
+          take: 1,
+        },
+      },
+    });
     if (!opportunity) throw new ApiError(404, 'Opportunity not found');
     await ftAccess.assertAdminOpportunityAccess(user, opportunity);
-    const resolved = await resolveTemplate(opportunity);
-    const universityDefault = opportunity.university_id
+    const universityId = resolveOpportunityUniversityId(opportunity, user);
+    const resolved = await resolveTemplate({ ...opportunity, university_id: universityId });
+    const universityDefault = universityId
       ? await prisma.field_training_evaluation_templates.findFirst({
-          where: { university_id: opportunity.university_id, is_default: true, is_active: true, archived_at: null },
+          where: { university_id: universityId, is_default: true, is_active: true, archived_at: null },
         })
       : null;
     return {
@@ -469,8 +526,9 @@ async function getOpportunityTemplateState(user, opportunityId) {
       ),
       resolvedSource: resolved.source,
       resolvedTemplate: mapTemplateRow(resolved.template),
-      missing: resolved.source === 'missing',
-      code: resolved.source === 'missing' ? TEMPLATE_MISSING_CODE : null,
+      resolvedUniversityId: universityId,
+      missing: !resolved.template,
+      code: !resolved.template ? TEMPLATE_MISSING_CODE : null,
     };
   } catch (err) {
     remapSchemaMismatch(err);
@@ -478,17 +536,27 @@ async function getOpportunityTemplateState(user, opportunityId) {
 }
 
 async function assignOpportunityTemplate(user, opportunityId, templateId) {
-  const opportunity = await prisma.field_training_opportunities.findUnique({ where: { id: opportunityId } });
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      field_training_opportunity_eligibility: {
+        where: { is_active: true },
+        select: { university_id: true },
+        take: 1,
+      },
+    },
+  });
   if (!opportunity) throw new ApiError(404, 'Opportunity not found');
   access.assertCanAssignOpportunityTemplate(user, opportunity);
   await ftAccess.assertManageOpportunityAccess(user, opportunity);
+  const universityId = resolveOpportunityUniversityId(opportunity, user);
   if (!templateId) {
     await prisma.field_training_opportunities.update({
       where: { id: opportunityId },
       data: { evaluation_template_id: null, updated_at: new Date() },
     });
     await audit(user, 'FT_EVAL_OPPORTUNITY_OVERRIDE_CHANGED', 'field_training_opportunity', opportunityId, {
-      universityId: opportunity.university_id,
+      universityId,
       opportunityId,
       meta: { templateId: null },
     });
@@ -496,7 +564,7 @@ async function assignOpportunityTemplate(user, opportunityId, templateId) {
   }
   const template = await prisma.field_training_evaluation_templates.findUnique({ where: { id: templateId } });
   if (!template || template.archived_at) throw new ApiError(404, 'Template not found');
-  if (opportunity.university_id && String(template.university_id) !== String(opportunity.university_id) && !access.isSuperAdmin(user)) {
+  if (universityId && String(template.university_id) !== String(universityId)) {
     throw new ApiError(403, access.MSG.crossUniversity, null, 'FIELD_TRAINING_UNIVERSITY_FORBIDDEN');
   }
   if (template.validation_status !== 'valid') {
@@ -507,7 +575,7 @@ async function assignOpportunityTemplate(user, opportunityId, templateId) {
     data: { evaluation_template_id: templateId, updated_at: new Date() },
   });
   await audit(user, 'FT_EVAL_OPPORTUNITY_OVERRIDE_CHANGED', 'field_training_opportunity', opportunityId, {
-    universityId: opportunity.university_id,
+    universityId,
     opportunityId,
     meta: { templateId },
   });
@@ -519,28 +587,103 @@ async function previewTemplate(user, templateId) {
   if (!row) throw new ApiError(404, 'Template not found');
   access.assertCanManageUniversityTemplates(user, row.university_id);
   const { buffer } = await loadFileBuffer(row.original_file_id);
-  const mammoth = require('mammoth');
-  const { value } = await mammoth.convertToHtml({ buffer });
-  return { template: mapTemplateRow(row), html: value };
+  const preflight = await preflightEvaluationTemplate(buffer, { requireStamp: true, requireSignature: true });
+  if (!preflight.ok) {
+    return {
+      template: mapTemplateRow(row),
+      previewMode: 'blocked',
+      code: preflight.issues[0]?.code || 'TEMPLATE_VALIDATION_FAILED',
+      preflight,
+      pdfBase64: null,
+      html: '',
+    };
+  }
+  if (!findSoffice()) {
+    return {
+      template: mapTemplateRow(row),
+      previewMode: 'blocked',
+      code: 'VISUAL_QA_BLOCKED',
+      preflight,
+      pdfBase64: null,
+      html: '',
+    };
+  }
+  const pdfBuffer = await convertFilledDocxToPdf(buffer, {
+    fontIssues: preflight.issues.filter((i) => i.code === TEMPLATE_FONT_UNAVAILABLE),
+    expectedPageCount: preflight.inspection.expectedPageCount || 2,
+  });
+  return {
+    template: mapTemplateRow(row),
+    previewMode: 'pdf',
+    preflight,
+    pdfBase64: Buffer.from(pdfBuffer).toString('base64'),
+    sourceTemplateFileId: row.original_file_id,
+    pageCount: preflight.inspection.expectedPageCount || 2,
+    html: '',
+  };
 }
 
 async function previewApplicationPayload(user, applicationId) {
   const { byId } = await loadBatchContext([applicationId]);
   const ctx = byId.get(applicationId);
   if (!ctx) throw new ApiError(404, 'Application not found');
-  access.assertCanGenerate(user, ctx.opportunity);
-  await ftAccess.assertManageOpportunityAccess(user, ctx.opportunity);
+  const universityId = resolveEvalUniversityId(ctx, user);
+  access.assertCanViewReports(user, universityId);
+  await ftAccess.assertAdminOpportunityAccess(user, ctx.opportunity);
+  const resolved = await resolveTemplate({
+    ...ctx.opportunity,
+    university_id: universityId,
+  });
   const policy = { ...ctx.policy };
   if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
   const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
-  const autoComment = buildAutoComment(calculated);
-  const payload = buildFillFields(ctx, { ...calculated, generalComments: autoComment, autoComment });
-  const missingFields = missingRequiredIdentityFields(payload);
+  const official = buildOfficialComment(ctx, calculated);
+  const evaluationDate = new Date();
+  const payload = buildFillFields(
+    ctx,
+    {
+      ...calculated,
+      eligibilityStatus: official.eligibilityStatus,
+      eligibilityReasons: official.reasons.codes,
+      eligibilityReasonLabels: official.reasons.labelsAr,
+      generalComments: official.comment,
+      autoComment: official.comment,
+      evaluationDate,
+      fieldSupervisorDate: evaluationDate,
+      academicSupervisorDate: evaluationDate,
+    },
+    resolved.template
+  );
+  const missing = missingFieldEntries(payload);
+  const academicUnassigned = !payload.academic_supervisor_name;
+  const readinessInfo = readinessMod.classifyEvaluationReadiness({
+    missingFieldEntries: missing,
+    criterionEvidence: calculated.criterionEvidence,
+    usesManualRating: calculated.usesManualRating,
+  });
   return {
     payload: publicPreviewPayload(payload),
-    missingFields,
-    canGenerate: missingFields.length === 0,
-    filename: missingFields.length
+    missingFields: missing.map((row) => row.code),
+    missingFieldDetails: missing,
+    academicSupervisorUnassigned: academicUnassigned,
+    canGenerate: Boolean(resolved.template) && missing.length === 0,
+    readiness: readinessInfo.readiness,
+    readinessCategory: readinessInfo.readinessCategory,
+    criterionEvidence: Object.fromEntries(
+      Object.entries(calculated.criterionEvidence || {}).map(([key, row]) => [
+        key,
+        readinessMod.explainCriterionEvidence(key, calculated.criterionEvidence),
+      ])
+    ),
+    performanceSnapshot: calculated.performanceSnapshot,
+    missingProfessionalCriteria: readinessMod.missingProfessionalCriteria(calculated.criterionEvidence),
+    usesManualRating: calculated.usesManualRating,
+    eligibilityStatus: official.eligibilityStatus,
+    templateId: resolved.template?.id || null,
+    templateVersion: resolved.template?.version || null,
+    sourceTemplateFileId: resolved.template?.original_file_id || null,
+    templateSource: resolved.source,
+    filename: missing.length
       ? null
       : buildEvaluationPdfFilename({
           studentName: payload.student_name,
@@ -635,20 +778,95 @@ async function upsertPolicy(user, universityId, body) {
 async function saveSupervisorRating(user, applicationId, body) {
   const application = await prisma.field_training_applications.findUnique({
     where: { id: applicationId },
-    include: { field_training_opportunities: true },
+    include: {
+      field_training_opportunities: {
+        include: {
+          field_training_opportunity_eligibility: {
+            where: { is_active: true },
+            select: { university_id: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
   if (!application) throw new ApiError(404, 'Application not found');
   const opportunity = application.field_training_opportunities;
   access.assertCanGenerate(user, opportunity);
   await ftAccess.assertManageOpportunityAccess(user, opportunity);
-  const fields = ['thinking_and_initiative', 'problem_solving', 'teamwork', 'professional_conduct', 'supervisor_cooperation', 'rules_compliance'];
-  const data = {};
-  for (const field of fields) {
-    const n = scoring.clampScore15(body[field]);
-    if (n == null) throw new ApiError(400, 'جميع تقييمات المشرف يجب أن تكون من 1 إلى 5', null, 'INVALID_RATING');
-    data[field] = n;
+  const dbFields = [
+    'thinking_and_initiative',
+    'problem_solving',
+    'teamwork',
+    'professional_conduct',
+    'supervisor_cooperation',
+    'rules_compliance',
+  ];
+  const camelMap = {
+    thinking_and_initiative: 'thinkingAndInitiative',
+    problem_solving: 'problemSolving',
+    teamwork: 'teamwork',
+    professional_conduct: 'professionalConduct',
+    supervisor_cooperation: 'supervisorCooperation',
+    rules_compliance: 'rulesCompliance',
+  };
+  const provided = dbFields.filter((field) => body[field] != null && body[field] !== '');
+  if (!provided.length) {
+    throw new ApiError(400, 'يرجى إدخال تقييم واحد على الأقل', null, 'INVALID_RATING');
   }
-  const universityId = opportunity.university_id || user.universityId;
+  const existingRows = await prisma.field_training_supervisor_ratings.findMany({
+    where: { application_id: applicationId },
+    orderBy: { rated_at: 'asc' },
+  });
+  const aggregated = scoring.averageSupervisorRatings(existingRows.map(mapRatingRow)) || {};
+  const { byId } = await loadBatchContext([applicationId]);
+  const ctx = byId.get(applicationId);
+  const policy = { ...ctx?.policy };
+  if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx?.scoringInput?.requiredHours;
+  const calculated = ctx ? scoring.calculateFinalEvaluation(ctx.scoringInput, policy) : null;
+  const derivedMap = {
+    thinking_and_initiative: calculated?.criterion3Score,
+    problem_solving: calculated?.criterion4Score,
+    teamwork: calculated?.criterion6Score,
+    professional_conduct: calculated?.criterion7Score,
+    supervisor_cooperation: calculated?.criterion8Score,
+    rules_compliance: calculated?.criterion10Score,
+  };
+  const BEHAVIORAL_ONLY_DB_FIELDS = new Set([
+    'teamwork',
+    'professional_conduct',
+    'supervisor_cooperation',
+  ]);
+  const data = {};
+  for (const field of dbFields) {
+    if (body[field] != null && body[field] !== '') {
+      const n = scoring.clampScore15(body[field]);
+      if (n == null) {
+        throw new ApiError(400, 'جميع تقييمات المشرف يجب أن تكون من 1 إلى 5', null, 'INVALID_RATING');
+      }
+      data[field] = n;
+      continue;
+    }
+    const camel = camelMap[field];
+    const existing = aggregated[camel];
+    const derived = derivedMap[field];
+    const fallback = BEHAVIORAL_ONLY_DB_FIELDS.has(field) ? existing : existing ?? derived;
+    if (fallback == null) {
+      throw new ApiError(
+        400,
+        'لا يمكن حفظ التقييم الجزئي دون استكمال بقية المعايير السلوكية الناقصة',
+        { field },
+        'PARTIAL_RATING_INCOMPLETE'
+      );
+    }
+    data[field] = fallback;
+  }
+  const source = body.source === MANUAL_AUTHORIZED_EVALUATION ? MANUAL_AUTHORIZED_EVALUATION : 'SUPERVISOR';
+  const universityId =
+    resolveOpportunityUniversityId(ctx?.opportunity || opportunity, user) ||
+    resolveOpportunityUniversityId(opportunity, user) ||
+    opportunity?.university_id ||
+    user.universityId;
   if (!universityId) throw new ApiError(400, 'يرجى تحديد الجامعة', null, 'UNIVERSITY_REQUIRED');
   const row = await prisma.field_training_supervisor_ratings.create({
     data: {
@@ -657,17 +875,314 @@ async function saveSupervisorRating(user, applicationId, body) {
       application_id: applicationId,
       student_id: application.student_id,
       ...data,
-      notes: body.notes || null,
+      notes: [
+        source === MANUAL_AUTHORIZED_EVALUATION ? `[${MANUAL_AUTHORIZED_EVALUATION}]` : '',
+        provided.length < dbFields.length ? `[PARTIAL:${provided.join(',')}]` : '',
+        body.notes || '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .trim() || null,
       rated_by_id: user.userId,
     },
   });
-  return { rating: row };
+  await audit(user, 'FT_EVAL_MANUAL_RATING_SAVED', 'field_training_supervisor_rating', row.id, {
+    universityId,
+    opportunityId: opportunity.id,
+    studentId: application.student_id,
+    meta: { source, applicationId, providedFields: provided },
+  });
+  return { rating: row, source, providedFields: provided };
+}
+
+async function createSupervisorRatingWithFields(user, applicationId, { fieldsAtFive = [], source, notes, auditAction }) {
+  const application = await prisma.field_training_applications.findUnique({
+    where: { id: applicationId },
+    include: {
+      field_training_opportunities: {
+        include: {
+          field_training_opportunity_eligibility: {
+            where: { is_active: true },
+            select: { university_id: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+  if (!application) throw new ApiError(404, 'Application not found');
+  const opportunity = application.field_training_opportunities;
+  access.assertCanGenerate(user, opportunity);
+  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+
+  const dbFields = bulkRatingMod.DB_SUPERVISOR_FIELDS;
+  const camelMap = bulkRatingMod.DB_TO_CAMEL;
+  const fieldsToSet = new Set(fieldsAtFive.filter((field) => dbFields.includes(field)));
+  if (!fieldsToSet.size) {
+    throw new ApiError(400, 'لا توجد حقول تقييم لتعبئتها', null, 'INVALID_RATING');
+  }
+
+  const existingRows = await prisma.field_training_supervisor_ratings.findMany({
+    where: { application_id: applicationId },
+    orderBy: { rated_at: 'asc' },
+  });
+  const aggregated = scoring.averageSupervisorRatings(existingRows.map(mapRatingRow)) || {};
+  const { byId } = await loadBatchContext([applicationId]);
+  const ctx = byId.get(applicationId);
+  const policy = { ...ctx?.policy };
+  if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx?.scoringInput?.requiredHours;
+  const calculated = ctx ? scoring.calculateFinalEvaluation(ctx.scoringInput, policy) : null;
+  const derivedMap = {
+    thinking_and_initiative: calculated?.criterion3Score,
+    problem_solving: calculated?.criterion4Score,
+    teamwork: calculated?.criterion6Score,
+    professional_conduct: calculated?.criterion7Score,
+    supervisor_cooperation: calculated?.criterion8Score,
+    rules_compliance: calculated?.criterion10Score,
+  };
+  const BEHAVIORAL_ONLY_DB_FIELDS = new Set(['teamwork', 'professional_conduct', 'supervisor_cooperation']);
+  const data = {};
+  let overwritten = 0;
+  for (const field of dbFields) {
+    const camel = camelMap[field];
+    const existing = aggregated[camel];
+    const derived = derivedMap[field];
+    if (fieldsToSet.has(field)) {
+      if (existing != null || derived != null) {
+        data[field] = existing ?? derived;
+        continue;
+      }
+      data[field] = 5;
+      continue;
+    }
+    const fallback = BEHAVIORAL_ONLY_DB_FIELDS.has(field) ? existing : existing ?? derived;
+    if (fallback == null) {
+      throw new ApiError(
+        400,
+        'لا يمكن استكمال التقييم الجزئي دون بقية المعايير المهنية',
+        { field, applicationId },
+        'PARTIAL_RATING_INCOMPLETE'
+      );
+    }
+    data[field] = fallback;
+  }
+
+  const universityId =
+    resolveOpportunityUniversityId(ctx?.opportunity || opportunity, user) ||
+    resolveOpportunityUniversityId(opportunity, user) ||
+    opportunity?.university_id ||
+    user.universityId;
+  if (!universityId) throw new ApiError(400, 'يرجى تحديد الجامعة', null, 'UNIVERSITY_REQUIRED');
+  const row = await prisma.field_training_supervisor_ratings.create({
+    data: {
+      university_id: universityId,
+      opportunity_id: opportunity.id,
+      application_id: applicationId,
+      student_id: application.student_id,
+      ...data,
+      notes: notes || null,
+      rated_by_id: user.userId,
+    },
+  });
+  await audit(user, auditAction || 'FT_EVAL_MANUAL_RATING_SAVED', 'field_training_supervisor_rating', row.id, {
+    universityId,
+    opportunityId: opportunity.id,
+    studentId: application.student_id,
+    meta: { source, applicationId, fieldsAtFive: [...fieldsToSet], overwrittenPrevented: true },
+  });
+  return { rating: row, source, fieldsAtFive: [...fieldsToSet], overwritten };
+}
+
+async function analyzeOpportunityBulkGaps(user, opportunityId, { applicationIds = null } = {}) {
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      field_training_opportunity_eligibility: {
+        where: { is_active: true },
+        select: { university_id: true },
+        take: 1,
+      },
+    },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  const universityId = resolveOpportunityUniversityId(opportunity, user);
+  access.assertCanViewReports(user, universityId);
+  await ftAccess.assertAdminOpportunityAccess(user, opportunity);
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: {
+      opportunity_id: opportunityId,
+      status: 'approved',
+      ...(Array.isArray(applicationIds) && applicationIds.length ? { id: { in: applicationIds } } : {}),
+    },
+    select: { id: true },
+  });
+  const { byId } = await loadBatchContext(apps.map((row) => row.id));
+  const students = [];
+  for (const app of apps) {
+    const ctx = byId.get(app.id);
+    if (!ctx) continue;
+    const policy = { ...ctx.policy };
+    if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
+    const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+    const official = buildOfficialComment(ctx, calculated);
+    const payload = buildFillFields(ctx, {
+      ...calculated,
+      eligibilityStatus: official.eligibilityStatus,
+      eligibilityReasons: official.reasons.codes,
+      eligibilityReasonLabels: official.reasons.labelsAr,
+      generalComments: official.comment,
+      autoComment: official.comment,
+      evaluationDate: new Date(),
+      fieldSupervisorDate: new Date(),
+      academicSupervisorDate: new Date(),
+    });
+    const missing = missingFieldEntries(payload);
+    const readinessInfo = readinessMod.classifyEvaluationReadiness({
+      missingFieldEntries: missing,
+      criterionEvidence: calculated.criterionEvidence,
+      usesManualRating: calculated.usesManualRating,
+    });
+    const analysis = bulkRatingMod.analyzeStudentBulkGaps({
+      calculated,
+      eligibilityStatus: official.eligibilityStatus,
+      studentName: payload.student_name,
+      universityNumber: payload.student_number,
+      applicationId: app.id,
+    });
+    students.push({
+      ...analysis,
+      readinessCategory: readinessInfo.readinessCategory,
+      professionalTotal: calculated.professionalTotal,
+      criteriaComplete: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(
+        (index) => calculated[`criterion${index}Score`] != null
+      ).length,
+    });
+  }
+  return {
+    opportunityId,
+    summary: bulkRatingMod.summarizeBulkPreview(students),
+    students,
+    capabilities: {
+      canApplyBulk: !access.isReviewer(user),
+      readOnly: access.isReviewer(user),
+    },
+  };
+}
+
+async function getBulkEligibleRatingPreview(user, opportunityId, query = {}) {
+  return analyzeOpportunityBulkGaps(user, opportunityId, {
+    applicationIds: query.application_ids,
+  });
+}
+
+async function applyBulkEligibleProfessionalRatings(user, opportunityId, body = {}) {
+  if (body.confirmed !== true) {
+    throw new ApiError(
+      400,
+      'يجب تأكيد اعتماد 5/5 للبنود المهنية الناقصة للطلاب المؤهلين',
+      null,
+      'BULK_RATING_CONFIRMATION_REQUIRED'
+    );
+  }
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  access.assertCanGenerate(user, opportunity);
+  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+
+  const preview = await analyzeOpportunityBulkGaps(user, opportunityId, {
+    applicationIds: body.application_ids,
+  });
+  const targets = preview.students.filter((row) => bulkRatingMod.rowEligibleForBulk(row));
+  if (!targets.length) {
+    return {
+      applied: false,
+      summary: preview.summary,
+      studentsAffected: 0,
+      ratingsApplied: 0,
+      existingScoresOverwritten: 0,
+      notEligibleModified: 0,
+      students: [],
+    };
+  }
+
+  const authorizedRole = access.rolesOf(user).join(',') || 'unknown';
+  let ratingsApplied = 0;
+  let existingScoresOverwritten = 0;
+  const appliedStudents = [];
+
+  for (const target of targets) {
+    if (String(target.eligibilityStatus).toUpperCase() !== 'ELIGIBLE') continue;
+    const dbFields = target.missingProfessionalCriteria.map((row) => row.dbField);
+    const notes = bulkRatingMod.buildBulkRatingNotes(dbFields, body.reason || BULK_RATING_REASON_AR);
+    const result = await createSupervisorRatingWithFields(user, target.applicationId, {
+      fieldsAtFive: dbFields,
+      source: MANUAL_AUTHORIZED_BULK_RATING,
+      notes,
+      auditAction: 'FT_EVAL_BULK_ELIGIBLE_RATING_SAVED',
+    });
+    ratingsApplied += dbFields.length;
+    existingScoresOverwritten += result.overwritten;
+    appliedStudents.push({
+      applicationId: target.applicationId,
+      studentName: target.studentName,
+      universityNumber: target.universityNumber,
+      criteriaApplied: target.missingProfessionalCriteria.map((row) => ({
+        criterionKey: row.criterionKey,
+        labelAr: row.labelAr,
+        score: 5,
+        source: MANUAL_AUTHORIZED_BULK_RATING,
+        previousValue: row.previousValue,
+      })),
+      ratingId: result.rating.id,
+    });
+  }
+
+  await audit(user, 'FT_EVAL_BULK_ELIGIBLE_RATING_APPLIED', 'field_training_opportunity', opportunityId, {
+    universityId: opportunity.university_id,
+    opportunityId,
+    meta: {
+      studentsAffected: appliedStudents.length,
+      ratingsApplied,
+      existingScoresOverwritten,
+      authorizedRole,
+      reason: body.reason || BULK_RATING_REASON_AR,
+      applicationIds: appliedStudents.map((row) => row.applicationId),
+    },
+  });
+
+  const after = await analyzeOpportunityBulkGaps(user, opportunityId, {
+    applicationIds: body.application_ids,
+  });
+
+  return {
+    applied: true,
+    summary: after.summary,
+    studentsAffected: appliedStudents.length,
+    ratingsApplied,
+    existingScoresOverwritten,
+    notEligibleModified: 0,
+    students: appliedStudents,
+    readiness: after,
+  };
 }
 
 async function listSupervisorRatings(user, applicationId) {
   const application = await prisma.field_training_applications.findUnique({
     where: { id: applicationId },
-    include: { field_training_opportunities: true },
+    include: {
+      field_training_opportunities: {
+        include: {
+          field_training_opportunity_eligibility: {
+            where: { is_active: true },
+            select: { university_id: true },
+            take: 1,
+          },
+        },
+      },
+    },
   });
   if (!application) throw new ApiError(404, 'Application not found');
   await ftAccess.assertAdminOpportunityAccess(user, application.field_training_opportunities);
@@ -701,20 +1216,40 @@ async function loadBatchContext(applicationIds) {
         include: {
           universities: { select: { id: true, name: true, name_en: true, short_name: true } },
           specialties: { select: { id: true, name_ar: true, name_en: true } },
+          field_training_opportunity_eligibility: {
+            where: { is_active: true },
+            select: {
+              university_id: true,
+              universities: { select: { id: true, name: true, name_en: true, short_name: true } },
+            },
+            take: 1,
+          },
         },
       },
     },
   });
   const studentIds = [...new Set(applications.map((a) => a.student_id))];
   const opportunityIds = [...new Set(applications.map((a) => a.opportunity_id))];
-  const universityIds = [...new Set(applications.map((a) => a.field_training_opportunities?.university_id).filter(Boolean))];
+  const universityIds = [
+    ...new Set(
+      applications
+        .map((a) => resolveOpportunityUniversityId(a.field_training_opportunities))
+        .filter(Boolean)
+    ),
+  ];
 
   const instructorIds = [...new Set(applications.map((a) => a.field_training_opportunities?.assigned_instructor_id).filter(Boolean))];
-  const [students, tasks, submissions, attendance, ratings, policies, instructorUsers] = await Promise.all([
+  const [students, tasks, submissions, attendance, ratings, policies, instructorUsers, assignmentsByApp, importBatches] =
+    await Promise.all([
     ftRepo.findStudentProfilesByIds(studentIds),
     prisma.field_training_tasks.findMany({
       where: { opportunity_id: { in: opportunityIds } },
-      select: { id: true, opportunity_id: true, grading_mode: true },
+      select: {
+        id: true,
+        opportunity_id: true,
+        grading_mode: true,
+        is_required: true,
+      },
     }),
     prisma.field_training_task_submissions.findMany({
       where: { application_id: { in: ids } },
@@ -752,7 +1287,16 @@ async function loadBatchContext(applicationIds) {
           select: { id: true, full_name: true },
         })
       : Promise.resolve([]),
+    supervisorScope.loadAssignmentsByApplicationIds(ids),
+    opportunityIds.length
+      ? prisma.field_training_supervisor_import_batches.findMany({
+          where: { opportunity_id: { in: opportunityIds }, status: 'applied' },
+          select: { id: true, preview_json: true, status: true },
+          orderBy: { created_at: 'desc' },
+        })
+      : Promise.resolve([]),
   ]);
+  const importSupervisorIndex = academicSupervisorResolve.buildImportSupervisorIndex(importBatches);
 
   const studentById = new Map(students.map((s) => [s.id, s]));
   const tasksByOpp = new Map();
@@ -788,19 +1332,92 @@ async function loadBatchContext(applicationIds) {
     const student = studentById.get(app.student_id);
     const oppTasks = tasksByOpp.get(app.opportunity_id) || [];
     const appSubs = subsByApp.get(app.id) || [];
-    const accepted = appSubs.filter((s) => ACCEPTED_TASK_STATUSES.includes(s.review_status));
-    const rejected = appSubs.filter((s) => s.review_status === 'rejected');
-    const scorePercents = accepted
-      .filter((s) => s.manual_score != null && s.max_score)
-      .map((s) => (Number(s.manual_score) / Number(s.max_score)) * 100);
+    const progress = taskProgress.countProgressFromLoadedRows({
+      application: app,
+      tasks: oppTasks,
+      submissions: appSubs,
+    });
+    const requiredTaskIds = new Set(
+      oppTasks
+        .filter((task) => taskProgress.isTaskAssignedToStudent(task, app.student_id))
+        .map((task) => String(task.id))
+    );
+    const accepted = appSubs.filter(
+      (s) => requiredTaskIds.has(String(s.task_id)) && ACCEPTED_TASK_STATUSES.includes(s.review_status)
+    );
+    const rejected = appSubs.filter(
+      (s) => requiredTaskIds.has(String(s.task_id)) && s.review_status === 'rejected'
+    );
+    const graded = appSubs.filter(
+      (s) =>
+        requiredTaskIds.has(String(s.task_id)) &&
+        ACCEPTED_TASK_STATUSES.includes(s.review_status) &&
+        s.manual_score != null &&
+        s.max_score
+    );
+    const onTimeAccepted = accepted.filter((s) => !s.is_late);
+    const scorePercents = graded.map((s) => (Number(s.manual_score) / Number(s.max_score)) * 100);
     const att = attByApp.get(app.id) || [];
-    const absenceDays = att.filter((r) => r.status === 'absent').length;
+    const attendanceSummary = summarizeAttendance(att, app);
     const specialtyName =
       ftRepo.formatSpecialtyLabel(student?.specialty, null) ||
       ftRepo.formatSpecialtyLabel(student?.canonical_specialty, null) ||
       '';
-    byId.set(app.id, {
+    const scoringInput = {
+      applicationId: app.id,
+      studentId: app.student_id,
+      attendancePercentage: num(app.attendance_percentage),
+      attendedDays: attendanceSummary.attendedDays,
+      absenceDays: attendanceSummary.absenceDays,
+      completedHours: attendanceSummary.actualHours,
+      requiredHours: num(opp?.required_training_hours),
+      attendanceDataLoaded: attendanceSummary.attendanceDataLoaded,
+      hoursDataLoaded: attendanceSummary.hoursDataLoaded,
+      latenessTracked: appSubs.some((s) => s.is_late != null),
+      lateDays: null,
+      violationsTracked: false,
+      violationCount: null,
+      requiredTaskCount: progress.total_required,
+      submittedTaskCount: progress.submitted_required,
+      acceptedTaskCount: accepted.length,
+      gradedTaskCount: graded.length,
+      rejectedTaskCount: rejected.length,
+      lateTaskCount: accepted.filter((s) => s.is_late).length,
+      onTimeTaskCount: onTimeAccepted.length,
+      requiredSubmissionCount: progress.total_required,
+      taskCompletionPercent:
+        progress.total_required > 0 ? (accepted.length / progress.total_required) * 100 : null,
+      taskScoreAveragePercent: scorePercents.length
+        ? scorePercents.reduce((sum, n) => sum + n, 0) / scorePercents.length
+        : null,
+      preAssessmentScore: num(app.pre_assessment_score),
+      postAssessmentScore: num(app.post_assessment_score),
+      completionEligibilityStatus: app.completion_eligibility_status,
+      supervisorRatings: scoring.averageSupervisorRatings((ratingsByApp.get(app.id) || []).map(mapRatingRow)),
+      bulkAuthorizedSupervisorFields: bulkRatingMod.bulkAuthorizedSupervisorFields(ratingsByApp.get(app.id) || []),
+    };
+    const assignment = assignmentsByApp.get(app.id) || null;
+    const exclusion = officialPopulation.classifyOfficialReportExclusion({
+      student,
+      opportunity: opp,
+    });
+    const supervisorResolved = academicSupervisorResolve.resolveAcademicSupervisorName({
       application: app,
+      student,
+      assignment,
+      importIndex: importSupervisorIndex,
+    });
+    const applicationForPayload = supervisorResolved.name
+      ? {
+          ...app,
+          academic_supervisor_name: supervisorResolved.name,
+        }
+      : app;
+    byId.set(app.id, {
+      application: applicationForPayload,
+      applicationRaw: app,
+      academicSupervisorResolved: supervisorResolved,
+      officialReportExcluded: exclusion,
       opportunity: opp,
       student,
       specialtyName,
@@ -808,30 +1425,23 @@ async function loadBatchContext(applicationIds) {
       submissions: appSubs,
       attendanceRows: att,
       ratings: ratingsByApp.get(app.id) || [],
-      policy: mapPolicyRow(policyByUni.get(opp?.university_id) || null),
+      policy: mapPolicyRow(policyByUni.get(resolveOpportunityUniversityId(opp)) || null),
       instructor: instructorById.get(opp?.assigned_instructor_id) || null,
-      scoringInput: {
-        attendancePercentage: num(app.attendance_percentage),
-        completedHours: num(app.completed_training_hours) || 0,
-        requiredHours: num(opp?.required_training_hours),
-        absenceDays,
-        requiredTaskCount: oppTasks.length,
-        acceptedTaskCount: accepted.length,
-        rejectedTaskCount: rejected.length,
-        lateTaskCount: appSubs.filter((s) => s.is_late).length,
-        taskScoreAveragePercent: scorePercents.length
-          ? scorePercents.reduce((sum, n) => sum + n, 0) / scorePercents.length
-          : null,
-        preAssessmentScore: num(app.pre_assessment_score),
-        postAssessmentScore: num(app.post_assessment_score),
-        supervisorRatings: scoring.averageSupervisorRatings((ratingsByApp.get(app.id) || []).map(mapRatingRow)),
-      },
+      scoringInput,
+      performanceSnapshot: buildFieldTrainingStudentPerformanceSnapshot(scoringInput, mapPolicyRow(policyByUni.get(resolveOpportunityUniversityId(opp)) || null)),
     });
   }
   return { applications, byId };
 }
 
-function buildFillFields(ctx, evaluation) {
+function buildFillFields(ctx, evaluation, template = null) {
+  const templateConfig = {
+    fillMode: template?.validation_json?.fillMode || ctx.template?.validation_json?.fillMode,
+    trainingHoursDisplayMode:
+      template?.validation_json?.trainingHoursDisplayMode ||
+      ctx.template?.validation_json?.trainingHoursDisplayMode,
+    mutahOfficial: Boolean(template?.validation_json?.fillMode === 'label_form' || ctx.template?.validation_json?.fillMode === 'label_form'),
+  };
   return buildFieldTrainingEvaluationTemplatePayload({
     student: ctx.student || {},
     application: ctx.application || {},
@@ -839,6 +1449,9 @@ function buildFillFields(ctx, evaluation) {
     instructor: ctx.instructor,
     attendanceRows: ctx.attendanceRows || [],
     specialtyLabel: ctx.specialtyName,
+    academicSupervisorName:
+      ctx.academicSupervisorResolved?.name || ctx.application?.academic_supervisor_name || null,
+    templateConfig,
     evaluation: {
       ...evaluation,
       reasonLabels: GATE_REASON_LABELS_AR,
@@ -846,14 +1459,40 @@ function buildFillFields(ctx, evaluation) {
   });
 }
 
-async function persistOfficialUniversityNumber(student = {}) {
-  const resolved = resolveOfficialUniversityNumber(student);
-  if (!resolved.number || !resolved.persist || !student.id) return resolved.number;
-  await prisma.users.update({
-    where: { id: student.id },
-    data: { university_student_number: resolved.number, updated_at: new Date() },
+function buildOfficialComment(ctx, calculated) {
+  const storedStatus = ctx.application?.completion_eligibility_status;
+  let eligibilityStatus;
+  if (storedStatus) {
+    eligibilityStatus = reportEligibilityStatus(ctx.application);
+  } else {
+    const scoringReasons = (calculated.eligibilityReasons || []).filter(
+      (code) => code !== GATE_REASONS.PROFESSIONAL_EVALUATION_INCOMPLETE
+    );
+    eligibilityStatus = scoringReasons.length ? 'NOT_ELIGIBLE' : 'ELIGIBLE';
+  }
+  const reasons = buildFieldTrainingEligibilityReasons({
+    application: ctx.application,
+    evidence: {
+      attendancePercentage: ctx.scoringInput?.attendancePercentage,
+      minimumAttendancePercentage: ctx.opportunity?.minimum_attendance_percentage,
+      completedHours: ctx.scoringInput?.completedHours,
+      requiredHours: ctx.scoringInput?.requiredHours,
+      requiredTaskCount: ctx.scoringInput?.requiredTaskCount,
+      acceptedTaskCount: ctx.scoringInput?.acceptedTaskCount,
+    },
   });
-  return resolved.number;
+  return {
+    eligibilityStatus,
+    reasons,
+    comment: buildAutoComment(
+      { ...calculated, eligibilityStatus, eligibilityReasonLabels: reasons.labelsAr },
+      { eligibilityStatus, reasonLabels: reasons.labelsAr }
+    ),
+  };
+}
+
+function officialUniversityNumber(student = {}) {
+  return resolveOfficialUniversityNumber(student).number;
 }
 
 async function persistGeneratedFiles(user, evaluationId, filledDocx, pdfBuffer, filename) {
@@ -907,37 +1546,57 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
   const assignedById = new Map(assignedTemplates.map((t) => [t.id, t]));
   const defaultByUni = new Map(defaultTemplates.map((t) => [t.university_id, t]));
   const previousByApp = new Map(previousRows.map((row) => [row.application_id, row]));
-  const globalFallback = await prisma.field_training_evaluation_templates.findFirst({
-    where: { archived_at: null, is_active: true, is_default: true, validation_status: 'valid' },
-    orderBy: { created_at: 'desc' },
-  });
 
   function resolveFromCache(opportunity, universityId) {
     const assigned = opportunity.evaluation_template_id
       ? assignedById.get(opportunity.evaluation_template_id)
       : null;
     const universityDefault = universityId ? defaultByUni.get(universityId) : null;
-    const fallback =
-      globalFallback && universityId && String(globalFallback.university_id) !== String(universityId)
-        ? globalFallback
-        : universityDefault
-          ? null
-          : globalFallback;
     return resolveEvaluationTemplate({
       opportunity,
       assignedTemplate: assigned,
       universityDefault,
-      globalFallback: fallback,
     });
   }
 
   const templateFileCache = new Map();
+  const templatePreflightCache = new Map();
   async function templateBuffer(template) {
     if (templateFileCache.has(template.original_file_id)) return templateFileCache.get(template.original_file_id);
     const loaded = await loadFileBuffer(template.original_file_id);
     templateFileCache.set(template.original_file_id, loaded);
     return loaded;
   }
+  async function templatePreflight(template) {
+    if (templatePreflightCache.has(template.id)) return templatePreflightCache.get(template.id);
+    const { buffer } = await templateBuffer(template);
+    const result = await preflightEvaluationTemplate(buffer, { requireStamp: true, requireSignature: true });
+    templatePreflightCache.set(template.id, result);
+    return result;
+  }
+
+  const uniqueTemplates = [];
+  const seenTemplates = new Set();
+  for (const ctx of contexts) {
+    const resolved = resolveFromCache(ctx.opportunity, resolveEvalUniversityId(ctx, user));
+    if (resolved.template && !seenTemplates.has(resolved.template.id)) {
+      seenTemplates.add(resolved.template.id);
+      uniqueTemplates.push(resolved.template);
+    }
+  }
+  for (const template of uniqueTemplates) {
+    const preflight = await templatePreflight(template);
+    if (!preflight.ok) {
+      const issue = preflight.issues[0] || {};
+      throw new ApiError(
+        409,
+        issue.messageAr || 'تعذر التحقق من قالب التقييم.',
+        { issues: preflight.issues, inspection: preflight.inspection },
+        issue.code || 'TEMPLATE_VALIDATION_FAILED'
+      );
+    }
+  }
+  if (uniqueTemplates.length) assertOfficialRendererAvailable();
 
   const results = [];
   const missingTemplate = [];
@@ -958,127 +1617,113 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
     const policy = { ...ctx.policy };
     if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
     const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
-    const autoComment = buildAutoComment(calculated);
+    const official = buildOfficialComment(ctx, calculated);
     const previous = previousByApp.get(applicationId);
-    if (shouldReuseStoredPdf(previous, { regenerate })) {
+    const evaluationDate =
+      previous && !regenerate && hasVerifiedFidelityArtifact(previous)
+        ? previous.finalized_at || previous.generated_at || new Date()
+        : new Date();
+    const studentNumber = officialUniversityNumber(ctx.student);
+    if (studentNumber) ctx.student.university_student_number = studentNumber;
+    const generalComments = previous?.comments_edited_at ? previous.general_comments : official.comment;
+    const fillFields = buildFillFields(
+      ctx,
+      {
+        ...calculated,
+        eligibilityStatus: official.eligibilityStatus,
+        eligibilityReasons: official.reasons.codes,
+        eligibilityReasonLabels: official.reasons.labelsAr,
+        generalComments,
+        autoComment: official.comment,
+        evaluationDate,
+        fieldSupervisorDate: evaluationDate,
+        academicSupervisorDate: evaluationDate,
+        finalizedAt: evaluationDate,
+      },
+      resolved.template
+    );
+    const sourceHash = templatePayloadHash(fillFields, resolved.template);
+    if (shouldReuseStoredPdf(previous, { regenerate, sourceHash })) {
       results.push({
         applicationId,
         evaluationId: previous.id,
         generated: false,
         reused: true,
+        code: ALREADY_GENERATED,
         finalStatus: previous.final_status,
+        eligibilityStatus: previous.eligibility_status,
       });
       continue;
     }
-    const generalComments = previous?.comments_edited_at ? previous.general_comments : autoComment;
-    const evaluationDate = previous?.finalized_at || new Date();
-    const studentNumber = await persistOfficialUniversityNumber(ctx.student);
-    if (studentNumber) ctx.student.university_student_number = studentNumber;
-    const fillFields = buildFillFields(ctx, {
-      ...calculated,
-      generalComments,
-      autoComment,
-      evaluationDate,
-      finalizedAt: evaluationDate,
-    });
     if (!fillFields.student_number) {
       results.push({
         applicationId,
+        studentName: fillFields.student_name,
+        universityNumber: fillFields.student_number,
         generated: false,
         code: STUDENT_NUMBER_UNRESOLVED_CODE,
-        missingFields: ['student_number'],
+        missingFields: ['STUDENT_NUMBER_MISSING'],
+        missingFieldDetails: toMissingFieldEntries(['student_number']),
       });
       continue;
     }
     const missingFields = missingRequiredCompleteFields(fillFields);
     if (missingFields.length) {
+      const details = missingFieldEntries(fillFields);
       const code = missingFields.some((key) => String(key).startsWith('criterion_'))
         ? PROFESSIONAL_INCOMPLETE_CODE
         : DATA_INCOMPLETE_CODE;
       results.push({
         applicationId,
+        studentName: fillFields.student_name,
+        universityNumber: fillFields.student_number,
         generated: false,
         code,
-        missingFields,
+        readiness: MISSING_REQUIRED_DATA,
+        missingFields: details.map((row) => row.code),
+        missingFieldDetails: details,
       });
       continue;
     }
-    const version = previous ? (regenerate ? (previous.version || 1) + 1 : previous.version || 1) : 1;
-    const payload = {
-      university_id: universityId,
-      opportunity_id: ctx.opportunity.id,
-      student_id: ctx.application.student_id,
-      template_id: resolved.template.id,
-      template_version: resolved.template.version,
-      policy_id: policy.id || null,
-      policy_version: policy.version || 1,
-      eligibility_status: calculated.eligibilityStatus,
-      final_status: calculated.finalStatus,
-      eligibility_reasons: calculated.eligibilityReasons,
-      attendance_component_score: calculated.attendanceComponentScore,
-      tasks_component_score: calculated.tasksComponentScore,
-      post_assessment_component_score: calculated.postAssessmentComponentScore,
-      professional_component_score: calculated.professionalComponentScore,
-      pre_assessment_score: calculated.preAssessmentScore,
-      post_assessment_score: calculated.postAssessmentScore,
-      improvement_percentage: calculated.improvementPercentage,
-      criterion_1_score: calculated.criterion1Score,
-      criterion_2_score: calculated.criterion2Score,
-      criterion_3_score: calculated.criterion3Score,
-      criterion_4_score: calculated.criterion4Score,
-      criterion_5_score: calculated.criterion5Score,
-      criterion_6_score: calculated.criterion6Score,
-      criterion_7_score: calculated.criterion7Score,
-      criterion_8_score: calculated.criterion8Score,
-      criterion_9_score: calculated.criterion9Score,
-      criterion_10_score: calculated.criterion10Score,
-      professional_total: calculated.professionalTotal,
-      professional_percentage: calculated.professionalPercentage,
-      final_score: calculated.finalScore,
-      final_percentage: calculated.finalPercentage,
-      auto_comment: autoComment,
-      general_comments: generalComments,
-      score_evidence_json: {
-        scoring: ctx.scoringInput,
-        templatePayload: identitySnapshot(fillFields),
-      },
-      is_current: true,
-      version,
-      regeneration_reason: regenerate ? regenerationReason : null,
-      generated_by_id: user.userId,
-      generated_at: new Date(),
-      finalized_at: finalize ? evaluationDate : previous?.finalized_at || null,
-      finalized_by_id: finalize ? user.userId : previous?.finalized_by_id || null,
-      updated_at: new Date(),
-    };
-
+    const version = previous ? (previous.version || 1) + 1 : 1;
     let created;
     try {
-      created = await upsertCurrentEvaluationRow(applicationId, payload);
-    } catch (err) {
-      results.push({
-        applicationId,
-        generated: false,
-        code: err?.code || 'EVALUATION_SAVE_FAILED',
-        error: err?.message || 'save_failed',
-      });
-      continue;
-    }
-
-    try {
-      const { buffer: templateBufferBytes } = await templateBuffer(resolved.template);
-      const filledDocx = await fillDocxTemplate(templateBufferBytes, buildPlaceholderMap(fillFields));
+      const preflight = await templatePreflight(resolved.template);
+      if (!preflight.ok) {
+        const issue = preflight.issues[0] || {};
+        throw new ApiError(
+          409,
+          issue.messageAr || 'تعذر التحقق من قالب التقييم.',
+          { issues: preflight.issues, inspection: preflight.inspection },
+          issue.code || 'TEMPLATE_VALIDATION_FAILED'
+        );
+      }
+      const {
+        file: sourceTemplateFile,
+        buffer: templateBufferBytes,
+      } = await templateBuffer(resolved.template);
+      const isolatedTemplate = Buffer.from(templateBufferBytes);
+      const isolatedPayload = JSON.parse(JSON.stringify(fillFields));
+      const filledDocx = await fillDocxTemplate(isolatedTemplate, buildPlaceholderMap(isolatedPayload));
       const inspection = await inspectFilledDocx(filledDocx);
       if (inspection.unresolvedPlaceholders.length) {
-        results.push({
-          applicationId,
-          generated: false,
-          code: UNRESOLVED_PLACEHOLDERS_CODE,
-          error: inspection.unresolvedPlaceholders.join(', '),
-        });
-        continue;
+        throw new ApiError(
+          422,
+          'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+          { unresolvedPlaceholders: inspection.unresolvedPlaceholders },
+          UNRESOLVED_PLACEHOLDERS_CODE
+        );
       }
-      const pdfBuffer = await convertFilledDocxToPdf(filledDocx);
+      const fidelity = await verifyFilledDocxFidelity({
+        templateBuffer: isolatedTemplate,
+        filledBuffer: filledDocx,
+        payload: isolatedPayload,
+      });
+      const expectedPageCount = preflight.inspection.expectedPageCount || 2;
+      const pdfBuffer = await convertFilledDocxToPdf(filledDocx, {
+        fontIssues: preflight.issues.filter((row) => row.code === TEMPLATE_FONT_UNAVAILABLE),
+        expectedPageCount,
+      });
       const filename = buildEvaluationPdfFilename({
         studentName: fillFields.student_name,
         universityNumber: fillFields.student_number,
@@ -1092,14 +1737,88 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         });
         continue;
       }
-      const stored = await persistGeneratedFiles(user, created.id, filledDocx, pdfBuffer, filename);
-      await prisma.field_training_final_evaluations.update({
-        where: { id: created.id },
-        data: {
-          pdf_file_id: stored.pdfFile.id,
-          filled_docx_file_id: stored.docxFile.id,
-          updated_at: new Date(),
+
+      const payload = {
+        university_id: universityId,
+        opportunity_id: ctx.opportunity.id,
+        student_id: ctx.application.student_id,
+        template_id: resolved.template.id,
+        template_version: resolved.template.version,
+        source_template_file_id: sourceTemplateFile.id,
+        policy_id: policy.id || null,
+        policy_version: policy.version || 1,
+        eligibility_status: official.eligibilityStatus,
+        final_status:
+          official.eligibilityStatus === 'ELIGIBLE'
+            ? calculated.finalStatus
+            : 'NOT_ELIGIBLE',
+        eligibility_reasons: official.reasons.items.map((item) => ({
+          code: item.code,
+          text: item.text,
+        })),
+        attendance_component_score: calculated.attendanceComponentScore,
+        tasks_component_score: calculated.tasksComponentScore,
+        post_assessment_component_score: calculated.postAssessmentComponentScore,
+        professional_component_score: calculated.professionalComponentScore,
+        pre_assessment_score: calculated.preAssessmentScore,
+        post_assessment_score: calculated.postAssessmentScore,
+        improvement_percentage: calculated.improvementPercentage,
+        criterion_1_score: calculated.criterion1Score,
+        criterion_2_score: calculated.criterion2Score,
+        criterion_3_score: calculated.criterion3Score,
+        criterion_4_score: calculated.criterion4Score,
+        criterion_5_score: calculated.criterion5Score,
+        criterion_6_score: calculated.criterion6Score,
+        criterion_7_score: calculated.criterion7Score,
+        criterion_8_score: calculated.criterion8Score,
+        criterion_9_score: calculated.criterion9Score,
+        criterion_10_score: calculated.criterion10Score,
+        professional_total: calculated.professionalTotal,
+        professional_percentage: calculated.professionalPercentage,
+        final_score: calculated.finalScore,
+        final_percentage: calculated.finalPercentage,
+        auto_comment: official.comment,
+        general_comments: generalComments,
+        score_evidence_json: {
+          scoring: ctx.scoringInput,
+          performanceSnapshot: calculated.performanceSnapshot,
+          criterionEvidence: calculated.criterionEvidence,
+          templatePayload: identitySnapshot(fillFields),
+          sourceHash,
+          templateId: resolved.template.id,
+          templateVersion: resolved.template.version,
+          sourceTemplateFileId: sourceTemplateFile.id,
+          sourceTemplateSha256: fidelity.sourceTemplateSha256,
+          filledDocxSha256: fidelity.filledDocxSha256,
+          pdfSha256: sha256Buffer(pdfBuffer),
+          expectedPageCount,
+          generatedPageCount: expectedPageCount,
+          fidelity: {
+            mediaPreserved: fidelity.mediaPreserved,
+            tableGeometryPreserved: fidelity.tableGeometryPreserved,
+            pageGeometryPreserved: fidelity.pageGeometryPreserved,
+          },
+          generatedAt: new Date().toISOString(),
+          academic_supervisor_name: fillFields.academic_supervisor_name,
+          field_supervisor_name: fillFields.field_supervisor_name,
         },
+        version,
+        regeneration_reason: previous
+          ? regenerationReason || (regenerate ? 'MANUAL_REGENERATION' : 'SOURCE_OR_TEMPLATE_CHANGED')
+          : null,
+        generated_by_id: user.userId,
+        generated_at: new Date(),
+        finalized_at: finalize ? evaluationDate : previous?.finalized_at || null,
+        finalized_by_id: finalize ? user.userId : previous?.finalized_by_id || null,
+        updated_at: new Date(),
+      };
+
+      created = await stageEvaluationVersion(applicationId, payload, previous);
+      const stored = await persistGeneratedFiles(user, created.id, filledDocx, pdfBuffer, filename);
+      await publishEvaluationVersion({
+        applicationId,
+        stagedId: created.id,
+        stored,
       });
       await audit(
         user,
@@ -1117,20 +1836,67 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         applicationId,
         evaluationId: created.id,
         generated: true,
-        finalStatus: calculated.finalStatus,
+        finalStatus: official.eligibilityStatus === 'ELIGIBLE' ? calculated.finalStatus : 'NOT_ELIGIBLE',
+        eligibilityStatus: official.eligibilityStatus,
         filename,
+        templateId: resolved.template.id,
+        templateVersion: resolved.template.version,
+        sourceTemplateFileId: sourceTemplateFile.id,
+        pageCount: expectedPageCount,
       });
     } catch (err) {
+      if (
+        err instanceof ApiError &&
+        (err.code === TEMPLATE_FONT_UNAVAILABLE || err.code === 'TEMPLATE_VALIDATION_FAILED')
+      ) {
+        throw err;
+      }
       results.push({
         applicationId,
         evaluationId: created?.id,
         generated: false,
         code: err?.code || PDF_RENDER_FAILED_CODE,
         error: err?.message || 'pdf_failed',
+        details: err?.details || null,
       });
     }
   }
-  return { results, missingTemplate };
+  return summarizeGeneration(results, missingTemplate);
+}
+
+function summarizeGeneration(results = [], missingTemplate = []) {
+  const missingData = results.filter((row) => row.readiness === MISSING_REQUIRED_DATA || row.code === DATA_INCOMPLETE_CODE || row.code === PROFESSIONAL_INCOMPLETE_CODE || row.code === STUDENT_NUMBER_UNRESOLVED_CODE);
+  const generated = results.filter((row) => row.generated);
+  const alreadyGenerated = results.filter((row) => row.reused || row.code === ALREADY_GENERATED);
+  const failed = results.filter(
+    (row) =>
+      row.generated === false &&
+      !row.reused &&
+      row.code !== DATA_INCOMPLETE_CODE &&
+      row.code !== PROFESSIONAL_INCOMPLETE_CODE &&
+      row.code !== STUDENT_NUMBER_UNRESOLVED_CODE &&
+      row.code !== ALREADY_GENERATED
+  );
+  return {
+    results,
+    missingTemplate,
+    summary: {
+      total: results.length,
+      ready: generated.length + alreadyGenerated.length + missingData.length === results.length
+        ? results.length - missingData.length - failed.length
+        : generated.length + alreadyGenerated.length,
+      generated: generated.length,
+      alreadyGenerated: alreadyGenerated.length,
+      missingData: missingData.length,
+      failed: failed.length,
+    },
+    missingStudents: missingData.map((row) => ({
+      applicationId: row.applicationId,
+      studentName: row.studentName || '',
+      universityNumber: row.universityNumber || '',
+      missingFields: row.missingFieldDetails || toMissingFieldEntries(row.missingFields || []),
+    })),
+  };
 }
 
 async function generateOne(user, applicationId, options) {
@@ -1138,6 +1904,9 @@ async function generateOne(user, applicationId, options) {
   const first = out.results[0];
   if (first?.code === TEMPLATE_MISSING_CODE) {
     throw new ApiError(409, 'لا يوجد قالب تقييم معتمد لهذه الجامعة/الفرصة', null, TEMPLATE_MISSING_CODE);
+  }
+  if (first?.code === TEMPLATE_FONT_UNAVAILABLE) {
+    throw new ApiError(409, first.error || 'الخط المستخدم في القالب غير متوفر', first.missingFieldDetails, TEMPLATE_FONT_UNAVAILABLE);
   }
   if (first?.code === 'TEMPLATE_VALIDATION_FAILED') {
     throw new ApiError(409, 'القالب ناقص الحقول المطلوبة ولا يمكن إنشاء التقرير', null, 'TEMPLATE_VALIDATION_FAILED');
@@ -1174,8 +1943,21 @@ async function generateOne(user, applicationId, options) {
       UNRESOLVED_PLACEHOLDERS_CODE
     );
   }
+  if (first?.code === TEMPLATE_FIDELITY_FAIL) {
+    throw new ApiError(
+      422,
+      'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+      first.details || { error: first.error },
+      TEMPLATE_FIDELITY_FAIL
+    );
+  }
   if (first?.code === PDF_RENDER_FAILED_CODE || first?.code === 'PDF_RENDER_FAILED') {
-    throw new ApiError(500, 'فشل تحويل التقرير إلى PDF.', { error: first.error }, PDF_RENDER_FAILED_CODE);
+    throw new ApiError(
+      500,
+      'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+      first.details || { error: first.error },
+      PDF_RENDER_FAILED_CODE
+    );
   }
   return first;
 }
@@ -1217,32 +1999,14 @@ async function generateForOpportunity(user, opportunityId, options = {}) {
     select: { id: true },
   });
   if (!apps.length) {
-    return { results: [], missingTemplate: [], skipped: 'NO_APPROVED_APPLICATIONS' };
+    return { results: [], missingTemplate: [], skipped: 'NO_APPROVED_APPLICATIONS', summary: { total: 0, ready: 0, generated: 0, alreadyGenerated: 0, missingData: 0, failed: 0 } };
   }
-  const existing = await prisma.field_training_final_evaluations.findMany({
-    where: {
-      application_id: { in: apps.map((row) => row.id) },
-      is_current: true,
-      pdf_file_id: { not: null },
-    },
-    select: { application_id: true, score_evidence_json: true },
-  });
-  const complete = new Set(
-    existing
-      .filter((row) => {
-        const snap = row.score_evidence_json?.templatePayload;
-        return snap && missingRequiredIdentityFields(snap).length === 0;
-      })
-      .map((row) => row.application_id)
-  );
-  const ids = apps.map((row) => row.id).filter((id) => !complete.has(id));
-  if (!ids.length) {
-    return { results: [], missingTemplate: [], skipped: 'ALL_GENERATED' };
-  }
-  return generateForApplications(user, ids, options);
+  return generateForApplications(user, apps.map((row) => row.id), options);
 }
 
 function mapEvaluationListRow(row) {
+  const sourceTemplateFileId = sourceTemplateFileIdOf(row);
+  const fidelityVerified = hasVerifiedFidelityArtifact(row);
   return {
     id: row.id,
     universityId: row.university_id,
@@ -1256,17 +2020,36 @@ function mapEvaluationListRow(row) {
     trainingStart: row.field_training_opportunities?.start_date,
     trainingEnd: row.field_training_opportunities?.end_date,
     attendance: num(row.attendance_component_score),
-    actualHours: num(row.field_training_applications?.completed_training_hours),
+    actualHours:
+      num(row.score_evidence_json?.templatePayload?.actual_training_hours) ??
+      num(row.field_training_applications?.completed_training_hours),
     professionalTotal: row.professional_total,
     finalScore: num(row.final_score),
     finalStatus: row.final_status,
     eligibilityStatus: row.eligibility_status,
+    academicSupervisorName:
+      row.field_training_applications?.academic_supervisor_name ||
+      row.score_evidence_json?.academic_supervisor_name ||
+      '',
     eligibilityReasons: row.eligibility_reasons,
-    reportStatus: row.pdf_file_id ? 'generated' : 'missing_file',
+    reportStatus: !row.pdf_file_id
+      ? 'missing_file'
+      : fidelityVerified
+        ? 'generated'
+        : 'fidelity_unverified',
     generatedAt: row.generated_at,
+    templateId: row.template_id,
     templateVersion: row.template_version,
+    sourceTemplateFileId,
+    pageCount: row.score_evidence_json?.generatedPageCount || null,
+    fidelityStatus: fidelityVerified
+      ? 'PASS'
+      : row.pdf_file_id
+        ? 'LEGACY_UNVERIFIED'
+        : 'MISSING_ARTIFACT',
     version: row.version,
-    hasPdf: Boolean(row.pdf_file_id),
+    hasPdf: fidelityVerified,
+    hasStoredPdf: Boolean(row.pdf_file_id),
     applicationStatus: row.field_training_applications?.status || 'approved',
     opportunityStatus: row.field_training_opportunities?.status,
   };
@@ -1343,7 +2126,7 @@ async function listFinalReports(user, query = {}) {
           status: true,
         },
       },
-      field_training_applications: { select: { id: true, completed_training_hours: true, status: true } },
+      field_training_applications: { select: { id: true, completed_training_hours: true, status: true, academic_supervisor_name: true } },
     },
     orderBy: { generated_at: 'desc' },
     take: 2000,
@@ -1418,6 +2201,7 @@ async function getEvaluation(user, evaluationId) {
     include: {
       student: { select: { id: true, full_name: true, university_student_number: true } },
       field_training_opportunities: true,
+      template: { select: { id: true, version: true, original_file_id: true } },
     },
   });
   if (!row) throw new ApiError(404, 'Evaluation not found');
@@ -1436,10 +2220,49 @@ async function getEvaluation(user, evaluationId) {
 async function downloadPdf(user, evaluationId) {
   const row = await getEvaluation(user, evaluationId);
   if (!row.pdf_file_id) throw new ApiError(404, 'Report file not found', null, 'REPORT_FILE_MISSING');
+  const recordedSourceFileId = sourceTemplateFileIdOf(row);
+  const verifiedFidelityArtifact = hasVerifiedFidelityArtifact(row, row.template);
+  if (!verifiedFidelityArtifact) {
+    throw new ApiError(
+      409,
+      'هذا التقرير قديم أو لم يجتز فحص مطابقة قالب الجامعة الرسمي. يجب إعادة إصداره من القالب الحالي.',
+      {
+        templateId: row.template_id,
+        templateVersion: row.template_version,
+        sourceTemplateFileId: recordedSourceFileId,
+      },
+      'EVALUATION_ARTIFACT_FIDELITY_UNVERIFIED'
+    );
+  }
+  if (
+    recordedSourceFileId &&
+    row.template?.original_file_id &&
+    String(recordedSourceFileId) !== String(row.template.original_file_id)
+  ) {
+    throw new ApiError(
+      409,
+      'تعذر التحقق من أن التقرير ناتج عن نسخة القالب الرسمية المسجلة.',
+      {
+        templateId: row.template_id,
+        templateVersion: row.template_version,
+        sourceTemplateFileId: recordedSourceFileId,
+      },
+      'EVALUATION_ARTIFACT_TEMPLATE_MISMATCH'
+    );
+  }
   const { file, buffer } = await loadFileBuffer(row.pdf_file_id);
+  if (sha256Buffer(buffer) !== row.score_evidence_json.pdfSha256) {
+    throw new ApiError(
+      409,
+      'تعذر التحقق من سلامة ملف التقرير الرسمي المخزن.',
+      { evaluationId: row.id },
+      'EVALUATION_ARTIFACT_HASH_MISMATCH'
+    );
+  }
+  const snapshot = row.score_evidence_json?.templatePayload || {};
   const snapshotNumber = row.score_evidence_json?.templatePayload?.student_number;
   const filename = buildEvaluationPdfFilename({
-    studentName: row.student?.full_name,
+    studentName: snapshot.student_name || row.student?.full_name,
     universityNumber: row.student?.university_student_number || snapshotNumber,
     student: row.student,
   });
@@ -1451,7 +2274,14 @@ async function downloadPdf(user, evaluationId) {
       STUDENT_NUMBER_UNRESOLVED_CODE
     );
   }
-  return { buffer, filename, mimeType: file.mime_type || 'application/pdf' };
+  return {
+    buffer,
+    filename,
+    mimeType: file.mime_type || 'application/pdf',
+    templateId: row.template_id,
+    templateVersion: row.template_version,
+    sourceTemplateFileId: recordedSourceFileId || row.template?.original_file_id || null,
+  };
 }
 
 async function updateComments(user, evaluationId, comments) {
@@ -1480,6 +2310,7 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
         student: { select: { id: true, full_name: true, university_student_number: true } },
         universities: { select: { name: true, short_name: true } },
         field_training_opportunities: { select: { id: true, title: true, start_date: true, assigned_instructor_id: true } },
+        field_training_applications: { select: { academic_supervisor_name: true } },
       },
     });
     if (rows.length !== evaluationIds.length) {
@@ -1496,6 +2327,7 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
         student: { select: { id: true, full_name: true, university_student_number: true } },
         universities: { select: { name: true, short_name: true } },
         field_training_opportunities: { select: { id: true, title: true, start_date: true, assigned_instructor_id: true } },
+        field_training_applications: { select: { academic_supervisor_name: true } },
       },
     });
   } else {
@@ -1521,10 +2353,16 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
   }
 
   const selected = authorized;
-  const missing = selected.filter((row) => !row.pdf_file_id);
-  const withFiles = selected.filter((row) => row.pdf_file_id);
-  const statuses = new Set(withFiles.map((row) => row.final_status));
-  const mixed = statuses.size > 1;
+  const missing = selected.filter((row) => !hasVerifiedFidelityArtifact(row));
+  const withFiles = selected.filter((row) => hasVerifiedFidelityArtifact(row));
+  if (!withFiles.length) {
+    throw new ApiError(
+      404,
+      'لا توجد تقارير تقييم جاهزة للتنزيل.',
+      { totalStudents: selected.length, generatedReports: 0, missingReports: missing.length || selected.length },
+      'NO_GENERATED_REPORTS'
+    );
+  }
   const provider = getProvider();
   const files = await prisma.files.findMany({
     where: { id: { in: withFiles.map((r) => r.pdf_file_id) }, deleted_at: null },
@@ -1542,7 +2380,11 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
         const file = fileById.get(row.pdf_file_id);
         if (!file) return { row, buffer: null };
         try {
-          return { row, buffer: await provider.getObjectBuffer(file.storage_key) };
+          const buffer = await provider.getObjectBuffer(file.storage_key);
+          if (sha256Buffer(buffer) !== row.score_evidence_json?.pdfSha256) {
+            return { row, buffer: null };
+          }
+          return { row, buffer };
         } catch {
           return { row, buffer: null };
         }
@@ -1551,10 +2393,21 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
     for (const item of buffers) {
       if (!item.buffer) failed.push(item.row);
       else {
+        const snapshot = item.row.score_evidence_json?.templatePayload || {};
         zipEntries.push({
-          finalStatus: item.row.final_status,
+          universityName: item.row.universities?.name || item.row.universities?.short_name,
+          academicSupervisorName:
+            item.row.field_training_applications?.academic_supervisor_name ||
+            item.row.score_evidence_json?.academic_supervisor_name ||
+            '',
+          eligibilityStatus: item.row.eligibility_status,
+          studentName: snapshot.student_name || item.row.student?.full_name,
+          universityNumber:
+            snapshot.student_number || item.row.student?.university_student_number,
           filename: buildEvaluationPdfFilename({
-            studentName: item.row.student?.full_name,
+            studentName: snapshot.student_name || item.row.student?.full_name,
+            universityNumber:
+              snapshot.student_number || item.row.student?.university_student_number,
             student: item.row.student,
           }),
           buffer: item.buffer,
@@ -1563,11 +2416,10 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
     }
   }
 
-  const built = await zipUtil.buildReportsZip(zipEntries, { mixedFolders: mixed });
+  const built = await zipUtil.buildReportsZip(zipEntries, { officialFolders: true, mixedFolders: false });
   const first = authorized[0];
   const filename = zipUtil.buildZipFilename({
-    universityName: first?.universities?.short_name || first?.universities?.name,
-    opportunityTitle: query.opportunity_id ? first?.field_training_opportunities?.title : 'All',
+    universityName: first?.universities?.name || first?.universities?.short_name,
     academicYear: query.academic_year || academicPeriod(first?.field_training_opportunities?.start_date).academicYear,
   });
   await audit(user, 'FT_EVAL_BULK_ZIP_DOWNLOADED', 'field_training_final_evaluation', null, {
@@ -1586,6 +2438,550 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
       failedIds: failed.map((r) => r.id),
     },
   };
+}
+
+async function getOpportunityReportReadiness(user, opportunityId) {
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      universities: { select: { id: true, name: true, name_en: true, short_name: true } },
+      field_training_opportunity_eligibility: {
+        where: { is_active: true },
+        select: {
+          university_id: true,
+          universities: { select: { id: true, name: true, name_en: true, short_name: true } },
+        },
+        take: 8,
+      },
+    },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  const universityId = resolveOpportunityUniversityId(opportunity, user);
+  access.assertCanViewReports(user, universityId);
+  await ftAccess.assertAdminOpportunityAccess(user, opportunity);
+
+  const resolved = await resolveTemplate({ ...opportunity, university_id: universityId });
+  let templatePreflight = null;
+  if (resolved.template?.original_file_id) {
+    try {
+      const { buffer } = await loadFileBuffer(resolved.template.original_file_id);
+      templatePreflight = await preflightEvaluationTemplate(buffer, { requireStamp: true, requireSignature: true });
+    } catch (err) {
+      templatePreflight = {
+        ok: false,
+        issues: [{ code: err?.code || 'TEMPLATE_UNREADABLE', messageAr: err?.message || 'تعذر قراءة القالب.' }],
+      };
+    }
+  } else {
+    templatePreflight = {
+      ok: false,
+      issues: [
+        {
+          code: TEMPLATE_MISSING_CODE,
+          messageAr: 'لا يوجد قالب تقييم معتمد لهذه الجامعة/الفرصة.',
+        },
+      ],
+    };
+  }
+  if (templatePreflight?.ok && !findSoffice()) {
+    templatePreflight = {
+      ...templatePreflight,
+      ok: false,
+      issues: [
+        ...(templatePreflight.issues || []),
+        {
+          code: readinessAggregate.RENDERER_NOT_AVAILABLE,
+          messageAr: 'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+        },
+      ],
+    };
+  }
+
+  const templateReadiness = await readinessAggregate.buildTemplateGenerationReadiness({
+    template: resolved.template,
+    templatePreflight,
+    loadFileBuffer,
+  });
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId, status: 'approved' },
+    select: {
+      id: true,
+      student_id: true,
+      training_status: true,
+      completion_eligibility_status: true,
+    },
+  });
+  const { byId } = await loadBatchContext(apps.map((row) => row.id));
+  const skippedAppIds = apps.filter((app) => !byId.get(app.id)).map((app) => app.id);
+  const existing = await prisma.field_training_final_evaluations.findMany({
+    where: { application_id: { in: apps.map((row) => row.id) }, is_current: true },
+    select: {
+      application_id: true,
+      pdf_file_id: true,
+      eligibility_status: true,
+      final_status: true,
+      template_id: true,
+      template_version: true,
+      source_template_file_id: true,
+      score_evidence_json: true,
+    },
+  });
+  const existingByApp = new Map(existing.map((row) => [row.application_id, row]));
+
+  const students = [];
+  const excludedOfficial = [];
+  for (const app of apps) {
+    const ctx = byId.get(app.id);
+    if (!ctx) continue;
+    if (ctx.officialReportExcluded?.excluded) {
+      excludedOfficial.push({
+        applicationId: app.id,
+        studentName: ctx.student?.full_name || ctx.student?.name,
+        code: ctx.officialReportExcluded.code,
+        reason: ctx.officialReportExcluded.reason,
+      });
+      continue;
+    }
+    const policy = { ...ctx.policy };
+    if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
+    const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+    const official = buildOfficialComment(ctx, calculated);
+    const evaluationDate = new Date();
+    const payload = buildFillFields(ctx, {
+      ...calculated,
+      eligibilityStatus: official.eligibilityStatus,
+      eligibilityReasons: official.reasons.codes,
+      eligibilityReasonLabels: official.reasons.labelsAr,
+      generalComments: official.comment,
+      autoComment: official.comment,
+      evaluationDate,
+      fieldSupervisorDate: evaluationDate,
+      academicSupervisorDate: evaluationDate,
+    }, resolved.template);
+    const missing = missingFieldEntries(payload);
+    const generatedRow = existingByApp.get(app.id);
+    const artifactMatchesCurrentTemplate = hasVerifiedFidelityArtifact(
+      generatedRow,
+      resolved.template
+    );
+    const readinessInfo = readinessMod.classifyEvaluationReadiness({
+      missingFieldEntries: missing,
+      criterionEvidence: calculated.criterionEvidence,
+      generated: artifactMatchesCurrentTemplate,
+      usesManualRating: calculated.usesManualRating,
+    });
+    const bulkAnalysis = bulkRatingMod.analyzeStudentBulkGaps({
+      calculated,
+      eligibilityStatus: official.eligibilityStatus,
+      studentName: payload.student_name,
+      universityNumber: payload.student_number,
+      applicationId: app.id,
+    });
+    students.push({
+      applicationId: app.id,
+      studentId: ctx.application.student_id,
+      studentName: payload.student_name,
+      universityNumber: payload.student_number,
+      academicSupervisorName: payload.academic_supervisor_name,
+      eligibilityStatus: official.eligibilityStatus,
+      readiness: readinessInfo.readiness,
+      readinessCategory: readinessInfo.readinessCategory,
+      missingFields: missing.map((row) => row.code),
+      missingFieldDetails: missing,
+      staticMissingFields: readinessInfo.staticMissing,
+      professionalMissingFields: readinessInfo.professionalMissing,
+      missingProfessionalCriteria: bulkAnalysis.missingProfessionalCriteria,
+      missingBulkCriteria: bulkAnalysis.missingProfessionalCriteria,
+      ratingsToApply: bulkAnalysis.ratingsToApply,
+      eligibleForBulk: bulkAnalysis.eligibleForBulk,
+      bulkEligibleForApproval: bulkAnalysis.eligibleForBulk,
+      automaticallyDerivedCriteria: bulkAnalysis.automaticallyDerived,
+      criteriaComplete: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(
+        (index) => calculated[`criterion${index}Score`] != null
+      ).length,
+      professionalTotal: calculated.professionalTotal,
+      criterionEvidence: Object.fromEntries(
+        Object.entries(calculated.criterionEvidence || {}).map(([key]) => [
+          key,
+          readinessMod.explainCriterionEvidence(key, calculated.criterionEvidence),
+        ])
+      ),
+      usesManualRating: calculated.usesManualRating,
+      generated: artifactMatchesCurrentTemplate,
+      artifactMatchesCurrentTemplate,
+      generatedArtifactStatus: !generatedRow?.pdf_file_id
+        ? 'NOT_GENERATED'
+        : artifactMatchesCurrentTemplate
+          ? 'CURRENT_TEMPLATE'
+          : 'OUTDATED_TEMPLATE',
+      generatedTemplateId: generatedRow?.template_id || null,
+      generatedTemplateVersion: generatedRow?.template_version || null,
+      generationFailed: Boolean(generatedRow && !generatedRow.pdf_file_id),
+      currentValue: payload,
+    });
+  }
+
+  const ready = students.filter((row) => row.readiness === READY_STATUS || row.readinessCategory === GENERATED_STATUS);
+  const missingData = students.filter((row) => row.readiness === MISSING_REQUIRED_DATA);
+  const readyAutomatic = students.filter((row) => row.readinessCategory === READY_AUTOMATIC);
+  const readyWithManual = students.filter((row) => row.readinessCategory === READY_WITH_MANUAL_RATING);
+  const missingStatic = students.filter((row) => row.readinessCategory === MISSING_STATIC_DATA);
+  const missingProfessional = students.filter((row) => row.readinessCategory === MISSING_PROFESSIONAL_EVIDENCE);
+  const eligible = students.filter((row) => row.eligibilityStatus === 'ELIGIBLE');
+  const notEligible = students.filter((row) => row.eligibilityStatus !== 'ELIGIBLE');
+  const generated = students.filter((row) => row.generated);
+  const notGenerated = students.filter((row) => !row.generated);
+  const generationFailed = students.filter((row) => row.generationFailed);
+  const outdatedArtifacts = students.filter(
+    (row) => row.generatedArtifactStatus === 'OUTDATED_TEMPLATE'
+  );
+  const population = readinessAggregate.buildPopulationSummary(apps, students, skippedAppIds);
+  population.excluded.officialReportPopulation = excludedOfficial.length;
+  population.excludedOfficial = excludedOfficial;
+  const generation = readinessAggregate.computeGenerationCounts(
+    students,
+    templateReadiness.templateGenerationReady
+  );
+  const bulkSummary = bulkRatingMod.summarizeBulkPreview(students);
+
+  return {
+    opportunityId,
+    universityName: resolveOpportunityUniversityName(opportunity),
+    template: mapTemplateRow(resolved.template),
+    templatePreflight,
+    templateReadiness,
+    documentRenderer: getOfficialDocumentRendererStatus(),
+    templateFidelityStatus: templateReadiness.templateGenerationReady ? 'PASS' : 'BLOCKED',
+    population,
+    eligibility: {
+      eligible: population.eligible,
+      notEligible: population.notEligible,
+      pending: population.eligibilityPending,
+      excluded: population.excluded,
+    },
+    professionalEvaluation: generation.professionalEvaluation,
+    studentData: {
+      complete: generation.dataReady,
+      missing: missingData.length,
+    },
+    generation: {
+      dataReady: generation.dataReady,
+      finalReady: generation.finalReady,
+      generated: generation.generated,
+      failed: generation.failed,
+    },
+    counts: {
+      totalStudents: population.totalApplicationsConsidered,
+      evaluatedPopulation: population.evaluatedPopulation,
+      dataReady: generation.dataReady,
+      ready: generation.finalReady,
+      finalReady: generation.finalReady,
+      missingData: missingData.length,
+      readyAutomatic: readyAutomatic.length,
+      readyWithManualRating: readyWithManual.length,
+      missingStaticData: missingStatic.length,
+      missingProfessionalEvidence: missingProfessional.length,
+      needsAuthorizedRating: generation.professionalEvaluation.needsAuthorizedRating,
+      missingCriteriaCount: generation.professionalEvaluation.missingCriteriaCount,
+      eligible: population.eligible,
+      notEligible: population.notEligible,
+      eligibilityPending: population.eligibilityPending,
+      generated: generated.length,
+      notGenerated: notGenerated.length,
+      generationFailed: generationFailed.length,
+      outdatedArtifacts: outdatedArtifacts.length,
+    },
+    manualRatingStudents: students
+      .filter((row) => bulkRatingMod.rowEligibleForBulk(row) || row.readinessCategory === MISSING_PROFESSIONAL_EVIDENCE)
+      .map((row) => ({
+        applicationId: row.applicationId,
+        studentName: row.studentName,
+        universityNumber: row.universityNumber,
+        eligibilityStatus: row.eligibilityStatus,
+        missingProfessionalCriteria: row.missingBulkCriteria?.length
+          ? row.missingBulkCriteria
+          : row.missingProfessionalCriteria,
+        missingFieldDetails: row.missingFieldDetails.filter((field) =>
+          String(field.code || field).startsWith('PROFESSIONAL_RATING_')
+        ),
+      })),
+    bulkEligibleRating: {
+      summary: bulkSummary,
+      students: students
+        .filter((row) => bulkRatingMod.rowEligibleForBulk(row))
+        .map((row) => ({
+          applicationId: row.applicationId,
+          studentName: row.studentName,
+          universityNumber: row.universityNumber,
+          missingCriteria: row.missingBulkCriteria,
+          ratingsToApply: bulkRatingMod.rowBulkRatingsToApply(row),
+        })),
+    },
+    missingStudents: missingData.map((row) => ({
+      applicationId: row.applicationId,
+      studentName: row.studentName,
+      universityNumber: row.universityNumber,
+      missingFields: row.missingFieldDetails,
+    })),
+    students,
+    capabilities: {
+      canGenerate: !access.isReviewer(user),
+      canCompleteMissingRatings: !access.isReviewer(user),
+      canApplyBulkEligibleRatings: !access.isReviewer(user),
+      readOnly: access.isReviewer(user),
+    },
+  };
+}
+
+async function syncAcademicSupervisorsFromImports(user, opportunityId) {
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      field_training_opportunity_eligibility: { where: { is_active: true }, select: { university_id: true } },
+    },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId, status: 'approved' },
+    select: { id: true, student_id: true, academic_supervisor_name: true },
+  });
+  const students = await ftRepo.findStudentProfilesByIds(apps.map((a) => a.student_id));
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const assignments = await supervisorScope.loadAssignmentsByApplicationIds(apps.map((a) => a.id));
+  const batches = await prisma.field_training_supervisor_import_batches.findMany({
+    where: { opportunity_id: opportunityId, status: 'applied' },
+    select: { id: true, preview_json: true },
+    orderBy: { created_at: 'desc' },
+  });
+  const importIndex = academicSupervisorResolve.buildImportSupervisorIndex(batches);
+
+  const recovered = [];
+  const stillMissing = [];
+  for (const app of apps) {
+    if (app.academic_supervisor_name?.trim()) continue;
+    const resolved = academicSupervisorResolve.resolveAcademicSupervisorName({
+      application: app,
+      student: studentById.get(app.student_id),
+      assignment: assignments.get(app.id),
+      importIndex,
+    });
+    if (!resolved.name) {
+      stillMissing.push({
+        applicationId: app.id,
+        studentName: studentById.get(app.student_id)?.full_name,
+        universityNumber: academicSupervisorResolve.normalizeUniversityNumber(studentById.get(app.student_id)),
+        code: resolved.code || 'ACADEMIC_SUPERVISOR_MISSING',
+      });
+      continue;
+    }
+    await prisma.field_training_applications.update({
+      where: { id: app.id },
+      data: {
+        academic_supervisor_name: resolved.name,
+        academic_supervisor_normalized: supervisorNames.normalizeSupervisorKey(resolved.name),
+        updated_at: new Date(),
+      },
+    });
+    recovered.push({
+      applicationId: app.id,
+      studentName: studentById.get(app.student_id)?.full_name,
+      universityNumber: academicSupervisorResolve.normalizeUniversityNumber(studentById.get(app.student_id)),
+      supervisorName: resolved.name,
+      source: resolved.source,
+    });
+  }
+
+  if (recovered.length) {
+    await audit(user, 'FT_EVAL_ACADEMIC_SUPERVISOR_SYNC', 'field_training_opportunity', opportunityId, {
+      universityId: opportunity.university_id,
+      opportunityId,
+      meta: { recoveredCount: recovered.length, stillMissingCount: stillMissing.length },
+    });
+  }
+
+  return { recovered, stillMissing, recoveredCount: recovered.length, stillMissingCount: stillMissing.length };
+}
+
+async function resolveMissingEvaluationDataForOpportunity(user, opportunityId, { applyBulk = true } = {}) {
+  const supervisorSync = await syncAcademicSupervisorsFromImports(user, opportunityId);
+  let bulkResult = null;
+  if (applyBulk) {
+    bulkResult = await applyBulkEligibleProfessionalRatings(user, opportunityId, {
+      confirmed: true,
+      reason: BULK_RATING_REASON_AR,
+    });
+  }
+  const readiness = await getOpportunityReportReadiness(user, opportunityId);
+  return {
+    supervisorSync,
+    bulkResult,
+    readiness,
+  };
+}
+
+async function zipOpportunityReports(user, opportunityId) {
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      universities: { select: { name: true, short_name: true } },
+      field_training_opportunity_eligibility: {
+        where: { is_active: true },
+        select: {
+          university_id: true,
+          universities: { select: { name: true, short_name: true } },
+        },
+        take: 8,
+      },
+    },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  access.assertCanBulkZip(user, opportunity.university_id);
+  await ftAccess.assertAdminOpportunityAccess(user, opportunity);
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId, status: 'approved' },
+    select: { id: true },
+  });
+  const result = await bulkZip(user, {
+    applicationIds: apps.map((row) => row.id),
+    query: {
+      university_id: resolveOpportunityUniversityId(opportunity, user),
+      opportunity_id: opportunityId,
+    },
+  });
+  result.filename = zipUtil.buildZipFilename({
+    universityName: resolveOpportunityUniversityName(opportunity),
+    academicYear: academicPeriod(opportunity.start_date).academicYear,
+  });
+  result.summary.totalStudents = apps.length;
+  result.summary.generatedReports = result.summary.included;
+  result.summary.missingReports = Math.max(0, apps.length - result.summary.included);
+  return result;
+}
+
+async function previewApplicationReportPdf(user, applicationId) {
+  const preview = await previewApplicationPayload(user, applicationId);
+  const context = (await loadBatchContext([applicationId])).byId.get(applicationId);
+  const opportunity = context?.opportunity;
+  const resolved = await resolveTemplate({
+    ...opportunity,
+    university_id: resolveEvalUniversityId(context, user),
+  });
+  if (!resolved.template) {
+    throw new ApiError(409, 'لا يوجد قالب تقييم معتمد لهذه الجامعة/الفرصة', null, TEMPLATE_MISSING_CODE);
+  }
+
+  const current = await prisma.field_training_final_evaluations.findFirst({
+    where: { application_id: applicationId, is_current: true },
+    select: {
+      id: true,
+      pdf_file_id: true,
+      template_id: true,
+      template_version: true,
+      source_template_file_id: true,
+      score_evidence_json: true,
+    },
+  });
+
+  if (current?.pdf_file_id) {
+    const sourceTemplateFileId = sourceTemplateFileIdOf(current);
+    const matchesCurrentTemplate = Boolean(
+      String(current.template_id || '') === String(resolved.template.id || '') &&
+        Number(current.template_version) === Number(resolved.template.version) &&
+        String(sourceTemplateFileId || '') ===
+          String(resolved.template.original_file_id || '')
+    );
+    if (!matchesCurrentTemplate) {
+      throw new ApiError(
+        409,
+        'التقرير المخزن لا يطابق نسخة القالب المعينة حالياً. يجب إعادة إصدار التقرير قبل المعاينة.',
+        {
+          evaluationId: current.id,
+          storedTemplateId: current.template_id,
+          storedTemplateVersion: current.template_version,
+          storedSourceTemplateFileId: sourceTemplateFileId,
+          assignedTemplateId: resolved.template.id,
+          assignedTemplateVersion: resolved.template.version,
+          assignedSourceTemplateFileId: resolved.template.original_file_id,
+        },
+        'EVALUATION_ARTIFACT_TEMPLATE_MISMATCH'
+      );
+    }
+    if (!hasVerifiedFidelityArtifact(current, resolved.template)) {
+      throw new ApiError(
+        409,
+        'هذا التقرير قديم أو لم يجتز فحص مطابقة قالب الجامعة الرسمي. يجب إعادة إصداره قبل المعاينة.',
+        { evaluationId: current.id },
+        'EVALUATION_ARTIFACT_FIDELITY_UNVERIFIED'
+      );
+    }
+    const stored = await downloadPdf(user, current.id);
+    return {
+      ...preview,
+      previewMode: 'pdf',
+      pdfBase64: Buffer.from(stored.buffer).toString('base64'),
+      templateId: stored.templateId,
+      templateVersion: stored.templateVersion,
+      sourceTemplateFileId: stored.sourceTemplateFileId,
+      pageCount: Number(current.score_evidence_json?.generatedPageCount) || 2,
+      evaluationId: current.id,
+      artifactSource: 'stored_verified_pdf',
+    };
+  }
+
+  if (preview.missingFields?.length) {
+    return { ...preview, previewMode: 'payload', pdfBase64: null };
+  }
+  return {
+    ...preview,
+    previewMode: 'not_generated',
+    code: 'EVALUATION_ARTIFACT_NOT_GENERATED',
+    messageAr: 'يجب إصدار التقرير الرسمي أولاً، ثم ستعرض المعاينة ملف PDF المخزن نفسه.',
+    pdfBase64: null,
+    templateId: resolved.template.id,
+    templateVersion: resolved.template.version,
+    sourceTemplateFileId: resolved.template.original_file_id,
+  };
+}
+
+async function saveOpportunityReportDefaults(user, opportunityId, body = {}) {
+  const opportunity = await prisma.field_training_opportunities.findUnique({ where: { id: opportunityId } });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  access.assertCanGenerate(user, opportunity);
+  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+  const current = opportunity.host_organization && typeof opportunity.host_organization === 'object' ? opportunity.host_organization : {};
+  const next = {
+    ...current,
+    department: body.department != null ? String(body.department).trim() : current.department,
+    email: body.email != null ? String(body.email).trim() : current.email,
+    phone: body.phone != null ? String(body.phone).trim() : current.phone,
+    fax: body.fax != null ? String(body.fax).trim() : current.fax,
+    address: body.address != null ? String(body.address).trim() : current.address,
+    field_supervisor_name:
+      body.field_supervisor_name != null ? String(body.field_supervisor_name).trim() : current.field_supervisor_name,
+    contact_person: body.contact_person != null ? String(body.contact_person).trim() : current.contact_person,
+    semester: body.semester != null ? String(body.semester).trim() : current.semester,
+    academic_year: body.academic_year != null ? String(body.academic_year).trim() : current.academic_year,
+    trainingHoursDisplayMode: body.trainingHoursDisplayMode || current.trainingHoursDisplayMode,
+  };
+  if (body.organization_name != null) {
+    await prisma.field_training_opportunities.update({
+      where: { id: opportunityId },
+      data: {
+        organization_name: String(body.organization_name).trim() || opportunity.organization_name,
+        host_organization: next,
+        updated_at: new Date(),
+      },
+    });
+  } else {
+    await prisma.field_training_opportunities.update({
+      where: { id: opportunityId },
+      data: { host_organization: next, updated_at: new Date() },
+    });
+  }
+  return getOpportunityReportReadiness(user, opportunityId);
 }
 
 async function studentOwnPdf(user, applicationId) {
@@ -1617,10 +3013,18 @@ module.exports = {
   assignOpportunityTemplate,
   previewTemplate,
   previewApplicationPayload,
+  previewApplicationReportPdf,
+  getOpportunityReportReadiness,
+  zipOpportunityReports,
+  saveOpportunityReportDefaults,
   downloadTemplateFile,
   getPolicy,
   upsertPolicy,
   saveSupervisorRating,
+  getBulkEligibleRatingPreview,
+  applyBulkEligibleProfessionalRatings,
+  syncAcademicSupervisorsFromImports,
+  resolveMissingEvaluationDataForOpportunity,
   listSupervisorRatings,
   generateForApplications,
   generateForOpportunity,

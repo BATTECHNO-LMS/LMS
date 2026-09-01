@@ -1,6 +1,13 @@
 'use strict';
 
+const names = require('./fieldTraining.supervisorName');
 const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
+const {
+  UNASSIGNED_SUPERVISOR_FOLDER,
+  ELIGIBLE_FOLDER_AR,
+  NOT_ELIGIBLE_FOLDER_AR,
+} = require('./fieldTrainingEvaluation.constants');
+const { isEligibleStatus } = require('./fieldTrainingEvaluation.eligibilityReasons');
 
 const INVALID_FS = /[<>:"/\\|?*\u0000-\u001f]/g;
 const FILENAME_SUFFIX = 'تقييم_التدريب_الميداني';
@@ -35,11 +42,37 @@ function zipFolderForStatus(status) {
   return 'Not_Eligible';
 }
 
+function eligibilityFolderAr(status) {
+  const raw = String(status || '').trim();
+  if (isEligibleStatus(raw) || raw.toUpperCase() === 'ELIGIBLE') return ELIGIBLE_FOLDER_AR;
+  return NOT_ELIGIBLE_FOLDER_AR;
+}
+
+function buildOfficialEvaluationZipPath({
+  universityName,
+  academicSupervisorName,
+  eligibilityStatus,
+  filename,
+} = {}) {
+  const root = names.sanitizeZipFolder(universityName) || 'جامعة';
+  const supervisor = names.sanitizeZipFolder(academicSupervisorName) || UNASSIGNED_SUPERVISOR_FOLDER;
+  const eligibility = eligibilityFolderAr(eligibilityStatus);
+  const file = filename || 'evaluation.pdf';
+  return `${root}/${supervisor}/${eligibility}/${file}`;
+}
+
+function buildOfficialEvaluationsZipFilename({ universityName, academicYear } = {}) {
+  const uni = names.sanitizeZipNamePart(universityName) || 'جامعة';
+  const year = names.sanitizeZipNamePart(academicYear) || '';
+  const base = `${uni}_تقارير_تقييم_التدريب_الميداني`;
+  return year ? `${base}_${year}.zip` : `${base}.zip`;
+}
+
 function buildZipFilename({ universityName, opportunityTitle, academicYear } = {}) {
-  const uni = sanitizeNamePart(universityName) || 'University';
-  const opp = sanitizeNamePart(opportunityTitle) || 'FieldTraining';
-  const year = sanitizeNamePart(academicYear) || 'All';
-  return `Field_Training_Reports_${uni}_${opp}_${year}.zip`;
+  if (universityName && !opportunityTitle) {
+    return buildOfficialEvaluationsZipFilename({ universityName, academicYear });
+  }
+  return buildOfficialEvaluationsZipFilename({ universityName, academicYear });
 }
 
 function uniqueZipEntry(used, folder, filename, mixed) {
@@ -67,6 +100,9 @@ module.exports = {
   resolveUniversityNumber,
   buildEvaluationPdfFilename,
   zipFolderForStatus,
+  eligibilityFolderAr,
+  buildOfficialEvaluationZipPath,
+  buildOfficialEvaluationsZipFilename,
   buildZipFilename,
   uniqueZipEntry,
 };

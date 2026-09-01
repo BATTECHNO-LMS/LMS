@@ -111,18 +111,29 @@ describe('field training auto-evaluation scoring', () => {
     assert.ok(result.eligibilityReasons.includes(GATE_REASONS.POST_ASSESSMENT_NOT_COMPLETED));
   });
 
-  it('marks missing behavioral ratings as PROFESSIONAL_EVALUATION_INCOMPLETE', () => {
+  it('does not block eligibility solely because behavioral ratings are incomplete', () => {
     const result = calculateFinalEvaluation(perfectInput({ supervisorRatings: null }));
-    assert.equal(result.finalStatus, FINAL_STATUS.NOT_ELIGIBLE);
-    assert.ok(result.eligibilityReasons.includes(GATE_REASONS.PROFESSIONAL_EVALUATION_INCOMPLETE));
-    assert.equal(result.criterion3Score, null);
+    assert.equal(result.eligibilityStatus, 'ELIGIBLE');
+    assert.ok(!result.eligibilityReasons.includes(GATE_REASONS.PROFESSIONAL_EVALUATION_INCOMPLETE));
+    assert.equal(result.criterion6Score, null);
+    assert.equal(result.criterion7Score, null);
     assert.equal(result.professionalTotal, null);
   });
 
   it('does not auto-award 5/5 when behavioral evidence is missing', () => {
-    const result = calculateFinalEvaluation(perfectInput({ supervisorRatings: {} }));
-    assert.notEqual(result.criterion3Score, 5);
-    assert.equal(result.criterion3Score, null);
+    const result = calculateFinalEvaluation(
+      perfectInput({
+        supervisorRatings: {},
+        postAssessmentScore: null,
+        taskScoreAveragePercent: null,
+        preAssessmentScore: null,
+        acceptedTaskCount: 0,
+        requiredTaskCount: 0,
+      })
+    );
+    assert.notEqual(result.criterion6Score, 5);
+    assert.equal(result.criterion6Score, null);
+    assert.equal(result.criterion7Score, null);
   });
 
   it('applies different university weights and pass scores', () => {

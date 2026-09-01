@@ -477,164 +477,192 @@ async function applyImport(opportunityId, user, body) {
   const updated = [];
   const unchanged = [];
 
-  await prisma.$transaction(async (tx) => {
-    for (const group of previewData.groups || []) {
-      const supervisorUserId = group.account?.id || null;
-      const supervisorName = names.displaySupervisorName(group.supervisor_label) || null;
-      const supervisorKey = names.normalizeSupervisorKey(group.supervisor_label) || null;
+  await prisma.$transaction(
+    async (tx) => {
+      const locked = await tx.$queryRaw`
+        SELECT id, status
+        FROM field_training_supervisor_import_batches
+        WHERE id = ${batch.id}::uuid
+        FOR UPDATE
+      `;
+      if (!locked[0]) {
+        throw new ApiError(404, 'دفعة الاستيراد غير موجودة');
+      }
+      if (locked[0].status === 'applied') {
+        return;
+      }
 
-      if (supervisorUserId && supervisorKey) {
-        const existingMapping = await tx.field_training_supervisor_name_mappings.findFirst({
-          where: {
-            university_id: batch.university_id,
-            normalized_name: supervisorKey,
-          },
-        });
-        if (existingMapping) {
-          await tx.field_training_supervisor_name_mappings.update({
-            where: { id: existingMapping.id },
-            data: {
-              supervisor_user_id: supervisorUserId,
-              display_name: supervisorName,
-              supervisor_email: group.account.email,
-              updated_at: new Date(),
-            },
-          });
-        } else {
-          await tx.field_training_supervisor_name_mappings.create({
-            data: {
-              university_id: batch.university_id,
-              normalized_name: supervisorKey,
-              display_name: supervisorName,
-              supervisor_user_id: supervisorUserId,
-              supervisor_email: group.account.email,
-              created_by_id: user.userId,
-            },
-          });
+      const allApplicationIds = [];
+      for (const group of previewData.groups || []) {
+        for (const student of group.students || []) {
+          if (student.status === 'error' || !student.application_id) {
+            throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين');
+          }
+          allApplicationIds.push(student.application_id);
         }
       }
 
-      for (const student of group.students) {
+      const [applications, existingAssignments, existingMappings] = await Promise.all([
+        tx.field_training_applications.findMany({
+          where: { id: { in: allApplicationIds } },
+        }),
+        tx.field_training_academic_supervisor_assignments.findMany({
+          where: { application_id: { in: allApplicationIds } },
+        }),
+        tx.field_training_supervisor_name_mappings.findMany({
+          where: { university_id: batch.university_id },
+        }),
+      ]);
+      const appById = new Map(applications.map((row) => [row.id, row]));
+      const assignmentByAppId = new Map(
+        existingAssignments.map((row) => [row.application_id, row])
+      );
+      const mappingByKey = new Map(
+        existingMappings.map((row) => [row.normalized_name, row])
+      );
+      for (const applicationId of allApplicationIds) {
+        if (!appById.has(applicationId)) {
+          throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين');
+        }
+      }
+
+      const auditRows = [];
+      const now = new Date();
+
+      for (const group of previewData.groups || []) {
+        const supervisorUserId = group.account?.id || null;
+        const supervisorName = names.displaySupervisorName(group.supervisor_label) || null;
+        const supervisorKey = names.normalizeSupervisorKey(group.supervisor_label) || null;
+        const groupApplicationIds = (group.students || [])
+          .map((student) => student.application_id)
+          .filter(Boolean);
+
+        if (supervisorUserId && supervisorKey) {
+          const existingMapping = mappingByKey.get(supervisorKey);
+          if (existingMapping) {
+            await tx.field_training_supervisor_name_mappings.update({
+              where: { id: existingMapping.id },
+              data: {
+                supervisor_user_id: supervisorUserId,
+                display_name: supervisorName,
+                supervisor_email: group.account.email,
+                updated_at: now,
+              },
+            });
+          } else {
+            const createdMapping = await tx.field_training_supervisor_name_mappings.create({
+              data: {
+                university_id: batch.university_id,
+                normalized_name: supervisorKey,
+                display_name: supervisorName,
+                supervisor_user_id: supervisorUserId,
+                supervisor_email: group.account.email,
+                created_by_id: user.userId,
+              },
+            });
+            mappingByKey.set(supervisorKey, createdMapping);
+          }
+        }
+
+        if (groupApplicationIds.length) {
+          await tx.field_training_applications.updateMany({
+            where: { id: { in: groupApplicationIds } },
+            data: {
+              academic_supervisor_name: supervisorName,
+              academic_supervisor_normalized: supervisorKey,
+              updated_at: now,
+            },
+          });
+        }
+
+        for (const student of group.students || []) {
         if (student.status === 'error' || !student.application_id) {
           throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين');
         }
-        const existing = await tx.field_training_academic_supervisor_assignments.findUnique({
-          where: { application_id: student.application_id },
-        });
-        const app = await tx.field_training_applications.findUnique({
-          where: { id: student.application_id },
-        });
-        if (!app) {
-          throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين');
-        }
+          const existing = assignmentByAppId.get(student.application_id);
+          const app = appById.get(student.application_id);
 
-        await tx.field_training_applications.update({
-          where: { id: app.id },
-          data: {
-            academic_supervisor_name: supervisorName,
-            academic_supervisor_normalized: supervisorKey,
-            updated_at: new Date(),
-          },
-        });
+          const nameChanged = !names.supervisorNamesEqual(
+            existing?.academic_supervisor_name || app.academic_supervisor_name,
+            supervisorName
+          );
+          const accountChanged =
+            String(existing?.supervisor_user_id || '') !== String(supervisorUserId || '');
+          const auditBase = {
+            batch_id: batch.id,
+            application_id: student.application_id,
+            student_id: app.student_id,
+            opportunity_id: opportunityId,
+            university_id: batch.university_id,
+            previous_supervisor_id: existing?.supervisor_user_id || null,
+            new_supervisor_id: supervisorUserId,
+            previous_supervisor_name: existing?.academic_supervisor_name || null,
+            new_supervisor_name: supervisorName,
+            acting_admin_id: user.userId,
+            original_filename: batch.original_filename,
+            file_hash: batch.file_hash,
+          };
 
-        const nameChanged = !names.supervisorNamesEqual(
-          existing?.academic_supervisor_name || app.academic_supervisor_name,
-          supervisorName
-        );
-        const accountChanged =
-          String(existing?.supervisor_user_id || '') !== String(supervisorUserId || '');
-
-        if (!existing) {
-          await tx.field_training_academic_supervisor_assignments.create({
-            data: {
-              application_id: student.application_id,
-              student_id: app.student_id,
-              opportunity_id: opportunityId,
-              university_id: batch.university_id,
-              supervisor_user_id: supervisorUserId,
-              academic_supervisor_name: supervisorName,
-              academic_supervisor_normalized: supervisorKey,
-              import_batch_id: batch.id,
-              assigned_by_id: user.userId,
-            },
-          });
-          await tx.field_training_supervisor_import_audit.create({
-            data: {
-              batch_id: batch.id,
-              application_id: student.application_id,
-              student_id: app.student_id,
-              opportunity_id: opportunityId,
-              university_id: batch.university_id,
-              previous_supervisor_id: null,
-              new_supervisor_id: supervisorUserId,
-              previous_supervisor_name: null,
-              new_supervisor_name: supervisorName,
-              action: 'created',
-              acting_admin_id: user.userId,
-              original_filename: batch.original_filename,
-              file_hash: batch.file_hash,
-            },
-          });
-          created.push(student.application_id);
-        } else if (nameChanged || accountChanged) {
-          await tx.field_training_academic_supervisor_assignments.update({
-            where: { application_id: student.application_id },
-            data: {
-              supervisor_user_id: supervisorUserId,
-              academic_supervisor_name: supervisorName,
-              academic_supervisor_normalized: supervisorKey,
-              import_batch_id: batch.id,
-              assigned_by_id: user.userId,
-              assigned_at: new Date(),
-              updated_at: new Date(),
-            },
-          });
-          await tx.field_training_supervisor_import_audit.create({
-            data: {
-              batch_id: batch.id,
-              application_id: student.application_id,
-              student_id: app.student_id,
-              opportunity_id: opportunityId,
-              university_id: batch.university_id,
-              previous_supervisor_id: existing.supervisor_user_id,
-              new_supervisor_id: supervisorUserId,
-              previous_supervisor_name: existing.academic_supervisor_name || null,
-              new_supervisor_name: supervisorName,
-              action: 'reassigned',
-              acting_admin_id: user.userId,
-              original_filename: batch.original_filename,
-              file_hash: batch.file_hash,
-            },
-          });
-          updated.push(student.application_id);
-        } else {
-          await tx.field_training_supervisor_import_audit.create({
-            data: {
-              batch_id: batch.id,
-              application_id: student.application_id,
-              student_id: app.student_id,
-              opportunity_id: opportunityId,
-              university_id: batch.university_id,
-              previous_supervisor_id: existing.supervisor_user_id,
-              new_supervisor_id: supervisorUserId,
-              previous_supervisor_name: existing.academic_supervisor_name || null,
-              new_supervisor_name: supervisorName,
-              action: 'unchanged',
-              acting_admin_id: user.userId,
-              original_filename: batch.original_filename,
-              file_hash: batch.file_hash,
-            },
-          });
-          unchanged.push(student.application_id);
+          if (!existing) {
+            const createdAssignment = await tx.field_training_academic_supervisor_assignments.create({
+              data: {
+                application_id: student.application_id,
+                student_id: app.student_id,
+                opportunity_id: opportunityId,
+                university_id: batch.university_id,
+                supervisor_user_id: supervisorUserId,
+                academic_supervisor_name: supervisorName,
+                academic_supervisor_normalized: supervisorKey,
+                import_batch_id: batch.id,
+                assigned_by_id: user.userId,
+              },
+            });
+            assignmentByAppId.set(student.application_id, createdAssignment);
+            auditRows.push({ ...auditBase, action: 'created', previous_supervisor_id: null, previous_supervisor_name: null });
+            created.push(student.application_id);
+          } else if (nameChanged || accountChanged) {
+            await tx.field_training_academic_supervisor_assignments.update({
+              where: { application_id: student.application_id },
+              data: {
+                supervisor_user_id: supervisorUserId,
+                academic_supervisor_name: supervisorName,
+                academic_supervisor_normalized: supervisorKey,
+                import_batch_id: batch.id,
+                assigned_by_id: user.userId,
+                assigned_at: now,
+                updated_at: now,
+              },
+            });
+            auditRows.push({ ...auditBase, action: 'reassigned' });
+            updated.push(student.application_id);
+          } else {
+            auditRows.push({ ...auditBase, action: 'unchanged' });
+            unchanged.push(student.application_id);
+          }
         }
       }
-    }
 
-    await tx.field_training_supervisor_import_batches.update({
+      if (auditRows.length) {
+        await tx.field_training_supervisor_import_audit.createMany({ data: auditRows });
+      }
+
+      await tx.field_training_supervisor_import_batches.update({
+        where: { id: batch.id },
+        data: { status: 'applied', applied_at: now, updated_at: now },
+      });
+  },
+    { maxWait: 20_000, timeout: 120_000 }
+  );
+
+  if (created.length === 0 && updated.length === 0 && unchanged.length === 0) {
+    const freshBatch = await prisma.field_training_supervisor_import_batches.findUnique({
       where: { id: batch.id },
-      data: { status: 'applied', applied_at: new Date(), updated_at: new Date() },
+      select: { status: true },
     });
-  });
+    if (freshBatch?.status === 'applied') {
+      return { batch_id: batch.id, created: 0, updated: 0, unchanged: 0, idempotent: true };
+    }
+  }
 
   await recordAudit({
     userId: user.userId,

@@ -7340,6 +7340,56 @@
   background: rgba(185, 28, 28, 0.05);
 }
 
+.ft-eval-readiness__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+
+  article {
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--color-border-tinted);
+    border-radius: 12px;
+    background: var(--color-cream-soft, #f8f5ef);
+  }
+
+  p {
+    margin: 0 0 0.3rem;
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+  }
+
+  strong {
+    font-size: 1.15rem;
+  }
+}
+
+.ft-eval-readiness__warn {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.ft-eval-preview__pdf {
+  width: 100%;
+  min-height: 70vh;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ft-eval-missing-student {
+  margin-bottom: 1rem;
+
+  h3 {
+    margin: 0 0 0.35rem;
+    font-size: 0.98rem;
+  }
+
+  ul {
+    margin: 0.35rem 0 0;
+    padding-inline-start: 1.2rem;
+  }
+}
+
 .ft-eval-payload-preview {
   margin: 0;
   display: grid;

@@ -77,6 +77,10 @@ const TRAINING_ERROR_AR = {
   ENROLLMENT_NOT_FOUND: 'التسجيل غير موجود.',
   PDF_RENDER_FAILED: 'تعذر إنشاء كتاب الإنهاء. حاول مرة أخرى بعد قليل.',
   PDF_RENDER_UNAVAILABLE: 'تعذر إنشاء ملف PDF على الخادم حالياً.',
+  FIELD_TRAINING_TEMPLATE_RENDER_FAILED:
+    'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
+  TEMPLATE_FIDELITY_FAIL:
+    'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
   REPORT_READ_ONLY: 'ليس لديك صلاحية إنشاء أو إعادة إنشاء التقارير. يمكنك عرض وتنزيل التقارير المتاحة فقط.',
   REPORT_EXPORT_FAILED: 'تعذر تصدير التقرير. حاول مرة أخرى بعد قليل.',
   FIELD_TRAINING_STUDENTS_EXPORT_EMPTY: 'لا يوجد طلاب مطابقون للتصدير',

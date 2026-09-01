@@ -102,10 +102,22 @@ function mountWriteRoutes(router, authorize) {
     controller.useUniversityDefault
   );
   router.post(
+    '/:id/evaluation-reports/bulk-eligible-ratings',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema, body: v.bulkEligibleRatingBodySchema }),
+    controller.applyBulkEligibleRatings
+  );
+  router.post(
     '/:id/evaluation-reports/generate',
     authorize,
     validateRequest({ params: v.opportunityIdParamSchema }),
     controller.generateOpportunity
+  );
+  router.put(
+    '/:id/evaluation-report-defaults',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema, body: v.reportDefaultsBodySchema }),
+    controller.saveReportDefaults
   );
   router.post(
     '/evaluation-reports/generate',
@@ -128,6 +140,24 @@ function mountWriteRoutes(router, authorize) {
 }
 
 function mountReadRoutes(router, authorize) {
+  router.get(
+    '/:id/evaluation-reports/readiness',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema }),
+    controller.reportReadiness
+  );
+  router.get(
+    '/:id/evaluation-reports/bulk-eligible-ratings/preview',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema, query: v.bulkRatingPreviewQuerySchema }),
+    controller.bulkRatingPreview
+  );
+  router.post(
+    '/:id/evaluation-reports/zip',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema }),
+    controller.zipOpportunity
+  );
   router.get(
     '/evaluation-reports',
     authorize,
