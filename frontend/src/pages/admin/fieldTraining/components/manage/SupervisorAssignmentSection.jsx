@@ -240,7 +240,7 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
                     <span>
                       {group.supervisor_label} — {group.student_count}
                     </span>
-                    <StatusBadge variant={group.resolution_status === 'linked' ? 'success' : 'warning'}>
+                    <StatusBadge variant={group.resolution_status === 'linked' ? 'success' : 'default'}>
                       {group.resolution_label}
                     </StatusBadge>
                     {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}

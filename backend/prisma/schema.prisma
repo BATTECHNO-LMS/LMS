@@ -3837,7 +3837,9 @@ model field_training_supervisor_import_audit {
   opportunity_id          String                                  @db.Uuid
   university_id           String                                  @db.Uuid
   previous_supervisor_id  String?                                 @db.Uuid
-  new_supervisor_id       String                                  @db.Uuid
+  new_supervisor_id       String?                                 @db.Uuid
+  previous_supervisor_name String?                                @db.VarChar(255)
+  new_supervisor_name     String?                                 @db.VarChar(255)
   action                  field_training_supervisor_audit_action
   acting_admin_id         String?                                 @db.Uuid
   original_filename       String?                                 @db.VarChar(500)

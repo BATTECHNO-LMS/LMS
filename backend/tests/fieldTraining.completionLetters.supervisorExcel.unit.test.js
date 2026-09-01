@@ -10,7 +10,7 @@ const {
   normalizePersonLabel,
   groupRowsBySupervisor,
 } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.parse');
-const { resolveSupervisorAccount } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.service');
+const { resolveSupervisorAccount, previewCanApply } = require('../src/modules/fieldTraining/fieldTraining.supervisorExcel.service');
 const {
   buildCompletionLetterPdfFilename,
   buildCompletionLettersZipFilename,
@@ -133,6 +133,17 @@ describe('academic supervisor resolution', () => {
     });
     assert.equal(result.status, 'ambiguous');
     assert.equal(result.matches.length, 2);
+  });
+
+  it('lets a name-only Excel preview apply without LMS supervisor accounts', () => {
+    assert.equal(
+      previewCanApply({ invalidRows: 0, duplicateUniversityNumbers: 0, conflictingAssignments: 0 }),
+      true
+    );
+    assert.equal(
+      previewCanApply({ invalidRows: 1, duplicateUniversityNumbers: 0, conflictingAssignments: 0 }),
+      false
+    );
   });
 });
 

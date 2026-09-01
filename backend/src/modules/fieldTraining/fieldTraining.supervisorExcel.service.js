@@ -11,6 +11,7 @@ const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.u
 const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
 const parse = require('./fieldTraining.supervisorExcel.parse');
 const supervisorScope = require('./fieldTraining.supervisorScope');
+const names = require('./fieldTraining.supervisorName');
 
 const UNRESOLVED_ACCOUNT = 'unlinked';
 const AMBIGUOUS_ACCOUNT = 'ambiguous';
@@ -26,6 +27,76 @@ function emailKey(value) {
 
 function namesMatch(a, b) {
   return parse.normalizePersonLabel(a) === parse.normalizePersonLabel(b) && Boolean(parse.normalizePersonLabel(a));
+}
+
+function previewCanApply(summary) {
+  return (
+    Number(summary?.invalidRows || 0) === 0 &&
+    Number(summary?.duplicateUniversityNumbers || 0) === 0 &&
+    Number(summary?.conflictingAssignments || 0) === 0
+  );
+}
+
+async function resolveOpportunityUniversity(opp) {
+  if (opp?.university_id) {
+    const row = await prisma.universities.findUnique({
+      where: { id: opp.university_id },
+      select: { id: true, name: true },
+    });
+    if (row) return row;
+  }
+
+  const eligibility = await prisma.field_training_opportunity_eligibility.findMany({
+    where: { opportunity_id: opp.id, is_active: true },
+    select: { university_id: true },
+  });
+  const eligibilityIds = [...new Set(eligibility.map((row) => row.university_id).filter(Boolean))];
+  if (eligibilityIds.length === 1) {
+    const row = await prisma.universities.findUnique({
+      where: { id: eligibilityIds[0] },
+      select: { id: true, name: true },
+    });
+    if (row) return row;
+  }
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opp.id },
+    select: { student_id: true },
+  });
+  const studentIds = [...new Set(apps.map((row) => row.student_id))];
+  if (studentIds.length) {
+    const users = await prisma.users.findMany({
+      where: { id: { in: studentIds }, primary_university_id: { not: null } },
+      select: { primary_university_id: true },
+    });
+    const counts = new Map();
+    for (const user of users) {
+      counts.set(user.primary_university_id, (counts.get(user.primary_university_id) || 0) + 1);
+    }
+    const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    if (ranked[0]?.[0]) {
+      const row = await prisma.universities.findUnique({
+        where: { id: ranked[0][0] },
+        select: { id: true, name: true },
+      });
+      if (row) return row;
+    }
+  }
+
+  return null;
+}
+
+async function requireOpportunityUniversity(opp) {
+  const university = await resolveOpportunityUniversity(opp);
+  if (!university?.id) {
+    throw new ApiError(
+      400,
+      'تعذر تحديد جامعة هذه الفرصة. اربط الفرصة بجامعة ثم أعد المحاولة.',
+      null,
+      'OPPORTUNITY_UNIVERSITY_REQUIRED'
+    );
+  }
+  return university;
 }
 
 async function loadUniversityReviewers(universityId) {
@@ -100,12 +171,18 @@ async function loadEnrollmentIndex(opportunity, university) {
   const records = apps.map((app) => {
     const profile = profileById[app.student_id];
     const number = resolveOfficialUniversityNumber(profile).number || extractUniversityNumberFromEmail(profile?.email);
+    const assignment = assignments.get(app.id) || null;
     const record = {
       application: app,
       profile,
       universityNumber: number,
       email: emailKey(profile?.email),
-      assignment: assignments.get(app.id) || null,
+      assignment: {
+        supervisor_user_id: assignment?.supervisor_user_id || null,
+        supervisor_name:
+          assignment?.supervisor_name || names.displaySupervisorName(app.academic_supervisor_name) || null,
+        supervisor_email: assignment?.supervisor_email || null,
+      },
       universityName: profile?.university?.name || university?.name || '',
     };
     if (number) byNumber.set(String(number), record);
@@ -153,11 +230,11 @@ function matchExcelRow(row, index, { opportunity, university, expectedUniversity
 function previewPayload({ summary, groups, opportunity, university, batch }) {
   const unresolved = groups.filter((g) => g.resolution?.status !== LINKED_ACCOUNT && g.supervisorNormalized);
   const invalidStudents = summary.rows.filter((row) => row.errors?.length);
-  const canApply =
-    unresolved.length === 0 &&
-    invalidStudents.length === 0 &&
-    summary.duplicateUniversityNumbers === 0 &&
-    summary.conflictingAssignments === 0;
+  const canApply = previewCanApply({
+    invalidRows: invalidStudents.length,
+    duplicateUniversityNumbers: summary.duplicateUniversityNumbers,
+    conflictingAssignments: summary.conflictingAssignments,
+  });
 
   return {
     batch_id: batch.id,
@@ -186,8 +263,8 @@ function previewPayload({ summary, groups, opportunity, university, batch }) {
         group.resolution?.status === LINKED_ACCOUNT
           ? 'مرتبط بحساب'
           : group.resolution?.status === AMBIGUOUS_ACCOUNT
-            ? 'يوجد أكثر من حساب مطابق'
-            : 'المشرف غير مرتبط بحساب',
+            ? 'يوجد أكثر من حساب مطابق — سيُحفظ الاسم كما هو'
+            : 'سيُحفظ الاسم بدون حساب في المنصة',
       account: group.resolution?.account
         ? {
             id: group.resolution.account.id,
@@ -243,9 +320,7 @@ async function previewImport(opportunityId, user, file, { resolutions = {} } = {
     throw new ApiError(400, 'ملف Excel لا يطابق النموذج المعتمد', parsed, 'INVALID_EXCEL_TEMPLATE');
   }
 
-  const university = opp.university_id
-    ? await prisma.universities.findUnique({ where: { id: opp.university_id }, select: { id: true, name: true } })
-    : null;
+  const university = await requireOpportunityUniversity(opp);
   const expectedUniversity = parse.normalizeScopeLabel(university?.name);
   const expectedOpportunity = parse.normalizeScopeLabel(opp.title);
   const index = await loadEnrollmentIndex(opp, university);
@@ -262,21 +337,24 @@ async function previewImport(opportunityId, user, file, { resolutions = {} } = {
   const summary = parse.summarizeParse(matchedRows);
   summary.rows = matchedRows;
 
-  const reviewers = university?.id ? await loadUniversityReviewers(university.id) : [];
-  const mappingRows = university?.id
-    ? await prisma.field_training_supervisor_name_mappings.findMany({
-        where: { university_id: university.id },
-      })
-    : [];
+  const reviewers = await loadUniversityReviewers(university.id);
+  const mappingRows = await prisma.field_training_supervisor_name_mappings.findMany({
+    where: { university_id: university.id },
+  });
   const mappings = new Map(mappingRows.map((row) => [row.normalized_name, row]));
   const groups = parse.groupRowsBySupervisor(matchedRows).map((group) => {
     const resolution = resolveSupervisorAccount({ group, reviewers, mappings, resolutions });
     const rows = group.rows.map((row) => {
+      const currentName = row.match?.assignment?.supervisor_name || null;
+      const proposedName = resolution.account?.full_name || group.supervisorLabel;
       const currentId = row.match?.assignment?.supervisor_user_id || null;
       const proposedId = resolution.account?.id || null;
       return {
         ...row,
-        reassignment: Boolean(currentId && proposedId && String(currentId) !== String(proposedId)),
+        reassignment: Boolean(
+          (currentId && proposedId && String(currentId) !== String(proposedId)) ||
+            (currentName && proposedName && !names.supervisorNamesEqual(currentName, proposedName))
+        ),
       };
     });
     return { ...group, rows, resolution };
@@ -295,7 +373,7 @@ async function previewImport(opportunityId, user, file, { resolutions = {} } = {
 
   const batch = await prisma.field_training_supervisor_import_batches.create({
     data: {
-      university_id: university?.id || opp.university_id,
+      university_id: university.id,
       opportunity_id: opp.id,
       original_filename: file.originalname || 'assignment.xlsx',
       file_hash: fileHash(file.buffer),
@@ -356,11 +434,11 @@ async function applyResolutions(opportunityId, user, { batch_id, resolutions = {
     (sum, group) => sum + group.students.filter((row) => row.reassignment).length,
     0
   );
-  preview.can_apply =
-    preview.totals.unresolved_supervisors === 0 &&
-    preview.totals.invalid_students === 0 &&
-    preview.totals.duplicate_rows === 0 &&
-    preview.totals.conflicting_assignments === 0;
+  preview.can_apply = previewCanApply({
+    invalidRows: preview.totals.invalid_students,
+    duplicateUniversityNumbers: preview.totals.duplicate_rows,
+    conflictingAssignments: preview.totals.conflicting_assignments,
+  });
   await prisma.field_training_supervisor_import_batches.update({
     where: { id: batch.id },
     data: { preview_json: preview, updated_at: new Date() },
@@ -389,7 +467,7 @@ async function applyImport(opportunityId, user, body) {
     throw new ApiError(400, 'أعد رفع الملف لمعاينة التوزيع قبل الاعتماد');
   }
   if (!previewData.can_apply) {
-    throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على أخطاء أو مشرفين غير محسومين');
+    throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين أو صفوف متعارضة');
   }
   if (previewData.reassignment_count > 0 && !body.confirm_reassignments) {
     throw new ApiError(400, 'يوجد إعادة إسناد. أكّد العملية قبل الاعتماد', null, 'REASSIGNMENT_CONFIRMATION_REQUIRED');
@@ -401,36 +479,39 @@ async function applyImport(opportunityId, user, body) {
 
   await prisma.$transaction(async (tx) => {
     for (const group of previewData.groups || []) {
-      if (group.resolution_status !== LINKED_ACCOUNT || !group.account?.id) {
-        throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على مشرفين غير محسومين');
-      }
-      const existingMapping = await tx.field_training_supervisor_name_mappings.findFirst({
-        where: {
-          university_id: batch.university_id,
-          normalized_name: group.supervisor_normalized,
-        },
-      });
-      if (existingMapping) {
-        await tx.field_training_supervisor_name_mappings.update({
-          where: { id: existingMapping.id },
-          data: {
-            supervisor_user_id: group.account.id,
-            display_name: group.supervisor_label,
-            supervisor_email: group.account.email,
-            updated_at: new Date(),
-          },
-        });
-      } else {
-        await tx.field_training_supervisor_name_mappings.create({
-          data: {
+      const supervisorUserId = group.account?.id || null;
+      const supervisorName = names.displaySupervisorName(group.supervisor_label) || null;
+      const supervisorKey = names.normalizeSupervisorKey(group.supervisor_label) || null;
+
+      if (supervisorUserId && supervisorKey) {
+        const existingMapping = await tx.field_training_supervisor_name_mappings.findFirst({
+          where: {
             university_id: batch.university_id,
-            normalized_name: group.supervisor_normalized,
-            display_name: group.supervisor_label,
-            supervisor_user_id: group.account.id,
-            supervisor_email: group.account.email,
-            created_by_id: user.userId,
+            normalized_name: supervisorKey,
           },
         });
+        if (existingMapping) {
+          await tx.field_training_supervisor_name_mappings.update({
+            where: { id: existingMapping.id },
+            data: {
+              supervisor_user_id: supervisorUserId,
+              display_name: supervisorName,
+              supervisor_email: group.account.email,
+              updated_at: new Date(),
+            },
+          });
+        } else {
+          await tx.field_training_supervisor_name_mappings.create({
+            data: {
+              university_id: batch.university_id,
+              normalized_name: supervisorKey,
+              display_name: supervisorName,
+              supervisor_user_id: supervisorUserId,
+              supervisor_email: group.account.email,
+              created_by_id: user.userId,
+            },
+          });
+        }
       }
 
       for (const student of group.students) {
@@ -443,6 +524,26 @@ async function applyImport(opportunityId, user, body) {
         const app = await tx.field_training_applications.findUnique({
           where: { id: student.application_id },
         });
+        if (!app) {
+          throw new ApiError(400, 'لا يمكن اعتماد ملف يحتوي على طلاب غير صالحين');
+        }
+
+        await tx.field_training_applications.update({
+          where: { id: app.id },
+          data: {
+            academic_supervisor_name: supervisorName,
+            academic_supervisor_normalized: supervisorKey,
+            updated_at: new Date(),
+          },
+        });
+
+        const nameChanged = !names.supervisorNamesEqual(
+          existing?.academic_supervisor_name || app.academic_supervisor_name,
+          supervisorName
+        );
+        const accountChanged =
+          String(existing?.supervisor_user_id || '') !== String(supervisorUserId || '');
+
         if (!existing) {
           await tx.field_training_academic_supervisor_assignments.create({
             data: {
@@ -450,7 +551,9 @@ async function applyImport(opportunityId, user, body) {
               student_id: app.student_id,
               opportunity_id: opportunityId,
               university_id: batch.university_id,
-              supervisor_user_id: group.account.id,
+              supervisor_user_id: supervisorUserId,
+              academic_supervisor_name: supervisorName,
+              academic_supervisor_normalized: supervisorKey,
               import_batch_id: batch.id,
               assigned_by_id: user.userId,
             },
@@ -463,7 +566,9 @@ async function applyImport(opportunityId, user, body) {
               opportunity_id: opportunityId,
               university_id: batch.university_id,
               previous_supervisor_id: null,
-              new_supervisor_id: group.account.id,
+              new_supervisor_id: supervisorUserId,
+              previous_supervisor_name: null,
+              new_supervisor_name: supervisorName,
               action: 'created',
               acting_admin_id: user.userId,
               original_filename: batch.original_filename,
@@ -471,11 +576,13 @@ async function applyImport(opportunityId, user, body) {
             },
           });
           created.push(student.application_id);
-        } else if (String(existing.supervisor_user_id) !== String(group.account.id)) {
+        } else if (nameChanged || accountChanged) {
           await tx.field_training_academic_supervisor_assignments.update({
             where: { application_id: student.application_id },
             data: {
-              supervisor_user_id: group.account.id,
+              supervisor_user_id: supervisorUserId,
+              academic_supervisor_name: supervisorName,
+              academic_supervisor_normalized: supervisorKey,
               import_batch_id: batch.id,
               assigned_by_id: user.userId,
               assigned_at: new Date(),
@@ -490,7 +597,9 @@ async function applyImport(opportunityId, user, body) {
               opportunity_id: opportunityId,
               university_id: batch.university_id,
               previous_supervisor_id: existing.supervisor_user_id,
-              new_supervisor_id: group.account.id,
+              new_supervisor_id: supervisorUserId,
+              previous_supervisor_name: existing.academic_supervisor_name || null,
+              new_supervisor_name: supervisorName,
               action: 'reassigned',
               acting_admin_id: user.userId,
               original_filename: batch.original_filename,
@@ -507,7 +616,9 @@ async function applyImport(opportunityId, user, body) {
               opportunity_id: opportunityId,
               university_id: batch.university_id,
               previous_supervisor_id: existing.supervisor_user_id,
-              new_supervisor_id: group.account.id,
+              new_supervisor_id: supervisorUserId,
+              previous_supervisor_name: existing.academic_supervisor_name || null,
+              new_supervisor_name: supervisorName,
               action: 'unchanged',
               acting_admin_id: user.userId,
               original_filename: batch.original_filename,
@@ -552,8 +663,8 @@ async function listAcademicSupervisors(opportunityId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
-  const universityId = opp.university_id;
-  const reviewers = universityId ? await loadUniversityReviewers(universityId) : [];
+  const university = await resolveOpportunityUniversity(opp);
+  const reviewers = university?.id ? await loadUniversityReviewers(university.id) : [];
   return { supervisors: reviewers };
 }
 
@@ -577,4 +688,6 @@ module.exports = {
   applyResolutions,
   listAcademicSupervisors,
   downloadTemplate,
+  previewCanApply,
+  resolveOpportunityUniversity,
 };

@@ -137,7 +137,7 @@
   },
   "assignment": {
     "title": "Assign students to academic supervisors",
-    "desc": "Upload an Excel file to assign students to academic supervisors without changing grades or training status.",
+    "desc": "Upload an Excel file to assign students to academic supervisors by name. A platform account is not required.",
     "uploadExcel": "Upload Excel file",
     "downloadTemplate": "Download Excel template",
     "dropHint": "Drop an .xlsx file here or click to choose",
