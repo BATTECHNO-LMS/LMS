@@ -90,12 +90,13 @@ export function CourseMaterialsManager({ programId, canManage = true }) {
 
   async function openFile(item) {
     try {
+      const { openProtectedUploadUrl } = await import('../../../utils/protectedUploadUrl.js');
       if (item.url && !item.hasFile) {
-        window.open(item.url, '_blank', 'noopener,noreferrer');
+        openProtectedUploadUrl(item.url);
         return;
       }
       const data = await getMaterialPlaybackUrl(item.id);
-      if (data?.url) window.open(data.url, '_blank', 'noopener,noreferrer');
+      if (data?.url) openProtectedUploadUrl(data.url);
     } catch (err) {
       setError(getApiErrorMessage(err, 'تعذر فتح الملف.'));
     }

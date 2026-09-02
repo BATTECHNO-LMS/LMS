@@ -14,7 +14,7 @@ import {
   getTraineeProgramDetail,
   getPrePostComparison,
   submitTask,
-  getTaskInstructionFile,
+  downloadTaskInstructionFile,
 } from '../../features/training/training.service.js';
 import {
   TrainingAssessmentAttemptPanel,
@@ -27,7 +27,7 @@ import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 import { formatAssessmentDateTime } from '../../features/training/assessmentPresentation/assessmentDate.js';
 import { trainingTaskStatusLabel } from '../../features/training/trainingTaskStatus.js';
 import { mergeTraineeProgramDetail } from '../../features/training/mergeCourseDetail.js';
-
+import { openProtectedUploadUrl } from '../../utils/protectedUploadUrl.js';
 const TABS = [
   { id: 'overview', label: 'نظرة عامة' },
   { id: 'sessions', label: 'الجلسات' },
@@ -375,7 +375,7 @@ export function TraineeCourseDetailPage() {
                               '../../features/training/training.service.js'
                             );
                             const dataUrl = await getMaterialPlaybackUrl(m.id);
-                            if (dataUrl?.url) window.open(dataUrl.url, '_blank', 'noopener,noreferrer');
+                            if (dataUrl?.url) openProtectedUploadUrl(dataUrl.url);
                           } catch (err) {
                             setError(getApiErrorMessage(err, 'تعذر فتح الملف.'));
                           }
@@ -413,8 +413,7 @@ export function TraineeCourseDetailPage() {
                         variant="outline"
                         onClick={async () => {
                           try {
-                            const file = await getTaskInstructionFile(task.id);
-                            if (file?.url) window.open(file.url, '_blank', 'noopener,noreferrer');
+                            await downloadTaskInstructionFile(task.id);
                           } catch (err) {
                             setError(getApiErrorMessage(err, 'تعذر تحميل ملف التعليمات.'));
                           }

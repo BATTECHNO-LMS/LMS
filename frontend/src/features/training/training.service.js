@@ -121,6 +121,50 @@ export async function getTaskInstructionFile(taskId) {
   return unwrapApiData(res);
 }
 
+/**
+ * Download task instruction via authenticated API (blob) so /uploads auth works.
+ */
+export async function downloadTaskInstructionFile(taskId) {
+  const { withUploadAccessToken } = await import('../../utils/protectedUploadUrl.js');
+  try {
+    const res = await apiClient.get(`${base}/tasks/${taskId}/instruction-file/download`, {
+      responseType: 'blob',
+    });
+    const contentType = String(res.headers['content-type'] || '');
+    if (contentType.includes('application/json')) {
+      // Auth/error JSON returned as blob
+      const text = await res.data.text();
+      let message = 'تعذر تحميل ملف التعليمات.';
+      try {
+        message = JSON.parse(text)?.message || message;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(message);
+    }
+    const disposition = res.headers['content-disposition'] || '';
+    const match = /filename="([^"]+)"/i.exec(disposition);
+    const filename = match?.[1] || `task-instructions-${taskId}`;
+    const blobUrl = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    return { blob: res.data, filename };
+  } catch (err) {
+    const meta = await getTaskInstructionFile(taskId);
+    if (meta?.url) {
+      window.open(withUploadAccessToken(meta.url), '_blank', 'noopener,noreferrer');
+      return null;
+    }
+    throw err;
+  }
+}
+
 export async function gradeTask(submissionId, body) {
   const res = await apiClient.post(`${base}/submissions/${submissionId}/grade`, body);
   return unwrapApiData(res);

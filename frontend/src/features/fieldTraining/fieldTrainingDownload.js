@@ -1,9 +1,12 @@
+import { withUploadAccessToken } from '../../utils/protectedUploadUrl.js';
+
 /**
  * Open a remote download URL in a new browser tab (avoids XHR/CORS on R2 presigned URLs).
+ * Same-origin /uploads paths get an access_token query so authenticate middleware accepts them.
  * @param {string} url
  */
 export function openRemoteDownloadUrl(url) {
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(withUploadAccessToken(url), '_blank', 'noopener,noreferrer');
 }
 
 /**

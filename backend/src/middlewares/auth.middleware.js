@@ -7,12 +7,28 @@ const { enforceAcademicReviewerReadOnly } = require('./permission.middleware');
 const { AUTH_ERROR_CODES, messageForCode } = require('../utils/authErrorCatalog');
 
 /**
+ * Resolve Bearer token from Authorization header, or from access_token/token
+ * query on GET (needed when the browser opens /uploads/... in a new tab).
+ */
+function extractBearerToken(req) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith('Bearer ')) {
+    return header.slice(7).trim();
+  }
+  if (String(req.method || 'GET').toUpperCase() === 'GET') {
+    const q = req.query?.access_token || req.query?.token;
+    if (typeof q === 'string' && q.trim()) return q.trim();
+  }
+  return null;
+}
+
+/**
  * Verify JWT, then build req.user from current database authorization state.
  * Token roles / universityId / isGlobal are not authoritative.
  */
 async function authMiddleware(req, res, next) {
-  const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
+  const token = extractBearerToken(req);
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: messageForCode(AUTH_ERROR_CODES.UNAUTHORIZED),
@@ -20,7 +36,6 @@ async function authMiddleware(req, res, next) {
     });
   }
 
-  const token = header.slice(7);
   let payload;
   try {
     payload = verifyToken(token);
@@ -72,4 +87,4 @@ async function authMiddleware(req, res, next) {
 
 const authenticate = authMiddleware;
 
-module.exports = { authMiddleware, authenticate };
+module.exports = { authMiddleware, authenticate, extractBearerToken };

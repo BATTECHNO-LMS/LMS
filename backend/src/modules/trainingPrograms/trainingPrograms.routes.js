@@ -329,6 +329,13 @@ router.get(
   c.getTaskInstructionFile
 );
 router.get(
+  '/tasks/:taskId/instruction-file/download',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskIdParam }),
+  c.downloadTaskInstructionFile
+);
+router.get(
   '/tasks/:taskId/submissions',
   authenticate,
   manage,

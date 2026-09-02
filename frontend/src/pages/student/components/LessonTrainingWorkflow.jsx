@@ -13,6 +13,7 @@ import { Button } from '../../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../../components/common/LoadingSpinner.jsx';
 import { useLessonTraining, useLessonTrainingMutations } from '../../../features/courses/hooks/useLessonTraining.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { withUploadAccessToken } from '../../../utils/protectedUploadUrl.js';
 
 function embedVideoUrl(url) {
   if (!url) return null;
@@ -177,7 +178,7 @@ export function LessonTrainingWorkflow({ courseId, lesson, onFinished }) {
             {config?.task_file_url ? (
               <a
                 className="btn btn--outline btn--sm"
-                href={config.task_file_url}
+                href={withUploadAccessToken(config.task_file_url)}
                 target="_blank"
                 rel="noreferrer"
               >

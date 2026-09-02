@@ -6,6 +6,9 @@ const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/org
 const { emitDomainEvent } = require('../notificationEngine');
 const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
+const { getStorageBackend, getProvider } = require('../../shared/storage/storageProvider');
+const path = require('path');
+const fs = require('fs');
 
 const REVISION_STATUSES = new Set(['REVISION_REQUESTED', 'REOPENED', 'RETURNED']);
 
@@ -259,7 +262,71 @@ function resolveAttachmentUrl(settings) {
   return null;
 }
 
-async function getInstructionFileUrl(requester, taskId) {
+function storageKeyFromUploadUrl(url) {
+  const s = String(url || '').trim();
+  if (!s) return null;
+  try {
+    if (s.startsWith('http://') || s.startsWith('https://')) {
+      const pathname = new URL(s).pathname || '';
+      const match = pathname.match(/\/uploads\/(.+)$/);
+      return match ? decodeURIComponent(match[1]) : null;
+    }
+  } catch {
+    return null;
+  }
+  if (s.startsWith('/uploads/')) return s.slice('/uploads/'.length);
+  if (s.startsWith('uploads/')) return s.slice('uploads/'.length);
+  return s.replace(/^\/+/, '');
+}
+
+async function resolveInstructionAttachment(task) {
+  const settings = parseSettings(task.settings_json);
+  let fileName = settings.attachmentOriginalName || settings.attachmentFileName || 'task-instructions';
+  let mimeType = settings.attachmentMimeType || 'application/octet-stream';
+  let storageKey = settings.attachmentStorageKey || null;
+
+  if (settings.attachmentFileId) {
+    const file = await prisma.files.findFirst({
+      where: { id: settings.attachmentFileId, deleted_at: null },
+    });
+    if (file) {
+      storageKey = file.storage_key || storageKey;
+      fileName = file.original_name || fileName;
+      mimeType = file.mime_type || mimeType;
+      if (!storageKey && file.url) storageKey = storageKeyFromUploadUrl(file.url);
+      return {
+        storageKey,
+        externalUrl: storageKey ? null : file.url || null,
+        fileName,
+        mimeType,
+      };
+    }
+  }
+
+  if (!storageKey && settings.attachmentUrl) {
+    storageKey = storageKeyFromUploadUrl(settings.attachmentUrl);
+  }
+
+  if (storageKey) {
+    return { storageKey, externalUrl: null, fileName, mimeType };
+  }
+
+  const url = resolveAttachmentUrl(settings);
+  if (!url) return null;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    const key = storageKeyFromUploadUrl(url);
+    if (key) return { storageKey: key, externalUrl: null, fileName, mimeType };
+    return { storageKey: null, externalUrl: url, fileName, mimeType };
+  }
+  return {
+    storageKey: storageKeyFromUploadUrl(url),
+    externalUrl: null,
+    fileName,
+    mimeType,
+  };
+}
+
+async function assertCanAccessInstructionFile(requester, taskId) {
   const task = await loadTaskOrThrow(taskId);
   assertOrganizationAccess(requester, task.training_programs.organization_id);
   const enrollment = await findViewableEnrollment(requester, task);
@@ -273,18 +340,58 @@ async function getInstructionFileUrl(requester, taskId) {
   } else if (!enrollment) {
     throw new ApiError(403, 'Not enrolled');
   }
-  const settings = parseSettings(task.settings_json);
-  if (settings.attachmentFileId) {
-    const file = await prisma.files.findFirst({
-      where: { id: settings.attachmentFileId, deleted_at: null },
-    });
-    if (file) {
-      return { url: file.url || resolvePublicUrl(file.storage_key), expiresIn: null };
-    }
+  return task;
+}
+
+async function getInstructionFileUrl(requester, taskId) {
+  const task = await assertCanAccessInstructionFile(requester, taskId);
+  const attachment = await resolveInstructionAttachment(task);
+  if (!attachment) throw new ApiError(404, 'Attachment not found');
+  if (attachment.externalUrl) {
+    return { url: attachment.externalUrl, expiresIn: null };
   }
-  const url = resolveAttachmentUrl(settings);
+  if (getStorageBackend() === 'r2' && attachment.storageKey) {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: attachment.storageKey });
+    return {
+      url: signed.url || signed.downloadUrl || signed,
+      expiresIn: signed.expiresIn || null,
+    };
+  }
+  const url = resolvePublicUrl(attachment.storageKey);
   if (!url) throw new ApiError(404, 'Attachment not found');
-  return { url, expiresIn: null };
+  return { url, expiresIn: null, fileName: attachment.fileName };
+}
+
+async function openInstructionFileDownload(requester, taskId) {
+  const task = await assertCanAccessInstructionFile(requester, taskId);
+  const attachment = await resolveInstructionAttachment(task);
+  if (!attachment) throw new ApiError(404, 'Attachment not found');
+
+  if (attachment.externalUrl) {
+    return { mode: 'redirect', url: attachment.externalUrl };
+  }
+  if (!attachment.storageKey) throw new ApiError(404, 'Attachment not found');
+
+  if (getStorageBackend() === 'r2') {
+    const signed = await getProvider().createPresignedGetUrl({ storageKey: attachment.storageKey });
+    return {
+      mode: 'redirect',
+      url: signed.url || signed.downloadUrl || signed,
+    };
+  }
+
+  const absPath = path.resolve(getProvider().getAbsolutePath(attachment.storageKey));
+  try {
+    await fs.promises.access(absPath, fs.constants.R_OK);
+  } catch {
+    throw new ApiError(404, 'Attachment not found');
+  }
+  return {
+    mode: 'file',
+    absPath,
+    fileName: path.basename(attachment.fileName || attachment.storageKey),
+    mimeType: attachment.mimeType || 'application/octet-stream',
+  };
 }
 
 async function getMySubmission(requester, taskId) {
@@ -383,6 +490,7 @@ module.exports = {
   gradeTask,
   getTaskForRequester,
   getInstructionFileUrl,
+  openInstructionFileDownload,
   getMySubmission,
   resubmitTask,
   getSubmissionFileUrl,

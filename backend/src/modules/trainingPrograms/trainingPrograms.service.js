@@ -1297,6 +1297,11 @@ async function getTaskInstructionFile(requester, taskId) {
   return workflow.getInstructionFileUrl(requester, taskId);
 }
 
+async function openTaskInstructionFileDownload(requester, taskId) {
+  const workflow = require('./trainingTaskWorkflow.service');
+  return workflow.openInstructionFileDownload(requester, taskId);
+}
+
 async function getMyTaskSubmission(requester, taskId) {
   const workflow = require('./trainingTaskWorkflow.service');
   return workflow.getMySubmission(requester, taskId);
@@ -2171,6 +2176,7 @@ module.exports = {
   gradeTask,
   getTaskForRequester,
   getTaskInstructionFile,
+  openTaskInstructionFileDownload,
   getMyTaskSubmission,
   resubmitTask,
   getTaskSubmissionFile,

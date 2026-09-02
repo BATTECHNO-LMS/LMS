@@ -189,6 +189,25 @@ async function getTaskInstructionFile(req, res, next) {
     return next(e);
   }
 }
+async function downloadTaskInstructionFile(req, res, next) {
+  try {
+    const result = await service.openTaskInstructionFileDownload(
+      R(req),
+      req.validated.params.taskId
+    );
+    if (result.mode === 'redirect') {
+      return res.redirect(302, result.url);
+    }
+    res.setHeader('Content-Type', result.mimeType || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${String(result.fileName || 'task-instructions').replace(/"/g, '')}"`
+    );
+    return res.sendFile(result.absPath);
+  } catch (e) {
+    return next(e);
+  }
+}
 async function listTaskSubmissions(req, res, next) {
   try {
     return success(res, await service.listTaskSubmissions(R(req), req.validated.params.taskId));
@@ -653,6 +672,7 @@ module.exports = {
   submitTask,
   getTask,
   getTaskInstructionFile,
+  downloadTaskInstructionFile,
   listTaskSubmissions,
   resubmitTask,
   requestTaskRevision,
