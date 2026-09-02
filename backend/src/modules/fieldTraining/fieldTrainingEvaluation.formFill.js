@@ -107,7 +107,40 @@ function scoreGridHeaderCells(tableXml) {
 
 function scoreGridNeedsRtlFlip(tableXml) {
   const headerCells = scoreGridHeaderCells(tableXml).map((text) => normalizeAr(text));
-  return /(?:ف|ض)عيف\s*1/.test(headerCells[0] || '');
+  // LibreOffice paints the first XML column on the LEFT. Desired visual:
+  // left=ضعيف … right=الرقم. Flip only when الرقم is already on the left.
+  return /الرقم/.test(headerCells[0] || '');
+}
+
+function reverseScoreGridTable(tableXml) {
+  let out = tableXml;
+  const grid = (out.match(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>/) || [''])[0];
+  if (grid) {
+    const cols = [...grid.matchAll(/<w:gridCol\b[^/]*\/>/g)].map((m) => m[0]);
+    if (cols.length > 1) {
+      const reversedGrid = `<w:tblGrid>${[...cols].reverse().join('')}</w:tblGrid>`;
+      out = out.replace(grid, reversedGrid);
+    }
+  }
+  const rows = [...out.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
+  for (const row of rows) {
+    out = out.replace(row[0], reverseTableRowCells(row[0]));
+  }
+  return out;
+}
+
+/**
+ * Keep the score grid in the visual order LibreOffice/PDF need:
+ * LEFT ضعيف … ممتاز | مجال التقييم | الرقم RIGHT
+ * Do NOT set w:bidiVisual — LibreOffice reverses columns when it is present.
+ */
+function ensureScoreGridRtl(tableXml) {
+  if (!/مجال التقييم/.test(cellPlainText(tableXml))) return tableXml;
+  let out = String(tableXml).replace(/<w:bidiVisual\s*\/>/g, '');
+  if (scoreGridNeedsRtlFlip(out)) {
+    out = reverseScoreGridTable(out);
+  }
+  return out;
 }
 
 function normalizeDocumentScoreGridTables(xml) {
@@ -115,12 +148,6 @@ function normalizeDocumentScoreGridTables(xml) {
     if (!/مجال التقييم/.test(cellPlainText(table))) return table;
     return ensureScoreGridRtl(table);
   });
-}
-
-function ensureScoreGridRtl(tableXml) {
-  if (!/مجال التقييم/.test(cellPlainText(tableXml))) return tableXml;
-  if (/<w:bidiVisual/.test(tableXml)) return tableXml;
-  return tableXml.replace(/<w:tblPr>/, '<w:tblPr><w:bidiVisual/>');
 }
 
 function ratingColumnIndexForScore(headerCells, score) {
@@ -147,9 +174,9 @@ function fillScoreGridTable(tableXml, values) {
     (score) => score != null
   );
   const hasTotal = blank(values.professional_evaluation_total) !== '';
-  if (!hasScores && !hasTotal) return tableXml;
-
   const table = ensureScoreGridRtl(tableXml);
+  if (!hasScores && !hasTotal) return table;
+
   const rtlHeaderCells = scoreGridHeaderCells(table);
   const rtlRows = [...table.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
   let out = table;

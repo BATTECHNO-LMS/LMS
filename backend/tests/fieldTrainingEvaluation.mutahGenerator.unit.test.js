@@ -226,11 +226,12 @@ describe('Mutah evaluation generator mapping', () => {
       .map((match) => match[0])
       .find((table) => /مجال التقييم/.test(cellPlainText(table)));
     const { ratingColumnIndexForScore, scoreGridHeaderCells } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.formFill');
-    assert.match(scoreTable, /<w:bidiVisual/);
+    assert.equal(/<w:bidiVisual/.test(scoreTable), false);
     const headerCells = scoreGridHeaderCells(scoreTable);
     assert.match(headerCells[headerCells.length - 1], /الرقم/);
     assert.match(headerCells[headerCells.length - 2], /مجال التقييم/);
     assert.match(headerCells[0], /(?:ف|ض)عيف\s*1/);
+    assert.match(headerCells[4], /ممتاز\s*5/);
     assert.match(inspect.text, /45/);
     const rows = [...scoreTable.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)].slice(1, 11);
     const expectedScores = Object.values(scores40);
