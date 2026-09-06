@@ -3,8 +3,8 @@
  *
  * Creates/updates (idempotent — no deletes):
  * - System roles (RBAC)
- * - 5 Jordanian universities + active email domains
- * - 10 global active specialties
+ * - Jordanian universities + active email domains + UNIVERSITY org bridges
+ * - Global active specialties + university specialty programs
  *
  * Does NOT create demo users. Create Super Admin manually after setup.
  *

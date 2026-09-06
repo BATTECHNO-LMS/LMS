@@ -1,3 +1,5 @@
+'use strict';
+
 const { prisma } = require('../../src/config/db');
 const {
   REAL_UNIVERSITIES,
@@ -8,6 +10,7 @@ const {
   buildUniversityNotes,
 } = require('./baselineCatalog');
 const { mergeDuplicateSpecialties } = require('./specialtyMerge');
+const { normalizeUniversityLabel } = require('../../src/utils/universityNameNormalize');
 
 async function ensureRoles() {
   const rows = [];
@@ -61,20 +64,153 @@ async function ensureEmailDomain(universityId, domain) {
   });
 }
 
+function collectNameAliases(spec) {
+  const names = new Set();
+  if (spec.name) names.add(String(spec.name).trim());
+  for (const alias of spec.nameAliases || []) {
+    const t = String(alias || '').trim();
+    if (t) names.add(t);
+  }
+  return [...names];
+}
+
+function collectNameEnAliases(spec) {
+  const names = new Set();
+  if (spec.nameEn) names.add(String(spec.nameEn).trim());
+  for (const alias of spec.nameEnAliases || []) {
+    const t = String(alias || '').trim();
+    if (t) names.add(t);
+  }
+  return [...names];
+}
+
 /**
- * Idempotent upsert for one real baseline university + active email domain.
- * Matches by email domain first, then by Arabic name — never creates duplicates.
+ * Find an existing university by domain, code, Arabic name, or documented aliases.
+ * Never creates a duplicate when an alias already exists.
+ */
+async function findExistingBaselineUniversity(spec) {
+  const domain = spec.domain.trim().toLowerCase();
+  let existing = await findUniversityByDomain(domain);
+  if (existing) return existing;
+
+  if (spec.code) {
+    existing = await prisma.universities.findFirst({ where: { code: spec.code } });
+    if (existing) return existing;
+  }
+
+  const arabicNames = collectNameAliases(spec);
+  if (arabicNames.length) {
+    existing = await prisma.universities.findFirst({
+      where: { name: { in: arabicNames } },
+    });
+    if (existing) return existing;
+  }
+
+  const englishNames = collectNameEnAliases(spec);
+  for (const nameEn of englishNames) {
+    existing = await prisma.universities.findFirst({
+      where: { name_en: { equals: nameEn, mode: 'insensitive' } },
+    });
+    if (existing) return existing;
+  }
+
+  return null;
+}
+
+/**
+ * Ensure a type=UNIVERSITY organization row and 1:1 universities.organization_id bridge.
+ * Preserves existing organization IDs; does not reassign unrelated orgs.
+ */
+async function ensureUniversityOrganization(university, spec) {
+  const notes = buildUniversityNotes(spec);
+  const preferredCode = spec.code ? String(spec.code).trim() : null;
+  const orgPayload = {
+    type: 'UNIVERSITY',
+    name: spec.name,
+    name_en: spec.nameEn || null,
+    short_name: spec.shortName || null,
+    website: spec.website || null,
+    country: spec.country || null,
+    city: spec.city || null,
+    contact_email: spec.contact_email || null,
+    status: 'active',
+    notes,
+    updated_at: new Date(),
+  };
+
+  let organization = null;
+
+  if (university.organization_id) {
+    organization = await prisma.organizations.findUnique({
+      where: { id: university.organization_id },
+    });
+  }
+
+  if (!organization && preferredCode) {
+    organization = await prisma.organizations.findFirst({
+      where: { type: 'UNIVERSITY', code: preferredCode },
+    });
+  }
+
+  if (!organization) {
+    const arabicNames = collectNameAliases(spec);
+    organization = await prisma.organizations.findFirst({
+      where: { type: 'UNIVERSITY', name: { in: arabicNames } },
+    });
+  }
+
+  if (organization) {
+    const updateData = { ...orgPayload };
+    // Keep legacy UNI-* codes unless the org has no code and we have a preferred one.
+    if (!organization.code && preferredCode) {
+      updateData.code = preferredCode;
+    } else if (
+      preferredCode &&
+      organization.code &&
+      normalizeUniversityLabel(organization.code) === normalizeUniversityLabel(preferredCode)
+    ) {
+      updateData.code = preferredCode;
+    }
+    organization = await prisma.organizations.update({
+      where: { id: organization.id },
+      data: updateData,
+    });
+  } else {
+    organization = await prisma.organizations.create({
+      data: {
+        ...orgPayload,
+        code: preferredCode || `UNI-${String(university.id).replace(/-/g, '').slice(0, 12)}`,
+        created_at: new Date(),
+      },
+    });
+  }
+
+  if (university.organization_id !== organization.id) {
+    await prisma.universities.update({
+      where: { id: university.id },
+      data: { organization_id: organization.id, updated_at: new Date() },
+    });
+  }
+
+  return organization;
+}
+
+/**
+ * Idempotent upsert for one real baseline university + active email domain + UNIVERSITY org bridge.
+ * Matches by email domain, code, Arabic name, then aliases — never creates duplicates.
  */
 async function ensureBaselineUniversity(spec) {
   const domain = spec.domain.trim().toLowerCase();
-  let existing = await findUniversityByDomain(domain);
-  if (!existing) {
-    existing = await prisma.universities.findFirst({ where: { name: spec.name } });
-  }
+  const existing = await findExistingBaselineUniversity(spec);
 
   const data = {
     name: spec.name,
+    name_en: spec.nameEn || null,
+    short_name: spec.shortName || null,
     type: 'University',
+    website: spec.website || null,
+    country: spec.country || null,
+    city: spec.city || null,
     contact_person: 'إدارة المنصة',
     contact_email: spec.contact_email,
     contact_phone: null,
@@ -83,15 +219,27 @@ async function ensureBaselineUniversity(spec) {
     notes: buildUniversityNotes(spec),
   };
 
+  // Set code when creating, or when the existing row has no code yet.
+  if (spec.code && (!existing || !existing.code)) {
+    data.code = spec.code;
+  }
+
   const university = existing
     ? await prisma.universities.update({
         where: { id: existing.id },
         data: { ...data, updated_at: new Date() },
       })
-    : await prisma.universities.create({ data });
+    : await prisma.universities.create({
+        data: {
+          ...data,
+          code: spec.code || null,
+        },
+      });
 
   await ensureEmailDomain(university.id, domain);
-  return { university, domain };
+  const organization = await ensureUniversityOrganization(university, spec);
+
+  return { university, domain, organization };
 }
 
 async function ensureBaselineUniversities() {
@@ -225,10 +373,15 @@ async function seedRealBaseline() {
 
   return {
     roles: roles.length,
-    universities: universities.map(({ university, domain }) => ({
+    universities: universities.map(({ university, domain, organization }) => ({
       id: university.id,
       name: university.name,
+      nameEn: university.name_en,
+      code: university.code,
       domain,
+      organizationId: organization?.id || university.organization_id || null,
+      organizationType: organization?.type || 'UNIVERSITY',
+      status: university.status,
     })),
     specialties: specialties.size,
     universitySpecialties,
@@ -242,6 +395,8 @@ module.exports = {
   ensureBaselineUniversity,
   ensureBaselineUniversities,
   ensureEmailDomain,
+  ensureUniversityOrganization,
+  findExistingBaselineUniversity,
   ensureSpecialties,
   ensureUniversitySpecialties,
   deactivateExcludedUniversitySpecialties,

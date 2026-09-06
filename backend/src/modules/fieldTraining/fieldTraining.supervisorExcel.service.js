@@ -12,6 +12,7 @@ const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmai
 const parse = require('./fieldTraining.supervisorExcel.parse');
 const supervisorScope = require('./fieldTraining.supervisorScope');
 const names = require('./fieldTraining.supervisorName');
+const { universityLabelsMatch } = require('../../utils/universityNameNormalize');
 
 const UNRESOLVED_ACCOUNT = 'unlinked';
 const AMBIGUOUS_ACCOUNT = 'ambiguous';
@@ -194,7 +195,12 @@ async function loadEnrollmentIndex(opportunity, university) {
 
 function matchExcelRow(row, index, { opportunity, university, expectedUniversity, expectedOpportunity }) {
   const errors = [...(row.errors || [])];
-  if (row.universityNormalized && expectedUniversity && row.universityNormalized !== expectedUniversity) {
+  const rowUniversityLabel = row.university || row.universityNormalized;
+  if (
+    rowUniversityLabel &&
+    (university?.name || expectedUniversity) &&
+    !universityLabelsMatch(rowUniversityLabel, university?.name || expectedUniversity)
+  ) {
     errors.push({ code: 'cross_university', label: 'الصف لا ينتمي إلى الجامعة الحالية' });
   }
   if (row.opportunityNormalized && expectedOpportunity && row.opportunityNormalized !== expectedOpportunity) {

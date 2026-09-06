@@ -55,6 +55,21 @@ const REAL_UNIVERSITIES = [
     country: 'Jordan',
     contact_email: 'info@yu.edu.jo',
   },
+  {
+    name: 'جامعة الزرقاء الخاصة',
+    nameEn: 'Zarqa Private University',
+    /** Preferred org/university code (no separate slug column). */
+    code: 'zarqa-private-university',
+    shortName: 'ZU',
+    domain: 'zu.edu.jo',
+    website: 'https://www.zu.edu.jo/',
+    city: 'Zarqa',
+    country: 'Jordan',
+    contact_email: 'info@zu.edu.jo',
+    /** Alternate names that must resolve to this same university (not create duplicates). */
+    nameAliases: ['جامعة الزرقاء'],
+    nameEnAliases: ['Zarqa University', 'Zarqa Private University'],
+  },
 ];
 
 const REQUIRED_ROLES = [
@@ -281,6 +296,37 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
         name_en: 'Digital Reality and Game Development',
         code: 'DIGITAL_REALITY_GAME_DEVELOPMENT',
         canonicalCode: 'DRGD',
+      },
+    ],
+  },
+  {
+    universityDomain: 'zu.edu.jo',
+    collegeNameAr: 'كلية تكنولوجيا المعلومات',
+    collegeNameEn: 'Faculty of Information Technology',
+    programs: [
+      {
+        name_ar: 'علم الحاسوب',
+        name_en: 'Computer Science',
+        code: 'COMPUTER_SCIENCE',
+        canonicalCode: 'CS',
+      },
+      {
+        name_ar: 'هندسة البرمجيات',
+        name_en: 'Software Engineering',
+        code: 'SOFTWARE_ENGINEERING',
+        canonicalCode: 'SWE',
+      },
+      {
+        name_ar: 'الذكاء الاصطناعي',
+        name_en: 'Artificial Intelligence',
+        code: 'ARTIFICIAL_INTELLIGENCE',
+        canonicalCode: 'AI',
+      },
+      {
+        name_ar: 'الأمن السيبراني',
+        name_en: 'Cybersecurity',
+        code: 'CYBERSECURITY',
+        canonicalCode: 'CYB',
       },
     ],
   },
