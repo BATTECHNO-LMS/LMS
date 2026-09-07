@@ -1694,6 +1694,81 @@ async function submitAssessmentById(assessmentId, answers, studentId) {
   return submitAssessment(assessment.opportunity_id, assessment.type, answers, studentId);
 }
 
+/**
+ * If a letter row exists but the PDF is missing from disk (volume wipe / path drift),
+ * regenerate it in place so student/admin download does not 404 with "File not found".
+ */
+async function ensureCompletionLetterPdfReady(applicationId, actorUserId, app, letter) {
+  if (letter?.pdf_url && repo.submissionFileExists(letter.pdf_url)) {
+    return letter;
+  }
+
+  const letterService = require('./fieldTraining.completionLetter.service');
+  const canRegenerate =
+    Boolean(letter) ||
+    Boolean(app.completion_letter_issued_at) ||
+    app.completion_eligibility_status === 'eligible';
+
+  if (!canRegenerate) {
+    throw new ApiError(404, 'كتاب الإنهاء غير موجود', null, 'COMPLETION_LETTER_NOT_FOUND');
+  }
+  if (app.completion_eligibility_status !== 'eligible') {
+    throw new ApiError(404, 'كتاب الإنهاء غير موجود', null, 'COMPLETION_LETTER_NOT_FOUND');
+  }
+  if (workflow.isExpelled(app)) {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const opp = await repo.findById(app.opportunity_id);
+  if (!opp) throw new ApiError(404, 'Opportunity not found');
+
+  const result = await letterService.issueOne(
+    applicationId,
+    actorUserId,
+    { id: actorUserId, isGlobal: true },
+    {
+      forceRegenerate: true,
+      allowSkip: false,
+      preloaded: { app, opp, letter: letter || null },
+    }
+  );
+
+  const refreshed =
+    (result?.letter?.pdf_url && result.letter) ||
+    (await repo.findCompletionLetterByApplication(applicationId));
+
+  if (!refreshed?.pdf_url || !repo.submissionFileExists(refreshed.pdf_url)) {
+    throw new ApiError(404, 'الملف غير موجود', null, 'COMPLETION_LETTER_FILE_MISSING');
+  }
+  return refreshed;
+}
+
+async function buildCompletionLetterDownloadPayload(app, letter) {
+  const profiles = await repo.findStudentProfilesByIds([app.student_id]);
+  const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
+  const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
+  const {
+    buildCompletionLetterPdfFilename,
+    contentDispositionAttachment,
+  } = require('./fieldTraining.completionLetter.filename');
+  const universityNumber =
+    resolveOfficialUniversityNumber(profiles[0]).number ||
+    extractUniversityNumberFromEmail(profiles[0]?.email) ||
+    '';
+  const fileName =
+    buildCompletionLetterPdfFilename({
+      studentName: profiles[0]?.full_name,
+      universityNumber,
+    }) || `${letter.letter_no || 'completion-letter'}.pdf`;
+
+  return {
+    absPath: repo.resolveSubmissionAbsolutePath(letter.pdf_url),
+    fileName,
+    mimeType: 'application/pdf',
+    contentDisposition: contentDispositionAttachment(fileName),
+  };
+}
+
 async function downloadCompletionLetter(applicationId, studentId) {
   const app = await repo.findApplicationById(applicationId);
   if (!app) throw new ApiError(404, 'Application not found');
@@ -1701,32 +1776,8 @@ async function downloadCompletionLetter(applicationId, studentId) {
   if (workflow.isExpelled(app)) throw new ApiError(403, 'Forbidden');
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(applicationId, studentId);
-  if (!letter?.pdf_url) throw new ApiError(404, 'Completion letter not found');
-
-  const absPath = repo.resolveSubmissionAbsolutePath(letter.pdf_url);
-  if (!repo.submissionFileExists(letter.pdf_url)) {
-    throw new ApiError(404, 'File not found');
-  }
-
-  const profiles = await repo.findStudentProfilesByIds([app.student_id]);
-  const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
-  const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
-  const { buildCompletionLetterPdfFilename, contentDispositionAttachment } = require('./fieldTraining.completionLetter.filename');
-  const universityNumber =
-    resolveOfficialUniversityNumber(profiles[0]).number ||
-    extractUniversityNumberFromEmail(profiles[0]?.email) ||
-    '';
-  const fileName = buildCompletionLetterPdfFilename({
-    studentName: profiles[0]?.full_name,
-    universityNumber,
-  }) || `${letter.letter_no}.pdf`;
-
-  return {
-    absPath,
-    fileName,
-    mimeType: 'application/pdf',
-    contentDisposition: contentDispositionAttachment(fileName),
-  };
+  const ready = await ensureCompletionLetterPdfReady(applicationId, studentId, app, letter);
+  return buildCompletionLetterDownloadPayload(app, ready);
 }
 
 async function downloadCompletionLetterAsManager(applicationId, user) {
@@ -1738,32 +1789,13 @@ async function downloadCompletionLetterAsManager(applicationId, user) {
   await require('./fieldTraining.supervisorScope').assertReviewerCanAccessApplication(user, app);
 
   const letter = await repo.findCompletionLetterByApplication(applicationId);
-  if (!letter?.pdf_url) throw new ApiError(404, 'Completion letter not found');
-
-  const absPath = repo.resolveSubmissionAbsolutePath(letter.pdf_url);
-  if (!repo.submissionFileExists(letter.pdf_url)) {
-    throw new ApiError(404, 'File not found');
-  }
-
-  const profiles = await repo.findStudentProfilesByIds([app.student_id]);
-  const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
-  const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
-  const { buildCompletionLetterPdfFilename, contentDispositionAttachment } = require('./fieldTraining.completionLetter.filename');
-  const universityNumber =
-    resolveOfficialUniversityNumber(profiles[0]).number ||
-    extractUniversityNumberFromEmail(profiles[0]?.email) ||
-    '';
-  const fileName = buildCompletionLetterPdfFilename({
-    studentName: profiles[0]?.full_name,
-    universityNumber,
-  }) || `${letter.letter_no}.pdf`;
-
-  return {
-    absPath,
-    fileName,
-    mimeType: 'application/pdf',
-    contentDisposition: contentDispositionAttachment(fileName),
-  };
+  const ready = await ensureCompletionLetterPdfReady(
+    applicationId,
+    user.userId || user.id,
+    app,
+    letter
+  );
+  return buildCompletionLetterDownloadPayload(app, ready);
 }
 
 module.exports = {
