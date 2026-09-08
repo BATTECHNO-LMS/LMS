@@ -439,6 +439,101 @@ export async function fetchOpportunityEligibility(opportunityId, { asInstructor 
   return unwrapApiData(res);
 }
 
+export async function fetchComprehensiveStudentReport(
+  opportunityId,
+  applicationId,
+  { asInstructor = false, params = {} } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(
+    `${base}/${opportunityId}/applications/${applicationId}/comprehensive-report`,
+    { params }
+  );
+  return unwrapApiData(res);
+}
+
+export async function downloadComprehensiveStudentReportPdf(
+  opportunityId,
+  applicationId,
+  { asInstructor = false, params = {} } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  try {
+    const res = await apiClient.get(
+      `${base}/${opportunityId}/applications/${applicationId}/comprehensive-report/pdf`,
+      { params, responseType: 'blob' }
+    );
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      `comprehensive-student-report-${applicationId}.pdf`
+    );
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+    return { blob: res.data, filename };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function fetchOpportunityReportValidation(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/reports/validation`);
+  return unwrapApiData(res);
+}
+
+export async function fetchOpportunityFinalReport(opportunityId, { asInstructor = false, params = {} } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/reports/final`, { params });
+  return unwrapApiData(res);
+}
+
+export async function fetchOpportunityComprehensiveReport(
+  opportunityId,
+  { asInstructor = false, params = {} } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/reports/comprehensive`, { params });
+  return unwrapApiData(res);
+}
+
+async function downloadOpportunityReportBlob(opportunityId, pathSuffix, fallbackName, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  try {
+    const res = await apiClient.get(`${base}/${opportunityId}${pathSuffix}`, { responseType: 'blob' });
+    const filename = parseFilename(res.headers['content-disposition'], fallbackName);
+    saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
+    return { blob: res.data, filename };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function downloadOpportunityFinalReportPdf(opportunityId, opts = {}) {
+  return downloadOpportunityReportBlob(
+    opportunityId,
+    '/reports/final/pdf',
+    'Tafila_Field_Training_Final_Report_2025_2026.pdf',
+    opts
+  );
+}
+
+export async function downloadOpportunityComprehensiveReportPdf(opportunityId, opts = {}) {
+  return downloadOpportunityReportBlob(
+    opportunityId,
+    '/reports/comprehensive/pdf',
+    'Tafila_Field_Training_Comprehensive_Report_2025_2026.pdf',
+    opts
+  );
+}
+
+export async function downloadOpportunityOfficialExcel(opportunityId, opts = {}) {
+  return downloadOpportunityReportBlob(
+    opportunityId,
+    '/reports/export/excel',
+    'Tafila_Field_Training_Students_2025_2026.xlsx',
+    opts
+  );
+}
+
 export async function issueCompletionLetter(applicationId) {
   const res = await apiClient.post(`${admin}/applications/${applicationId}/issue-completion-letter`);
   return unwrapApiData(res);

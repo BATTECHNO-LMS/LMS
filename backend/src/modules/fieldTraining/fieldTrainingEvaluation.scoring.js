@@ -121,6 +121,7 @@ function normalizePolicy(raw = {}) {
     fivePointThresholds: Array.isArray(raw.fivePointThresholds) && raw.fivePointThresholds.length
       ? raw.fivePointThresholds
       : DEFAULT_FIVE_POINT_THRESHOLDS,
+    scoringRules: raw.scoringRules || DEFAULT_POLICY.scoringRules,
   };
 }
 
@@ -613,6 +614,7 @@ module.exports = {
   evaluateGates,
   criterionFromEvidence,
   calculateFinalEvaluation,
+  professionalTotals,
   buildCriterionResult,
   usesManualRating,
 };

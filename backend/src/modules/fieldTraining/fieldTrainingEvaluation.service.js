@@ -77,6 +77,7 @@ const academicSupervisorResolve = require('./fieldTrainingEvaluation.academicSup
 const officialPopulation = require('./fieldTrainingEvaluation.officialPopulation');
 const supervisorNames = require('./fieldTraining.supervisorName');
 const { buildFieldTrainingStudentPerformanceSnapshot } = require('./fieldTrainingEvaluation.performanceSnapshot');
+const qualification = require('./fieldTraining.qualification');
 
 function sha256Buffer(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
@@ -220,6 +221,7 @@ function mapPolicyRow(row) {
     postAssessmentWeight: num(row.post_assessment_weight),
     professionalEvaluationWeight: num(row.professional_evaluation_weight),
     attendanceBands: row.attendance_bands || DEFAULT_POLICY.attendanceBands,
+    scoringRules: qualification.parseScoringRules(row.scoring_rules),
   };
 }
 
@@ -636,7 +638,7 @@ async function previewApplicationPayload(user, applicationId) {
   });
   const policy = { ...ctx.policy };
   if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
-  const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+  const calculated = qualification.qualifyLoadedContext(ctx);
   const official = buildOfficialComment(ctx, calculated);
   const evaluationDate = new Date();
   const payload = buildFillFields(
@@ -733,6 +735,7 @@ async function upsertPolicy(user, universityId, body) {
     postAssessmentWeight: body.post_assessment_weight,
     professionalEvaluationWeight: body.professional_evaluation_weight,
     attendanceBands: body.attendance_bands,
+    scoringRules: body.scoring_rules,
   });
   const check = scoring.validatePolicyWeights(mapped);
   if (!check.ok) {
@@ -764,6 +767,7 @@ async function upsertPolicy(user, universityId, body) {
         post_assessment_weight: mapped.postAssessmentWeight,
         professional_evaluation_weight: mapped.professionalEvaluationWeight,
         attendance_bands: mapped.attendanceBands,
+        scoring_rules: mapped.scoringRules || null,
         created_by_id: user.userId,
       },
     });
@@ -823,7 +827,7 @@ async function saveSupervisorRating(user, applicationId, body) {
   const ctx = byId.get(applicationId);
   const policy = { ...ctx?.policy };
   if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx?.scoringInput?.requiredHours;
-  const calculated = ctx ? scoring.calculateFinalEvaluation(ctx.scoringInput, policy) : null;
+  const calculated = ctx ? qualification.qualifyLoadedContext(ctx) : null;
   const derivedMap = {
     thinking_and_initiative: calculated?.criterion3Score,
     problem_solving: calculated?.criterion4Score,
@@ -892,6 +896,7 @@ async function saveSupervisorRating(user, applicationId, body) {
     studentId: application.student_id,
     meta: { source, applicationId, providedFields: provided },
   });
+  await require('./fieldTraining.qualification.service').persistQualification(applicationId);
   return { rating: row, source, providedFields: provided };
 }
 
@@ -931,7 +936,7 @@ async function createSupervisorRatingWithFields(user, applicationId, { fieldsAtF
   const ctx = byId.get(applicationId);
   const policy = { ...ctx?.policy };
   if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx?.scoringInput?.requiredHours;
-  const calculated = ctx ? scoring.calculateFinalEvaluation(ctx.scoringInput, policy) : null;
+  const calculated = ctx ? qualification.qualifyLoadedContext(ctx) : null;
   const derivedMap = {
     thinking_and_initiative: calculated?.criterion3Score,
     problem_solving: calculated?.criterion4Score,
@@ -990,6 +995,7 @@ async function createSupervisorRatingWithFields(user, applicationId, { fieldsAtF
     studentId: application.student_id,
     meta: { source, applicationId, fieldsAtFive: [...fieldsToSet], overwrittenPrevented: true },
   });
+  await require('./fieldTraining.qualification.service').persistQualification(applicationId);
   return { rating: row, source, fieldsAtFive: [...fieldsToSet], overwritten };
 }
 
@@ -1024,7 +1030,7 @@ async function analyzeOpportunityBulkGaps(user, opportunityId, { applicationIds 
     if (!ctx) continue;
     const policy = { ...ctx.policy };
     if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
-    const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+    const calculated = qualification.qualifyLoadedContext(ctx);
     const official = buildOfficialComment(ctx, calculated);
     const payload = buildFillFields(ctx, {
       ...calculated,
@@ -1247,6 +1253,7 @@ async function loadBatchContext(applicationIds) {
       select: {
         id: true,
         opportunity_id: true,
+        title: true,
         grading_mode: true,
         is_required: true,
       },
@@ -1369,7 +1376,10 @@ async function loadBatchContext(applicationIds) {
       attendancePercentage: num(app.attendance_percentage),
       attendedDays: attendanceSummary.attendedDays,
       absenceDays: attendanceSummary.absenceDays,
-      completedHours: attendanceSummary.actualHours,
+      completedHours:
+        num(app.completed_training_hours) != null
+          ? num(app.completed_training_hours)
+          : attendanceSummary.actualHours,
       requiredHours: num(opp?.required_training_hours),
       attendanceDataLoaded: attendanceSummary.attendanceDataLoaded,
       hoursDataLoaded: attendanceSummary.hoursDataLoaded,
@@ -1396,6 +1406,11 @@ async function loadBatchContext(applicationIds) {
       supervisorRatings: scoring.averageSupervisorRatings((ratingsByApp.get(app.id) || []).map(mapRatingRow)),
       bulkAuthorizedSupervisorFields: bulkRatingMod.bulkAuthorizedSupervisorFields(ratingsByApp.get(app.id) || []),
     };
+    scoringInput.requiredTaskRows = qualification.buildRequiredTaskRows({
+      tasks: oppTasks,
+      submissions: appSubs,
+      studentId: app.student_id,
+    });
     const assignment = assignmentsByApp.get(app.id) || null;
     const exclusion = officialPopulation.classifyOfficialReportExclusion({
       student,
@@ -1460,6 +1475,25 @@ function buildFillFields(ctx, evaluation, template = null) {
 }
 
 function buildOfficialComment(ctx, calculated) {
+  if (qualification.isFixedComponentPolicy(ctx.policy) && calculated?.eligibilityStatus) {
+    const items = (calculated.eligibilityReasons || []).map((code, index) => ({
+      code,
+      text: (calculated.eligibilityReasonLabels || [])[index] || code,
+    }));
+    const reasons = {
+      codes: calculated.eligibilityReasons || [],
+      labelsAr: calculated.eligibilityReasonLabels || [],
+      items,
+    };
+    return {
+      eligibilityStatus: calculated.eligibilityStatus,
+      reasons,
+      comment: buildAutoComment(
+        { ...calculated, eligibilityStatus: calculated.eligibilityStatus, eligibilityReasonLabels: reasons.labelsAr },
+        { eligibilityStatus: calculated.eligibilityStatus, reasonLabels: reasons.labelsAr }
+      ),
+    };
+  }
   const storedStatus = ctx.application?.completion_eligibility_status;
   let eligibilityStatus;
   if (storedStatus) {
@@ -1616,7 +1650,14 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
     }
     const policy = { ...ctx.policy };
     if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
-    const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+    const calculated = qualification.qualifyLoadedContext(ctx);
+    if (qualification.isFixedComponentPolicy(ctx.policy)) {
+      await require('./fieldTraining.qualification.service').persistApplicationEligibility(
+        applicationId,
+        calculated,
+        ctx
+      );
+    }
     const official = buildOfficialComment(ctx, calculated);
     const previous = previousByApp.get(applicationId);
     const evaluationDate =
@@ -1801,6 +1842,8 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
           generatedAt: new Date().toISOString(),
           academic_supervisor_name: fillFields.academic_supervisor_name,
           field_supervisor_name: fillFields.field_supervisor_name,
+          policyCode: calculated.policy?.scoringRules?.code || null,
+          qualification: require('./fieldTraining.qualification.service').toPublicQualification(calculated),
         },
         version,
         regeneration_reason: previous
@@ -2024,9 +2067,16 @@ function mapEvaluationListRow(row) {
       num(row.score_evidence_json?.templatePayload?.actual_training_hours) ??
       num(row.field_training_applications?.completed_training_hours),
     professionalTotal: row.professional_total,
+    attendancePoints: num(row.attendance_component_score),
+    postAssessmentPoints: num(row.post_assessment_component_score),
+    tasksPoints: num(row.tasks_component_score),
+    behaviorPoints: num(row.professional_component_score),
     finalScore: num(row.final_score),
     finalStatus: row.final_status,
     eligibilityStatus: row.eligibility_status,
+    eligibilityReasonLabels: Array.isArray(row.eligibility_reasons)
+      ? row.eligibility_reasons.map((item) => item?.text || item?.code).filter(Boolean)
+      : [],
     academicSupervisorName:
       row.field_training_applications?.academic_supervisor_name ||
       row.score_evidence_json?.academic_supervisor_name ||
@@ -2545,7 +2595,7 @@ async function getOpportunityReportReadiness(user, opportunityId) {
     }
     const policy = { ...ctx.policy };
     if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
-    const calculated = scoring.calculateFinalEvaluation(ctx.scoringInput, policy);
+    const calculated = qualification.qualifyLoadedContext(ctx);
     const official = buildOfficialComment(ctx, calculated);
     const evaluationDate = new Date();
     const payload = buildFillFields(ctx, {

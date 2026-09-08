@@ -25,7 +25,10 @@ async function registerInstitution(req, res, next) {
 
 async function login(req, res, next) {
   try {
-    const data = await authService.login(req.validated);
+    const data = await authService.login({
+      ...req.validated,
+      ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
+    });
     return success(res, data, { message: 'تم تسجيل الدخول بنجاح.' });
   } catch (e) {
     return next(e);

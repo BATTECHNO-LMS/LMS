@@ -1,16 +1,20 @@
+import { ClipboardCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '../../../../components/admin/StatusBadge.jsx';
 import { TrainingHoursProgressCard } from '../../../../components/fieldTraining/TrainingHoursProgressCard.jsx';
-import { ClipboardCheck } from 'lucide-react';
+import { FieldTrainingScoreBreakdown } from '../../../../features/fieldTraining/components/FieldTrainingScoreBreakdown.jsx';
 
 function formatReasons(reason) {
   if (!reason) return [];
+  if (Array.isArray(reason?.labelsAr)) return reason.labelsAr.map(String).filter(Boolean);
   if (Array.isArray(reason)) return reason.map(String).filter(Boolean);
   if (Array.isArray(reason?.reasons)) return reason.reasons.map(String);
   if (Array.isArray(reason?.details)) return reason.details.map(String);
   if (typeof reason === 'string') return [reason];
   if (typeof reason === 'object') {
-    return Object.entries(reason).map(([k, v]) => `${k}: ${v}`);
+    return Object.entries(reason)
+      .filter(([key]) => key !== 'details')
+      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
   }
   return [];
 }
@@ -21,6 +25,7 @@ export function StudentEligibilityTab({
   opp,
   enabled,
   expelled,
+  qualification,
 }) {
   const { t } = useTranslation('fieldTraining');
   const metrics = progress?.metrics ?? {};
@@ -31,7 +36,9 @@ export function StudentEligibilityTab({
   const postScore = metrics.post_assessment_score ?? application?.post_assessment_score;
   const minPost = opp?.minimum_post_assessment_score;
   const finalTask = metrics.final_task_status ?? application?.final_task_status ?? 'not_required';
-  const reasons = formatReasons(application?.eligibility_reason);
+  const reasons = qualification?.eligibilityReasonLabels?.length
+    ? qualification.eligibilityReasonLabels
+    : formatReasons(application?.eligibility_reason);
   const aiRequired = Boolean(opp?.requires_final_task);
   const aiCompleted =
     metrics.ai_self_evaluation_completed ?? application?.ai_self_evaluation_completed ?? null;
@@ -107,6 +114,12 @@ export function StudentEligibilityTab({
         <TrainingHoursProgressCard
           hours={progress?.hours ?? metrics}
           className="ft-student-eligibility__hours"
+        />
+
+        <FieldTrainingScoreBreakdown
+          qualification={qualification}
+          t={t}
+          StatusBadge={StatusBadge}
         />
 
         {reasons.length ? (

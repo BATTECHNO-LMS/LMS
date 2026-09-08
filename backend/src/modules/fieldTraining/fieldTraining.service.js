@@ -1539,10 +1539,7 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
     appUpdate.final_task_status = gradingMode === 'NONE' ? 'approved' : 'submitted';
   }
   await repo.updateApplication(app.id, appUpdate);
-
-  if (task.is_final_task && gradingMode === 'NONE') {
-    await workflow.persistEligibility(app.id);
-  }
+  await workflow.persistEligibility(app.id);
 
   const opp = await repo.findById(task.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds([studentId]);
@@ -1591,15 +1588,15 @@ async function reviewSubmission(submissionId, body, user) {
   });
 
   const approvedLike = ['approved', 'graded'].includes(reviewStatus);
-  if (approvedLike && submission.field_training_tasks?.is_final_task) {
-    const app = await repo.findApplicationById(submission.application_id);
-    if (app) {
-      await repo.updateApplication(app.id, { final_task_status: 'approved' });
-      await workflow.persistEligibility(app.id);
-    }
+  const app = await repo.findApplicationById(submission.application_id);
+  if (approvedLike && submission.field_training_tasks?.is_final_task && app) {
+    await repo.updateApplication(app.id, { final_task_status: 'approved' });
   }
   if (reviewStatus === 'needs_revision' && submission.field_training_tasks?.is_final_task) {
     await repo.updateApplication(submission.application_id, { final_task_status: 'pending' });
+  }
+  if (app) {
+    await workflow.persistEligibility(app.id);
   }
 
   const oppFull = await repo.findById(opp.id);
@@ -1701,18 +1698,71 @@ async function listOpportunityEligibility(opportunityId, user) {
       student_email: mapped.student_email,
       student_university: mapped.student_university,
       student_university_specialty_label: mapped.student_university_specialty_label,
+      university_student_number: byId[app.student_id]?.university_student_number || null,
       training_status: mapped.training_status,
       task_progress: mapped.task_progress || progressByApp.get(app.id) || null,
       attendance_percentage: mapped.attendance_percentage,
       minimum_attendance_percentage: opp.minimum_attendance_percentage ?? null,
       training_hours: mapped.training_hours,
       final_task_status: mapped.final_task_status,
+      pre_assessment_score:
+        app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       post_assessment_score: mapped.post_assessment_score,
       minimum_post_assessment_score:
         opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
       ai_self_evaluation_completed: aiCompleted,
       eligibility_status: mapped.completion_eligibility_status,
       eligibility_reason: mapped.eligibility_reason,
+      // Lightweight card payload from stored qualification snapshot — no live recalculation.
+      qualification: (() => {
+        const details = mapped.eligibility_reason?.details;
+        if (!details || typeof details !== 'object') return null;
+        const approved = details.approvedEvaluationResult || null;
+        const base = {
+          finalScore: details.finalScore ?? null,
+          scorePassed: details.scorePassed ?? null,
+          scoreStatus: details.scoreStatus ?? null,
+          scoreComponents: details.scoreComponents || null,
+          mandatoryRequirements: details.mandatoryRequirements || null,
+          passingScore: details.passingScore ?? 80,
+          eligibilityReasonLabels: Array.isArray(mapped.eligibility_reason?.labelsAr)
+            ? mapped.eligibility_reason.labelsAr
+            : [],
+          policyCode: details.policyCode || null,
+          zeroParticipationApplied: Boolean(details.zeroParticipationApplied),
+          zeroParticipationPolicyCode: details.zeroParticipationPolicyCode || null,
+          eligibilityOverride: details.eligibilityOverride || null,
+          recordedAttendancePercent: details.recordedAttendancePercent ?? null,
+          submittedRequiredTaskCount: details.submittedRequiredTaskCount ?? null,
+          approvedEvaluationResult: approved,
+          calculatedFinalScore: details.calculatedFinalScore ?? null,
+          scoreBreakdown: details.scoreBreakdown || approved?.scoreBreakdown || null,
+          approvedSourceLabelAr: approved?.sourceLabelAr || null,
+        };
+        if (approved && approved.approvedFinalScore != null) {
+          base.finalScore = approved.approvedFinalScore;
+          base.approvedFinalScore = approved.approvedFinalScore;
+          base.approvedStatus = approved.approvedStatus || null;
+          base.approvedSource = approved.source || null;
+          base.previousExcelScore = approved.previousExcelScore ?? null;
+          if (approved.scoreBreakdown && base.scoreComponents) {
+            const b = approved.scoreBreakdown;
+            if (b.attendancePoints != null) base.scoreComponents.attendance.points = b.attendancePoints;
+            if (b.postAssessmentPoints != null) {
+              base.scoreComponents.postAssessment.points = b.postAssessmentPoints;
+            }
+            if (b.taskPoints != null) {
+              base.scoreComponents.tasks.points = b.taskPoints;
+              base.scoreComponents.tasks.approvedPoints = b.taskPoints;
+            }
+            if (b.behaviorPoints != null) base.scoreComponents.behavior.points = b.behaviorPoints;
+          }
+          if (approved.approvedStatus === 'ELIGIBLE') {
+            base.scorePassed = Number(approved.approvedFinalScore) >= (details.passingScore ?? 80);
+          }
+        }
+        return base;
+      })(),
       expelled_at: mapped.expelled_at,
       expulsion_reason: mapped.expulsion_reason,
       completion_letter_issued_at: mapped.completion_letter_issued_at,
@@ -1730,6 +1780,7 @@ async function listOpportunityEligibility(opportunityId, user) {
         opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
       requires_final_task: opp.requires_final_task ?? true,
       requires_post_assessment: opp.requires_post_assessment ?? true,
+      requires_pre_assessment: opp.requires_pre_assessment ?? true,
     },
     participants,
   };

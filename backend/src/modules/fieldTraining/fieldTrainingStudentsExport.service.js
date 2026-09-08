@@ -62,7 +62,7 @@ function applyStudentExcelFilters(rows, filters = {}) {
   });
 }
 
-function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress, academic_supervisor_name }) {
+function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress, academic_supervisor_name, qualification }) {
   return {
     application_id: app.id,
     student_id: app.student_id,
@@ -88,6 +88,8 @@ function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress
       app.completed_training_hours != null ? Number(app.completed_training_hours) : 0,
     eligibility_status: app.completion_eligibility_status,
     completion_eligibility_status: app.completion_eligibility_status,
+    eligibility_reason: app.eligibility_reason,
+    qualification: qualification || null,
     completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
     submitted_at: app.created_at,
     created_at: app.created_at,
@@ -122,7 +124,7 @@ async function hydrateExcelSources(applications) {
   const apps = uniqueById(applications);
   if (!apps.length) return [];
 
-  const [profiles, opportunities, evalMap, progressByApp, postAttemptByApp, assignments] = await Promise.all([
+  const [profiles, opportunities, evalMap, progressByApp, postAttemptByApp, assignments, qualifications] = await Promise.all([
     repo.findStudentProfilesByIds([...new Set(apps.map((app) => app.student_id))]),
     (async () => {
       const opportunityIds = [...new Set(apps.map((app) => app.opportunity_id).filter(Boolean))];
@@ -151,16 +153,28 @@ async function hydrateExcelSources(applications) {
       apps.map((app) => app.id)
     ),
     require('./fieldTraining.supervisorScope').loadAssignmentsByApplicationIds(apps.map((app) => app.id)),
+    require('./fieldTraining.qualification.service').calculateForApplications(apps.map((app) => app.id)),
   ]);
 
   const profileById = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
   const oppById = Object.fromEntries(opportunities.map((opp) => [opp.id, opp]));
+  const qualificationByApp = new Map((qualifications || []).map((row) => [row.applicationId, row.public]));
   const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
 
   return apps.map((app) => {
     const postStatus =
       postAttemptByApp.get(app.id) ||
       standardizedPost.resolveAttemptStatus(null, app.post_assessment_score);
+    const approvedMod = require('./fieldTraining.tafilaApprovedResult.service');
+    const liveQ = qualificationByApp.get(app.id) || null;
+    const qualification = approvedMod.applyApprovedDisplayToQualification(
+      liveQ,
+      {
+        ...(app.eligibility_reason?.details || {}),
+        labelsAr: app.eligibility_reason?.labelsAr,
+      },
+      app.opportunity_id
+    );
     return buildExcelSource({
       app: {
         ...app,
@@ -172,6 +186,7 @@ async function hydrateExcelSources(applications) {
       finalStatus: evalMap.get(app.id) || null,
       taskProgress: progressByApp.get(app.id) || null,
       academic_supervisor_name: assignments.get(app.id)?.supervisor_name || '',
+      qualification,
     });
   });
 }
@@ -250,6 +265,11 @@ async function exportOpportunityStudentsExcel(user, opportunityId, query = {}) {
   if (!applications.length) throwEmptyExport();
 
   const evalMap = await loadCurrentFinalStatuses(applications.map((app) => app.id));
+  const qualifications = await require('./fieldTraining.qualification.service').calculateForApplications(
+    applications.map((app) => app.id)
+  );
+  const qualificationByApp = new Map(qualifications.map((row) => [row.applicationId, row.public]));
+  const approvedMod = require('./fieldTraining.tafilaApprovedResult.service');
   const sources = uniqueById(applications).map((app) => ({
     application_id: app.id,
     student_id: app.student_id,
@@ -270,7 +290,17 @@ async function exportOpportunityStudentsExcel(user, opportunityId, query = {}) {
     post_assessment_score: app.post_assessment_score ?? null,
     post_assessment_attempt_status: app.post_assessment_attempt_status || null,
     post_assessment_attempt_status_label: app.post_assessment_attempt_status_label || null,
+    completed_training_hours: app.completed_training_hours ?? null,
     eligibility_status: app.completion_eligibility_status,
+    eligibility_reason: app.eligibility_reason,
+    qualification: approvedMod.applyApprovedDisplayToQualification(
+      qualificationByApp.get(app.id) || null,
+      {
+        ...(app.eligibility_reason?.details || {}),
+        labelsAr: app.eligibility_reason?.labelsAr,
+      },
+      app.opportunity_id || opportunityId
+    ),
     submitted_at: app.created_at,
     created_at: app.created_at,
     final_evaluation_status: evalMap.get(app.id) || null,

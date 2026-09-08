@@ -21,7 +21,14 @@ import {
 } from '../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
 import { SupervisorStudentGroups } from '../../admin/fieldTraining/components/manage/SupervisorStudentGroups.jsx';
 
-const STATUS_VARIANT = { PASSED: 'success', FAILED: 'danger', NOT_ELIGIBLE: 'warning' };
+const STATUS_VARIANT = {
+  PASSED: 'success',
+  FAILED: 'danger',
+  NOT_ELIGIBLE: 'warning',
+  ELIGIBLE: 'success',
+  NEEDS_REVIEW: 'warning',
+  INCOMPLETE: 'warning',
+};
 
 export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope }) {
   const scope = apiScope || (mode === 'reviewer' || mode === 'academic' ? 'academic' : mode);
@@ -127,6 +134,21 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
       },
       { key: 'professionalTotal', label: t('page.professional') },
       { key: 'finalScore', label: t('page.finalScore') },
+      {
+        key: 'eligibilityStatus',
+        label: t('page.eligibilityStatus'),
+        render: (row) =>
+          row.eligibilityStatus ? (
+            <StatusBadge variant={STATUS_VARIANT[row.eligibilityStatus] || 'neutral'}>
+              {t(`eligibility.${row.eligibilityStatus}`, {
+                defaultValue: row.eligibilityStatus,
+                lng: i18n.language?.startsWith('ar') ? 'ar' : undefined,
+              })}
+            </StatusBadge>
+          ) : (
+            '—'
+          ),
+      },
       {
         key: 'finalStatus',
         label: t('page.finalStatus'),

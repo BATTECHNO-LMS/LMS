@@ -30,28 +30,59 @@ const COLUMN_HEADERS = Object.freeze([
   'حالة الطلب',
   'حالة التدريب',
   'تقدم المهمات',
+  'التاسكات_المسلمة',
+  'التاسكات_المكتملة_تقييماً',
   'حالة التقييم البعدي',
   'درجة التقييم البعدي',
   'الساعات التدريبية المنجزة',
+  'الحضور_من_20',
+  'البعدي_من_20',
+  'علامة_التاسكات_من_40',
+  'السلوك_من_20',
+  'العلامة_النهائية',
   'حالة الأهلية',
-  'النتيجة النهائية',
+  'سبب عدم التأهيل',
   'تاريخ التقديم',
 ]);
 
-const COLUMN_WIDTHS = [6, 26, 18, 22, 30, 22, 22, 28, 24, 16, 22, 28, 22, 18, 28, 18, 16, 18];
+const COLUMN_WIDTHS = [6, 26, 18, 22, 30, 22, 22, 28, 24, 16, 22, 28, 12, 14, 22, 18, 28, 14, 16, 14, 14, 16, 16, 42, 18];
 const UNIVERSITY_NUMBER_COL = 3;
 const SUPERVISOR_COL = 4;
-const FINAL_RESULT_COL = 17;
+const FINAL_RESULT_COL = 23;
 
-const FINAL_STATUS_AR = Object.freeze({
-  PASSED: 'ناجح',
-  FAILED: 'راسب',
+const ELIGIBILITY_EXPORT_AR = Object.freeze({
+  eligible: 'مؤهل',
+  ineligible: 'غير مؤهل',
+  not_eligible: 'غير مؤهل',
+  needs_review: 'قيد الاستكمال',
+  pending: 'قيد الاستكمال',
+  ELIGIBLE: 'مؤهل',
   NOT_ELIGIBLE: 'غير مؤهل',
+  NEEDS_REVIEW: 'قيد الاستكمال',
+  INCOMPLETE: 'قيد الاستكمال',
 });
 
-function finalResultLabel(status) {
+function eligibilityExportLabel(status) {
   if (!status) return '';
-  return FINAL_STATUS_AR[status] || '';
+  return ELIGIBILITY_EXPORT_AR[status] || labels.labelOf(labels.ELIGIBILITY_AR, status, '');
+}
+
+function qualificationReasons(source) {
+  const reason = source.eligibility_reason || source.qualification?.eligibilityReasonLabels;
+  if (Array.isArray(source.qualification?.eligibilityReasonLabels)) {
+    return source.qualification.eligibilityReasonLabels.filter(Boolean).join(' · ');
+  }
+  if (Array.isArray(reason?.labelsAr)) return reason.labelsAr.filter(Boolean).join(' · ');
+  if (Array.isArray(reason?.reasons)) return reason.reasons.filter(Boolean).join(' · ');
+  return '';
+}
+
+function pointsOf(source, path, fallbackKey) {
+  const components = source.qualification?.scoreComponents || source.scoreComponents || {};
+  const nested = path.split('.').reduce((acc, key) => (acc == null ? acc : acc[key]), components);
+  if (nested != null && nested !== '') return nested;
+  if (source[fallbackKey] != null && source[fallbackKey] !== '') return source[fallbackKey];
+  return '';
 }
 
 function applicationStatusLabel(status) {
@@ -92,6 +123,16 @@ function mapStudentExcelRow(source, index) {
     applicationStatus: applicationStatusLabel(source.application_status || source.status),
     trainingStatus: trainingStatusLabel(source.training_status),
     taskProgress: textOrEmpty(source.task_progress?.display || source.task_progress_display),
+    tasksSubmitted:
+      source.qualification?.approvedEvaluationResult?.approvedTaskEvaluation?.submittedCount ??
+      source.qualification?.scoreComponents?.tasks?.submittedCount ??
+      source.tasks_submitted ??
+      '',
+    tasksGraded:
+      source.qualification?.approvedEvaluationResult?.approvedTaskEvaluation?.submittedCount ??
+      source.qualification?.scoreComponents?.tasks?.acceptedCount ??
+      source.tasks_graded ??
+      '',
     postAssessmentStatus: textOrEmpty(
       source.post_assessment_attempt_status_label || source.post_assessment_status_label
     ),
@@ -105,10 +146,30 @@ function mapStudentExcelRow(source, index) {
       if (hours == null || hours === '') return '';
       return hoursMod.formatCompletedHoursLabelAr(hours);
     })(),
-    eligibilityStatus: eligibilityStatusLabel(
-      source.eligibility_status || source.completion_eligibility_status
+    eligibilityStatus: eligibilityExportLabel(
+      source.qualification?.workflowOutcome ||
+        source.qualification?.eligibilityStatus ||
+        source.eligibility_status ||
+        source.completion_eligibility_status
     ),
-    finalResult: finalResultLabel(source.final_evaluation_status),
+    attendancePoints:
+      source.qualification?.scoreBreakdown?.attendancePoints ??
+      pointsOf(source, 'attendance.points', 'attendance_points'),
+    postAssessmentPoints:
+      source.qualification?.scoreBreakdown?.postAssessmentPoints ??
+      pointsOf(source, 'postAssessment.points', 'post_assessment_points'),
+    tasksPoints:
+      source.qualification?.scoreBreakdown?.taskPoints ??
+      pointsOf(source, 'tasks.points', 'tasks_points'),
+    behaviorPoints:
+      source.qualification?.scoreBreakdown?.behaviorPoints ??
+      pointsOf(source, 'behavior.points', 'behavior_points'),
+    finalScore:
+      source.qualification?.approvedFinalScore ??
+      source.qualification?.finalScore ??
+      source.final_score ??
+      '',
+    ineligibilityReason: qualificationReasons(source),
     submittedAt: dates.formatReportDateAr(source.submitted_at || source.created_at) || '',
   };
 }
@@ -127,11 +188,18 @@ function toCellArray(row) {
     row.applicationStatus,
     row.trainingStatus,
     row.taskProgress,
+    row.tasksSubmitted,
+    row.tasksGraded,
     row.postAssessmentStatus,
     row.postAssessmentScore,
     row.completedHoursLabel,
+    row.attendancePoints,
+    row.postAssessmentPoints,
+    row.tasksPoints,
+    row.behaviorPoints,
+    row.finalScore,
     row.eligibilityStatus,
-    row.finalResult,
+    row.ineligibilityReason,
     row.submittedAt,
   ];
 }
@@ -189,7 +257,7 @@ async function exportFieldTrainingStudentsExcel(sources, { opportunityTitle } = 
     uniCell.numFmt = '@';
     if (mapped.universityNumber) uniCell.value = String(mapped.universityNumber);
     excelRow.getCell(SUPERVISOR_COL).value = mapped.academicSupervisor || '';
-    excelRow.getCell(FINAL_RESULT_COL).value = mapped.finalResult;
+    excelRow.getCell(FINAL_RESULT_COL).value = mapped.eligibilityStatus || '';
   });
 
   ws.columns = COLUMN_WIDTHS.map((width) => ({ width }));
@@ -212,7 +280,7 @@ module.exports = {
   COLUMN_HEADERS,
   UNIVERSITY_NUMBER_COL,
   SUPERVISOR_COL,
-  FINAL_STATUS_AR,
+  ELIGIBILITY_EXPORT_AR,
   mapStudentExcelRow,
   buildStudentsExcelFilename,
   exportFieldTrainingStudentsExcel,

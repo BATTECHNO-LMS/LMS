@@ -130,6 +130,14 @@ export function AppRouter() {
               }
             />
             <Route
+              path="field-training/:id/students/:applicationId/report"
+              element={
+                <Pages.SuperAdminFieldTrainingRoute>
+                  <Pages.AdminFieldTrainingComprehensiveStudentReportPage />
+                </Pages.SuperAdminFieldTrainingRoute>
+              }
+            />
+            <Route
               path="field-training/:id/tasks"
               element={
                 <Pages.SuperAdminFieldTrainingRoute>
@@ -284,6 +292,10 @@ export function AppRouter() {
               <Route path="grades" element={<Pages.InstructorGradesPage />} />
               <Route path="field-training" element={<Pages.InstructorFieldTrainingPage />} />
               <Route path="field-training/:id/manage" element={<Pages.InstructorFieldTrainingManagePage />} />
+              <Route
+                path="field-training/:id/students/:applicationId/report"
+                element={<Pages.InstructorFieldTrainingComprehensiveStudentReportPage />}
+              />
               <Route path="field-training/:id/participants" element={<Pages.InstructorFieldTrainingParticipantsPage />} />
               <Route path="field-training/:id/sessions" element={<Pages.InstructorFieldTrainingSessionsPage />} />
               <Route path="field-training/:id/attendance" element={<Pages.InstructorFieldTrainingAttendancePage />} />

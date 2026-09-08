@@ -1858,6 +1858,8 @@ model field_training_evaluation_policies {
   post_assessment_weight           Decimal  @default(20) @db.Decimal(5, 2)
   professional_evaluation_weight   Decimal  @default(40) @db.Decimal(5, 2)
   attendance_bands                 Json?
+  /// Optional scoring-model flags. Null = legacy weighted average + renormalize.
+  scoring_rules                    Json?
   created_by_id                    String?  @db.Uuid
   created_at                       DateTime @default(now()) @db.Timestamptz(6)
   updated_at                       DateTime @default(now()) @db.Timestamptz(6)

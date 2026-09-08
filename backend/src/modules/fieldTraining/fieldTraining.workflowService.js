@@ -634,8 +634,8 @@ async function submitAssessment(opportunityId, type, answers, studentId, options
 
   await repo.updateApplication(app.id, appUpdate);
 
+  const eligibility = await workflow.persistEligibility(app.id);
   if (type === 'post') {
-    const eligibility = await workflow.persistEligibility(app.id);
     const oppRow = await repo.findById(opportunityId);
     const [studentProfile] = await repo.findStudentProfilesByIds([studentId]);
     await ftNotify.notifyStaffPostAssessmentCompleted({
@@ -1023,7 +1023,7 @@ async function getApplicationProgress(applicationId, user) {
     prisma.field_training_tasks.findMany({
       where: { opportunity_id: opp.id },
       orderBy: { created_at: 'asc' },
-      select: { id: true, title: true, due_date: true, is_final_task: true },
+      select: { id: true, title: true, due_date: true, is_final_task: true, is_required: true, grading_mode: true },
     }),
     prisma.field_training_task_submissions.findMany({
       where: { application_id: app.id },
@@ -1092,11 +1092,15 @@ async function getApplicationProgress(applicationId, user) {
       task_id: task.id,
       task_title: task.title,
       is_final_task: Boolean(task.is_final_task),
+      is_required: task.is_required !== false,
+      grading_mode: task.grading_mode || null,
       due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 10) : null,
       submission_id: sub?.id ?? null,
       review_status: sub?.review_status ?? (sub ? 'pending' : 'not_submitted'),
       submitted_at: sub?.submitted_at ?? null,
       instructor_feedback: sub?.instructor_feedback ?? null,
+      manual_score: sub?.manual_score != null ? Number(sub.manual_score) : null,
+      max_score: sub?.max_score != null ? Number(sub.max_score) : null,
       ai_summary: aiText ? String(aiText).slice(0, 280) : null,
       student_input: sub?.student_self_evaluation_input ?? null,
       is_late: Boolean(sub?.is_late),
@@ -1195,6 +1199,9 @@ async function getApplicationProgress(applicationId, user) {
         }
       : null,
     hours: buildHoursSummary(app, opp),
+    qualification: require('./fieldTraining.qualification.service').toPublicQualification(
+      (await require('./fieldTraining.qualification.service').calculateForApplication(app.id))?.calculated
+    ),
   };
 }
 
@@ -1303,15 +1310,35 @@ async function updateApplicationHours(applicationId, body, user) {
     },
   });
 
-  // Eligibility is NOT gated on hours today; still refresh progress metrics for clients.
+  // Refresh unified qualification after authoritative hours change.
+  const eligibility = await workflow.persistEligibility(applicationId);
   const hours = buildHoursSummary(updated, opp);
   return {
     application_id: updated.id,
     opportunity_id: opp.id,
     hours,
     previous_completed_hours: previous,
+    eligibility,
     application: repo.mapApplicationRow(updated),
   };
+}
+
+async function getComprehensiveStudentReport(opportunityId, applicationId, user, query = {}) {
+  return require('./fieldTraining.comprehensiveReport.service').getComprehensiveStudentReport(
+    opportunityId,
+    applicationId,
+    user,
+    query
+  );
+}
+
+async function exportComprehensiveStudentReportPdf(opportunityId, applicationId, user, query = {}) {
+  return require('./fieldTraining.comprehensiveReport.service').exportComprehensiveStudentReportPdf(
+    opportunityId,
+    applicationId,
+    user,
+    query
+  );
 }
 
 async function recalculateEligibility(applicationId, user) {
@@ -1330,6 +1357,24 @@ async function recalculateEligibility(applicationId, user) {
   }
 
   const result = await workflow.persistEligibility(applicationId);
+  try {
+    const { recordAudit } = require('../../utils/auditRecorder');
+    await recordAudit({
+      userId: user.userId,
+      universityId: user.universityId ?? null,
+      actionType: 'FIELD_TRAINING_ELIGIBILITY_RECALCULATED',
+      entityType: 'field_training_application',
+      entityId: applicationId,
+      newValues: {
+        applicationId,
+        studentId: app.student_id,
+        opportunityId: opp.id,
+        outcome: result.outcome,
+      },
+    });
+  } catch {
+    // ignore audit failures
+  }
   const updated = await repo.findApplicationById(applicationId);
   return {
     eligibility: result,
@@ -1418,7 +1463,7 @@ async function gradeAssessmentAttempt(attemptId, body, user) {
   if (Object.keys(appUpdate).length) {
     await repo.updateApplication(app.id, appUpdate);
   }
-  if (assessment.type === 'post') {
+  if (assessment.type === 'pre' || assessment.type === 'post') {
     await workflow.persistEligibility(app.id);
   }
 
@@ -1519,6 +1564,9 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
     progress,
     hours: hoursProgress,
     completion_letter_id: letter?.id ?? null,
+    qualification: require('./fieldTraining.qualification.service').toPublicQualification(
+      (await require('./fieldTraining.qualification.service').calculateForApplication(app.id))?.calculated
+    ),
   };
 }
 
@@ -1819,6 +1867,8 @@ module.exports = {
   submitAssessment,
   submitAssessmentById,
   getApplicationProgress,
+  getComprehensiveStudentReport,
+  exportComprehensiveStudentReportPdf,
   getApplicationHours,
   updateApplicationHours,
   recalculateEligibility,

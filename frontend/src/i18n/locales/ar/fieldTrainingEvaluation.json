@@ -49,6 +49,7 @@
     "generatedAt": "تاريخ الإنشاء",
     "professional": "التقييم المهني /50",
     "finalScore": "الدرجة النهائية /100",
+    "eligibilityStatus": "حالة الأهلية",
     "attendance": "الحضور",
     "hours": "الساعات الفعلية",
     "taskProgress": "تقدم المهمات",
@@ -230,6 +231,12 @@
     "PASSED": "ناجح",
     "FAILED": "راسب",
     "NOT_ELIGIBLE": "غير مؤهل"
+  },
+  "eligibility": {
+    "ELIGIBLE": "مؤهل",
+    "NOT_ELIGIBLE": "غير مؤهل",
+    "NEEDS_REVIEW": "قيد الاستكمال",
+    "INCOMPLETE": "قيد الاستكمال"
   },
   "assignment": {
     "title": "توزيع الطلاب على المشرفين الأكاديميين",

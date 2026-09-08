@@ -170,7 +170,42 @@ async function getApplicationProgress(req, res, next) {
       req.validated.params.applicationId,
       req.user
     );
-    return success(res, data, { message: 'Progress retrieved' });
+    return success(res, data, { message: 'Application progress retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getComprehensiveStudentReport(req, res, next) {
+  try {
+    const data = await workflowService.getComprehensiveStudentReport(
+      req.validated.params.id,
+      req.validated.params.applicationId,
+      req.user,
+      req.validated.query || {}
+    );
+    return success(res, data, { message: 'Comprehensive student report retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function downloadComprehensiveStudentReportPdf(req, res, next) {
+  try {
+    const result = await workflowService.exportComprehensiveStudentReportPdf(
+      req.validated.params.id,
+      req.validated.params.applicationId,
+      req.user,
+      req.validated.query || {}
+    );
+    const filename = result.filename || 'comprehensive-student-report.pdf';
+    const safeAscii = filename.replace(/[^\x20-\x7E]/g, '_');
+    res.setHeader('Content-Type', result.contentType || 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+    );
+    return res.send(result.buffer);
   } catch (e) {
     return next(e);
   }
@@ -503,6 +538,8 @@ module.exports = {
   updateAssessment,
   publishAssessmentById,
   getApplicationProgress,
+  getComprehensiveStudentReport,
+  downloadComprehensiveStudentReportPdf,
   getApplicationHours,
   updateApplicationHours,
   recalculateEligibility,

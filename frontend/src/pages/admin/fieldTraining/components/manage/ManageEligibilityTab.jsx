@@ -1,38 +1,16 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ClipboardCheck, RefreshCw } from 'lucide-react';
-import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
+import { ClipboardCheck } from 'lucide-react';
 import { EmptyState } from '../../../../../components/common/EmptyState.jsx';
-import { Button } from '../../../../../components/common/Button.jsx';
 import {
   recalculateApplicationEligibility,
   useOpportunityEligibility,
-  TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
-
-function eligibilityVariant(status) {
-  if (status === 'eligible') return 'success';
-  if (status === 'ineligible' || status === 'expelled') return 'danger';
-  if (status === 'needs_review') return 'warning';
-  return 'muted';
-}
-
-function formatReason(reason) {
-  if (!reason) return null;
-  if (typeof reason === 'string') return reason;
-  if (Array.isArray(reason)) return reason.filter(Boolean).join(' · ');
-  if (typeof reason === 'object') {
-    if (Array.isArray(reason.reasons)) return reason.reasons.join(' · ');
-    return Object.entries(reason)
-      .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
-      .join(' · ');
-  }
-  return String(reason);
-}
+import { EligibilityStudentCard } from './EligibilityStudentCard.jsx';
 
 export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
   const isInstructor = apiScope === 'instructor';
@@ -91,14 +69,16 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
                 : t('manageHub.eligibilityRules.notSet')}
             </strong>
           </span>
-          <span>
-            {t('manageHub.eligibilityRules.postScore')}:{' '}
-            <strong>
-              {opp.minimum_post_assessment_score != null
-                ? opp.minimum_post_assessment_score
-                : t('manageHub.eligibilityRules.notSet')}
-            </strong>
-          </span>
+          {opp.requires_final_task ? (
+            <span>
+              {t('manageHub.eligibilityRules.postScore')}:{' '}
+              <strong>
+                {opp.minimum_post_assessment_score != null
+                  ? opp.minimum_post_assessment_score
+                  : t('manageHub.eligibilityRules.notSet')}
+              </strong>
+            </span>
+          ) : null}
         </div>
       ) : null}
 
@@ -113,89 +93,22 @@ export function ManageEligibilityTab({ opportunityId, apiScope = 'admin' }) {
         />
       ) : (
         <ul className="ft-eligibility-list">
-          {participants.map((row) => {
-            const status =
-              row.training_status === 'expelled' ? 'expelled' : row.eligibility_status || 'pending';
-            const reason = formatReason(row.eligibility_reason);
-            const canRecalc = row.training_status !== 'expelled';
-            return (
-              <li key={row.application_id} className="ft-content-card ft-eligibility-card">
-                <div className="ft-eligibility-card__head">
-                  <div>
-                    <h3 className="ft-eligibility-card__name">{row.student_name}</h3>
-                    <p className="ft-eligibility-card__meta">
-                      {[row.student_university, row.student_university_specialty_label]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </p>
-                  </div>
-                  <StatusBadge variant={eligibilityVariant(status)}>
-                    {status === 'expelled'
-                      ? t('trainingStatus.expelled')
-                      : t(`eligibility.${status}`, status)}
-                  </StatusBadge>
-                  <TaskProgressBadge progress={row.task_progress} />
-                </div>
-                <dl className="ft-eligibility-card__grid">
-                  <div>
-                    <dt>{t('progress.attendance')}</dt>
-                    <dd>
-                      {row.attendance_percentage != null
-                        ? `${row.attendance_percentage}%`
-                        : t('notAvailable')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('hours.completed')}</dt>
-                    <dd>
-                      {row.training_hours?.completed_training_hours != null
-                        ? t('hours.completedDone', {
-                            count: row.training_hours.completed_training_hours,
-                          })
-                        : t('notAvailable')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('hours.percentage')}</dt>
-                    <dd>
-                      {row.training_hours?.hours_completion_percentage != null
-                        ? `${row.training_hours.hours_completion_percentage}%`
-                        : t('notAvailable')}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t('progress.task')}</dt>
-                    <dd>{t(`finalTaskStatus.${row.final_task_status}`, row.final_task_status)}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('progress.postScore')}</dt>
-                    <dd>
-                      {row.post_assessment_score != null ? row.post_assessment_score : t('notAvailable')}
-                    </dd>
-                  </div>
-                </dl>
-                {reason ? <p className="ft-eligibility-card__reason">{reason}</p> : null}
-                {canRecalc ? (
-                  <div className="ft-manage-inline-actions">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="btn--sm"
-                      disabled={recalcMut.isPending}
-                      onClick={() => {
-                        setActionError('');
-                        setActionOk('');
-                        recalcMut.mutate(row.application_id);
-                      }}
-                    >
-                      <RefreshCw size={14} aria-hidden />
-                      {t('manageHub.studentCards.recalculateEligibility')}
-                    </Button>
-                  </div>
-                ) : null}
-              </li>
-            );
-          })}
+          {participants.map((row) => (
+            <EligibilityStudentCard
+              key={row.application_id}
+              row={row}
+              opportunity={opp}
+              opportunityId={opportunityId}
+              apiScope={apiScope}
+              t={t}
+              recalcPending={recalcMut.isPending}
+              onRecalculate={(applicationId) => {
+                setActionError('');
+                setActionOk('');
+                recalcMut.mutate(applicationId);
+              }}
+            />
+          ))}
         </ul>
       )}
     </div>

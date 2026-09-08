@@ -542,6 +542,16 @@ export const AdminFieldTrainingStudentReportPage = lazyNamed(
   () => import('../../pages/admin/fieldTraining/AdminFieldTrainingStudentReportPage.jsx'),
   'AdminFieldTrainingStudentReportPage'
 );
+export const AdminFieldTrainingComprehensiveStudentReportPage = lazyNamed(
+  () =>
+    import('../../pages/admin/fieldTraining/AdminFieldTrainingComprehensiveStudentReportPage.jsx'),
+  'AdminFieldTrainingComprehensiveStudentReportPage'
+);
+export const InstructorFieldTrainingComprehensiveStudentReportPage = lazyNamed(
+  () =>
+    import('../../pages/instructor/InstructorFieldTrainingComprehensiveStudentReportPage.jsx'),
+  'InstructorFieldTrainingComprehensiveStudentReportPage'
+);
 
 // —— Shared / public ——
 export const ModulePlaceholderPage = lazyNamed(

@@ -94,7 +94,14 @@ const GATE_REASONS = Object.freeze({
   MINIMUM_ATTENDANCE_NOT_ACHIEVED: 'MINIMUM_ATTENDANCE_NOT_ACHIEVED',
   REQUIRED_SUBMISSION_MISSING: 'REQUIRED_SUBMISSION_MISSING',
   POST_ASSESSMENT_NOT_COMPLETED: 'POST_ASSESSMENT_NOT_COMPLETED',
+  PRE_ASSESSMENT_NOT_COMPLETED: 'PRE_ASSESSMENT_NOT_COMPLETED',
   PROFESSIONAL_EVALUATION_INCOMPLETE: 'PROFESSIONAL_EVALUATION_INCOMPLETE',
+  FINAL_SCORE_BELOW_MINIMUM: 'FINAL_SCORE_BELOW_MINIMUM',
+  SCORE_INCOMPLETE: 'SCORE_INCOMPLETE',
+  EXPELLED: 'EXPELLED',
+  FAILED: 'FAILED',
+  ZERO_PARTICIPATION: 'ZERO_PARTICIPATION',
+  AUTHORIZED_ADMIN_ELIGIBILITY_DECISION: 'AUTHORIZED_ADMIN_ELIGIBILITY_DECISION',
 });
 
 const GATE_REASON_LABELS_AR = Object.freeze({
@@ -102,7 +109,82 @@ const GATE_REASON_LABELS_AR = Object.freeze({
   MINIMUM_ATTENDANCE_NOT_ACHIEVED: 'نسبة الحضور أقل من الحد المطلوب',
   REQUIRED_SUBMISSION_MISSING: 'لم تكتمل التسليمات المطلوبة',
   POST_ASSESSMENT_NOT_COMPLETED: 'لم يُستكمل الامتحان البعدي',
+  PRE_ASSESSMENT_NOT_COMPLETED: 'لم يُستكمل التقييم القبلي',
   PROFESSIONAL_EVALUATION_INCOMPLETE: 'التقييم المهني غير مكتمل',
+  FINAL_SCORE_BELOW_MINIMUM: 'العلامة النهائية أقل من حد التأهيل',
+  SCORE_INCOMPLETE: 'العلامة النهائية غير مكتملة حتى تُستكمل جميع المكوّنات',
+  EXPELLED: 'أُلغي تدريب الطالب',
+  FAILED: 'رُصد رسوب الطالب في التدريب الميداني',
+  ZERO_PARTICIPATION:
+    'لم يستكمل التقييم القبلي ولم يسلّم أي تاسك مطلوب؛ احتُسبت النتيجة 0/100 وفق سياسة عدم المشاركة',
+  AUTHORIZED_ADMIN_ELIGIBILITY_DECISION:
+    'قرار إداري معتمد بعدم التأهيل مع الاحتفاظ بالعلامات الفعلية للطالب.',
+});
+
+const ELIGIBILITY_OVERRIDE_TYPE = Object.freeze({
+  FORCE_NOT_ELIGIBLE: 'FORCE_NOT_ELIGIBLE',
+});
+
+const ZERO_PARTICIPATION_POLICY_V1 = Object.freeze({
+  enabled: true,
+  code: 'TAFILA_ZERO_PARTICIPATION_POLICY_V1',
+  requireMissingPreAssessment: true,
+  requireZeroSubmittedRequiredTasks: true,
+});
+
+const ZERO_PARTICIPATION_LABELS_AR = Object.freeze([
+  'لم يستكمل الطالب التقييم القبلي.',
+  'لم يسلّم الطالب أيًا من التاسكات المطلوبة.',
+  'وبناءً على عدم بدء متطلبات التدريب الأساسية، تم احتساب نتيجة التقييم النهائية 0 من 100 وفق سياسة عدم المشاركة.',
+]);
+
+const SCORING_MODEL = Object.freeze({
+  LEGACY_WEIGHTED_V1: 'legacy_weighted_v1',
+  FIXED_COMPONENTS_V1: 'fixed_components_v1',
+});
+
+const TASKS_SCORING_MODE = Object.freeze({
+  COMPLETION_RATIO: 'completion_ratio',
+  GRADE_AVERAGE: 'grade_average',
+});
+
+const TAFILA_POLICY_CODE = 'TAFILA_SCORING_POLICY_20_20_40_20_V1';
+
+const DEFAULT_SCORING_RULES = Object.freeze({
+  model: SCORING_MODEL.LEGACY_WEIGHTED_V1,
+  tasksScoringMode: TASKS_SCORING_MODE.COMPLETION_RATIO,
+  renormalizeMissingComponents: true,
+  preAssessmentRequired: false,
+  enforcePostAssessmentMinimum: true,
+  scoreRequiredForEligibility: false,
+  code: null,
+});
+
+const TAFILA_SCORING_RULES = Object.freeze({
+  model: SCORING_MODEL.FIXED_COMPONENTS_V1,
+  tasksScoringMode: TASKS_SCORING_MODE.GRADE_AVERAGE,
+  renormalizeMissingComponents: false,
+  preAssessmentRequired: true,
+  enforcePostAssessmentMinimum: false,
+  scoreRequiredForEligibility: true,
+  // If the student submitted required tasks (even partially) and final score >= pass mark,
+  // do not block eligibility solely for incomplete tasks.
+  allowPassingScoreWithPartialTaskSubmissions: true,
+  minimumSubmittedTasksForPartialWaiver: 1,
+  code: TAFILA_POLICY_CODE,
+  zeroParticipationPolicy: ZERO_PARTICIPATION_POLICY_V1,
+  // Auditable overrides keyed by university student number (never by name alone).
+  eligibilityOverrides: Object.freeze([
+    Object.freeze({
+      universityStudentNumber: '320230601066',
+      type: ELIGIBILITY_OVERRIDE_TYPE.FORCE_NOT_ELIGIBLE,
+      reasonCode: GATE_REASONS.AUTHORIZED_ADMIN_ELIGIBILITY_DECISION,
+      reasonAr: GATE_REASON_LABELS_AR.AUTHORIZED_ADMIN_ELIGIBILITY_DECISION,
+      preserveActualMarks: true,
+      skipZeroParticipation: true,
+      source: 'AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE',
+    }),
+  ]),
 });
 
 const PLACEHOLDERS = Object.freeze({
@@ -320,6 +402,7 @@ const DEFAULT_POLICY = Object.freeze({
   postAssessmentWeight: 20,
   professionalEvaluationWeight: 40,
   attendanceBands: DEFAULT_ATTENDANCE_BANDS,
+  scoringRules: DEFAULT_SCORING_RULES,
 });
 
 const ACCEPTED_TASK_STATUSES = Object.freeze(['approved', 'graded']);
@@ -363,6 +446,14 @@ module.exports = {
   FINAL_STATUS,
   GATE_REASONS,
   GATE_REASON_LABELS_AR,
+  ELIGIBILITY_OVERRIDE_TYPE,
+  ZERO_PARTICIPATION_POLICY_V1,
+  ZERO_PARTICIPATION_LABELS_AR,
+  SCORING_MODEL,
+  TASKS_SCORING_MODE,
+  TAFILA_POLICY_CODE,
+  DEFAULT_SCORING_RULES,
+  TAFILA_SCORING_RULES,
   PLACEHOLDERS,
   MISSING_FIELD_CODES,
   MISSING_FIELD_LABELS_AR,

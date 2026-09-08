@@ -49,6 +49,7 @@
     "generatedAt": "Generated at",
     "professional": "Professional /50",
     "finalScore": "Final score /100",
+    "eligibilityStatus": "Eligibility status",
     "attendance": "Attendance",
     "hours": "Actual hours",
     "taskProgress": "Task progress",
@@ -210,6 +211,12 @@
     "PASSED": "Passed",
     "FAILED": "Failed",
     "NOT_ELIGIBLE": "Not eligible"
+  },
+  "eligibility": {
+    "ELIGIBLE": "Eligible",
+    "NOT_ELIGIBLE": "Not eligible",
+    "NEEDS_REVIEW": "Needs completion",
+    "INCOMPLETE": "Needs completion"
   },
   "assignment": {
     "title": "Assign students to academic supervisors",

@@ -26,4 +26,6 @@ export const fieldTrainingKeys = {
   overviewSummary: (id, scope = 'admin') => [...fieldTrainingKeys.all, scope, 'overview-summary', id],
   eligibility: (opportunityId, scope = 'admin') =>
     [...fieldTrainingKeys.all, scope, 'eligibility', opportunityId],
+  comprehensiveReport: (opportunityId, applicationId, scope = 'admin', params = {}) =>
+    [...fieldTrainingKeys.all, scope, 'comprehensive-report', opportunityId, applicationId, params],
 };

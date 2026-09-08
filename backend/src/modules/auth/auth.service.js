@@ -602,6 +602,23 @@ async function login(validated) {
   );
 
   await authRepository.touchLastLogin(user.id);
+  try {
+    const { recordAudit } = require('../../utils/auditRecorder');
+    await recordAudit({
+      userId: user.id,
+      universityId: user.primary_university_id || profile?.primary_university_id || null,
+      actionType: 'USER_LOGIN_SUCCESS',
+      entityType: 'user',
+      entityId: user.id,
+      newValues: {
+        source: 'password_login',
+        portalType: validated.portalType || null,
+      },
+      ipAddress: validated.ipAddress || null,
+    });
+  } catch {
+    // Login must succeed even if audit write fails.
+  }
 
   return {
     token,

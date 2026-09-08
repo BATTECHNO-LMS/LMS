@@ -36,6 +36,7 @@ import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/f
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
 import { computeCardProgressPercent, resolveJourneyLabelKey } from './StudentApplicationCard.jsx';
+import { FieldTrainingScoreBreakdown } from '../../../../../features/fieldTraining/components/FieldTrainingScoreBreakdown.jsx';
 import { ApplicationHoursPanel } from './ApplicationHoursPanel.jsx';
 
 const WORKFLOW_STEPS = [
@@ -322,6 +323,16 @@ export function StudentDetailDrawer({
               </section>
 
               <section className="ft-student-drawer__section">
+                <h3>{t('scoreBreakdown.finalScore')}</h3>
+                <FieldTrainingScoreBreakdown
+                  qualification={data?.qualification}
+                  t={t}
+                  StatusBadge={StatusBadge}
+                  tasks={taskRows}
+                />
+              </section>
+
+              <section className="ft-student-drawer__section">
                 <div className="ft-student-drawer__section-head">
                   <h3>{t('manageHub.studentCards.journeyTitle')}</h3>
                   <strong>{percent}%</strong>
@@ -461,7 +472,14 @@ export function StudentDetailDrawer({
                         <div>
                           <strong>{task.task_title}</strong>
                           <p>
-                            {t(`tasks.reviewStatuses.${task.review_status}`, task.review_status)}
+                            {task.submission_id
+                              ? t(`tasks.reviewStatuses.${task.review_status}`, task.review_status)
+                              : t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')}
+                            {task.manual_score != null
+                              ? ` · ${task.manual_score}${task.max_score != null ? `/${task.max_score}` : '/100'}`
+                              : task.submission_id
+                                ? ' · —'
+                                : ''}
                             {task.submitted_at
                               ? ` · ${formatFtDate(task.submitted_at) || String(task.submitted_at).slice(0, 10)}`
                               : ''}
@@ -639,6 +657,19 @@ export function StudentDetailDrawer({
               <RefreshCw size={16} aria-hidden />
               {recalcMut.isPending ? t('saving') : t('manageHub.studentCards.recalculateEligibility')}
             </Button>
+          ) : null}
+          {app?.id && opportunityId ? (
+            <Link
+              className="btn btn--primary"
+              to={
+                isInstructor
+                  ? `/instructor/field-training/${opportunityId}/students/${app.id}/report`
+                  : `/admin/field-training/${opportunityId}/students/${app.id}/report`
+              }
+            >
+              <FileText size={16} aria-hidden />
+              {t('eligibilityCard.comprehensiveReport')}
+            </Link>
           ) : null}
           {canIssueLetter ? (
             <Button

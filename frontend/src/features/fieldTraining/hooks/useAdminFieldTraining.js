@@ -20,6 +20,7 @@ import {
   fetchSessionAttendance,
   fetchApplicationProgress,
   fetchOpportunityEligibility,
+  fetchComprehensiveStudentReport,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
 import { STALE, keepPreviousListData } from '../../../lib/queryDefaults.js';
@@ -224,6 +225,21 @@ export function useOpportunityEligibility(opportunityId, options = {}) {
     queryFn: () =>
       fetchOpportunityEligibility(opportunityId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId) && (options.enabled ?? true),
+    ...options,
+  });
+}
+
+export function useComprehensiveStudentReport(opportunityId, applicationId, options = {}) {
+  const scope = options.scope ?? 'admin';
+  const params = options.params || {};
+  return useQuery({
+    queryKey: fieldTrainingKeys.comprehensiveReport(opportunityId, applicationId, scope, params),
+    queryFn: () =>
+      fetchComprehensiveStudentReport(opportunityId, applicationId, {
+        asInstructor: scope === 'instructor',
+        params,
+      }),
+    enabled: Boolean(opportunityId && applicationId) && (options.enabled ?? true),
     ...options,
   });
 }

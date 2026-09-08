@@ -110,7 +110,7 @@ function resolveTrainingStatusOnApproval(opp) {
 /**
  * @returns {{ outcome: 'eligible'|'ineligible'|'needs_review', reasons: string[], details: Record<string, unknown> }}
  */
-async function calculateFieldTrainingEligibility(applicationId) {
+async function calculateLegacyFieldTrainingEligibility(applicationId) {
   const app = await prisma.field_training_applications.findUnique({
     where: { id: applicationId },
     include: {
@@ -203,29 +203,12 @@ async function calculateFieldTrainingEligibility(applicationId) {
   return { outcome: 'eligible', reasons: [], details };
 }
 
+async function calculateFieldTrainingEligibility(applicationId) {
+  return require('./fieldTraining.qualification.service').calculateEligibilityOutcome(applicationId);
+}
+
 async function persistEligibility(applicationId) {
-  const result = await calculateFieldTrainingEligibility(applicationId);
-  const statusMap = {
-    eligible: 'eligible',
-    ineligible: 'ineligible',
-    needs_review: 'needs_review',
-  };
-  const current = await prisma.field_training_applications.findUnique({
-    where: { id: applicationId },
-    select: { training_status: true },
-  });
-  const terminal = ['completed', 'expelled', 'failed'].includes(current?.training_status);
-  await prisma.field_training_applications.update({
-    where: { id: applicationId },
-    data: {
-      completion_eligibility_status: statusMap[result.outcome],
-      eligibility_reason: { reasons: result.reasons, details: result.details },
-      ...(result.outcome === 'eligible' && !terminal
-        ? { training_status: 'eligible_for_completion' }
-        : {}),
-    },
-  });
-  return result;
+  return require('./fieldTraining.qualification.service').persistQualification(applicationId);
 }
 
 module.exports = {
@@ -239,6 +222,7 @@ module.exports = {
   calculateAttendancePercentage,
   refreshAttendancePercentage,
   resolveTrainingStatusOnApproval,
+  calculateLegacyFieldTrainingEligibility,
   calculateFieldTrainingEligibility,
   persistEligibility,
 };

@@ -175,7 +175,7 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
       case 'completion':
         return <ManageCompletionTab opportunityId={id} opportunity={opp} />;
       case 'reports':
-        return <ManageReportsTab opportunityId={id} />;
+        return <ManageReportsTab opportunityId={id} opportunity={opp} />;
       default:
         return (
           <EmptyState

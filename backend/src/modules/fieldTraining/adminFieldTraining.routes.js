@@ -9,6 +9,8 @@ const lettersController = require('./fieldTraining.lettersAndSupervisors.control
 const {
   uuidParamSchema,
   applicationIdParamSchema,
+  opportunityApplicationParamSchema,
+  comprehensiveReportQuerySchema,
   submissionIdParamSchema,
   listAdminQuerySchema,
   listAdminStatsQuerySchema,
@@ -439,6 +441,153 @@ router.get(
   fieldTrainingStaff,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listEligibility
+);
+
+router.get(
+  '/:id/applications/:applicationId/comprehensive-report',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({
+    params: opportunityApplicationParamSchema,
+    query: comprehensiveReportQuerySchema,
+  }),
+  workflowController.getComprehensiveStudentReport
+);
+
+router.get(
+  '/:id/applications/:applicationId/comprehensive-report/pdf',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({
+    params: opportunityApplicationParamSchema,
+    query: comprehensiveReportQuerySchema,
+  }),
+  workflowController.downloadComprehensiveStudentReportPdf
+);
+
+router.get(
+  '/:id/reports/final',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const report = await require('./fieldTraining.cohortReports.service').buildOpportunityFinalReport(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      res.json({ success: true, data: report });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/:id/reports/comprehensive',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const report = await require('./fieldTraining.cohortReports.service').buildOpportunityComprehensiveReport(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      res.json({ success: true, data: report });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/:id/reports/validation',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await require('./fieldTraining.cohortReports.service').validateOpportunityReport(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      res.json({ success: true, data });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+function sendBinaryExport(res, result) {
+  const filename = result.filename || 'report.bin';
+  const safeAscii = String(filename).replace(/[^\x20-\x7E]/g, '_');
+  res.setHeader('Content-Type', result.contentType || 'application/octet-stream');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
+  );
+  return res.send(result.buffer);
+}
+
+router.get(
+  '/:id/reports/final/pdf',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const result = await require('./fieldTraining.cohortReports.service').exportOpportunityFinalReportPdf(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      return sendBinaryExport(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/:id/reports/comprehensive/pdf',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const result = await require('./fieldTraining.cohortReports.service').exportOpportunityComprehensiveReportPdf(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      return sendBinaryExport(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.get(
+  '/:id/reports/export/excel',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const result = await require('./fieldTraining.cohortReports.service').exportOpportunityOfficialExcel(
+        req.user,
+        req.params.id,
+        req.query || {}
+      );
+      return sendBinaryExport(res, result);
+    } catch (err) {
+      next(err);
+    }
+  }
 );
 
 router.post(

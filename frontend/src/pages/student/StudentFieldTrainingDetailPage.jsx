@@ -363,6 +363,7 @@ export function StudentFieldTrainingDetailPage() {
             opp={opp}
             enabled={appStatus === 'approved'}
             expelled={expelled}
+            qualification={progressData?.qualification}
           />
         );
       case 'completion':

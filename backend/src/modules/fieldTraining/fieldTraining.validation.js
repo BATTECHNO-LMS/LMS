@@ -12,6 +12,11 @@ const applicationIdParamSchema = z.object({
   applicationId: z.string().uuid(),
 });
 
+const opportunityApplicationParamSchema = z.object({
+  id: z.string().uuid(),
+  applicationId: z.string().uuid(),
+});
+
 const trainingModeSchema = z.enum(['onsite', 'remote', 'hybrid']);
 const opportunityStatusSchema = z.enum(['draft', 'published', 'in_progress', 'archived']);
 const applicationStatusSchema = z.enum(['pending', 'approved', 'rejected', 'cancelled']);
@@ -497,10 +502,17 @@ const updateApplicationHoursBodySchema = z.object({
   }, z.union([z.null(), z.coerce.number().int().min(0).max(10000)]).optional()),
 });
 
+const comprehensiveReportQuerySchema = z.object({
+  activity_category: z.string().optional(),
+  activity_limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
 module.exports = {
   uuidParamSchema,
   opportunityIdParamSchema,
   applicationIdParamSchema,
+  opportunityApplicationParamSchema,
+  comprehensiveReportQuerySchema,
   submissionIdParamSchema,
   taskIdParamSchema,
   sessionIdParamSchema,
