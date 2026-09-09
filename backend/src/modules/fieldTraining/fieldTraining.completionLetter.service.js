@@ -62,6 +62,7 @@ function emptyProgress() {
     newly_issued: 0,
     previously_issued: 0,
     skipped: 0,
+    notEligibleExcluded: 0,
     failed_ids: [],
     results: [],
   };
@@ -79,10 +80,23 @@ function resolveLetterUniversityNumber(profile) {
   );
 }
 
-function selectBulkIssueTargets(students, retryFailedIds = []) {
+function selectBulkIssueTargets(students, retryFailedIds = [], { forceRegenerate = false } = {}) {
   const retrySet = new Set((retryFailedIds || []).filter(Boolean));
   return (students || []).filter((row) => {
     if (retrySet.size) return retrySet.has(row.id);
+    if (
+      row.skip_reason === SKIP_REASONS.EXPELLED ||
+      row.skip_reason === SKIP_REASONS.NOT_ELIGIBLE ||
+      row.skip_reason === SKIP_REASONS.HOURS_BELOW_MINIMUM
+    ) {
+      return false;
+    }
+    if (forceRegenerate) {
+      return (
+        row.completion_eligibility_status === 'eligible' &&
+        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS
+      );
+    }
     return row.will_issue || row.will_regenerate;
   });
 }
@@ -251,12 +265,14 @@ function summarizeStudents(students) {
   );
   const issued = students.filter((row) => row.already_issued || row.completion_letter_issued_at);
   const pending = eligible.filter((row) => !row.already_issued);
+  const notEligibleExcluded = students.filter((row) => row.skip_reason === SKIP_REASONS.NOT_ELIGIBLE).length;
   return {
     total: students.length,
     eligible: eligible.length,
     issued: issued.length,
     pending: pending.length,
     errors: students.filter((row) => row.issuance_status === 'error').length,
+    notEligibleExcluded,
   };
 }
 
@@ -294,10 +310,9 @@ async function listCompletionLetters(opportunityId, user, query = {}) {
   };
 }
 
-async function previewBulkIssue(opportunityId, user, { retryFailedIds = [] } = {}) {
+async function previewBulkIssue(opportunityId, user, { retryFailedIds = [], forceRegenerate = false } = {}) {
   const { opp, university, allStudents } = await loadScopeStudents(opportunityId, user);
-  const retrySet = new Set((retryFailedIds || []).filter(Boolean));
-  const toIssue = selectBulkIssueTargets(allStudents, retryFailedIds);
+  const toIssue = selectBulkIssueTargets(allStudents, retryFailedIds, { forceRegenerate });
   const skipped = allStudents
     .filter((row) => !toIssue.some((item) => item.id === row.id))
     .map((row) => ({
@@ -309,6 +324,7 @@ async function previewBulkIssue(opportunityId, user, { retryFailedIds = [] } = {
     }));
 
   const running = await findActiveJob(opportunityId);
+  const notEligibleExcluded = allStudents.filter((row) => row.skip_reason === SKIP_REASONS.NOT_ELIGIBLE).length;
   return {
     opportunity_name: opp.title,
     university_name: university?.name || null,
@@ -331,6 +347,7 @@ async function previewBulkIssue(opportunityId, user, { retryFailedIds = [] } = {
     alreadyCurrent: allStudents.filter((row) => row.skip_reason === SKIP_REASONS.SOURCE_UNCHANGED).length,
     skipped: skipped.length,
     failed: 0,
+    notEligibleExcluded,
     skipped,
     active_job: running ? mapJob(running) : null,
   };
@@ -436,7 +453,7 @@ async function writeLetterPdf(applicationId, letterNo, html) {
   }
 }
 
-async function issueOne(applicationId, userId, user, { allowSkip = false, preloaded = null } = {}) {
+async function issueOne(applicationId, userId, user, { allowSkip = false, preloaded = null, forceRegenerate = false } = {}) {
   const app = preloaded?.app || (await repo.findApplicationById(applicationId));
   if (!app) throw new ApiError(404, 'Application not found');
   const opp = preloaded?.opp || (await repo.findById(app.opportunity_id));
@@ -464,7 +481,7 @@ async function issueOne(applicationId, userId, user, { allowSkip = false, preloa
       ? preloaded.letter
       : await repo.findCompletionLetterByApplication(applicationId);
 
-  if (existing && letterFileReady(existing)) {
+  if (existing && letterFileReady(existing) && !forceRegenerate) {
     const existingHash = existing.source_data_hash || existing.metadata?.source_data_hash;
     if (existingHash === sourceHash || !existingHash) {
       if (allowSkip) {
@@ -555,8 +572,8 @@ async function issueOne(applicationId, userId, user, { allowSkip = false, preloa
   };
 }
 
-async function startBulkIssue(opportunityId, user, { retryFailedIds = [], sync = false } = {}) {
-  const preview = await previewBulkIssue(opportunityId, user, { retryFailedIds });
+async function startBulkIssue(opportunityId, user, { retryFailedIds = [], sync = false, forceRegenerate = false } = {}) {
+  const preview = await previewBulkIssue(opportunityId, user, { retryFailedIds, forceRegenerate });
   if (preview.active_job) {
     throw new ApiError(
       409,
@@ -581,6 +598,8 @@ async function startBulkIssue(opportunityId, user, { retryFailedIds = [], sync =
       retry_failed_only: retrySet.size > 0,
       payload: {
         application_ids: targetIds,
+        notEligibleExcluded: preview.notEligibleExcluded || 0,
+        forceRegenerate: Boolean(forceRegenerate),
         user: {
           userId: user.userId,
           roles: user.roles,
@@ -589,7 +608,12 @@ async function startBulkIssue(opportunityId, user, { retryFailedIds = [], sync =
           portalType: user.portalType,
         },
       },
-      progress: { ...emptyProgress(), total: targetIds.length, remaining: targetIds.length },
+      progress: {
+        ...emptyProgress(),
+        total: targetIds.length,
+        remaining: targetIds.length,
+        notEligibleExcluded: preview.notEligibleExcluded || 0,
+      },
     },
   });
 
@@ -608,7 +632,12 @@ async function processJob(jobId) {
   if (!job) return;
   const user = job.payload?.user || { userId: job.created_by_id };
   const ids = job.payload?.application_ids || [];
-  const progress = { ...emptyProgress(), total: ids.length, remaining: ids.length };
+  const progress = {
+    ...emptyProgress(),
+    total: ids.length,
+    remaining: ids.length,
+    notEligibleExcluded: Number(job.payload?.notEligibleExcluded) || 0,
+  };
 
   await prisma.field_training_completion_letter_jobs.update({
     where: { id: jobId },
@@ -665,7 +694,8 @@ async function processJob(jobId) {
             }
           : null;
         const result = await issueOne(applicationId, user.userId, user, {
-          allowSkip: true,
+          allowSkip: !job.payload?.forceRegenerate,
+          forceRegenerate: Boolean(job.payload?.forceRegenerate),
           preloaded: { app, opp, letter: letterByApp.get(applicationId) || null, payload },
         });
         if (result.outcome === 'issued' || result.outcome === 'regenerated') {

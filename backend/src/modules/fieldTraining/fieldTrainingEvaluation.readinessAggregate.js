@@ -13,6 +13,7 @@ const {
 } = require('./fieldTrainingEvaluation.bulkRating');
 
 const RENDERER_NOT_AVAILABLE = 'RENDERER_NOT_AVAILABLE';
+const DOCX_TEMPLATE_ENGINE_READY = 'DOCX_TEMPLATE_ENGINE_READY';
 
 function formatTemplateVersion(version) {
   if (version == null || version === '') return null;
@@ -37,24 +38,17 @@ async function buildTemplateGenerationReadiness({
   const structureValid = Boolean(templatePreflight?.ok);
   const mappingValid = uploadValid && structureValid;
   const documentRenderer = getOfficialDocumentRendererStatus();
-  const rendererReady = Boolean(documentRenderer.available);
-  let fidelityValid = structureValid && rendererReady;
+  const pdfGenerationReady = Boolean(documentRenderer.available);
   let failureCode = null;
 
   if (!template) {
     failureCode = TEMPLATE_MISSING_CODE;
-    fidelityValid = false;
   } else if (template.version == null) {
     failureCode = 'TEMPLATE_VERSION_MISSING';
-    fidelityValid = false;
   }
 
   if (templatePreflight?.ok === false) {
     failureCode = templatePreflight.issues?.[0]?.code || 'DOCX_PARSE_FAILED';
-    fidelityValid = false;
-  } else if (templatePreflight?.ok && !rendererReady) {
-    failureCode = RENDERER_NOT_AVAILABLE;
-    fidelityValid = false;
   }
 
   if (diagnostics.sourceFileId && typeof loadFileBuffer === 'function') {
@@ -70,37 +64,41 @@ async function buildTemplateGenerationReadiness({
       diagnostics.size = buffer?.length || 0;
       if (!diagnostics.fileExists) {
         failureCode = failureCode || 'SOURCE_FILE_NOT_FOUND';
-        fidelityValid = false;
       }
     } catch {
       diagnostics.fileExists = false;
       failureCode = failureCode || 'SOURCE_FILE_NOT_FOUND';
-      fidelityValid = false;
     }
   } else if (template && !diagnostics.sourceFileId) {
     failureCode = failureCode || 'SOURCE_FILE_NOT_FOUND';
-    fidelityValid = false;
   }
 
-  const templateGenerationReady = Boolean(
+  const docxGenerationReady = Boolean(
     template &&
       uploadValid &&
       structureValid &&
       mappingValid &&
-      rendererReady &&
-      fidelityValid &&
       diagnostics.fileExists !== false &&
-      template.version != null
+      template.version != null &&
+      templatePreflight?.ok !== false
   );
+  const rendererReady = docxGenerationReady;
+  const fidelityValid = docxGenerationReady;
+  const templateGenerationReady = docxGenerationReady;
 
   return {
     uploadValid,
     structureValid,
     mappingValid,
     rendererReady,
+    docxGenerationReady,
+    pdfGenerationReady,
+    officialOutputFormat: 'docx',
+    pdfUnusedForBatch: true,
+    rendererStatus: docxGenerationReady ? DOCX_TEMPLATE_ENGINE_READY : failureCode,
     fidelityValid,
     templateGenerationReady,
-    failureCode,
+    failureCode: docxGenerationReady ? null : failureCode,
     version: formatTemplateVersion(template?.version),
     versionResolved: template?.version != null,
     diagnostics,
@@ -109,6 +107,7 @@ async function buildTemplateGenerationReadiness({
       engine: documentRenderer.engine,
       version: documentRenderer.version,
       concurrencyLimit: documentRenderer.concurrencyLimit,
+      requiredForOfficialOutput: false,
     },
   };
 }
@@ -173,6 +172,7 @@ function computeGenerationCounts(students = [], templateGenerationReady = false)
 
 module.exports = {
   RENDERER_NOT_AVAILABLE,
+  DOCX_TEMPLATE_ENGINE_READY,
   formatTemplateVersion,
   buildTemplateGenerationReadiness,
   buildPopulationSummary,

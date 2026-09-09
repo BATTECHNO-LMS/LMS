@@ -2,7 +2,7 @@
 
 const APPLICATION_STATUS_AR = {
   pending: 'قيد المراجعة',
-  approved: 'مقبول',
+  approved: 'معتمد',
   rejected: 'مرفوض',
   cancelled: 'ملغى',
 };

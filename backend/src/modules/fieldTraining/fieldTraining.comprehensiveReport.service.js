@@ -16,25 +16,26 @@ const {
   translateStudentActivityEvent,
   CATEGORY,
 } = require('./fieldTraining.activityTranslate');
+const present = require('../../utils/fieldTraining.reportPresentation');
 
 const ATTENDANCE_STATUS_AR = Object.freeze({
   present: 'حاضر',
   absent: 'غائب',
   late: 'متأخر',
-  excused: 'غياب بعذر',
-  unconfirmed: 'لم يتم تسجيل الحالة',
+  excused: 'بعذر',
+  unconfirmed: 'غير محدد',
 });
 
 const REVIEW_STATUS_AR = Object.freeze({
-  approved: 'تم اعتماد المهمة',
-  graded: 'تم تقييم المهمة',
-  submitted: 'تم تسليم المهمة',
+  approved: 'تم التقييم',
+  graded: 'تم التقييم',
+  submitted: 'مسلّم',
   under_review: 'قيد المراجعة',
-  pending: 'لم يتم التقييم بعد',
+  pending: 'لم يتم التقييم',
   needs_revision: 'تحتاج إعادة تسليم',
   rejected: 'تحتاج إعادة تسليم',
-  not_submitted: 'لم يتم التسليم',
-  missing: 'لم يتم التسليم',
+  not_submitted: 'غير مسلّم',
+  missing: 'غير مسلّم',
 });
 
 function num(value) {
@@ -50,40 +51,17 @@ function round1(value) {
 }
 
 function formatDateTimeAr(value) {
-  if (!value) return null;
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  try {
-    return new Intl.DateTimeFormat('ar-JO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(d);
-  } catch {
-    return d.toISOString();
-  }
+  // University-facing reports prefer date-only; keep helper for internal activity timestamps.
+  return present.formatDateAr(value);
 }
 
 function formatDateAr(value) {
-  if (!value) return null;
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  try {
-    return new Intl.DateTimeFormat('ar-JO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    }).format(d);
-  } catch {
-    return d.toISOString().slice(0, 10);
-  }
+  return present.formatDateAr(value);
 }
 
 function gateLabel(ok) {
-  if (ok === true) return { status: 'passed', labelAr: 'اجتاز' };
-  if (ok === false) return { status: 'failed', labelAr: 'لم يجتز' };
+  if (ok === true) return { status: 'passed', labelAr: 'مستوفى' };
+  if (ok === false) return { status: 'failed', labelAr: 'غير مستوفى' };
   return { status: 'unknown', labelAr: 'غير متوفر' };
 }
 
@@ -106,8 +84,8 @@ function buildQualificationSummary(publicQ, calculated) {
       diff == null
         ? null
         : diff >= 0
-          ? `تجاوز حد التأهيل بـ ${diff} علامات`
-          : `ناقص ${Math.abs(diff)} علامات عن حد التأهيل`,
+          ? `تجاوز حد التأهيل بمقدار ${diff} علامة`
+          : `${Math.abs(diff)} علامة`,
     eligibilityStatus: publicQ?.eligibilityStatus || null,
     workflowOutcome: publicQ?.workflowOutcome || null,
     scorePassed: Boolean(publicQ?.scorePassed),
@@ -126,12 +104,12 @@ function buildQualificationSummary(publicQ, calculated) {
     mandatoryGates: [
       {
         key: 'attendance',
-        nameAr: 'متطلب الحضور',
+        nameAr: 'الحضور',
         ...gateLabel(gates.attendanceRequirementMet),
       },
       {
         key: 'hours',
-        nameAr: 'متطلب الساعات',
+        nameAr: 'الساعات التدريبية',
         ...gateLabel(gates.hoursRequirementMet),
       },
       {
@@ -151,12 +129,12 @@ function buildQualificationSummary(publicQ, calculated) {
       },
       {
         key: 'behavior',
-        nameAr: 'التقييم المهني / السلوك',
+        nameAr: 'تقييم السلوك والالتزام',
         ...completeLabel(gates.behaviorEvaluationComplete),
       },
       {
         key: 'finalScore',
-        nameAr: 'حد العلامة النهائية',
+        nameAr: 'الحد الأدنى للعلامة النهائية',
         ...gateLabel(gates.scorePassed),
       },
     ],
@@ -168,7 +146,7 @@ function buildQualificationSummary(publicQ, calculated) {
       gates.preAssessmentCompleted && gates.postAssessmentCompleted
         ? 'استكمل التقييم القبلي والبعدي'
         : null,
-      gates.behaviorEvaluationComplete ? 'استكمل التقييم المهني' : null,
+      gates.behaviorEvaluationComplete ? 'استكمل تقييم السلوك والالتزام' : null,
     ].filter(Boolean),
   };
 }
@@ -268,18 +246,21 @@ async function loadStudentActivity({ studentId, applicationId, opportunityId, li
       loginCountAvailable: trackingExists,
       loginCountLabelAr: trackingExists
         ? `${loginCount} مرة`
-        : 'غير متوفر تاريخياً قبل تفعيل التتبع',
+        : 'غير متوفر بالكامل',
       firstLoginAt: firstLoginAudit?.created_at || null,
-      firstLoginAtLabelAr: formatDateTimeAr(firstLoginAudit?.created_at),
+      firstLoginAtLabelAr: formatDateAr(firstLoginAudit?.created_at),
       lastLoginAt: student?.last_login_at || null,
-      lastLoginAtLabelAr: formatDateTimeAr(student?.last_login_at),
+      lastLoginAtLabelAr: formatDateAr(student?.last_login_at),
       firstActivityAt: timeline.length
         ? timeline[timeline.length - 1]?.at
         : student?.created_at || null,
-      firstActivityAtLabelAr: formatDateTimeAr(
+      firstActivityAtLabelAr: formatDateAr(
         timeline.length ? timeline[timeline.length - 1]?.at : student?.created_at
       ),
       trackingEnabled: trackingExists,
+      loginNoteAr: trackingExists
+        ? null
+        : 'ملاحظة: لا تتوفر بيانات كاملة لعدد مرات تسجيل الدخول خلال كامل فترة التدريب.',
     },
     timeline,
   };
@@ -381,7 +362,7 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
     const minutes = hoursMod.sessionDurationMinutes(session.start_time, session.end_time);
     return {
       sessionId: session.id,
-      title: session.title,
+      title: present.cleanSessionTitle(session.title),
       date: session.session_date,
       dateLabelAr: formatDateAr(session.session_date),
       isRequired: session.is_required !== false,
@@ -448,10 +429,15 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
         ? approvedDetail?.submissionStatus || (isGraded ? 'SUBMITTED' : reviewStatus)
         : 'NOT_SUBMITTED',
       submissionStatusLabelAr: submitted
-        ? approvedDetail?.submissionStatusAr || REVIEW_STATUS_AR[reviewStatus] || 'مسلّم'
+        ? 'مسلّم'
         : 'غير مسلّم',
+      reviewStatusLabelAr: isGraded
+        ? 'تم التقييم'
+        : submitted
+          ? REVIEW_STATUS_AR[reviewStatus] || 'لم يتم التقييم'
+          : 'لم يتم التقييم',
       submittedAt: sub?.submitted_at || null,
-      submittedAtLabelAr: formatDateTimeAr(sub?.submitted_at),
+      submittedAtLabelAr: formatDateAr(sub?.submitted_at),
       isLate: Boolean(sub?.is_late),
       score: canonicalScore,
       rawTaskScore:
@@ -460,15 +446,9 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
           : canonicalScore,
       approvedTaskScore,
       approvedSourceLabelAr: submitted
-        ? approvedDetail?.source === 'AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT'
-          ? 'تقييم نهائي معتمد للدفعة السابقة'
-          : approvedDetail?.source === 'AUTHORIZED_MANUAL_REVIEW' || isGraded
-            ? 'مراجعة واعتماد نهائي'
-            : approvedDetail?.source
-              ? 'تقييم معتمد'
-              : isGraded
-                ? 'مراجعة واعتماد نهائي'
-                : null
+        ? present.labelSourceHuman(
+            approvedDetail?.source || (isGraded ? 'AUTHORIZED_MANUAL_REVIEW' : null)
+          )
         : null,
       maxScore: sub?.max_score != null ? Number(sub.max_score) : canonicalScore != null ? 100 : null,
       accepted: isGraded || ACCEPTED_TASK_STATUSES.includes(reviewStatus),
@@ -515,7 +495,7 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
 
   return {
     generatedAt: new Date().toISOString(),
-    generatedAtLabelAr: formatDateTimeAr(new Date()),
+    generatedAtLabelAr: formatDateAr(new Date()),
     student: {
       id: app.student_id,
       fullName: profile?.full_name || null,
@@ -538,11 +518,14 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
           ? 'عن بعد'
           : opp.training_mode === 'onsite'
             ? 'وجاهي'
-            : opp.training_mode || null,
+            : opp.training_mode === 'hybrid'
+              ? 'مدمج'
+              : present.displayValue(opp.training_mode, 'غير محدد'),
       startDate: opp.start_date,
       endDate: opp.end_date,
       startDateLabelAr: formatDateAr(opp.start_date),
       endDateLabelAr: formatDateAr(opp.end_date),
+      periodLabelAr: present.formatDateRangeAr(opp.start_date, opp.end_date),
       academicYear: null,
       semester: null,
       requiredTrainingHours:
@@ -552,12 +535,16 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
           ? Number(opp.minimum_attendance_percentage)
           : null,
       requiresFinalTask: Boolean(opp.requires_final_task),
+      requiresFinalTaskLabelAr: opp.requires_final_task ? 'مطلوبة' : 'غير مطلوبة',
     },
     application: {
       id: app.id,
       status: app.status,
+      statusLabelAr: present.labelApplicationStatus(app.status),
       trainingStatus: app.training_status,
+      trainingStatusLabelAr: present.labelTrainingStatus(app.training_status),
       eligibilityStatus: app.completion_eligibility_status,
+      eligibilityStatusLabelAr: present.labelEligibilityStatus(app.completion_eligibility_status),
       academicSupervisorName: app.academic_supervisor_name || null,
     },
     eligibility: qualification,
@@ -582,6 +569,9 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
     tasks: {
       requiredCount: taskRows.length,
       completedCount: taskRows.filter((t) => t.accepted).length,
+      submittedCount: taskRows.filter(
+        (t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing'
+      ).length,
       items: taskRows,
     },
     assessments: {
@@ -596,11 +586,13 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
       behaviorPoints: publicQ?.scoreComponents?.behavior?.points ?? null,
       behaviorMax: publicQ?.scoreComponents?.behavior?.maxPoints ?? 20,
       ratedAt: ratings[0]?.rated_at || null,
-      ratedAtLabelAr: formatDateTimeAr(ratings[0]?.rated_at),
+      ratedAtLabelAr: formatDateAr(ratings[0]?.rated_at),
     },
     activitySummary: {
       ...activity.summary,
-      taskSubmissionsCount: taskRows.filter((t) => t.submissionStatus !== 'missing').length,
+      taskSubmissionsCount: taskRows.filter(
+        (t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing'
+      ).length,
       requiredTasksCount: taskRows.length,
       attendanceEventsCount: attendedLike,
       requiredSessionsCount: requiredSessions,
@@ -615,20 +607,20 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
 }
 
 function esc(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return present.esc(value);
 }
 
-function dash(value) {
-  if (value == null || value === '') return '—';
-  return esc(value);
+function cell(value, fallback = 'غير متوفر') {
+  if (value != null && String(value).includes('<span dir="ltr">')) return String(value);
+  return esc(present.displayValue(value, fallback));
 }
 
 function kpi(label, value) {
-  return `<div class="kpi"><div class="kpi__label">${esc(label)}</div><div class="kpi__value">${dash(value)}</div></div>`;
+  const rendered =
+    value != null && String(value).includes('<span dir="ltr">')
+      ? String(value)
+      : cell(value);
+  return `<div class="kpi"><div class="kpi__label">${esc(label)}</div><div class="kpi__value">${rendered}</div></div>`;
 }
 
 function section(title, body, id = '') {
@@ -637,7 +629,7 @@ function section(title, body, id = '') {
 
 function kv(pairs) {
   return `<div class="kv">${pairs
-    .map(([k, v]) => `<div>${esc(k)}</div><div>${dash(v)}</div>`)
+    .map(([k, v, fallback]) => `<div>${esc(k)}</div><div>${cell(v, fallback || 'غير متوفر')}</div>`)
     .join('')}</div>`;
 }
 
@@ -646,18 +638,24 @@ function table(headers, rows, { empty = 'لا توجد بيانات.' } = {}) {
   return `<table>
     <thead><tr>${headers.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
     <tbody>${rows
-      .map((r) => `<tr>${r.map((c) => `<td>${dash(c)}</td>`).join('')}</tr>`)
+      .map(
+        (r) =>
+          `<tr>${r
+            .map((c) => {
+              if (c != null && String(c).includes('<span dir="ltr">')) return `<td>${c}</td>`;
+              return `<td>${cell(c, 'لا يوجد')}</td>`;
+            })
+            .join('')}</tr>`
+      )
       .join('')}</tbody>
   </table>`;
 }
 
 function statusBadge(status) {
-  const s = String(status || '').toLowerCase();
-  const ok = s === 'eligible' || s === 'مؤهل';
-  const bad = s === 'ineligible' || s === 'not_eligible' || s === 'غير مؤهل';
+  const label = present.labelEligibilityStatus(status);
+  const ok = present.isEligibleStatus(status) || label === 'مؤهل';
+  const bad = present.isNotEligibleStatus(status) || label === 'غير مؤهل';
   const cls = ok ? 'badge badge--ok' : bad ? 'badge badge--bad' : 'badge badge--warn';
-  const label =
-    ok ? 'مؤهل' : bad ? 'غير مؤهل' : status || '—';
   return `<span class="${cls}">${esc(label)}</span>`;
 }
 
@@ -684,7 +682,6 @@ function renderComprehensiveReportHtml(report, assets = {}) {
     report.application?.eligibilityStatus ||
     q.eligibilityStatus ||
     '';
-  const approved = q.approvedEvaluationResult || {};
   const att = report.attendance || {};
   const tasks = report.tasks || {};
   const assessments = report.assessments || {};
@@ -692,63 +689,74 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   const activity = report.activitySummary || {};
   const timeline = report.activityTimeline || [];
   const gates = q.mandatoryGates || [];
-  const reasons = q.eligibilityReasonLabels || [];
+  const notEligible = present.isNotEligibleStatus(status);
+  const eligible = present.isEligibleStatus(status);
+  const decisionReasons = notEligible ? present.buildNotEligibleReasonsAr(report) : [];
+  const issueDate = report.generatedAtLabelAr || present.formatDateAr(new Date());
+  const submittedCount =
+    tasks.submittedCount ??
+    (tasks.items || []).filter(
+      (t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing'
+    ).length;
+  const gradedCount = (tasks.items || []).filter((t) => t.accepted).length;
 
   const taskRows = (tasks.items || []).map((task) => {
-    const grade =
-      task.approvedTaskScore != null
-        ? `${task.approvedTaskScore}/100`
-        : task.score != null
-          ? `${task.score}${task.maxScore != null ? `/${task.maxScore}` : '/100'}`
-          : '—';
-    const review =
-      task.accepted || task.reviewStatus === 'graded' || task.reviewStatus === 'approved'
-        ? 'مكتمل'
-        : task.submissionStatus === 'NOT_SUBMITTED' || task.submissionStatus === 'missing'
-          ? 'غير مسلّم'
-          : task.submissionStatusLabelAr || '—';
+    const hasGrade = task.approvedTaskScore != null || task.score != null;
+    const grade = hasGrade
+      ? present.scoreHtml(task.approvedTaskScore ?? task.score, task.maxScore ?? 100, 'لا توجد')
+      : esc('لا توجد');
     return [
       task.title,
       task.submissionStatusLabelAr || (task.accepted ? 'مسلّم' : 'غير مسلّم'),
-      review,
+      task.reviewStatusLabelAr ||
+        (task.accepted ? 'تم التقييم' : hasGrade ? 'تم التقييم' : 'لم يتم التقييم'),
       grade,
-      task.rawTaskScore != null ? `${task.rawTaskScore}` : '—',
-      task.submittedAtLabelAr || '—',
-      task.approvedSourceLabelAr || '—',
-      task.isLate ? 'متأخر' : task.submittedAt ? 'في الوقت' : '—',
+      task.submittedAtLabelAr || 'لا يوجد',
     ];
   });
 
   const sessionRows = (att.sessions || []).map((s) => [
-    s.dateLabelAr || '—',
-    s.title,
-    s.statusLabelAr || s.status,
-    s.durationHours != null ? `${s.durationHours}` : '—',
+    s.dateLabelAr || 'غير متوفر',
+    present.cleanSessionTitle(s.title),
+    s.statusLabelAr || present.displayValue(s.status, 'غير محدد'),
+    s.durationHours != null ? present.scoreHtml(s.durationHours, null, 'غير متوفر') : 'غير متوفر',
     s.isRequired === false ? 'اختيارية' : 'مطلوبة',
   ]);
 
   const criteriaRows = (pro.criteria || []).map((c) => [
-    c.index,
     c.labelAr || c.key,
-    c.score != null ? `${c.score}` : '—',
+    c.score != null ? present.scoreHtml(c.score, c.maxScore || 5, 'غير مكتمل') : 'غير مكتمل',
   ]);
 
-  const timelineRows = timeline.slice(0, 60).map((ev) => [
-    ev.occurredAtLabelAr || ev.createdAtLabelAr || '—',
-    ev.categoryLabelAr || ev.category || '—',
-    ev.titleAr || ev.actionType || '—',
-    ev.detailAr || '—',
+  const usefulTimeline = timeline.filter((ev) => {
+    const title = ev.title || ev.titleAr || '';
+    const description = ev.description || ev.detailAr || '';
+    return Boolean(String(title).trim() || String(description).trim());
+  });
+
+  const timelineRows = usefulTimeline.slice(0, 60).map((ev) => [
+    ev.atLabelAr || ev.occurredAtLabelAr || present.formatDateAr(ev.at) || 'غير متوفر',
+    ev.categoryLabelAr || 'نشاط',
+    present.sanitizeVisibleText(ev.title || ev.titleAr, 'حدث'),
+    present.sanitizeVisibleText(ev.description || ev.detailAr, 'لا يوجد'),
   ]);
 
   const coverLogo = logoUri
     ? `<img class="logo" src="${logoUri}" alt="BATMAN TECHNOLOGY" />`
     : `<div class="logo-fallback">BATMAN TECHNOLOGY</div>`;
 
+  const scoreDiffLabel =
+    finalScore == null
+      ? 'غير متوفر'
+      : Number(finalScore) >= Number(passing)
+        ? `تجاوز حد التأهيل بمقدار ${Math.abs(Number(finalScore) - Number(passing))} علامة`
+        : `${Math.abs(Number(finalScore) - Number(passing))} علامة`;
+
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <title>تقرير الطالب الشامل — ${esc(report.student?.fullName || '')}</title>
+  <title>تقرير الطالب الشامل - ${esc(report.student?.fullName || '')}</title>
   <style>
     ${fontCss}
     :root {
@@ -771,7 +779,7 @@ function renderComprehensiveReportHtml(report, assets = {}) {
       color: var(--color-text);
       background: #fff;
       font-size: 13px;
-      line-height: 1.7;
+      line-height: 1.75;
       -webkit-font-smoothing: antialiased;
     }
     h1, h2, h3 { color: var(--color-primary); font-weight: 700; }
@@ -780,7 +788,7 @@ function renderComprehensiveReportHtml(report, assets = {}) {
       background: linear-gradient(160deg, #0e2136 0%, #132d4a 45%, #1e5a8a 100%);
       color: #fff;
       border-radius: 18px;
-      padding: 40px 36px;
+      padding: 44px 38px;
       position: relative;
       overflow: hidden;
       page-break-after: always;
@@ -789,44 +797,72 @@ function renderComprehensiveReportHtml(report, assets = {}) {
       position: absolute; inset: auto -40px -40px auto; width: 220px; height: 220px;
       border: 18px solid rgba(201,162,39,.25); border-radius: 50%;
     }
-    .cover__brands { display:flex; justify-content: space-between; align-items: center; gap: 24px; }
+    .cover__brands { display:flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 8px; }
     .logo { height: 64px; width: auto; object-fit: contain; background: rgba(255,255,255,.92); padding: 8px 12px; border-radius: 10px; }
     .logo-fallback { background: rgba(255,255,255,.92); color: var(--color-primary); padding: 12px 16px; border-radius: 10px; font-weight: 700; }
-    .cover__title { text-align:center; font-size: 28px; margin: 56px 0 10px; font-weight: 700; }
-    .cover__sub { text-align:center; font-size: 18px; color: #f3ead4; margin: 0 0 28px; }
-    .cover__meta { max-width: 560px; margin: 0 auto; background: rgba(255,255,255,.08); padding: 18px 22px; border-radius: 14px; }
-    .cover__meta p { margin: 6px 0; }
-    .cover__footer { display:flex; justify-content: space-between; margin-top: 48px; font-size: 12px; opacity: .9; }
+    .cover__title {
+      text-align:center;
+      font-size: 30px;
+      margin: 52px 0 8px;
+      font-weight: 700;
+      color: #ffffff !important;
+      letter-spacing: 0.2px;
+      line-height: 1.45;
+    }
+    .cover__title span { display:block; color: #ffffff !important; }
+    .cover__sub {
+      text-align:center;
+      font-size: 15px;
+      color: #ffffff;
+      opacity: 0.92;
+      margin: 18px auto 30px;
+      max-width: 620px;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+    .cover__meta {
+      max-width: 560px;
+      margin: 0 auto;
+      background: rgba(255,255,255,.10);
+      padding: 20px 24px;
+      border-radius: 14px;
+      border: 1px solid rgba(201,162,39,.35);
+    }
+    .cover__meta p { margin: 7px 0; color: #ffffff; }
+    .cover__meta strong { color: #f7f1e7; }
+    .cover__footer { display:flex; justify-content: space-between; margin-top: 52px; font-size: 12px; color: #ffffff; opacity: .92; }
     .page-header { display:flex; justify-content: space-between; align-items:center; border-bottom: 1px solid var(--color-border); padding-bottom: 8px; margin: 0 0 16px; }
     .page-header img { height: 28px; background:#fff; padding: 2px 6px; border-radius: 6px; }
     .page-header__text { text-align: left; font-size: 11px; color: #5c6675; }
-    .section { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 14px; page-break-inside: avoid; }
-    .section h2 { margin: 0 0 12px; font-size: 16px; border-bottom: 2px solid #d4af37; padding-bottom: 4px; }
+    .section { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; page-break-inside: avoid; }
+    .section h2 { margin: 0 0 14px; font-size: 16px; border-bottom: 2px solid #c9a227; padding-bottom: 6px; }
     .kpi-grid { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; }
-    .kpi { background: var(--color-cream); border-radius: 10px; padding: 10px; border: 1px solid var(--color-border); }
+    .kpi { background: var(--color-cream); border-radius: 10px; padding: 12px; border: 1px solid var(--color-border); }
     .kpi__label { font-size: 11px; color: #5c6675; }
-    .kpi__value { font-size: 15px; font-weight: 700; color: var(--color-primary); margin-top: 4px; }
+    .kpi__value { font-size: 15px; font-weight: 700; color: var(--color-primary); margin-top: 6px; }
     .score-hero { display:flex; justify-content: space-between; gap: 16px; align-items: stretch; margin-bottom: 12px; }
-    .score-hero__main { flex: 1; background: linear-gradient(135deg, #132d4a, #1e5a8a); color:#fff; border-radius: 12px; padding: 16px 18px; }
-    .score-hero__main span { display:block; opacity:.9; font-size: 12px; }
-    .score-hero__main strong { display:block; font-size: 34px; margin-top: 4px; }
-    .score-hero__side { width: 220px; background: var(--color-cream); border: 1px solid var(--color-border); border-radius: 12px; padding: 14px; }
-    table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 12px; }
+    .score-hero__main { flex: 1; background: linear-gradient(135deg, #132d4a, #1e5a8a); color:#fff; border-radius: 12px; padding: 18px 20px; }
+    .score-hero__main span { display:block; opacity:.92; font-size: 12px; color:#fff; }
+    .score-hero__main strong { display:block; font-size: 36px; margin-top: 6px; color:#fff; letter-spacing: 0.3px; }
+    .score-hero__side { width: 230px; background: var(--color-cream); border: 1px solid var(--color-border); border-radius: 12px; padding: 14px 16px; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0 4px; font-size: 12px; }
     thead { display: table-header-group; }
-    th, td { border: 1px solid var(--color-border); padding: 7px 8px; text-align: right; vertical-align: top; }
+    th, td { border: 1px solid var(--color-border); padding: 8px 9px; text-align: right; vertical-align: top; }
     th { background: var(--color-primary); color: #fff; font-weight: 700; }
     tr:nth-child(even) td { background: #f8fafc; }
     .muted { color: #5c6675; font-size: 12px; }
-    .kv { display: grid; grid-template-columns: 190px 1fr; gap: 4px 12px; margin: 8px 0; }
+    .kv { display: grid; grid-template-columns: 200px 1fr; gap: 6px 14px; margin: 8px 0; }
     .kv div:nth-child(odd) { font-weight: 700; color: #3d4a5c; }
-    .badge { display:inline-block; padding: 2px 10px; border-radius: 999px; background: #eef2f7; }
+    .badge { display:inline-block; padding: 3px 12px; border-radius: 999px; background: #eef2f7; }
     .badge--ok { background: #e7f4ec; color: var(--color-success); }
     .badge--warn { background: #f8eedf; color: var(--color-warning); }
     .badge--bad { background: #f8e7e7; color: var(--color-danger); }
     .callout { background: #e7edf4; border-right: 4px solid var(--color-action); padding: 10px 12px; border-radius: 8px; margin: 8px 0; }
     .callout--warn { border-right-color: var(--color-warning); background: #f8eedf; }
     .checklist { list-style: none; padding: 0; margin: 0; }
-    .checklist li { display:flex; justify-content: space-between; border-bottom: 1px solid var(--color-border); padding: 6px 0; }
+    .checklist li { display:flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 7px 0; }
+    .reasons { margin: 0; padding-right: 18px; }
+    .reasons li { margin: 6px 0; }
     @page { size: A4; margin: 14mm 12mm 18mm; }
   </style>
 </head>
@@ -834,124 +870,117 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   <div class="cover">
     <div class="cover__ornament"></div>
     <div class="cover__brands">${coverLogo}<div class="logo-fallback">BATMAN TECHNOLOGY<br/>LMS</div></div>
-    <h1 class="cover__title">تقرير الطالب الشامل<br/>للتدريب الميداني</h1>
+    <h1 class="cover__title"><span>تقرير الطالب الشامل</span><span>للتدريب الميداني</span></h1>
     <p class="cover__sub">${esc(report.opportunity?.title || '')}</p>
     <div class="cover__meta">
-      <p><strong>الطالب:</strong> ${dash(report.student?.fullName)}</p>
-      <p><strong>الرقم الجامعي:</strong> ${dash(report.student?.universityNumber)}</p>
-      <p><strong>الجامعة:</strong> ${dash(report.student?.university)}</p>
-      <p><strong>التخصص:</strong> ${dash(report.student?.specialty)}</p>
-      <p><strong>نمط التدريب:</strong> ${dash(report.opportunity?.trainingModeAr)}</p>
+      <p><strong>الطالب:</strong> ${cell(report.student?.fullName, 'غير محدد')}</p>
+      <p><strong>الرقم الجامعي:</strong> ${cell(report.student?.universityNumber, 'غير متوفر')}</p>
+      <p><strong>الجامعة:</strong> ${cell(report.student?.university, 'غير محدد')}</p>
+      <p><strong>التخصص:</strong> ${cell(report.student?.specialty, 'غير محدد')}</p>
+      <p><strong>نمط التدريب:</strong> ${cell(report.opportunity?.trainingModeAr, 'غير محدد')}</p>
       <p><strong>الحالة النهائية:</strong> ${statusBadge(status)}</p>
-      <p><strong>العلامة النهائية المعتمدة:</strong> ${finalScore != null ? esc(finalScore) + ' / 100' : '—'}</p>
+      <p><strong>العلامة النهائية:</strong> ${finalScore != null ? present.scoreHtml(finalScore, 100) : esc('غير متوفر')}</p>
     </div>
     <div class="cover__footer">
-      <span>تاريخ الإصدار: ${dash(report.generatedAtLabelAr)}</span>
-      <span>سري — للاستخدام الرسمي</span>
+      <span>تاريخ الإصدار: ${esc(issueDate || 'غير متوفر')}</span>
+      <span>سري - للاستخدام الرسمي</span>
     </div>
   </div>
 
   <div class="page-header">
     <div>${logoUri ? `<img src="${logoUri}" alt="logo" />` : '<strong>BATMAN TECHNOLOGY</strong>'}</div>
-    <div class="page-header__text">${dash(report.student?.fullName)} · ${dash(report.student?.universityNumber)}</div>
+    <div class="page-header__text">${cell(report.student?.fullName, '')} · ${cell(report.student?.universityNumber, '')}</div>
   </div>
 
   ${section(
-    '1) البيانات الأساسية',
+    '1. البيانات الأساسية',
     kv([
-      ['اسم الطالب', report.student?.fullName],
+      ['اسم الطالب', report.student?.fullName, 'غير محدد'],
       ['الرقم الجامعي', report.student?.universityNumber],
       ['البريد الإلكتروني', report.student?.email],
       ['الهاتف', report.student?.phone],
-      ['الجامعة', report.student?.university],
-      ['التخصص', report.student?.specialty],
-      ['المشرف الأكاديمي', report.application?.academicSupervisorName],
-      ['حالة الطلب', report.application?.status],
-      ['حالة التدريب', report.application?.trainingStatus],
+      ['الجامعة', report.student?.university, 'غير محدد'],
+      ['التخصص', report.student?.specialty, 'غير محدد'],
+      ['المشرف الأكاديمي', report.application?.academicSupervisorName, 'غير محدد'],
+      ['حالة الطلب', report.application?.statusLabelAr || present.labelApplicationStatus(report.application?.status)],
+      ['حالة التدريب', report.application?.trainingStatusLabelAr || present.labelTrainingStatus(report.application?.trainingStatus)],
     ]),
     'identity'
   )}
 
   ${section(
-    '2) بيانات الفرصة والتدريب',
+    '2. بيانات التدريب',
     kv([
-      ['اسم الفرصة', report.opportunity?.title],
-      ['جهة التدريب', report.opportunity?.organizationName],
-      ['نمط التدريب', report.opportunity?.trainingModeAr],
-      ['فترة التدريب', `${report.opportunity?.startDateLabelAr || '—'} — ${report.opportunity?.endDateLabelAr || '—'}`],
-      ['الساعات المطلوبة', report.opportunity?.requiredTrainingHours],
-      ['الحد الأدنى للحضور %', report.opportunity?.minimumAttendancePercentage],
-      ['يتطلب مهمة نهائية', report.opportunity?.requiresFinalTask ? 'نعم' : 'لا'],
+      ['اسم البرنامج', report.opportunity?.title],
+      ['جهة التدريب', report.opportunity?.organizationName, 'غير محدد'],
+      ['نمط التدريب', report.opportunity?.trainingModeAr, 'غير محدد'],
+      ['فترة التدريب', report.opportunity?.periodLabelAr || present.formatDateRangeAr(report.opportunity?.startDateLabelAr, report.opportunity?.endDateLabelAr), 'غير محدد'],
+      ['الساعات التدريبية المطلوبة', report.opportunity?.requiredTrainingHours],
+      ['الحد الأدنى للحضور', report.opportunity?.minimumAttendancePercentage != null ? `${report.opportunity.minimumAttendancePercentage}%` : null],
+      ['المهمة النهائية', report.opportunity?.requiresFinalTaskLabelAr || (report.opportunity?.requiresFinalTask ? 'مطلوبة' : 'غير مطلوبة')],
     ]),
     'opportunity'
   )}
 
   ${section(
-    '3) النتيجة النهائية المعتمدة',
+    '3. النتيجة النهائية',
     `<div class="score-hero">
       <div class="score-hero__main">
-        <span>العلامة النهائية المعتمدة</span>
-        <strong>${finalScore != null ? esc(finalScore) + ' / 100' : '—'}</strong>
-        <div style="margin-top:8px">${statusBadge(status)} · حد التأهيل: ${esc(passing)} / 100</div>
+        <span>العلامة النهائية</span>
+        <strong>${finalScore != null ? `<span dir="ltr">${esc(finalScore)} / 100</span>` : esc('غير متوفر')}</strong>
+        <div style="margin-top:10px">${statusBadge(status)}</div>
       </div>
       <div class="score-hero__side">
-        <div class="muted">مصدر الاعتماد</div>
-        <strong>${dash(approved.sourceLabelAr || approved.source || q.approvedSourceLabelAr)}</strong>
-        <div class="muted" style="margin-top:10px">فرق العلامة عن الحد</div>
-        <strong>${dash(q.scoreDifferenceLabelAr)}</strong>
+        <div class="muted">الحالة</div>
+        <strong>${esc(present.labelEligibilityStatus(status))}</strong>
+        <div class="muted" style="margin-top:10px">الحد الأدنى للتأهيل</div>
+        <strong>${present.scoreHtml(passing, 100)}</strong>
+        <div class="muted" style="margin-top:10px">الفرق عن حد التأهيل</div>
+        <strong>${esc(scoreDiffLabel)}</strong>
       </div>
-    </div>
-    ${
-      approved.changeReasonAr
-        ? `<div class="callout">${esc(approved.changeReasonAr)}</div>`
-        : ''
-    }
-    ${kv([
-      ['العلامة السابقة في ملف التقييم', approved.previousExcelScore],
-      ['العلامة المحسوبة آلياً', approved.recalculatedScore ?? q.recalculatedScore],
-      ['تاريخ الاعتماد', approved.approvedAt],
-    ])}`,
+    </div>`,
     'result'
   )}
 
   ${section(
-    '4) تفصيل العلامة (20 / 20 / 40 / 20)',
+    '4. توزيع العلامة',
     `<div class="kpi-grid">
-      ${kpi('الحضور /20', attPts != null ? `${attPts} / 20` : '—')}
-      ${kpi('التقييم البعدي /20', postPts != null ? `${postPts} / 20` : '—')}
-      ${kpi('التاسكات /40', taskPts != null ? `${taskPts} / 40` : '—')}
-      ${kpi('السلوك /20', behPts != null ? `${behPts} / 20` : '—')}
+      ${kpi('الحضور', present.scoreHtml(attPts, 20))}
+      ${kpi('التقييم البعدي', present.scoreHtml(postPts, 20))}
+      ${kpi('التاسكات', present.scoreHtml(taskPts, 40))}
+      ${kpi('السلوك والالتزام', present.scoreHtml(behPts, 20))}
     </div>
-    <p class="muted">المجموع = العلامة النهائية المعتمدة (${finalScore != null ? esc(finalScore) : '—'} / 100)، مع مراعاة التقريب المعروض فقط.</p>`,
+    <div class="callout" style="margin-top:12px"><strong>المجموع النهائي:</strong> ${finalScore != null ? present.scoreHtml(finalScore, 100) : esc('غير متوفر')}</div>`,
     'breakdown'
   )}
 
   ${section(
-    '5) متطلبات التأهيل',
+    '5. استيفاء متطلبات التدريب',
     gates.length
       ? `<ul class="checklist">${gates
           .map(
             (g) =>
               `<li><span>${esc(g.nameAr || g.key)}</span><span>${esc(
-                g.labelAr || (g.met ? 'مكتمل' : 'غير مكتمل')
+                g.labelAr || 'غير متوفر'
               )}</span></li>`
           )
-          .join('')}</ul>`
-      : '<p class="muted">لا توجد بوابات إلزامية معروضة.</p>',
+          .join('')}</ul>
+         <div class="callout" style="margin-top:10px"><strong>النتيجة النهائية:</strong> ${esc(present.labelEligibilityStatus(status))}</div>`
+      : '<p class="muted">لا توجد متطلبات معروضة.</p>',
     'gates'
   )}
 
   ${section(
-    '6) الحضور والساعات',
+    '6. الحضور والساعات التدريبية',
     `<div class="kpi-grid">
-      ${kpi('نسبة الحضور', att.percentage != null ? `${att.percentage}%` : '—')}
-      ${kpi('جلسات محتسبة', `${att.attended ?? 0} / ${att.requiredSessions ?? 0}`)}
+      ${kpi('نسبة الحضور', att.percentage != null ? `${att.percentage}%` : 'غير متوفر')}
+      ${kpi('الجلسات المحتسبة', present.countOfHtml(att.attended ?? 0, att.requiredSessions ?? 0))}
       ${kpi('الساعات المنجزة', att.completedHours)}
       ${kpi('الساعات المطلوبة', att.requiredHours)}
-      ${kpi('حاضر', att.counts?.present)}
-      ${kpi('متأخر', att.counts?.late)}
-      ${kpi('بعذر', att.counts?.excused)}
-      ${kpi('غائب', att.counts?.absent)}
+      ${kpi('حاضر', att.counts?.present ?? 0)}
+      ${kpi('متأخر', att.counts?.late ?? 0)}
+      ${kpi('بعذر', att.counts?.excused ?? 0)}
+      ${kpi('غائب', att.counts?.absent ?? 0)}
     </div>
     ${table(
       ['التاريخ', 'الجلسة', 'الحالة', 'المدة (ساعة)', 'النوع'],
@@ -962,45 +991,27 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   )}
 
   ${section(
-    '7) التقييم القبلي والبعدي',
-    `<div class="kpi-grid">
-      ${kpi(
-        'التقييم القبلي',
-        assessments.pre?.completed
-          ? `${assessments.pre.score ?? '—'} · ${assessments.pre.submittedAtLabelAr || ''}`
-          : 'غير مكتمل'
-      )}
-      ${kpi(
-        'التقييم البعدي',
-        assessments.post?.completed
-          ? `${assessments.post.score ?? '—'} · ${assessments.post.submittedAtLabelAr || ''}`
-          : 'غير مكتمل'
-      )}
-      ${kpi('نقاط البعدي /20', postPts != null ? `${postPts} / 20` : '—')}
-      ${kpi('حالة البعدي', assessments.post?.statusLabelAr || '—')}
-    </div>`,
+    '7. التقييم القبلي والبعدي',
+    `<div class="kv">
+        <div>التقييم القبلي</div><div>${assessments.pre?.score != null ? present.scoreHtml(assessments.pre.score, assessments.pre.maxScore || 100) : esc(assessments.pre?.completed ? 'مكتمل' : 'غير مكتمل')}</div>
+        <div>تاريخ الإجراء</div><div>${cell(assessments.pre?.submittedAtLabelAr, 'غير متوفر')}</div>
+        <div>التقييم البعدي</div><div>${assessments.post?.score != null ? present.scoreHtml(assessments.post.score, assessments.post.maxScore || 100) : esc(assessments.post?.completed ? 'مكتمل' : 'غير مكتمل')}</div>
+        <div>تاريخ الإجراء</div><div>${cell(assessments.post?.submittedAtLabelAr, 'غير متوفر')}</div>
+        <div>العلامة المحتسبة من التقييم البعدي</div><div>${present.scoreHtml(postPts, 20)}</div>
+        <div>الحالة</div><div>${cell(assessments.post?.statusLabelAr || (assessments.post?.completed ? 'مكتمل' : 'غير مكتمل'))}</div>
+      </div>`,
     'assessments'
   )}
 
   ${section(
-    '8) التاسكات التفصيلية',
+    '8. التاسكات',
     `<div class="kpi-grid">
-      ${kpi('التاسكات المكتملة تقييمًا', `${tasks.completedCount ?? 0} / ${tasks.requiredCount ?? 0}`)}
-      ${kpi('التاسكات المسلّمة (LMS)', `${(tasks.items || []).filter((t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing').length} / ${tasks.requiredCount ?? 0}`)}
-      ${kpi('نقاط التاسكات /40', taskPts != null ? `${taskPts} / 40` : '—')}
-      ${kpi('مصدر العدد', 'تسليمات نظام LMS')}
+      ${kpi('التاسكات المسلمة', present.countOfHtml(submittedCount, tasks.requiredCount ?? 0))}
+      ${kpi('التاسكات التي تم تقييمها', present.countOfHtml(gradedCount, tasks.requiredCount ?? 0))}
+      ${kpi('علامة التاسكات', present.scoreHtml(taskPts, 40))}
     </div>
     ${table(
-      [
-        'اسم المهمة',
-        'حالة التسليم',
-        'حالة التقييم',
-        'العلامة المعتمدة',
-        'العلامة المسجلة سابقاً',
-        'تاريخ التسليم',
-        'مصدر الاعتماد',
-        'التوقيت',
-      ],
+      ['اسم التاسك', 'حالة التسليم', 'حالة التقييم', 'العلامة', 'تاريخ التسليم'],
       taskRows,
       { empty: 'لا توجد تاسكات مطلوبة.' }
     )}`,
@@ -1008,64 +1019,69 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   )}
 
   ${section(
-    '9) التقييم المهني / السلوك',
+    '9. تقييم السلوك والالتزام',
     `<div class="kpi-grid">
-      ${kpi('المجموع المهني /50', pro.professionalTotal != null ? `${pro.professionalTotal} / ${pro.professionalMax || 50}` : '—')}
-      ${kpi('نقاط السلوك /20', behPts != null ? `${behPts} / 20` : pro.behaviorPoints != null ? `${pro.behaviorPoints} / 20` : '—')}
-      ${kpi('النسبة المهنية', pro.professionalPercentage != null ? `${pro.professionalPercentage}%` : '—')}
-      ${kpi('تاريخ التقييم', pro.ratedAtLabelAr)}
+      ${kpi('العلامة المحتسبة', present.scoreHtml(behPts ?? pro.behaviorPoints, 20))}
     </div>
-    ${table(['#', 'المعيار', 'الدرجة'], criteriaRows, { empty: 'لا توجد معايير سلوك مسجّلة.' })}`,
+    ${table(['المعيار', 'التقييم'], criteriaRows, { empty: 'لا توجد معايير سلوك مسجّلة.' })}`,
     'behavior'
   )}
 
-  ${section(
-    '10) أسباب القرار',
-    reasons.length
-      ? `<ul>${reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>`
-      : String(status).toLowerCase() === 'eligible' || status === 'مؤهل'
-        ? '<div class="callout">مؤهل وفق التقييم النهائي المعتمد.</div>'
-        : '<p class="muted">لا توجد أسباب إضافية.</p>',
-    'reasons'
-  )}
+  ${
+    notEligible
+      ? section(
+          '10. أسباب عدم التأهيل',
+          `<ol class="reasons">${decisionReasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ol>`,
+          'reasons'
+        )
+      : eligible
+        ? section(
+            '10. نتيجة التأهيل',
+            `<div class="callout">استوفى الطالب متطلبات التدريب المعتمدة.<br/><strong>النتيجة النهائية:</strong> مؤهل</div>`,
+            'reasons'
+          )
+        : ''
+  }
 
   ${section(
-    '11) نشاط الطالب على المنصة',
+    '11. نشاط الطالب على المنصة',
     `<div class="kpi-grid">
-      ${kpi('تسجيلات الدخول الناجحة', activity.loginCount ?? activity.successfulLoginCount)}
-      ${kpi('آخر تسجيل دخول', activity.lastLoginLabelAr || activity.lastLoginAtLabelAr)}
-      ${kpi('أول نشاط مسجّل', activity.firstActivityLabelAr)}
-      ${kpi('تسليمات التاسكات', activity.taskSubmissionsCount)}
-      ${kpi('جلسات الحضور', `${activity.attendanceEventsCount ?? 0} / ${activity.requiredSessionsCount ?? 0}`)}
-      ${kpi('التقييمات المكتملة', `${activity.assessmentsCompletedCount ?? 0} / ${activity.assessmentsRequiredCount ?? 0}`)}
+      ${kpi('آخر دخول إلى المنصة', activity.lastLoginAtLabelAr || activity.lastLoginLabelAr || 'غير متوفر')}
+      ${kpi('جلسات الحضور المسجلة', present.countOfHtml(activity.attendanceEventsCount ?? 0, activity.requiredSessionsCount ?? 0))}
+      ${kpi('التاسكات المسلمة', present.countOfHtml(activity.taskSubmissionsCount ?? submittedCount, activity.requiredTasksCount ?? tasks.requiredCount ?? 0))}
+      ${kpi('التقييمات المكتملة', present.countOfHtml(activity.assessmentsCompletedCount ?? 0, activity.assessmentsRequiredCount ?? 0))}
     </div>
     ${
-      !(activity.loginCount || activity.successfulLoginCount)
-        ? '<div class="callout callout--warn">بيانات تسجيل الدخول التاريخية غير متاحة بالكامل لبعض الفترات.</div>'
+      activity.loginNoteAr || !(activity.loginCountAvailable || activity.loginCount)
+        ? `<div class="callout callout--warn">${esc(
+            activity.loginNoteAr ||
+              'ملاحظة: لا تتوفر بيانات كاملة لعدد مرات تسجيل الدخول خلال كامل فترة التدريب.'
+          )}</div>`
         : ''
     }
-    ${table(
-      ['الوقت', 'التصنيف', 'الحدث', 'التفاصيل'],
-      timelineRows,
-      { empty: 'لا يوجد نشاط مسجّل بعد.' }
-    )}`,
+    ${
+      timelineRows.length
+        ? table(['التاريخ', 'التصنيف', 'الحدث', 'التفاصيل'], timelineRows, {
+            empty: 'لا يوجد نشاط مسجّل بعد.',
+          })
+        : ''
+    }`,
     'activity'
   )}
 
   ${section(
-    '12) بيانات الإصدار',
+    '12. بيانات التقرير',
     kv([
-      ['تاريخ إنشاء التقرير', report.generatedAtLabelAr],
-      ['الشركة', 'BATMAN TECHNOLOGY'],
-      ['نوع التقرير', 'تقرير الطالب الشامل — التدريب الميداني'],
-      ['معرّف الطلب', report.application?.id],
-      ['معرّف الفرصة', report.opportunity?.id],
+      ['تاريخ إصدار التقرير', issueDate],
+      ['جهة الإصدار', 'شركة الرجل الوطواط للتكنولوجيا'],
+      ['نوع التقرير', 'التقرير الشامل للتدريب الميداني'],
     ]),
     'meta'
   )}
 </body>
 </html>`;
 }
+
 
 async function exportComprehensiveStudentReportPdf(opportunityId, applicationId, user, query = {}) {
   const report = await getComprehensiveStudentReport(opportunityId, applicationId, user, query);
@@ -1076,7 +1092,7 @@ async function exportComprehensiveStudentReportPdf(opportunityId, applicationId,
   });
   const buffer = await renderHtmlToPdf(html, {
     lang: 'ar',
-    footerLeft: 'BATMAN TECHNOLOGY · تقرير الطالب الشامل',
+    footerLeft: 'BATMAN TECHNOLOGY | تقرير الطالب الشامل',
     footerNote: report.generatedAtLabelAr || '',
   });
   const uni = String(report.student?.universityNumber || applicationId.slice(0, 8)).replace(

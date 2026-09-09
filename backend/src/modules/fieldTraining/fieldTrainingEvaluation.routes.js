@@ -120,6 +120,13 @@ function mountWriteRoutes(router, authorize) {
     controller.saveReportDefaults
   );
   router.post(
+    '/:id/excel-evaluation/template',
+    authorize,
+    controller.handleMulter,
+    validateRequest({ params: v.opportunityIdParamSchema }),
+    controller.uploadExcelEvaluationTemplate
+  );
+  router.post(
     '/evaluation-reports/generate',
     authorize,
     validateRequest({ body: v.generateBodySchema }),
@@ -157,6 +164,18 @@ function mountReadRoutes(router, authorize) {
     authorize,
     validateRequest({ params: v.opportunityIdParamSchema }),
     controller.zipOpportunity
+  );
+  router.get(
+    '/:id/excel-evaluation/preview',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema }),
+    controller.previewExcelEvaluation
+  );
+  router.get(
+    '/:id/excel-evaluation/download',
+    authorize,
+    validateRequest({ params: v.opportunityIdParamSchema }),
+    controller.downloadExcelEvaluation
   );
   router.get(
     '/evaluation-reports',

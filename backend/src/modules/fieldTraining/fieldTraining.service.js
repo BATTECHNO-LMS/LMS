@@ -149,6 +149,11 @@ function normalizeHostOrganization(raw) {
   const semester = String(raw.semester || '').trim();
   const academicYear = String(raw.academic_year || raw.academicYear || '').trim();
   const hoursMode = String(raw.trainingHoursDisplayMode || raw.training_hours_display_mode || '').trim();
+  const expectedTrainingDaysRaw = raw.expectedTrainingDays ?? raw.expected_training_days;
+  const expectedTrainingDays =
+    expectedTrainingDaysRaw == null || expectedTrainingDaysRaw === ''
+      ? null
+      : Number(expectedTrainingDaysRaw);
   if (
     !department &&
     !email &&
@@ -159,7 +164,8 @@ function normalizeHostOrganization(raw) {
     !fieldSupervisor &&
     !semester &&
     !academicYear &&
-    !hoursMode
+    !hoursMode &&
+    !(Number.isInteger(expectedTrainingDays) && expectedTrainingDays > 0)
   ) {
     return null;
   }
@@ -174,6 +180,8 @@ function normalizeHostOrganization(raw) {
     semester: semester || null,
     academic_year: academicYear || null,
     trainingHoursDisplayMode: hoursMode || null,
+    expectedTrainingDays:
+      Number.isInteger(expectedTrainingDays) && expectedTrainingDays > 0 ? expectedTrainingDays : null,
   };
 }
 

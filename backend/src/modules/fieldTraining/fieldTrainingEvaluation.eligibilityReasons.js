@@ -49,6 +49,11 @@ function canonicalizeReasonCode(code) {
 }
 
 function formatAttendanceReason(details = {}, evidence = {}) {
+  const absenceDays = num(details.absence_days ?? evidence.absenceDays);
+  const tracked = num(details.tracked_training_days ?? evidence.trackedTrainingDays);
+  if (absenceDays != null && tracked != null) {
+    return `بلغ عدد أيام غياب الطالب ${absenceDays} أيام من أصل ${tracked} يوماً تدريبياً.`;
+  }
   const actual = num(details.attendance_percentage ?? evidence.attendancePercentage);
   const required = num(details.minimum_attendance_percentage ?? evidence.minimumAttendancePercentage ?? 80);
   if (actual != null && required != null) {
@@ -69,7 +74,7 @@ function formatHoursReason(details = {}, evidence = {}) {
     progress.required_hours ?? progress.requiredHours ?? evidence.requiredHours
   );
   if (completed != null && required != null) {
-    return `استكمل الطالب ${completed} ساعة من أصل ${required} ساعة مطلوبة.`;
+    return `لم يستكمل الطالب الساعات التدريبية المطلوبة (${completed} من أصل ${required} ساعة).`;
   }
   if (required != null) {
     return `لم يستكمل الطالب الساعات التدريبية المطلوبة (${required} ساعة).`;
@@ -83,7 +88,7 @@ function formatTasksReason(details = {}, evidence = {}) {
   if (required != null && required > 0 && accepted != null) {
     const missing = Math.max(0, required - accepted);
     if (missing > 0) {
-      return `لم يستكمل الطالب ${missing} من المهام المطلوبة.`;
+      return `لم يستكمل الطالب ${missing} من أصل ${required} من التسليمات المطلوبة.`;
     }
   }
   if (details.final_task_status) {

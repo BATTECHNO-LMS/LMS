@@ -60,10 +60,13 @@ async function inspectFilledDocx(buffer) {
     }
   }
   const media = Object.keys(zip.files).filter((name) => name.startsWith('word/media/'));
+  const lastRenderedPageBreaks = (documentXml.match(/w:lastRenderedPageBreak/g) || []).length;
   return {
     unresolvedPlaceholders: [...new Set(leftovers)],
     checkmarks,
     media,
+    lastRenderedPageBreaks,
+    pageCount: lastRenderedPageBreaks + 1,
     hasOfficialStamp: /الختم الرسمي/.test(cellPlainText(documentXml)),
     hasSignatures: /التوقيع/.test(cellPlainText(documentXml)),
     text: cellPlainText(documentXml),

@@ -28,13 +28,18 @@ function eligibilityVariant(status) {
   return 'muted';
 }
 
+function displayValue(value) {
+  if (value == null || value === '' || value === '—' || value === '–') return 'غير متوفر';
+  return value;
+}
+
 function DetailGrid({ items }) {
   return (
     <dl className="ft-comp-report__grid">
       {items.map(([label, value]) => (
         <div key={label}>
           <dt>{label}</dt>
-          <dd>{value ?? '—'}</dd>
+          <dd>{displayValue(value)}</dd>
         </div>
       ))}
     </dl>
@@ -193,26 +198,17 @@ export function FieldTrainingComprehensiveStudentReportPage({
             </p>
           </div>
         </div>
-        {q.approvedEvaluationResult ? (
+        {q.approvedEvaluationResult?.changeReasonAr &&
+        !/AUTHORIZED|قرار إداري معتمد بعدم التأهيل مع الاحتفاظ/.test(
+          q.approvedEvaluationResult.changeReasonAr
+        ) ? (
           <DetailGrid
             items={[
               [
-                t('eligibilityCard.previousExcelScore'),
-                q.approvedEvaluationResult.previousExcelScore != null
-                  ? `${q.approvedEvaluationResult.previousExcelScore} / 100`
-                  : '—',
-              ],
-              [
-                t('eligibilityCard.calculatedScore'),
-                q.recalculatedScore != null || q.approvedEvaluationResult.recalculatedScore != null
-                  ? `${q.approvedEvaluationResult.recalculatedScore ?? q.recalculatedScore} / 100`
-                  : '—',
-              ],
-              [
                 t('comprehensiveReport.attendanceDifferenceReason'),
-                q.approvedEvaluationResult.changeReasonAr || '—',
+                q.approvedEvaluationResult.changeReasonAr,
               ],
-            ].filter(([, v]) => v && v !== '—')}
+            ]}
           />
         ) : null}
         {q.zeroParticipationApplied ? (
@@ -370,7 +366,6 @@ export function FieldTrainingComprehensiveStudentReportPage({
                 <th>{t('comprehensiveReport.reviewStatus')}</th>
                 <th>{t('comprehensiveReport.grade')}</th>
                 <th>{t('comprehensiveReport.submittedAt')}</th>
-                <th>{t('comprehensiveReport.approvedSource')}</th>
               </tr>
             </thead>
             <tbody>
@@ -400,8 +395,7 @@ export function FieldTrainingComprehensiveStudentReportPage({
                         ? `${task.score}${task.maxScore != null ? `/${task.maxScore}` : '/100'}`
                         : '—'}
                   </td>
-                  <td>{task.submittedAtLabelAr || '—'}</td>
-                  <td>{task.approvedSourceLabelAr || '—'}</td>
+                  <td>{task.submittedAtLabelAr || 'لا يوجد'}</td>
                 </tr>
               ))}
             </tbody>

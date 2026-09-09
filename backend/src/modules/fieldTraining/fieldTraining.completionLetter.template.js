@@ -104,7 +104,7 @@ function loadStampDataUri() {
 function formatArDate(value) {
   if (!value) return '';
   const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  if (Number.isNaN(date.getTime())) return String(value);
   return new Intl.DateTimeFormat('ar-EG', {
     timeZone: 'Asia/Amman',
     year: 'numeric',
@@ -142,46 +142,63 @@ const INFO_SECTION_CSS = `
     margin: 3mm 0 4mm;
     direction: rtl;
     text-align: right;
+    unicode-bidi: isolate;
   }
-  .info-row {
+  .info-row,
+  .completion-info-row {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 1.2mm;
     padding: 1.1mm 0;
     border-bottom: 0.18mm solid #e6e0d2;
     font-size: 11.6pt;
-    line-height: 1.6;
+    line-height: 1.55;
+    direction: rtl;
     text-align: right;
+    unicode-bidi: isolate;
   }
-  .info-row:last-child { border-bottom: 0; }
-  .info-label {
+  .info-row:last-child,
+  .completion-info-row:last-child { border-bottom: 0; }
+  .info-label,
+  .completion-info-label {
     color: #5a6578;
     font-weight: 600;
-    display: inline;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
-  .info-value {
+  .info-value,
+  .completion-info-value {
     font-weight: 700;
     color: #0b1f3a;
-    display: inline;
+    flex: 0 1 auto;
+    max-width: 100%;
     overflow-wrap: anywhere;
     word-break: break-word;
+    unicode-bidi: isolate;
   }
-  .info-value--ltr {
+  .info-value--ltr,
+  .completion-info-value--ltr {
     direction: ltr;
-    unicode-bidi: embed;
-    display: inline;
+    unicode-bidi: isolate;
+    display: inline-block;
   }`;
 
 function needsIsolatedLtrInfoValue(label, value) {
   if (label === 'رقم الكتاب') return true;
   const text = String(value ?? '').trim();
-  return /^[A-Za-z0-9][A-Za-z0-9-]*$/.test(text);
+  return /^[A-Za-z0-9][A-Za-z0-9./-]*$/.test(text);
 }
 
 function buildInfoRowHtml(label, value) {
   const safeLabel = escapeHtml(label);
   const safeValue = escapeHtml(value);
   const valueClass = needsIsolatedLtrInfoValue(label, value)
-    ? 'info-value info-value--ltr'
-    : 'info-value';
-  return `<div class="info-row"><span class="info-label">${safeLabel}:</span> <span class="${valueClass}">${safeValue}</span></div>`;
+    ? 'info-value completion-info-value info-value--ltr completion-info-value--ltr'
+    : 'info-value completion-info-value';
+  return `<div class="info-row completion-info-row"><span class="info-label completion-info-label">${safeLabel}:</span> <span class="${valueClass}">${safeValue}</span></div>`;
 }
 
 function buildOfficialParagraphs(data) {

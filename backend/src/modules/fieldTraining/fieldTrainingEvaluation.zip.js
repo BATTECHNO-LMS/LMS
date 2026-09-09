@@ -2,7 +2,7 @@
 
 const JSZip = require('jszip');
 const {
-  buildEvaluationPdfFilename,
+  buildEvaluationDocxFilename,
   buildOfficialEvaluationsZipFilename,
   uniqueZipEntry,
   zipFolderForStatus,
@@ -38,7 +38,7 @@ async function buildReportsZip(entries, { mixedFolders = true, folderFor, onFile
       : (entry) => zipFolderForStatus(entry.finalStatus || entry.final_status));
   for (const entry of entries) {
     try {
-      const filename = entry.filename || buildEvaluationPdfFilename({
+      const filename = entry.filename || buildEvaluationDocxFilename({
         studentName: entry.studentName,
         universityNumber: entry.universityNumber,
         student: entry.student,

@@ -4,8 +4,12 @@ const crypto = require('crypto');
 const {
   PLACEHOLDERS,
   DATA_INCOMPLETE_CODE,
-  ELIGIBLE_OFFICIAL_TRAINING_DAYS,
   TRAINING_HOURS_DISPLAY_MODE,
+  PROFESSIONAL_EVALUATION_STATUS,
+  SCORE_SOURCE,
+  NOT_ELIGIBLE_POLICY_SCORE,
+  NOT_ELIGIBLE_POLICY_TOTAL,
+  POLICY_ASSIGNED_NOT_ELIGIBLE_REASON_AR,
 } = require('./fieldTrainingEvaluation.constants');
 const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
 const { toMissingFieldEntries } = require('./fieldTrainingEvaluation.missingFields');
@@ -174,6 +178,8 @@ function hostOrg(opportunity = {}) {
       '',
     academicSupervisorRequired: raw.academic_supervisor_required === true,
     faxOptional: raw.fax_optional !== false,
+    expectedTrainingDays: num(raw.expectedTrainingDays ?? raw.expected_training_days),
+    mutahOfficial: raw.mutahOfficial === true || raw.mutah_official === true,
   };
 }
 
@@ -291,9 +297,11 @@ function summarizeAttendance(attendanceRows = [], application = {}) {
   };
   const attendedRows = uniqueRows(rows.filter((row) => ATTENDED_STATUSES.has(row.status)));
   const absentRows = uniqueRows(rows.filter((row) => row.status === 'absent'));
+  const trackedRows = uniqueRows(rows);
   const attendanceDataLoaded = rows.length > 0;
   const absenceDays = attendanceDataLoaded ? absentRows.length : null;
   const attendedDays = attendanceDataLoaded ? attendedRows.length : null;
+  const trackedDays = attendanceDataLoaded ? trackedRows.length : null;
   const storedHours = num(application.completed_training_hours);
   const recordedHoursKnown = Boolean(
     application.hours_updated_at ||
@@ -321,6 +329,7 @@ function summarizeAttendance(attendanceRows = [], application = {}) {
   return {
     attendedDays,
     absenceDays,
+    trackedDays,
     actualHours,
     actualDailyHours: dailyHours,
     attendancePercentage,
@@ -345,11 +354,66 @@ function isEligibleEvaluationStatus(evaluation = {}, application = {}) {
   return normalized === 'eligible';
 }
 
-function resolveTrainingDaysForPayload(hours, evaluation = {}, application = {}) {
-  if (isEligibleEvaluationStatus(evaluation, application)) {
-    return ELIGIBLE_OFFICIAL_TRAINING_DAYS;
+function isNotEligibleEvaluationStatus(evaluation = {}, application = {}) {
+  const raw =
+    textOrEmpty(evaluation.eligibilityStatus) ||
+    textOrEmpty(application.completion_eligibility_status);
+  if (!raw) return false;
+  const normalized = String(raw).trim().toLowerCase().replace(/-/g, '_');
+  return (
+    normalized === 'not_eligible' ||
+    normalized === 'ineligible' ||
+    normalized === 'غير مؤهل'
+  );
+}
+
+function formatAbsenceDaysDisplay(absenceDays, trackedDays) {
+  if (absenceDays == null) return null;
+  if (trackedDays != null && trackedDays > 0) {
+    return `${absenceDays} من أصل ${trackedDays}`;
   }
+  return absenceDays;
+}
+
+function resolveExpectedTrainingDays(opportunity = {}, templateConfig = {}) {
+  const org = hostOrg(opportunity);
+  const candidates = [
+    templateConfig.expectedTrainingDays,
+    opportunity.expectedTrainingDays,
+    opportunity.expected_training_days,
+    org.expectedTrainingDays,
+  ];
+  for (const raw of candidates) {
+    const n = num(raw);
+    if (n != null && n > 0) return n;
+  }
+  return null;
+}
+
+function usesMutahOfficialReporting(templateConfig = {}, opportunity = {}) {
+  if (templateConfig.mutahOfficial === true) return true;
+  if (templateConfig.fillMode === 'label_form') return true;
+  return hostOrg(opportunity).mutahOfficial === true;
+}
+
+function resolveTrainingDaysForPayload(hours, opportunity = {}, templateConfig = {}) {
+  const expected = resolveExpectedTrainingDays(opportunity, templateConfig);
+  if (expected != null) return expected;
   return hours.attendedDays;
+}
+
+function applyMutahNotEligiblePolicyToPayload(payload) {
+  for (let i = 1; i <= 10; i += 1) {
+    payload[`criterion_${i}_score`] = NOT_ELIGIBLE_POLICY_SCORE;
+    if (payload.criteria && typeof payload.criteria === 'object') {
+      payload.criteria[`criterion${i}`] = NOT_ELIGIBLE_POLICY_SCORE;
+    }
+  }
+  payload.professional_evaluation_total = NOT_ELIGIBLE_POLICY_TOTAL;
+  payload.professional_evaluation_status = PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE;
+  payload.professional_score_source = SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE;
+  payload.professional_score_reason = POLICY_ASSIGNED_NOT_ELIGIBLE_REASON_AR;
+  return payload;
 }
 
 function criterionScoreOf(evaluation = {}, index) {
@@ -424,8 +488,24 @@ function buildFieldTrainingEvaluationTemplatePayload({
     ? evaluation.eligibilityReasonLabels
     : reasons.map((code) => evaluation.reasonLabels?.[code] || code).filter(Boolean);
   const criteriaCheck = validateCriteriaGrid(evaluation);
-  const professionalTotal =
-    criteriaCheck.ok ? criteriaCheck.total : null;
+  const notEligible = isNotEligibleEvaluationStatus(evaluation, application);
+  const mutahOfficial = usesMutahOfficialReporting(templateConfig, opportunity);
+  const mutahNotEligiblePolicy = notEligible && mutahOfficial;
+  const professionalTotal = mutahNotEligiblePolicy
+    ? NOT_ELIGIBLE_POLICY_TOTAL
+    : notEligible
+      ? 0
+      : criteriaCheck.ok
+        ? criteriaCheck.total
+        : null;
+  const professionalEvaluationStatus = mutahNotEligiblePolicy
+    ? PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE
+    : notEligible
+      ? PROFESSIONAL_EVALUATION_STATUS.SKIPPED_DUE_TO_INELIGIBILITY
+      : criteriaCheck.ok
+        ? PROFESSIONAL_EVALUATION_STATUS.COMPLETE
+        : null;
+  const policyScore = mutahNotEligiblePolicy ? NOT_ELIGIBLE_POLICY_SCORE : null;
   const academicName =
     textOrEmpty(academicSupervisorName) ||
     textOrEmpty(application.academic_supervisor_name) ||
@@ -450,12 +530,14 @@ function buildFieldTrainingEvaluationTemplatePayload({
     training_end_date: formatOfficialDate(
       application.training_end_date || opportunity.end_date
     ),
-    training_days: resolveTrainingDaysForPayload(hours, evaluation, application),
+    training_days: resolveTrainingDaysForPayload(hours, opportunity, templateConfig),
     actual_training_hours: hours.actualHours,
     actual_daily_hours: hours.actualDailyHours,
     training_hours_display:
       trainingHoursDisplay === '' || trainingHoursDisplay == null ? null : trainingHoursDisplay,
-    absence_days: hours.absenceDays,
+    absence_days: formatAbsenceDaysDisplay(hours.absenceDays, hours.trackedDays),
+    absence_days_count: hours.absenceDays,
+    tracked_training_days: hours.trackedDays,
     attendance_percentage: hours.attendancePercentage,
     organization_name:
       textOrEmpty(appOrg.organizationName) ||
@@ -473,8 +555,15 @@ function buildFieldTrainingEvaluationTemplatePayload({
     final_score: evaluation.finalScore == null ? '' : evaluation.finalScore,
     final_percentage: evaluation.finalPercentage == null ? '' : evaluation.finalPercentage,
     professional_evaluation_total: professionalTotal,
+    professional_evaluation_status: professionalEvaluationStatus,
+    professional_score_source: mutahNotEligiblePolicy
+      ? SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE
+      : null,
+    professional_score_reason: mutahNotEligiblePolicy
+      ? POLICY_ASSIGNED_NOT_ELIGIBLE_REASON_AR
+      : null,
     professional_evaluation_percentage:
-      evaluation.professionalPercentage == null ? '' : evaluation.professionalPercentage,
+      notEligible || evaluation.professionalPercentage == null ? '' : evaluation.professionalPercentage,
     general_comments: evaluation.generalComments || evaluation.autoComment || '',
     field_supervisor_name: resolveFieldSupervisorName({ application, opportunity, instructor }),
     academic_supervisor_name: academicName,
@@ -483,27 +572,27 @@ function buildFieldTrainingEvaluationTemplatePayload({
     field_supervisor_date: fieldSupervisorDate,
     academic_supervisor_date: academicSupervisorDate,
     eligibility_reasons: reasonTexts.filter(Boolean).join('\n'),
-    criterion_1_score: criterionScoreOf(evaluation, 1),
-    criterion_2_score: criterionScoreOf(evaluation, 2),
-    criterion_3_score: criterionScoreOf(evaluation, 3),
-    criterion_4_score: criterionScoreOf(evaluation, 4),
-    criterion_5_score: criterionScoreOf(evaluation, 5),
-    criterion_6_score: criterionScoreOf(evaluation, 6),
-    criterion_7_score: criterionScoreOf(evaluation, 7),
-    criterion_8_score: criterionScoreOf(evaluation, 8),
-    criterion_9_score: criterionScoreOf(evaluation, 9),
-    criterion_10_score: criterionScoreOf(evaluation, 10),
+    criterion_1_score: notEligible ? policyScore : criterionScoreOf(evaluation, 1),
+    criterion_2_score: notEligible ? policyScore : criterionScoreOf(evaluation, 2),
+    criterion_3_score: notEligible ? policyScore : criterionScoreOf(evaluation, 3),
+    criterion_4_score: notEligible ? policyScore : criterionScoreOf(evaluation, 4),
+    criterion_5_score: notEligible ? policyScore : criterionScoreOf(evaluation, 5),
+    criterion_6_score: notEligible ? policyScore : criterionScoreOf(evaluation, 6),
+    criterion_7_score: notEligible ? policyScore : criterionScoreOf(evaluation, 7),
+    criterion_8_score: notEligible ? policyScore : criterionScoreOf(evaluation, 8),
+    criterion_9_score: notEligible ? policyScore : criterionScoreOf(evaluation, 9),
+    criterion_10_score: notEligible ? policyScore : criterionScoreOf(evaluation, 10),
     criteria: {
-      criterion1: criterionScoreOf(evaluation, 1),
-      criterion2: criterionScoreOf(evaluation, 2),
-      criterion3: criterionScoreOf(evaluation, 3),
-      criterion4: criterionScoreOf(evaluation, 4),
-      criterion5: criterionScoreOf(evaluation, 5),
-      criterion6: criterionScoreOf(evaluation, 6),
-      criterion7: criterionScoreOf(evaluation, 7),
-      criterion8: criterionScoreOf(evaluation, 8),
-      criterion9: criterionScoreOf(evaluation, 9),
-      criterion10: criterionScoreOf(evaluation, 10),
+      criterion1: notEligible ? policyScore : criterionScoreOf(evaluation, 1),
+      criterion2: notEligible ? policyScore : criterionScoreOf(evaluation, 2),
+      criterion3: notEligible ? policyScore : criterionScoreOf(evaluation, 3),
+      criterion4: notEligible ? policyScore : criterionScoreOf(evaluation, 4),
+      criterion5: notEligible ? policyScore : criterionScoreOf(evaluation, 5),
+      criterion6: notEligible ? policyScore : criterionScoreOf(evaluation, 6),
+      criterion7: notEligible ? policyScore : criterionScoreOf(evaluation, 7),
+      criterion8: notEligible ? policyScore : criterionScoreOf(evaluation, 8),
+      criterion9: notEligible ? policyScore : criterionScoreOf(evaluation, 9),
+      criterion10: notEligible ? policyScore : criterionScoreOf(evaluation, 10),
     },
   };
 
@@ -525,10 +614,26 @@ function missingRequiredCompleteFields(payload = {}) {
     }
     return !textOrEmpty(payload[key]);
   });
-  const grid = validateCriteriaGrid(payload);
-  if (!grid.ok) missing.push(...grid.missing.filter((key) => !missing.includes(key)));
-  if (grid.ok && Number(payload.professional_evaluation_total) !== grid.total) {
-    missing.push('professional_evaluation_total');
+  const notEligible = isNotEligibleEvaluationStatus(
+    { eligibilityStatus: payload.eligibility_status },
+    { completion_eligibility_status: payload.completion_status || payload.eligibility_status }
+  );
+  if (notEligible) {
+    const total = Number(payload.professional_evaluation_total);
+    const policyAssigned =
+      payload.professional_evaluation_status === PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE ||
+      payload.professional_score_source === SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE;
+    if (policyAssigned) {
+      if (total !== NOT_ELIGIBLE_POLICY_TOTAL) missing.push('professional_evaluation_total');
+    } else if (total !== 0) {
+      missing.push('professional_evaluation_total');
+    }
+  } else {
+    const grid = validateCriteriaGrid(payload);
+    if (!grid.ok) missing.push(...grid.missing.filter((key) => !missing.includes(key)));
+    if (grid.ok && Number(payload.professional_evaluation_total) !== grid.total) {
+      missing.push('professional_evaluation_total');
+    }
   }
   if (
     String(payload.eligibility_status || '').toUpperCase() === 'NOT_ELIGIBLE' &&
@@ -602,6 +707,8 @@ function templatePayloadHash(payload = {}, template = {}) {
           payload.source_template_file_id ||
           '',
         snapshot: snapshotFields(payload),
+        officialOutputFormat: 'docx',
+        scoreGridRtlMode: 'source-xml-preserve-v11',
       })
     )
     .digest('hex');
@@ -619,8 +726,9 @@ function identitySnapshot(payload = {}) {
   return snapshotFields(payload);
 }
 
-function shouldReuseStoredPdf(previous, { regenerate = false, sourceHash = null } = {}) {
-  if (!previous?.pdf_file_id || regenerate) return false;
+function shouldReuseStoredArtifact(previous, { regenerate = false, sourceHash = null } = {}) {
+  if (!previous?.filled_docx_file_id || regenerate) return false;
+  if (previous?.score_evidence_json?.officialOutputFormat !== 'docx') return false;
   const previousSnapshot = previous?.score_evidence_json?.templatePayload;
   const previousIdentityOk =
     previousSnapshot && missingRequiredIdentityFields(previousSnapshot).length === 0;
@@ -630,10 +738,14 @@ function shouldReuseStoredPdf(previous, { regenerate = false, sourceHash = null 
       previous?.score_evidence_json?.sourceHash === sourceHash &&
         previous?.score_evidence_json?.sourceTemplateFileId &&
         previous?.score_evidence_json?.fidelity &&
-        Number(previous?.score_evidence_json?.generatedPageCount) === 2
+        previous?.score_evidence_json?.filledDocxSha256
     );
   }
   return false;
+}
+
+function shouldReuseStoredPdf(previous, options = {}) {
+  return shouldReuseStoredArtifact(previous, options);
 }
 
 module.exports = {
@@ -654,7 +766,13 @@ module.exports = {
   resolveStudentNumber,
   resolveSpecialtyLabel,
   summarizeAttendance,
+  resolveExpectedTrainingDays,
+  usesMutahOfficialReporting,
+  applyMutahNotEligiblePolicyToPayload,
   validateCriteriaGrid,
+  formatAbsenceDaysDisplay,
+  isEligibleEvaluationStatus,
+  isNotEligibleEvaluationStatus,
   buildFieldTrainingEvaluationTemplatePayload,
   missingRequiredIdentityFields,
   missingRequiredCompleteFields,
@@ -664,4 +782,5 @@ module.exports = {
   snapshotFields,
   templatePayloadHash,
   shouldReuseStoredPdf,
+  shouldReuseStoredArtifact,
 };

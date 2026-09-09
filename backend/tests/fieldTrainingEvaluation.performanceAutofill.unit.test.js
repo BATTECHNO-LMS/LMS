@@ -223,6 +223,15 @@ describe('field training performance autofill', () => {
       criterionEvidence: {},
     });
     assert.equal(missingStatic.readinessCategory, 'MISSING_STATIC_DATA');
+
+    const notEligible = classifyEvaluationReadiness({
+      missingFieldEntries: [{ code: 'PROFESSIONAL_RATING_TEAMWORK_MISSING' }],
+      criterionEvidence: { criterion6: { score: null, missingEvidence: 'PROFESSIONAL_CRITERION_6_EVIDENCE_MISSING' } },
+      eligibilityStatus: 'NOT_ELIGIBLE',
+    });
+    assert.equal(notEligible.readiness, 'READY');
+    assert.equal(notEligible.readinessCategory, 'READY_FOR_NOT_ELIGIBLE_REPORT');
+    assert.deepEqual(notEligible.professionalMissing, []);
   });
 
   it('regression: Omar-like student keeps hours unknown-not-zero and flags behavioral gaps', () => {

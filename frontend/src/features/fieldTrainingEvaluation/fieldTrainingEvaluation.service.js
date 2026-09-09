@@ -115,12 +115,38 @@ export async function saveOpportunityReportDefaults(opportunityId, body, scope =
   return unwrapApiData(res);
 }
 
+export async function previewOpportunityExcelEvaluation(opportunityId, scope = 'admin') {
+  const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/excel-evaluation/preview`, {
+    timeout: 180000,
+  });
+  return unwrapApiData(res);
+}
+
+export async function downloadOpportunityExcelEvaluation(opportunityId, scope = 'admin') {
+  try {
+    const res = await apiClient.get(`${apiBase(scope)}/${opportunityId}/excel-evaluation/download`, {
+      responseType: 'blob',
+      timeout: 180000,
+    });
+    return saveBlobResponse(res, 'FieldTrainingExcelEvaluation.xlsx');
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function uploadOpportunityExcelEvaluationTemplate(opportunityId, formData, scope = 'admin') {
+  const res = await apiClient.post(`${apiBase(scope)}/${opportunityId}/excel-evaluation/template`, formData, {
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
 export async function fetchEvaluationReportPdfBlob(evaluationId, scope = 'admin') {
   try {
     const res = await apiClient.get(`${apiBase(scope)}/evaluation-reports/${evaluationId}/download`, {
       responseType: 'blob',
     });
-    return { blob: res.data, filename: parseFilename(res.headers?.['content-disposition'], 'evaluation.pdf') };
+    return { blob: res.data, filename: parseFilename(res.headers?.['content-disposition'], 'evaluation.docx') };
   } catch (err) {
     await rethrowBlobApiError(err);
   }
@@ -192,7 +218,7 @@ export async function downloadEvaluationReportPdf(evaluationId, scope = 'admin')
     const res = await apiClient.get(`${apiBase(scope)}/evaluation-reports/${evaluationId}/download`, {
       responseType: 'blob',
     });
-    return saveBlobResponse(res, 'FieldTrainingEvaluation.pdf');
+    return saveBlobResponse(res, 'FieldTrainingEvaluation.docx');
   } catch (err) {
     await rethrowBlobApiError(err);
   }

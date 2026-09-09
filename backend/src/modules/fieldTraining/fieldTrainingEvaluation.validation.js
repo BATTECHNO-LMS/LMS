@@ -156,10 +156,13 @@ const reportDefaultsBodySchema = z.object({
   fax: z.string().max(80).optional().nullable(),
   address: z.string().max(500).optional().nullable(),
   field_supervisor_name: z.string().max(255).optional().nullable(),
+  field_supervisor_phone: z.string().max(80).optional().nullable(),
+  field_supervisor_email: z.string().max(255).optional().nullable(),
   contact_person: z.string().max(255).optional().nullable(),
   semester: z.string().max(80).optional().nullable(),
   academic_year: z.string().max(40).optional().nullable(),
   trainingHoursDisplayMode: z.enum(['TOTAL_COMPLETED_HOURS', 'DAILY_HOURS']).optional(),
+  expectedTrainingDays: z.coerce.number().int().min(1).max(365).optional().nullable(),
 });
 
 const regenerateBodySchema = z.object({

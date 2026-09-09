@@ -6,6 +6,7 @@ const {
   UNASSIGNED_SUPERVISOR_FOLDER,
   ELIGIBLE_FOLDER_AR,
   NOT_ELIGIBLE_FOLDER_AR,
+  UNSPECIFIED_ELIGIBILITY_FOLDER_AR,
 } = require('./fieldTrainingEvaluation.constants');
 const { isEligibleStatus } = require('./fieldTrainingEvaluation.eligibilityReasons');
 
@@ -25,7 +26,7 @@ function resolveUniversityNumber(student = {}) {
   return resolveOfficialUniversityNumber(student).number;
 }
 
-function buildEvaluationPdfFilename({ studentName, universityNumber, student } = {}) {
+function buildEvaluationReportFilename({ studentName, universityNumber, student, extension = 'docx' } = {}) {
   const name = sanitizeNamePart(studentName || student?.fullName || student?.full_name);
   const number =
     universityNumber != null && String(universityNumber).trim()
@@ -33,7 +34,16 @@ function buildEvaluationPdfFilename({ studentName, universityNumber, student } =
       : sanitizeNamePart(resolveUniversityNumber(student));
   if (!name || !number) return '';
   if (number.toUpperCase() === 'NA' || number.toLowerCase() === 'undefined') return '';
-  return `${name}_${number}_${FILENAME_SUFFIX}.pdf`;
+  const ext = String(extension || 'docx').replace(/^\./, '') || 'docx';
+  return `${name}_${number}_${FILENAME_SUFFIX}.${ext}`;
+}
+
+function buildEvaluationDocxFilename(args = {}) {
+  return buildEvaluationReportFilename({ ...args, extension: 'docx' });
+}
+
+function buildEvaluationPdfFilename(args = {}) {
+  return buildEvaluationReportFilename({ ...args, extension: 'pdf' });
 }
 
 function zipFolderForStatus(status) {
@@ -44,8 +54,17 @@ function zipFolderForStatus(status) {
 
 function eligibilityFolderAr(status) {
   const raw = String(status || '').trim();
+  if (!raw) return UNSPECIFIED_ELIGIBILITY_FOLDER_AR;
   if (isEligibleStatus(raw) || raw.toUpperCase() === 'ELIGIBLE') return ELIGIBLE_FOLDER_AR;
-  return NOT_ELIGIBLE_FOLDER_AR;
+  if (
+    raw.toUpperCase() === 'NOT_ELIGIBLE' ||
+    raw === 'غير مؤهل' ||
+    raw.toLowerCase() === 'ineligible' ||
+    raw.toLowerCase() === 'not_eligible'
+  ) {
+    return NOT_ELIGIBLE_FOLDER_AR;
+  }
+  return UNSPECIFIED_ELIGIBILITY_FOLDER_AR;
 }
 
 function buildOfficialEvaluationZipPath({
@@ -57,7 +76,7 @@ function buildOfficialEvaluationZipPath({
   const root = names.sanitizeZipFolder(universityName) || 'جامعة';
   const supervisor = names.sanitizeZipFolder(academicSupervisorName) || UNASSIGNED_SUPERVISOR_FOLDER;
   const eligibility = eligibilityFolderAr(eligibilityStatus);
-  const file = filename || 'evaluation.pdf';
+  const file = filename || 'evaluation.docx';
   return `${root}/${supervisor}/${eligibility}/${file}`;
 }
 
@@ -98,6 +117,8 @@ module.exports = {
   FILENAME_SUFFIX,
   sanitizeNamePart,
   resolveUniversityNumber,
+  buildEvaluationReportFilename,
+  buildEvaluationDocxFilename,
   buildEvaluationPdfFilename,
   zipFolderForStatus,
   eligibilityFolderAr,

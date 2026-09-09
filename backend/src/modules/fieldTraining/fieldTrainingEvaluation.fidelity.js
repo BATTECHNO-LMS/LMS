@@ -180,20 +180,27 @@ function dynamicTextIssues(filled, payload) {
   }
 
   const total = payload.professional_evaluation_total;
-  if (
-    total != null &&
-    total !== '' &&
-    !cellTexts.some(
-      (text) => /المجموع/.test(text) && text.includes(String(Number(total)))
-    )
-  ) {
-    issues.push({ code: 'PROFESSIONAL_TOTAL_NOT_RENDERED', field: 'professional_evaluation_total' });
+  if (total != null && total !== '') {
+    const totalText = String(total).trim();
+    const incompleteTotal = /غير مكتمل/.test(totalText);
+    const rendered = cellTexts.some((text) => {
+      if (!/المجموع/.test(text)) return false;
+      if (incompleteTotal) return /غير مكتمل/.test(text);
+      return text.includes(String(Number(totalText)));
+    });
+    if (!rendered) {
+      issues.push({ code: 'PROFESSIONAL_TOTAL_NOT_RENDERED', field: 'professional_evaluation_total' });
+    }
   }
-  if (countScoreGridCheckmarks(filled.documentXml) !== 10) {
+  const expectedMarks = Array.from({ length: 10 }, (_, index) => payload[`criterion_${index + 1}_score`]).filter(
+    (score) => score != null && score !== ''
+  ).length;
+  const actualMarks = countScoreGridCheckmarks(filled.documentXml);
+  if (actualMarks !== expectedMarks) {
     issues.push({
       code: 'CHECKMARK_COUNT_INVALID',
-      expected: 10,
-      actual: countScoreGridCheckmarks(filled.documentXml),
+      expected: expectedMarks,
+      actual: actualMarks,
     });
   }
   if (payload.general_comments && occurrences(filled.text, payload.general_comments) !== 1) {

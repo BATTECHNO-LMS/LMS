@@ -4,6 +4,7 @@ const multer = require('multer');
 const { success } = require('../../utils/apiResponse');
 const { ApiError } = require('../../utils/apiError');
 const service = require('./fieldTrainingEvaluation.service');
+const excelEvaluation = require('./fieldTrainingExcelEvaluation.service');
 const { MAX_TEMPLATE_BYTES } = require('./fieldTrainingEvaluation.constants');
 
 const upload = multer({
@@ -350,6 +351,35 @@ async function studentDownload(req, res, next) {
   }
 }
 
+async function previewExcelEvaluation(req, res, next) {
+  try {
+    return success(res, await excelEvaluation.previewExcelEvaluation(req.user, req.validated.params.id));
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function downloadExcelEvaluation(req, res, next) {
+  try {
+    const file = await excelEvaluation.downloadExcelEvaluation(req.user, req.validated.params.id);
+    res.setHeader('X-Excel-Total-Students', String(file.summary?.totalStudents || ''));
+    res.setHeader('X-Excel-Eligible', String(file.summary?.eligible || ''));
+    res.setHeader('X-Excel-Not-Eligible', String(file.summary?.notEligible || ''));
+    return sendFile(res, file);
+  } catch (err) {
+    return next(err);
+  }
+}
+
+async function uploadExcelEvaluationTemplate(req, res, next) {
+  try {
+    const data = await excelEvaluation.uploadExcelEvaluationTemplate(req.user, req.validated.params.id, req.file);
+    return success(res, data, { status: 201, message: 'Excel evaluation template uploaded' });
+  } catch (err) {
+    return next(err);
+  }
+}
+
 module.exports = {
   handleMulter,
   listTemplates,
@@ -381,4 +411,7 @@ module.exports = {
   listSupervisorGroups,
   zipSupervisorReports,
   studentDownload,
+  previewExcelEvaluation,
+  downloadExcelEvaluation,
+  uploadExcelEvaluationTemplate,
 };

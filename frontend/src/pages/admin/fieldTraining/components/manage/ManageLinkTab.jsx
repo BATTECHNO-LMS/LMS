@@ -79,6 +79,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
             generated: progress.newly_issued ?? 0,
             alreadyCurrent: (progress.previously_issued ?? 0) + (progress.skipped ?? 0),
             failed: progress.failed ?? 0,
+            notEligibleExcluded: progress.notEligibleExcluded ?? 0,
           }),
         });
       }
@@ -144,7 +145,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
   });
 
   const data = query.data || {};
-  const counters = data.counters || { eligible: 0, issued: 0, pending: 0, errors: 0 };
+  const counters = data.counters || { eligible: 0, issued: 0, pending: 0, errors: 0, notEligibleExcluded: 0 };
   const students = data.students || [];
   const pagination = data.pagination || { page: 1, total_pages: 1, total: 0 };
   const job = jobQuery.data;
@@ -237,6 +238,12 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
           <div>
             <span className="ft-manage-kpi__label">{t('completionLetter.errorCount')}</span>
             <strong className="ft-manage-kpi__value">{counters.errors}</strong>
+          </div>
+        </article>
+        <article className="ft-manage-kpi">
+          <div>
+            <span className="ft-manage-kpi__label">{t('completionLetter.notEligibleExcluded')}</span>
+            <strong className="ft-manage-kpi__value">{counters.notEligibleExcluded ?? 0}</strong>
           </div>
         </article>
       </div>
@@ -374,6 +381,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
                 `${t('completionLetter.eligibleCount')}: ${preview.eligible_students}`,
                 `${t('completionLetter.issuedCount')}: ${preview.letters_already_issued}`,
                 `${t('completionLetter.willIssue')}: ${preview.letters_to_issue}`,
+                `${t('completionLetter.notEligibleExcluded')}: ${preview.notEligibleExcluded ?? 0}`,
                 ...(preview.skipped || []).slice(0, 8).map((row) => `${row.student_name} — ${row.reason_label}`),
               ].map((line) => (
                 <span key={line}>

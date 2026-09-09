@@ -165,8 +165,11 @@ describe('completion letter template and filenames', () => {
       issuedAt: '2026-08-30',
     });
     assert.match(html, /dir="rtl"/);
-    assert.match(html, /info-label">الرقم الجامعي:<\/span>/);
+    assert.match(html, /info-label completion-info-label">الرقم الجامعي:<\/span>/);
+    assert.match(html, /\.info[\s\S]*direction:\s*rtl/);
+    assert.match(html, /\.info-row[\s\S]*justify-content:\s*flex-start/);
     assert.doesNotMatch(html, /\.info-row[\s\S]*justify-content:\s*space-between/);
+    assert.doesNotMatch(html, /min-width:\s*42mm/);
     assert.match(html, /كتاب إنهاء تدريب ميداني/);
     assert.match(html, /إلى من يهمه الأمر/);
     assert.match(html, /الرجل الوطواط للتكنولوجيا/);
@@ -179,6 +182,43 @@ describe('completion letter template and filenames', () => {
     assert.ok(loadStampDataUri().startsWith('data:image/png'));
     const fontCss = loadFontFaceCss();
     assert.ok(fontCss.includes(FONT_FAMILY) || fontCss === '');
+  });
+
+  it('uses the same official layout for Mutah and Tafila letters', () => {
+    const shared = {
+      letterNo: 'FT-SHARED',
+      specialtyName: 'أمن المعلومات',
+      opportunityTitle: 'التدريب الميداني الصيفي',
+      startDate: '2025-07-01',
+      endDate: '2025-08-31',
+      completedHours: 140,
+      issuedAt: '2026-09-02',
+    };
+    const mutah = buildOfficialCompletionLetterHtml({
+      ...shared,
+      studentName: 'أحمد الرماضين',
+      universityNumber: '120232221002',
+      universityName: 'جامعة مؤتة',
+    });
+    const tafila = buildOfficialCompletionLetterHtml({
+      ...shared,
+      studentName: 'محمد القضاة',
+      universityNumber: '2021987654',
+      universityName: 'جامعة الطفيلة التقنية',
+    });
+    for (const html of [mutah, tafila]) {
+      assert.match(html, /كتاب إنهاء تدريب ميداني/);
+      assert.match(html, /إلى من يهمه الأمر/);
+      assert.match(html, /عاصم القيسي/);
+      assert.match(html, /مسؤول التدريب/);
+      assert.match(html, /Sakkal Majalla/);
+      assert.match(html, /info-row[\s\S]*justify-content:\s*flex-start/);
+      assert.match(html, /الرجل الوطواط للتكنولوجيا/);
+    }
+    assert.match(mutah, /جامعة مؤتة/);
+    assert.match(tafila, /جامعة الطفيلة التقنية/);
+    assert.doesNotMatch(mutah, /جامعة الطفيلة التقنية/);
+    assert.doesNotMatch(tafila, /جامعة مؤتة/);
   });
 
   it('builds Arabic PDF and ZIP filenames', () => {
@@ -226,6 +266,18 @@ describe('completion letter template and filenames', () => {
       hash
     );
     assert.equal(ineligible.skipReason, 'not_eligible');
+  });
+
+  it('does not select not-eligible students for إصدار الكل', () => {
+    const targets = selectBulkIssueTargets([
+      { id: 'eligible-1', will_issue: true, will_regenerate: false },
+      { id: 'not-eligible-1', will_issue: false, will_regenerate: false, skip_reason: 'not_eligible' },
+      { id: 'hours-low', will_issue: false, will_regenerate: false, skip_reason: 'hours_below_minimum' },
+    ]);
+    assert.deepEqual(
+      targets.map((row) => row.id),
+      ['eligible-1']
+    );
   });
 
   it('packs PDFs into supervisor folders without merging similar الطراونة names', async () => {
@@ -335,6 +387,35 @@ describe('completion letter bulk targeting and isolation', () => {
     assert.deepEqual(retry.map((row) => row.id), ['fail-1']);
     const first = selectBulkIssueTargets(students, []);
     assert.deepEqual(first.map((row) => row.id), ['new']);
+    const force = selectBulkIssueTargets(
+      [
+        {
+          id: 'mutah-eligible',
+          completion_eligibility_status: 'eligible',
+          completed_training_hours: 140,
+          will_issue: false,
+          will_regenerate: false,
+          skip_reason: 'source_unchanged',
+        },
+        {
+          id: 'mutah-ineligible',
+          completion_eligibility_status: 'ineligible',
+          completed_training_hours: 140,
+          will_issue: false,
+          skip_reason: 'not_eligible',
+        },
+        {
+          id: 'hours-low',
+          completion_eligibility_status: 'eligible',
+          completed_training_hours: 120,
+          will_issue: false,
+          skip_reason: 'hours_below_minimum',
+        },
+      ],
+      [],
+      { forceRegenerate: true }
+    );
+    assert.deepEqual(force.map((row) => row.id), ['mutah-eligible']);
     const skip = classifyStudent(
       { completion_eligibility_status: 'eligible', completed_training_hours: 140 },
       { status: 'issued', source_data_hash: hash, pdf_url: 'letters/a.pdf', file_ready: true },

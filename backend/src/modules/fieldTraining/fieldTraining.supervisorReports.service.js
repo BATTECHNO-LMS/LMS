@@ -10,6 +10,7 @@ const repo = require('./fieldTraining.repository');
 const labels = require('./fieldTrainingReport.labels');
 const names = require('./fieldTraining.supervisorName');
 const zipUtil = require('./fieldTrainingEvaluation.zip');
+const { buildEvaluationDocxFilename } = require('./fieldTrainingEvaluation.filename');
 const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
 const { extractUniversityNumberFromEmail } = require('./universityNumberFromEmail');
 const { contentDispositionAttachment } = require('./fieldTraining.completionLetter.filename');
@@ -25,7 +26,7 @@ function assertOpportunityReportAccess(user, opp) {
 }
 
 function evaluationStatusOf(evaluation) {
-  if (evaluation?.pdf_file_id) return 'generated';
+  if (evaluation?.filled_docx_file_id) return 'generated';
   if (evaluation?.id) return 'missing_file';
   return 'not_generated';
 }
@@ -85,9 +86,11 @@ async function loadGroupedStudents(user, opportunityId) {
       evaluation_id: evaluation?.id || null,
       evaluation_status: evaluationStatusOf(evaluation),
       final_status: evaluation?.final_status || null,
-      has_pdf: Boolean(evaluation?.pdf_file_id),
+      has_pdf: Boolean(evaluation?.filled_docx_file_id),
+      has_docx: Boolean(evaluation?.filled_docx_file_id),
       pdf_file_id: evaluation?.pdf_file_id || null,
-      report_status: evaluation?.pdf_file_id ? 'generated' : evaluation?.id ? 'missing_file' : 'not_generated',
+      filled_docx_file_id: evaluation?.filled_docx_file_id || null,
+      report_status: evaluation?.filled_docx_file_id ? 'generated' : evaluation?.id ? 'missing_file' : 'not_generated',
       completion_letter_status: letterStatusOf(letter, app.completion_eligibility_status),
     };
   });
@@ -176,7 +179,7 @@ async function zipSupervisorReports(user, { opportunity_id: opportunityId, super
   const skipped = [];
   const zipEntries = [];
   for (const student of scoped) {
-    if (!student.has_pdf || !student.pdf_file_id) {
+    if (!student.has_docx || !student.filled_docx_file_id) {
       skipped.push({
         application_id: student.application_id,
         student_name: student.student_name,
@@ -186,7 +189,7 @@ async function zipSupervisorReports(user, { opportunity_id: opportunityId, super
       });
       continue;
     }
-    const buffer = await loadPdfBuffer(student.pdf_file_id);
+    const buffer = await loadPdfBuffer(student.filled_docx_file_id);
     if (!buffer) {
       skipped.push({
         application_id: student.application_id,
@@ -197,7 +200,7 @@ async function zipSupervisorReports(user, { opportunity_id: opportunityId, super
       });
       continue;
     }
-    const filename = names.buildSupervisorReportPdfFilename({
+    const filename = buildEvaluationDocxFilename({
       studentName: student.student_name,
       universityNumber: student.university_number,
     });

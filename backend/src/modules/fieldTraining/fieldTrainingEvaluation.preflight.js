@@ -218,10 +218,13 @@ function fontIssues(inspection) {
 async function preflightEvaluationTemplate(buffer, options = {}) {
   try {
     const inspection = await inspectTemplateBuffer(buffer);
-    const issues = [...blockingIssues(inspection, options), ...fontIssues(inspection)];
+    const blocking = blockingIssues(inspection, options);
+    const fonts = fontIssues(inspection);
     return {
-      ok: issues.length === 0,
-      issues,
+      ok: blocking.length === 0,
+      issues: blocking,
+      warnings: fonts,
+      fontIssues: fonts,
       inspection: {
         readable: inspection.readable,
         labelForm: inspection.labelForm,

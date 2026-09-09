@@ -200,9 +200,17 @@ describe('field training auto-evaluation scoring', () => {
   it('builds deterministic Arabic comments without inventing a pass for ineligible students', () => {
     const ineligible = calculateFinalEvaluation(perfectInput({ completedHours: 0, requiredHours: 100 }));
     const text = buildAutoComment(ineligible);
-    assert.match(text, /الأهلية/);
+    assert.match(text, /غير مؤهل/);
     assert.equal(ineligible.finalStatus, FINAL_STATUS.NOT_ELIGIBLE);
-    const passed = buildAutoComment(calculateFinalEvaluation(perfectInput()));
+    const passed = buildAutoComment(calculateFinalEvaluation(perfectInput()), {
+      eligibilityStatus: 'ELIGIBLE',
+      preAssessmentCompleted: true,
+      postAssessmentCompleted: true,
+      requiredSubmissionsCompleted: true,
+      attendanceRequirementMet: true,
+      requiredHoursCompleted: true,
+      studentKey: 'eligible-test',
+    });
     assert.ok(passed.length > 20);
     assert.doesNotMatch(passed, /undefined|null/i);
   });

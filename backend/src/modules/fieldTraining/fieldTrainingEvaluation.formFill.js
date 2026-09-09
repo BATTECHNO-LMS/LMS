@@ -91,63 +91,65 @@ function criterionScore(values, index) {
   return Number.isInteger(n) && n >= 1 && n <= 5 ? n : null;
 }
 
-function reverseTableRowCells(rowXml) {
-  const open = (rowXml.match(/^<w:tr\b[^>]*>/) || [''])[0];
-  const trPr = (rowXml.match(/<w:trPr>[\s\S]*?<\/w:trPr>/) || [''])[0];
-  const cells = [...rowXml.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((match) => match[0]);
-  if (cells.length < 2) return rowXml;
-  return `${open}${trPr}${[...cells].reverse().join('')}</w:tr>`;
-}
-
 function scoreGridHeaderCells(tableXml) {
   const rows = [...tableXml.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
   if (!rows.length) return [];
   return [...rows[0][0].matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((cell) => cellPlainText(cell[0]));
 }
 
-function scoreGridNeedsRtlFlip(tableXml) {
-  const headerCells = scoreGridHeaderCells(tableXml).map((text) => normalizeAr(text));
-  // LibreOffice paints the first XML column on the LEFT. Desired visual:
-  // left=ضعيف … right=الرقم. Flip only when الرقم is already on the left.
-  return /الرقم/.test(headerCells[0] || '');
+function isScoreGridTable(tableXml) {
+  const text = cellPlainText(tableXml);
+  return /مجال التقييم/.test(text) && /(ممتاز|جيد)/.test(text);
 }
 
-function reverseScoreGridTable(tableXml) {
-  let out = tableXml;
-  const grid = (out.match(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>/) || [''])[0];
-  if (grid) {
-    const cols = [...grid.matchAll(/<w:gridCol\b[^/]*\/>/g)].map((m) => m[0]);
-    if (cols.length > 1) {
-      const reversedGrid = `<w:tblGrid>${[...cols].reverse().join('')}</w:tblGrid>`;
-      out = out.replace(grid, reversedGrid);
-    }
-  }
-  const rows = [...out.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
-  for (const row of rows) {
-    out = out.replace(row[0], reverseTableRowCells(row[0]));
-  }
-  return out;
+function countBidiVisual(tableXml) {
+  return (String(tableXml || '').match(/<w:bidiVisual\s*\/>/g) || []).length;
+}
+
+function scoreGridIsLogicalRtl(tableXml) {
+  const headers = scoreGridHeaderCells(tableXml).map((text) => normalizeAr(text));
+  return /الرقم/.test(headers[0] || '') && /(?:ف|ض)عيف\s*1/.test(headers[headers.length - 1] || '');
+}
+
+function scoreGridIsVisualLtr(tableXml) {
+  const headers = scoreGridHeaderCells(tableXml).map((text) => normalizeAr(text));
+  return /(?:ف|ض)عيف\s*1/.test(headers[0] || '') && /الرقم/.test(headers[headers.length - 1] || '');
 }
 
 /**
- * Keep the score grid in the visual order LibreOffice/PDF need:
- * LEFT ضعيف … ممتاز | مجال التقييم | الرقم RIGHT
- * Do NOT set w:bidiVisual — LibreOffice reverses columns when it is present.
+ * V11 already stores the evaluation grid in visual-LTR XML:
+ * ضعيف 1 … ممتاز 5 | مجال التقييم | الرقم
+ * Word paints that as الرقم on the visual right. Do not add w:bidiVisual,
+ * do not strip floating-table properties, and do not reverse cells.
  */
 function ensureScoreGridRtl(tableXml) {
-  if (!/مجال التقييم/.test(cellPlainText(tableXml))) return tableXml;
-  let out = String(tableXml).replace(/<w:bidiVisual\s*\/>/g, '');
-  if (scoreGridNeedsRtlFlip(out)) {
-    out = reverseScoreGridTable(out);
-  }
-  return out;
+  return tableXml;
+}
+
+function ensureBidiVisual(tableXml) {
+  return tableXml;
+}
+
+function assertDesiredScoreGridHeaderOrder(headerCells = []) {
+  const normalized = headerCells.map((text) => normalizeAr(text));
+  if (normalized.length < 7) return false;
+  return (
+    /(?:ف|ض)عيف\s*1/.test(normalized[0] || '') &&
+    /متوسط\s*2/.test(normalized[1] || '') &&
+    /جيد\s*3/.test(normalized[2] || '') &&
+    /جيد\s*جدا\s*4/.test(normalized[3] || '') &&
+    /ممتاز\s*5/.test(normalized[4] || '') &&
+    /مجال التقييم/.test(normalized[normalized.length - 2] || '') &&
+    /الرقم/.test(normalized[normalized.length - 1] || '')
+  );
+}
+
+function stripScoreGridFloat(tableXml) {
+  return String(tableXml || '');
 }
 
 function normalizeDocumentScoreGridTables(xml) {
-  return String(xml || '').replace(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g, (table) => {
-    if (!/مجال التقييم/.test(cellPlainText(table))) return table;
-    return ensureScoreGridRtl(table);
-  });
+  return String(xml || '');
 }
 
 function ratingColumnIndexForScore(headerCells, score) {
@@ -163,6 +165,14 @@ function ratingColumnIndexForScore(headerCells, score) {
   return headerCells.findIndex((text) => pattern.test(normalizeAr(text)));
 }
 
+function insertCheckmarkInCell(cellXml) {
+  const withText = String(cellXml).replace(/<w:t\b[^>]*>[\s\S]*?<\/w:t>/, (run) =>
+    run.replace(/>[\s\S]*</, `>${CHECKMARK}<`)
+  );
+  if (withText !== String(cellXml)) return withText;
+  return replaceFirstParagraph(cellXml, CHECKMARK);
+}
+
 function fillScoreGridTable(tableXml, values) {
   const rows = [...tableXml.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
   if (rows.length < 11) return tableXml;
@@ -174,33 +184,33 @@ function fillScoreGridTable(tableXml, values) {
     (score) => score != null
   );
   const hasTotal = blank(values.professional_evaluation_total) !== '';
-  const table = ensureScoreGridRtl(tableXml);
-  if (!hasScores && !hasTotal) return table;
+  if (!hasScores && !hasTotal) return tableXml;
 
-  const rtlHeaderCells = scoreGridHeaderCells(table);
-  const rtlRows = [...table.matchAll(/<w:tr[\s>][\s\S]*?<\/w:tr>/g)];
-  let out = table;
+  let out = tableXml;
   for (let i = 1; i <= 10; i += 1) {
-    const rowXml = rtlRows[i]?.[0];
+    const rowXml = rows[i]?.[0];
     if (!rowXml) continue;
     const score = criterionScore(values, i);
     const cells = [...rowXml.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
-    const colIndex = score != null ? ratingColumnIndexForScore(rtlHeaderCells, score) : -1;
+    const colIndex = score != null ? ratingColumnIndexForScore(headerCells, score) : -1;
     if (colIndex < 0 || !cells[colIndex]) continue;
-    let filledRow = rowXml;
-    const filledCell = replaceFirstParagraph(cells[colIndex][0], CHECKMARK);
-    filledRow = filledRow.replace(cells[colIndex][0], filledCell);
-    out = out.replace(rowXml, filledRow);
+    const filledCell = insertCheckmarkInCell(cells[colIndex][0]);
+    out = out.replace(rowXml, rowXml.replace(cells[colIndex][0], filledCell));
   }
 
   const total = blank(values.professional_evaluation_total);
   if (total !== '') {
-    const last = rtlRows[rtlRows.length - 1]?.[0];
+    const last = rows[rows.length - 1]?.[0];
     if (last && /المجموع/.test(cellPlainText(last))) {
       const cells = [...last.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)];
       const totalCell = cells.find((c) => /المجموع/.test(cellPlainText(c[0]))) || cells[cells.length - 1];
       if (totalCell) {
-        out = out.replace(totalCell[0], replaceFirstParagraph(totalCell[0], `المجموع: ${total}`));
+        const replaced = replaceTextRunsContaining(
+          totalCell[0],
+          (inner) => /المجموع/.test(inner),
+          `المجموع: ${total}`
+        );
+        out = out.replace(totalCell[0], replaced === totalCell[0] ? replaceFirstParagraph(totalCell[0], `المجموع: ${total}`) : replaced);
       }
     }
   }
@@ -252,6 +262,15 @@ function matchLabelKey(text) {
   return null;
 }
 
+function composeLabeledText(label, value) {
+  const raw = blank(value).replace(/\s+/g, ' ').trim();
+  if (!label) return raw;
+  const core = String(label).replace(/[:：]\s*$/, '').trim();
+  const escaped = core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const stripped = raw.replace(new RegExp(`^${escaped}\\s*[:：]?\\s*`), '').trim();
+  return `${label} ${stripped}`.replace(/\s+/g, ' ').trim();
+}
+
 function fillLabeledCell(cellXml, values) {
   const text = cellPlainText(cellXml);
   const match = matchLabelKey(text);
@@ -261,9 +280,6 @@ function fillLabeledCell(cellXml, values) {
     const end = blank(values.training_end_date);
     if (!start && !end) return cellXml;
     const filled = `فترة التدريب: ${start} إلى: ${end}`.trim();
-    if (cellHasDrawing(cellXml)) {
-      return replaceTextRunsContaining(cellXml, (inner) => /فترة|الى|إلى/.test(inner), filled);
-    }
     return replaceFirstParagraph(cellXml, filled);
   }
   const value =
@@ -273,20 +289,8 @@ function fillLabeledCell(cellXml, values) {
           : values.actual_training_hours)
       : blank(values[match.key]);
   if (value === '') return cellXml;
-  const filled = `${match.label} ${value}`;
-  if (cellHasDrawing(cellXml) || /MERGEFIELD|fldChar|instrText/.test(cellXml)) {
-    let next = stripMergeFieldMarkup(cellXml);
-    next = replaceTextRunsContaining(
-      next,
-      (inner) =>
-        normalizeAr(inner).includes(normalizeAr(match.label.replace(':', ''))) ||
-        /MERGEFIELD|البريد_الالكتروني/.test(inner),
-      filled
-    );
-    if (next !== cellXml && next !== stripMergeFieldMarkup(cellXml)) return next;
-    return replaceFirstParagraph(stripMergeFieldMarkup(cellXml), filled);
-  }
-  return replaceFirstParagraph(cellXml, filled);
+  const filled = composeLabeledText(match.label, value);
+  return replaceFirstParagraph(stripMergeFieldMarkup(cellXml), filled);
 }
 
 function stripMergeFieldMarkup(xml) {
@@ -361,12 +365,27 @@ function fillCommentsTable(tableXml, comments) {
   const text = cellPlainText(tableXml);
   if (text) return tableXml;
   if (!comments) return tableXml;
-  const compact = String(comments)
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .join(' ');
-  return tableXml.replace(/<w:p\b[\s\S]*?<\/w:p>/, (p) => setParagraphText(p, compact));
+  const lines = String(comments).split(/\r?\n/);
+  const paras = [...tableXml.matchAll(/<w:p\b[\s\S]*?<\/w:p>/g)];
+  if (!paras.length) return tableXml;
+  const assigned = paras.map((_, i) => {
+    const last = i === paras.length - 1;
+    if (last) return lines.slice(i).join('\n');
+    return i < lines.length ? lines[i] : null;
+  });
+  let lastUsed = 0;
+  assigned.forEach((chunk, i) => {
+    if (chunk != null && String(chunk).trim() !== '') lastUsed = i;
+  });
+  const keep = assigned.slice(0, lastUsed + 1);
+  let index = 0;
+  return tableXml.replace(/<w:p\b[\s\S]*?<\/w:p>/g, (p) => {
+    if (index >= keep.length) return '';
+    const chunk = keep[index];
+    index += 1;
+    if (chunk == null || chunk === '') return p;
+    return setParagraphText(p, chunk).replace(/<w:spacing w:before="120"\s*\/>/g, '<w:spacing w:before="0"/>');
+  });
 }
 
 function fillUniversityLabelForm(xml, values = {}) {
@@ -387,7 +406,7 @@ function fillUniversityLabelForm(xml, values = {}) {
     }
     if (next !== table) out = out.replace(table, next);
   }
-  return out;
+  return normalizeDocumentScoreGridTables(out);
 }
 
 function leftoverPlaceholders(xml) {
@@ -400,13 +419,20 @@ function leftoverPlaceholders(xml) {
 module.exports = {
   detectUniversityLabelForm,
   fillUniversityLabelForm,
+  fillScoreGridTable,
   cellPlainText,
   normalizeAr,
   matchLabelKey,
   countScoreGridCheckmarks,
   normalizeDocumentScoreGridTables,
   ensureScoreGridRtl,
+  ensureBidiVisual,
+  stripScoreGridFloat,
+  scoreGridIsLogicalRtl,
+  scoreGridIsVisualLtr,
+  assertDesiredScoreGridHeaderOrder,
   ratingColumnIndexForScore,
   scoreGridHeaderCells,
+  countBidiVisual,
   leftoverPlaceholders,
 };

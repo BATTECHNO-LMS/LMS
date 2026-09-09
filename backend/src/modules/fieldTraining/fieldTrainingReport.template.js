@@ -245,7 +245,7 @@ function renderUniversityReportHtml(report, assets = {}) {
 
   const period =
     report.filters?.from || report.filters?.to
-      ? `${fmtDate(report.filters.from)} — ${fmtDate(report.filters.to)}`
+      ? `${fmtDate(report.filters.from)} إلى ${fmtDate(report.filters.to)}`
       : 'كامل السجلات المتاحة';
 
   const warnings = (report.data_quality_warnings || [])
@@ -413,7 +413,7 @@ function renderUniversityReportHtml(report, assets = {}) {
           ${kpiCard('تحتاج تعديلاً', tasksA.revision_required)}
           ${kpiCard('تسليمات ناقصة', tasksA.missing_submissions)}
         </div>`
-      : '<p class="muted">غير مطلوب — لا توجد مهام ضمن نطاق التقرير.</p>',
+      : '<p class="muted">غير مطلوب. لا توجد مهام ضمن نطاق التقرير.</p>',
     'tasks'
   );
 
@@ -623,7 +623,7 @@ function renderStudentReportHtml(report, assets = {}) {
     title: report.report_title || 'التقرير الفردي للتدريب الميداني للطالب',
     university,
     meta: {
-      period: `${fmtDate(opp.start_date)} — ${fmtDate(opp.end_date)}`,
+      period: `${fmtDate(opp.start_date)} إلى ${fmtDate(opp.end_date)}`,
       generatedAt: meta.generated_at_label || fmtDateTime(meta.generated_at),
       generatedBy: meta.generated_by_name,
       reference: meta.reference,
@@ -642,7 +642,7 @@ function renderStudentReportHtml(report, assets = {}) {
       ['الفرصة', opp.title],
       ['جهة التدريب', opp.training_organization || opp.organization_name],
       ['المشرف', opp.assigned_instructor?.full_name],
-      ['فترة التدريب', `${fmtDate(opp.start_date)} — ${fmtDate(opp.end_date)}`],
+      ['فترة التدريب', `${fmtDate(opp.start_date)} إلى ${fmtDate(opp.end_date)}`],
       ['حالة الطلب', labels.labelOf(labels.APPLICATION_STATUS_AR, app.status)],
       ['حالة التدريب', labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status)],
       ['تقدم المهمات', app.task_progress?.display || exec.task_progress?.display || metrics.NOT_REQUIRED],

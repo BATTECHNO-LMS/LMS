@@ -15,10 +15,9 @@ const {
   validateCriteriaGrid,
 } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.payload');
 const { resolveOfficialUniversityNumber } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.universityNumber');
-const { buildEvaluationPdfFilename } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.filename');
+const { buildEvaluationDocxFilename } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.filename');
 const { buildPlaceholderMap, gridCheckmarks } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.placeholders');
 const { fillDocxTemplate, inspectFilledDocx } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.docx');
-const { convertFilledDocxToPdf, findSoffice } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.pdf');
 const { CHECKMARK } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.constants');
 const {
   officialTemplatePath,
@@ -157,6 +156,36 @@ describe('Mutah template resolution priority', () => {
     assert.equal(resolved.source, 'missing');
     assert.equal(resolved.template, null);
   });
+
+  it('honors an explicit shared-template override from another university', () => {
+    const resolved = resolveEvaluationTemplate({
+      opportunity: { university_id: 'mutah', evaluation_template_id: 'ttu-default' },
+      assignedTemplate: otherUni,
+      universityDefault: mutahDefault,
+    });
+    assert.equal(resolved.source, 'opportunity');
+    assert.equal(resolved.template.id, 'ttu-default');
+  });
+
+  it('requires Mutah official template version 11 and fails closed otherwise', () => {
+    const {
+      assertMutahOfficialTemplateV11,
+      MUTAH_OFFICIAL_TEMPLATE_V11_NOT_AVAILABLE,
+    } = require('../src/modules/fieldTraining/fieldTrainingEvaluation.resolve');
+    const v11 = { id: 'v11', version: 11, is_active: true };
+    const v10 = { id: 'v10', version: 10, is_active: true };
+    const ok = assertMutahOfficialTemplateV11({ isMutah: true, template: v11 });
+    assert.equal(ok.ok, true);
+    assert.equal(ok.template.id, 'v11');
+    const old = assertMutahOfficialTemplateV11({ isMutah: true, template: v10 });
+    assert.equal(old.ok, false);
+    assert.equal(old.code, MUTAH_OFFICIAL_TEMPLATE_V11_NOT_AVAILABLE);
+    const missing = assertMutahOfficialTemplateV11({ isMutah: true, template: null });
+    assert.equal(missing.ok, false);
+    const other = assertMutahOfficialTemplateV11({ isMutah: false, template: v10 });
+    assert.equal(other.ok, true);
+    assert.equal(other.template.id, 'v10');
+  });
 });
 
 describe('official Mutah DOCX fill', () => {
@@ -194,11 +223,11 @@ describe('official Mutah DOCX fill', () => {
 
   it('uses the Arabic download filename with the real name and university number', () => {
     const payload = samplePayload();
-    const filename = buildEvaluationPdfFilename({
+    const filename = buildEvaluationDocxFilename({
       studentName: payload.student_name,
       universityNumber: payload.student_number,
     });
-    assert.equal(filename, 'محمد_أحمد_الطراونة_2020123456_تقييم_التدريب_الميداني.pdf');
+    assert.equal(filename, 'محمد_أحمد_الطراونة_2020123456_تقييم_التدريب_الميداني.docx');
     assert.equal(filename.includes('NA'), false);
     assert.equal(filename.includes('11111111'), false);
   });
@@ -293,14 +322,16 @@ describe('report download permissions and idempotent PDF reuse', () => {
     );
   });
 
-  it('reuses a stored PDF on repeated approval and regenerates only when asked', () => {
+  it('reuses a stored Word report on repeated approval and regenerates only when asked', () => {
     const previous = {
       id: 'eval-1',
-      pdf_file_id: 'file-1',
+      filled_docx_file_id: 'file-docx-1',
       final_status: 'PASSED',
       score_evidence_json: {
         sourceHash: 'same-source',
         sourceTemplateFileId: 'template-file-1',
+        filledDocxSha256: 'abc',
+        officialOutputFormat: 'docx',
         fidelity: { mediaPreserved: true },
         generatedPageCount: 2,
         templatePayload: {
@@ -322,7 +353,7 @@ describe('report download permissions and idempotent PDF reuse', () => {
     );
     assert.equal(
       shouldReuseStoredPdf(
-        { ...previous, pdf_file_id: null },
+        { ...previous, filled_docx_file_id: null },
         { regenerate: false, sourceHash: 'same-source' }
       ),
       false
@@ -334,18 +365,20 @@ describe('report download permissions and idempotent PDF reuse', () => {
   });
 });
 
-describe('official PDF page count', () => {
-  it('converts the filled Mutah form to a two-page PDF when LibreOffice is available', async (t) => {
-    const soffice = findSoffice();
-    if (!soffice) {
-      t.skip('LibreOffice is not installed in this environment');
-      return;
-    }
+describe('official Word output', () => {
+  it('fills the Mutah form as DOCX without requiring LibreOffice', async () => {
     const payload = samplePayload();
     const filled = await fillDocxTemplate(fs.readFileSync(officialTemplatePath()), buildPlaceholderMap(payload));
-    const pdf = await convertFilledDocxToPdf(filled);
-    const pdfParse = require('pdf-parse');
-    const parsed = await pdfParse(pdf);
-    assert.equal(parsed.numpages, 2);
+    const inspect = await inspectFilledDocx(filled);
+    assert.equal(inspect.checkmarks, 10);
+    assert.ok(inspect.media.length >= 4);
+    const zip = await JSZip.loadAsync(filled);
+    const documentXml = await zip.file('word/document.xml').async('string');
+    const scoreTable = [...documentXml.matchAll(/<w:tbl[\s>][\s\S]*?<\/w:tbl>/g)]
+      .map((match) => match[0])
+      .find((table) => /مجال التقييم/.test(table));
+    assert.equal((scoreTable.match(/<w:bidiVisual\s*\/>/g) || []).length, 0);
+    assert.equal(inspect.pageCount, 2);
+    assert.equal(inspect.lastRenderedPageBreaks, 1);
   });
 });

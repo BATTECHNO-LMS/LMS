@@ -106,12 +106,29 @@ describe('field training evaluation template payload', () => {
       opportunity,
       attendanceRows,
     });
-    assert.equal(payload.training_days, 45);
+    assert.equal(payload.training_days, 2);
     assert.equal(payload.actual_training_hours, 14);
     assert.equal(payload.actual_daily_hours, 7);
     assert.equal(payload.training_hours_display, 14);
-    assert.equal(payload.absence_days, 1);
+    assert.equal(payload.absence_days, '1 من أصل 3');
     assert.equal(payload.attendance_percentage, 100);
+  });
+
+  it('uses opportunity expectedTrainingDays 45 without changing completed hours', () => {
+    const payload = buildFieldTrainingEvaluationTemplatePayload({
+      student: studentAr,
+      application,
+      opportunity: {
+        ...opportunity,
+        host_organization: { expectedTrainingDays: 45 },
+      },
+      attendanceRows,
+      templateConfig: { mutahOfficial: true, expectedTrainingDays: 45 },
+    });
+    assert.equal(payload.training_days, 45);
+    assert.equal(payload.actual_training_hours, 14);
+    assert.equal(payload.training_hours_display, 14);
+    assert.notEqual(payload.training_days, 2);
   });
 
   it('keeps training days unknown when attendance rows were not loaded for ineligible students', () => {
@@ -178,7 +195,7 @@ describe('field training evaluation template payload', () => {
     );
     assert.match(serviceSrc, /function buildFillFields\(ctx, evaluation/);
     assert.match(serviceSrc, /return buildFieldTrainingEvaluationTemplatePayload/);
-    assert.match(serviceSrc, /const fillFields = buildFillFields\(/);
+    assert.match(serviceSrc, /(?:const|let) fillFields = buildFillFields\(/);
     assert.match(serviceSrc, /previewApplicationPayload/);
   });
 
@@ -266,5 +283,52 @@ describe('Mutah label-form table replacement', () => {
     assert.match(filled, /الفصل الدراسي: الصيفي/);
     assert.match(filled, /السنة الدراسية: 2025-2026/);
     assert.match(filled, /فترة التدريب: 23 \/ 7 \/ 2026 إلى: 5 \/ 9 \/ 2026/);
+  });
+
+  it('does not keep leftover Mutah V11 sample values for semester and academic year', () => {
+    const xml = `<?xml version="1.0"?><w:document>
+      <w:tbl>
+        <w:tr>
+          <w:tc><w:p><w:r><w:t>اسم الطالب:</w:t></w:r></w:p></w:tc>
+        </w:tr>
+        <w:tr>
+          <w:tc><w:p>
+            <w:r><w:t>الفصل الدراسي:</w:t></w:r>
+            <w:r><w:t> </w:t></w:r>
+            <w:r><w:t>الصيفي</w:t></w:r>
+          </w:p></w:tc>
+          <w:tc><w:p>
+            <w:r><w:t>السنة الدراسية</w:t></w:r>
+            <w:r><w:t>: 2025</w:t></w:r>
+            <w:r><w:t>-</w:t></w:r>
+            <w:r><w:t>2026</w:t></w:r>
+          </w:p></w:tc>
+        </w:tr>
+      </w:tbl>
+      <w:tbl>
+        <w:tr>
+          <w:tc><w:p><w:r><w:t>مجال التقييم</w:t></w:r></w:p></w:tc>
+          <w:tc><w:p><w:r><w:t>ممتاز</w:t></w:r></w:p></w:tc>
+        </w:tr>
+      </w:tbl>
+    </w:document>`;
+    const payload = buildPlaceholderMap(
+      buildFieldTrainingEvaluationTemplatePayload({
+        student: studentAr,
+        application,
+        opportunity,
+        attendanceRows,
+      })
+    );
+    const filled = fillUniversityLabelForm(xml, payload);
+    const cells = [...filled.matchAll(/<w:tc[\s>][\s\S]*?<\/w:tc>/g)].map((m) =>
+      m[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+    );
+    const semesterCell = cells.find((text) => /الفصل الدراسي/.test(text));
+    const yearCell = cells.find((text) => /السنة الدراسية/.test(text));
+    assert.equal(semesterCell, 'الفصل الدراسي: الصيفي');
+    assert.equal(yearCell, 'السنة الدراسية: 2025-2026');
+    assert.equal((semesterCell.match(/الصيفي/g) || []).length, 1);
+    assert.equal((yearCell.match(/2025-2026/g) || []).length, 1);
   });
 });

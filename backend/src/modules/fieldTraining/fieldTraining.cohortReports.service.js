@@ -36,14 +36,14 @@ function round1(n) {
 function statusAr(status) {
   if (status === 'eligible' || status === 'ELIGIBLE') return 'مؤهل';
   if (status === 'ineligible' || status === 'NOT_ELIGIBLE') return 'غير مؤهل';
-  return status || '—';
+  return status || 'غير متوفر';
 }
 
 function humanSourceAr(source) {
-  if (!source) return '—';
+  if (!source) return 'غير متوفر';
   const MAP = {
     AUTHORIZED_MANUAL_REVIEW: 'مراجعة واعتماد نهائي',
-    AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'تقييم نهائي معتمد للدفعة السابقة',
+    AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'مراجعة واعتماد نهائي',
     AUTHORIZED_MANUAL_REVIEW_TASK_NORMALIZATION: 'مراجعة واعتماد نهائي',
     EXCEL_BASELINE: 'النتيجة النهائية المعتمدة',
     AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE: 'قرار إداري معتمد',
@@ -547,11 +547,11 @@ function renderFinalReportHtml(report) {
       <td>${esc(st.studentName)}</td>
       <td>${esc(st.universityNumber)}</td>
       <td>${esc(st.specialty)}</td>
-      <td>${esc(st.attendancePoints ?? '—')}</td>
-      <td>${esc(st.postAssessmentPoints ?? '—')}</td>
-      <td>${esc(st.taskPoints ?? '—')}</td>
-      <td>${esc(st.behaviorPoints ?? '—')}</td>
-      <td>${esc(st.approvedFinalScore ?? '—')}</td>
+      <td>${esc(st.attendancePoints ?? 'غير متوفر')}</td>
+      <td>${esc(st.postAssessmentPoints ?? 'غير متوفر')}</td>
+      <td>${esc(st.taskPoints ?? 'غير متوفر')}</td>
+      <td>${esc(st.behaviorPoints ?? 'غير متوفر')}</td>
+      <td>${esc(st.approvedFinalScore ?? 'غير متوفر')}</td>
       <td>${esc(st.status)}</td>
     </tr>`
     )
@@ -589,21 +589,21 @@ function renderFinalReportHtml(report) {
     <div class="card"><span>عدد الطلبة</span><strong>${esc(s.totalStudents)}</strong></div>
     <div class="card"><span>المؤهلون</span><strong>${esc(s.eligible)}</strong></div>
     <div class="card"><span>غير المؤهلين</span><strong>${esc(s.notEligible)}</strong></div>
-    <div class="card"><span>متوسط العلامة</span><strong>${esc(s.averageApprovedFinalScore ?? '—')}</strong></div>
+    <div class="card"><span>متوسط العلامة</span><strong>${esc(s.averageApprovedFinalScore ?? 'غير متوفر')}</strong></div>
   </div>
   <div class="meta">
-    نسبة التأهيل: ${esc(s.eligibilityRatePercent ?? '—')}% ·
-    أعلى علامة: ${esc(s.highestScore ?? '—')} ·
-    أدنى علامة: ${esc(s.lowestScore ?? '—')} ·
-    متوسط الحضور: ${esc(s.averageAttendance ?? '—')}% ·
-    أكملوا الساعات: ${esc(s.studentsCompletingRequiredHours ?? '—')}
+    نسبة التأهيل: ${esc(s.eligibilityRatePercent ?? 'غير متوفر')}% ·
+    أعلى علامة: ${esc(s.highestScore ?? 'غير متوفر')} ·
+    أدنى علامة: ${esc(s.lowestScore ?? 'غير متوفر')} ·
+    متوسط الحضور: ${esc(s.averageAttendance ?? 'غير متوفر')}% ·
+    أكملوا الساعات: ${esc(s.studentsCompletingRequiredHours ?? 'غير متوفر')}
   </div>
   <h2>قائمة الطلبة</h2>
   <table>
     <thead>
       <tr>
         <th>#</th><th>اسم الطالب</th><th>الرقم الجامعي</th><th>التخصص</th>
-        <th>الحضور /20</th><th>البعدي /20</th><th>التاسكات /40</th><th>السلوك /20</th>
+        <th>الحضور /20</th><th>البعدي /20</th><th>التاسكات /40</th><th>السلوك والالتزام /20</th>
         <th>النهائية /100</th><th>الحالة</th>
       </tr>
     </thead>
@@ -621,20 +621,20 @@ function renderComprehensiveReportHtml(report) {
   const extra = `
   <h2>توزيع العلامات</h2>
   <div class="meta">
-    90–100: ${esc(dist.from90to100)} ·
-    80–89.9: ${esc(dist.from80to89)} ·
+    90 إلى 100: ${esc(dist.from90to100)} ·
+    80 إلى 89.9: ${esc(dist.from80to89)} ·
     أقل من 80: ${esc(dist.below80)} ·
     غير مؤهل: ${esc(dist.notEligible)} ·
     غير مكتمل: ${esc(dist.incomplete)}
   </div>
-  <h2>تحليل التاسكات (من تسليمات النظام)</h2>
+  <h2>تحليل التاسكات</h2>
   <div class="meta">
-    4/4: ${esc(buckets['4/4'] || 0)} ·
-    3/4: ${esc(buckets['3/4'] || 0)} ·
-    2/4: ${esc(buckets['2/4'] || 0)} ·
-    1/4: ${esc(buckets['1/4'] || 0)} ·
-    0/4: ${esc(buckets['0/4'] || 0)} ·
-    متوسط مكون التاسكات: ${esc(report.taskAnalytics?.averageApprovedTaskPoints ?? '—')} /40
+    4 من 4: ${esc(buckets['4/4'] || 0)} ·
+    3 من 4: ${esc(buckets['3/4'] || 0)} ·
+    2 من 4: ${esc(buckets['2/4'] || 0)} ·
+    1 من 4: ${esc(buckets['1/4'] || 0)} ·
+    0 من 4: ${esc(buckets['0/4'] || 0)} ·
+    متوسط مكون التاسكات: ${esc(report.taskAnalytics?.averageApprovedTaskPoints ?? 'غير متوفر')} /40
   </div>
   <h2>نشاط المنصة</h2>
   <div class="meta">${esc(act.noteAr || '')}<br/>

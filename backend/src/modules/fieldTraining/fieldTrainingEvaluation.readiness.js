@@ -8,6 +8,7 @@ const {
   MISSING_STATIC_DATA,
   MISSING_PROFESSIONAL_EVIDENCE,
   GENERATED_STATUS,
+  READY_FOR_NOT_ELIGIBLE_REPORT,
   STATIC_MISSING_FIELD_CODES,
   PAYLOAD_KEY_TO_MISSING_CODE,
   PROFESSIONAL_CRITERION_EVIDENCE_CODES,
@@ -31,12 +32,16 @@ function classifyEvaluationReadiness({
   criterionEvidence = {},
   generated = false,
   usesManualRating = false,
+  eligibilityStatus = null,
 } = {}) {
   const codes = missingFieldEntries.map((row) => row.code || row);
   const staticMissing = codes.filter(isStaticMissingCode);
-  const professionalMissing = codes.filter(isProfessionalMissingCode);
+  const notEligible =
+    String(eligibilityStatus || '').toUpperCase() === 'NOT_ELIGIBLE' ||
+    String(eligibilityStatus || '').toLowerCase() === 'ineligible';
+  const professionalMissing = notEligible ? [] : codes.filter(isProfessionalMissingCode);
 
-  if (generated && !codes.length) {
+  if (generated && !staticMissing.length && (notEligible || !codes.length)) {
     return {
       readiness: GENERATED_STATUS,
       readinessCategory: GENERATED_STATUS,
@@ -51,6 +56,15 @@ function classifyEvaluationReadiness({
       readinessCategory: MISSING_STATIC_DATA,
       staticMissing,
       professionalMissing,
+    };
+  }
+
+  if (notEligible) {
+    return {
+      readiness: READY_STATUS,
+      readinessCategory: READY_FOR_NOT_ELIGIBLE_REPORT,
+      staticMissing,
+      professionalMissing: [],
     };
   }
 
@@ -80,7 +94,13 @@ function classifyEvaluationReadiness({
   };
 }
 
-function missingProfessionalCriteria(criterionEvidence = {}) {
+function missingProfessionalCriteria(criterionEvidence = {}, eligibilityStatus = null) {
+  if (
+    String(eligibilityStatus || '').toUpperCase() === 'NOT_ELIGIBLE' ||
+    String(eligibilityStatus || '').toLowerCase() === 'ineligible'
+  ) {
+    return [];
+  }
   const labels = {
     criterion3: 'القدرة على التفكير وطرح الأسئلة',
     criterion4: 'القدرة على حل المشكلات',

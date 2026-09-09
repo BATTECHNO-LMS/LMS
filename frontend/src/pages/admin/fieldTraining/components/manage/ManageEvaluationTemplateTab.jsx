@@ -10,6 +10,7 @@ import {
   University,
   ClipboardCheck,
   FileArchive,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SectionCard } from '../../../../../components/admin/SectionCard.jsx';
@@ -40,6 +41,10 @@ import {
   downloadOpportunityEvaluationZip,
   uploadEvaluationTemplate,
   useUniversityDefaultEvaluationTemplate,
+  downloadEvaluationReportPdf,
+  previewOpportunityExcelEvaluation,
+  downloadOpportunityExcelEvaluation,
+  uploadOpportunityExcelEvaluationTemplate,
 } from '../../../../../features/fieldTrainingEvaluation/fieldTrainingEvaluation.service.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
 import { SupervisorAssignmentSection } from './SupervisorAssignmentSection.jsx';
@@ -136,6 +141,8 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
     opportunity?.host_organization && typeof opportunity.host_organization === 'object'
       ? opportunity.host_organization
       : {};
+  const [excelPreview, setExcelPreview] = useState(null);
+  const [showExcelPreview, setShowExcelPreview] = useState(false);
   const [defaults, setDefaults] = useState({
     organization_name: opportunity?.organization_name || '',
     department: hostOrg.department || '',
@@ -144,6 +151,8 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
     fax: hostOrg.fax || '',
     address: hostOrg.address || '',
     field_supervisor_name: hostOrg.field_supervisor_name || hostOrg.contact_person || '',
+    field_supervisor_phone: hostOrg.field_supervisor_phone || '',
+    field_supervisor_email: hostOrg.field_supervisor_email || '',
   });
 
   const appsQuery = useOpportunityApplications(opportunityId, {}, { enabled: Boolean(opportunityId), scope: apiScope });
@@ -365,6 +374,30 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
     onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err, t('manage.noReportsToDownload')) }),
   });
 
+  const excelPreviewMut = useMutation({
+    mutationFn: () => previewOpportunityExcelEvaluation(opportunityId, apiScope),
+    onSuccess: (preview) => {
+      setExcelPreview(preview);
+      setShowExcelPreview(true);
+    },
+    onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err, tCommon('errors.generic')) }),
+  });
+
+  const excelDownloadMut = useMutation({
+    mutationFn: () => downloadOpportunityExcelEvaluation(opportunityId, apiScope),
+    onSuccess: () => {
+      setShowExcelPreview(false);
+      setAlert({ variant: 'success', title: t('manage.excelDownload') });
+    },
+    onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err, tCommon('errors.generic')) }),
+  });
+
+  const excelTemplateMut = useMutation({
+    mutationFn: (formData) => uploadOpportunityExcelEvaluationTemplate(opportunityId, formData, apiScope),
+    onSuccess: () => setAlert({ variant: 'success', title: t('manage.excelUploadSuccess') }),
+    onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err, tCommon('errors.generic')) }),
+  });
+
   const defaultsMut = useMutation({
     mutationFn: () => saveOpportunityReportDefaults(opportunityId, defaults, apiScope),
     onSuccess: () => {
@@ -378,34 +411,34 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
     mutationFn: () => previewEvaluationApplicationPayload(ratingApp, apiScope, { pdf: true }),
     onSuccess: (preview) => {
       if (studentPdfUrl) URL.revokeObjectURL(studentPdfUrl);
-      if (preview?.pdfBase64) {
-        const binary = Uint8Array.from(atob(preview.pdfBase64), (c) => c.charCodeAt(0));
-        setStudentPdfUrl(URL.createObjectURL(new Blob([binary], { type: 'application/pdf' })));
-        setAlert({ variant: 'success', title: t('manage.previewWithStudent') });
-      } else {
-        setStudentPdfUrl('');
-        if (preview?.previewMode === 'blocked') {
-          setAlert({ variant: 'warning', title: t('manage.previewBlocked') });
-        } else if (preview?.previewMode === 'not_generated') {
-          setAlert({
-            variant: 'warning',
-            title: preview.messageAr || t('manage.previewRequiresGeneration'),
-          });
-        } else if (preview?.missingFields?.length) {
-          setShowMissing(true);
-          setIncomplete({
-            count: 1,
-            fields: preview.missingFields,
-            students: [
-              {
-                applicationId: ratingApp,
-                studentName: preview.payload?.student_name,
-                universityNumber: preview.payload?.student_number,
-                missingFields: preview.missingFieldDetails || preview.missingFields,
-              },
-            ],
-          });
-        }
+      setStudentPdfUrl('');
+      if (preview?.previewMode === 'docx' || preview?.downloadAvailable) {
+        setAlert({
+          variant: 'success',
+          title: t('manage.previewWithStudent'),
+          message: preview.messageAr || t('manage.previewRequiresGeneration'),
+        });
+      } else if (preview?.previewMode === 'blocked') {
+        setAlert({ variant: 'warning', title: t('manage.previewBlocked') });
+      } else if (preview?.previewMode === 'not_generated') {
+        setAlert({
+          variant: 'warning',
+          title: preview.messageAr || t('manage.previewRequiresGeneration'),
+        });
+      } else if (preview?.missingFields?.length) {
+        setShowMissing(true);
+        setIncomplete({
+          count: 1,
+          fields: preview.missingFields,
+          students: [
+            {
+              applicationId: ratingApp,
+              studentName: preview.payload?.student_name,
+              universityNumber: preview.payload?.student_number,
+              missingFields: preview.missingFieldDetails || preview.missingFields,
+            },
+          ],
+        });
       }
     },
     onError: (err) => setAlert({ variant: 'danger', title: getApiErrorMessage(err, tCommon('errors.generic')) }),
@@ -415,9 +448,6 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
     if (!canManage) return t('page.readOnly');
     if (data.missing || !resolved?.id) return t('page.templateMissing');
     if (!templateFidelityPass) return t('manage.fidelityBlocked');
-    if (!(readinessQuery.data?.counts?.finalReady ?? readinessQuery.data?.counts?.ready)) {
-      return t('manage.noFinalReadyStudents');
-    }
     if (!approvedApps.length) return t('page.noApprovedStudents');
     return '';
   }, [
@@ -516,6 +546,20 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
                   <StatusBadge variant="muted">
                     {formatTemplateVersion(currentTemplate.versionLabel ?? currentTemplate.version, t)}
                   </StatusBadge>
+                  {currentTemplate.isDefault || data.universityDefault?.id === currentTemplate.id ? (
+                    <StatusBadge variant="success">{t('page.defaultTemplateLabel')}</StatusBadge>
+                  ) : null}
+                  {currentTemplate.isActive !== false ? (
+                    <StatusBadge variant="success">{t('page.templateActive')}</StatusBadge>
+                  ) : (
+                    <StatusBadge variant="warning">{t('manage.statusReview')}</StatusBadge>
+                  )}
+                  <StatusBadge variant={currentTemplate.signed || currentTemplate.hasSignature ? 'success' : 'warning'}>
+                    {t('page.signatureLabel')}: {currentTemplate.signed || currentTemplate.hasSignature ? t('page.assetPresent') : t('page.assetMissing')}
+                  </StatusBadge>
+                  <StatusBadge variant={currentTemplate.stamped || currentTemplate.hasStamp ? 'success' : 'warning'}>
+                    {t('page.stampLabel')}: {currentTemplate.stamped || currentTemplate.hasStamp ? t('page.assetPresent') : t('page.assetMissing')}
+                  </StatusBadge>
                   <StatusBadge variant={validationVariant(currentTemplate.validationStatus)}>
                     {currentTemplate.validationStatus === 'valid' ? t('manage.validBadge') : t('manage.statusReview')}
                   </StatusBadge>
@@ -549,6 +593,9 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
                   <StatusBadge variant="muted">
                     {formatTemplateVersion(data.universityDefault.versionLabel ?? data.universityDefault.version, t)}
                   </StatusBadge>
+                  {data.universityDefault.isActive !== false ? (
+                    <StatusBadge variant="success">{t('page.templateActive')}</StatusBadge>
+                  ) : null}
                 </div>
               </>
             ) : (
@@ -678,7 +725,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
             {[
               ['templateUploadValid', templateReadiness.uploadValid ? t('manage.yes') : t('manage.no')],
               ['templateStructureValid', templateReadiness.structureValid ? t('manage.yes') : t('manage.no')],
-              ['templateRendererReady', templateReadiness.rendererReady ? t('manage.yes') : t('manage.no')],
+              ['templateRendererReady', templateReadiness.docxGenerationReady || templateReadiness.rendererReady ? t('manage.wordEngineReady') : t('manage.no')],
               ['templateGenerationReadyLabel', templateReadiness.templateGenerationReady ? t('manage.yes') : t('manage.no')],
             ].map(([key, value]) => (
               <article key={key}>
@@ -688,19 +735,13 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
             ))}
           </div>
         ) : null}
-        {documentRenderer ? (
+        {templateReadiness || documentRenderer ? (
           <AlertBanner
-            variant={documentRenderer.available && templateFidelityPass ? 'success' : 'warning'}
+            variant={templateFidelityPass ? 'success' : 'warning'}
             title={t('manage.pdfEngineTitle')}
           >
-            <p>
-              {documentRenderer.available
-                ? `${t('manage.pdfEngineReady')} · ${t('manage.libreOfficeAvailable')}`
-                : t('manage.pdfEngineUnavailable')}
-            </p>
-            {documentRenderer.available && documentRenderer.version ? (
-              <p dir="ltr">{t('manage.libreOfficeVersion', { version: documentRenderer.version })}</p>
-            ) : null}
+            <p>{t('manage.wordEngineReady')}</p>
+            <p>{t('manage.pdfUnusedForBatch')}</p>
             <p>
               {templateFidelityPass
                 ? t('manage.officialTemplateReady')
@@ -775,14 +816,27 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
       {canManage ? (
         <SectionCard title={t('manage.reportDefaults')}>
           <div className="admin-filter-bar ft-eval-defaults">
+            <p className="ft-eval-defaults__group">{t('manage.companyData')}</p>
             {[
               ['organization_name', 'organization_name'],
               ['department', 'organization_department'],
-              ['email', 'organization_email'],
               ['phone', 'organization_phone'],
-              ['fax', 'organization_fax'],
+              ['email', 'organization_email'],
               ['address', 'organization_address'],
+            ].map(([key, labelKey]) => (
+              <label key={key}>
+                {translateEvaluationFieldLabel(labelKey, locale)}
+                <input
+                  value={defaults[key] || ''}
+                  onChange={(e) => setDefaults((prev) => ({ ...prev, [key]: e.target.value }))}
+                />
+              </label>
+            ))}
+            <p className="ft-eval-defaults__group">{t('manage.companySupervisorData')}</p>
+            {[
               ['field_supervisor_name', 'field_supervisor_name'],
+              ['field_supervisor_phone', 'field_supervisor_phone'],
+              ['field_supervisor_email', 'field_supervisor_email'],
             ].map(([key, labelKey]) => (
               <label key={key}>
                 {translateEvaluationFieldLabel(labelKey, locale)}
@@ -798,6 +852,62 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
           </div>
         </SectionCard>
       ) : null}
+
+      <SectionCard title={t('manage.excelEvaluationTitle')}>
+        <p>{t('manage.excelEvaluationHint')}</p>
+        {excelPreview?.template ? (
+          <p>
+            {excelPreview.template.source === 'bundled'
+              ? t('manage.excelTemplateBundled')
+              : t('manage.excelTemplateReady', {
+                  name: excelPreview.template.name || 'Excel',
+                  version: excelPreview.template.version || 1,
+                })}
+          </p>
+        ) : null}
+        <div className="ft-eval-actions ft-eval-actions--secondary">
+          {canManage ? (
+            <label className="ft-eval-file-label">
+              <input
+                type="file"
+                accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                hidden
+                onChange={(event) => {
+                  const next = event.target.files?.[0];
+                  event.target.value = '';
+                  if (!next) return;
+                  if (!String(next.name || '').toLowerCase().endsWith('.xlsx')) {
+                    setAlert({ variant: 'danger', title: t('manage.excelInvalidType') });
+                    return;
+                  }
+                  const fd = new FormData();
+                  fd.append('file', next);
+                  excelTemplateMut.mutate(fd);
+                }}
+              />
+              <Button type="button" variant="outline" loading={excelTemplateMut.isPending} onClick={(e) => e.currentTarget.parentElement?.querySelector('input')?.click()}>
+                {t('manage.excelUploadTemplate')}
+              </Button>
+            </label>
+          ) : null}
+          <Button
+            type="button"
+            loading={excelPreviewMut.isPending}
+            onClick={() => excelPreviewMut.mutate()}
+          >
+            <FileSpreadsheet size={16} aria-hidden />
+            {t('manage.excelCreateFile')}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            loading={excelPreviewMut.isPending}
+            onClick={() => excelPreviewMut.mutate()}
+          >
+            {t('manage.excelPreview')}
+          </Button>
+        </div>
+      </SectionCard>
 
       <SectionCard title={t('manage.incompleteCard')} className="ft-eval-incomplete">
         <p className="ft-eval-incomplete__count">
@@ -881,6 +991,12 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
           <div className="ft-eval-preview__empty">
             <FileText size={28} aria-hidden />
             <p>{t('manage.previewEmpty')}</p>
+            {resolved?.id ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => downloadEvaluationTemplate(resolved.id, apiScope)}>
+                <Download size={14} aria-hidden />
+                {t('page.downloadWord')}
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </SectionCard>
@@ -932,9 +1048,17 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
             ))}
           </dl>
         ) : null}
-        {studentPdfUrl ? (
-          <div className="ft-eval-preview__viewport">
-            <iframe className="ft-eval-preview__pdf" title={t('manage.previewOfficial')} src={studentPdfUrl} />
+        {studentPreviewMut.data?.evaluationId ? (
+          <div className="ft-eval-preview__empty">
+            <p>{studentPreviewMut.data.messageAr || t('manage.previewRequiresGeneration')}</p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => downloadEvaluationReportPdf(studentPreviewMut.data.evaluationId, apiScope)}
+            >
+              <Download size={16} aria-hidden />
+              {t('page.downloadWord')}
+            </Button>
           </div>
         ) : null}
         {payloadQuery.data?.criterionEvidence ? (
@@ -1126,6 +1250,26 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
           </div>
         </SectionCard>
       ) : null}
+
+      <AppModal
+        open={showExcelPreview}
+        onClose={() => setShowExcelPreview(false)}
+        title={t('manage.excelPreviewTitle')}
+        size="md"
+        footer={
+          <Button type="button" loading={excelDownloadMut.isPending} onClick={() => excelDownloadMut.mutate()}>
+            <Download size={16} aria-hidden />
+            {t('manage.excelDownload')}
+          </Button>
+        }
+      >
+        <p>{t('manage.excelTotal', { count: excelPreview?.summary?.totalStudents ?? 0 })}</p>
+        <p>{t('manage.excelEligible', { count: excelPreview?.summary?.eligible ?? 0 })}</p>
+        <p>{t('manage.excelNotEligible', { count: excelPreview?.summary?.notEligible ?? 0 })}</p>
+        <p>{t('manage.excelAuto', { count: excelPreview?.summary?.autoCalculated ?? 0 })}</p>
+        <p>{t('manage.excelFallback', { count: excelPreview?.summary?.administrativeFallback ?? 0 })}</p>
+        <p>{t('manage.excelMissing', { count: excelPreview?.summary?.missingData ?? 0 })}</p>
+      </AppModal>
 
       <AppModal
         open={showMissing}

@@ -87,6 +87,7 @@ const hostOrganizationSchema = z
     semester: z.string().max(80).optional().nullable(),
     academic_year: z.string().max(40).optional().nullable(),
     trainingHoursDisplayMode: z.enum(['TOTAL_COMPLETED_HOURS', 'DAILY_HOURS']).optional().nullable(),
+    expectedTrainingDays: z.coerce.number().int().min(1).max(365).optional().nullable(),
   })
   .optional()
   .nullable();

@@ -9,13 +9,10 @@ const filesService = require('../files/files.service');
 const ftAccess = require('./fieldTraining.access');
 const access = require('./fieldTrainingEvaluation.access');
 const scoring = require('./fieldTrainingEvaluation.scoring');
-const { buildAutoComment } = require('./fieldTrainingEvaluation.comments');
+const { buildMutahEvaluationComment, completionFlagsFromScoringInput } = require('./fieldTrainingEvaluation.comments');
 const { buildPlaceholderMap, validatePlaceholderSet } = require('./fieldTrainingEvaluation.placeholders');
 const { assertDocxUpload, extractDocxPlaceholders, fillDocxTemplate, inspectFilledDocx, detectUniversityLabelFormFromBuffer } = require('./fieldTrainingEvaluation.docx');
 const {
-  convertFilledDocxToPdf,
-  findSoffice,
-  assertOfficialRendererAvailable,
   getOfficialDocumentRendererStatus,
 } = require('./fieldTrainingEvaluation.pdf');
 const { preflightEvaluationTemplate } = require('./fieldTrainingEvaluation.preflight');
@@ -47,12 +44,24 @@ const {
   MISSING_STATIC_DATA,
   MISSING_PROFESSIONAL_EVIDENCE,
   GENERATED_STATUS,
+  DOCX_MIME,
+  MUTAH_OFFICIAL_TEMPLATE_V11_NOT_AVAILABLE,
+  MUTAH_REQUIRED_TEMPLATE_VERSION,
+  PROFESSIONAL_EVALUATION_STATUS,
+  SCORE_SOURCE,
+  NOT_ELIGIBLE_POLICY_SCORE,
+  NOT_ELIGIBLE_POLICY_TOTAL,
+  POLICY_ASSIGNED_NOT_ELIGIBLE_REASON_AR,
 } = require('./fieldTrainingEvaluation.constants');
 const {
-  buildEvaluationPdfFilename,
+  buildEvaluationDocxFilename,
 } = require('./fieldTrainingEvaluation.filename');
 const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
-const { resolveEvaluationTemplate } = require('./fieldTrainingEvaluation.resolve');
+const {
+  resolveEvaluationTemplate,
+  assertMutahOfficialTemplateV11,
+  isMutahUniversity,
+} = require('./fieldTrainingEvaluation.resolve');
 const {
   num,
   academicPeriod,
@@ -75,6 +84,7 @@ const readinessAggregate = require('./fieldTrainingEvaluation.readinessAggregate
 const supervisorScope = require('./fieldTraining.supervisorScope');
 const academicSupervisorResolve = require('./fieldTrainingEvaluation.academicSupervisorResolve');
 const officialPopulation = require('./fieldTrainingEvaluation.officialPopulation');
+const mutahExcelDelivery = require('./fieldTrainingEvaluation.mutahExcelDelivery');
 const supervisorNames = require('./fieldTraining.supervisorName');
 const { buildFieldTrainingStudentPerformanceSnapshot } = require('./fieldTrainingEvaluation.performanceSnapshot');
 const qualification = require('./fieldTraining.qualification');
@@ -120,11 +130,10 @@ function sourceTemplateFileIdOf(row = {}) {
 function hasVerifiedFidelityArtifact(row = {}, expectedTemplate = null) {
   const sourceTemplateFileId = sourceTemplateFileIdOf(row);
   const baseVerified = Boolean(
-    row.pdf_file_id &&
+    row.filled_docx_file_id &&
       sourceTemplateFileId &&
       row.score_evidence_json?.fidelity &&
-      Number(row.score_evidence_json?.generatedPageCount) === 2 &&
-      row.score_evidence_json?.pdfSha256
+      row.score_evidence_json?.filledDocxSha256
   );
   if (!baseVerified) return false;
   const template = expectedTemplate || row.template || null;
@@ -162,7 +171,7 @@ async function publishEvaluationVersion({ applicationId, stagedId, stored }) {
       where: { id: stagedId },
       data: {
         is_current: true,
-        pdf_file_id: stored.pdfFile.id,
+        pdf_file_id: stored.pdfFile?.id || undefined,
         filled_docx_file_id: stored.docxFile.id,
         updated_at: new Date(),
       },
@@ -172,7 +181,8 @@ async function publishEvaluationVersion({ applicationId, stagedId, stored }) {
 
 async function findUsableTemplate({ opportunity, universityId }) {
   const resolved = await resolveTemplate({ ...opportunity, university_id: universityId });
-  return resolved.template || null;
+  const isMutah = await universityIsMutah(universityId);
+  return throwIfMutahTemplateNotV11(isMutah, resolved.template);
 }
 
 function resolveEvalUniversityId(ctx, user) {
@@ -239,6 +249,14 @@ function mapTemplateRow(row, extras = {}) {
     isDefault: row.is_default,
     validationStatus: row.validation_status,
     validation: row.validation_json,
+    signed: Boolean(
+      row.validation_json?.preflight?.hasSignatureLabel &&
+        (row.validation_json?.preflight?.hasMedia || Number(row.validation_json?.preflight?.mediaCount) > 0)
+    ),
+    stamped: Boolean(
+      row.validation_json?.preflight?.hasOfficialStampLabel &&
+        (row.validation_json?.preflight?.hasMedia || Number(row.validation_json?.preflight?.mediaCount) > 0)
+    ),
     createdById: row.created_by_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -273,11 +291,53 @@ async function resolveTemplate(opportunity) {
         },
       })
     : null;
-  return resolveEvaluationTemplate({
+  const resolved = resolveEvaluationTemplate({
     opportunity,
     assignedTemplate: assigned,
     universityDefault,
   });
+  if (resolved.source === 'assigned_template_unavailable' && universityDefault && universityId) {
+    const isMutah = await universityIsMutah(universityId);
+    if (isMutah && Number(universityDefault.version) === Number(MUTAH_REQUIRED_TEMPLATE_VERSION)) {
+      return { template: universityDefault, source: 'university_default' };
+    }
+  }
+  return resolved;
+}
+
+const mutahUniversityCache = new Map();
+
+async function universityIsMutah(universityId) {
+  if (!universityId) return false;
+  if (mutahUniversityCache.has(universityId)) return mutahUniversityCache.get(universityId);
+  const uni = await prisma.universities.findUnique({
+    where: { id: universityId },
+    select: {
+      name: true,
+      name_en: true,
+      website: true,
+      university_email_domains: { select: { domain: true }, take: 1 },
+    },
+  });
+  const flagged = isMutahUniversity({
+    name: uni?.name,
+    name_en: uni?.name_en,
+    website: uni?.website,
+    domain: uni?.university_email_domains?.[0]?.domain,
+  });
+  mutahUniversityCache.set(universityId, flagged);
+  return flagged;
+}
+
+function throwIfMutahTemplateNotV11(isMutah, template) {
+  const check = assertMutahOfficialTemplateV11({ isMutah, template });
+  if (check.ok) return template;
+  throw new ApiError(
+    409,
+    'قالب تقييم مؤتة الرسمي (الإصدار 11) غير متوفر. لا يمكن إصدار التقرير من قالب بديل.',
+    { requiredVersion: 11, actualVersion: template?.version || null },
+    MUTAH_OFFICIAL_TEMPLATE_V11_NOT_AVAILABLE
+  );
 }
 
 async function loadFileBuffer(fileId) {
@@ -566,7 +626,11 @@ async function assignOpportunityTemplate(user, opportunityId, templateId) {
   }
   const template = await prisma.field_training_evaluation_templates.findUnique({ where: { id: templateId } });
   if (!template || template.archived_at) throw new ApiError(404, 'Template not found');
-  if (universityId && String(template.university_id) !== String(universityId)) {
+  if (
+    universityId &&
+    String(template.university_id) !== String(universityId) &&
+    !access.isSuperAdmin(user)
+  ) {
     throw new ApiError(403, access.MSG.crossUniversity, null, 'FIELD_TRAINING_UNIVERSITY_FORBIDDEN');
   }
   if (template.validation_status !== 'valid') {
@@ -600,28 +664,17 @@ async function previewTemplate(user, templateId) {
       html: '',
     };
   }
-  if (!findSoffice()) {
-    return {
-      template: mapTemplateRow(row),
-      previewMode: 'blocked',
-      code: 'VISUAL_QA_BLOCKED',
-      preflight,
-      pdfBase64: null,
-      html: '',
-    };
-  }
-  const pdfBuffer = await convertFilledDocxToPdf(buffer, {
-    fontIssues: preflight.issues.filter((i) => i.code === TEMPLATE_FONT_UNAVAILABLE),
-    expectedPageCount: preflight.inspection.expectedPageCount || 2,
-  });
   return {
     template: mapTemplateRow(row),
-    previewMode: 'pdf',
+    previewMode: 'docx',
     preflight,
-    pdfBase64: Buffer.from(pdfBuffer).toString('base64'),
+    pdfBase64: null,
+    downloadAvailable: true,
+    officialOutputFormat: 'docx',
     sourceTemplateFileId: row.original_file_id,
     pageCount: preflight.inspection.expectedPageCount || 2,
     html: '',
+    messageAr: 'التقرير الرسمي هو ملف Word. استخدم تنزيل ملف Word.',
   };
 }
 
@@ -636,6 +689,7 @@ async function previewApplicationPayload(user, applicationId) {
     ...ctx.opportunity,
     university_id: universityId,
   });
+  throwIfMutahTemplateNotV11(await universityIsMutah(universityId), resolved.template);
   const policy = { ...ctx.policy };
   if (policy.requiredTrainingHours == null) policy.requiredTrainingHours = ctx.scoringInput.requiredHours;
   const calculated = qualification.qualifyLoadedContext(ctx);
@@ -662,6 +716,7 @@ async function previewApplicationPayload(user, applicationId) {
     missingFieldEntries: missing,
     criterionEvidence: calculated.criterionEvidence,
     usesManualRating: calculated.usesManualRating,
+    eligibilityStatus: official.eligibilityStatus,
   });
   return {
     payload: publicPreviewPayload(payload),
@@ -678,7 +733,10 @@ async function previewApplicationPayload(user, applicationId) {
       ])
     ),
     performanceSnapshot: calculated.performanceSnapshot,
-    missingProfessionalCriteria: readinessMod.missingProfessionalCriteria(calculated.criterionEvidence),
+    missingProfessionalCriteria: readinessMod.missingProfessionalCriteria(
+      calculated.criterionEvidence,
+      official.eligibilityStatus
+    ),
     usesManualRating: calculated.usesManualRating,
     eligibilityStatus: official.eligibilityStatus,
     templateId: resolved.template?.id || null,
@@ -687,7 +745,7 @@ async function previewApplicationPayload(user, applicationId) {
     templateSource: resolved.source,
     filename: missing.length
       ? null
-      : buildEvaluationPdfFilename({
+      : buildEvaluationDocxFilename({
           studentName: payload.student_name,
           universityNumber: payload.student_number,
         }),
@@ -1048,6 +1106,7 @@ async function analyzeOpportunityBulkGaps(user, opportunityId, { applicationIds 
       missingFieldEntries: missing,
       criterionEvidence: calculated.criterionEvidence,
       usesManualRating: calculated.usesManualRating,
+      eligibilityStatus: official.eligibilityStatus,
     });
     const analysis = bulkRatingMod.analyzeStudentBulkGaps({
       calculated,
@@ -1383,6 +1442,7 @@ async function loadBatchContext(applicationIds) {
       requiredHours: num(opp?.required_training_hours),
       attendanceDataLoaded: attendanceSummary.attendanceDataLoaded,
       hoursDataLoaded: attendanceSummary.hoursDataLoaded,
+      trackedTrainingDays: attendanceSummary.trackedDays,
       latenessTracked: appSubs.some((s) => s.is_late != null),
       lateDays: null,
       violationsTracked: false,
@@ -1449,6 +1509,53 @@ async function loadBatchContext(applicationIds) {
   return { applications, byId };
 }
 
+function persistedCriterionScore(eligibilityStatus, fillFields, calculated, index) {
+  const fromFill = Number(fillFields[`criterion_${index}_score`]);
+  if (String(eligibilityStatus || '').toUpperCase() !== 'ELIGIBLE') {
+    if (
+      fillFields.professional_evaluation_status === PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE ||
+      fillFields.professional_score_source === SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE
+    ) {
+      return Number.isInteger(fromFill) && fromFill >= 1 && fromFill <= 5
+        ? fromFill
+        : NOT_ELIGIBLE_POLICY_SCORE;
+    }
+    return null;
+  }
+  if (Number.isInteger(fromFill) && fromFill >= 1 && fromFill <= 5) return fromFill;
+  const fromCalc = Number(calculated[`criterion${index}Score`]);
+  return Number.isInteger(fromCalc) && fromCalc >= 1 && fromCalc <= 5 ? fromCalc : null;
+}
+
+function persistedProfessionalTotal(eligibilityStatus, fillFields, calculated) {
+  const fromFill = Number(fillFields.professional_evaluation_total);
+  if (String(eligibilityStatus || '').toUpperCase() !== 'ELIGIBLE') {
+    if (
+      fillFields.professional_evaluation_status === PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE ||
+      fillFields.professional_score_source === SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE
+    ) {
+      return Number.isInteger(fromFill) && fromFill >= 10 && fromFill <= 50
+        ? fromFill
+        : NOT_ELIGIBLE_POLICY_TOTAL;
+    }
+    return 0;
+  }
+  if (Number.isInteger(fromFill) && fromFill >= 10 && fromFill <= 50) return fromFill;
+  return calculated.professionalTotal == null ? 0 : calculated.professionalTotal;
+}
+
+function policyAssignedNotEligibleEvidence() {
+  const row = {
+    score: NOT_ELIGIBLE_POLICY_SCORE,
+    source: SCORE_SOURCE.POLICY_ASSIGNED_NOT_ELIGIBLE,
+    reason: POLICY_ASSIGNED_NOT_ELIGIBLE_REASON_AR,
+    calculatedMetric: null,
+    evidence: { policy: true },
+    missingEvidence: false,
+  };
+  return Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`criterion${i + 1}`, { ...row }]));
+}
+
 function buildFillFields(ctx, evaluation, template = null) {
   const templateConfig = {
     fillMode: template?.validation_json?.fillMode || ctx.template?.validation_json?.fillMode,
@@ -1456,6 +1563,11 @@ function buildFillFields(ctx, evaluation, template = null) {
       template?.validation_json?.trainingHoursDisplayMode ||
       ctx.template?.validation_json?.trainingHoursDisplayMode,
     mutahOfficial: Boolean(template?.validation_json?.fillMode === 'label_form' || ctx.template?.validation_json?.fillMode === 'label_form'),
+    expectedTrainingDays:
+      template?.validation_json?.expectedTrainingDays ||
+      ctx.opportunity?.expectedTrainingDays ||
+      ctx.opportunity?.host_organization?.expectedTrainingDays ||
+      ctx.opportunity?.host_organization?.expected_training_days,
   };
   return buildFieldTrainingEvaluationTemplatePayload({
     student: ctx.student || {},
@@ -1513,15 +1625,24 @@ function buildOfficialComment(ctx, calculated) {
       requiredHours: ctx.scoringInput?.requiredHours,
       requiredTaskCount: ctx.scoringInput?.requiredTaskCount,
       acceptedTaskCount: ctx.scoringInput?.acceptedTaskCount,
+      absenceDays: ctx.scoringInput?.absenceDays,
+      trackedTrainingDays: ctx.scoringInput?.trackedTrainingDays,
     },
   });
+  const completionFlags = completionFlagsFromScoringInput(ctx.scoringInput || {}, ctx.opportunity || {});
+  const studentKey =
+    ctx.student?.university_student_number ||
+    ctx.application?.id ||
+    ctx.scoringInput?.applicationId;
   return {
     eligibilityStatus,
     reasons,
-    comment: buildAutoComment(
-      { ...calculated, eligibilityStatus, eligibilityReasonLabels: reasons.labelsAr },
-      { eligibilityStatus, reasonLabels: reasons.labelsAr }
-    ),
+    comment: buildMutahEvaluationComment(ctx.application, { ...calculated, eligibilityStatus }, {
+      eligibilityStatus,
+      reasonLabels: reasons.labelsAr,
+      studentKey,
+      ...completionFlags,
+    }),
   };
 }
 
@@ -1529,29 +1650,30 @@ function officialUniversityNumber(student = {}) {
   return resolveOfficialUniversityNumber(student).number;
 }
 
-async function persistGeneratedFiles(user, evaluationId, filledDocx, pdfBuffer, filename) {
+async function persistGeneratedFiles(user, evaluationId, filledDocx, filename) {
   const docxFile = await filesService.storePrivateBuffer({
     buffer: filledDocx,
-    originalName: filename.replace(/\.pdf$/i, '.docx'),
-    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    folder: STORAGE_FOLDER,
-    user,
-    relatedEntityType: 'field_training_final_evaluation',
-    relatedEntityId: evaluationId,
-  });
-  const pdfFile = await filesService.storePrivateBuffer({
-    buffer: pdfBuffer,
     originalName: filename,
-    mimeType: 'application/pdf',
+    mimeType: DOCX_MIME,
     folder: STORAGE_FOLDER,
     user,
     relatedEntityType: 'field_training_final_evaluation',
     relatedEntityId: evaluationId,
   });
-  return { docxFile, pdfFile };
+  return { docxFile, pdfFile: null };
 }
 
-async function generateForApplications(user, applicationIds, { regenerate = false, regenerationReason = null, finalize = true } = {}) {
+async function generateForApplications(
+  user,
+  applicationIds,
+  {
+    regenerate = false,
+    regenerationReason = null,
+    finalize = true,
+    mutahSoftDelivery = false,
+    excelOverridesByApplicationId = null,
+  } = {}
+) {
   const { byId } = await loadBatchContext(applicationIds);
   const contexts = applicationIds.map((id) => byId.get(id)).filter(Boolean);
   for (const ctx of contexts) {
@@ -1612,7 +1734,9 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
   const uniqueTemplates = [];
   const seenTemplates = new Set();
   for (const ctx of contexts) {
-    const resolved = resolveFromCache(ctx.opportunity, resolveEvalUniversityId(ctx, user));
+    const universityId = resolveEvalUniversityId(ctx, user);
+    const resolved = resolveFromCache(ctx.opportunity, universityId);
+    await throwIfMutahTemplateNotV11(await universityIsMutah(universityId), resolved.template);
     if (resolved.template && !seenTemplates.has(resolved.template.id)) {
       seenTemplates.add(resolved.template.id);
       uniqueTemplates.push(resolved.template);
@@ -1630,7 +1754,9 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
       );
     }
   }
-  if (uniqueTemplates.length) assertOfficialRendererAvailable();
+  if (uniqueTemplates.length) {
+    /* Word export uses the DOCX template engine; LibreOffice is not required. */
+  }
 
   const results = [];
   const missingTemplate = [];
@@ -1667,7 +1793,7 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
     const studentNumber = officialUniversityNumber(ctx.student);
     if (studentNumber) ctx.student.university_student_number = studentNumber;
     const generalComments = previous?.comments_edited_at ? previous.general_comments : official.comment;
-    const fillFields = buildFillFields(
+    let fillFields = buildFillFields(
       ctx,
       {
         ...calculated,
@@ -1683,6 +1809,16 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
       },
       resolved.template
     );
+    const excelOverride =
+      excelOverridesByApplicationId &&
+      (excelOverridesByApplicationId.get?.(applicationId) || excelOverridesByApplicationId[applicationId] || null);
+    const mutahOfficial =
+      mutahSoftDelivery ||
+      resolved.template?.validation_json?.fillMode === 'label_form' ||
+      Number(resolved.template?.version) === 11;
+    if (mutahOfficial) {
+      fillFields = mutahExcelDelivery.applyMutahSoftDeliveryPayload(fillFields, excelOverride);
+    }
     const sourceHash = templatePayloadHash(fillFields, resolved.template);
     if (shouldReuseStoredPdf(previous, { regenerate, sourceHash })) {
       results.push({
@@ -1693,6 +1829,7 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         code: ALREADY_GENERATED,
         finalStatus: previous.final_status,
         eligibilityStatus: previous.eligibility_status,
+        classification: mutahSoftDelivery ? 'GENERATED_COMPLETE' : undefined,
       });
       continue;
     }
@@ -1705,26 +1842,29 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         code: STUDENT_NUMBER_UNRESOLVED_CODE,
         missingFields: ['STUDENT_NUMBER_MISSING'],
         missingFieldDetails: toMissingFieldEntries(['student_number']),
+        classification: mutahSoftDelivery ? 'FAILED_TECHNICAL' : undefined,
       });
       continue;
     }
-    const missingFields = missingRequiredCompleteFields(fillFields);
-    if (missingFields.length) {
-      const details = missingFieldEntries(fillFields);
-      const code = missingFields.some((key) => String(key).startsWith('criterion_'))
-        ? PROFESSIONAL_INCOMPLETE_CODE
-        : DATA_INCOMPLETE_CODE;
-      results.push({
-        applicationId,
-        studentName: fillFields.student_name,
-        universityNumber: fillFields.student_number,
-        generated: false,
-        code,
-        readiness: MISSING_REQUIRED_DATA,
-        missingFields: details.map((row) => row.code),
-        missingFieldDetails: details,
-      });
-      continue;
+    if (!mutahOfficial) {
+      const missingFields = missingRequiredCompleteFields(fillFields);
+      if (missingFields.length) {
+        const details = missingFieldEntries(fillFields);
+        const code = missingFields.some((key) => String(key).startsWith('criterion_'))
+          ? PROFESSIONAL_INCOMPLETE_CODE
+          : DATA_INCOMPLETE_CODE;
+        results.push({
+          applicationId,
+          studentName: fillFields.student_name,
+          universityNumber: fillFields.student_number,
+          generated: false,
+          code,
+          readiness: MISSING_REQUIRED_DATA,
+          missingFields: details.map((row) => row.code),
+          missingFieldDetails: details,
+        });
+        continue;
+      }
     }
     const version = previous ? (previous.version || 1) + 1 : 1;
     let created;
@@ -1761,11 +1901,11 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         payload: isolatedPayload,
       });
       const expectedPageCount = preflight.inspection.expectedPageCount || 2;
-      const pdfBuffer = await convertFilledDocxToPdf(filledDocx, {
-        fontIssues: preflight.issues.filter((row) => row.code === TEMPLATE_FONT_UNAVAILABLE),
-        expectedPageCount,
-      });
-      const filename = buildEvaluationPdfFilename({
+      const generatedPageCount =
+        inspection.lastRenderedPageBreaks != null
+          ? inspection.lastRenderedPageBreaks + 1
+          : expectedPageCount;
+      const filename = buildEvaluationDocxFilename({
         studentName: fillFields.student_name,
         universityNumber: fillFields.student_number,
       });
@@ -1804,17 +1944,17 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         pre_assessment_score: calculated.preAssessmentScore,
         post_assessment_score: calculated.postAssessmentScore,
         improvement_percentage: calculated.improvementPercentage,
-        criterion_1_score: calculated.criterion1Score,
-        criterion_2_score: calculated.criterion2Score,
-        criterion_3_score: calculated.criterion3Score,
-        criterion_4_score: calculated.criterion4Score,
-        criterion_5_score: calculated.criterion5Score,
-        criterion_6_score: calculated.criterion6Score,
-        criterion_7_score: calculated.criterion7Score,
-        criterion_8_score: calculated.criterion8Score,
-        criterion_9_score: calculated.criterion9Score,
-        criterion_10_score: calculated.criterion10Score,
-        professional_total: calculated.professionalTotal,
+        criterion_1_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 1),
+        criterion_2_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 2),
+        criterion_3_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 3),
+        criterion_4_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 4),
+        criterion_5_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 5),
+        criterion_6_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 6),
+        criterion_7_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 7),
+        criterion_8_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 8),
+        criterion_9_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 9),
+        criterion_10_score: persistedCriterionScore(official.eligibilityStatus, fillFields, calculated, 10),
+        professional_total: persistedProfessionalTotal(official.eligibilityStatus, fillFields, calculated),
         professional_percentage: calculated.professionalPercentage,
         final_score: calculated.finalScore,
         final_percentage: calculated.finalPercentage,
@@ -1823,7 +1963,10 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         score_evidence_json: {
           scoring: ctx.scoringInput,
           performanceSnapshot: calculated.performanceSnapshot,
-          criterionEvidence: calculated.criterionEvidence,
+          criterionEvidence:
+            fillFields.professional_evaluation_status === PROFESSIONAL_EVALUATION_STATUS.POLICY_ASSIGNED_NOT_ELIGIBLE
+              ? policyAssignedNotEligibleEvidence()
+              : calculated.criterionEvidence,
           templatePayload: identitySnapshot(fillFields),
           sourceHash,
           templateId: resolved.template.id,
@@ -1831,9 +1974,16 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
           sourceTemplateFileId: sourceTemplateFile.id,
           sourceTemplateSha256: fidelity.sourceTemplateSha256,
           filledDocxSha256: fidelity.filledDocxSha256,
-          pdfSha256: sha256Buffer(pdfBuffer),
+          officialOutputFormat: 'docx',
+          professionalEvaluationStatus:
+            official.eligibilityStatus === 'ELIGIBLE'
+              ? PROFESSIONAL_EVALUATION_STATUS.COMPLETE
+              : fillFields.professional_evaluation_status ||
+                PROFESSIONAL_EVALUATION_STATUS.SKIPPED_DUE_TO_INELIGIBILITY,
+          professionalScoreSource: fillFields.professional_score_source || null,
+          professionalScoreReason: fillFields.professional_score_reason || null,
           expectedPageCount,
-          generatedPageCount: expectedPageCount,
+          generatedPageCount,
           fidelity: {
             mediaPreserved: fidelity.mediaPreserved,
             tableGeometryPreserved: fidelity.tableGeometryPreserved,
@@ -1857,7 +2007,7 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
       };
 
       created = await stageEvaluationVersion(applicationId, payload, previous);
-      const stored = await persistGeneratedFiles(user, created.id, filledDocx, pdfBuffer, filename);
+      const stored = await persistGeneratedFiles(user, created.id, filledDocx, filename);
       await publishEvaluationVersion({
         applicationId,
         stagedId: created.id,
@@ -1880,12 +2030,21 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         evaluationId: created.id,
         generated: true,
         finalStatus: official.eligibilityStatus === 'ELIGIBLE' ? calculated.finalStatus : 'NOT_ELIGIBLE',
-        eligibilityStatus: official.eligibilityStatus,
+        eligibilityStatus: fillFields.eligibility_status || official.eligibilityStatus,
+        studentName: fillFields.student_name,
+        universityNumber: fillFields.student_number,
+        academicSupervisorName: fillFields.academic_supervisor_name,
         filename,
         templateId: resolved.template.id,
         templateVersion: resolved.template.version,
         sourceTemplateFileId: sourceTemplateFile.id,
         pageCount: expectedPageCount,
+        missingDataWarnings: fillFields._missingDataWarnings || [],
+        classification: mutahSoftDelivery
+          ? fillFields._missingDataWarnings?.length || !fillFields._professionalComplete
+            ? 'GENERATED_WITH_MISSING_DATA'
+            : 'GENERATED_COMPLETE'
+          : undefined,
       });
     } catch (err) {
       if (
@@ -1901,6 +2060,7 @@ async function generateForApplications(user, applicationIds, { regenerate = fals
         code: err?.code || PDF_RENDER_FAILED_CODE,
         error: err?.message || 'pdf_failed',
         details: err?.details || null,
+        classification: mutahSoftDelivery ? 'FAILED_TECHNICAL' : undefined,
       });
     }
   }
@@ -2037,6 +2197,20 @@ async function generateForOpportunity(user, opportunityId, options = {}) {
     );
   }
 
+  const excelBatch = await prisma.field_training_supervisor_import_batches.findFirst({
+    where: { opportunity_id: opportunityId, status: 'applied' },
+    select: { preview_json: true },
+    orderBy: { created_at: 'desc' },
+  });
+  const excelRows = mutahExcelDelivery.excelRowsFromImportPreview(excelBatch?.preview_json || {});
+  if (excelRows.length) {
+    return exportMutahExcelPopulationReports(user, opportunityId, {
+      excelRows,
+      regenerate: Boolean(options.regenerate),
+      regenerationReason: options.regenerationReason || 'MUTAH_WORD_EXCEL_POPULATION',
+    });
+  }
+
   const apps = await prisma.field_training_applications.findMany({
     where: { opportunity_id: opportunityId, status: 'approved' },
     select: { id: true },
@@ -2082,7 +2256,7 @@ function mapEvaluationListRow(row) {
       row.score_evidence_json?.academic_supervisor_name ||
       '',
     eligibilityReasons: row.eligibility_reasons,
-    reportStatus: !row.pdf_file_id
+    reportStatus: !row.filled_docx_file_id
       ? 'missing_file'
       : fidelityVerified
         ? 'generated'
@@ -2094,12 +2268,15 @@ function mapEvaluationListRow(row) {
     pageCount: row.score_evidence_json?.generatedPageCount || null,
     fidelityStatus: fidelityVerified
       ? 'PASS'
-      : row.pdf_file_id
+      : row.filled_docx_file_id
         ? 'LEGACY_UNVERIFIED'
         : 'MISSING_ARTIFACT',
     version: row.version,
     hasPdf: fidelityVerified,
+    hasDocx: fidelityVerified,
     hasStoredPdf: Boolean(row.pdf_file_id),
+    hasStoredDocx: Boolean(row.filled_docx_file_id),
+    officialOutputFormat: 'docx',
     applicationStatus: row.field_training_applications?.status || 'approved',
     opportunityStatus: row.field_training_opportunities?.status,
   };
@@ -2268,8 +2445,12 @@ async function getEvaluation(user, evaluationId) {
 }
 
 async function downloadPdf(user, evaluationId) {
+  return downloadReport(user, evaluationId);
+}
+
+async function downloadReport(user, evaluationId) {
   const row = await getEvaluation(user, evaluationId);
-  if (!row.pdf_file_id) throw new ApiError(404, 'Report file not found', null, 'REPORT_FILE_MISSING');
+  if (!row.filled_docx_file_id) throw new ApiError(404, 'Report file not found', null, 'REPORT_FILE_MISSING');
   const recordedSourceFileId = sourceTemplateFileIdOf(row);
   const verifiedFidelityArtifact = hasVerifiedFidelityArtifact(row, row.template);
   if (!verifiedFidelityArtifact) {
@@ -2300,8 +2481,8 @@ async function downloadPdf(user, evaluationId) {
       'EVALUATION_ARTIFACT_TEMPLATE_MISMATCH'
     );
   }
-  const { file, buffer } = await loadFileBuffer(row.pdf_file_id);
-  if (sha256Buffer(buffer) !== row.score_evidence_json.pdfSha256) {
+  const { file, buffer } = await loadFileBuffer(row.filled_docx_file_id);
+  if (sha256Buffer(buffer) !== row.score_evidence_json.filledDocxSha256) {
     throw new ApiError(
       409,
       'تعذر التحقق من سلامة ملف التقرير الرسمي المخزن.',
@@ -2311,7 +2492,7 @@ async function downloadPdf(user, evaluationId) {
   }
   const snapshot = row.score_evidence_json?.templatePayload || {};
   const snapshotNumber = row.score_evidence_json?.templatePayload?.student_number;
-  const filename = buildEvaluationPdfFilename({
+  const filename = buildEvaluationDocxFilename({
     studentName: snapshot.student_name || row.student?.full_name,
     universityNumber: row.student?.university_student_number || snapshotNumber,
     student: row.student,
@@ -2327,7 +2508,7 @@ async function downloadPdf(user, evaluationId) {
   return {
     buffer,
     filename,
-    mimeType: file.mime_type || 'application/pdf',
+    mimeType: file.mime_type || DOCX_MIME,
     templateId: row.template_id,
     templateVersion: row.template_version,
     sourceTemplateFileId: recordedSourceFileId || row.template?.original_file_id || null,
@@ -2415,7 +2596,7 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
   }
   const provider = getProvider();
   const files = await prisma.files.findMany({
-    where: { id: { in: withFiles.map((r) => r.pdf_file_id) }, deleted_at: null },
+    where: { id: { in: withFiles.map((r) => r.filled_docx_file_id) }, deleted_at: null },
     select: { id: true, storage_key: true },
   });
   const fileById = new Map(files.map((f) => [f.id, f]));
@@ -2427,11 +2608,11 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
     const chunk = withFiles.slice(i, i + CHUNK);
     const buffers = await Promise.all(
       chunk.map(async (row) => {
-        const file = fileById.get(row.pdf_file_id);
+        const file = fileById.get(row.filled_docx_file_id);
         if (!file) return { row, buffer: null };
         try {
           const buffer = await provider.getObjectBuffer(file.storage_key);
-          if (sha256Buffer(buffer) !== row.score_evidence_json?.pdfSha256) {
+          if (sha256Buffer(buffer) !== row.score_evidence_json?.filledDocxSha256) {
             return { row, buffer: null };
           }
           return { row, buffer };
@@ -2454,7 +2635,7 @@ async function bulkZip(user, { evaluationIds = [], applicationIds = [], query = 
           studentName: snapshot.student_name || item.row.student?.full_name,
           universityNumber:
             snapshot.student_number || item.row.student?.university_student_number,
-          filename: buildEvaluationPdfFilename({
+          filename: buildEvaluationDocxFilename({
             studentName: snapshot.student_name || item.row.student?.full_name,
             universityNumber:
               snapshot.student_number || item.row.student?.university_student_number,
@@ -2511,8 +2692,22 @@ async function getOpportunityReportReadiness(user, opportunityId) {
   await ftAccess.assertAdminOpportunityAccess(user, opportunity);
 
   const resolved = await resolveTemplate({ ...opportunity, university_id: universityId });
+  const mutahV11 = assertMutahOfficialTemplateV11({
+    isMutah: await universityIsMutah(universityId),
+    template: resolved.template,
+  });
   let templatePreflight = null;
-  if (resolved.template?.original_file_id) {
+  if (!mutahV11.ok) {
+    templatePreflight = {
+      ok: false,
+      issues: [
+        {
+          code: MUTAH_OFFICIAL_TEMPLATE_V11_NOT_AVAILABLE,
+          messageAr: 'قالب تقييم مؤتة الرسمي (الإصدار 11) غير متوفر. لا يمكن إصدار التقرير من قالب بديل.',
+        },
+      ],
+    };
+  } else if (resolved.template?.original_file_id) {
     try {
       const { buffer } = await loadFileBuffer(resolved.template.original_file_id);
       templatePreflight = await preflightEvaluationTemplate(buffer, { requireStamp: true, requireSignature: true });
@@ -2533,20 +2728,6 @@ async function getOpportunityReportReadiness(user, opportunityId) {
       ],
     };
   }
-  if (templatePreflight?.ok && !findSoffice()) {
-    templatePreflight = {
-      ...templatePreflight,
-      ok: false,
-      issues: [
-        ...(templatePreflight.issues || []),
-        {
-          code: readinessAggregate.RENDERER_NOT_AVAILABLE,
-          messageAr: 'تعذر إنشاء التقرير من قالب الجامعة الرسمي. لم يتم إنشاء تقرير بديل.',
-        },
-      ],
-    };
-  }
-
   const templateReadiness = await readinessAggregate.buildTemplateGenerationReadiness({
     template: resolved.template,
     templatePreflight,
@@ -2569,6 +2750,7 @@ async function getOpportunityReportReadiness(user, opportunityId) {
     select: {
       application_id: true,
       pdf_file_id: true,
+      filled_docx_file_id: true,
       eligibility_status: true,
       final_status: true,
       template_id: true,
@@ -2620,6 +2802,7 @@ async function getOpportunityReportReadiness(user, opportunityId) {
       criterionEvidence: calculated.criterionEvidence,
       generated: artifactMatchesCurrentTemplate,
       usesManualRating: calculated.usesManualRating,
+      eligibilityStatus: official.eligibilityStatus,
     });
     const bulkAnalysis = bulkRatingMod.analyzeStudentBulkGaps({
       calculated,
@@ -2660,14 +2843,14 @@ async function getOpportunityReportReadiness(user, opportunityId) {
       usesManualRating: calculated.usesManualRating,
       generated: artifactMatchesCurrentTemplate,
       artifactMatchesCurrentTemplate,
-      generatedArtifactStatus: !generatedRow?.pdf_file_id
+      generatedArtifactStatus: !generatedRow?.filled_docx_file_id
         ? 'NOT_GENERATED'
         : artifactMatchesCurrentTemplate
           ? 'CURRENT_TEMPLATE'
           : 'OUTDATED_TEMPLATE',
       generatedTemplateId: generatedRow?.template_id || null,
       generatedTemplateVersion: generatedRow?.template_version || null,
-      generationFailed: Boolean(generatedRow && !generatedRow.pdf_file_id),
+      generationFailed: Boolean(generatedRow && !generatedRow.filled_docx_file_id),
       currentValue: payload,
     });
   }
@@ -2703,6 +2886,9 @@ async function getOpportunityReportReadiness(user, opportunityId) {
     templateReadiness,
     documentRenderer: getOfficialDocumentRendererStatus(),
     templateFidelityStatus: templateReadiness.templateGenerationReady ? 'PASS' : 'BLOCKED',
+    officialOutputFormat: 'docx',
+    docxGenerationReady: templateReadiness.docxGenerationReady,
+    pdfGenerationReady: templateReadiness.pdfGenerationReady,
     population,
     eligibility: {
       eligible: population.eligible,
@@ -2890,12 +3076,50 @@ async function zipOpportunityReports(user, opportunityId) {
   if (!opportunity) throw new ApiError(404, 'Opportunity not found');
   access.assertCanBulkZip(user, opportunity.university_id);
   await ftAccess.assertAdminOpportunityAccess(user, opportunity);
+  const excelBatch = await prisma.field_training_supervisor_import_batches.findFirst({
+    where: { opportunity_id: opportunityId, status: 'applied' },
+    select: { preview_json: true },
+    orderBy: { created_at: 'desc' },
+  });
+  const excelRows = mutahExcelDelivery.excelRowsFromImportPreview(excelBatch?.preview_json || {});
   const apps = await prisma.field_training_applications.findMany({
     where: { opportunity_id: opportunityId, status: 'approved' },
-    select: { id: true },
+    select: { id: true, student_id: true },
   });
+
+  let applicationIds = apps.map((row) => row.id);
+  if (excelRows.length) {
+    const studentIds = [...new Set(apps.map((app) => app.student_id).filter(Boolean))];
+    const students = studentIds.length
+      ? await prisma.users.findMany({
+          where: { id: { in: studentIds } },
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            university_student_number: true,
+            primary_university_id: true,
+          },
+        })
+      : [];
+    const studentById = new Map(students.map((row) => [row.id, row]));
+    const officialApps = [];
+    for (const app of apps) {
+      const student = studentById.get(app.student_id) || null;
+      const exclusion = officialPopulation.classifyOfficialReportExclusion({ student, opportunity });
+      if (exclusion.excluded) continue;
+      officialApps.push({
+        ...app,
+        student,
+        users: student,
+      });
+    }
+    const { matched } = mutahExcelDelivery.matchExcelRowsToApplications(excelRows, officialApps);
+    applicationIds = matched.map((row) => row.applicationId);
+  }
+
   const result = await bulkZip(user, {
-    applicationIds: apps.map((row) => row.id),
+    applicationIds,
     query: {
       university_id: resolveOpportunityUniversityId(opportunity, user),
       opportunity_id: opportunityId,
@@ -2905,9 +3129,11 @@ async function zipOpportunityReports(user, opportunityId) {
     universityName: resolveOpportunityUniversityName(opportunity),
     academicYear: academicPeriod(opportunity.start_date).academicYear,
   });
-  result.summary.totalStudents = apps.length;
+  const expectedCount = excelRows.length || apps.length;
+  result.summary.totalStudents = expectedCount;
+  result.summary.excelStudents = excelRows.length || null;
   result.summary.generatedReports = result.summary.included;
-  result.summary.missingReports = Math.max(0, apps.length - result.summary.included);
+  result.summary.missingReports = Math.max(0, expectedCount - result.summary.included);
   return result;
 }
 
@@ -2919,6 +3145,10 @@ async function previewApplicationReportPdf(user, applicationId) {
     ...opportunity,
     university_id: resolveEvalUniversityId(context, user),
   });
+  throwIfMutahTemplateNotV11(
+    await universityIsMutah(resolveEvalUniversityId(context, user)),
+    resolved.template
+  );
   if (!resolved.template) {
     throw new ApiError(409, 'لا يوجد قالب تقييم معتمد لهذه الجامعة/الفرصة', null, TEMPLATE_MISSING_CODE);
   }
@@ -2927,7 +3157,7 @@ async function previewApplicationReportPdf(user, applicationId) {
     where: { application_id: applicationId, is_current: true },
     select: {
       id: true,
-      pdf_file_id: true,
+      filled_docx_file_id: true,
       template_id: true,
       template_version: true,
       source_template_file_id: true,
@@ -2935,7 +3165,7 @@ async function previewApplicationReportPdf(user, applicationId) {
     },
   });
 
-  if (current?.pdf_file_id) {
+  if (current?.filled_docx_file_id) {
     const sourceTemplateFileId = sourceTemplateFileIdOf(current);
     const matchesCurrentTemplate = Boolean(
       String(current.template_id || '') === String(resolved.template.id || '') &&
@@ -2967,29 +3197,33 @@ async function previewApplicationReportPdf(user, applicationId) {
         'EVALUATION_ARTIFACT_FIDELITY_UNVERIFIED'
       );
     }
-    const stored = await downloadPdf(user, current.id);
     return {
       ...preview,
-      previewMode: 'pdf',
-      pdfBase64: Buffer.from(stored.buffer).toString('base64'),
-      templateId: stored.templateId,
-      templateVersion: stored.templateVersion,
-      sourceTemplateFileId: stored.sourceTemplateFileId,
-      pageCount: Number(current.score_evidence_json?.generatedPageCount) || 2,
+      previewMode: 'docx',
+      pdfBase64: null,
+      downloadAvailable: true,
+      officialOutputFormat: 'docx',
       evaluationId: current.id,
-      artifactSource: 'stored_verified_pdf',
+      templateId: resolved.template.id,
+      templateVersion: resolved.template.version,
+      sourceTemplateFileId: sourceTemplateFileId || resolved.template.original_file_id,
+      pageCount: Number(current.score_evidence_json?.generatedPageCount) || 2,
+      artifactSource: 'stored_verified_docx',
+      messageAr: 'التقرير الرسمي هو ملف Word. استخدم تنزيل ملف Word.',
     };
   }
 
   if (preview.missingFields?.length) {
-    return { ...preview, previewMode: 'payload', pdfBase64: null };
+    return { ...preview, previewMode: 'payload', pdfBase64: null, downloadAvailable: false };
   }
   return {
     ...preview,
     previewMode: 'not_generated',
     code: 'EVALUATION_ARTIFACT_NOT_GENERATED',
-    messageAr: 'يجب إصدار التقرير الرسمي أولاً، ثم ستعرض المعاينة ملف PDF المخزن نفسه.',
+    messageAr: 'يجب إصدار التقرير الرسمي أولاً، ثم يمكن تنزيل ملف Word المخزن.',
     pdfBase64: null,
+    downloadAvailable: false,
+    officialOutputFormat: 'docx',
     templateId: resolved.template.id,
     templateVersion: resolved.template.version,
     sourceTemplateFileId: resolved.template.original_file_id,
@@ -3011,10 +3245,18 @@ async function saveOpportunityReportDefaults(user, opportunityId, body = {}) {
     address: body.address != null ? String(body.address).trim() : current.address,
     field_supervisor_name:
       body.field_supervisor_name != null ? String(body.field_supervisor_name).trim() : current.field_supervisor_name,
+    field_supervisor_phone:
+      body.field_supervisor_phone != null ? String(body.field_supervisor_phone).trim() : current.field_supervisor_phone,
+    field_supervisor_email:
+      body.field_supervisor_email != null ? String(body.field_supervisor_email).trim() : current.field_supervisor_email,
     contact_person: body.contact_person != null ? String(body.contact_person).trim() : current.contact_person,
     semester: body.semester != null ? String(body.semester).trim() : current.semester,
     academic_year: body.academic_year != null ? String(body.academic_year).trim() : current.academic_year,
     trainingHoursDisplayMode: body.trainingHoursDisplayMode || current.trainingHoursDisplayMode,
+    expectedTrainingDays:
+      body.expectedTrainingDays != null
+        ? Number(body.expectedTrainingDays)
+        : current.expectedTrainingDays ?? current.expected_training_days,
   };
   if (body.organization_name != null) {
     await prisma.field_training_opportunities.update({
@@ -3049,10 +3291,157 @@ async function studentOwnPdf(user, applicationId) {
   if (String(row.student_id) !== String(user.userId) && !access.isSuperAdmin(user)) {
     throw new ApiError(403, access.MSG.studentOwnOnly, null, 'FIELD_TRAINING_FORBIDDEN');
   }
-  if (!row.finalized_at || !row.pdf_file_id) {
+  if (!row.finalized_at || !row.filled_docx_file_id) {
     throw new ApiError(404, 'Report file not found', null, 'REPORT_FILE_MISSING');
   }
-  return downloadPdf(user, row.id);
+  return downloadReport(user, row.id);
+}
+
+/**
+ * Official Mutah Excel population export:
+ * generate/regenerate exactly the Excel student set with soft missing-data policy.
+ */
+async function exportMutahExcelPopulationReports(
+  user,
+  opportunityId,
+  {
+    excelRows,
+    regenerate = true,
+    regenerationReason = 'MUTAH_EXCEL_98_SOFT_DELIVERY',
+  } = {}
+) {
+  if (!Array.isArray(excelRows) || !excelRows.length) {
+    throw new ApiError(400, 'Excel population is required', null, 'EXCEL_POPULATION_REQUIRED');
+  }
+  const opportunity = await prisma.field_training_opportunities.findUnique({
+    where: { id: opportunityId },
+    include: {
+      universities: { select: { name: true, short_name: true } },
+      field_training_opportunity_eligibility: {
+        where: { is_active: true },
+        select: { university_id: true },
+        take: 8,
+      },
+    },
+  });
+  if (!opportunity) throw new ApiError(404, 'Opportunity not found');
+  access.assertCanGenerate(user, opportunity);
+  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+
+  const apps = await prisma.field_training_applications.findMany({
+    where: { opportunity_id: opportunityId, status: 'approved' },
+  });
+  const studentIds = [...new Set(apps.map((app) => app.student_id).filter(Boolean))];
+  const students = studentIds.length
+    ? await prisma.users.findMany({
+        where: { id: { in: studentIds } },
+        select: {
+          id: true,
+          full_name: true,
+          email: true,
+          university_student_number: true,
+          primary_university_id: true,
+        },
+      })
+    : [];
+  const studentById = new Map(students.map((row) => [row.id, row]));
+  const appsWithStudents = apps.map((app) => ({
+    ...app,
+    student: studentById.get(app.student_id) || null,
+    users: studentById.get(app.student_id) || null,
+  }));
+
+  const platformExcluded = [];
+  const officialApps = [];
+  for (const app of appsWithStudents) {
+    const exclusion = officialPopulation.classifyOfficialReportExclusion({
+      student: app.student,
+      opportunity,
+    });
+    if (exclusion.excluded) {
+      platformExcluded.push({
+        applicationId: app.id,
+        studentName: app.student?.full_name,
+        universityNumber: app.student?.university_student_number,
+        ...exclusion,
+      });
+      continue;
+    }
+    officialApps.push(app);
+  }
+
+  const { matched, unmatched } = mutahExcelDelivery.matchExcelRowsToApplications(excelRows, officialApps);
+  const excelOverridesByApplicationId = new Map(
+    matched.map((row) => [row.applicationId, row.excel])
+  );
+
+  const generation = await generateForApplications(
+    user,
+    matched.map((row) => row.applicationId),
+    {
+      regenerate,
+      regenerationReason,
+      finalize: true,
+      mutahSoftDelivery: true,
+      excelOverridesByApplicationId,
+    }
+  );
+
+  const results = [
+    ...generation.results.map((row) => ({
+      ...row,
+      matchStatus: 'MATCHED',
+      universityNumber:
+        row.universityNumber ||
+        excelOverridesByApplicationId.get(row.applicationId)?.universityNumber ||
+        null,
+      academicSupervisorName:
+        row.academicSupervisorName ||
+        excelOverridesByApplicationId.get(row.applicationId)?.supervisorName ||
+        null,
+    })),
+    ...unmatched.map((row) => ({
+      applicationId: null,
+      generated: false,
+      matchStatus: 'UNMATCHED',
+      code: row.code,
+      classification: 'FAILED_TECHNICAL',
+      studentName: row.excel.studentName,
+      universityNumber: row.excel.universityNumber,
+      academicSupervisorName: row.excel.supervisorName,
+      error: 'Excel student could not be matched to an LMS application',
+    })),
+  ];
+
+  const generatedWithMissing = results.filter((row) => row.classification === 'GENERATED_WITH_MISSING_DATA');
+  const reusedComplete = results.filter(
+    (row) => row.reused && row.classification === 'GENERATED_COMPLETE'
+  );
+
+  return {
+    opportunityId,
+    universityName: resolveOpportunityUniversityName(opportunity) || 'جامعة مؤتة',
+    excelStudents: excelRows.length,
+    matched: matched.length,
+    unmatched: unmatched.length,
+    platformExcluded,
+    results,
+    summary: {
+      excelStudents: excelRows.length,
+      matched: matched.length,
+      unmatched: unmatched.length,
+      generatedComplete: results.filter((row) => row.classification === 'GENERATED_COMPLETE').length,
+      generatedWithMissingData: generatedWithMissing.length,
+      technicalFailures: results.filter((row) => row.classification === 'FAILED_TECHNICAL').length,
+      generatedDocx: results.filter((row) => row.generated || row.reused).length,
+      totalClassified:
+        results.filter((row) => row.classification === 'GENERATED_COMPLETE').length +
+        generatedWithMissing.length +
+        results.filter((row) => row.classification === 'FAILED_TECHNICAL').length,
+    },
+    generationSummary: generation.summary,
+    reusedCompleteCount: reusedComplete.length,
+  };
 }
 
 module.exports = {
@@ -3071,6 +3460,7 @@ module.exports = {
   getPolicy,
   upsertPolicy,
   saveSupervisorRating,
+  createSupervisorRatingWithFields,
   getBulkEligibleRatingPreview,
   applyBulkEligibleProfessionalRatings,
   syncAcademicSupervisorsFromImports,
@@ -3078,10 +3468,12 @@ module.exports = {
   listSupervisorRatings,
   generateForApplications,
   generateForOpportunity,
+  exportMutahExcelPopulationReports,
   generateOne,
   listFinalReports,
   getEvaluation,
   downloadPdf,
+  downloadReport,
   updateComments,
   bulkZip,
   studentOwnPdf,
