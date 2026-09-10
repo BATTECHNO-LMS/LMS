@@ -15,7 +15,8 @@ import { FieldTrainingReportRoleBanner } from './FieldTrainingReportRoleBanner.j
 import { getReportPaths, mergeReportCapabilities } from './reportCapabilities.js';
 import { useAuth } from '../../../features/auth/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
-import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import { formatFtDate, formatFtDateRange, FT_EMPTY } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import { resolveTaskPresentation } from '../../../features/fieldTraining/fieldTrainingTaskSemantics.js';
 import {
   downloadAdminCompletionLetter,
   previewAdminCompletionLetter,
@@ -28,7 +29,7 @@ function DetailGrid({ items }) {
       {items.map(([label, value]) => (
         <div key={label} className="ft-report-detail-grid__item">
           <dt>{label}</dt>
-          <dd>{value ?? 'â€”'}</dd>
+          <dd>{value ?? FT_EMPTY.unavailable}</dd>
         </div>
       ))}
     </dl>
@@ -156,7 +157,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             ].map(([label, value]) => (
               <div key={label} className="ft-report-mini-kpi">
                 <span>{label}</span>
-                <strong>{value ?? 'â€”'}</strong>
+                <strong>{value ?? t('common.unavailable')}</strong>
               </div>
             ))}
           </div>
@@ -183,7 +184,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
                 [t('opportunity.title'), data.opportunity?.title],
                 [t('opportunity.track'), data.opportunity?.training_track?.name_ar ?? data.opportunity?.training_track?.name_en],
                 [t('opportunity.instructor'), data.opportunity?.assigned_instructor?.full_name],
-                [t('opportunity.dates'), `${formatFtDate(data.opportunity?.start_date)} â€” ${formatFtDate(data.opportunity?.end_date)}`],
+                [t('opportunity.dates'), formatFtDateRange(data.opportunity?.start_date, data.opportunity?.end_date) || t('common.unavailable')],
                 [t('opportunity.mode'), data.opportunity?.training_mode],
                 [t('opportunity.location'), data.opportunity?.location],
               ]}
@@ -218,7 +219,7 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             <DetailGrid
               items={[
                 [t('assessment.score'), data.post_assessment?.score],
-                [t('assessment.passed'), data.post_assessment?.passed == null ? 'â€”' : data.post_assessment?.passed ? t('common.yes') : t('common.no')],
+                [t('assessment.passed'), data.post_assessment?.passed == null ? t('common.unavailable') : data.post_assessment?.passed ? t('common.yes') : t('common.no')],
                 [t('assessment.submittedAt'), formatFtDate(data.post_assessment?.submitted_at)],
                 [t('assessment.delta'), data.learning_improvement?.difference_pp],
               ]}
@@ -251,7 +252,11 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
                 id: session.id,
                 title: session.title,
                 session_date: `${session.session_date ?? ''} ${session.start_time ?? ''}`.trim(),
-                attendance_status: session.attendance?.status ?? 'â€”',
+                attendance_status:
+                  session.attendance_status_label ||
+                  (session.attendance?.status
+                    ? t(`attendance.${session.attendance.status}`, { defaultValue: session.attendance.status })
+                    : t('common.unavailable')),
                 attendance_note: session.attendance?.note ?? '',
               }))}
             />
@@ -280,16 +285,17 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
 
           <div className={`ft-report-tab-panel${tab === 'tasks' ? ' is-active' : ''}`}>
           <SectionCard title={t('sections.tasks')}>
-            {data.tasks_required === false && !(data.submissions || []).length ? (
+            {data.tasks_required === false && !(data.task_items || []).length && !(data.submissions || []).length ? (
               <p className="crud-muted">{t('common.notRequired')}</p>
             ) : (
             <DataTable
               columns={[
                 { key: 'task_title', label: t('table.task') },
-                { key: 'due_date', label: t('table.dueDate') },
-                { key: 'submitted_at', label: t('table.submittedAt') },
+                { key: 'submission_status', label: t('table.submissionStatus', { defaultValue: 'حالة التسليم' }) },
+                { key: 'evaluation_status', label: t('table.reviewStatus') },
                 { key: 'is_late', label: t('table.late') },
-                { key: 'review_status', label: t('table.reviewStatus') },
+                { key: 'score', label: t('table.score', { defaultValue: 'العلامة' }) },
+                { key: 'submitted_at', label: t('table.submittedAt') },
                 { key: 'instructor_feedback', label: t('table.instructorFeedback') },
                 ...(mode === 'student'
                   ? []
@@ -299,17 +305,52 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
                       { key: 'ai_response_inserted_text', label: t('table.aiResponse') },
                     ]),
               ]}
-              rows={(data.submissions ?? []).map((sub) => ({
-                ...sub,
-                is_late: sub.is_late ? t('common.yes') : t('common.no'),
-                submitted_at: formatFtDate(sub.submitted_at),
-                instructor_feedback: sub.instructor_feedback || 'â€”',
-                has_ai_self_evaluation: sub.has_ai_self_evaluation || sub.student_self_evaluation_input
-                  ? t('common.yes')
-                  : t('common.no'),
-                ai_prompt_used: sub.ai_prompt_used || 'â€”',
-                ai_response_inserted_text: sub.ai_response_inserted_text || 'â€”',
-              }))}
+              rows={(
+                data.task_items?.length
+                  ? data.task_items
+                  : (data.tasks || []).length
+                    ? (data.tasks || []).map((task) => {
+                        const sub = (data.submissions || []).find(
+                          (row) => String(row.task_id) === String(task.id)
+                        );
+                        return {
+                          ...resolveTaskPresentation({ task, submission: sub || null }),
+                          submission: sub,
+                        };
+                      })
+                    : (data.submissions || []).map((sub) => ({
+                        ...resolveTaskPresentation({
+                          task: { title: sub.task_title },
+                          submission: sub,
+                        }),
+                        submission: sub,
+                      }))
+              ).map((item) => {
+                const sub =
+                  item.submission ||
+                  (data.submissions || []).find((row) => String(row.task_id) === String(item.taskId));
+                return {
+                  task_title: item.taskTitle || item.title,
+                  submission_status: item.submissionLabelAr,
+                  evaluation_status: item.evaluationLabelAr,
+                  is_late: item.timingLabelAr || t('common.notRequired'),
+                  score:
+                    item.score != null
+                      ? `${item.score} / ${item.maxScore || 100}`
+                      : item.scoreLabelAr || t('common.unavailable'),
+                  submitted_at: item.submittedAt
+                    ? formatFtDate(item.submittedAt)
+                    : t('common.unavailable'),
+                  instructor_feedback: sub?.instructor_feedback || t('common.unavailable'),
+                  has_ai_self_evaluation:
+                    sub?.has_ai_self_evaluation || sub?.student_self_evaluation_input
+                      ? t('common.yes')
+                      : t('common.no'),
+                  ai_prompt_used: sub?.ai_prompt_used || t('common.unavailable'),
+                  ai_response_inserted_text:
+                    sub?.ai_response_inserted_text || t('common.unavailable'),
+                };
+              })}
             />
             )}
           </SectionCard>

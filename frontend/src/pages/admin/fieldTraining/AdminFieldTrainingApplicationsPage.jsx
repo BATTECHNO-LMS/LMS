@@ -763,10 +763,10 @@ export function ProgressModal({ app, onClose, apiScope = 'admin' }) {
               </p>
               <ul>
                 <li>
-                  {t('progress.attendance')}: {data.progress.metrics.attendance_percentage ?? '—'}%
+                  {t('progress.attendance')}: {data.progress.metrics.attendance_percentage ?? 'غير متوفر'}%
                 </li>
                 <li>
-                  {t('progress.postScore')}: {data.progress.metrics.post_assessment_score ?? '—'}
+                  {t('progress.postScore')}: {data.progress.metrics.post_assessment_score ?? 'غير متوفر'}
                 </li>
               </ul>
             </div>

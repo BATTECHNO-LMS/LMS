@@ -1,4 +1,6 @@
 ﻿const { prisma } = require('../../config/db');
+const { clearRolePermissionCache } = require('../auth/rolePermissionCache');
+const { clearAuthContextCache } = require('../auth/authContextCache');
 
 async function findAllRoles() {
   return prisma.roles.findMany({
@@ -93,15 +95,18 @@ async function findPermissionIdsByCodes(codes) {
 
 async function replaceRolePermissions(roleId, permissionIds, tx = prisma) {
   await tx.role_permissions.deleteMany({ where: { role_id: roleId } });
-  if (!permissionIds.length) return;
-  await tx.role_permissions.createMany({
-    data: permissionIds.map((permission_id) => ({ role_id: roleId, permission_id })),
-    skipDuplicates: true,
-  });
+  if (permissionIds.length) {
+    await tx.role_permissions.createMany({
+      data: permissionIds.map((permission_id) => ({ role_id: roleId, permission_id })),
+      skipDuplicates: true,
+    });
+  }
   await tx.roles.update({
     where: { id: roleId },
     data: { updated_at: new Date() },
   });
+  clearRolePermissionCache();
+  clearAuthContextCache();
 }
 
 async function countTotalRolePermissionLinks() {

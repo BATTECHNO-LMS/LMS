@@ -105,7 +105,7 @@ export function ManageHeader({
       <div className="ft-manage-header__main">
         <div className="ft-manage-header__text">
           <p className="ft-manage-header__eyebrow">{t('manageTraining.title')}</p>
-          <h1 className="ft-manage-header__title">{opp?.title || '—'}</h1>
+          <h1 className="ft-manage-header__title">{opp?.title || 'غير متوفر'}</h1>
           <div className="ft-manage-header__meta">
             <span>{getOpportunitySpecialtyLabel(opp, i18n.language)}</span>
             {opp?.assigned_instructor?.full_name ? (

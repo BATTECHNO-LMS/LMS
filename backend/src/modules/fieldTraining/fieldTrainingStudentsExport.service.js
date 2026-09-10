@@ -62,7 +62,7 @@ function applyStudentExcelFilters(rows, filters = {}) {
   });
 }
 
-function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress, academic_supervisor_name, qualification }) {
+function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress: progress, academic_supervisor_name, qualification, official }) {
   return {
     application_id: app.id,
     student_id: app.student_id,
@@ -79,18 +79,24 @@ function buildExcelSource({ app, profile, opportunity, finalStatus, taskProgress
     application_status: app.status,
     status: app.status,
     training_status: app.training_status,
+    training_mode: opportunity?.training_mode || null,
     task_progress: progress || null,
     post_assessment_score:
       app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
     post_assessment_attempt_status: app.post_assessment_attempt_status || null,
     post_assessment_attempt_status_label: app.post_assessment_attempt_status_label || null,
     completed_training_hours:
-      app.completed_training_hours != null ? Number(app.completed_training_hours) : 0,
-    eligibility_status: app.completion_eligibility_status,
-    completion_eligibility_status: app.completion_eligibility_status,
+      official?.completedTrainingHours ??
+      (app.completed_training_hours != null ? Number(app.completed_training_hours) : 0),
+    eligibility_status: official?.eligibilityDb || app.completion_eligibility_status,
+    completion_eligibility_status: official?.eligibilityDb || app.completion_eligibility_status,
     eligibility_reason: app.eligibility_reason,
     qualification: qualification || null,
-    completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
+    submittedTaskCount: official?.submittedTaskCount ?? null,
+    requiredTaskCount: official?.requiredTaskCount ?? null,
+    gradedTaskCount: official?.gradedTaskCount ?? null,
+    completion_letter_status:
+      official?.eligibility === 'ELIGIBLE' && app.completion_letter_issued_at ? 'issued' : 'not_issued',
     submitted_at: app.created_at,
     created_at: app.created_at,
     final_evaluation_status: finalStatus || null,
@@ -137,6 +143,7 @@ async function hydrateExcelSources(applications) {
           organization_name: true,
           assigned_instructor_id: true,
           status: true,
+          required_training_hours: true,
         },
       });
     })(),
@@ -153,31 +160,27 @@ async function hydrateExcelSources(applications) {
       apps.map((app) => app.id)
     ),
     require('./fieldTraining.supervisorScope').loadAssignmentsByApplicationIds(apps.map((app) => app.id)),
-    require('./fieldTraining.qualification.service').calculateForApplications(apps.map((app) => app.id)),
+    require('./fieldTraining.officialResult.service').resolveFieldTrainingApprovedResults(apps.map((app) => app.id), {
+      applications: apps,
+    }),
   ]);
 
   const profileById = Object.fromEntries(profiles.map((profile) => [profile.id, profile]));
   const oppById = Object.fromEntries(opportunities.map((opp) => [opp.id, opp]));
-  const qualificationByApp = new Map((qualifications || []).map((row) => [row.applicationId, row.public]));
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const officialByApp = new Map((qualifications || []).filter(Boolean).map((row) => [row.applicationId, row]));
   const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
 
   return apps.map((app) => {
     const postStatus =
       postAttemptByApp.get(app.id) ||
       standardizedPost.resolveAttemptStatus(null, app.post_assessment_score);
-    const approvedMod = require('./fieldTraining.tafilaApprovedResult.service');
-    const liveQ = qualificationByApp.get(app.id) || null;
-    const qualification = approvedMod.applyApprovedDisplayToQualification(
-      liveQ,
-      {
-        ...(app.eligibility_reason?.details || {}),
-        labelsAr: app.eligibility_reason?.labelsAr,
-      },
-      app.opportunity_id
-    );
+    const official = officialByApp.get(app.id) || null;
+    const qualification = officialMod.toPublicQualificationFromOfficial(official);
     return buildExcelSource({
       app: {
         ...app,
+        completion_eligibility_status: official?.eligibilityDb || app.completion_eligibility_status,
         post_assessment_attempt_status: postStatus.key,
         post_assessment_attempt_status_label: postStatus.label_ar,
       },
@@ -187,6 +190,7 @@ async function hydrateExcelSources(applications) {
       taskProgress: progressByApp.get(app.id) || null,
       academic_supervisor_name: assignments.get(app.id)?.supervisor_name || '',
       qualification,
+      official,
     });
   });
 }
@@ -286,6 +290,7 @@ async function exportOpportunityStudentsExcel(user, opportunityId, query = {}) {
     application_status: app.status,
     status: app.status,
     training_status: app.training_status,
+    training_mode: opp.training_mode || null,
     task_progress: app.task_progress || null,
     post_assessment_score: app.post_assessment_score ?? null,
     post_assessment_attempt_status: app.post_assessment_attempt_status || null,

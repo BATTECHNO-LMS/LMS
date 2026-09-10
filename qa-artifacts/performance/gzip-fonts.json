@@ -1,0 +1,151 @@
+{
+  "compressed": [
+    {
+      "url": "https://lms.battechno.com/assets/index-CUxTz4B_.js",
+      "status": 200,
+      "ms": 608,
+      "bytesOnWire": 206426,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000, immutable",
+      "type": "application/javascript",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-C5tZjQvg.css",
+      "status": 200,
+      "ms": 92,
+      "bytesOnWire": 69193,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000, immutable",
+      "type": "text/css",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-vendor-BWxfWDgY.js",
+      "status": 200,
+      "ms": 109,
+      "bytesOnWire": 46007,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000, immutable",
+      "type": "application/javascript",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://lms.battechno.com/assets/framer-motion-CQ0wxfVc.js",
+      "status": 200,
+      "ms": 98,
+      "bytesOnWire": 42372,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000, immutable",
+      "type": "application/javascript",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://lms.battechno.com/",
+      "status": 200,
+      "ms": 79,
+      "bytesOnWire": 610,
+      "encoding": "gzip",
+      "cache": "no-cache, no-store, must-revalidate",
+      "type": "text/html",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://lms.battechno.com/health/ready",
+      "status": 200,
+      "ms": 715,
+      "bytesOnWire": 51,
+      "encoding": null,
+      "cache": "no-store",
+      "type": "application/json; charset=utf-8",
+      "vary": "Origin"
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-CUxTz4B_.js.map",
+      "status": 404,
+      "ms": 82,
+      "bytesOnWire": 175,
+      "encoding": "gzip",
+      "cache": null,
+      "type": "text/html",
+      "vary": "Accept-Encoding"
+    }
+  ],
+  "fonts": [
+    {
+      "url": "https://fonts.gstatic.com/s/ibmplexsansarabic/v15/Qw3CZRtWPQCuHme67tEYUIx3Kh0PHR9N6bs6.ttf",
+      "status": 200,
+      "ms": 170,
+      "bytesOnWire": 96016,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/ibmplexsansarabic/v15/Qw3NZRtWPQCuHme67tEYUIx3Kh0PHR9N6YPO_9CT.ttf",
+      "status": 200,
+      "ms": 76,
+      "bytesOnWire": 100894,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/ibmplexsansarabic/v15/Qw3NZRtWPQCuHme67tEYUIx3Kh0PHR9N6YPi-NCT.ttf",
+      "status": 200,
+      "ms": 130,
+      "bytesOnWire": 101418,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/ibmplexsansarabic/v15/Qw3NZRtWPQCuHme67tEYUIx3Kh0PHR9N6YOG-dCT.ttf",
+      "status": 200,
+      "ms": 86,
+      "bytesOnWire": 98200,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/tajawal/v12/Iura6YBj_oCad4k1rzY.ttf",
+      "status": 200,
+      "ms": 52,
+      "bytesOnWire": 27892,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/tajawal/v12/Iurf6YBj_oCad4k1l8KiLrY.ttf",
+      "status": 200,
+      "ms": 33,
+      "bytesOnWire": 27701,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    },
+    {
+      "url": "https://fonts.gstatic.com/s/tajawal/v12/Iurf6YBj_oCad4k1l4qkLrY.ttf",
+      "status": 200,
+      "ms": 75,
+      "bytesOnWire": 27757,
+      "encoding": "gzip",
+      "cache": "public, max-age=31536000",
+      "type": "font/ttf",
+      "vary": "Accept-Encoding"
+    }
+  ],
+  "fontCount": 7,
+  "fontTotalBytes": 479878,
+  "geo": {
+    "error": "Unexpected token '<', \"<!DOCTYPE \"... is not valid JSON"
+  }
+}

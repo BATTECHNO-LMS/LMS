@@ -93,7 +93,7 @@ export function InstructorFieldTrainingPage() {
                         <GraduationCap size={14} aria-hidden /> {track}
                       </p>
                       <p className="ft-instructor-opp-card__meta">
-                        {formatFtDate(opp.start_date)} — {formatFtDate(opp.end_date)}
+                        {formatFtDate(opp.start_date)} إلى {formatFtDate(opp.end_date)}
                       </p>
                     </div>
                     {opp.status ? (
@@ -137,8 +137,10 @@ export function InstructorFieldTrainingPage() {
                   {opp.next_session ? (
                     <p className="ft-instructor-opp-card__next">
                       <Calendar size={14} aria-hidden />{' '}
-                      {t('instructor.card.nextSession')}: {opp.next_session.title} —{' '}
-                      {formatFtDate(opp.next_session.session_date)}
+                      {t('instructor.card.nextSession')}: {opp.next_session.title}{' '}
+                      {opp.next_session.session_date
+                        ? `(${formatFtDate(opp.next_session.session_date)})`
+                        : ''}
                     </p>
                   ) : null}
 

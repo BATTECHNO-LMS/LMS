@@ -510,7 +510,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
             {t('manage.templateIdentity', {
               id: resolved.id,
               version: resolved.versionLabel ?? resolved.version ?? t('manage.versionUnknown'),
-              fileId: resolved.originalFileId || '—',
+              fileId: resolved.originalFileId || 'غير متوفر',
             })}
           </p>
         ) : null}
@@ -769,7 +769,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
           ].map(([key, value]) => (
             <article key={key}>
               <p>{t(`manage.${key}`)}</p>
-              <strong>{value ?? '—'}</strong>
+              <strong>{value ?? 'غير متوفر'}</strong>
             </article>
           ))}
         </div>
@@ -1072,7 +1072,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
                     <dd>
                       {row.score == null
                         ? t('manage.valueUnavailable')
-                        : `${row.score}/5 — ${
+                        : `${row.score}/5 : ${
                             row.source === 'DERIVED_FROM_PERFORMANCE'
                               ? t('manage.scoreSourceDerived')
                               : row.source === 'MANUAL_AUTHORIZED_BULK_RATING'
@@ -1110,7 +1110,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
             ].map(([key, value]) => (
               <article key={key}>
                 <p>{t(`manage.${key}`)}</p>
-                <strong>{value ?? '—'}</strong>
+                <strong>{value ?? 'غير متوفر'}</strong>
               </article>
             ))}
           </div>
@@ -1119,7 +1119,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
               {bulkEligibleStudents.slice(0, 12).map((row) => (
                 <li key={row.applicationId} className="ft-eval-missing-student">
                   <strong>
-                    {row.studentName} — {row.universityNumber || '—'}
+                    {row.studentName}: {row.universityNumber || 'غير متوفر'}
                   </strong>
                   <ul>
                     {(row.missingCriteria || []).map((item) => (
@@ -1167,7 +1167,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
                 <option value="">{t('page.studentName')}</option>
                 {manualRatingStudents.map((row) => (
                   <option key={row.applicationId} value={row.applicationId}>
-                    {row.studentName} — {row.universityNumber || '—'}
+                    {row.studentName}: {row.universityNumber || 'غير متوفر'}
                   </option>
                 ))}
               </select>
@@ -1280,7 +1280,7 @@ export function ManageEvaluationTemplateTab({ opportunityId, opportunity = null,
         {(missingStudents || []).map((row) => (
           <article key={row.applicationId || row.universityNumber} className="ft-eval-missing-student">
             <h3>
-              {row.studentName || row.student_name} — {row.universityNumber || row.university_number || '—'}
+              {row.studentName || row.student_name}: {row.universityNumber || row.university_number || 'غير متوفر'}
             </h3>
             <p>{t('manage.missingForStudent')}</p>
             <ul>

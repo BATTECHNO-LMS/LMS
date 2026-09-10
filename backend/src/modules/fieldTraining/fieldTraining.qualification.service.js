@@ -8,6 +8,11 @@ const {
 } = require('./fieldTrainingEvaluation.constants');
 const qualification = require('./fieldTraining.qualification');
 const scoring = require('./fieldTrainingEvaluation.scoring');
+const {
+  resolveFieldTrainingPolicy,
+  getApprovedOverlay,
+  POLICY_FAMILY,
+} = require('./fieldTraining.policy.service');
 
 const persisting = new Set();
 
@@ -192,19 +197,43 @@ function mapDbFinalStatus(calculated) {
 async function persistApplicationEligibility(applicationId, calculated, ctx) {
   const current = await prisma.field_training_applications.findUnique({
     where: { id: applicationId },
-    select: { training_status: true, eligibility_reason: true, opportunity_id: true },
+    select: {
+      training_status: true,
+      eligibility_reason: true,
+      opportunity_id: true,
+      completion_eligibility_status: true,
+    },
   });
   const terminal = ['completed', 'expelled', 'failed'].includes(current?.training_status);
   let outcome = calculated.workflowOutcome;
   const details = buildEligibilityDetails(calculated, ctx);
-  const { isPrimaryTafilaOpportunity } = require('./fieldTraining.tafilaApprovedBaseline');
-  // Preserve approved cohort result across live recalculations.
+  const currentForPolicy = {
+    ...current,
+    eligibility_reason: current?.eligibility_reason,
+    opportunity_id: current?.opportunity_id,
+    id: applicationId,
+  };
+  const policy = resolveFieldTrainingPolicy({
+    application: {
+      ...currentForPolicy,
+      eligibility_reason: {
+        ...(current?.eligibility_reason || {}),
+        details: {
+          ...(current?.eligibility_reason?.details || {}),
+          approvedEvaluationResult: calculated.approvedEvaluationResult || current?.eligibility_reason?.details?.approvedEvaluationResult || null,
+        },
+      },
+    },
+    opportunity: ctx?.opportunity || { id: current?.opportunity_id },
+    universityPolicy: calculated.policy || ctx?.policy || null,
+    student: ctx?.student || {},
+  });
   const prevApproved = current?.eligibility_reason?.details?.approvedEvaluationResult;
   const approved = calculated.approvedEvaluationResult || prevApproved || null;
   let labelsAr = calculated.eligibilityReasonLabels || [];
   let reasons = calculated.eligibilityReasons || [];
 
-  if (approved && isPrimaryTafilaOpportunity(current?.opportunity_id)) {
+  if (approved && (policy.preserveApprovedOverlayOnPersist || prevApproved)) {
     details.approvedEvaluationResult = approved;
     details.calculatedFinalScore = calculated.finalScore ?? null;
     details.displayFinalScore = approved.approvedFinalScore ?? null;
@@ -247,6 +276,15 @@ async function persistApplicationEligibility(applicationId, calculated, ctx) {
         : {}),
     },
   });
+
+  await require('./fieldTraining.completionLetter.service').syncCompletionLettersWithEligibility(
+    applicationId,
+    outcome,
+    {
+      previousEligibility: current?.completion_eligibility_status,
+      reason: 'qualification_persist',
+    }
+  );
 }
 
 function scalarEvaluationSnapshot(row) {
@@ -364,16 +402,30 @@ async function snapshotCurrentEvaluation(applicationId, calculated, ctx) {
 }
 
 async function persistLegacyEligibility(applicationId) {
+  const current = await prisma.field_training_applications.findUnique({
+    where: { id: applicationId },
+    select: {
+      id: true,
+      training_status: true,
+      completion_eligibility_status: true,
+      eligibility_reason: true,
+      opportunity_id: true,
+    },
+  });
+  if (getApprovedOverlay(current)) {
+    return {
+      outcome: current.completion_eligibility_status || 'ineligible',
+      reasons: Array.isArray(current.eligibility_reason?.reasons) ? current.eligibility_reason.reasons : [],
+      details: current.eligibility_reason?.details || {},
+      preservedApprovedOverlay: true,
+    };
+  }
   const result = await workflowMod().calculateLegacyFieldTrainingEligibility(applicationId);
   const statusMap = {
     eligible: 'eligible',
     ineligible: 'ineligible',
     needs_review: 'needs_review',
   };
-  const current = await prisma.field_training_applications.findUnique({
-    where: { id: applicationId },
-    select: { training_status: true },
-  });
   const terminal = ['completed', 'expelled', 'failed'].includes(current?.training_status);
   await prisma.field_training_applications.update({
     where: { id: applicationId },
@@ -385,6 +437,14 @@ async function persistLegacyEligibility(applicationId) {
         : {}),
     },
   });
+  await require('./fieldTraining.completionLetter.service').syncCompletionLettersWithEligibility(
+    applicationId,
+    statusMap[result.outcome],
+    {
+      previousEligibility: current?.completion_eligibility_status,
+      reason: 'legacy_qualification_persist',
+    }
+  );
   return result;
 }
 
@@ -401,7 +461,20 @@ async function persistQualification(applicationId, { snapshotEvaluation = true }
     if (!row?.ctx) {
       return { outcome: 'ineligible', reasons: ['application_not_found'], details: {} };
     }
-    if (!qualification.isFixedComponentPolicy(row.ctx.policy)) {
+    const policy = resolveFieldTrainingPolicy({
+      application: row.ctx.application,
+      opportunity: row.ctx.opportunity,
+      universityPolicy: row.calculated?.policy || row.ctx.policy,
+      student: row.ctx.student,
+    });
+    const useFixed =
+      policy.preserveApprovedOverlayOnPersist ||
+      policy.family === POLICY_FAMILY.FIXED_COMPONENTS_V1 ||
+      policy.family === POLICY_FAMILY.HISTORICAL_APPROVED_RESULT ||
+      policy.family === POLICY_FAMILY.MANUAL_APPROVED_OVERRIDE ||
+      qualification.isFixedComponentPolicy(row.calculated?.policy) ||
+      qualification.isFixedComponentPolicy(row.ctx.policy);
+    if (!useFixed) {
       return persistLegacyEligibility(applicationId);
     }
     await persistApplicationEligibility(applicationId, row.calculated, row.ctx);
@@ -424,7 +497,33 @@ async function calculateEligibilityOutcome(applicationId) {
   if (!row?.ctx) {
     return { outcome: 'ineligible', reasons: ['application_not_found'], details: {} };
   }
-  if (!qualification.isFixedComponentPolicy(row.ctx.policy)) {
+  const policy = resolveFieldTrainingPolicy({
+    application: row.ctx.application,
+    opportunity: row.ctx.opportunity,
+    universityPolicy: row.calculated?.policy || row.ctx.policy,
+    student: row.ctx.student,
+  });
+  if (policy.preserveApprovedOverlayOnPersist) {
+    const overlay = getApprovedOverlay(row.ctx.application);
+    const outcome = overlay?.approvedStatus === 'ELIGIBLE' ? 'eligible' : 'ineligible';
+    return {
+      outcome,
+      reasons: Array.isArray(row.ctx.application?.eligibility_reason?.reasons)
+        ? row.ctx.application.eligibility_reason.reasons
+        : row.calculated?.eligibilityReasons || [],
+      details: {
+        ...buildEligibilityDetails(row.calculated, row.ctx),
+        approvedEvaluationResult: overlay,
+      },
+      qualification: toPublicQualification(row.calculated),
+      preservedApprovedOverlay: true,
+    };
+  }
+  const useFixed =
+    policy.family === POLICY_FAMILY.FIXED_COMPONENTS_V1 ||
+    qualification.isFixedComponentPolicy(row.calculated?.policy) ||
+    qualification.isFixedComponentPolicy(row.ctx.policy);
+  if (!useFixed) {
     return workflowMod().calculateLegacyFieldTrainingEligibility(applicationId);
   }
   return {

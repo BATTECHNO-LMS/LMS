@@ -1,5 +1,18 @@
 'use strict';
 
+/**
+ * LEGACY_WEIGHTED scoring engine (Mutah evaluation forms / historical weighted totals).
+ *
+ * Classification: LEGACY_WEIGHTED / POLICY_SPECIFIC.
+ * Official LMS score/eligibility MUST go through
+ * `resolveFieldTrainingPolicy` + `resolveFieldTrainingApprovedResult`.
+ * This module may still be used for evaluation-form generation and for live
+ * calculation when the policy selector selects LEGACY_WEIGHTED_V1.
+ *
+ * `renormalizeMissingComponents` is a legacy behavior. FIXED_COMPONENTS_V1
+ * must never silently redistribute missing component weights.
+ */
+
 const {
   DEFAULT_POLICY,
   FINAL_STATUS,
@@ -519,7 +532,7 @@ function usesManualRating(criterionEvidence = {}) {
 }
 
 /**
- * Pure scoring. Eligibility is independent of PASSED/FAILED and professional completeness.
+ * LEGACY_WEIGHTED live calculator. Isolated: not the official result engine.
  */
 function calculateFinalEvaluation(rawInput = {}, rawPolicy = {}) {
   const policyCheck = validatePolicyWeights(rawPolicy);

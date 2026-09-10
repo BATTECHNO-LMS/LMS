@@ -74,7 +74,7 @@ describe('field training required-task progress', () => {
       submissions: [],
     });
     assert.equal(progress.status, 'not_started');
-    assert.equal(progress.display, '0 / 2 — لم يبدأ المهمات');
+    assert.equal(progress.display, '0 من 2 مسلّمة · 0 من 2 مقيّمة');
     assert.equal(progress.submitted_required, 0);
     assert.equal(progress.total_required, 2);
   });
@@ -86,10 +86,10 @@ describe('field training required-task progress', () => {
       submissions: [submission('t1', 'submitted')],
     });
     assert.equal(progress.status, 'in_progress');
-    assert.equal(progress.display, '1 / 3 — قيد إنجاز المهمات');
+    assert.equal(progress.display, '1 من 3 مسلّمة · 0 من 3 مقيّمة');
   });
 
-  it('assigns أكمل المهمات when every required task is successfully submitted', () => {
+  it('assigns مكتمل only when every required task is submitted and evaluated', () => {
     const progress = countProgressFromLoadedRows({
       application: approvedApp(),
       tasks: [requiredTask('t1'), requiredTask('t2')],
@@ -99,7 +99,8 @@ describe('field training required-task progress', () => {
       ],
     });
     assert.equal(progress.status, 'completed');
-    assert.equal(progress.display, '2 / 2 — أكمل المهمات');
+    assert.equal(progress.display, '2 من 2 مسلّمة · 2 من 2 مقيّمة');
+    assert.equal(progress.evaluated_required, 2);
   });
 
   it('ignores optional tasks in both required and submitted counts', () => {
@@ -117,7 +118,8 @@ describe('field training required-task progress', () => {
     });
     assert.equal(progress.total_required, 1);
     assert.equal(progress.submitted_required, 1);
-    assert.equal(progress.status, 'completed');
+    assert.equal(progress.evaluated_required, 0);
+    assert.equal(progress.status, 'in_progress');
   });
 
   it('does not count missing, draft, returned, rejected, or cancelled submissions', () => {
@@ -153,8 +155,8 @@ describe('field training required-task progress', () => {
       tasks: [requiredTask('t1')],
       submissions: [submission('t1', 'submitted')],
     });
-    assert.equal(resubmitted.status, 'completed');
-    assert.equal(resubmitted.display, '1 / 1 — أكمل المهمات');
+    assert.equal(resubmitted.status, 'in_progress');
+    assert.equal(resubmitted.display, '1 من 1 مسلّمة · 0 من 1 مقيّمة');
   });
 
   it('does not count tasks or submissions that belong to another opportunity', () => {
@@ -211,7 +213,7 @@ describe('field training required-task progress', () => {
     });
     assert.equal(progress.primary_status, 'cancelled');
     assert.equal(progress.status, 'in_progress');
-    assert.equal(progress.display, '3 / 8 — ملغى');
+    assert.equal(progress.display, '3 من 8 مسلّمة');
   });
 
   it('preserves the calculated task status for completed training and archived opportunities', () => {
@@ -220,9 +222,10 @@ describe('field training required-task progress', () => {
       opportunityStatus: 'in_progress',
       totalRequired: 8,
       submittedRequired: 8,
+      evaluatedRequired: 8,
     });
     assert.equal(completed.status, 'completed');
-    assert.equal(completed.display, '8 / 8 — أكمل المهمات');
+    assert.equal(completed.display, '8 من 8 مسلّمة · 8 من 8 مقيّمة');
 
     const archived = deriveTaskProgress({
       applicationStatus: 'approved',
@@ -231,7 +234,7 @@ describe('field training required-task progress', () => {
       submittedRequired: 2,
     });
     assert.equal(archived.primary_status, 'in_progress');
-    assert.equal(archived.display, '2 / 5 — قيد إنجاز المهمات');
+    assert.equal(archived.display, '2 من 5 مسلّمة · 0 من 5 مقيّمة');
     assert.notEqual(archived.primary_status, 'cancelled');
   });
 
@@ -258,10 +261,10 @@ describe('field training required-task progress', () => {
     assert.equal(subWhere.field_training_tasks.is_required, true);
   });
 
-  it('formats progress as submitted / total — Arabic status', () => {
+  it('formats progress as submitted and evaluated counts', () => {
     assert.equal(
-      formatProgressDisplay('completed', 8, 8),
-      '8 / 8 — أكمل المهمات'
+      formatProgressDisplay('completed', 8, 8, { evaluatedRequired: 8 }),
+      '8 من 8 مسلّمة · 8 من 8 مقيّمة'
     );
     assert.equal(formatProgressDisplay('no_required_tasks', 0, 0), 'لا توجد مهمات مطلوبة');
   });
@@ -290,7 +293,7 @@ describe('field training task progress authorization wiring', () => {
       'utf8'
     );
     assert.match(reportSrc, /task_progress: progress/);
-    assert.match(excelSrc, /تقدم المهمات/);
+    assert.match(excelSrc, /تقدم التاسكات/);
     assert.match(excelSrc, /task_progress\?\.display/);
     const evalSrc = readFileSync(
       path.join(__dirname, '../src/modules/fieldTraining/fieldTrainingEvaluation.service.js'),
@@ -321,11 +324,11 @@ describe('field training students excel task progress', () => {
         eligibility_status: 'pending',
         task_progress: {
           status: 'completed',
-          display: '8 / 8 — أكمل المهمات',
+          display: '8 من 8 مسلّمة · 8 من 8 مقيّمة',
         },
       },
       0
     );
-    assert.equal(row.taskProgress, '8 / 8 — أكمل المهمات');
+    assert.equal(row.taskProgress, '8 من 8 مسلّمة · 8 من 8 مقيّمة');
   });
 });

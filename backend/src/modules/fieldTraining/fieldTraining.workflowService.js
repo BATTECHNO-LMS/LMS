@@ -1190,18 +1190,30 @@ async function getApplicationProgress(applicationId, user) {
       pre: preAttempt,
       post: postAttempt,
     },
-    completion_letter: letter
-      ? {
-          id: letter.id,
-          letter_no: letter.letter_no,
-          issued_at: letter.issued_at ?? app.completion_letter_issued_at,
-          has_pdf: Boolean(letter.pdf_url),
-        }
-      : null,
+    completion_letter: (() => {
+      if (!letter || letter.status !== 'issued') return null;
+      const officialEligible =
+        require('./fieldTraining.officialResult.service').officialEligibilityFromApplication(app) ===
+        'ELIGIBLE';
+      if (!officialEligible || workflow.isExpelled(app) || app.training_status === 'failed') {
+        return null;
+      }
+      return {
+        id: letter.id,
+        letter_no: letter.letter_no,
+        issued_at: letter.issued_at ?? app.completion_letter_issued_at,
+        has_pdf: Boolean(letter.pdf_url),
+      };
+    })(),
     hours: buildHoursSummary(app, opp),
-    qualification: require('./fieldTraining.qualification.service').toPublicQualification(
-      (await require('./fieldTraining.qualification.service').calculateForApplication(app.id))?.calculated
-    ),
+    qualification: await (async () => {
+      const officialMod = require('./fieldTraining.officialResult.service');
+      const official = await officialMod.resolveFieldTrainingApprovedResult(app.id, {
+        application: app,
+        opportunity: opp,
+      });
+      return officialMod.toPublicQualificationFromOfficial(official);
+    })(),
   };
 }
 
@@ -1564,9 +1576,14 @@ async function getStudentOpportunityProgress(opportunityId, studentId) {
     progress,
     hours: hoursProgress,
     completion_letter_id: letter?.id ?? null,
-    qualification: require('./fieldTraining.qualification.service').toPublicQualification(
-      (await require('./fieldTraining.qualification.service').calculateForApplication(app.id))?.calculated
-    ),
+    qualification: await (async () => {
+      const officialMod = require('./fieldTraining.officialResult.service');
+      const official = await officialMod.resolveFieldTrainingApprovedResult(app.id, {
+        application: app,
+        opportunity: opp,
+      });
+      return officialMod.toPublicQualificationFromOfficial(official);
+    })(),
   };
 }
 
@@ -1747,24 +1764,33 @@ async function submitAssessmentById(assessmentId, answers, studentId) {
  * regenerate it in place so student/admin download does not 404 with "File not found".
  */
 async function ensureCompletionLetterPdfReady(applicationId, actorUserId, app, letter) {
-  if (letter?.pdf_url && repo.submissionFileExists(letter.pdf_url)) {
+  const letterService = require('./fieldTraining.completionLetter.service');
+  const official = await require('./fieldTraining.officialResult.service').resolveFieldTrainingApprovedResult(
+    applicationId,
+    { application: app }
+  );
+  const gate = letterService.evaluateCompletionLetterDownloadGate({ official, app, letter: letter || { status: 'issued' } });
+  if (!gate.allowed && gate.code === letterService.LETTER_GATE_CODES.NOT_CURRENTLY_VALID) {
+    throw new ApiError(409, gate.message, null, gate.code);
+  }
+
+  if (letter?.pdf_url && repo.submissionFileExists(letter.pdf_url) && letter.status === 'issued') {
     return letter;
   }
 
-  const letterService = require('./fieldTraining.completionLetter.service');
   const canRegenerate =
-    Boolean(letter) ||
+    Boolean(letter && letter.status === 'issued') ||
     Boolean(app.completion_letter_issued_at) ||
-    app.completion_eligibility_status === 'eligible';
+    official?.eligibility === 'ELIGIBLE';
 
   if (!canRegenerate) {
     throw new ApiError(404, 'كتاب الإنهاء غير موجود', null, 'COMPLETION_LETTER_NOT_FOUND');
   }
-  if (app.completion_eligibility_status !== 'eligible') {
-    throw new ApiError(404, 'كتاب الإنهاء غير موجود', null, 'COMPLETION_LETTER_NOT_FOUND');
+  if (official?.eligibility !== 'ELIGIBLE') {
+    throw new ApiError(409, 'كتاب الإنهاء غير صالح للحالة الحالية', null, 'COMPLETION_LETTER_NOT_CURRENTLY_VALID');
   }
-  if (workflow.isExpelled(app)) {
-    throw new ApiError(403, 'Forbidden');
+  if (workflow.isExpelled(app) || app.training_status === 'failed') {
+    throw new ApiError(409, 'كتاب الإنهاء غير صالح للحالة الحالية', null, 'COMPLETION_LETTER_NOT_CURRENTLY_VALID');
   }
 
   const opp = await repo.findById(app.opportunity_id);
@@ -1821,7 +1847,17 @@ async function downloadCompletionLetter(applicationId, studentId) {
   const app = await repo.findApplicationById(applicationId);
   if (!app) throw new ApiError(404, 'Application not found');
   if (app.student_id !== studentId) throw new ApiError(403, 'Forbidden');
-  if (workflow.isExpelled(app)) throw new ApiError(403, 'Forbidden');
+  if (workflow.isExpelled(app) || app.training_status === 'failed') {
+    throw new ApiError(409, 'كتاب الإنهاء غير صالح للحالة الحالية', null, 'COMPLETION_LETTER_NOT_CURRENTLY_VALID');
+  }
+
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const official = await officialMod.resolveFieldTrainingApprovedResult(applicationId, {
+    application: app,
+  });
+  if (!officialMod.isOfficiallyEligible(official)) {
+    throw new ApiError(409, 'كتاب الإنهاء غير صالح للحالة الحالية', null, 'COMPLETION_LETTER_NOT_CURRENTLY_VALID');
+  }
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(applicationId, studentId);
   const ready = await ensureCompletionLetterPdfReady(applicationId, studentId, app, letter);
@@ -1835,6 +1871,15 @@ async function downloadCompletionLetterAsManager(applicationId, user) {
   await assertManageOpportunityAccess(user, opp);
   await assertApplicationStudentAccess(user, app.student_id);
   await require('./fieldTraining.supervisorScope').assertReviewerCanAccessApplication(user, app);
+
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const official = await officialMod.resolveFieldTrainingApprovedResult(applicationId, {
+    application: app,
+    opportunity: opp,
+  });
+  if (workflow.isExpelled(app) || app.training_status === 'failed' || !officialMod.isOfficiallyEligible(official)) {
+    throw new ApiError(409, 'كتاب الإنهاء غير صالح للحالة الحالية', null, 'COMPLETION_LETTER_NOT_CURRENTLY_VALID');
+  }
 
   const letter = await repo.findCompletionLetterByApplication(applicationId);
   const ready = await ensureCompletionLetterPdfReady(

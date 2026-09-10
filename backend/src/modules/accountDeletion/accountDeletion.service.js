@@ -281,6 +281,9 @@ async function processDeletionRequest(requester, requestId, body, { ipAddress } 
     });
   });
 
+  const { invalidateAuthContextForUser } = require('../auth/authContextCache');
+  invalidateAuthContextForUser(existing.user_id);
+
   await recordAudit({
     userId: requester.userId,
     universityId: null,

@@ -20,12 +20,12 @@ import { FieldTrainingReportRoleBanner } from './FieldTrainingReportRoleBanner.j
 import { FieldTrainingStudentsExcelButton } from './FieldTrainingStudentsExcelButton.jsx';
 import { getReportPaths, mergeReportCapabilities, usesAcademicReportApi } from './reportCapabilities.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
-import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import { formatFtDate, FT_EMPTY } from '../../../features/fieldTraining/fieldTrainingUi.js';
 import { TaskProgressBadge } from '../../../features/fieldTraining/TaskProgressBadge.jsx';
 
 function ProgressBar({ value }) {
   if (value == null || Number.isNaN(Number(value))) {
-    return <span className="crud-muted">—</span>;
+    return <span className="crud-muted">{FT_EMPTY.unavailable}</span>;
   }
   const pct = Math.max(0, Math.min(100, Number(value)));
   return (
@@ -40,6 +40,7 @@ function ProgressBar({ value }) {
 
 export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }) {
   const { t } = useTranslation('fieldTrainingReports');
+  const { t: tFt } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');
   const { user } = useAuth();
   const { scopeId, isAllTenantsSelected } = useTenant();
@@ -71,6 +72,28 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
   });
 
   const students = data?.students ?? [];
+  const displayStudents = students.map((row) => ({
+    ...row,
+    student_name: row.student_name || FT_EMPTY.unspecified,
+    student_email: row.student_email || FT_EMPTY.unavailable,
+    university_specialty_label: row.university_specialty_label || FT_EMPTY.unspecified,
+    opportunity_title: row.opportunity_title || FT_EMPTY.unspecified,
+    application_status_label: row.application_status
+      ? tFt(`applicationStatus.${row.application_status}`)
+      : FT_EMPTY.unavailable,
+    training_status_label: row.training_status
+      ? tFt(`trainingStatus.${row.training_status}`)
+      : FT_EMPTY.unavailable,
+    eligibility_status_label: row.eligibility_status
+      ? tFt(`eligibility.${row.eligibility_status}`, row.eligibility_status)
+      : FT_EMPTY.unavailable,
+    completion_letter_status_label:
+      row.completion_letter_status_label || row.completion_letter_status || FT_EMPTY.none,
+    pre_assessment_display: row.pre_assessment_score ?? FT_EMPTY.unavailable,
+    post_assessment_display: row.post_assessment_score ?? FT_EMPTY.unavailable,
+    attendance_display:
+      row.attendance_percentage != null ? `${row.attendance_percentage}%` : FT_EMPTY.unavailable,
+  }));
   const capabilities = mergeReportCapabilities(data?.capabilities, user, mode);
   const studentDetailBase = paths.student;
   const hubPath = paths.hub;
@@ -195,8 +218,8 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                 { key: 'student_email', label: t('table.email') },
                 { key: 'university_specialty_label', label: t('table.specialty') },
                 { key: 'opportunity_title', label: t('table.opportunity') },
-                { key: 'application_status', label: t('table.applicationStatus') },
-                { key: 'training_status', label: t('table.trainingStatus') },
+                { key: 'application_status_label', label: t('table.applicationStatus') },
+                { key: 'training_status_label', label: t('table.trainingStatus') },
                 {
                   key: 'task_progress',
                   label: t('table.taskProgress'),
@@ -204,7 +227,7 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                     row.task_progress?.display ? (
                       <TaskProgressBadge progress={row.task_progress} />
                     ) : (
-                      '—'
+                      t('common.unavailable')
                     ),
                 },
                 {
@@ -212,9 +235,9 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                   label: t('table.progress'),
                   render: (row) => <ProgressBar value={row.hours_completion_percentage ?? row.attendance_percentage} />,
                 },
-                { key: 'attendance_percentage', label: t('table.attendance') },
-                { key: 'pre_assessment_score', label: t('table.preAssessment') },
-                { key: 'post_assessment_score', label: t('table.postAssessment') },
+                { key: 'attendance_display', label: t('table.attendance') },
+                { key: 'pre_assessment_display', label: t('table.preAssessment') },
+                { key: 'post_assessment_display', label: t('table.postAssessment') },
                 {
                   key: 'post_assessment_attempt_status',
                   label: t('table.postAssessmentStatus'),
@@ -223,8 +246,8 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                       ? row.post_assessment_attempt_status_label || 'تم التصحيح'
                       : 'لم يبدأ',
                 },
-                { key: 'eligibility_status', label: t('table.eligibility') },
-                { key: 'completion_letter_status', label: t('table.completionLetter') },
+                { key: 'eligibility_status_label', label: t('table.eligibility') },
+                { key: 'completion_letter_status_label', label: t('table.completionLetter') },
                 {
                   key: 'actions',
                   label: t('table.actions'),
@@ -233,35 +256,35 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                   ),
                 },
               ]}
-              rows={students}
+              rows={displayStudents}
             />
           ) : students.length === 0 ? (
             <p className="crud-muted">{t('hub.noApplications')}</p>
           ) : (
             <div className="ft-report-student-grid">
-              {students.map((row) => (
+              {displayStudents.map((row) => (
                 <article key={row.application_id} className="ft-report-student-card">
                   <header className="ft-report-student-card__head">
                     <div>
-                      <h3 className="ft-report-student-card__name">{row.student_name || '—'}</h3>
-                      <p className="ft-report-student-card__email">{row.student_email || '—'}</p>
+                      <h3 className="ft-report-student-card__name">{row.student_name}</h3>
+                      <p className="ft-report-student-card__email">{row.student_email}</p>
                     </div>
                     <span className={`ft-status-badge ft-status-badge--${row.application_status || 'unknown'}`}>
-                      {row.application_status || '—'}
+                      {row.application_status_label}
                     </span>
                   </header>
                   <dl className="ft-report-detail-grid">
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.specialty')}</dt>
-                      <dd>{row.university_specialty_label || '—'}</dd>
+                      <dd>{row.university_specialty_label}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.opportunity')}</dt>
-                      <dd>{row.opportunity_title || '—'}</dd>
+                      <dd>{row.opportunity_title}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.trainingStatus')}</dt>
-                      <dd>{row.training_status || '—'}</dd>
+                      <dd>{row.training_status_label}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.taskProgress')}</dt>
@@ -269,29 +292,30 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                         {row.task_progress?.display ? (
                           <TaskProgressBadge progress={row.task_progress} />
                         ) : (
-                          '—'
+                          t('common.unavailable')
                         )}
                       </dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.attendance')}</dt>
-                      <dd>{row.attendance_percentage != null ? `${row.attendance_percentage}%` : '—'}</dd>
+                      <dd>{row.attendance_display}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.preAssessment')}</dt>
-                      <dd>{row.pre_assessment_score ?? '—'}</dd>
+                      <dd>{row.pre_assessment_display}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.postAssessment')}</dt>
-                      <dd>{row.post_assessment_score ?? '—'}</dd>
+                      <dd>{row.post_assessment_display}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.eligibility')}</dt>
-                      <dd>{row.eligibility_status || '—'}</dd>
+                      <dd>{row.eligibility_status_label}</dd>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('table.completionLetter')}</dt>
-                      <dd>{row.completion_letter_status || '—'}</dd>
+                      <dd>{row.completion_letter_status_label}</dd>
+                    </div>
                     </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('filters.from')}</dt>

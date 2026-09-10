@@ -43,7 +43,7 @@ export function StudentActiveAttendanceCard({ opportunityId }) {
       <p>
         {windowRow.session?.title} ·{' '}
         {t('attendance.remaining', {
-          seconds: remaining ?? windowRow.remaining_seconds ?? '—',
+          seconds: remaining ?? windowRow.remaining_seconds ?? 'غير متوفر',
         })}
       </p>
       <p>{t('attendance.popupHint')}</p>

@@ -26,6 +26,13 @@ function parseCorsOrigins(csv) {
   return [...new Set(csv.split(',').map((s) => s.trim()).filter(Boolean))];
 }
 
+function parseAuthContextCacheTtlMs(raw) {
+  if (raw === '0' || raw === 0) return 0;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return 15_000;
+  return n;
+}
+
 const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: Number(process.env.PORT) || 4000,
@@ -248,6 +255,12 @@ const env = {
     Number(process.env.PASSWORD_RESET_TOKEN_EXPIRY_MINUTES) || 10,
   /** Log slow requests (>=400ms) without query strings or bodies. */
   PERF_LOGGING: process.env.PERF_LOGGING === 'true' || process.env.PERF_LOGGING === '1',
+  /**
+   * In-process auth-context cache TTL (ms). 0 disables.
+   * Mutations invalidate immediately; this is the fallback stale window.
+   */
+  AUTH_CONTEXT_CACHE_TTL_MS: parseAuthContextCacheTtlMs(process.env.AUTH_CONTEXT_CACHE_TTL_MS),
+  AUTH_CONTEXT_CACHE_MAX: Number(process.env.AUTH_CONTEXT_CACHE_MAX) || 2_000,
 };
 
 module.exports = { env, parseRoleCodes, parseRoleCodesWithFallback };

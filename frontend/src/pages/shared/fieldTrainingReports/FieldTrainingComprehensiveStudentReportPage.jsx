@@ -102,11 +102,14 @@ export function FieldTrainingComprehensiveStudentReportPage({
       [t('comprehensiveReport.organization'), data.opportunity?.organizationName],
       [
         t('comprehensiveReport.trainingDates'),
-        [data.opportunity?.startDateLabelAr, data.opportunity?.endDateLabelAr]
-          .filter(Boolean)
-          .join(' — ') || '—',
+        data.opportunity?.periodLabelAr ||
+          [data.opportunity?.startDateLabelAr, data.opportunity?.endDateLabelAr]
+            .filter(Boolean)
+            .join(' إلى ') ||
+          null,
       ],
-      [t('table.trainingStatus'), t(`trainingStatus.${data.application?.trainingStatus}`, data.application?.trainingStatus)],
+      [t('table.trainingStatus'), t(`trainingStatus.${data.application?.trainingStatus}`, data.application?.trainingStatusLabelAr || data.application?.trainingStatus)],
+      [t('outcomeSemantics.eligibilityResult'), t(`eligibility.${status}`, status)],
     ];
   }, [data, t]);
 
@@ -187,14 +190,14 @@ export function FieldTrainingComprehensiveStudentReportPage({
                 ? t('eligibilityCard.approvedScore')
                 : t('scoreBreakdown.finalScore')}
             </span>
-            <strong>
-              {q.finalScore != null ? `${q.finalScore} / 100` : '— / 100'}
+            <strong dir="ltr">
+              {q.finalScore != null ? `${q.finalScore} / 100` : t('common.unavailable', 'غير متوفر')}
             </strong>
           </div>
           <div>
             <span>{t('scoreBreakdown.passingScore', { score: q.passingScore ?? 80 })}</span>
             <p className={q.scoreDifference >= 0 ? 'is-pass' : 'is-fail'}>
-              {q.scoreDifferenceLabelAr || '—'}
+              {q.scoreDifferenceLabelAr || t('common.unavailable', 'غير متوفر')}
             </p>
           </div>
         </div>
@@ -220,7 +223,7 @@ export function FieldTrainingComprehensiveStudentReportPage({
                   ? `${q.recordedAttendancePercent}%`
                   : components.attendance?.recordedAttendancePercentage != null
                     ? `${components.attendance.recordedAttendancePercentage}%`
-                    : '—',
+                    : t('common.unavailable', 'غير متوفر'),
               ],
               [
                 t('comprehensiveReport.evaluationAttendance'),
@@ -270,39 +273,39 @@ export function FieldTrainingComprehensiveStudentReportPage({
           items={[
             [
               t('eligibilityCard.attendancePoints'),
-              q.scoreBreakdown?.attendancePoints != null
+              {q.scoreBreakdown?.attendancePoints != null
                 ? `${q.scoreBreakdown.attendancePoints} / 20`
-                : components.attendance
-                  ? `${components.attendance.points ?? '—'} / 20`
-                  : '—',
+                : components.attendance?.points != null
+                  ? `${components.attendance.points} / 20`
+                  : t('common.unavailable', 'غير متوفر')},
             ],
             [
               t('eligibilityCard.postPoints'),
               q.scoreBreakdown?.postAssessmentPoints != null
                 ? `${q.scoreBreakdown.postAssessmentPoints} / 20`
-                : components.postAssessment
-                  ? `${components.postAssessment.points ?? '—'} / 20`
-                  : '—',
+                : components.postAssessment?.points != null
+                  ? `${components.postAssessment.points} / 20`
+                  : t('common.unavailable', 'غير متوفر'),
             ],
             [
               t('eligibilityCard.tasksPoints'),
               q.scoreBreakdown?.taskPoints != null
                 ? `${q.scoreBreakdown.taskPoints} / 40`
-                : components.tasks
-                  ? `${components.tasks.points ?? '—'} / 40`
-                  : '—',
+                : components.tasks?.points != null
+                  ? `${components.tasks.points} / 40`
+                  : t('common.unavailable', 'غير متوفر'),
             ],
             [
               t('eligibilityCard.behaviorPoints'),
               q.scoreBreakdown?.behaviorPoints != null
                 ? `${q.scoreBreakdown.behaviorPoints} / 20`
-                : components.behavior
-                  ? `${components.behavior.points ?? '—'} / 20`
-                  : '—',
+                : components.behavior?.points != null
+                  ? `${components.behavior.points} / 20`
+                  : t('common.unavailable', 'غير متوفر'),
             ],
             [
               t('eligibilityCard.approvedScore'),
-              q.finalScore != null ? `${q.finalScore} / 100` : '—',
+              q.finalScore != null ? `${q.finalScore} / 100` : t('common.unavailable', 'غير متوفر'),
             ],
           ]}
         />
@@ -317,12 +320,12 @@ export function FieldTrainingComprehensiveStudentReportPage({
             [t('comprehensiveReport.late'), data.attendance?.counts?.late],
             [t('comprehensiveReport.excused'), data.attendance?.counts?.excused],
             [t('comprehensiveReport.absent'), data.attendance?.counts?.absent],
-            [t('progress.attendance'), data.attendance?.percentage != null ? `${data.attendance.percentage}%` : '—'],
+            [t('progress.attendance'), data.attendance?.percentage != null ? `${data.attendance.percentage}%` : t('common.unavailable', 'غير متوفر')],
             [
               t('hours.title'),
               data.attendance?.completedHours != null && data.attendance?.requiredHours != null
-                ? `${data.attendance.completedHours} / ${data.attendance.requiredHours}`
-                : '—',
+                ? `${data.attendance.completedHours} من ${data.attendance.requiredHours}`
+                : t('common.unavailable', 'غير متوفر'),
             ],
           ]}
         />
@@ -339,10 +342,10 @@ export function FieldTrainingComprehensiveStudentReportPage({
             <tbody>
               {(data.attendance?.sessions || []).map((session) => (
                 <tr key={session.sessionId}>
-                  <td>{session.dateLabelAr || '—'}</td>
+                  <td>{session.dateLabelAr || t('common.unavailable', 'غير متوفر')}</td>
                   <td>{session.title}</td>
                   <td>{session.statusLabelAr}</td>
-                  <td>{session.durationHours != null ? `${session.durationHours}` : '—'}</td>
+                  <td>{session.durationHours != null ? `${session.durationHours}` : t('common.unavailable', 'غير متوفر')}</td>
                 </tr>
               ))}
             </tbody>
@@ -353,7 +356,7 @@ export function FieldTrainingComprehensiveStudentReportPage({
       <SectionCard title={t('comprehensiveReport.tasks')}>
         <p>
           {t('eligibilityCard.tasksCompleted', {
-            done: data.tasks?.completedCount ?? 0,
+            done: data.tasks?.submittedCount ?? 0,
             total: data.tasks?.requiredCount ?? 0,
           })}
         </p>
@@ -372,28 +375,17 @@ export function FieldTrainingComprehensiveStudentReportPage({
               {(data.tasks?.items || []).map((task) => (
                 <tr key={task.taskId}>
                   <td>{task.title}</td>
+                  <td>{task.submissionStatusLabelAr || t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')}</td>
                   <td>
-                    {task.submissionStatus === 'NOT_SUBMITTED' ||
-                    task.submissionStatus === 'missing' ||
-                    !task.submissionStatus ||
-                    task.submissionStatus === 'not_submitted'
-                      ? t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')
-                      : t('comprehensiveReport.submitted', 'مسلّم')}
+                    {task.reviewStatusLabelAr ||
+                      (task.accepted
+                        ? t('tasks.reviewStatuses.graded', 'تم التقييم')
+                        : t('tasks.reviewStatuses.pending', 'قيد التقييم'))}
                   </td>
-                  <td>
-                    {task.accepted ||
-                    task.submissionStatus === 'SUBMITTED' ||
-                    task.reviewStatus === 'graded' ||
-                    task.reviewStatus === 'approved'
-                      ? t('eligibilityCard.completed')
-                      : t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')}
-                  </td>
-                  <td>
+                  <td dir="ltr">
                     {task.approvedTaskScore != null
-                      ? `${task.approvedTaskScore}/100`
-                      : task.score != null
-                        ? `${task.score}${task.maxScore != null ? `/${task.maxScore}` : '/100'}`
-                        : '—'}
+                      ? `${task.approvedTaskScore} / ${task.maxScore ?? 100}`
+                      : t('scoreBreakdown.noGrade', 'لا توجد')}
                   </td>
                   <td>{task.submittedAtLabelAr || 'لا يوجد'}</td>
                 </tr>
@@ -409,13 +401,13 @@ export function FieldTrainingComprehensiveStudentReportPage({
             [
               t('eligibilityCard.preAssessment'),
               data.assessments?.pre?.completed
-                ? `${data.assessments.pre.score ?? '—'} · ${data.assessments.pre.submittedAtLabelAr || ''}`
+                ? `${data.assessments.pre.score ?? t('common.unavailable', 'غير متوفر')} · ${data.assessments.pre.submittedAtLabelAr || ''}`
                 : t('eligibilityCard.incomplete'),
             ],
             [
               t('eligibilityCard.postAssessment'),
               data.assessments?.post?.completed
-                ? `${data.assessments.post.score ?? '—'} · ${data.assessments.post.submittedAtLabelAr || ''}`
+                ? `${data.assessments.post.score ?? t('common.unavailable', 'غير متوفر')} · ${data.assessments.post.submittedAtLabelAr || ''}`
                 : t('eligibilityCard.incomplete'),
             ],
           ]}
@@ -429,13 +421,13 @@ export function FieldTrainingComprehensiveStudentReportPage({
               t('scoreBreakdown.professionalTotal'),
               data.professionalEvaluation?.professionalTotal != null
                 ? `${data.professionalEvaluation.professionalTotal} / 50`
-                : '—',
+                : t('common.unavailable', 'غير متوفر'),
             ],
             [
               t('scoreBreakdown.behaviorContribution'),
               data.professionalEvaluation?.behaviorPoints != null
                 ? `${data.professionalEvaluation.behaviorPoints} / 20`
-                : '—',
+                : t('common.unavailable', 'غير متوفر'),
             ],
           ]}
         />
@@ -443,7 +435,7 @@ export function FieldTrainingComprehensiveStudentReportPage({
           {(data.professionalEvaluation?.criteria || []).map((c) => (
             <li key={c.key}>
               <span>{c.labelAr}</span>
-              <strong>{c.score != null ? `${c.score} / ${c.maxScore}` : '—'}</strong>
+              <strong>{c.score != null ? `${c.score} / ${c.maxScore}` : t('eligibilityCard.incomplete')}</strong>
             </li>
           ))}
         </ul>
@@ -463,19 +455,19 @@ export function FieldTrainingComprehensiveStudentReportPage({
         <DetailGrid
           items={[
             [t('comprehensiveReport.loginCount'), data.activitySummary?.loginCountLabelAr],
-            [t('comprehensiveReport.lastLogin'), data.activitySummary?.lastLoginAtLabelAr || '—'],
-            [t('comprehensiveReport.firstActivity'), data.activitySummary?.firstActivityAtLabelAr || '—'],
+            [t('comprehensiveReport.lastLogin'), data.activitySummary?.lastLoginAtLabelAr || t('common.unavailable', 'غير متوفر')],
+            [t('comprehensiveReport.firstActivity'), data.activitySummary?.firstActivityAtLabelAr || t('common.unavailable', 'غير متوفر')],
             [
               t('comprehensiveReport.tasksSubmitted'),
-              `${data.activitySummary?.taskSubmissionsCount ?? 0} / ${data.activitySummary?.requiredTasksCount ?? 0}`,
+              `${data.activitySummary?.taskSubmissionsCount ?? 0} من ${data.activitySummary?.requiredTasksCount ?? 0}`,
             ],
             [
               t('comprehensiveReport.attendanceEvents'),
-              `${data.activitySummary?.attendanceEventsCount ?? 0} / ${data.activitySummary?.requiredSessionsCount ?? 0}`,
+              `${data.activitySummary?.attendanceEventsCount ?? 0} من ${data.activitySummary?.requiredSessionsCount ?? 0}`,
             ],
             [
               t('comprehensiveReport.assessmentsCompleted'),
-              `${data.activitySummary?.assessmentsCompletedCount ?? 0} / ${data.activitySummary?.assessmentsRequiredCount ?? 0}`,
+              `${data.activitySummary?.assessmentsCompletedCount ?? 0} من ${data.activitySummary?.assessmentsRequiredCount ?? 0}`,
             ],
           ]}
         />

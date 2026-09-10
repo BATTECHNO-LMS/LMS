@@ -122,26 +122,26 @@ export function FieldTrainingOpportunityDetailReportPage({ mode = 'academic' }) 
             <dl className="ft-report-detail-grid">
               <div className="ft-report-detail-grid__item">
                 <dt>{t('opportunity.track')}</dt>
-                <dd>{opp.training_track?.name_ar || opp.training_track?.name_en || '—'}</dd>
+                <dd>{opp.training_track?.name_ar || opp.training_track?.name_en || 'غير متوفر'}</dd>
               </div>
               <div className="ft-report-detail-grid__item">
                 <dt>{t('opportunity.instructor')}</dt>
-                <dd>{opp.assigned_instructor?.full_name || '—'}</dd>
+                <dd>{opp.assigned_instructor?.full_name || 'غير متوفر'}</dd>
               </div>
               <div className="ft-report-detail-grid__item">
                 <dt>{t('opportunity.mode')}</dt>
-                <dd>{opp.training_mode || '—'}</dd>
+                <dd>{opp.training_mode || 'غير متوفر'}</dd>
               </div>
               <div className="ft-report-detail-grid__item">
                 <dt>{t('opportunity.dates')}</dt>
                 <dd>
-                  {formatFtDate(opp.start_date)} — {formatFtDate(opp.end_date)}
+                  {formatFtDate(opp.start_date)} إلى {formatFtDate(opp.end_date)}
                 </dd>
               </div>
               <div className="ft-report-detail-grid__item">
                 <dt>{t('opportunity.specialties')}</dt>
                 <dd>
-                  {(opp.eligible_specialties || []).map((s) => s.label).filter(Boolean).join('، ') || '—'}
+                  {(opp.eligible_specialties || []).map((s) => s.label).filter(Boolean).join('، ') || 'غير متوفر'}
                 </dd>
               </div>
             </dl>

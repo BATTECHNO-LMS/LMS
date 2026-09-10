@@ -1,0 +1,39 @@
+BATTECHNO LMS slow query analysis (code + health/ready; no EXPLAIN ANALYZE)
+
+Measured:
+1) SELECT 1 via GET /health/ready
+   p50 613ms total, max 1251ms, 8/8 success
+   Expected on a co-located Postgres: <20ms after pool warmup
+
+Estimated sequential Prisma round-trips (each ~500ms if production RTT holds):
+
+A) Every authenticated API (loadCurrentAuthContextFromDb)
+   Round 1 parallel: users.findUnique (with org assignments), user_roles.findMany, reviewer_university_assignments.findFirst
+   Round 2 parallel: roles.findMany, universities.findUnique (cached 60s), role_permissions (cached 60s)
+   Optional extra: roles.findMany by code, organization identity
+   Auth cost per request: ~1 sequential RTT after cache warmup for lookups, 2 RTTs on cold permission cache
+   Estimated 500–1200ms before business SQL
+
+B) GET /api/v1/admin/field-training/:id/eligibility
+   Sequential: findById -> findApplicationsByOpportunity (unbounded) -> student profiles
+   -> hours attendance findMany -> task progress 3x groupBy (parallel)
+   -> final tasks with submissions include
+   -> official results (2 more queries: required tasks + submissions)
+   If overlay missing: loadBatchContext (~9 parallel queries including preview_json)
+   Estimated 3–8s depending on overlay vs live calc. Not live-timed (no auth).
+
+C) GET /api/v1/student/dashboard-summary
+   Auth, then 9 services in parallel (enrollments, sessions, courses, FT apps, assessments, submissions, grades, certificates, notifications)
+   Then sequential getStudentOpportunityProgress:
+     findPublishedById, findApplication, 6 parallel counts, then attendance count,
+     completion letter, hours progress, task progress
+   Estimated 2–6s. Not live-timed.
+
+D) Student Attendance page (frontend N+1)
+   GET assessments
+   then GET sessions?cohort=X for each cohort
+   then GET attendance/session/:id for each session
+   Page spinner waits for the full chain.
+
+No production pg_stat_statements dump.
+No EXPLAIN ANALYZE.

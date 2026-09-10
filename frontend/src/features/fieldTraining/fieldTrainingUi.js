@@ -1,13 +1,21 @@
 /** Shared UI helpers for field training pages (no API logic). */
 
-export function getOpportunityUniversityLabel(opportunity, unspecifiedLabel = '—') {
+export const FT_EMPTY = Object.freeze({
+  unavailable: 'غير متوفر',
+  unspecified: 'غير محدد',
+  none: 'لا يوجد',
+  notRequired: 'غير مطلوب',
+  loading: '…',
+});
+
+export function getOpportunityUniversityLabel(opportunity, unspecifiedLabel = 'غير محدد') {
   if (opportunity?.university?.name) return opportunity.university.name;
   const legacy = String(opportunity?.organization_name ?? '').trim();
   if (legacy) return legacy;
   return unspecifiedLabel;
 }
 
-export function getOpportunitySpecialtyLabel(opportunity, lang = 'ar', unspecifiedLabel = '—') {
+export function getOpportunitySpecialtyLabel(opportunity, lang = 'ar', unspecifiedLabel = 'غير محدد') {
   const spec = opportunity?.specialty;
   if (!spec) return unspecifiedLabel;
   const useAr = lang === 'ar' || lang.startsWith('ar');
@@ -115,6 +123,15 @@ export function formatFtDate(value) {
   return s.length >= 10 ? s.slice(0, 10) : s;
 }
 
+export function formatFtDateRange(start, end) {
+  const a = formatFtDate(start);
+  const b = formatFtDate(end);
+  if (a && b) return `من ${a} إلى ${b}`;
+  if (a) return `من ${a}`;
+  if (b) return `حتى ${b}`;
+  return null;
+}
+
 export function truncateText(text, max = 120) {
   const s = String(text ?? '').trim();
   if (!s) return '';
@@ -134,8 +151,8 @@ export function getStudentInitials(name) {
 }
 
 /** Replace empty/dash placeholders with a human-readable fallback. */
-export function displayFieldValue(value, fallback) {
+export function displayFieldValue(value, fallback = FT_EMPTY.unavailable) {
   const s = String(value ?? '').trim();
-  if (!s || s === '—' || s === '-') return fallback;
+  if (!s || s === '—' || s === '–' || s === '-' || s === 'undefined' || s === 'null') return fallback;
   return s;
 }

@@ -32,8 +32,14 @@ function evaluationStatusOf(evaluation) {
 }
 
 function letterStatusOf(letter, eligibility) {
+  if (letter?.status === 'revoked') return 'not_issued';
+  if (
+    require('./fieldTraining.officialResult.service').canonicalizeEligibility(eligibility) !== 'ELIGIBLE'
+  ) {
+    return 'ineligible';
+  }
   if (letter?.status === 'issued' || letter?.pdf_url) return 'issued';
-  if (eligibility === 'eligible') return 'pending';
+  if (eligibility === 'eligible' || eligibility === 'ELIGIBLE') return 'pending';
   return 'ineligible';
 }
 
@@ -91,7 +97,10 @@ async function loadGroupedStudents(user, opportunityId) {
       pdf_file_id: evaluation?.pdf_file_id || null,
       filled_docx_file_id: evaluation?.filled_docx_file_id || null,
       report_status: evaluation?.filled_docx_file_id ? 'generated' : evaluation?.id ? 'missing_file' : 'not_generated',
-      completion_letter_status: letterStatusOf(letter, app.completion_eligibility_status),
+      completion_letter_status: letterStatusOf(
+        letter,
+        require('./fieldTraining.officialResult.service').officialEligibilityFromApplication(app)
+      ),
     };
   });
 

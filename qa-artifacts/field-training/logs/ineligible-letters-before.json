@@ -1,0 +1,62 @@
+{
+  "dryRun": true,
+  "beforeCount": 2,
+  "afterCount": 2,
+  "before": [
+    {
+      "letterId": "2a5da3ec-e6fb-4517-bfa5-39fce5463e68",
+      "letterNo": "FT-DEMO-99964822",
+      "applicationId": "76e405f3-a708-411a-9b86-3943434c5f6a",
+      "studentId": "a0e50ee7-20a4-4568-88d9-42dbf9280a7e",
+      "opportunityId": "6c8783ec-49fd-428e-83e2-8b65e52c3b4f",
+      "issuedAt": "2026-08-08T14:39:24.823Z",
+      "hasPdf": false,
+      "eligibility": "NOT_ELIGIBLE",
+      "trainingStatus": "post_assessment_pending",
+      "completionEligibilityStatus": "ineligible",
+      "disqualified": false
+    },
+    {
+      "letterId": "5a0b7697-d047-422c-a634-6f83e7048a28",
+      "letterNo": "FT-MTR9S77D",
+      "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+      "studentId": "12dc3c4a-5d02-4e6a-8d54-988d7223178a",
+      "opportunityId": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+      "issuedAt": "2026-09-07T14:54:23.677Z",
+      "hasPdf": true,
+      "eligibility": "NOT_ELIGIBLE",
+      "trainingStatus": "completed",
+      "completionEligibilityStatus": "ineligible",
+      "disqualified": false
+    }
+  ],
+  "remaining": [
+    {
+      "letterId": "2a5da3ec-e6fb-4517-bfa5-39fce5463e68",
+      "letterNo": "FT-DEMO-99964822",
+      "applicationId": "76e405f3-a708-411a-9b86-3943434c5f6a",
+      "studentId": "a0e50ee7-20a4-4568-88d9-42dbf9280a7e",
+      "opportunityId": "6c8783ec-49fd-428e-83e2-8b65e52c3b4f",
+      "issuedAt": "2026-08-08T14:39:24.823Z",
+      "hasPdf": false,
+      "eligibility": "NOT_ELIGIBLE",
+      "trainingStatus": "post_assessment_pending",
+      "completionEligibilityStatus": "ineligible",
+      "disqualified": false
+    },
+    {
+      "letterId": "5a0b7697-d047-422c-a634-6f83e7048a28",
+      "letterNo": "FT-MTR9S77D",
+      "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+      "studentId": "12dc3c4a-5d02-4e6a-8d54-988d7223178a",
+      "opportunityId": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+      "issuedAt": "2026-09-07T14:54:23.677Z",
+      "hasPdf": true,
+      "eligibility": "NOT_ELIGIBLE",
+      "trainingStatus": "completed",
+      "completionEligibilityStatus": "ineligible",
+      "disqualified": false
+    }
+  ],
+  "remediated": []
+}

@@ -9,7 +9,7 @@ import { useTenant } from '../../../features/tenant/index.js';
 import { useFieldTrainingOpportunities } from '../../../features/fieldTrainingReports/index.js';
 import { resolveReportParams } from './FieldTrainingReportFilters.jsx';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
-import { formatFtDate } from '../../../features/fieldTraining/fieldTrainingUi.js';
+import { formatFtDate, formatFtDateRange } from '../../../features/fieldTraining/fieldTrainingUi.js';
 
 export function FieldTrainingOpportunitiesReportPage({ mode = 'academic' }) {
   const { t } = useTranslation('fieldTrainingReports');
@@ -48,7 +48,7 @@ export function FieldTrainingOpportunitiesReportPage({ mode = 'academic' }) {
         title={t('opportunities.title')}
         description={
           data?.university?.name
-            ? `${t('opportunities.description')} — ${data.university.name}`
+            ? `${t('opportunities.description')} : ${data.university.name}`
             : t('opportunities.description')
         }
         actions={
@@ -83,22 +83,22 @@ export function FieldTrainingOpportunitiesReportPage({ mode = 'academic' }) {
                   <div className="ft-report-opportunity-card__top">
                     <h3 className="ft-report-opportunity-card__title">{opp.title}</h3>
                     <span className={`ft-status-badge ft-status-badge--${opp.status || 'unknown'}`}>
-                      {opp.status || '—'}
+                      {opp.status || 'غير متوفر'}
                     </span>
                   </div>
                   <p className="ft-report-opportunity-card__meta">
-                    {opp.training_track?.name_ar || opp.training_track?.name_en || '—'}
+                    {opp.training_track?.name_ar || opp.training_track?.name_en || 'غير متوفر'}
                   </p>
                   <p className="ft-report-opportunity-card__meta">
-                    {t('opportunity.instructor')}: {opp.assigned_instructor?.full_name || '—'}
+                    {t('opportunity.instructor')}: {opp.assigned_instructor?.full_name || 'غير متوفر'}
                   </p>
                   <p className="ft-report-opportunity-card__meta">
-                    {t('opportunity.mode')}: {opp.training_mode || '—'} · {formatFtDate(opp.start_date)} —{' '}
-                    {formatFtDate(opp.end_date)}
+                    {t('opportunity.mode')}: {opp.training_mode || 'غير متوفر'} ·{' '}
+                    {formatFtDateRange(opp.start_date, opp.end_date) || t('common.unavailable')}
                   </p>
                   <p className="ft-report-opportunity-card__meta">
                     {t('opportunity.specialties')}:{' '}
-                    {(opp.eligible_specialties || []).map((s) => s.label).filter(Boolean).join('، ') || '—'}
+                    {(opp.eligible_specialties || []).map((s) => s.label).filter(Boolean).join('، ') || 'غير متوفر'}
                   </p>
                   <dl className="ft-report-opportunity-card__stats">
                     <div>
@@ -120,7 +120,7 @@ export function FieldTrainingOpportunitiesReportPage({ mode = 'academic' }) {
                     <div>
                       <dt>{t('metrics.averageAttendance')}</dt>
                       <dd>
-                        {opp.average_attendance != null ? `${opp.average_attendance}%` : '—'}
+                        {opp.average_attendance != null ? `${opp.average_attendance}%` : 'غير متوفر'}
                       </dd>
                     </div>
                   </dl>

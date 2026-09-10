@@ -36,6 +36,7 @@ const SKIP_REASONS = Object.freeze({
   NOT_ELIGIBLE: 'not_eligible',
   HOURS_BELOW_MINIMUM: 'hours_below_minimum',
   EXPELLED: 'expelled',
+  FAILED: 'failed',
   ALREADY_ISSUED: 'already_issued',
   SOURCE_UNCHANGED: 'source_unchanged',
 });
@@ -44,8 +45,18 @@ const SKIP_LABELS_AR = Object.freeze({
   not_eligible: 'غير مؤهل',
   hours_below_minimum: 'الساعات المكتملة أقل من 140',
   expelled: 'مستبعد',
+  failed: 'لم يجتز',
   already_issued: 'تم الإصدار مسبقاً',
   source_unchanged: 'صادر ولم تتغير بياناته',
+});
+
+const LETTER_GATE_CODES = Object.freeze({
+  NOT_ELIGIBLE: 'COMPLETION_LETTER_NOT_ELIGIBLE',
+  EXPELLED: 'COMPLETION_LETTER_EXPELLED',
+  FAILED: 'COMPLETION_LETTER_FAILED',
+  HOURS_BELOW_MINIMUM: 'COMPLETION_LETTER_HOURS_BELOW_MINIMUM',
+  NOT_CURRENTLY_VALID: 'COMPLETION_LETTER_NOT_CURRENTLY_VALID',
+  NOT_FOUND: 'COMPLETION_LETTER_NOT_FOUND',
 });
 
 function skipLabel(reason) {
@@ -93,8 +104,10 @@ function selectBulkIssueTargets(students, retryFailedIds = [], { forceRegenerate
     }
     if (forceRegenerate) {
       return (
-        row.completion_eligibility_status === 'eligible' &&
-        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS
+        officialMod().officialEligibilityFromApplication(row) === 'ELIGIBLE' &&
+        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS &&
+        row.training_status !== 'failed' &&
+        row.training_status !== 'expelled'
       );
     }
     return row.will_issue || row.will_regenerate;
@@ -109,15 +122,231 @@ function letterFileReady(letter) {
   return repo.submissionFileExists(letter.pdf_url);
 }
 
-function classifyStudent(app, letter, sourceHash) {
-  if (workflow.isExpelled(app)) {
-    return { eligible: false, skipReason: SKIP_REASONS.EXPELLED };
+function officialMod() {
+  return require('./fieldTraining.officialResult.service');
+}
+
+function evaluateCompletionLetterIssueGate({ official = null, app } = {}) {
+  if (workflow.isExpelled(app) || app?.training_status === 'expelled') {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.EXPELLED,
+      skipReason: SKIP_REASONS.EXPELLED,
+      message: 'لا يمكن إصدار كتاب لطالب مستبعد',
+    };
   }
-  if (app.completion_eligibility_status !== 'eligible') {
-    return { eligible: false, skipReason: SKIP_REASONS.NOT_ELIGIBLE };
+  if (app?.training_status === 'failed') {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.FAILED,
+      skipReason: SKIP_REASONS.FAILED,
+      message: 'لا يمكن إصدار كتاب إنهاء لطالب لم يجتز التدريب',
+    };
+  }
+  const eligibility = official
+    ? official.eligibility
+    : officialMod().officialEligibilityFromApplication(app);
+  if (eligibility !== 'ELIGIBLE') {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.NOT_ELIGIBLE,
+      skipReason: SKIP_REASONS.NOT_ELIGIBLE,
+      message: 'لا يمكن إصدار كتاب إنهاء لأن الطالب غير مؤهل حاليًا.',
+    };
   }
   if (completedHoursOf(app) < MIN_COMPLETION_LETTER_HOURS) {
-    return { eligible: false, skipReason: SKIP_REASONS.HOURS_BELOW_MINIMUM };
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.HOURS_BELOW_MINIMUM,
+      skipReason: SKIP_REASONS.HOURS_BELOW_MINIMUM,
+      message: 'يجب إكمال 140 ساعة تدريبية على الأقل قبل إصدار كتاب الإنهاء',
+    };
+  }
+  return { allowed: true, code: null, skipReason: null };
+}
+
+function evaluateCompletionLetterDownloadGate({ official = null, app, letter } = {}) {
+  const issueGate = evaluateCompletionLetterIssueGate({ official, app });
+  if (!issueGate.allowed && issueGate.skipReason !== SKIP_REASONS.HOURS_BELOW_MINIMUM) {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.NOT_CURRENTLY_VALID,
+      message: 'لا يمكن تنزيل كتاب الإنهاء لأن الحالة الحالية غير صالحة.',
+      skipReason: issueGate.skipReason,
+    };
+  }
+  if (official && official.eligibility !== 'ELIGIBLE') {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.NOT_CURRENTLY_VALID,
+      message: 'لا يمكن تنزيل كتاب الإنهاء لأن الحالة الحالية غير صالحة.',
+      skipReason: SKIP_REASONS.NOT_ELIGIBLE,
+    };
+  }
+  if (!letter || letter.status !== 'issued') {
+    return {
+      allowed: false,
+      code: LETTER_GATE_CODES.NOT_FOUND,
+      message: 'كتاب الإنهاء غير موجود',
+    };
+  }
+  return { allowed: true, code: null };
+}
+
+function buildLetterInvalidationMetadata(letter, { reason, eligibility, actorUserId } = {}) {
+  return {
+    ...(letter?.metadata && typeof letter.metadata === 'object' ? letter.metadata : {}),
+    invalidation: {
+      status: 'revoked',
+      previousStatus: letter?.status || 'issued',
+      reason: reason || 'eligibility_no_longer_eligible',
+      eligibilityAtInvalidation: eligibility || 'NOT_ELIGIBLE',
+      invalidatedAt: new Date().toISOString(),
+      actorUserId: actorUserId || null,
+    },
+  };
+}
+
+async function invalidateActiveCompletionLettersForApplication(
+  applicationId,
+  { reason = 'eligibility_no_longer_eligible', eligibility = 'NOT_ELIGIBLE', actorUserId = null } = {}
+) {
+  if (!applicationId) return { invalidated: 0, letters: [] };
+  const letters = await prisma.field_training_completion_letters.findMany({
+    where: { application_id: applicationId, status: 'issued' },
+  });
+  if (!letters.length) {
+    await prisma.field_training_applications.update({
+      where: { id: applicationId },
+      data: { completion_letter_issued_at: null },
+    }).catch(() => null);
+    return { invalidated: 0, letters: [] };
+  }
+
+  const now = new Date();
+  for (const letter of letters) {
+    await prisma.field_training_completion_letters.update({
+      where: { id: letter.id },
+      data: {
+        status: 'revoked',
+        metadata: buildLetterInvalidationMetadata(letter, { reason, eligibility, actorUserId }),
+        updated_at: now,
+      },
+    });
+    await recordAudit({
+      userId: actorUserId || null,
+      actionType: 'FIELD_TRAINING_COMPLETION_LETTER_REVOKED',
+      entityType: 'field_training_completion_letter',
+      entityId: letter.id,
+      newValues: {
+        application_id: applicationId,
+        reason,
+        eligibility,
+        previousStatus: 'issued',
+        pdfPreserved: Boolean(letter.pdf_url),
+      },
+    }).catch(() => null);
+  }
+
+  await prisma.field_training_applications.update({
+    where: { id: applicationId },
+    data: { completion_letter_issued_at: null, updated_at: now },
+  });
+
+  return { invalidated: letters.length, letters };
+}
+
+async function syncCompletionLettersWithEligibility(
+  applicationId,
+  eligibility,
+  { previousEligibility = null, reason = 'eligibility_transition_to_not_eligible', actorUserId = null } = {}
+) {
+  const canon = officialMod().canonicalizeEligibility(eligibility);
+  if (canon === 'ELIGIBLE') return { invalidated: 0, letters: [] };
+  const prev = previousEligibility ? officialMod().canonicalizeEligibility(previousEligibility) : null;
+  const transitionReason =
+    prev === 'ELIGIBLE' && canon !== 'ELIGIBLE'
+      ? 'eligibility_transition_to_not_eligible'
+      : reason || 'current_not_eligible';
+  return invalidateActiveCompletionLettersForApplication(applicationId, {
+    reason: transitionReason,
+    eligibility: canon,
+    actorUserId,
+  });
+}
+
+async function findIneligibleIssuedLetters() {
+  const letters = await prisma.field_training_completion_letters.findMany({
+    where: { status: 'issued' },
+    select: {
+      id: true,
+      application_id: true,
+      student_id: true,
+      opportunity_id: true,
+      letter_no: true,
+      status: true,
+      issued_at: true,
+      pdf_url: true,
+    },
+  });
+  if (!letters.length) return [];
+  const apps = await prisma.field_training_applications.findMany({
+    where: { id: { in: [...new Set(letters.map((row) => row.application_id))] } },
+    select: officialMod().applicationSelectForOfficialResult(),
+  });
+  const appById = new Map(apps.map((app) => [app.id, app]));
+  const affected = [];
+  for (const letter of letters) {
+    const app = appById.get(letter.application_id);
+    if (!app) continue;
+    const eligibility = officialMod().officialEligibilityFromApplication(app);
+    const disqualified = officialMod().isDisqualifyingTrainingStatus(app);
+    if (eligibility === 'ELIGIBLE' && !disqualified) continue;
+    affected.push({
+      letterId: letter.id,
+      letterNo: letter.letter_no,
+      applicationId: letter.application_id,
+      studentId: letter.student_id,
+      opportunityId: letter.opportunity_id,
+      issuedAt: letter.issued_at,
+      hasPdf: Boolean(letter.pdf_url),
+      eligibility,
+      trainingStatus: app.training_status,
+      completionEligibilityStatus: app.completion_eligibility_status,
+      disqualified,
+    });
+  }
+  return affected;
+}
+
+async function remediateIneligibleCompletionLetters({ dryRun = true, actorUserId = null } = {}) {
+  const before = await findIneligibleIssuedLetters();
+  const after = [];
+  if (!dryRun) {
+    for (const row of before) {
+      const result = await invalidateActiveCompletionLettersForApplication(row.applicationId, {
+        reason: 'remediate_ineligible_issued_letter',
+        eligibility: row.eligibility,
+        actorUserId,
+      });
+      after.push({ ...row, invalidated: result.invalidated });
+    }
+  }
+  const remaining = dryRun ? before : await findIneligibleIssuedLetters();
+  return {
+    dryRun,
+    beforeCount: before.length,
+    afterCount: remaining.length,
+    before,
+    remaining,
+    remediated: dryRun ? [] : after,
+  };
+}
+
+function classifyStudent(app, letter, sourceHash) {
+  const gate = evaluateCompletionLetterIssueGate({ app });
+  if (!gate.allowed) {
+    return { eligible: false, skipReason: gate.skipReason };
   }
   if (letter?.status === 'issued') {
     if (!letterFileReady(letter)) {
@@ -258,9 +487,10 @@ async function loadScopeStudents(opportunityId, user, { search, issuanceStatus, 
 function summarizeStudents(students) {
   const eligible = students.filter(
     (row) =>
-      row.completion_eligibility_status === 'eligible' &&
+      officialMod().officialEligibilityFromApplication(row) === 'ELIGIBLE' &&
       completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS &&
       row.training_status !== 'expelled' &&
+      row.training_status !== 'failed' &&
       !row.expelled_at
   );
   const issued = students.filter((row) => row.already_issued || row.completion_letter_issued_at);
@@ -331,8 +561,10 @@ async function previewBulkIssue(opportunityId, user, { retryFailedIds = [], forc
     total_students: allStudents.length,
     eligible_students: allStudents.filter(
       (row) =>
-        row.completion_eligibility_status === 'eligible' &&
-        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS
+        officialMod().officialEligibilityFromApplication(row) === 'ELIGIBLE' &&
+        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS &&
+        row.training_status !== 'failed' &&
+        row.training_status !== 'expelled'
     ).length,
     letters_already_issued: allStudents.filter((row) => row.already_issued).length,
     letters_to_issue: toIssue.length,
@@ -340,8 +572,10 @@ async function previewBulkIssue(opportunityId, user, { retryFailedIds = [], forc
     total: allStudents.length,
     eligible: allStudents.filter(
       (row) =>
-        row.completion_eligibility_status === 'eligible' &&
-        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS
+        officialMod().officialEligibilityFromApplication(row) === 'ELIGIBLE' &&
+        completedHoursOf(row) >= MIN_COMPLETION_LETTER_HOURS &&
+        row.training_status !== 'failed' &&
+        row.training_status !== 'expelled'
     ).length,
     generated: 0,
     alreadyCurrent: allStudents.filter((row) => row.skip_reason === SKIP_REASONS.SOURCE_UNCHANGED).length,
@@ -400,7 +634,7 @@ async function buildLetterPayload(app, opp, userId) {
   return {
     studentId: app.student_id,
     applicationId: app.id,
-    studentName: student?.full_name || '—',
+    studentName: student?.full_name || 'غير محدد',
     universityNumber,
     universityName: student?.university?.name,
     specialtyName: student?.specialty?.name_ar || student?.specialty?.name_en || student?.university_specialty?.name_ar,
@@ -463,15 +697,13 @@ async function issueOne(applicationId, userId, user, { allowSkip = false, preloa
     await supervisorScope.assertReviewerCanAccessApplication(user, app);
   }
 
-  if (workflow.isExpelled(app)) {
-    throw new ApiError(400, 'لا يمكن إصدار كتاب لطالب مستبعد');
-  }
-
-  if (app.completion_eligibility_status !== 'eligible') {
-    throw new ApiError(400, 'الطالب غير مؤهل لإصدار كتاب الإنهاء', app.eligibility_reason, 'NO_ELIGIBLE_STUDENTS');
-  }
-  if (completedHoursOf(app) < MIN_COMPLETION_LETTER_HOURS) {
-    throw new ApiError(400, 'يجب إكمال 140 ساعة تدريبية على الأقل قبل إصدار كتاب الإنهاء');
+  const official = await officialMod().resolveFieldTrainingApprovedResult(applicationId, {
+    application: app,
+    opportunity: opp,
+  });
+  const gate = evaluateCompletionLetterIssueGate({ official, app });
+  if (!gate.allowed) {
+    throw new ApiError(400, gate.message, app.eligibility_reason, gate.code);
   }
 
   const payload = preloaded?.payload || (await buildLetterPayload(app, opp, userId));
@@ -678,7 +910,7 @@ async function processJob(jobId) {
           ? {
               studentId: app.student_id,
               applicationId: app.id,
-              studentName: student?.full_name || '—',
+              studentName: student?.full_name || 'غير محدد',
               universityNumber: resolveLetterUniversityNumber(student),
               universityName: student?.university?.name,
               specialtyName:
@@ -836,9 +1068,17 @@ function downloadHeaders(fileName, mimeType) {
 module.exports = {
   MIN_COMPLETION_LETTER_HOURS,
   SKIP_REASONS,
+  LETTER_GATE_CODES,
   skipLabel,
   classifyStudent,
   letterFileReady,
+  evaluateCompletionLetterIssueGate,
+  evaluateCompletionLetterDownloadGate,
+  buildLetterInvalidationMetadata,
+  invalidateActiveCompletionLettersForApplication,
+  syncCompletionLettersWithEligibility,
+  findIneligibleIssuedLetters,
+  remediateIneligibleCompletionLetters,
   listCompletionLetters,
   previewBulkIssue,
   issueOne,

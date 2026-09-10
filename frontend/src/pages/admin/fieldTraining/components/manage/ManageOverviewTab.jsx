@@ -12,6 +12,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../../../../../components/common/Button.jsx';
 import {
   formatFtDate,
+  formatFtDateRange,
+  FT_EMPTY,
   getOpportunitySpecialtyLabel,
 } from '../../../../../features/fieldTraining/index.js';
 import { BeneficiaryUniversitiesSection } from '../BeneficiaryUniversitiesSection.jsx';
@@ -21,7 +23,7 @@ function InfoItem({ label, value }) {
   return (
     <div className="ft-manage-info__item">
       <dt>{label}</dt>
-      <dd>{value ?? '—'}</dd>
+      <dd>{value ?? FT_EMPTY.unavailable}</dd>
     </div>
   );
 }
@@ -140,11 +142,7 @@ export function ManageOverviewTab({
           <InfoItem label={t('form.location')} value={opp?.location} />
           <InfoItem
             label={t('manageHub.info.dateRange')}
-            value={
-              opp?.start_date || opp?.end_date
-                ? `${formatFtDate(opp?.start_date) || '—'} — ${formatFtDate(opp?.end_date) || '—'}`
-                : null
-            }
+            value={formatFtDateRange(opp?.start_date, opp?.end_date)}
           />
           <InfoItem
             label={t('form.applicationDeadline')}

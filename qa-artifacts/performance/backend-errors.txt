@@ -1,0 +1,19 @@
+BATTECHNO LMS backend error log audit
+SSH denied. Container logs were not read.
+
+Live HTTP sample 2026-09-10T14:30:42Z to 14:30:59Z (auditor -> https://lms.battechno.com):
+- GET /health: 8/8 HTTP 200
+- GET /health/ready: 8/8 HTTP 200 {"status":"ready","database":"connected","db":true}
+- GET /api/auth/me (no token): HTTP 401 in 147ms (expected)
+- GET /api/v1/universities (no token): HTTP 401 in 109ms (expected)
+- HTTP 500/502/503/504: 0 in this window
+
+Code-level error/retry behavior (repository, not live logs):
+- withDbRetry: 3 attempts on Prisma transient errors (P1017, ECONNRESET, ETIMEDOUT, Neon connection closed)
+- JWT invalid -> 401 TOKEN_INVALID
+- Docker healthcheck uses /health (no DB) with 5s timeout
+- PDF renderer kills Chromium after 25s launch / 45s render; serialized pdfQueue on the API process
+- Axios 401 with Authorization header triggers frontend logout
+
+ECONNRESET / ETIMEDOUT / Prisma / OOM / uncaughtException counts: NEEDS_MORE_DATA
+HTTP 5xx historical counts: NEEDS_MORE_DATA

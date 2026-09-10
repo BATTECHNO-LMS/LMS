@@ -76,7 +76,7 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
       setMessage(
         t('page.zipSummary', {
           selected: meta.selected || selected.size,
-          included: meta.included || '—',
+          included: meta.included || 'غير متوفر',
           missing: meta.missing || '0',
           failed: meta.failed || '0',
         })
@@ -121,7 +121,7 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
         key: 'period',
         label: t('page.period'),
         render: (row) =>
-          row.trainingStart ? `${new Date(row.trainingStart).toLocaleDateString()} – ${row.trainingEnd ? new Date(row.trainingEnd).toLocaleDateString() : ''}` : '—',
+          row.trainingStart ? `${new Date(row.trainingStart).toLocaleDateString()} – ${row.trainingEnd ? new Date(row.trainingEnd).toLocaleDateString() : ''}` : 'غير متوفر',
       },
       { key: 'attendance', label: t('page.attendance') },
       { key: 'actualHours', label: t('page.hours') },
@@ -129,7 +129,7 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
         key: 'taskProgress',
         label: t('page.taskProgress'),
         render: (row) =>
-          row.task_progress?.display ? <TaskProgressBadge progress={row.task_progress} /> : '—',
+          row.task_progress?.display ? <TaskProgressBadge progress={row.task_progress} /> : 'غير متوفر',
       },
       { key: 'professionalTotal', label: t('page.professional') },
       { key: 'finalScore', label: t('page.finalScore') },
@@ -145,7 +145,7 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
               })}
             </StatusBadge>
           ) : (
-            '—'
+            'غير متوفر'
           ),
       },
       {
@@ -157,14 +157,14 @@ export function FieldTrainingEvaluationReportsPage({ mode = 'admin', apiScope })
               {t(`status.${row.finalStatus}`, { lng: i18n.language?.startsWith('ar') ? 'ar' : undefined })}
             </StatusBadge>
           ) : (
-            '—'
+            'غير متوفر'
           ),
       },
       { key: 'reportStatus', label: t('page.reportStatus') },
       {
         key: 'generatedAt',
         label: t('page.generatedAt'),
-        render: (row) => (row.generatedAt ? new Date(row.generatedAt).toLocaleString() : '—'),
+        render: (row) => (row.generatedAt ? new Date(row.generatedAt).toLocaleString() : 'غير متوفر'),
       },
       {
         key: 'actions',

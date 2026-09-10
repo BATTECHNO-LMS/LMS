@@ -8,7 +8,6 @@ const hoursMod = require('./fieldTraining.hours');
 const qualificationService = require('./fieldTraining.qualification.service');
 const {
   PROFESSIONAL_CRITERIA,
-  ACCEPTED_TASK_STATUSES,
 } = require('./fieldTrainingEvaluation.constants');
 const {
   LOGIN_ACTION,
@@ -17,6 +16,7 @@ const {
   CATEGORY,
 } = require('./fieldTraining.activityTranslate');
 const present = require('../../utils/fieldTraining.reportPresentation');
+const taskSemantics = require('./fieldTraining.taskSemantics');
 
 const ATTENDANCE_STATUS_AR = Object.freeze({
   present: 'حاضر',
@@ -30,8 +30,8 @@ const REVIEW_STATUS_AR = Object.freeze({
   approved: 'تم التقييم',
   graded: 'تم التقييم',
   submitted: 'مسلّم',
-  under_review: 'قيد المراجعة',
-  pending: 'لم يتم التقييم',
+  under_review: 'قيد التقييم',
+  pending: 'قيد التقييم',
   needs_revision: 'تحتاج إعادة تسليم',
   rejected: 'تحتاج إعادة تسليم',
   not_submitted: 'غير مسلّم',
@@ -334,24 +334,15 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
 
   const profile = profiles[0] || null;
   let publicQ = qualificationService.toPublicQualification(qualRow?.calculated);
-  const approvedMod = require('./fieldTraining.tafilaApprovedResult.service');
-  const approvedStored = app.eligibility_reason?.details?.approvedEvaluationResult || null;
-  if (approvedStored) {
-    publicQ = approvedMod.applyApprovedDisplayToQualification(
-      {
-        ...publicQ,
-        eligibilityReasonLabels: Array.isArray(app.eligibility_reason?.labelsAr)
-          ? app.eligibility_reason.labelsAr
-          : publicQ?.eligibilityReasonLabels,
-      },
-      {
-        ...(app.eligibility_reason?.details || {}),
-        labelsAr: app.eligibility_reason?.labelsAr,
-        approvedEvaluationResult: approvedStored,
-      },
-      app.opportunity_id
-    );
-  }
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const official = await officialMod.resolveFieldTrainingApprovedResult(applicationId, {
+    application: app,
+    opportunity: opp,
+    liveById: qualRow
+      ? new Map([[applicationId, qualRow]])
+      : undefined,
+  });
+  publicQ = officialMod.toPublicQualificationFromOfficial(official, publicQ);
   const calculated = qualRow?.calculated;
   const qualification = buildQualificationSummary(publicQ, calculated);
 
@@ -391,67 +382,49 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
   }
   const requiredTasks = tasks.filter((t) => t.is_required !== false);
   const approvedTaskDetails =
-    approvedStored?.approvedTaskEvaluation?.details ||
+    official?.approvedTaskEvaluation?.details ||
     publicQ?.approvedEvaluationResult?.approvedTaskEvaluation?.details ||
     [];
   const approvedByTaskId = Object.fromEntries(
     approvedTaskDetails.filter((d) => d.taskId).map((d) => [d.taskId, d])
   );
   const taskRows = requiredTasks.map((task) => {
-    const sub = subByTask.get(task.id);
-    const reviewStatus = sub?.review_status || (sub ? 'pending' : 'missing');
+    const sub = subByTask.get(task.id) || null;
     const approvedDetail =
       approvedByTaskId[task.id] ||
       approvedTaskDetails.find((d) => d.title && d.title === task.title) ||
       null;
-    const canonicalScore = sub?.manual_score != null ? Number(sub.manual_score) : null;
-    const isGraded = ['graded', 'approved'].includes(String(reviewStatus));
-    const approvedTaskScore =
-      canonicalScore != null && isGraded
-        ? canonicalScore
-        : approvedDetail?.approvedTaskScore != null
-          ? Number(approvedDetail.approvedTaskScore)
+    const overlayScore =
+      approvedDetail?.approvedTaskScore != null
+        ? Number(approvedDetail.approvedTaskScore)
+        : approvedDetail?.rawTaskScore != null
+          ? Number(approvedDetail.rawTaskScore)
           : null;
-    const submitted =
-      Boolean(sub) ||
-      approvedDetail?.submissionStatus === 'SUBMITTED' ||
-      ['submitted', 'under_review', 'graded', 'approved', 'needs_revision', 'pending'].includes(
-        String(reviewStatus)
-      );
+    const presented = taskSemantics.resolveTaskPresentation({
+      task,
+      submission: sub,
+      overlayScore: sub ? overlayScore : null,
+    });
     return {
       taskId: task.id,
       title: task.title,
       isFinalTask: Boolean(task.is_final_task),
       dueDate: task.due_date,
       dueDateLabelAr: formatDateAr(task.due_date),
-      reviewStatus,
-      submissionStatus: submitted
-        ? approvedDetail?.submissionStatus || (isGraded ? 'SUBMITTED' : reviewStatus)
-        : 'NOT_SUBMITTED',
-      submissionStatusLabelAr: submitted
-        ? 'مسلّم'
-        : 'غير مسلّم',
-      reviewStatusLabelAr: isGraded
-        ? 'تم التقييم'
-        : submitted
-          ? REVIEW_STATUS_AR[reviewStatus] || 'لم يتم التقييم'
-          : 'لم يتم التقييم',
-      submittedAt: sub?.submitted_at || null,
-      submittedAtLabelAr: formatDateAr(sub?.submitted_at),
-      isLate: Boolean(sub?.is_late),
-      score: canonicalScore,
-      rawTaskScore:
-        approvedDetail?.rawTaskScore != null
-          ? Number(approvedDetail.rawTaskScore)
-          : canonicalScore,
-      approvedTaskScore,
-      approvedSourceLabelAr: submitted
-        ? present.labelSourceHuman(
-            approvedDetail?.source || (isGraded ? 'AUTHORIZED_MANUAL_REVIEW' : null)
-          )
-        : null,
-      maxScore: sub?.max_score != null ? Number(sub.max_score) : canonicalScore != null ? 100 : null,
-      accepted: isGraded || ACCEPTED_TASK_STATUSES.includes(reviewStatus),
+      reviewStatus: presented.reviewStatus || 'missing',
+      submissionStatus: presented.submitted ? 'SUBMITTED' : 'NOT_SUBMITTED',
+      submissionStatusLabelAr: presented.submissionLabelAr,
+      reviewStatusLabelAr: presented.evaluationLabelAr,
+      overallLabelAr: presented.overallLabelAr,
+      submittedAt: presented.submittedAt,
+      submittedAtLabelAr: presented.submittedAt ? formatDateAr(presented.submittedAt) : 'لا يوجد',
+      isLate: presented.isLate,
+      timingLabelAr: presented.timingLabelAr,
+      score: presented.score,
+      approvedTaskScore: presented.score,
+      maxScore: presented.maxScore,
+      accepted: presented.completed,
+      approvedSourceLabelAr: null,
     };
   });
 
@@ -543,8 +516,10 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
       statusLabelAr: present.labelApplicationStatus(app.status),
       trainingStatus: app.training_status,
       trainingStatusLabelAr: present.labelTrainingStatus(app.training_status),
-      eligibilityStatus: app.completion_eligibility_status,
-      eligibilityStatusLabelAr: present.labelEligibilityStatus(app.completion_eligibility_status),
+      eligibilityStatus: official?.eligibilityDb || app.completion_eligibility_status,
+      eligibilityStatusLabelAr: present.labelEligibilityStatus(
+        official?.eligibilityDb || app.completion_eligibility_status
+      ),
       academicSupervisorName: app.academic_supervisor_name || null,
     },
     eligibility: qualification,
@@ -567,11 +542,13 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
       sessions: sessionDetails,
     },
     tasks: {
-      requiredCount: taskRows.length,
+      requiredCount: official?.requiredTaskCount ?? taskRows.length,
       completedCount: taskRows.filter((t) => t.accepted).length,
-      submittedCount: taskRows.filter(
-        (t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing'
-      ).length,
+      submittedCount:
+        official?.submittedTaskCount ??
+        taskRows.filter(
+          (t) => t.submissionStatus !== 'NOT_SUBMITTED' && t.submissionStatus !== 'missing'
+        ).length,
       items: taskRows,
     },
     assessments: {
@@ -583,7 +560,8 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
       professionalTotal: calculated?.professionalTotal ?? null,
       professionalMax: 50,
       professionalPercentage: calculated?.professionalPercentage ?? null,
-      behaviorPoints: publicQ?.scoreComponents?.behavior?.points ?? null,
+      behaviorPoints:
+        official?.behaviorPoints ?? publicQ?.scoreComponents?.behavior?.points ?? null,
       behaviorMax: publicQ?.scoreComponents?.behavior?.maxPoints ?? 20,
       ratedAt: ratings[0]?.rated_at || null,
       ratedAtLabelAr: formatDateAr(ratings[0]?.rated_at),
@@ -675,7 +653,7 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   const postPts = breakdown.postAssessmentPoints ?? components.postAssessment?.points;
   const taskPts = breakdown.taskPoints ?? components.tasks?.points;
   const behPts = breakdown.behaviorPoints ?? components.behavior?.points;
-  const finalScore = q.finalScore ?? q.approvedEvaluationResult?.approvedFinalScore;
+  const finalScore = q.finalScore;
   const passing = q.passingScore ?? scoring.passingScore ?? 80;
   const status =
     q.workflowOutcome ||
@@ -701,15 +679,14 @@ function renderComprehensiveReportHtml(report, assets = {}) {
   const gradedCount = (tasks.items || []).filter((t) => t.accepted).length;
 
   const taskRows = (tasks.items || []).map((task) => {
-    const hasGrade = task.approvedTaskScore != null || task.score != null;
-    const grade = hasGrade
-      ? present.scoreHtml(task.approvedTaskScore ?? task.score, task.maxScore ?? 100, 'لا توجد')
-      : esc('لا توجد');
+    const grade =
+      task.approvedTaskScore != null
+        ? present.scoreHtml(task.approvedTaskScore, task.maxScore ?? 100, 'لا توجد')
+        : esc('لا توجد');
     return [
       task.title,
       task.submissionStatusLabelAr || (task.accepted ? 'مسلّم' : 'غير مسلّم'),
-      task.reviewStatusLabelAr ||
-        (task.accepted ? 'تم التقييم' : hasGrade ? 'تم التقييم' : 'لم يتم التقييم'),
+      task.reviewStatusLabelAr || (task.accepted ? 'تم التقييم' : 'لم يتم التقييم'),
       grade,
       task.submittedAtLabelAr || 'لا يوجد',
     ];
@@ -783,6 +760,9 @@ function renderComprehensiveReportHtml(report, assets = {}) {
       -webkit-font-smoothing: antialiased;
     }
     h1, h2, h3 { color: var(--color-primary); font-weight: 700; }
+    .cover h1, .cover h2, .cover h3, .cover .cover__title, .cover .cover__title span {
+      color: #ffffff !important;
+    }
     .cover {
       min-height: 980px;
       background: linear-gradient(160deg, #0e2136 0%, #132d4a 45%, #1e5a8a 100%);
@@ -902,8 +882,8 @@ function renderComprehensiveReportHtml(report, assets = {}) {
       ['الجامعة', report.student?.university, 'غير محدد'],
       ['التخصص', report.student?.specialty, 'غير محدد'],
       ['المشرف الأكاديمي', report.application?.academicSupervisorName, 'غير محدد'],
-      ['حالة الطلب', report.application?.statusLabelAr || present.labelApplicationStatus(report.application?.status)],
       ['حالة التدريب', report.application?.trainingStatusLabelAr || present.labelTrainingStatus(report.application?.trainingStatus)],
+      ['نتيجة التدريب', present.labelEligibilityStatus(status)],
     ]),
     'identity'
   )}

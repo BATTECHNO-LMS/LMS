@@ -417,28 +417,28 @@ export function AdminFieldTrainingPage() {
       <AdminStatsGrid>
         <StatCard
           label={t('adminKpi.total')}
-          value={statsLoading ? '—' : kpis.total}
+          value={statsLoading ? '…' : kpis.total}
           hint={t('adminKpi.totalHint')}
           meta={t('adminKpi.liveData')}
           icon={Briefcase}
         />
         <StatCard
           label={t('adminKpi.published')}
-          value={statsLoading ? '—' : kpis.published}
+          value={statsLoading ? '…' : kpis.published}
           hint={t('adminKpi.publishedHint')}
           meta={t('adminKpi.liveData')}
           icon={ClipboardList}
         />
         <StatCard
           label={t('adminKpi.draft')}
-          value={statsLoading ? '—' : kpis.draft}
+          value={statsLoading ? '…' : kpis.draft}
           hint={t('adminKpi.draftHint')}
           meta={t('adminKpi.liveData')}
           icon={Pencil}
         />
         <StatCard
           label={t('adminKpi.totalApplications')}
-          value={statsLoading ? '—' : kpis.totalApps}
+          value={statsLoading ? '…' : kpis.totalApps}
           hint={t('adminKpi.totalApplicationsHint')}
           meta={t('adminKpi.liveData')}
           icon={Users}
@@ -706,7 +706,7 @@ export function AdminFieldTrainingPage() {
                       <ClipboardList size={14} />
                     </span>
                     <span>
-                      {t('table.seats')}: {r.seats_limit != null ? r.seats_limit : '—'}
+                      {t('table.seats')}: {r.seats_limit != null ? r.seats_limit : 'غير متوفر'}
                     </span>
                   </div>
                   <div className="ft-admin-opp-card__info-item">
@@ -714,9 +714,9 @@ export function AdminFieldTrainingPage() {
                       <Calendar size={14} />
                     </span>
                     <span>
-                      {t('form.startDate')}: {formatFtDate(r.start_date) ?? '—'}
+                      {t('form.startDate')}: {formatFtDate(r.start_date) ?? 'غير متوفر'}
                       {' · '}
-                      {t('form.endDate')}: {formatFtDate(r.end_date) ?? '—'}
+                      {t('form.endDate')}: {formatFtDate(r.end_date) ?? 'غير متوفر'}
                     </span>
                   </div>
                   {r.applications_by_university?.length ? (
@@ -726,7 +726,7 @@ export function AdminFieldTrainingPage() {
                       </span>
                       <span>
                         {r.applications_by_university
-                          .map((row) => `${row.name ?? '—'}: ${row.count}`)
+                          .map((row) => `${row.name ?? 'غير متوفر'}: ${row.count}`)
                           .join(' · ')}
                       </span>
                     </div>
@@ -736,7 +736,7 @@ export function AdminFieldTrainingPage() {
                       <Calendar size={14} />
                     </span>
                     <span>
-                      {t('form.applicationDeadline')}: {formatFtDate(r.application_deadline) ?? '—'}
+                      {t('form.applicationDeadline')}: {formatFtDate(r.application_deadline) ?? 'غير متوفر'}
                     </span>
                   </div>
                   <div className="ft-admin-opp-card__info-item">
@@ -744,7 +744,7 @@ export function AdminFieldTrainingPage() {
                       <Calendar size={14} />
                     </span>
                     <span>
-                      {t('table.updated')}: {formatFtDate(r.updated_at) ?? '—'}
+                      {t('table.updated')}: {formatFtDate(r.updated_at) ?? 'غير متوفر'}
                     </span>
                   </div>
                 </div>

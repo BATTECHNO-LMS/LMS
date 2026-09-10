@@ -6,6 +6,7 @@ const { recordAudit } = require('../../utils/auditRecorder');
 const { isSystemWideAdmin } = require('../../utils/universityScope');
 const { normalizeRoleCodes } = require('../../utils/roleCanon');
 const { normalizeEmailDomain } = require('../../utils/normalizeEmailDomain');
+const { invalidateAuthContextForUser } = require('../auth/authContextCache');
 
 function assertSuperAdmin(user) {
   if (!isSystemWideAdmin(user) && !normalizeRoleCodes(user?.roles || []).includes('super_admin')) {
@@ -126,6 +127,7 @@ async function assignReviewerUniversity({
     return row;
   });
 
+  invalidateAuthContextForUser(reviewerUserId);
   return result;
 }
 
@@ -196,6 +198,7 @@ async function deactivateReviewerAssignments(reviewerUserId) {
     where: { reviewer_user_id: reviewerUserId, is_active: true },
     data: { is_active: false, updated_at: new Date() },
   });
+  invalidateAuthContextForUser(reviewerUserId);
 }
 
 async function adminDeactivateReviewerAssignment(actor, reviewerUserId) {

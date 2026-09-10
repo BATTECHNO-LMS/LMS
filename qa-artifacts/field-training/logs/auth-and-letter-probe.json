@@ -1,0 +1,44 @@
+﻿{
+  "generatedAt": "2026-09-10T07:58:22.270Z",
+  "accounts": [
+    {
+      "email": "superadmin@batuni.edu",
+      "exists": true,
+      "status": "active",
+      "pwdMatchesDefaultOrQa": true,
+      "hasUniversity": true
+    },
+    {
+      "email": "admin@batuni.edu",
+      "exists": false
+    },
+    {
+      "email": "reviewer@batuni.edu",
+      "exists": true,
+      "status": "active",
+      "pwdMatchesDefaultOrQa": true,
+      "hasUniversity": true
+    }
+  ],
+  "lettersForNonEligible": [
+    {
+      "letter_id": "2a5da3ec-e6fb-4517-bfa5-39fce5463e68",
+      "application_id": "76e405f3-a708-411a-9b86-3943434c5f6a",
+      "eligibility": "ineligible",
+      "training_status": "post_assessment_pending",
+      "uni": null,
+      "opportunity_id": "6c8783ec-49fd-428e-83e2-8b65e52c3b4f",
+      "issued_at": "2026-08-08T14:39:24.823Z"
+    },
+    {
+      "letter_id": "5a0b7697-d047-422c-a634-6f83e7048a28",
+      "application_id": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+      "eligibility": "ineligible",
+      "training_status": "completed",
+      "uni": "320230601066",
+      "opportunity_id": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+      "issued_at": "2026-09-07T14:54:23.677Z"
+    }
+  ],
+  "completedButIneligibleCount": 1
+}

@@ -9,6 +9,7 @@ const labels = require('./fieldTrainingReport.labels');
 const dates = require('./fieldTrainingReport.dates');
 const aggregations = require('./fieldTrainingReport.aggregations');
 const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
+const taskSemantics = require('./fieldTraining.taskSemantics');
 
 function parseDateFilter(filters = {}) {
   const where = {};
@@ -463,6 +464,15 @@ async function buildUniversityReport(universityId, filters = {}) {
     postAttemptByApp.set(attempt.application_id, attempt);
   }
 
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const officialRows = await officialMod.resolveFieldTrainingApprovedResults(
+    apps.map((app) => app.id),
+    { applications: apps }
+  );
+  const officialByApp = new Map(
+    officialRows.filter(Boolean).map((row) => [row.applicationId, row])
+  );
+
   const students = apps.map((app) => {
     const profile = profileById[app.student_id];
     const opp = oppById[app.opportunity_id];
@@ -489,6 +499,10 @@ async function buildUniversityReport(universityId, filters = {}) {
     const taskCompletion =
       progress.status === 'no_required_tasks' ? null : taskTotal > 0 ? metrics.rate(taskDone, taskTotal) : null;
     const scheduled = scheduledHoursForOpportunity(sessionsByOpp.get(app.opportunity_id) || []);
+    const official = officialByApp.get(app.id);
+    const eligibilityStatus = official?.eligibilityDb || app.completion_eligibility_status;
+    const letterIssued =
+      official?.eligibility === 'ELIGIBLE' && Boolean(app.completion_letter_issued_at);
     const eligibilityReasons = extractEligibilityReasons(app);
     const progressPct =
       hours.hours_completion_percentage != null
@@ -545,14 +559,21 @@ async function buildUniversityReport(universityId, filters = {}) {
       task_progress: progress,
       pending_grading: pendingGrading,
       final_task_status: app.final_task_status,
-      eligibility_status: app.completion_eligibility_status,
-      eligibility_status_label: labels.labelOf(labels.ELIGIBILITY_AR, app.completion_eligibility_status),
+      eligibility_status: eligibilityStatus,
+      eligibility_status_label: labels.labelOf(labels.ELIGIBILITY_AR, eligibilityStatus),
       eligibility_reasons: eligibilityReasons,
-      completion_letter_status: app.completion_letter_issued_at ? 'issued' : 'not_issued',
+      completion_letter_status: letterIssued ? 'issued' : 'not_issued',
       completion_letter_status_label: labels.labelOf(
         labels.CERTIFICATE_AR,
-        app.completion_letter_issued_at ? 'issued' : 'not_issued'
+        letterIssued ? 'issued' : 'not_issued'
       ),
+      official_final_score: official?.finalScore ?? null,
+      official_attendance_points: official?.attendancePoints ?? null,
+      official_post_points: official?.postPoints ?? null,
+      official_task_points: official?.taskPoints ?? null,
+      official_behavior_points: official?.behaviorPoints ?? null,
+      submitted_task_count: official?.submittedTaskCount ?? progress.submitted_required ?? null,
+      required_task_count: official?.requiredTaskCount ?? progress.total_required ?? null,
       submitted_at: app.created_at,
       progress_percentage: progressPct,
       risk_severity: pendingGrading || eligibilityReasons.length ? 'متابعة' : null,
@@ -672,7 +693,11 @@ function buildTimeline(app, opp, sessions, submissions, letter, attempts) {
       events.push({
         at: session.attendance?.recorded_at ?? session.session_date,
         key: `session_${session.attendance?.status ?? 'recorded'}`,
-        label_ar: `جلسة: ${session.title} (${session.attendance?.status ?? '—'})`,
+        label_ar: `جلسة: ${session.title} (${labels.labelOf(
+          labels.ATTENDANCE_STATUS_AR,
+          session.attendance?.status,
+          'غير محدد'
+        )})`,
       });
     }
   }
@@ -925,11 +950,20 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     caveat: 'لا يُفسَّر الفرق على أنه أثر سببي للتدريب.',
   };
 
-  const letterIssued = Boolean(letter?.issued_at || app.completion_letter_issued_at);
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const official = await officialMod.resolveFieldTrainingApprovedResult(applicationId, {
+    application: app,
+    opportunity: opp,
+  });
+
+  const letterIssued =
+    Boolean(letter?.issued_at || app.completion_letter_issued_at) &&
+    letter?.status === 'issued' &&
+    officialMod.isOfficiallyEligible(official);
   const completed = app.training_status === 'completed';
   const certificateStatus = letterIssued
     ? 'issued'
-    : app.completion_eligibility_status === 'ineligible'
+    : official?.eligibility === 'NOT_ELIGIBLE' || app.completion_eligibility_status === 'ineligible'
       ? 'not_eligible'
       : 'not_issued';
   const scheduledHours = scheduledHoursForOpportunity(sessions);
@@ -945,9 +979,12 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     { key: 'assessments', label: 'الاختبارات المطلوبة', state: assessmentState, label_ar: metrics.requirementLabel(assessmentState) },
     (() => {
       const eligibilityState =
-        app.completion_eligibility_status === 'eligible'
+        official?.eligibility === 'ELIGIBLE' || app.completion_eligibility_status === 'eligible'
           ? 'complete'
-          : app.completion_eligibility_status === 'pending' || app.completion_eligibility_status === 'needs_review'
+          : official?.eligibility === 'PENDING' ||
+            official?.eligibility === 'NEEDS_REVIEW' ||
+            app.completion_eligibility_status === 'pending' ||
+            app.completion_eligibility_status === 'needs_review'
             ? 'pending'
             : opp.requires_post_assessment || opp.requires_final_task
               ? 'incomplete'
@@ -971,7 +1008,7 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     hoursState,
     tasksState,
     assessmentState,
-    eligibilityStatus: app.completion_eligibility_status,
+    eligibilityStatus: official?.eligibilityDb || app.completion_eligibility_status,
   });
 
   const overallProgress =
@@ -1110,12 +1147,18 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
     submissions: submissions.map((sub) => ({
       ...sub,
       review_status_label: labels.labelOf(labels.TASK_REVIEW_AR, sub.review_status),
+      submission_status_label: taskSemantics.SUBMISSION_LABEL_AR.submitted,
+      evaluation_status_label: taskSemantics.resolveTaskPresentation({
+        task: { id: sub.task_id, title: sub.task_title },
+        submission: sub,
+      }).evaluationLabelAr,
       required: Boolean(sub.is_final_task) || true,
     })),
+    task_items: taskSemantics.presentOpportunityTasks(tasks, submissions),
     tasks_required: requiredTaskProgress.status !== 'no_required_tasks',
     completion_eligibility: {
-      status: app.completion_eligibility_status,
-      status_label: labels.labelOf(labels.ELIGIBILITY_AR, app.completion_eligibility_status),
+      status: official?.eligibilityDb || app.completion_eligibility_status,
+      status_label: labels.labelOf(labels.ELIGIBILITY_AR, official?.eligibilityDb || app.completion_eligibility_status),
       reason: app.eligibility_reason,
       missing_requirements: missingRequirements,
       attendance_rule: minAttendance == null || attendancePct == null ? null : attendancePct >= minAttendance,
@@ -1130,16 +1173,18 @@ async function buildStudentDetailedReport(applicationId, options = {}) {
             (opp.minimum_post_assessment_score == null ||
               postScore >= Number(opp.minimum_post_assessment_score))
           : null,
+      official_result: officialMod.toOfficialSnapshot(official),
     },
+    official_result: official,
     requirements,
     completion_decision: {
       final_status: app.training_status,
       final_status_label: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
-      eligibility: app.completion_eligibility_status,
+      eligibility: official?.eligibilityDb || app.completion_eligibility_status,
       completion_date: completed ? app.updated_at : null,
       missing_requirements: missingRequirements,
     },
-    completion_letter: letter
+    completion_letter: letterIssued
       ? {
           issued: true,
           letter_no: letter.letter_no,

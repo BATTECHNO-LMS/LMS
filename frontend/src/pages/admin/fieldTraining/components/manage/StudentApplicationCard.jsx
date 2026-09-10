@@ -132,7 +132,7 @@ export function StudentApplicationCard({ app, t, i18n, onOpen, onApprove, onReje
         </span>
         <span>
           <Clock size={14} aria-hidden />
-          {formatFtDate(app.created_at) ?? '—'}
+          {formatFtDate(app.created_at) ?? 'غير متوفر'}
         </span>
         <span>
           <UserRound size={14} aria-hidden />

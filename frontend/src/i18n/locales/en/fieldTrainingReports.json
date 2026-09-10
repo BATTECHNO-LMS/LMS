@@ -1,6 +1,6 @@
 {
   "hub": {
-    "title": "Field training — university dashboard",
+    "title": "Field training: university dashboard",
     "description": "Stats, applications, and reports for your university only.",
     "applicationsLink": "University applications",
     "opportunitiesLink": "Training opportunities",
@@ -38,7 +38,7 @@
     "description": "Opportunities where your university is a beneficiary.",
     "listTitle": "Eligible opportunities",
     "detailTitle": "Opportunity detail",
-    "detailDescription": "Only students from your university — no write actions.",
+    "detailDescription": "Only students from your university, with no write actions.",
     "backToList": "Back to opportunities",
     "universityStudentsOnly": "University students in this opportunity"
   },
@@ -297,7 +297,7 @@
   "roleBanner": {
     "reviewer": {
       "title": "University reviewer",
-      "subtitle": "Report viewing — read only"
+      "subtitle": "Report viewing, read only"
     },
     "admin": {
       "title": "University administrator",

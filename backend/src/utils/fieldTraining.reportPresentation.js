@@ -7,6 +7,7 @@
 
 const EM_DASH = '\u2014';
 const EN_DASH = '\u2013';
+const taskSemantics = require('../modules/fieldTraining/fieldTraining.taskSemantics');
 
 const APPLICATION_STATUS_AR = Object.freeze({
   pending: 'قيد المراجعة',
@@ -27,8 +28,8 @@ const TRAINING_STATUS_AR = Object.freeze({
   post_assessment_completed: 'اكتمل الاختبار البعدي',
   eligible_for_completion: 'مؤهل للإنهاء',
   completed: 'مكتمل',
-  failed: 'غير مكتمل',
-  expelled: 'مستبعد',
+  failed: 'لم يجتز',
+  expelled: 'مستبعد من التدريب',
 });
 
 const ELIGIBILITY_STATUS_AR = Object.freeze({
@@ -41,12 +42,15 @@ const ELIGIBILITY_STATUS_AR = Object.freeze({
 
 const SOURCE_HUMAN_AR = Object.freeze({
   AUTHORIZED_MANUAL_REVIEW: 'مراجعة واعتماد نهائي',
-  AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'مراجعة واعتماد نهائي',
-  AUTHORIZED_MANUAL_REVIEW_TASK_NORMALIZATION: 'مراجعة واعتماد نهائي',
+  AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'نتيجة معتمدة بعد المراجعة',
+  AUTHORIZED_MANUAL_REVIEW_TASK_NORMALIZATION: 'نتيجة معتمدة بعد المراجعة',
   EXCEL_BASELINE: 'النتيجة النهائية المعتمدة',
   AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE: 'قرار إداري معتمد',
   AUTHORIZED_GRADE_OVERRIDE: 'قرار إداري معتمد',
   VERIFIED_RECALCULATION_FROM_LMS_EVIDENCE: 'النتيجة النهائية المعتمدة',
+  CURRENT_QUALIFICATION: 'النتيجة النهائية المعتمدة',
+  LEGACY_QUALIFICATION: 'النتيجة النهائية المعتمدة',
+  APPROVED_EVALUATION_RESULT: 'النتيجة النهائية المعتمدة',
   NUMERIC_GRADE: 'مراجعة واعتماد نهائي',
   MISSING_OR_NOT_ACCEPTED: null,
 });
@@ -73,7 +77,7 @@ function stripLongDashes(value) {
 function isBlank(value) {
   if (value == null) return true;
   const s = String(value).trim();
-  return !s || s === EM_DASH || s === EN_DASH || s === '-' || s === '—';
+  return !s || s === EM_DASH || s === EN_DASH || s === '-' || s === '—' || s === 'undefined' || s === 'null';
 }
 
 function displayValue(value, fallback = 'غير متوفر') {
@@ -252,6 +256,16 @@ function assertNoForbiddenPresentation(text) {
   return findings;
 }
 
+function labelTaskSubmission(state) {
+  const key = String(state || '').trim().toLowerCase();
+  return taskSemantics.SUBMISSION_LABEL_AR[key] || taskSemantics.SUBMISSION_LABEL_AR.not_submitted;
+}
+
+function labelTaskEvaluation(state) {
+  const key = String(state || '').trim().toLowerCase();
+  return taskSemantics.EVALUATION_LABEL_AR[key] || taskSemantics.EVALUATION_LABEL_AR.not_evaluated;
+}
+
 module.exports = {
   EM_DASH,
   APPLICATION_STATUS_AR,
@@ -271,6 +285,8 @@ module.exports = {
   labelTrainingStatus,
   labelEligibilityStatus,
   labelSourceHuman,
+  labelTaskSubmission,
+  labelTaskEvaluation,
   sanitizeVisibleText,
   cleanSessionTitle,
   isEligibleStatus,

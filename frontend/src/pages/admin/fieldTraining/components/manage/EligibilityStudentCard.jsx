@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, ChevronDown, ChevronUp, FileText, RefreshCw, XCircle } from 'lucide-react';
 import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
 import { Button } from '../../../../../components/common/Button.jsx';
+import { formatCountOf, formatScore, resolveTaskPresentation } from '../../../../../features/fieldTraining/fieldTrainingTaskSemantics.js';
 
 function eligibilityVariant(status) {
   if (status === 'eligible') return 'success';
@@ -11,11 +12,8 @@ function eligibilityVariant(status) {
   return 'muted';
 }
 
-function formatPoints(value, max) {
-  if (value == null || value === '') return '—';
-  const n = Number(value);
-  if (!Number.isFinite(n)) return '—';
-  return `${n} / ${max}`;
+function formatPoints(value, max, empty = 'غير متوفر') {
+  return formatScore(value, max, empty);
 }
 
 function GateIcon({ ok }) {
@@ -51,8 +49,9 @@ export function EligibilityStudentCard({
   recalcPending,
 }) {
   const [showTasks, setShowTasks] = useState(false);
-  const status =
-    row.training_status === 'expelled' ? 'expelled' : row.eligibility_status || 'pending';
+  const eligibilityStatus = row.eligibility_status || 'pending';
+  const status = eligibilityStatus;
+  const trainingStatus = row.training_status || null;
   const q = row.qualification || {};
   const components = q.scoreComponents || {};
   const gates = q.mandatoryRequirements || {};
@@ -94,7 +93,7 @@ export function EligibilityStudentCard({
     apiScope === 'instructor'
       ? `/instructor/field-training/${opportunityId}/students/${row.application_id}/report`
       : `/admin/field-training/${opportunityId}/students/${row.application_id}/report`;
-  const canRecalc = row.training_status !== 'expelled';
+  const canRecalc = row.training_status !== 'expelled' && apiScope !== 'reviewer';
   const isEligible = status === 'eligible';
   const zeroParticipation = Boolean(q.zeroParticipationApplied);
   const hasApprovedResult = Boolean(q.approvedEvaluationResult);
@@ -104,12 +103,14 @@ export function EligibilityStudentCard({
     components.tasks?.submittedCount ??
     row.task_progress?.submitted_required ??
     null;
-  const rawTasksLabel =
-    taskAccepted != null && taskRequired != null
-      ? `${taskAccepted} / ${taskRequired}`
-      : submittedTasks != null && taskRequired != null
-        ? `${submittedTasks} / ${taskRequired}`
-        : '—';
+  const evaluatedTasks =
+    row.task_progress?.evaluated_required ??
+    components.tasks?.acceptedCount ??
+    taskAccepted;
+  const tasksCountLabel =
+    submittedTasks != null && taskRequired != null
+      ? formatCountOf(submittedTasks, taskRequired)
+      : t('common.unavailable', 'غير متوفر');
   const tasksGateOk = approvedEligible
     ? true
     : gates.requiredTasksCompleted ??
@@ -130,17 +131,20 @@ export function EligibilityStudentCard({
       <header className="ft-elig-card__header">
         <div className="ft-elig-card__identity">
           <h3 className="ft-elig-card__name">{row.student_name}</h3>
-          <p className="ft-elig-card__uni">{row.student_university || '—'}</p>
-          <p className="ft-elig-card__spec">{row.student_university_specialty_label || '—'}</p>
+          <p className="ft-elig-card__uni">{row.student_university || t('common.unspecified', 'غير محدد')}</p>
+          <p className="ft-elig-card__spec">{row.student_university_specialty_label || t('common.unspecified', 'غير محدد')}</p>
           <p className="ft-elig-card__num">
-            {t('eligibilityCard.universityNumber')}: {row.university_student_number || '—'}
+            {t('eligibilityCard.universityNumber')}: {row.university_student_number || t('common.unavailable', 'غير متوفر')}
           </p>
         </div>
         <div className="ft-elig-card__badges">
+          {trainingStatus && trainingStatus !== 'none' ? (
+            <StatusBadge variant={trainingStatusVariant(trainingStatus)}>
+              {t('outcomeSemantics.trainingStatus')}: {t(`trainingStatus.${trainingStatus}`, trainingStatus)}
+            </StatusBadge>
+          ) : null}
           <StatusBadge variant={eligibilityVariant(status)}>
-            {status === 'expelled'
-              ? t('trainingStatus.expelled')
-              : t(`eligibility.${status}`, status)}
+            {t('outcomeSemantics.eligibilityResult')}: {t(`eligibility.${status}`, status)}
           </StatusBadge>
           {zeroParticipation ? (
             <StatusBadge variant="warning">{t('eligibilityCard.zeroParticipationBadge')}</StatusBadge>
@@ -166,8 +170,8 @@ export function EligibilityStudentCard({
               ? t('eligibilityCard.approvedScore')
               : t('scoreBreakdown.finalScore')}
           </span>
-          <strong>
-            {finalScore != null ? `${finalScore} / 100` : '— / 100'}
+          <strong dir="ltr">
+            {finalScore != null ? formatScore(finalScore, 100) : t('common.unavailable', 'غير متوفر')}
           </strong>
         </div>
         {q.approvedSourceLabelAr || q.approvedEvaluationResult?.sourceLabelAr ? (
@@ -187,23 +191,23 @@ export function EligibilityStudentCard({
         <dl className="ft-elig-card__breakdown">
           <div>
             <dt>{t('eligibilityCard.attendancePoints')}</dt>
-            <dd>{formatPoints(attendancePts, 20)}</dd>
+            <dd dir="ltr">{formatPoints(attendancePts, 20)}</dd>
           </div>
           <div>
             <dt>{t('eligibilityCard.postPoints')}</dt>
-            <dd>{formatPoints(postPts, 20)}</dd>
+            <dd dir="ltr">{formatPoints(postPts, 20)}</dd>
           </div>
           <div>
             <dt>{t('eligibilityCard.tasksPoints')}</dt>
-            <dd>{formatPoints(taskPts, 40)}</dd>
+            <dd dir="ltr">{formatPoints(taskPts, 40)}</dd>
           </div>
           <div>
             <dt>{t('eligibilityCard.behaviorPoints')}</dt>
-            <dd>{formatPoints(behaviorPts, 20)}</dd>
+            <dd dir="ltr">{formatPoints(behaviorPts, 20)}</dd>
           </div>
           <div className="ft-elig-card__total">
             <dt>{t('eligibilityCard.total')}</dt>
-            <dd>{finalScore != null ? `${finalScore} / 100` : '— / 100'}</dd>
+            <dd dir="ltr">{finalScore != null ? formatScore(finalScore, 100) : t('common.unavailable', 'غير متوفر')}</dd>
           </div>
         </dl>
       </section>
@@ -218,7 +222,7 @@ export function EligibilityStudentCard({
                 ? t('eligibilityCard.evaluationAttendance')
                 : t('progress.attendance')}
             </span>
-            <strong>{evalAttendance != null ? `${evalAttendance}%` : '—'}</strong>
+            <strong>{evalAttendance != null ? `${evalAttendance}%` : t('common.unavailable', 'غير متوفر')}</strong>
           </li>
           {zeroParticipation && recordedAttendance != null && Number(recordedAttendance) !== 0 ? (
             <li>
@@ -229,12 +233,12 @@ export function EligibilityStudentCard({
           <li>
             <GateIcon ok={gates.hoursRequirementMet ?? (hoursCompleted != null && hoursRequired != null ? hoursCompleted >= hoursRequired : null)} />
             <span>{t('hours.title')}</span>
-            <strong>
+            <strong dir="ltr">
               {hoursCompleted != null && hoursRequired != null
-                ? `${hoursCompleted} / ${hoursRequired}`
+                ? formatCountOf(hoursCompleted, hoursRequired)
                 : hoursCompleted != null
                   ? hoursCompleted
-                  : '—'}
+                  : t('common.unavailable', 'غير متوفر')}
             </strong>
           </li>
           <li>
@@ -247,13 +251,13 @@ export function EligibilityStudentCard({
             <strong>
               {approvedEligible && taskPts != null
                 ? `${taskPts} / 40`
-                : rawTasksLabel}
+                : tasksCountLabel}
             </strong>
           </li>
-          {approvedEligible && rawTasksLabel !== '—' ? (
+          {approvedEligible && tasksCountLabel !== t('common.unavailable', 'غير متوفر') ? (
             <li>
               <span>{t('eligibilityCard.recordedTasksSubmissions')}</span>
-              <strong>{rawTasksLabel}</strong>
+              <strong>{tasksCountLabel}</strong>
             </li>
           ) : null}
           <li>
@@ -280,7 +284,7 @@ export function EligibilityStudentCard({
             <strong>
               {components.behavior?.professionalTotal != null
                 ? `${components.behavior.professionalTotal} / 50`
-                : '—'}
+                : t('common.unavailable', 'غير متوفر')}
             </strong>
           </li>
         </ul>
@@ -292,22 +296,45 @@ export function EligibilityStudentCard({
             </button>
             {showTasks ? (
               <ul className="ft-elig-card__task-list">
-                {taskDetails.map((task, idx) => (
-                  <li key={task.taskId || idx}>
-                    <span>{task.title || t('scoreBreakdown.untitledTask')}</span>
-                    <strong>
-                      {task.submissionStatus === 'SUBMITTED' || task.accepted
-                        ? `${t('eligibilityCard.completed')} — ${
-                            task.approvedTaskScore != null
-                              ? `${task.approvedTaskScore}/100`
-                              : task.normalizedPercent != null
-                                ? `${task.normalizedPercent}/100`
-                                : '—'
-                          }`
-                        : t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')}
-                    </strong>
-                  </li>
-                ))}
+            {taskDetails.map((task, idx) => {
+              const hasLmsEvidence = Boolean(
+                task.submissionId ||
+                  task.submittedAt ||
+                  task.reviewStatus ||
+                  task.review_status
+              );
+              const presented = resolveTaskPresentation({
+                task,
+                submission: hasLmsEvidence
+                  ? {
+                      id: task.submissionId || task.taskId,
+                      review_status: task.reviewStatus || task.review_status,
+                      manual_score: task.approvedTaskScore,
+                      max_score: 100,
+                      submitted_at: task.submittedAt,
+                      is_late: task.isLate,
+                    }
+                  : null,
+              });
+              return (
+                <li key={task.taskId || idx}>
+                  <span>{task.title || t('scoreBreakdown.untitledTask')}</span>
+                  <strong>
+                    {presented.submissionLabelAr}
+                    {' · '}
+                    {presented.evaluationLabelAr}
+                    {presented.score != null ? (
+                      <>
+                        {' · '}
+                        <span dir="ltr">{formatScore(presented.score, 100)}</span>
+                      </>
+                    ) : (
+                      ` · ${t('scoreBreakdown.noGrade')}`
+                    )}
+                  </strong>
+                </li>
+              );
+            })}
               </ul>
             ) : null}
           </div>

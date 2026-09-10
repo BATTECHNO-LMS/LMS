@@ -1,8 +1,7 @@
-function formatPoints(value, max) {
-  if (value == null || value === '') return '—';
-  const n = Number(value);
-  if (!Number.isFinite(n)) return '—';
-  return `${n} / ${max}`;
+import { formatScore } from '../fieldTrainingTaskSemantics.js';
+
+function formatPoints(value, max, empty = 'لا توجد') {
+  return formatScore(value, max, empty);
 }
 
 function statusLabel(qualification, t) {
@@ -36,8 +35,8 @@ export function FieldTrainingScoreBreakdown({ qualification, t, StatusBadge, tas
       <div className="ft-score-breakdown__head">
         <div>
           <p className="ft-score-breakdown__label">{t('scoreBreakdown.finalScore')}</p>
-          <strong className="ft-score-breakdown__final">
-            {qualification.finalScore != null ? `${qualification.finalScore} / 100` : '— / 100'}
+          <strong className="ft-score-breakdown__final" dir="ltr">
+            {qualification.finalScore != null ? formatScore(qualification.finalScore, 100) : t('common.unavailable', 'غير متوفر')}
           </strong>
         </div>
         {StatusBadge ? (
@@ -50,56 +49,57 @@ export function FieldTrainingScoreBreakdown({ qualification, t, StatusBadge, tas
       <dl className="ft-score-breakdown__grid">
         <div>
           <dt>{t('scoreBreakdown.attendance')}</dt>
-          <dd>{formatPoints(components.attendance?.points, components.attendance?.maxPoints || 20)}</dd>
+          <dd dir="ltr">{formatPoints(components.attendance?.points, components.attendance?.maxPoints || 20)}</dd>
         </div>
         <div>
           <dt>{t('scoreBreakdown.postAssessment')}</dt>
-          <dd>{formatPoints(components.postAssessment?.points, components.postAssessment?.maxPoints || 20)}</dd>
+          <dd dir="ltr">{formatPoints(components.postAssessment?.points, components.postAssessment?.maxPoints || 20)}</dd>
         </div>
         <div>
           <dt>{t('scoreBreakdown.tasks')}</dt>
-          <dd>{formatPoints(components.tasks?.points, components.tasks?.maxPoints || 40)}</dd>
+          <dd dir="ltr">{formatPoints(components.tasks?.points, components.tasks?.maxPoints || 40)}</dd>
         </div>
         <div>
           <dt>{t('scoreBreakdown.behavior')}</dt>
-          <dd>{formatPoints(components.behavior?.points, components.behavior?.maxPoints || 20)}</dd>
+          <dd dir="ltr">{formatPoints(components.behavior?.points, components.behavior?.maxPoints || 20)}</dd>
         </div>
       </dl>
       <div className="ft-score-breakdown__behavior">
         <p>
           {t('scoreBreakdown.professionalTotal')}:{' '}
-          {components.behavior?.professionalTotal != null
-            ? `${components.behavior.professionalTotal} / ${components.behavior.professionalMax || 50}`
-            : '—'}
+          <span dir="ltr">
+            {components.behavior?.professionalTotal != null
+              ? formatScore(components.behavior.professionalTotal, components.behavior.professionalMax || 50)
+              : t('common.unavailable', 'غير متوفر')}
+          </span>
         </p>
         <p>
           {t('scoreBreakdown.professionalPercent')}:{' '}
-          {components.behavior?.rawPercentage != null ? `${components.behavior.rawPercentage}%` : '—'}
+          {components.behavior?.rawPercentage != null ? `${components.behavior.rawPercentage}%` : t('common.unavailable', 'غير متوفر')}
         </p>
         <p>
           {t('scoreBreakdown.behaviorContribution')}:{' '}
-          {formatPoints(components.behavior?.points, components.behavior?.maxPoints || 20)}
+          <span dir="ltr">{formatPoints(components.behavior?.points, components.behavior?.maxPoints || 20)}</span>
         </p>
       </div>
       {taskDetails.length ? (
         <div className="ft-score-breakdown__tasks">
           <h4>{t('scoreBreakdown.taskDetails')}</h4>
-          <p>
-            {t('scoreBreakdown.tasksAverage')}:{' '}
-            {components.tasks?.rawPercentage != null ? `${components.tasks.rawPercentage}%` : '—'}
-          </p>
           <ul>
             {taskDetails.map((row) => {
               const meta = byId.get(String(row.taskId)) || {};
+              const submitted = row.submissionStatus === 'SUBMITTED' || Boolean(meta.submission);
+              const score = row.approvedTaskScore ?? row.rawScore;
               return (
                 <li key={row.taskId || row.title}>
                   <strong>{row.title || meta.task_title || t('scoreBreakdown.untitledTask')}</strong>
                   <span>
-                    {t('scoreBreakdown.rawScore')}:{' '}
-                    {row.rawScore != null && row.maxScore != null ? `${row.rawScore}/${row.maxScore}` : '—'}
-                  </span>
-                  <span>
-                    {t('scoreBreakdown.normalized')}: {row.normalizedPercent != null ? `${row.normalizedPercent}%` : '—'}
+                    {t('scoreBreakdown.grade')}:{' '}
+                    <span dir="ltr">
+                      {submitted && score != null && row.maxScore != null
+                        ? formatScore(score, row.maxScore)
+                        : t('scoreBreakdown.noGrade')}
+                    </span>
                   </span>
                 </li>
               );

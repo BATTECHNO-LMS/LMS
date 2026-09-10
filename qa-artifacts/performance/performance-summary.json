@@ -1,0 +1,52 @@
+{
+  "probedAt": "2026-09-10T14:30:41.667Z",
+  "target": {
+    "domain": "https://lms.battechno.com",
+    "dnsA": ["187.55.228.232"],
+    "matchesExpectedIp": true,
+    "cdn": false,
+    "server": "nginx/1.24.0 (Ubuntu)",
+    "ssh": "permission_denied"
+  },
+  "overallPerformance": "POOR",
+  "backendStabilitySample": "STABLE",
+  "disconnectCause": "Not a proven container crash. Appearance of disconnect is explained by ~500ms DB RTT per query, axios 30s timeouts, React Query retry/reconnect, and 401 logout. Restarts INCONCLUSIVE (no SSH).",
+  "primaryBottleneck": "Database round-trip: SELECT 1 via /health/ready p50 613ms vs /health p50 106ms (~500ms per Prisma query)",
+  "secondaryBottleneck": "Per-request DB auth context plus sequential Prisma chains on Field Training and student dashboard",
+  "thirdBottleneck": "Auth bootstrap blocks all protected routes on GET /api/auth/me; global layout APIs and frontend N+1 on Student Attendance",
+  "productionBackendRestarting": "INCONCLUSIVE",
+  "nginxUpstreamErrorsSample": 0,
+  "backend5xxSample": 0,
+  "databaseConnectionProblems": "NO_IN_SAMPLE",
+  "databaseBottleneck": true,
+  "nPlusOnePatterns": 3,
+  "duplicateFrontendRequestPatterns": 6,
+  "sequentialFetchWaterfalls": 6,
+  "slowEndpointsOver1sMeasured": 1,
+  "verySlowEndpointsOver3sMeasured": 0,
+  "largestMeasuredAsset": {
+    "url": "/assets/index-CUxTz4B_.js",
+    "uncompressedBytes": 737425,
+    "gzipBytes": 206426
+  },
+  "largestEstimatedApiPayload": "GET /admin/field-training/:id/eligibility unpaginated approved participants with qualification objects",
+  "slowestMeasuredApi": "GET /health/ready max 1251ms p50 613ms",
+  "slowestPage": "Authenticated Field Training eligibility (estimated); public SPA first load also heavy (JS+CSS+logo+7 font files)",
+  "health": {
+    "n": 8,
+    "p50Ms": 106,
+    "maxMs": 362,
+    "statuses": [200, 200, 200, 200, 200, 200, 200, 200]
+  },
+  "ready": {
+    "n": 8,
+    "p50Ms": 613,
+    "maxMs": 1251,
+    "database": "connected"
+  },
+  "tlsHandshakeMs": 168,
+  "dnsLookupMs": 8,
+  "gzip": true,
+  "sourceMapsExposed": false,
+  "authenticatedBrowserWaterfall": "NEEDS_MORE_DATA"
+}

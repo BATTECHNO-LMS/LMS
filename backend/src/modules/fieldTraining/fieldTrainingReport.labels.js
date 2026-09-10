@@ -19,8 +19,8 @@ const TRAINING_STATUS_AR = {
   post_assessment_completed: 'اكتمل الاختبار البعدي',
   eligible_for_completion: 'مؤهل للإنهاء',
   completed: 'مكتمل',
-  failed: 'غير مكتمل',
-  expelled: 'مستبعد',
+  failed: 'لم يجتز',
+  expelled: 'مستبعد من التدريب',
 };
 
 const OPPORTUNITY_STATUS_AR = {
@@ -30,11 +30,17 @@ const OPPORTUNITY_STATUS_AR = {
   archived: 'مغلقة',
 };
 
+const TRAINING_MODE_AR = {
+  onsite: 'وجاهي',
+  remote: 'عن بعد',
+  hybrid: 'مدمج',
+};
+
 const ATTENDANCE_STATUS_AR = {
   present: 'حاضر',
   absent: 'غائب',
   late: 'متأخر',
-  excused: 'معذور',
+  excused: 'بعذر',
   unconfirmed: 'غير مؤكد',
 };
 
@@ -46,13 +52,15 @@ const ATTENDANCE_METHOD_AR = {
 };
 
 const TASK_REVIEW_AR = {
-  pending: 'لم يُسلَّم',
-  submitted: 'مُسلَّم',
-  under_review: 'قيد المراجعة',
-  needs_revision: 'يحتاج تعديلاً',
-  approved: 'مقبول',
-  rejected: 'مرفوض',
-  graded: 'مُقيَّم',
+  pending: 'قيد التقييم',
+  submitted: 'مسلّم',
+  under_review: 'قيد التقييم',
+  needs_revision: 'تحتاج إعادة تسليم',
+  approved: 'تم التقييم',
+  rejected: 'تحتاج إعادة تسليم',
+  graded: 'تم التقييم',
+  not_submitted: 'غير مسلّم',
+  missing: 'غير مسلّم',
 };
 
 const ELIGIBILITY_AR = {
@@ -80,10 +88,10 @@ const REASON_AR = {
   final_task_rejected: 'المهمة النهائية مرفوضة',
   final_task_pending_review: 'المهمة النهائية بانتظار التقييم',
   expelled: 'مستبعد من التدريب',
-  failed: 'حالة تدريب غير مكتملة',
+  failed: 'لم يجتز التدريب',
 };
 
-function labelOf(map, value, fallback = '—') {
+function labelOf(map, value, fallback = 'غير محدد') {
   if (value == null || value === '') return fallback;
   return map[value] || String(value);
 }
@@ -91,6 +99,7 @@ function labelOf(map, value, fallback = '—') {
 module.exports = {
   APPLICATION_STATUS_AR,
   TRAINING_STATUS_AR,
+  TRAINING_MODE_AR,
   OPPORTUNITY_STATUS_AR,
   ATTENDANCE_STATUS_AR,
   ATTENDANCE_METHOD_AR,

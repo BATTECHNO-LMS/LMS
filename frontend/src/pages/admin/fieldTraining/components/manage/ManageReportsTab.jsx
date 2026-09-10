@@ -34,7 +34,7 @@ function SummaryCard({ label, value }) {
   return (
     <article className="ft-report-summary-card">
       <span>{label}</span>
-      <strong>{value ?? '—'}</strong>
+      <strong>{value ?? 'غير متوفر'}</strong>
     </article>
   );
 }
@@ -58,13 +58,13 @@ export function ManageReportsTab({ opportunityId, opportunity }) {
     opportunity?.universities?.name ||
     validation?.university ||
     t('manageHub.reports.tafilaDefaultUniversity');
-  const opportunityTitle = opportunity?.title || validation?.opportunityTitle || '—';
+  const opportunityTitle = opportunity?.title || validation?.opportunityTitle || 'غير متوفر';
   const trainingModeAr =
     opportunity?.training_mode === 'remote'
       ? t('trainingMode.remote', 'عن بعد')
       : opportunity?.training_mode === 'onsite'
         ? t('trainingMode.onsite', 'وجاهي')
-        : validation?.trainingModeAr || '—';
+        : validation?.trainingModeAr || 'غير متوفر';
 
   async function refreshValidation() {
     if (!opportunityId) return;
@@ -179,7 +179,7 @@ export function ManageReportsTab({ opportunityId, opportunity }) {
           <SummaryCard
             label={t('manageHub.reports.official.avgAttendance')}
             value={
-              summary.averageAttendance != null ? `${summary.averageAttendance}%` : '—'
+              summary.averageAttendance != null ? `${summary.averageAttendance}%` : 'غير متوفر'
             }
           />
         </div>
@@ -201,7 +201,7 @@ export function ManageReportsTab({ opportunityId, opportunity }) {
                 {validation.issues.map((issue) => (
                   <li key={issue.name}>
                     {issue.name}
-                    {issue.detail ? ` — ${JSON.stringify(issue.detail)}` : ''}
+                    {issue.detail ? ` : ${JSON.stringify(issue.detail)}` : ''}
                   </li>
                 ))}
               </ul>
@@ -278,7 +278,7 @@ export function ManageReportsTab({ opportunityId, opportunity }) {
               {t('manageHub.reports.official.eligible')}: {preview.summary?.eligible} ·{' '}
               {t('manageHub.reports.official.notEligible')}: {preview.summary?.notEligible} ·{' '}
               {t('manageHub.reports.official.avgScore')}:{' '}
-              {preview.summary?.averageApprovedFinalScore ?? '—'}
+              {preview.summary?.averageApprovedFinalScore ?? 'غير متوفر'}
             </p>
           </div>
         ) : null}

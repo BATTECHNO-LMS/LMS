@@ -201,13 +201,19 @@ function buildInfoRowHtml(label, value) {
   return `<div class="info-row completion-info-row"><span class="info-label completion-info-label">${safeLabel}:</span> <span class="${valueClass}">${safeValue}</span></div>`;
 }
 
+function displayLetterValue(value, fallback = 'غير محدد') {
+  const text = value == null ? '' : String(value).trim();
+  if (!text || text === '—' || text === '-') return fallback;
+  return text;
+}
+
 function buildOfficialParagraphs(data) {
-  const name = data.studentName || '—';
-  const number = data.universityNumber || '—';
-  const university = data.universityName || '—';
-  const hours = data.completedHours != null ? String(data.completedHours) : '—';
-  const start = formatArDate(data.startDate) || data.startDate || '—';
-  const end = formatArDate(data.endDate) || data.endDate || '—';
+  const name = displayLetterValue(data.studentName);
+  const number = displayLetterValue(data.universityNumber);
+  const university = displayLetterValue(data.universityName);
+  const hours = data.completedHours != null ? String(data.completedHours) : 'غير متوفر';
+  const start = formatArDate(data.startDate) || displayLetterValue(data.startDate);
+  const end = formatArDate(data.endDate) || displayLetterValue(data.endDate);
   return [
     `تشهد شركة الرجل الوطواط للتكنولوجيا بأن الطالب/الطالبة ${name}، والرقم الجامعي ${number}، من ${university}، قد أتم/أتمت متطلبات التدريب الميداني لدى الشركة بنجاح، بواقع ${hours} ساعة تدريبية، خلال الفترة من ${start} إلى ${end}.`,
     'وقد أظهر/أظهرت خلال فترة التدريب الالتزام والتعاون والقدرة على تطبيق المهارات والمعارف المكتسبة، وقد مُنح/مُنحت هذا الكتاب بناءً على طلبه/طلبها دون أن يترتب على الشركة أي التزام آخر.',
@@ -223,20 +229,20 @@ function buildOfficialCompletionLetterHtml(data) {
   const paragraphs = buildOfficialParagraphs(data)
     .map((p) => `<p>${escapeHtml(p)}</p>`)
     .join('');
-  const startLabel = formatArDate(data.startDate) || data.startDate || '—';
-  const endLabel = formatArDate(data.endDate) || data.endDate || '—';
-  const issueLabel = formatArDate(data.issuedAt) || data.issuedAt || '—';
+  const startLabel = formatArDate(data.startDate) || displayLetterValue(data.startDate);
+  const endLabel = formatArDate(data.endDate) || displayLetterValue(data.endDate);
+  const issueLabel = formatArDate(data.issuedAt) || displayLetterValue(data.issuedAt);
   const infoRows = [
-    ['اسم الطالب/ة', data.studentName || '—'],
-    ['الرقم الجامعي', data.universityNumber || '—'],
-    ['الجامعة', data.universityName || '—'],
-    ['التخصص', data.specialtyName || '—'],
-    ['فرصة التدريب', data.opportunityTitle || '—'],
-    ['فترة التدريب', `${startLabel} — ${endLabel}`],
-    ['الساعات التدريبية المنجزة', `${data.completedHours != null ? data.completedHours : '—'} ساعة`],
+    ['اسم الطالب/ة', displayLetterValue(data.studentName)],
+    ['الرقم الجامعي', displayLetterValue(data.universityNumber)],
+    ['الجامعة', displayLetterValue(data.universityName)],
+    ['التخصص', displayLetterValue(data.specialtyName)],
+    ['فرصة التدريب', displayLetterValue(data.opportunityTitle)],
+    ['فترة التدريب', `من ${startLabel} إلى ${endLabel}`],
+    ['الساعات التدريبية المنجزة', `${data.completedHours != null ? data.completedHours : 'غير متوفر'} ساعة`],
     ['حالة الأهلية', data.eligibilityLabel || 'مؤهل'],
     ['تاريخ الإصدار', issueLabel],
-    ['رقم الكتاب', data.letterNo || '—'],
+    ['رقم الكتاب', displayLetterValue(data.letterNo)],
   ]
     .map(([label, value]) => buildInfoRowHtml(label, value))
     .join('');
@@ -359,7 +365,7 @@ function buildOfficialCompletionLetterHtml(data) {
     <h1>${escapeHtml(LETTER_TITLE)}</h1>
     <div class="meta">
       <span>تاريخ الإصدار: ${escapeHtml(issueLabel)}</span>
-      <span>الرقم المرجعي: ${escapeHtml(data.letterNo || '—')}</span>
+      <span>الرقم المرجعي: ${escapeHtml(displayLetterValue(data.letterNo))}</span>
     </div>
     <div class="recipient">إلى من يهمه الأمر</div>
     <div class="body">${paragraphs}</div>
@@ -372,7 +378,7 @@ function buildOfficialCompletionLetterHtml(data) {
       ${stamp ? `<img class="stamp" src="${stamp}" alt=""/>` : ''}
     </div>
     <div class="footer">
-      شركة الرجل الوطواط للتكنولوجيا · المملكة الأردنية الهاشمية — عمّان · privacy@battechno.com
+      شركة الرجل الوطواط للتكنولوجيا · المملكة الأردنية الهاشمية - عمّان · privacy@battechno.com
       ${verification}
     </div>
   </div>

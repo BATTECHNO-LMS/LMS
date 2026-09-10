@@ -238,7 +238,7 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
                     }}
                   >
                     <span>
-                      {group.supervisor_label} — {group.student_count}
+                      {group.supervisor_label}: {group.student_count}
                     </span>
                     <StatusBadge variant={group.resolution_status === 'linked' ? 'success' : 'default'}>
                       {group.resolution_label}
@@ -271,7 +271,7 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
                         </label>
                       ) : (
                         <p className="muted">
-                          {group.account?.full_name} — {group.account?.email}
+                          {group.account?.full_name}: {group.account?.email}
                         </p>
                       )}
                       <ul className="ft-supervisor-students">
@@ -283,10 +283,10 @@ export function SupervisorAssignmentSection({ opportunityId, apiScope = 'admin' 
                             <span>{row.specialty}</span>
                             <span>{row.opportunity}</span>
                             <span>
-                              {t('assignment.current')}: {row.current_supervisor_name || '—'}
+                              {t('assignment.current')}: {row.current_supervisor_name || 'غير متوفر'}
                             </span>
                             <span>
-                              {t('assignment.proposed')}: {row.proposed_supervisor_name || '—'}
+                              {t('assignment.proposed')}: {row.proposed_supervisor_name || 'غير متوفر'}
                             </span>
                             {row.reassignment ? <StatusBadge variant="warning">{t('assignment.reassignment')}</StatusBadge> : null}
                             <StatusBadge variant={row.status === 'valid' ? 'success' : 'danger'}>

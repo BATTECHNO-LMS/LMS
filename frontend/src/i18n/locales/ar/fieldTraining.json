@@ -123,9 +123,9 @@
     "universityPlaceholder": "اختر الجامعة",
     "specialty": "التخصص",
     "specialtyLinked": "التخصص المرتبط بفرصة التدريب",
-    "specialtyHelp": "يُستخدم للتجميع والتقارير فقط — لا يحدد ظهور الفرصة للطلاب.",
+    "specialtyHelp": "يُستخدم للتجميع والتقارير فقط، ولا يحدد ظهور الفرصة للطلاب.",
     "trainingTrack": "مسار التدريب (تخصص مرجعي)",
-    "trainingTrackHelp": "يُستخدم للتجميع والتقارير والتحليلات — لا يحدد ظهور الفرصة للطلاب بمفرده.",
+    "trainingTrackHelp": "يُستخدم للتجميع والتقارير والتحليلات، ولا يحدد ظهور الفرصة للطلاب بمفرده.",
     "trainingTrackRequired": "يرجى اختيار مسار التدريب المرجعي.",
     "eligibilitySection": "الجامعات والتخصصات المؤهلة",
     "eligibilityHelp": "اختر الجامعات المستفيدة ثم حدد البرامج الجامعية المؤهلة داخل كل جامعة.",
@@ -387,7 +387,7 @@
     "uploading": "جارٍ الرفع...",
     "replaceFile": "استبدال الملف",
     "dropzoneHint": "اسحب ملفات الحل هنا، أو انقر للاختيار",
-    "dropzoneMeta": "مستندات · صور · فيديو · صوت · برمجة · مضغوط — حتى 100 ميجابايت لكل ملف",
+    "dropzoneMeta": "مستندات · صور · فيديو · صوت · برمجة · مضغوط، حتى 100 ميجابايت لكل ملف",
     "notFound": "المهمة غير موجودة",
     "selfEvalLink": "قيّم نفسك قبل التسليم",
     "openSubmitPage": "فتح صفحة التسليم",
@@ -424,15 +424,17 @@
     "late": "متأخر",
     "onTime": "في الوقت",
     "reviewStatus": "حالة المراجعة",
+    "submissionState": "حالة التسليم",
+    "evaluationState": "حالة التقييم",
     "review": "مراجعة",
     "reviewStatuses": {
-      "pending": "قيد المراجعة",
-      "submitted": "تم التسليم",
-      "under_review": "قيد التصحيح",
-      "approved": "معتمد",
-      "rejected": "مرفوض",
-      "needs_revision": "يحتاج إعادة تسليم",
-      "graded": "تم التصحيح",
+      "pending": "قيد التقييم",
+      "submitted": "مسلّم",
+      "under_review": "قيد التقييم",
+      "approved": "تم التقييم",
+      "rejected": "تحتاج إعادة تسليم",
+      "needs_revision": "تحتاج إعادة تسليم",
+      "graded": "تم التقييم",
       "not_submitted": "غير مسلّم"
     },
     "reviewModalTitle": "مراجعة التسليم",
@@ -460,7 +462,7 @@
   },
   "instructor": {
     "listTitle": "التدريب الميداني",
-    "listDescription": "فرص التدريب الميداني المسندة إليك — إدارة الجلسات والحضور والمهام ومراجعة التسليمات.",
+    "listDescription": "فرص التدريب الميداني المسندة إليك لإدارة الجلسات والحضور والمهام ومراجعة التسليمات.",
     "emptyTitle": "لا توجد تدريبات مخصصة لك حاليًا",
     "emptyDescription": "ستظهر هنا فرص التدريب التي تقوم الإدارة بتعيينك كمدرّب مسؤول عنها.",
     "forbiddenTitle": "لا تملك صلاحية الوصول إلى هذا التدريب.",
@@ -483,6 +485,12 @@
     }
   },
   "notAvailable": "غير متاح",
+  "common": {
+    "unavailable": "غير متوفر",
+    "unspecified": "غير محدد",
+    "none": "لا يوجد",
+    "notRequired": "غير مطلوب"
+  },
   "commonYes": "نعم",
   "commonNo": "لا",
   "unauthorized": {
@@ -490,27 +498,27 @@
     "description": "إدارة التدريب الميداني متاحة لمسؤول النظام ومسؤول البرنامج ومسؤول الجامعة."
   },
   "trainingStatus": {
-    "none": "—",
-    "pre_assessment_pending": "تقييم قبلي مطلوب",
-    "pre_assessment_completed": "اكتمل التقييم القبلي",
-    "ready_for_training": "جاهز لبدء التدريب",
+    "none": "لم يبدأ",
+    "pre_assessment_pending": "بانتظار الاختبار القبلي",
+    "pre_assessment_completed": "اكتمل الاختبار القبلي",
+    "ready_for_training": "جاهز للتدريب",
     "in_training": "قيد التدريب",
-    "task_pending": "مهام معلقة",
+    "task_pending": "بانتظار المهام",
     "task_submitted": "تم تسليم المهام",
-    "post_assessment_pending": "تقييم بعدي مطلوب",
-    "post_assessment_completed": "اكتمل التقييم البعدي",
+    "post_assessment_pending": "بانتظار الاختبار البعدي",
+    "post_assessment_completed": "اكتمل الاختبار البعدي",
     "eligible_for_completion": "مؤهل للإنهاء",
     "completed": "مكتمل",
-    "failed": "غير مجتاز",
-    "expelled": "مستبعد"
+    "failed": "لم يجتز",
+    "expelled": "مستبعد من التدريب"
   },
   "taskProgress": {
     "no_required_tasks": "لا توجد مهمات مطلوبة",
     "not_started": "لم يبدأ المهمات",
-    "in_progress": "قيد إنجاز المهمات",
-    "completed": "أكمل المهمات",
+    "in_progress": "قيد التنفيذ",
+    "completed": "مكتمل",
     "cancelled": "ملغى",
-    "label": "تقدم المهمات"
+    "label": "تقدم التاسكات"
   },
   "knowledgeLevel": {
     "beginner": "مبتدئ",
@@ -523,6 +531,10 @@
     "ineligible": "غير مؤهل",
     "needs_review": "يحتاج مراجعة",
     "incomplete": "قيد الاستكمال"
+  },
+  "outcomeSemantics": {
+    "trainingStatus": "حالة التدريب",
+    "eligibilityResult": "نتيجة التدريب"
   },
   "progress": {
     "preLevel": "المستوى القبلي",
@@ -628,7 +640,7 @@
     "recordAttendance": "تسجيل الحضور",
     "noSessions": "لا توجد جلسات بعد.",
     "selectSession": "اختر الجلسة",
-    "selectSessionPlaceholder": "— اختر جلسة —",
+    "selectSessionPlaceholder": "اختر جلسة",
     "pickSessionForAttendance": "اختر جلسة لتسجيل الحضور.",
     "attendanceNote": "ملاحظة (اختياري)",
     "saveAttendance": "حفظ الحضور",
@@ -848,7 +860,7 @@
     "present": "حاضر",
     "absent": "غائب",
     "late": "متأخر",
-    "excused": "معذور",
+    "excused": "بعذر",
     "unconfirmed": "غير مؤكد"
   },
   "assessmentStatus": {
@@ -986,7 +998,7 @@
       "current": "المرحلة الحالية",
       "next": "الخطوة التالية",
       "currentBadge": "المرحلة الحالية",
-      "none": "—"
+      "none": "غير محدد"
     },
     "workflowStatus": {
       "completed": "مكتمل",
@@ -1001,7 +1013,7 @@
       "approved": "تمت الموافقة على الطلب",
       "awaitingReview": "بانتظار مراجعة الإدارة",
       "rejected": "تم رفض الطلب",
-      "rejectedWithReason": "تم الرفض — {{reason}}",
+      "rejectedWithReason": "تم الرفض: {{reason}}",
       "preCompleted": "تم الإكمال – {{score}}%",
       "trainingStarted": "بدأ التدريب",
       "awaitTrainingStart": "بانتظار بدء التدريب من الإدارة",
@@ -1069,7 +1081,7 @@
       "sessionsNotStarted": "لم تبدأ الجلسات بعد",
       "sessionsNotStartedHint": "لا توجد جلسات مجدولة لهذه الفرصة بعد",
       "attendanceNotRecorded": "لم يتم تسجيل الحضور بعد",
-      "attendanceNotRecordedHint": "يوجد {{total}} جلسة — بانتظار تسجيل الحضور",
+      "attendanceNotRecordedHint": "يوجد {{total}} جلسة بانتظار تسجيل الحضور",
       "attendanceRatioHint": "{{attended}} من {{total}} جلسات إلزامية",
       "attendanceHint": "نسبة الحضور في الجلسات الإلزامية",
       "tasksHint": "من إجمالي المهام المطلوبة",
@@ -1137,7 +1149,7 @@
       "download": "تحميل كتاب إنهاء التدريب",
       "downloading": "جارٍ التحميل…",
       "downloadError": "تعذّر تحميل الكتاب",
-      "awaitingIssue": "أنت مؤهل — بانتظار إصدار الكتاب من الإدارة.",
+      "awaitingIssue": "أنت مؤهل، وبانتظار إصدار الكتاب من الإدارة.",
       "pending": "سيتم إصدار كتاب إنهاء التدريب بعد اكتمال المتطلبات ومراجعة الإدارة."
     }
   },
@@ -1181,7 +1193,7 @@
       "present": "حاضر",
       "absent": "غائب",
       "late": "متأخر",
-      "excused": "غياب بعذر",
+      "excused": "بعذر",
       "unconfirmed": "غير مؤكد"
     },
     "methods": {
@@ -1227,19 +1239,21 @@
   },
   "scoreBreakdown": {
     "finalScore": "العلامة النهائية",
-    "passingScore": "حد التأهيل — {{score}} من 100",
-    "attendance": "الحضور — 20 علامة",
-    "postAssessment": "التقييم البعدي — 20 علامة",
-    "tasks": "التاسكات — 40 علامة",
-    "behavior": "السلوك والالتزام / 20 علامة",
-    "professionalTotal": "مجموع التقييم المهني",
-    "professionalPercent": "نسبة التقييم المهني",
-    "behaviorContribution": "مساهمة السلوك",
+    "passingScore": "حد التأهيل: {{score}} من 100",
+    "attendance": "الحضور: 20 علامة",
+    "postAssessment": "التقييم البعدي: 20 علامة",
+    "tasks": "التاسكات: 40 علامة",
+    "behavior": "السلوك والالتزام: 20 علامة",
+    "professionalTotal": "مجموع تقييم السلوك والالتزام",
+    "professionalPercent": "نسبة تقييم السلوك والالتزام",
+    "behaviorContribution": "مساهمة السلوك والالتزام",
     "taskDetails": "تفصيل التاسكات",
     "tasksAverage": "متوسط التاسكات",
-    "rawScore": "الدرجة الخام",
-    "normalized": "النسبة المعيارية",
-    "untitledTask": "مهمة",
+    "grade": "العلامة",
+    "noGrade": "لا توجد",
+    "rawScore": "العلامة",
+    "normalized": "النسبة",
+    "untitledTask": "تاسك",
     "mandatoryReasons": "سبب عدم التأهيل",
     "mandatoryGates": "المتطلبات الإلزامية"
   },
@@ -1248,14 +1262,14 @@
     "total": "المجموع",
     "requirements": "متطلبات التدريب",
     "tasks": "التاسكات",
-    "tasksCompleted": "{{done}} من أصل {{total}} مكتملة",
+    "tasksCompleted": "{{done}} من أصل {{total}} مسلّمة",
     "preAssessment": "التقييم القبلي",
     "postAssessment": "التقييم البعدي",
-    "behavior": "السلوك",
+    "behavior": "السلوك والالتزام",
     "attendancePoints": "الحضور",
     "postPoints": "التقييم البعدي",
     "tasksPoints": "التاسكات",
-    "behaviorPoints": "السلوك",
+    "behaviorPoints": "السلوك والالتزام",
     "approvedScore": "العلامة النهائية المعتمدة",
     "calculatedScore": "العلامة المحسوبة آلياً",
     "previousExcelScore": "العلامة السابقة في ملف التقييم",
@@ -1289,7 +1303,7 @@
     "tasksCompletedLabel": "التاسكات المكتملة"
   },
   "comprehensiveReport": {
-    "title": "تقرير الطالب الشامل — التدريب الميداني",
+    "title": "تقرير الطالب الشامل للتدريب الميداني",
     "back": "العودة للأهلية",
     "downloadPdf": "تنزيل PDF",
     "downloadingPdf": "جارٍ التنزيل…",

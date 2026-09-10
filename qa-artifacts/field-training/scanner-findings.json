@@ -1,0 +1,270 @@
+{
+  "generatedAt": "2026-09-10T07:56:23.340Z",
+  "mode": "READ_ONLY",
+  "architecture": {
+    "completionEligibilityCanonical": "fieldTraining.qualification.qualifyLoadedContext → persistQualification → applications.completion_eligibility_status",
+    "finalScoreCanonicalLive": "Fixed components sum OR legacy weighted evaluation",
+    "finalScoreCanonicalTafilaPrimary": "eligibility_reason.details.approvedEvaluationResult.approvedFinalScore overlay",
+    "hoursCanonical": "applications.completed_training_hours (stored Model A) preferred over attendance-derived",
+    "attendanceCanonical": "field_training_attendance on required sessions → attendance_percentage",
+    "taskProgressVsScoring": "taskProgress counts pending/submitted/under_review/graded/approved; scoring accepts graded/approved only",
+    "competingCalculators": [
+      "FIXED_COMPONENTS_V1 vs legacy calculateFinalEvaluation",
+      "Tafila approved overlay vs live recalc",
+      "hours mergeStoredHours vs overlayRecordedHours",
+      "Excel evaluation scoring presentation vs official final score"
+    ],
+    "orgScope": "UNIVERSITY only; non-global admin without universityId = deny-all (no unrestricted fallback)",
+    "dbSafety": {
+      "host": "ep-divine-dust-ajorp5w4-pooler.c-3.us-east-2.aws.neon.tech",
+      "mutations": "DISABLED for this scanner"
+    }
+  },
+  "tafilaPrimary": {
+    "opportunityId": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+    "baselineExpectedStudents": 151,
+    "students": 151,
+    "eligible": 146,
+    "ineligible": 5,
+    "pending": 0,
+    "needsReview": 0,
+    "expected": {
+      "students": 151,
+      "eligible": 146,
+      "ineligible": 5
+    },
+    "invariants": {
+      "eligibleWithFinalScoreBelow80": 0,
+      "eligibleWithNullFinalScore": 0,
+      "finalScoreOver100": 0,
+      "finalScoreUnder0": 0,
+      "eligibleExpelled": 0,
+      "completedZeroHours": 0,
+      "eligibleHoursBelow140": 0,
+      "lettersForIneligible": 1,
+      "requiredTaskDefinitions": 4,
+      "submissionRows": 551
+    },
+    "laith": {
+      "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+      "eligibility": "ineligible",
+      "trainingStatus": "completed",
+      "approvedFinalScore": 59.4,
+      "taskProgress": {
+        "enrolled": true,
+        "status": "in_progress",
+        "label_ar": "قيد إنجاز المهمات",
+        "label_en": "Tasks in progress",
+        "submitted_required": 2,
+        "total_required": 4,
+        "display": "2 / 4 — قيد إنجاز المهمات",
+        "primary_status": "in_progress",
+        "primary_label_ar": "قيد إنجاز المهمات"
+      },
+      "submissionCount": 2,
+      "submissions": [
+        {
+          "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+          "status": "graded",
+          "score": 84,
+          "max": 100
+        },
+        {
+          "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+          "status": "graded",
+          "score": 78,
+          "max": 100
+        }
+      ],
+      "approvedTaskEvaluation": {
+        "task1": 84,
+        "task2": 78,
+        "task3": 0,
+        "task4": 0,
+        "points": 16.2,
+        "source": "AUTHORIZED_GRADE_OVERRIDE"
+      },
+      "scoreBreakdown": {
+        "taskPoints": 16.2,
+        "behaviorPoints": 8.8,
+        "attendancePoints": 20,
+        "postAssessmentPoints": 14.4
+      },
+      "expected": {
+        "status": "ineligible",
+        "score": 59.4,
+        "tasksSubmitted": 2,
+        "tasksTotal": 4,
+        "taskComponent": 16.2
+      }
+    },
+    "sampleEligibleBelow80": [],
+    "notEligibleBaseline": [
+      "320250602134",
+      "320220603075",
+      "320250603244",
+      "320220603007",
+      "320230601066"
+    ]
+  },
+  "laithRegression": {
+    "statusPass": true,
+    "scorePass": true,
+    "tasksPass": true,
+    "taskComponentPass": true,
+    "actual": {
+      "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+      "eligibility": "ineligible",
+      "trainingStatus": "completed",
+      "approvedFinalScore": 59.4,
+      "taskProgress": {
+        "enrolled": true,
+        "status": "in_progress",
+        "label_ar": "قيد إنجاز المهمات",
+        "label_en": "Tasks in progress",
+        "submitted_required": 2,
+        "total_required": 4,
+        "display": "2 / 4 — قيد إنجاز المهمات",
+        "primary_status": "in_progress",
+        "primary_label_ar": "قيد إنجاز المهمات"
+      },
+      "submissionCount": 2,
+      "submissions": [
+        {
+          "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+          "status": "graded",
+          "score": 84,
+          "max": 100
+        },
+        {
+          "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+          "status": "graded",
+          "score": 78,
+          "max": 100
+        }
+      ],
+      "approvedTaskEvaluation": {
+        "task1": 84,
+        "task2": 78,
+        "task3": 0,
+        "task4": 0,
+        "points": 16.2,
+        "source": "AUTHORIZED_GRADE_OVERRIDE"
+      },
+      "scoreBreakdown": {
+        "taskPoints": 16.2,
+        "behaviorPoints": 8.8,
+        "attendancePoints": 20,
+        "postAssessmentPoints": 14.4
+      },
+      "expected": {
+        "status": "ineligible",
+        "score": 59.4,
+        "tasksSubmitted": 2,
+        "tasksTotal": 4,
+        "taskComponent": 16.2
+      }
+    }
+  },
+  "tafilaSecond": {
+    "opportunityId": "01666ebc-bfc1-4948-87a5-2add3f641c65",
+    "students": 25,
+    "eligible": 10,
+    "ineligible": 3,
+    "overlapUniversityNumbers": 16,
+    "note": "Separate opportunity — overlap may be valid if same students enrolled twice"
+  },
+  "global": {
+    "totalApplications": 295,
+    "attendanceOver100": 0,
+    "attendanceNegative": 0,
+    "hoursNegative": 0,
+    "eligibleFailedOrExpelled": 0,
+    "completedWithNonActiveApplicationStatus": 0,
+    "gradedWithoutManualScore": 0,
+    "scoreWithoutSubmittedAt": 0,
+    "duplicateStudentOpportunity": 0,
+    "lettersForNonEligibleOrExpelled": 2
+  },
+  "findings": [
+    {
+      "classification": "BUSINESS_LOGIC_CONTRADICTION",
+      "severity": "HIGH",
+      "code": "LETTER_FOR_INELIGIBLE",
+      "title": "Completion letters exist for ineligible students",
+      "count": 1,
+      "examples": [],
+      "notes": null
+    },
+    {
+      "classification": "EXPECTED_BY_POLICY",
+      "severity": "INFO",
+      "code": "TAFILA_CROSS_OPP_OVERLAP",
+      "title": "Students present in both Tafila opportunities: 16",
+      "count": 16,
+      "examples": [
+        {
+          "uni": "320220605060",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320230603008",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320230602113",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320230602067",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320230601009",
+          "eligibility": "ineligible",
+          "training": "expelled"
+        },
+        {
+          "uni": "320230602004",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320220603099",
+          "eligibility": "pending",
+          "training": "none"
+        },
+        {
+          "uni": "320250603244",
+          "eligibility": "pending",
+          "training": "none"
+        }
+      ],
+      "notes": "Do not merge opportunities; classify as multi-opportunity enrollment if intentional."
+    },
+    {
+      "classification": "BUSINESS_LOGIC_CONTRADICTION",
+      "severity": "HIGH",
+      "code": "GLOBAL_LETTER_INELIGIBLE",
+      "title": "Completion letters for non-eligible or expelled students",
+      "count": 2,
+      "examples": [],
+      "notes": null
+    }
+  ],
+  "summary": {
+    "findingCount": 3,
+    "bySeverity": {
+      "HIGH": 2,
+      "INFO": 1
+    },
+    "byClassification": {
+      "BUSINESS_LOGIC_CONTRADICTION": 2,
+      "EXPECTED_BY_POLICY": 1
+    }
+  }
+}

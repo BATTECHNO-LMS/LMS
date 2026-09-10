@@ -25,8 +25,8 @@ describe('field training task progress UI', () => {
   it('keeps the Arabic status labels in i18n', () => {
     const ar = readSrc('../src/i18n/locales/ar/fieldTraining.json');
     assert.match(ar, /"not_started": "لم يبدأ المهمات"/);
-    assert.match(ar, /"in_progress": "قيد إنجاز المهمات"/);
-    assert.match(ar, /"completed": "أكمل المهمات"/);
+    assert.match(ar, /"in_progress": "قيد التنفيذ"/);
+    assert.match(ar, /"completed": "مكتمل"/);
     assert.match(ar, /"no_required_tasks": "لا توجد مهمات مطلوبة"/);
     assert.match(readSrc('../src/i18n/locales/ar/fieldTrainingReports.json'), /"taskProgress": "تقدم المهمات"/);
   });

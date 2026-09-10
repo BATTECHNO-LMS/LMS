@@ -1,0 +1,39 @@
+BATTECHNO LMS Nginx findings (read-only)
+Source: deploy/nginx-lms.battechno.com.conf + frontend/nginx.conf + live response headers
+Live error/access logs: not available (SSH denied)
+
+Live headers from https://lms.battechno.com:
+- Server: nginx/1.24.0 (Ubuntu)
+- No cf-ray, no CDN
+- TLS: Let's Encrypt, CN=lms.battechno.com (SAN does not include www)
+- HTTP keep-alive: Connection: keep-alive on /health
+- gzip: confirmed for JS/CSS/HTML when Accept-Encoding: gzip (Vary: Accept-Encoding)
+- /assets/* Cache-Control: public, max-age=31536000, immutable
+- / and index.html: no-cache / no-store must-revalidate
+- /api/* Cache-Control: no-store
+- /health/ready Cache-Control: no-store
+- www.lms.battechno.com: DNS ENOTFOUND (config lists www but no A record)
+
+Repo host nginx:
+- proxy_pass http://127.0.0.1:8080 (frontend container), including /api and /health
+- proxy_http_version 1.1
+- proxy_set_header Connection "" (keep-alive to upstream)
+- proxy_read_timeout 300s
+- proxy_send_timeout 300s
+- gzip on, min_length 256, includes application/json and javascript
+
+Repo frontend nginx:
+- /api and /uploads and /health -> http://backend:4000
+- proxy_read_timeout 300s
+- hashed /assets/ immutable cache
+
+Path:
+  Browser -> host nginx:443 -> 127.0.0.1:8080 frontend nginx -> backend:4000
+
+502/503/504 in live sample: 0
+Historical nginx error log (upstream timed out, connection reset, no live upstream): NEEDS_MORE_DATA
+
+Timeout mismatch:
+- nginx proxy_read_timeout 300s
+- frontend axios timeout 30s
+Users can see axios timeouts while nginx still waits on the backend.

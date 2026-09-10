@@ -99,9 +99,9 @@ export function SemesterFieldTrainingCard({ item }) {
             {t('enrollments:studentEnrollment.semesterSchedule.ft.dates')}
           </span>
           <strong>
-            {formatDate(item.start_date, locale) || '—'}
+            {formatDate(item.start_date, locale) || 'غير متوفر'}
             {' → '}
-            {formatDate(item.end_date, locale) || '—'}
+            {formatDate(item.end_date, locale) || 'غير متوفر'}
           </strong>
         </div>
         <div className="semester-ft-card__metric">
@@ -120,7 +120,7 @@ export function SemesterFieldTrainingCard({ item }) {
             {t('enrollments:studentEnrollment.semesterSchedule.ft.mode')}
           </span>
           <strong>
-            {modeKey ? t(modeKey, item.training_mode) : '—'}
+            {modeKey ? t(modeKey, item.training_mode) : 'غير متوفر'}
             {item.location ? ` · ${item.location}` : ''}
           </strong>
         </div>

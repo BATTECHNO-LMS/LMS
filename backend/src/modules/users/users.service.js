@@ -22,6 +22,7 @@ const { buildListMeta } = require('../../utils/pagination');
 const reviewerAssignment = require('./reviewerAssignment.service');
 const { createNotificationForUser } = require('../../shared/services/notification.service');
 const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
+const { invalidateAuthContextForUser } = require('../auth/authContextCache');
 
 /** Roles that require a primary university assignment. */
 const UNIVERSITY_SCOPED_ROLES = new Set([
@@ -610,6 +611,7 @@ async function updateUser(id, body, requester = {}, meta = {}) {
       );
     }
   });
+  invalidateAuthContextForUser(id);
 
   if (nextRoleCodes.includes('reviewer')) {
     if (nextUniversityId) {

@@ -121,9 +121,9 @@
     "universityPlaceholder": "Select university",
     "specialty": "Major / specialty",
     "specialtyLinked": "Linked specialty / major",
-    "specialtyHelp": "Used for grouping and reports only — does not control student visibility.",
+    "specialtyHelp": "Used for grouping and reports only, and does not control student visibility.",
     "trainingTrack": "Training track (canonical specialty)",
-    "trainingTrackHelp": "Used for grouping, reports, and analytics — not used alone for student visibility.",
+    "trainingTrackHelp": "Used for grouping, reports, and analytics, not used alone for student visibility.",
     "trainingTrackRequired": "Please select a training track.",
     "eligibilitySection": "Eligible universities and programs",
     "eligibilityHelp": "Select beneficiary universities, then choose eligible programs within each university.",
@@ -371,7 +371,7 @@
     "uploading": "Uploading...",
     "replaceFile": "Replace file",
     "dropzoneHint": "Drag solution files here, or click to choose",
-    "dropzoneMeta": "Docs · images · video · audio · code · archives — up to 100 MB per file",
+    "dropzoneMeta": "Docs · images · video · audio · code · archives, up to 100 MB per file",
     "notFound": "Task not found",
     "selfEvalLink": "Self-evaluate before submit",
     "openSubmitPage": "Open submission page",
@@ -380,14 +380,16 @@
     "manualBadge": "Manual grading",
     "noneBadge": "No grading",
     "reviewStatus": "Review status",
+    "submissionState": "Submission status",
+    "evaluationState": "Evaluation status",
     "reviewStatuses": {
-      "pending": "Pending review",
+      "pending": "Pending evaluation",
       "submitted": "Submitted",
-      "under_review": "Under review",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "needs_revision": "Needs revision",
-      "graded": "Graded",
+      "under_review": "Pending evaluation",
+      "approved": "Evaluated",
+      "rejected": "Needs resubmission",
+      "needs_revision": "Needs resubmission",
+      "graded": "Evaluated",
       "not_submitted": "Not submitted"
     },
     "instructorFeedback": "Instructor feedback",
@@ -444,34 +446,40 @@
   },
   "instructor": {
     "listTitle": "Field training",
-    "listDescription": "Field training opportunities assigned to you — manage tasks and review submissions.",
+    "listDescription": "Field training opportunities assigned to you for managing tasks and reviewing submissions.",
     "emptyTitle": "No assigned opportunities",
     "emptyDescription": "When a field training opportunity is assigned to you, it will appear here."
+  },
+  "common": {
+    "unavailable": "Unavailable",
+    "unspecified": "Unspecified",
+    "none": "None",
+    "notRequired": "Not required"
   },
   "unauthorized": {
     "title": "Unauthorized",
     "description": "Field training management is available to system admin, program admin, and university admin."
   },
   "trainingStatus": {
-    "none": "—",
+    "none": "Not started",
     "pre_assessment_pending": "Pre-assessment required",
-    "pre_assessment_completed": "Pre-assessment done",
-    "ready_for_training": "Ready to start",
+    "pre_assessment_completed": "Pre-assessment completed",
+    "ready_for_training": "Ready for training",
     "in_training": "In training",
     "task_pending": "Tasks pending",
     "task_submitted": "Tasks submitted",
     "post_assessment_pending": "Post-assessment required",
-    "post_assessment_completed": "Post-assessment done",
+    "post_assessment_completed": "Post-assessment completed",
     "eligible_for_completion": "Eligible for completion",
     "completed": "Completed",
-    "failed": "Failed",
-    "expelled": "Expelled"
+    "failed": "Did not pass",
+    "expelled": "Removed from training"
   },
   "taskProgress": {
     "no_required_tasks": "No required tasks",
     "not_started": "Has not started tasks",
-    "in_progress": "Tasks in progress",
-    "completed": "Completed tasks",
+    "in_progress": "In progress",
+    "completed": "Completed",
     "cancelled": "Cancelled",
     "label": "Task progress"
   },
@@ -486,6 +494,10 @@
     "ineligible": "Ineligible",
     "needs_review": "Needs review",
     "incomplete": "Needs completion"
+  },
+  "outcomeSemantics": {
+    "trainingStatus": "Training status",
+    "eligibilityResult": "Training result"
   },
   "progress": {
     "preLevel": "Pre level",
@@ -589,7 +601,7 @@
     "recordAttendance": "Record attendance",
     "noSessions": "No sessions yet.",
     "selectSession": "Select session",
-    "selectSessionPlaceholder": "— Select a session —",
+    "selectSessionPlaceholder": "Select a session",
     "pickSessionForAttendance": "Select a session to record attendance.",
     "attendanceNote": "Note (optional)",
     "saveAttendance": "Save attendance",
@@ -935,7 +947,7 @@
       "current": "Current stage",
       "next": "Next step",
       "currentBadge": "Current",
-      "none": "—"
+      "none": "Unspecified"
     },
     "workflowStatus": {
       "completed": "Completed",
@@ -950,7 +962,7 @@
       "approved": "Application approved",
       "awaitingReview": "Awaiting admin review",
       "rejected": "Application rejected",
-      "rejectedWithReason": "Rejected — {{reason}}",
+      "rejectedWithReason": "Rejected: {{reason}}",
       "preCompleted": "Completed – {{score}}%",
       "trainingStarted": "Training started",
       "awaitTrainingStart": "Waiting for training to start",
@@ -1018,7 +1030,7 @@
       "sessionsNotStarted": "Sessions have not started yet",
       "sessionsNotStartedHint": "No sessions are scheduled for this opportunity yet",
       "attendanceNotRecorded": "Attendance has not been recorded yet",
-      "attendanceNotRecordedHint": "{{total}} session(s) — waiting for attendance records",
+      "attendanceNotRecordedHint": "{{total}} session(s) waiting for attendance records",
       "attendanceRatioHint": "{{attended}} of {{total}} required sessions",
       "attendanceHint": "Required session attendance rate",
       "tasksHint": "Of total required tasks",
@@ -1086,7 +1098,7 @@
       "download": "Download completion letter",
       "downloading": "Downloading…",
       "downloadError": "Could not download letter",
-      "awaitingIssue": "You are eligible — awaiting letter issuance by administration.",
+      "awaitingIssue": "You are eligible and awaiting letter issuance by administration.",
       "pending": "The completion letter will be issued after requirements are met and reviewed by administration."
     }
   },
@@ -1176,18 +1188,20 @@
   },
   "scoreBreakdown": {
     "finalScore": "Final score",
-    "passingScore": "Qualification threshold — {{score}} of 100",
-    "attendance": "Attendance — 20 points",
-    "postAssessment": "Post assessment — 20 points",
-    "tasks": "Tasks — 40 points",
-    "behavior": "Behavior / 20 points",
-    "professionalTotal": "Professional total",
-    "professionalPercent": "Professional percentage",
-    "behaviorContribution": "Behavior contribution",
+    "passingScore": "Qualification threshold: {{score}} of 100",
+    "attendance": "Attendance: 20 points",
+    "postAssessment": "Post assessment: 20 points",
+    "tasks": "Tasks: 40 points",
+    "behavior": "Behavior and conduct: 20 points",
+    "professionalTotal": "Behavior and conduct total",
+    "professionalPercent": "Behavior and conduct percentage",
+    "behaviorContribution": "Behavior and conduct contribution",
     "taskDetails": "Task details",
     "tasksAverage": "Tasks average",
-    "rawScore": "Raw score",
-    "normalized": "Normalized %",
+    "grade": "Grade",
+    "noGrade": "None",
+    "rawScore": "Grade",
+    "normalized": "Percent",
     "untitledTask": "Task",
     "mandatoryReasons": "Ineligibility reason",
     "mandatoryGates": "Mandatory requirements"
@@ -1238,7 +1252,7 @@
     "tasksCompletedLabel": "Completed tasks"
   },
   "comprehensiveReport": {
-    "title": "Comprehensive student report — Field Training",
+    "title": "Comprehensive student report for field training",
     "back": "Back to eligibility",
     "downloadPdf": "Download PDF",
     "downloadingPdf": "Downloading…",

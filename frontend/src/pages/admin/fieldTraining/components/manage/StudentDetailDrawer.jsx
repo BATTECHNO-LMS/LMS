@@ -32,6 +32,7 @@ import {
   useApplicationProgress,
   TaskProgressBadge,
 } from '../../../../../features/fieldTraining/index.js';
+import { formatScore, resolveTaskPresentation } from '../../../../../features/fieldTraining/fieldTrainingTaskSemantics.js';
 import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { ManageTabError, ManageTabSkeleton } from './ManageTabStates.jsx';
@@ -51,11 +52,12 @@ const WORKFLOW_STEPS = [
   'completion_letter',
 ];
 
-function MetricTile({ label, value }) {
+function MetricTile({ label, value, empty = 'غير متوفر' }) {
+  const shown = value == null || value === '' ? empty : value;
   return (
     <div className="ft-student-drawer__metric">
       <span>{label}</span>
-      <strong>{value ?? '—'}</strong>
+      <strong>{shown}</strong>
     </div>
   );
 }
@@ -203,7 +205,10 @@ export function StudentDetailDrawer({
     !app.completion_letter_issued_at &&
     app.training_status !== 'expelled';
   const canRecalc =
-    !readOnly && app.status === 'approved' && app.training_status !== 'expelled';
+    !readOnly &&
+    apiScope !== 'reviewer' &&
+    app.status === 'approved' &&
+    app.training_status !== 'expelled';
   const canDownloadLetter = Boolean(letter?.has_pdf || app.completion_letter_issued_at);
   const canPreviewLetter = Boolean(letterGate?.allowed || canDownloadLetter);
   const canEditSupervisor = !readOnly && !isInstructor;
@@ -300,7 +305,7 @@ export function StudentDetailDrawer({
                   ) : null}
                   <div>
                     <dt>{t('table.appliedAt')}</dt>
-                    <dd>{formatFtDate(app.created_at) ?? '—'}</dd>
+                    <dd>{formatFtDate(app.created_at) ?? t('common.unavailable', 'غير متوفر')}</dd>
                   </div>
                 </dl>
               </section>
@@ -311,7 +316,12 @@ export function StudentDetailDrawer({
                   applicationId={app.id}
                   hours={data?.hours || data?.progress?.metrics || {}}
                   asInstructor={isInstructor}
-                  canEdit={app.status === 'approved' && app.training_status !== 'expelled'}
+                  canEdit={
+                    !readOnly &&
+                    apiScope !== 'reviewer' &&
+                    app.status === 'approved' &&
+                    app.training_status !== 'expelled'
+                  }
                   onUpdated={() => {
                     setActionOk(t('form.hoursSaved'));
                     refetch();
@@ -467,21 +477,34 @@ export function StudentDetailDrawer({
                   <p className="ft-manage-panel__desc">{t('tasks.noTasks')}</p>
                 ) : (
                   <ul className="ft-student-drawer__list">
-                    {taskRows.map((task) => (
+                    {taskRows.map((task) => {
+                      const presented = resolveTaskPresentation({
+                        task: { id: task.task_id, title: task.task_title },
+                        submission: task.submission_id
+                          ? {
+                              id: task.submission_id,
+                              review_status: task.review_status,
+                              manual_score: task.manual_score,
+                              max_score: task.max_score,
+                              submitted_at: task.submitted_at,
+                              is_late: task.is_late,
+                            }
+                          : null,
+                      });
+                      return (
                       <li key={task.task_id}>
                         <div>
                           <strong>{task.task_title}</strong>
                           <p>
-                            {task.submission_id
-                              ? t(`tasks.reviewStatuses.${task.review_status}`, task.review_status)
-                              : t('tasks.reviewStatuses.not_submitted', 'غير مسلّم')}
-                            {task.manual_score != null
-                              ? ` · ${task.manual_score}${task.max_score != null ? `/${task.max_score}` : '/100'}`
-                              : task.submission_id
-                                ? ' · —'
-                                : ''}
-                            {task.submitted_at
-                              ? ` · ${formatFtDate(task.submitted_at) || String(task.submitted_at).slice(0, 10)}`
+                            {t('tasks.submissionState')}: {presented.submissionLabelAr}
+                            {' · '}
+                            {t('tasks.evaluationState')}: {presented.evaluationLabelAr}
+                            {presented.score != null
+                              ? ` · ${t('scoreBreakdown.grade')}: ${formatScore(presented.score, presented.maxScore || 100)}`
+                              : ` · ${t('scoreBreakdown.noGrade')}`}
+                            {presented.timingLabelAr ? ` · ${presented.timingLabelAr}` : ''}
+                            {presented.submittedAt
+                              ? ` · ${formatFtDate(presented.submittedAt) || t('common.unavailable', 'غير متوفر')}`
                               : ''}
                           </p>
                           {task.instructor_feedback ? (
@@ -506,7 +529,8 @@ export function StudentDetailDrawer({
                           </Button>
                         ) : null}
                       </li>
-                    ))}
+                      );
+                    })}
                   </ul>
                 )}
               </section>
@@ -531,7 +555,7 @@ export function StudentDetailDrawer({
                         {attendanceRecords.map((row) => (
                           <tr key={row.session_id}>
                             <td>{row.session_title}</td>
-                            <td>{row.session_date || '—'}</td>
+                            <td>{row.session_date || t('common.unavailable', 'غير متوفر')}</td>
                             <td>
                               {row.status
                                 ? t(`attendanceStatus.${row.status}`)
@@ -554,21 +578,21 @@ export function StudentDetailDrawer({
                     <h4>{t('manageHub.tabs.pre_assessment')}</h4>
                     <p>
                       {t('manageHub.studentCards.score')}:{' '}
-                      {assessments.pre?.score ?? metrics.pre_assessment_score ?? '—'}
+                      {assessments.pre?.score ?? metrics.pre_assessment_score ?? t('common.unavailable', 'غير متوفر')}
                     </p>
                     <p>
                       {t('manageHub.studentCards.attemptDate')}:{' '}
                       {assessments.pre?.submitted_at
                         ? formatFtDate(assessments.pre.submitted_at) ||
                           String(assessments.pre.submitted_at).slice(0, 16)
-                        : '—'}
+                        : t('common.unavailable', 'غير متوفر')}
                     </p>
                   </article>
                   <article>
                     <h4>{t('manageHub.tabs.post_assessment')}</h4>
                     <p>
                       {t('manageHub.studentCards.score')}:{' '}
-                      {assessments.post?.score ?? metrics.post_assessment_score ?? '—'}
+                      {assessments.post?.score ?? metrics.post_assessment_score ?? t('common.unavailable', 'غير متوفر')}
                     </p>
                     <p>
                       {t('manageHub.studentCards.postAssessmentStatus')}:{' '}
@@ -581,7 +605,7 @@ export function StudentDetailDrawer({
                       {assessments.post?.submitted_at
                         ? formatFtDate(assessments.post.submitted_at) ||
                           String(assessments.post.submitted_at).slice(0, 16)
-                        : '—'}
+                        : t('common.unavailable', 'غير متوفر')}
                     </p>
                   </article>
                 </div>

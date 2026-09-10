@@ -123,28 +123,26 @@ describe('field training students excel mapping', () => {
     const completed = mapStudentExcelRow(source({ training_status: 'completed' }), 0);
     const failedTraining = mapStudentExcelRow(source({ training_status: 'failed' }), 0);
     const expelled = mapStudentExcelRow(source({ training_status: 'expelled' }), 0);
-    const failedEval = mapStudentExcelRow(source({ final_evaluation_status: 'FAILED' }), 0);
-    const notEligible = mapStudentExcelRow(source({ final_evaluation_status: 'NOT_ELIGIBLE' }), 0);
-    const missingEval = mapStudentExcelRow(source({ final_evaluation_status: null }), 0);
+    const notEligible = mapStudentExcelRow(source({ eligibility_status: 'ineligible' }), 0);
+    const missingEval = mapStudentExcelRow(source({ eligibility_status: null }), 0);
     const tasksDone = mapStudentExcelRow(
       source({
         application_status: 'approved',
-        task_progress: { display: '8 / 8 — أكمل المهمات', status: 'completed' },
+        task_progress: { display: '8 من 8 مسلّمة · 8 من 8 مقيّمة', status: 'completed' },
       }),
       0
     );
 
     assert.equal(pending.applicationStatus, 'قيد المراجعة');
-    assert.equal(approved.applicationStatus, 'مقبول');
+    assert.equal(approved.applicationStatus, 'معتمد');
     assert.equal(rejected.applicationStatus, 'مرفوض');
     assert.equal(cancelled.applicationStatus, 'ملغى');
     assert.equal(completed.trainingStatus, 'مكتمل');
-    assert.equal(failedTraining.trainingStatus, 'غير مكتمل');
-    assert.equal(expelled.trainingStatus, 'مستبعد');
-    assert.equal(failedEval.finalResult, 'راسب');
-    assert.equal(notEligible.finalResult, 'غير مؤهل');
-    assert.equal(missingEval.finalResult, '');
-    assert.equal(tasksDone.taskProgress, '8 / 8 — أكمل المهمات');
+    assert.equal(failedTraining.trainingStatus, 'لم يجتز');
+    assert.equal(expelled.trainingStatus, 'مستبعد من التدريب');
+    assert.equal(notEligible.trainingResult, 'غير مؤهل');
+    assert.equal(missingEval.trainingResult, '');
+    assert.equal(tasksDone.taskProgress, '8 من 8 مسلّمة · 8 من 8 مقيّمة');
 
     const eligibleHours = mapStudentExcelRow(
       source({
@@ -205,7 +203,6 @@ describe('field training students excel workbook', () => {
     const uniCell = ws.getRow(2).getCell(UNIVERSITY_NUMBER_COL);
     assert.equal(String(uniCell.value), '01234567');
     assert.equal(uniCell.numFmt, '@');
-    assert.equal(ws.getRow(3).getCell(17).value, 'راسب');
     assert.equal(ws.views?.[0]?.rightToLeft, true);
     assert.equal(file.rowCount, 2);
   });
@@ -214,14 +211,14 @@ describe('field training students excel workbook', () => {
     const file = await exportFieldTrainingStudentsExcel([
       source({
         application_status: 'approved',
-        task_progress: { display: '8 / 8 — أكمل المهمات', status: 'completed' },
+        task_progress: { display: '8 من 8 مسلّمة · 8 من 8 مقيّمة', status: 'completed' },
       }),
     ]);
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(file.buffer);
     const ws = wb.getWorksheet(SHEET_NAME);
-    assert.equal(ws.getRow(1).getCell(12).value, 'تقدم المهمات');
-    assert.equal(ws.getRow(2).getCell(12).value, '8 / 8 — أكمل المهمات');
+    assert.equal(ws.getRow(1).getCell(22).value, 'تقدم التاسكات');
+    assert.equal(ws.getRow(2).getCell(22).value, '8 من 8 مسلّمة · 8 من 8 مقيّمة');
   });
 });
 

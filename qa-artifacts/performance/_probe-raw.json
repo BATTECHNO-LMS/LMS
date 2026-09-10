@@ -1,0 +1,636 @@
+{
+  "summary": {
+    "probedAt": "2026-09-10T14:30:41.667Z",
+    "origin": "https://lms.battechno.com",
+    "expectedIp": "187.55.228.232",
+    "dns": {
+      "addresses": [
+        "187.55.228.232"
+      ],
+      "matchesExpectedIp": true,
+      "lookupMs": 8,
+      "resolve4": [
+        "187.55.228.232"
+      ]
+    },
+    "tls": {
+      "handshakeMs": 168,
+      "protocol": "TLSv1.3",
+      "authorized": true,
+      "alpn": null,
+      "cipher": {
+        "name": "TLS_AES_256_GCM_SHA384",
+        "standardName": "TLS_AES_256_GCM_SHA384",
+        "version": "TLSv1.3"
+      },
+      "cert": {
+        "subject": {
+          "CN": "lms.battechno.com"
+        },
+        "issuer": {
+          "C": "US",
+          "O": "Let's Encrypt",
+          "CN": "YE1"
+        },
+        "valid_from": "Aug 12 12:45:32 2026 GMT",
+        "valid_to": "Nov 10 12:45:31 2026 GMT",
+        "subjectaltname": "DNS:lms.battechno.com"
+      }
+    },
+    "health": {
+      "ttfb": {
+        "n": 8,
+        "min": 104,
+        "p50": 106,
+        "avg": 141.3,
+        "p95": 361,
+        "max": 361
+      },
+      "total": {
+        "n": 8,
+        "min": 104,
+        "p50": 106,
+        "avg": 142,
+        "p95": 362,
+        "max": 362
+      },
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "ready": {
+      "ttfb": {
+        "n": 8,
+        "min": 603,
+        "p50": 612,
+        "avg": 704.4,
+        "p95": 1251,
+        "max": 1251
+      },
+      "total": {
+        "n": 8,
+        "min": 604,
+        "p50": 613,
+        "avg": 705,
+        "p95": 1251,
+        "max": 1251
+      },
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "cdn": {
+      "cfRayOnHtml": false,
+      "server": "nginx/1.24.0 (Ubuntu)"
+    },
+    "largestAsset": {
+      "url": "https://lms.battechno.com/assets/index-CUxTz4B_.js",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 535,
+      "bytes": 737425,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    "slowestAsset": {
+      "url": "https://lms.battechno.com/assets/battechno-lms-logo-transparent-ByXrvL4o.png",
+      "status": 200,
+      "ttfbMs": 223,
+      "totalMs": 654,
+      "bytes": 384590,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "image/png",
+      "error": null
+    }
+  },
+  "network": {
+    "dns": {
+      "addresses": [
+        "187.55.228.232"
+      ],
+      "matchesExpectedIp": true,
+      "lookupMs": 8,
+      "resolve4": [
+        "187.55.228.232"
+      ]
+    },
+    "tls": {
+      "handshakeMs": 168,
+      "protocol": "TLSv1.3",
+      "authorized": true,
+      "alpn": null,
+      "cipher": {
+        "name": "TLS_AES_256_GCM_SHA384",
+        "standardName": "TLS_AES_256_GCM_SHA384",
+        "version": "TLSv1.3"
+      },
+      "cert": {
+        "subject": {
+          "CN": "lms.battechno.com"
+        },
+        "issuer": {
+          "C": "US",
+          "O": "Let's Encrypt",
+          "CN": "YE1"
+        },
+        "valid_from": "Aug 12 12:45:32 2026 GMT",
+        "valid_to": "Nov 10 12:45:31 2026 GMT",
+        "subjectaltname": "DNS:lms.battechno.com"
+      }
+    },
+    "html": {
+      "status": 200,
+      "ttfbMs": 107,
+      "totalMs": 107,
+      "bytes": 1449,
+      "cacheControl": "no-cache, no-store, must-revalidate",
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "contentType": "text/html",
+      "assetUrls": [
+        "/assets/battechno-lms-logo-transparent-ByXrvL4o.png",
+        "https://fonts.googleapis.com",
+        "https://fonts.gstatic.com",
+        "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700&display=swap",
+        "/assets/index-CUxTz4B_.js",
+        "/assets/react-vendor-BWxfWDgY.js",
+        "/assets/i18n-BVGbXgz8.js",
+        "/assets/tanstack-query-CJLWGIrW.js",
+        "/assets/react-router-CmNxxoG_.js",
+        "/assets/lucide-CQz1b9ZL.js",
+        "/assets/react-icons-Bo2CNgo_.js",
+        "/assets/framer-motion-CQ0wxfVc.js",
+        "/assets/index-C5tZjQvg.css"
+      ],
+      "loginStatus": 200,
+      "loginMs": 126,
+      "loginBytes": 1449
+    },
+    "healthSamples": [
+      {
+        "i": 0,
+        "ts": "2026-09-10T14:30:42.353Z",
+        "status": 200,
+        "ttfbMs": 361,
+        "totalMs": 362,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 1,
+        "ts": "2026-09-10T14:30:45.219Z",
+        "status": 200,
+        "ttfbMs": 108,
+        "totalMs": 109,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 2,
+        "ts": "2026-09-10T14:30:47.466Z",
+        "status": 200,
+        "ttfbMs": 128,
+        "totalMs": 129,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 3,
+        "ts": "2026-09-10T14:30:49.692Z",
+        "status": 200,
+        "ttfbMs": 105,
+        "totalMs": 106,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 4,
+        "ts": "2026-09-10T14:30:51.930Z",
+        "status": 200,
+        "ttfbMs": 113,
+        "totalMs": 114,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 5,
+        "ts": "2026-09-10T14:30:54.143Z",
+        "status": 200,
+        "ttfbMs": 105,
+        "totalMs": 106,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 6,
+        "ts": "2026-09-10T14:30:56.374Z",
+        "status": 200,
+        "ttfbMs": 106,
+        "totalMs": 106,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      },
+      {
+        "i": 7,
+        "ts": "2026-09-10T14:30:58.592Z",
+        "status": 200,
+        "ttfbMs": 104,
+        "totalMs": 104,
+        "bytes": 84,
+        "error": null,
+        "server": "nginx/1.24.0 (Ubuntu)",
+        "connection": "keep-alive"
+      }
+    ],
+    "readySamples": [
+      {
+        "i": 0,
+        "ts": "2026-09-10T14:30:43.605Z",
+        "status": 200,
+        "ttfbMs": 1251,
+        "totalMs": 1251,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 1,
+        "ts": "2026-09-10T14:30:45.829Z",
+        "status": 200,
+        "ttfbMs": 609,
+        "totalMs": 610,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 2,
+        "ts": "2026-09-10T14:30:48.079Z",
+        "status": 200,
+        "ttfbMs": 612,
+        "totalMs": 613,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 3,
+        "ts": "2026-09-10T14:30:50.306Z",
+        "status": 200,
+        "ttfbMs": 613,
+        "totalMs": 614,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 4,
+        "ts": "2026-09-10T14:30:52.534Z",
+        "status": 200,
+        "ttfbMs": 603,
+        "totalMs": 604,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 5,
+        "ts": "2026-09-10T14:30:54.757Z",
+        "status": 200,
+        "ttfbMs": 612,
+        "totalMs": 613,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 6,
+        "ts": "2026-09-10T14:30:56.986Z",
+        "status": 200,
+        "ttfbMs": 611,
+        "totalMs": 611,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      },
+      {
+        "i": 7,
+        "ts": "2026-09-10T14:30:59.316Z",
+        "status": 200,
+        "ttfbMs": 724,
+        "totalMs": 724,
+        "bytes": 51,
+        "error": null,
+        "body": {
+          "status": "ready",
+          "database": "connected",
+          "db": true
+        }
+      }
+    ],
+    "healthStats": {
+      "ttfb": {
+        "n": 8,
+        "min": 104,
+        "p50": 106,
+        "avg": 141.3,
+        "p95": 361,
+        "max": 361
+      },
+      "total": {
+        "n": 8,
+        "min": 104,
+        "p50": 106,
+        "avg": 142,
+        "p95": 362,
+        "max": 362
+      },
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "readyStats": {
+      "ttfb": {
+        "n": 8,
+        "min": 603,
+        "p50": 612,
+        "avg": 704.4,
+        "p95": 1251,
+        "max": 1251
+      },
+      "total": {
+        "n": 8,
+        "min": 604,
+        "p50": 613,
+        "avg": 705,
+        "p95": 1251,
+        "max": 1251
+      },
+      "statuses": [
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200,
+        200
+      ]
+    },
+    "keepAlive": {
+      "reused": [
+        107,
+        116
+      ],
+      "newConn": [
+        239,
+        225
+      ]
+    },
+    "wwwHealth": {
+      "totalMs": 97,
+      "error": "getaddrinfo ENOTFOUND www.lms.battechno.com"
+    },
+    "extra": [
+      {
+        "path": "/favicon.ico",
+        "status": 200,
+        "ttfbMs": 106,
+        "totalMs": 106,
+        "bytes": 1449,
+        "cacheControl": "no-cache, no-store, must-revalidate",
+        "error": null
+      },
+      {
+        "path": "/assets/",
+        "status": 404,
+        "ttfbMs": 106,
+        "totalMs": 106,
+        "bytes": 153,
+        "error": null
+      },
+      {
+        "path": "/api/auth/me",
+        "status": 401,
+        "ttfbMs": 146,
+        "totalMs": 147,
+        "bytes": 139,
+        "cacheControl": "no-store",
+        "error": null
+      },
+      {
+        "path": "/api/v1/universities",
+        "status": 401,
+        "ttfbMs": 109,
+        "totalMs": 109,
+        "bytes": 139,
+        "cacheControl": "no-store",
+        "error": null
+      },
+      {
+        "path": "/health/ready",
+        "status": 200,
+        "ttfbMs": 607,
+        "totalMs": 608,
+        "bytes": 51,
+        "cacheControl": "no-store",
+        "error": null
+      }
+    ],
+    "geo": null
+  },
+  "assetResults": [
+    {
+      "url": "https://lms.battechno.com/assets/battechno-lms-logo-transparent-ByXrvL4o.png",
+      "status": 200,
+      "ttfbMs": 223,
+      "totalMs": 654,
+      "bytes": 384590,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "image/png",
+      "error": null
+    },
+    {
+      "url": "https://fonts.googleapis.com",
+      "status": 404,
+      "ttfbMs": 215,
+      "totalMs": 216,
+      "bytes": 1621,
+      "cacheControl": "no-cache, no-store, max-age=0, must-revalidate",
+      "contentType": "text/html; charset=utf-8",
+      "error": null
+    },
+    {
+      "url": "https://fonts.gstatic.com",
+      "status": 404,
+      "ttfbMs": 260,
+      "totalMs": 261,
+      "bytes": 1561,
+      "contentType": "text/html; charset=UTF-8",
+      "error": null
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700&display=swap",
+      "status": 200,
+      "ttfbMs": 81,
+      "totalMs": 93,
+      "bytes": 1587,
+      "cacheControl": "private, max-age=86400",
+      "contentType": "text/css; charset=utf-8",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-CUxTz4B_.js",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 535,
+      "bytes": 737425,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-vendor-BWxfWDgY.js",
+      "status": 200,
+      "ttfbMs": 105,
+      "totalMs": 135,
+      "bytes": 142232,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/i18n-BVGbXgz8.js",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 128,
+      "bytes": 49500,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/tanstack-query-CJLWGIrW.js",
+      "status": 200,
+      "ttfbMs": 126,
+      "totalMs": 129,
+      "bytes": 45073,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-router-CmNxxoG_.js",
+      "status": 200,
+      "ttfbMs": 112,
+      "totalMs": 118,
+      "bytes": 23329,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/lucide-CQz1b9ZL.js",
+      "status": 200,
+      "ttfbMs": 141,
+      "totalMs": 151,
+      "bytes": 54301,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-icons-Bo2CNgo_.js",
+      "status": 200,
+      "ttfbMs": 119,
+      "totalMs": 119,
+      "bytes": 8874,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/framer-motion-CQ0wxfVc.js",
+      "status": 200,
+      "ttfbMs": 117,
+      "totalMs": 151,
+      "bytes": 127965,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-C5tZjQvg.css",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 444,
+      "bytes": 422458,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "text/css",
+      "error": null
+    }
+  ]
+}

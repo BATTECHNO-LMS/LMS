@@ -214,24 +214,24 @@ function buildLetterPayload({
   const endRaw = opportunity.end_date || opportunity.training_end_date || null;
   const issueDate = issuedAt || letter?.issued_at || new Date();
   const eligibilityLabel =
-    ELIGIBILITY_AR[app.completion_eligibility_status] || app.completion_eligibility_status || '—';
+    ELIGIBILITY_AR[app.completion_eligibility_status] || app.completion_eligibility_status || 'غير محدد';
 
   return {
     applicationId: app.id,
     studentId: app.student_id,
     opportunityId: app.opportunity_id || opportunity.id,
     updatedAt: app.updated_at || letter?.updated_at || new Date(),
-    studentName: student.full_name || '—',
+    studentName: student.full_name || 'غير محدد',
     universityNumber,
-    universityName: student.university?.name || '—',
-    specialtyName: student.specialty?.name_ar || student.specialty?.name_en || '—',
-    opportunityTitle: opportunity.title || '—',
-    startDateLabel: formatArDate(startRaw) || '—',
-    endDateLabel: formatArDate(endRaw) || '—',
+    universityName: student.university?.name || 'غير محدد',
+    specialtyName: student.specialty?.name_ar || student.specialty?.name_en || 'غير محدد',
+    opportunityTitle: opportunity.title || 'غير محدد',
+    startDateLabel: formatArDate(startRaw) || 'غير محدد',
+    endDateLabel: formatArDate(endRaw) || 'غير محدد',
     completedHours,
     eligibilityLabel,
-    issueDateLabel: formatArDate(issueDate) || '—',
-    letterNo: isDraft ? 'مسودة — لم يصدر بعد' : letter?.letter_no || '—',
+    issueDateLabel: formatArDate(issueDate) || 'غير محدد',
+    letterNo: isDraft ? 'مسودة - لم يصدر بعد' : letter?.letter_no || 'غير محدد',
     verificationCode: isDraft ? '' : letter?.verification_code || '',
     isDraft: Boolean(isDraft),
     officerTitle: OFFICER_TITLE,

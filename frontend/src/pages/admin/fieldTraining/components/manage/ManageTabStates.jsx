@@ -51,7 +51,7 @@ export function ManageTabEmpty({ icon: Icon = Inbox, title, description, action 
 
 export function ManageKpiCard({ icon: Icon, label, value, hint, unavailable = false }) {
   const { t } = useTranslation('fieldTraining');
-  const displayValue = unavailable || value == null || value === '' ? '—' : value;
+  const displayValue = unavailable || value == null || value === '' ? t('common.unavailable', 'غير متوفر') : value;
   const displayHint =
     unavailable || value == null || value === ''
       ? t('manageHub.kpi.noDataYet')

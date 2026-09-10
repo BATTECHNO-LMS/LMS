@@ -156,6 +156,7 @@ describe('field training report Excel', () => {
       emptyStudentReport({
         submissions: [
           {
+            task_id: 't1',
             task_title: 'مهمة',
             due_date: null,
             submitted_at: null,
@@ -171,8 +172,8 @@ describe('field training report Excel', () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buffer);
     const tasks = wb.getWorksheet('05_المهمات');
-    assert.equal(tasks.getRow(2).getCell(6).value, 17.5);
-    assert.equal(tasks.getRow(2).getCell(7).value, 20);
+    assert.equal(tasks.getRow(2).getCell(5).value, 17.5);
+    assert.equal(tasks.getRow(2).getCell(6).value, 20);
   });
 });
 

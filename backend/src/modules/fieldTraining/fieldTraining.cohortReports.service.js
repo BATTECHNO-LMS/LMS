@@ -12,14 +12,11 @@ const { ApiError } = require('../../utils/apiError');
 const repo = require('./fieldTraining.repository');
 const ftAccess = require('./fieldTraining.access');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
-const {
-  resolveFieldTrainingApprovedResult,
-  sourceLabelAr,
-  SOURCE_AR,
-  PRIMARY_TAFILA_OPPORTUNITY_ID,
-} = require('./fieldTraining.tafilaApprovedResult.service');
+const { PRIMARY_TAFILA_OPPORTUNITY_ID } = require('./fieldTraining.tafilaApprovedResult.service');
+const officialResult = require('./fieldTraining.officialResult.service');
 const { LOGIN_ACTION } = require('./fieldTraining.activityTranslate');
-const { ACCEPTED_TASK_STATUSES } = require('./fieldTrainingEvaluation.constants');
+const present = require('../../utils/fieldTraining.reportPresentation');
+const labels = require('./fieldTrainingReport.labels');
 
 const TAFILA_ONLINE_EXPECTED = Object.freeze({
   opportunityId: PRIMARY_TAFILA_OPPORTUNITY_ID,
@@ -40,19 +37,7 @@ function statusAr(status) {
 }
 
 function humanSourceAr(source) {
-  if (!source) return 'غير متوفر';
-  const MAP = {
-    AUTHORIZED_MANUAL_REVIEW: 'مراجعة واعتماد نهائي',
-    AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'مراجعة واعتماد نهائي',
-    AUTHORIZED_MANUAL_REVIEW_TASK_NORMALIZATION: 'مراجعة واعتماد نهائي',
-    EXCEL_BASELINE: 'النتيجة النهائية المعتمدة',
-    AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE: 'قرار إداري معتمد',
-    AUTHORIZED_GRADE_OVERRIDE: 'قرار إداري معتمد',
-    VERIFIED_RECALCULATION_FROM_LMS_EVIDENCE: 'النتيجة النهائية المعتمدة',
-  };
-  if (MAP[source]) return MAP[source];
-  if (SOURCE_AR[source]) return SOURCE_AR[source];
-  return sourceLabelAr(source) || 'النتيجة النهائية المعتمدة';
+  return present.labelSourceHuman(source) || 'غير متوفر';
 }
 
 function scoreBucket(score, status) {
@@ -98,35 +83,8 @@ async function assertOpportunityAccess(user, opportunityId) {
   return opp;
 }
 
-/**
- * Batch LMS submission counts for required tasks (no fabrication).
- */
 async function loadLmsTaskSubmissionCounts(opportunityId, applicationIds) {
-  const requiredTasks = await prisma.field_training_tasks.findMany({
-    where: { opportunity_id: opportunityId, NOT: { is_required: false } },
-    select: { id: true },
-  });
-  const requiredCount = requiredTasks.length;
-  const requiredIds = requiredTasks.map((t) => t.id);
-  const counts = Object.fromEntries(
-    applicationIds.map((id) => [id, { submitted: 0, graded: 0, required: requiredCount }])
-  );
-  if (!applicationIds.length || !requiredIds.length) return counts;
-
-  const subs = await prisma.field_training_task_submissions.findMany({
-    where: {
-      application_id: { in: applicationIds },
-      task_id: { in: requiredIds },
-    },
-    select: { application_id: true, review_status: true },
-  });
-  for (const s of subs) {
-    const row = counts[s.application_id];
-    if (!row) continue;
-    row.submitted += 1;
-    if (ACCEPTED_TASK_STATUSES.includes(String(s.review_status))) row.graded += 1;
-  }
-  return counts;
+  return officialResult.loadLmsTaskSubmissionCounts(opportunityId, applicationIds);
 }
 
 function sortReportRows(rows) {
@@ -153,6 +111,7 @@ async function loadApprovedStudentRows(opportunityId, filters = {}) {
     select: {
       id: true,
       student_id: true,
+      opportunity_id: true,
       completion_eligibility_status: true,
       eligibility_reason: true,
       attendance_percentage: true,
@@ -162,30 +121,25 @@ async function loadApprovedStudentRows(opportunityId, filters = {}) {
       academic_supervisor_name: true,
       completion_letter_issued_at: true,
       training_status: true,
+      expelled_at: true,
     },
   });
   const profiles = await repo.findStudentProfilesByIds(apps.map((a) => a.student_id));
   const byId = Object.fromEntries(profiles.map((p) => [p.id, p]));
-  const taskCounts = await loadLmsTaskSubmissionCounts(
-    opportunityId,
-    apps.map((a) => a.id)
+
+  const officialRows = await officialResult.resolveFieldTrainingApprovedResults(
+    apps.map((a) => a.id),
+    { applications: apps }
+  );
+  const officialById = new Map(
+    officialRows.filter(Boolean).map((row) => [row.applicationId, row])
   );
 
   let rows = apps.map((app) => {
     const profile = byId[app.student_id] || {};
-    const details = app.eligibility_reason?.details || {};
-    const approved = details.approvedEvaluationResult || null;
-    const breakdown = approved?.scoreBreakdown || details.scoreBreakdown || null;
-    const score =
-      approved?.approvedFinalScore ?? details.displayFinalScore ?? details.finalScore ?? null;
-    const status =
-      approved?.approvedStatus === 'ELIGIBLE'
-        ? 'eligible'
-        : approved?.approvedStatus === 'NOT_ELIGIBLE'
-          ? 'ineligible'
-          : app.completion_eligibility_status;
-    const tasks = taskCounts[app.id] || { submitted: 0, graded: 0, required: 0 };
-    const labels = app.eligibility_reason?.labelsAr || [];
+    const official = officialById.get(app.id);
+    const status = official?.eligibilityDb || app.completion_eligibility_status;
+    const labels = official?.reasons || app.eligibility_reason?.labelsAr || [];
     return {
       applicationId: app.id,
       studentId: app.student_id,
@@ -200,30 +154,46 @@ async function loadApprovedStudentRows(opportunityId, filters = {}) {
       academicSupervisor: app.academic_supervisor_name || '',
       status,
       statusAr: statusAr(status),
-      approvedFinalScore: score == null ? null : round1(score),
-      attendancePoints: breakdown?.attendancePoints ?? null,
-      postAssessmentPoints: breakdown?.postAssessmentPoints ?? null,
-      taskPoints: breakdown?.taskPoints ?? null,
-      behaviorPoints: breakdown?.behaviorPoints ?? null,
-      completedHours: app.completed_training_hours != null ? Number(app.completed_training_hours) : null,
-      attendancePercent: app.attendance_percentage != null ? Number(app.attendance_percentage) : null,
+      approvedFinalScore: official?.finalScore == null ? null : round1(official.finalScore),
+      attendancePoints: official?.attendancePoints ?? null,
+      postAssessmentPoints: official?.postPoints ?? null,
+      taskPoints: official?.taskPoints ?? null,
+      behaviorPoints: official?.behaviorPoints ?? null,
+      completedHours:
+        official?.completedTrainingHours != null
+          ? Number(official.completedTrainingHours)
+          : app.completed_training_hours != null
+            ? Number(app.completed_training_hours)
+            : null,
+      attendancePercent:
+        official?.attendancePercentage != null
+          ? Number(official.attendancePercentage)
+          : app.attendance_percentage != null
+            ? Number(app.attendance_percentage)
+            : null,
       preAssessment: app.pre_assessment_score != null ? Number(app.pre_assessment_score) : null,
       postAssessment: app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
       postAssessmentPercent:
-        app.post_assessment_score != null ? Number(app.post_assessment_score) : null,
-      submittedTaskCount: tasks.submitted,
-      gradedTaskCount: tasks.graded,
-      requiredTaskCount: tasks.required,
-      tasksDisplay: `${tasks.submitted}/${tasks.required}`,
+        official?.postAssessmentScore != null
+          ? Number(official.postAssessmentScore)
+          : app.post_assessment_score != null
+            ? Number(app.post_assessment_score)
+            : null,
+      submittedTaskCount: official?.submittedTaskCount ?? 0,
+      gradedTaskCount: official?.gradedTaskCount ?? 0,
+      requiredTaskCount: official?.requiredTaskCount ?? 0,
+      tasksDisplay: `${official?.submittedTaskCount ?? 0} من ${official?.requiredTaskCount ?? 0}`,
       reasons: labels,
       conciseNotEligibleReason:
         status === 'ineligible' ? (labels.filter(Boolean)[0] || 'غير مؤهل') : '',
-      source: approved?.source || null,
-      sourceLabelAr: humanSourceAr(approved?.source),
-      approvedAt: approved?.approvedAt || null,
-      completionLetterIssued: Boolean(app.completion_letter_issued_at),
+      source: official?.source || null,
+      sourceLabelAr: humanSourceAr(official?.source),
+      approvedAt: official?.approvedAt || null,
+      completionLetterIssued:
+        official?.eligibility === 'ELIGIBLE' ? Boolean(app.completion_letter_issued_at) : false,
       trainingStatus: app.training_status,
-      scoreBreakdown: breakdown,
+      trainingStatusAr: labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status),
+      scoreBreakdown: official?.scoreBreakdown || null,
       opportunityId,
     };
   });
@@ -399,19 +369,22 @@ async function buildOpportunityFinalReport(user, opportunityId, filters = {}, op
   const students = await loadApprovedStudentRows(opportunityId, official ? {} : filters);
   const validation = validateOpportunityReportDataset(opportunityId, students);
   const summary = buildSummary(opp, students);
-  const resultVersion =
+  const resultVersionLabel = present.formatDateAr(
     students
       .map((s) => s.approvedAt)
       .filter(Boolean)
       .sort()
-      .slice(-1)[0] || new Date().toISOString();
+      .slice(-1)[0] || new Date()
+  );
+  const generatedAtLabelAr = present.formatDateAr(new Date());
 
   return {
     reportType: 'final',
     companyName: 'BATMAN TECHNOLOGY',
     generatedAt: new Date().toISOString(),
+    generatedAtLabelAr,
     generatedBy: user?.userId || user?.id || null,
-    resultVersion,
+    resultVersion: resultVersionLabel,
     opportunityId: opp.id,
     university: opp.universities?.name || opp.university_name || 'جامعة الطفيلة التقنية',
     opportunity: {
@@ -444,7 +417,8 @@ async function buildOpportunityFinalReport(user, opportunityId, filters = {}, op
       taskPoints: s.taskPoints,
       behaviorPoints: s.behaviorPoints,
       completedHours: s.completedHours,
-      trainingStatus: s.trainingStatus,
+      trainingStatus: s.trainingStatusAr,
+      trainingStatusCode: s.trainingStatus,
       notEligibleReason: s.conciseNotEligibleReason,
       approvedResultSource: s.sourceLabelAr,
       approvedSourceCode: s.source,
@@ -547,11 +521,11 @@ function renderFinalReportHtml(report) {
       <td>${esc(st.studentName)}</td>
       <td>${esc(st.universityNumber)}</td>
       <td>${esc(st.specialty)}</td>
-      <td>${esc(st.attendancePoints ?? 'غير متوفر')}</td>
-      <td>${esc(st.postAssessmentPoints ?? 'غير متوفر')}</td>
-      <td>${esc(st.taskPoints ?? 'غير متوفر')}</td>
-      <td>${esc(st.behaviorPoints ?? 'غير متوفر')}</td>
-      <td>${esc(st.approvedFinalScore ?? 'غير متوفر')}</td>
+      <td><span dir="ltr">${esc(st.attendancePoints ?? 'غير متوفر')}</span></td>
+      <td><span dir="ltr">${esc(st.postAssessmentPoints ?? 'غير متوفر')}</span></td>
+      <td><span dir="ltr">${esc(st.taskPoints ?? 'غير متوفر')}</span></td>
+      <td><span dir="ltr">${esc(st.behaviorPoints ?? 'غير متوفر')}</span></td>
+      <td><span dir="ltr">${esc(st.approvedFinalScore ?? 'غير متوفر')}</span></td>
       <td>${esc(st.status)}</td>
     </tr>`
     )
@@ -583,7 +557,9 @@ function renderFinalReportHtml(report) {
   <div class="meta">
     <div>${esc(report.university)}</div>
     <div>اسم الفرصة: ${esc(report.opportunity?.title)}</div>
-    <div>نمط التدريب: ${esc(report.opportunity?.trainingModeAr)}</div>
+    <div>تاريخ الإصدار: ${esc(report.generatedAtLabelAr || present.formatDateAr(new Date()) || 'غير متوفر')}</div>
+    <div>جهة الإصدار: شركة الرجل الوطواط للتكنولوجيا</div>
+    <div>نوع التقرير: تقرير التدريب الميداني النهائي</div>
   </div>
   <div class="cards">
     <div class="card"><span>عدد الطلبة</span><strong>${esc(s.totalStudents)}</strong></div>
@@ -655,7 +631,7 @@ async function exportOpportunityFinalReportPdf(user, opportunityId, filters = {}
   const buffer = await renderHtmlToPdf(renderFinalReportHtml(report), {
     lang: 'ar',
     footerLeft: 'BATMAN TECHNOLOGY · تقرير التدريب الميداني النهائي',
-    footerNote: report.generatedAt,
+    footerNote: report.generatedAtLabelAr || '',
   });
   return {
     buffer,
@@ -677,7 +653,7 @@ async function exportOpportunityComprehensiveReportPdf(user, opportunityId, filt
   const buffer = await renderHtmlToPdf(renderComprehensiveReportHtml(report), {
     lang: 'ar',
     footerLeft: 'BATMAN TECHNOLOGY · التقرير الشامل للتدريب الميداني',
-    footerNote: report.generatedAt,
+    footerNote: report.generatedAtLabelAr || '',
   });
   return {
     buffer,
@@ -701,25 +677,24 @@ async function exportOpportunityOfficialExcel(user, opportunityId, filters = {})
   const ws = wb.addWorksheet('الطلاب', { views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }] });
   const headers = [
     '#',
-    'اسم_الطالب',
-    'الرقم_الجامعي',
-    'البريد',
+    'اسم الطالب',
+    'الرقم الجامعي',
+    'البريد الإلكتروني',
     'التخصص',
-    'المشرف_الأكاديمي',
-    'نمط_التدريب',
-    'الحالة',
-    'العلامة_النهائية_المعتمدة',
-    'الحضور_%',
-    'الحضور_من_20',
-    'التقييم_البعدي_%',
-    'التقييم_البعدي_من_20',
-    'التاسكات_المسلمة',
-    'علامة_التاسكات_من_40',
-    'علامة_السلوك_من_20',
-    'الساعات',
-    'حالة_التدريب',
-    'سبب_عدم_التأهيل',
-    'مصدر_النتيجة',
+    'المشرف الأكاديمي',
+    'نمط التدريب',
+    'نتيجة التدريب',
+    'العلامة النهائية',
+    'نسبة الحضور',
+    'علامة الحضور من 20',
+    'التقييم البعدي',
+    'علامة التقييم البعدي من 20',
+    'التاسكات المسلمة',
+    'علامة التاسكات من 40',
+    'علامة السلوك والالتزام من 20',
+    'الساعات المنجزة',
+    'حالة التدريب',
+    'سبب عدم التأهيل',
   ];
   ws.addRow(headers);
   const headerRow = ws.getRow(1);
@@ -749,7 +724,6 @@ async function exportOpportunityOfficialExcel(user, opportunityId, filters = {})
       s.completedHours,
       s.trainingStatus,
       s.notEligibleReason || '',
-      s.approvedResultSource,
     ]);
   }
 
@@ -793,7 +767,7 @@ async function exportOpportunityOfficialExcel(user, opportunityId, filters = {})
 }
 
 async function getStudentApprovedSnapshot(applicationId) {
-  return resolveFieldTrainingApprovedResult(applicationId);
+  return officialResult.resolveFieldTrainingApprovedResult(applicationId);
 }
 
 module.exports = {

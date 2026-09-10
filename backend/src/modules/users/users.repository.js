@@ -1,4 +1,5 @@
 ﻿const { prisma } = require('../../config/db');
+const { invalidateAuthContextForUser } = require('../auth/authContextCache');
 
 const userPublicSelect = {
   id: true,
@@ -167,6 +168,7 @@ async function createUser(data, tx) {
 async function createUserRoleLinks(userId, roleIds, tx) {
   const data = roleIds.map((role_id) => ({ user_id: userId, role_id }));
   await tx.user_roles.createMany({ data });
+  invalidateAuthContextForUser(userId);
 }
 
 async function upsertUniversityUser({ university_id, user_id, relationship_type }, tx) {
@@ -188,14 +190,17 @@ async function upsertUniversityUser({ university_id, user_id, relationship_type 
 
 async function deleteAllUserRoles(userId, tx) {
   await tx.user_roles.deleteMany({ where: { user_id: userId } });
+  invalidateAuthContextForUser(userId);
 }
 
 async function updateUser(id, data, tx = prisma) {
-  return tx.users.update({
+  const row = await tx.users.update({
     where: { id },
     data,
     select: userPublicSelect,
   });
+  invalidateAuthContextForUser(id);
+  return row;
 }
 
 /** Inactive users with the student role, optionally scoped to a university. */

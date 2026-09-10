@@ -1,17 +1,20 @@
 'use strict';
 
 /**
- * Short-TTL cache of role_id to permission codes (catalog data, not user-specific).
+ * Short-TTL cache of role catalog rows and role_id → permission codes.
+ * Not user-specific membership.
  */
 
 const TTL_MS = 60_000;
 
 let expiresAt = 0;
 let byRoleId = new Map();
+let rolesById = new Map();
 
 function resetIfStale() {
   if (Date.now() > expiresAt) {
     byRoleId = new Map();
+    rolesById = new Map();
     expiresAt = Date.now() + TTL_MS;
   }
 }
@@ -19,6 +22,7 @@ function resetIfStale() {
 function clearRolePermissionCache() {
   expiresAt = 0;
   byRoleId = new Map();
+  rolesById = new Map();
 }
 
 async function getPermissionCodesForRoleIds(prisma, roleIds) {
@@ -57,9 +61,25 @@ async function getPermissionCodesForRoleIds(prisma, roleIds) {
   return [...out];
 }
 
+async function getRoleRecordsByIds(prisma, roleIds) {
+  const ids = [...new Set((roleIds || []).filter(Boolean))];
+  if (!ids.length) return [];
+
+  resetIfStale();
+  const missing = ids.filter((id) => !rolesById.has(id));
+  if (missing.length) {
+    const rows = await prisma.roles.findMany({
+      where: { id: { in: missing } },
+      select: { id: true, code: true, name: true },
+    });
+    for (const row of rows) rolesById.set(row.id, row);
+  }
+  return ids.map((id) => rolesById.get(id)).filter(Boolean);
+}
+
 module.exports = {
   TTL_MS,
   getPermissionCodesForRoleIds,
-  getPermissionCodesForRoleIds: getPermissionCodesForRoleIds,
+  getRoleRecordsByIds,
   clearRolePermissionCache,
 };

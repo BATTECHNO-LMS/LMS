@@ -19,6 +19,7 @@ import {
 import { StudentTaskInstructionSection } from '../../../student/fieldTraining/components/StudentTaskInstructionSection.jsx';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
 import { formatFtDate } from '../../../../features/fieldTraining/fieldTrainingUi.js';
+import { formatScore, resolveTaskPresentation } from '../../../../features/fieldTraining/fieldTrainingTaskSemantics.js';
 import {
   GRADING_MODES,
   resolveTaskGradingMode,
@@ -159,9 +160,9 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
         </p>
       ) : null}
       {tasks.map((task, index) => {
-        const submitted = Boolean(task.submission);
+        const presented = resolveTaskPresentation({ task, submission: task.submission });
+        const submitted = presented.submitted;
         const showUpload = !submitted || replacingId === task.id;
-        const reviewStatus = task.submission?.review_status;
         const gradingMode = resolveTaskGradingMode(task);
         const files = pendingFiles[task.id] || [];
         const busy = submittingTaskId === task.id || submitMut.isPending;
@@ -213,14 +214,15 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                 ) : null}
               </div>
 
-              {submitted && reviewStatus ? (
+              {submitted && presented.evaluationLabelAr ? (
                 <p className="ft-task-item__review">
-                  {t('tasks.reviewStatus')}:{' '}
-                  {t(`tasks.reviewStatuses.${reviewStatus}`, reviewStatus)}
-                  {task.submission?.manual_score != null
-                    ? ` · ${t('tasks.manualScore')}: ${task.submission.manual_score}`
-                    : ''}
-                  {task.submission?.is_late ? ` · ${t('tasks.late')}` : ''}
+                  {t('tasks.submissionState')}: {presented.submissionLabelAr}
+                  {' · '}
+                  {t('tasks.evaluationState')}: {presented.evaluationLabelAr}
+                  {presented.score != null
+                    ? ` · ${t('scoreBreakdown.grade')}: ${formatScore(presented.score, presented.maxScore || 100)}`
+                    : ` · ${t('scoreBreakdown.noGrade')}`}
+                  {presented.timingLabelAr ? ` · ${presented.timingLabelAr}` : ''}
                 </p>
               ) : null}
               {submitted && task.submission?.instructor_feedback ? (
@@ -253,7 +255,7 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                   <span>
                     {task.submission.files?.length
                       ? t('tasks.filesCount', { count: task.submission.files.length })
-                      : `${t('tasks.file')}: ${task.submission.file_name || '—'}`}
+                      : `${t('tasks.file')}: ${task.submission.file_name || t('common.unavailable', 'غير متوفر')}`}
                   </span>
                   {task.submission?.id ? (
                     <Button

@@ -101,8 +101,8 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
         <div className="ft-manage-table-wrap">
           <DataTable
             columns={[
-              { key: 'student', label: t('table.student'), render: (r) => r.student_name ?? '—' },
-              { key: 'task', label: t('tasks.taskTitle'), render: (r) => r.task_title ?? '—' },
+              { key: 'student', label: t('table.student'), render: (r) => r.student_name ?? 'غير متوفر' },
+              { key: 'task', label: t('tasks.taskTitle'), render: (r) => r.task_title ?? 'غير متوفر' },
               {
                 key: 'review',
                 label: t('tasks.reviewStatus'),
@@ -249,9 +249,9 @@ export function ManageSubmissionsTab({ opportunityId, apiScope = 'admin' }) {
                 <div className="ft-manage-review-block">
                   <h3>{t('selfEval.extractionStatus')}</h3>
                   <p>
-                    {t('selfEval.fileExtraction')}: {reviewModal.file_extraction_status || '—'}
+                    {t('selfEval.fileExtraction')}: {reviewModal.file_extraction_status || 'غير متوفر'}
                     {' · '}
-                    {t('selfEval.urlExtraction')}: {reviewModal.url_extraction_status || '—'}
+                    {t('selfEval.urlExtraction')}: {reviewModal.url_extraction_status || 'غير متوفر'}
                   </p>
                   {reviewModal.extraction_errors ? <p>{reviewModal.extraction_errors}</p> : null}
                 </div>

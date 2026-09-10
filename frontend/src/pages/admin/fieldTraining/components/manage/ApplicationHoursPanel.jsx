@@ -82,11 +82,11 @@ export function ApplicationHoursPanel({
         </div>
         <div>
           <dt>{t('form.remainingTrainingHours')}</dt>
-          <dd>{remaining != null ? remaining : '—'}</dd>
+          <dd>{remaining != null ? remaining : 'غير متوفر'}</dd>
         </div>
         <div>
           <dt>{t('form.hoursProgress')}</dt>
-          <dd>{pct != null ? `${pct}%` : '—'}</dd>
+          <dd>{pct != null ? `${pct}%` : 'غير متوفر'}</dd>
         </div>
       </dl>
 

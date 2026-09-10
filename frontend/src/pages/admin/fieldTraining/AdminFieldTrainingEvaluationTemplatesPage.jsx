@@ -101,7 +101,7 @@ export function FieldTrainingEvaluationTemplatesPage({ apiScope = 'admin' }) {
       {
         key: 'isDefault',
         label: t('page.default'),
-        render: (row) => (row.isDefault ? t('page.isDefault') : '—'),
+        render: (row) => (row.isDefault ? t('page.isDefault') : 'غير متوفر'),
       },
       { key: 'validationStatus', label: t('page.validation') },
       {
@@ -112,7 +112,7 @@ export function FieldTrainingEvaluationTemplatesPage({ apiScope = 'admin' }) {
       {
         key: 'createdAt',
         label: t('page.createdAt'),
-        render: (row) => (row.createdAt ? new Date(row.createdAt).toLocaleString() : '—'),
+        render: (row) => (row.createdAt ? new Date(row.createdAt).toLocaleString() : 'غير متوفر'),
       },
       {
         key: 'actions',

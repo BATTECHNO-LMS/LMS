@@ -271,7 +271,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
         <div className="ft-tasks-page__header-top">
           <div className="ft-tasks-page__header-text">
             <p className="ft-tasks-page__eyebrow">{t('tasks.adminTitle')}</p>
-            <h1 className="ft-tasks-page__title">{opp?.title ?? '—'}</h1>
+            <h1 className="ft-tasks-page__title">{opp?.title ?? 'غير متوفر'}</h1>
             {opp?.university || opp?.organization_name ? (
               <p className="ft-tasks-page__meta">
                 {getOpportunityUniversityLabel(opp, t('form.universityUnspecified'))}
@@ -304,28 +304,28 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
       <AdminStatsGrid>
         <StatCard
           label={t('adminKpi.tasksCount')}
-          value={oppBusy || isLoading ? '—' : tasks.length}
+          value={oppBusy || isLoading ? '…' : tasks.length}
           hint={t('tasks.kpiTasksHint')}
           meta={t('adminKpi.liveData')}
           icon={ListChecks}
         />
         <StatCard
           label={t('adminKpi.submissionsCount')}
-          value={oppBusy || isLoading ? '—' : submissions.length}
+          value={oppBusy || isLoading ? '…' : submissions.length}
           hint={t('tasks.kpiSubmissionsHint')}
           meta={t('adminKpi.liveData')}
           icon={Upload}
         />
         <StatCard
           label={t('tasks.kpiTasksWithSubmissions')}
-          value={oppBusy || isLoading ? '—' : tasksWithSubmissions}
+          value={oppBusy || isLoading ? '…' : tasksWithSubmissions}
           hint={t('tasks.kpiTasksWithSubmissionsHint')}
           meta={t('adminKpi.liveData')}
           icon={CheckCircle2}
         />
         <StatCard
           label={t('tasks.kpiTasksAwaiting')}
-          value={oppBusy || isLoading ? '—' : tasksAwaitingSubmissions}
+          value={oppBusy || isLoading ? '…' : tasksAwaitingSubmissions}
           hint={t('tasks.kpiTasksAwaitingHint')}
           meta={t('adminKpi.liveData')}
           icon={Clock}
@@ -716,8 +716,8 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
             ) : null}
             <DataTable
               columns={[
-                { key: 'student', label: t('table.student'), render: (r) => r.student_name ?? '—' },
-                { key: 'task', label: t('tasks.taskTitle'), render: (r) => r.task_title ?? '—' },
+                { key: 'student', label: t('table.student'), render: (r) => r.student_name ?? 'غير متوفر' },
+                { key: 'task', label: t('tasks.taskTitle'), render: (r) => r.task_title ?? 'غير متوفر' },
                 {
                   key: 'timing',
                   label: t('tasks.timing'),
@@ -728,7 +728,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                   label: t('tasks.reviewStatus'),
                   render: (r) => t(`tasks.reviewStatuses.${r.review_status || 'pending'}`),
                 },
-                { key: 'file', label: t('tasks.file'), render: (r) => r.file_name ?? '—' },
+                { key: 'file', label: t('tasks.file'), render: (r) => r.file_name ?? 'غير متوفر' },
                 {
                   key: 'link',
                   label: t('tasks.viewFile'),
@@ -776,7 +776,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                   key: 'at',
                   label: t('tasks.submittedAt'),
                   render: (r) =>
-                    r.submitted_at ? String(r.submitted_at).slice(0, 16).replace('T', ' ') : '—',
+                    r.submitted_at ? String(r.submitted_at).slice(0, 16).replace('T', ' ') : 'غير متوفر',
                 },
               ]}
               rows={submissions}
@@ -791,7 +791,7 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
             <header className="ft-modal__header">
               <h2 className="ft-modal__title">{t('tasks.reviewModalTitle')}</h2>
               <p className="ft-modal__subtitle">
-                {reviewModal.student_name} — {reviewModal.task_title}
+                {reviewModal.student_name}: {reviewModal.task_title}
               </p>
             </header>
             <div className="ft-modal__body">
@@ -815,9 +815,9 @@ export function AdminFieldTrainingTasksPage({ apiScope = 'admin' } = {}) {
                 <div className="ft-review-block">
                   <strong>{t('selfEval.extractionStatus')}</strong>
                   <p>
-                    {t('selfEval.fileExtraction')}: {reviewModal.file_extraction_status || '—'}
+                    {t('selfEval.fileExtraction')}: {reviewModal.file_extraction_status || 'غير متوفر'}
                     {' · '}
-                    {t('selfEval.urlExtraction')}: {reviewModal.url_extraction_status || '—'}
+                    {t('selfEval.urlExtraction')}: {reviewModal.url_extraction_status || 'غير متوفر'}
                   </p>
                   {reviewModal.extraction_errors ? <p>{reviewModal.extraction_errors}</p> : null}
                 </div>

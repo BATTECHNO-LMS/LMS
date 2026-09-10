@@ -100,7 +100,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
         title={t('hub.title')}
         description={
           data?.university?.name || universityName
-            ? `${t('hub.description')} — ${data?.university?.name || universityName}`
+            ? `${t('hub.description')} : ${data?.university?.name || universityName}`
             : t('hub.description')
         }
         actions={
@@ -226,7 +226,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
             />
             <StatCard
               label={t('metrics.averageAttendance')}
-              value={summary.average_attendance != null ? `${summary.average_attendance}%` : '—'}
+              value={summary.average_attendance != null ? `${summary.average_attendance}%` : 'غير متوفر'}
               icon={BarChart3}
             />
             <StatCard
@@ -234,7 +234,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
               value={
                 summary.average_pre_assessment_score != null
                   ? String(summary.average_pre_assessment_score)
-                  : '—'
+                  : 'غير متوفر'
               }
               icon={BarChart3}
             />
@@ -243,7 +243,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
               value={
                 summary.average_post_assessment_score != null
                   ? String(summary.average_post_assessment_score)
-                  : '—'
+                  : 'غير متوفر'
               }
               icon={BarChart3}
             />
@@ -314,7 +314,7 @@ export function FieldTrainingReportsHubPage({ basePath, mode = 'admin' }) {
                     >
                       <h3 className="ft-report-opportunity-card__title">{opp.title}</h3>
                       <p className="ft-report-opportunity-card__meta">
-                        {opp.training_track?.name_ar || opp.training_track?.name_en || '—'}
+                        {opp.training_track?.name_ar || opp.training_track?.name_en || 'غير متوفر'}
                       </p>
                       <dl className="ft-report-opportunity-card__stats">
                         <div>

@@ -124,7 +124,7 @@ function hoursStatusLabelAr(status) {
   if (status === HOURS_STATUS.NOT_STARTED) return 'لم يبدأ';
   if (status === HOURS_STATUS.IN_PROGRESS) return 'قيد الإنجاز';
   if (status === HOURS_STATUS.COMPLETED) return 'مكتمل';
-  return '—';
+  return 'غير محدد';
 }
 
 function formatCompletedHoursLabelAr(hours) {

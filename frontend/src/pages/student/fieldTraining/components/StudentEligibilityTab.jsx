@@ -11,11 +11,6 @@ function formatReasons(reason) {
   if (Array.isArray(reason?.reasons)) return reason.reasons.map(String);
   if (Array.isArray(reason?.details)) return reason.details.map(String);
   if (typeof reason === 'string') return [reason];
-  if (typeof reason === 'object') {
-    return Object.entries(reason)
-      .filter(([key]) => key !== 'details')
-      .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
-  }
   return [];
 }
 
@@ -55,18 +50,30 @@ export function StudentEligibilityTab({
             <ClipboardCheck size={18} />
           </div>
           <h3 className="ft-content-card__title">{t('studentTraining.eligibilityPanel.title')}</h3>
+          {application?.training_status && application.training_status !== 'none' ? (
+            <StatusBadge
+              variant={
+                application.training_status === 'expelled' || application.training_status === 'failed'
+                  ? 'danger'
+                  : application.training_status === 'completed'
+                    ? 'info'
+                    : 'muted'
+              }
+            >
+              {t('outcomeSemantics.trainingStatus')}:{' '}
+              {t(`trainingStatus.${application.training_status}`, application.training_status)}
+            </StatusBadge>
+          ) : null}
           <StatusBadge
             variant={
-              expelled || eligibility === 'ineligible'
+              eligibility === 'ineligible'
                 ? 'danger'
                 : eligibility === 'eligible'
                   ? 'success'
                   : 'warning'
             }
           >
-            {expelled
-              ? t('trainingStatus.expelled')
-              : t(`eligibility.${eligibility}`, eligibility)}
+            {t('outcomeSemantics.eligibilityResult')}: {t(`eligibility.${eligibility}`, eligibility)}
           </StatusBadge>
         </header>
 

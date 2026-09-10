@@ -77,6 +77,12 @@ function parseScoringRules(raw) {
         }
       : null,
     eligibilityOverrides: Array.isArray(src.eligibilityOverrides) ? src.eligibilityOverrides : [],
+    requireAllRequiredTasksSubmitted:
+      src.requireAllRequiredTasksSubmitted === true
+        ? true
+        : src.requireAllRequiredTasksSubmitted === false
+          ? false
+          : undefined,
     allowPassingScoreWithPartialTaskSubmissions: Boolean(
       src.allowPassingScoreWithPartialTaskSubmissions
     ),
@@ -310,7 +316,12 @@ function collectFixedGates({ input, policy, opportunity = {}, application = {}, 
     }
   }
 
-  if (policy.requiredTasksRequired !== false) {
+  const requireAllTasksExplicit = policy.scoringRules?.requireAllRequiredTasksSubmitted;
+  if (requireAllTasksExplicit === false) {
+    // Missing required tasks score as zero on the 40-point component; not a hard eligibility gate.
+    requirements.requiredTasksCompleted = true;
+    requirements.partialTasksWaiverApplied = !tasksComponent.completed;
+  } else if (policy.requiredTasksRequired !== false) {
     const submittedCount = countSubmittedRequiredTasks(tasksComponent);
     const minSubmitted = policy.scoringRules?.minimumSubmittedTasksForPartialWaiver || 1;
     const partialWaiver =
@@ -647,6 +658,11 @@ function calculateFixedComponentQualification(rawInput = {}, rawPolicy = {}, con
   };
 }
 
+/**
+ * LEGACY_WEIGHTED live engine. Not an official result path by itself.
+ * Routed only when `resolveFieldTrainingPolicy` selects LEGACY_WEIGHTED_V1.
+ * Do not call from reports, Excel, or completion-letter code.
+ */
 function wrapLegacyEvaluation(rawInput, rawPolicy, context = {}) {
   const policy = normalizeQualificationPolicy(rawPolicy);
   const calculated = scoring.calculateFinalEvaluation(rawInput, policy);
@@ -710,9 +726,9 @@ function wrapLegacyEvaluation(rawInput, rawPolicy, context = {}) {
 }
 
 /**
- * Canonical Field Training qualification.
- * Fixed-component universities (Tafila) use 20/20/40/20 with no renormalization.
- * Other universities keep the legacy weighted engine.
+ * Live Field Training qualification engines.
+ * Policy family is selected by `resolveFieldTrainingPolicy` before this runs.
+ * Official UI/report/Excel must consume `resolveFieldTrainingApprovedResult`, not this function.
  */
 function calculateFieldTrainingFinalQualification(rawInput = {}, rawPolicy = {}, context = {}) {
   const policy = normalizeQualificationPolicy(rawPolicy);
@@ -724,7 +740,15 @@ function calculateFieldTrainingFinalQualification(rawInput = {}, rawPolicy = {},
 
 function qualifyLoadedContext(ctx) {
   if (!ctx) return null;
-  const policy = { ...ctx.policy };
+  const policyMod = require('./fieldTraining.policy.service');
+  const resolved = policyMod.resolveFieldTrainingPolicy({
+    application: ctx.application,
+    opportunity: ctx.opportunity,
+    universityPolicy: ctx.policy,
+    student: ctx.student,
+  });
+  const policy = policyMod.materializeQualificationPolicy({ ...ctx.policy }, resolved);
+  ctx.resolvedPolicy = resolved;
   if (policy.requiredTrainingHours == null) {
     policy.requiredTrainingHours =
       ctx.scoringInput?.requiredHours ?? ctx.opportunity?.required_training_hours;
@@ -743,11 +767,13 @@ function qualifyLoadedContext(ctx) {
         studentId: ctx.application?.student_id,
       }),
   };
-  return calculateFieldTrainingFinalQualification(scoringInput, policy, {
+  const calculated = calculateFieldTrainingFinalQualification(scoringInput, policy, {
     application: ctx.application,
     opportunity: ctx.opportunity,
     student: ctx.student,
   });
+  if (calculated) calculated.resolvedPolicy = resolved;
+  return calculated;
 }
 
 module.exports = {

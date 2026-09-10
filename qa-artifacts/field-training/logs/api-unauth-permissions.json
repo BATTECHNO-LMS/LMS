@@ -1,0 +1,10 @@
+﻿[
+  {
+    "ep": "/api/v1/admin/field-training/opportunities",
+    "status": 401
+  },
+  {
+    "ep": "/api/v1/reports/field-training/universities",
+    "status": 404
+  }
+]

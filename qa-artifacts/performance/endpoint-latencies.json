@@ -1,0 +1,262 @@
+{
+  "health": [
+    {
+      "i": 0,
+      "ts": "2026-09-10T14:30:42.353Z",
+      "status": 200,
+      "ttfbMs": 361,
+      "totalMs": 362,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 1,
+      "ts": "2026-09-10T14:30:45.219Z",
+      "status": 200,
+      "ttfbMs": 108,
+      "totalMs": 109,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 2,
+      "ts": "2026-09-10T14:30:47.466Z",
+      "status": 200,
+      "ttfbMs": 128,
+      "totalMs": 129,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 3,
+      "ts": "2026-09-10T14:30:49.692Z",
+      "status": 200,
+      "ttfbMs": 105,
+      "totalMs": 106,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 4,
+      "ts": "2026-09-10T14:30:51.930Z",
+      "status": 200,
+      "ttfbMs": 113,
+      "totalMs": 114,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 5,
+      "ts": "2026-09-10T14:30:54.143Z",
+      "status": 200,
+      "ttfbMs": 105,
+      "totalMs": 106,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 6,
+      "ts": "2026-09-10T14:30:56.374Z",
+      "status": 200,
+      "ttfbMs": 106,
+      "totalMs": 106,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    },
+    {
+      "i": 7,
+      "ts": "2026-09-10T14:30:58.592Z",
+      "status": 200,
+      "ttfbMs": 104,
+      "totalMs": 104,
+      "bytes": 84,
+      "error": null,
+      "server": "nginx/1.24.0 (Ubuntu)",
+      "connection": "keep-alive"
+    }
+  ],
+  "ready": [
+    {
+      "i": 0,
+      "ts": "2026-09-10T14:30:43.605Z",
+      "status": 200,
+      "ttfbMs": 1251,
+      "totalMs": 1251,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 1,
+      "ts": "2026-09-10T14:30:45.829Z",
+      "status": 200,
+      "ttfbMs": 609,
+      "totalMs": 610,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 2,
+      "ts": "2026-09-10T14:30:48.079Z",
+      "status": 200,
+      "ttfbMs": 612,
+      "totalMs": 613,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 3,
+      "ts": "2026-09-10T14:30:50.306Z",
+      "status": 200,
+      "ttfbMs": 613,
+      "totalMs": 614,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 4,
+      "ts": "2026-09-10T14:30:52.534Z",
+      "status": 200,
+      "ttfbMs": 603,
+      "totalMs": 604,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 5,
+      "ts": "2026-09-10T14:30:54.757Z",
+      "status": 200,
+      "ttfbMs": 612,
+      "totalMs": 613,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 6,
+      "ts": "2026-09-10T14:30:56.986Z",
+      "status": 200,
+      "ttfbMs": 611,
+      "totalMs": 611,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    },
+    {
+      "i": 7,
+      "ts": "2026-09-10T14:30:59.316Z",
+      "status": 200,
+      "ttfbMs": 724,
+      "totalMs": 724,
+      "bytes": 51,
+      "error": null,
+      "body": {
+        "status": "ready",
+        "database": "connected",
+        "db": true
+      }
+    }
+  ],
+  "extra": [
+    {
+      "path": "/favicon.ico",
+      "status": 200,
+      "ttfbMs": 106,
+      "totalMs": 106,
+      "bytes": 1449,
+      "cacheControl": "no-cache, no-store, must-revalidate",
+      "error": null
+    },
+    {
+      "path": "/assets/",
+      "status": 404,
+      "ttfbMs": 106,
+      "totalMs": 106,
+      "bytes": 153,
+      "error": null
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 401,
+      "ttfbMs": 146,
+      "totalMs": 147,
+      "bytes": 139,
+      "cacheControl": "no-store",
+      "error": null
+    },
+    {
+      "path": "/api/v1/universities",
+      "status": 401,
+      "ttfbMs": 109,
+      "totalMs": 109,
+      "bytes": 139,
+      "cacheControl": "no-store",
+      "error": null
+    },
+    {
+      "path": "/health/ready",
+      "status": 200,
+      "ttfbMs": 607,
+      "totalMs": 608,
+      "bytes": 51,
+      "cacheControl": "no-store",
+      "error": null
+    }
+  ],
+  "keepAlive": {
+    "reused": [
+      107,
+      116
+    ],
+    "newConn": [
+      239,
+      225
+    ]
+  }
+}

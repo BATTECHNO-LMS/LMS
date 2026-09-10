@@ -1,0 +1,206 @@
+{
+  "html": {
+    "status": 200,
+    "ttfbMs": 107,
+    "totalMs": 107,
+    "bytes": 1449,
+    "cacheControl": "no-cache, no-store, must-revalidate",
+    "server": "nginx/1.24.0 (Ubuntu)",
+    "contentType": "text/html",
+    "assetUrls": [
+      "/assets/battechno-lms-logo-transparent-ByXrvL4o.png",
+      "https://fonts.googleapis.com",
+      "https://fonts.gstatic.com",
+      "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700&display=swap",
+      "/assets/index-CUxTz4B_.js",
+      "/assets/react-vendor-BWxfWDgY.js",
+      "/assets/i18n-BVGbXgz8.js",
+      "/assets/tanstack-query-CJLWGIrW.js",
+      "/assets/react-router-CmNxxoG_.js",
+      "/assets/lucide-CQz1b9ZL.js",
+      "/assets/react-icons-Bo2CNgo_.js",
+      "/assets/framer-motion-CQ0wxfVc.js",
+      "/assets/index-C5tZjQvg.css"
+    ],
+    "loginStatus": 200,
+    "loginMs": 126,
+    "loginBytes": 1449
+  },
+  "assets": [
+    {
+      "url": "https://lms.battechno.com/assets/battechno-lms-logo-transparent-ByXrvL4o.png",
+      "status": 200,
+      "ttfbMs": 223,
+      "totalMs": 654,
+      "bytes": 384590,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "image/png",
+      "error": null
+    },
+    {
+      "url": "https://fonts.googleapis.com",
+      "status": 404,
+      "ttfbMs": 215,
+      "totalMs": 216,
+      "bytes": 1621,
+      "cacheControl": "no-cache, no-store, max-age=0, must-revalidate",
+      "contentType": "text/html; charset=utf-8",
+      "error": null
+    },
+    {
+      "url": "https://fonts.gstatic.com",
+      "status": 404,
+      "ttfbMs": 260,
+      "totalMs": 261,
+      "bytes": 1561,
+      "contentType": "text/html; charset=UTF-8",
+      "error": null
+    },
+    {
+      "url": "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Tajawal:wght@400;500;600;700&display=swap",
+      "status": 200,
+      "ttfbMs": 81,
+      "totalMs": 93,
+      "bytes": 1587,
+      "cacheControl": "private, max-age=86400",
+      "contentType": "text/css; charset=utf-8",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-CUxTz4B_.js",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 535,
+      "bytes": 737425,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-vendor-BWxfWDgY.js",
+      "status": 200,
+      "ttfbMs": 105,
+      "totalMs": 135,
+      "bytes": 142232,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/i18n-BVGbXgz8.js",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 128,
+      "bytes": 49500,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/tanstack-query-CJLWGIrW.js",
+      "status": 200,
+      "ttfbMs": 126,
+      "totalMs": 129,
+      "bytes": 45073,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-router-CmNxxoG_.js",
+      "status": 200,
+      "ttfbMs": 112,
+      "totalMs": 118,
+      "bytes": 23329,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/lucide-CQz1b9ZL.js",
+      "status": 200,
+      "ttfbMs": 141,
+      "totalMs": 151,
+      "bytes": 54301,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/react-icons-Bo2CNgo_.js",
+      "status": 200,
+      "ttfbMs": 119,
+      "totalMs": 119,
+      "bytes": 8874,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/framer-motion-CQ0wxfVc.js",
+      "status": 200,
+      "ttfbMs": 117,
+      "totalMs": 151,
+      "bytes": 127965,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "application/javascript",
+      "error": null
+    },
+    {
+      "url": "https://lms.battechno.com/assets/index-C5tZjQvg.css",
+      "status": 200,
+      "ttfbMs": 121,
+      "totalMs": 444,
+      "bytes": 422458,
+      "cacheControl": "public, max-age=31536000, immutable",
+      "contentType": "text/css",
+      "error": null
+    }
+  ],
+  "extra": [
+    {
+      "path": "/favicon.ico",
+      "status": 200,
+      "ttfbMs": 106,
+      "totalMs": 106,
+      "bytes": 1449,
+      "cacheControl": "no-cache, no-store, must-revalidate",
+      "error": null
+    },
+    {
+      "path": "/assets/",
+      "status": 404,
+      "ttfbMs": 106,
+      "totalMs": 106,
+      "bytes": 153,
+      "error": null
+    },
+    {
+      "path": "/api/auth/me",
+      "status": 401,
+      "ttfbMs": 146,
+      "totalMs": 147,
+      "bytes": 139,
+      "cacheControl": "no-store",
+      "error": null
+    },
+    {
+      "path": "/api/v1/universities",
+      "status": 401,
+      "ttfbMs": 109,
+      "totalMs": 109,
+      "bytes": 139,
+      "cacheControl": "no-store",
+      "error": null
+    },
+    {
+      "path": "/health/ready",
+      "status": 200,
+      "ttfbMs": 607,
+      "totalMs": 608,
+      "bytes": 51,
+      "cacheControl": "no-store",
+      "error": null
+    }
+  ]
+}

@@ -46,7 +46,7 @@ describe('Field training cohort reporting', () => {
     assert.equal(humanSourceAr(SOURCE.AUTHORIZED_MANUAL_REVIEW), 'مراجعة واعتماد نهائي');
     assert.equal(
       humanSourceAr(SOURCE.AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT),
-      'تقييم نهائي معتمد للدفعة السابقة'
+      'نتيجة معتمدة بعد المراجعة'
     );
     assert.equal(humanSourceAr(SOURCE.EXCEL_BASELINE), 'النتيجة النهائية المعتمدة');
   });

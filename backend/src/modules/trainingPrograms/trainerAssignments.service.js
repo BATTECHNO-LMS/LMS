@@ -37,6 +37,8 @@ async function ensureTrainerRole(userId) {
   });
   if (!link) {
     await prisma.user_roles.create({ data: { user_id: userId, role_id: role.id } });
+    const { invalidateAuthContextForUser } = require('../auth/authContextCache');
+    invalidateAuthContextForUser(userId);
   }
   return role;
 }
@@ -134,6 +136,8 @@ async function createTrainerUser(requester, organizationId, body) {
       is_active: true,
     },
   });
+  const { invalidateAuthContextForUser } = require('../auth/authContextCache');
+  invalidateAuthContextForUser(user.id);
 
   await recordAudit({
     userId: requester.userId,

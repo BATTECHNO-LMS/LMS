@@ -32,6 +32,7 @@ const { eligibilityBucket } = require('./fieldTrainingEvaluation.eligibilityReas
 const supervisorScope = require('./fieldTraining.supervisorScope');
 const repo = require('./fieldTraining.repository');
 const workflow = require('./fieldTraining.workflow');
+const { defaultCompletionRulesForNewOpportunity } = require('./fieldTraining.policy.service');
 const { INSTRUCTION_MIME, INSTRUCTION_MAX_BYTES } = require('./fieldTraining.upload');
 const {
   resolveGradingMode,
@@ -217,7 +218,7 @@ async function mapBodyToCreateData(body) {
     requires_final_task: body.requires_final_task ?? true,
     minimum_attendance_percentage: body.minimum_attendance_percentage ?? null,
     minimum_post_assessment_score: body.minimum_post_assessment_score ?? null,
-    completion_rules: body.completion_rules ?? null,
+    completion_rules: defaultCompletionRulesForNewOpportunity(body.completion_rules),
     status: 'draft',
   };
 }
@@ -1680,6 +1681,19 @@ async function listOpportunityEligibility(opportunityId, user) {
     },
   });
 
+  const officialMod = require('./fieldTraining.officialResult.service');
+  const officialRows = await officialMod.resolveFieldTrainingApprovedResults(
+    apps.map((app) => app.id),
+    {
+      applications: apps,
+      opportunity: opp,
+      opportunities: new Map([[opportunityId, opp]]),
+    }
+  );
+  const officialByApp = new Map(
+    officialRows.filter(Boolean).map((row) => [row.applicationId, row])
+  );
+
   const participants = apps.map((app) => {
     const mapped = mapApplicationAdminRow(app, byId[app.student_id], opp, hoursByApp.get(app.id));
     const finalTaskSubs = finalTasks.flatMap((task) =>
@@ -1719,61 +1733,16 @@ async function listOpportunityEligibility(opportunityId, user) {
       minimum_post_assessment_score:
         opp.minimum_post_assessment_score != null ? Number(opp.minimum_post_assessment_score) : null,
       ai_self_evaluation_completed: aiCompleted,
-      eligibility_status: mapped.completion_eligibility_status,
+      eligibility_status:
+        officialByApp.get(app.id)?.eligibilityDb || mapped.completion_eligibility_status,
       eligibility_reason: mapped.eligibility_reason,
-      // Lightweight card payload from stored qualification snapshot — no live recalculation.
-      qualification: (() => {
-        const details = mapped.eligibility_reason?.details;
-        if (!details || typeof details !== 'object') return null;
-        const approved = details.approvedEvaluationResult || null;
-        const base = {
-          finalScore: details.finalScore ?? null,
-          scorePassed: details.scorePassed ?? null,
-          scoreStatus: details.scoreStatus ?? null,
-          scoreComponents: details.scoreComponents || null,
-          mandatoryRequirements: details.mandatoryRequirements || null,
-          passingScore: details.passingScore ?? 80,
-          eligibilityReasonLabels: Array.isArray(mapped.eligibility_reason?.labelsAr)
-            ? mapped.eligibility_reason.labelsAr
-            : [],
-          policyCode: details.policyCode || null,
-          zeroParticipationApplied: Boolean(details.zeroParticipationApplied),
-          zeroParticipationPolicyCode: details.zeroParticipationPolicyCode || null,
-          eligibilityOverride: details.eligibilityOverride || null,
-          recordedAttendancePercent: details.recordedAttendancePercent ?? null,
-          submittedRequiredTaskCount: details.submittedRequiredTaskCount ?? null,
-          approvedEvaluationResult: approved,
-          calculatedFinalScore: details.calculatedFinalScore ?? null,
-          scoreBreakdown: details.scoreBreakdown || approved?.scoreBreakdown || null,
-          approvedSourceLabelAr: approved?.sourceLabelAr || null,
-        };
-        if (approved && approved.approvedFinalScore != null) {
-          base.finalScore = approved.approvedFinalScore;
-          base.approvedFinalScore = approved.approvedFinalScore;
-          base.approvedStatus = approved.approvedStatus || null;
-          base.approvedSource = approved.source || null;
-          base.previousExcelScore = approved.previousExcelScore ?? null;
-          if (approved.scoreBreakdown && base.scoreComponents) {
-            const b = approved.scoreBreakdown;
-            if (b.attendancePoints != null) base.scoreComponents.attendance.points = b.attendancePoints;
-            if (b.postAssessmentPoints != null) {
-              base.scoreComponents.postAssessment.points = b.postAssessmentPoints;
-            }
-            if (b.taskPoints != null) {
-              base.scoreComponents.tasks.points = b.taskPoints;
-              base.scoreComponents.tasks.approvedPoints = b.taskPoints;
-            }
-            if (b.behaviorPoints != null) base.scoreComponents.behavior.points = b.behaviorPoints;
-          }
-          if (approved.approvedStatus === 'ELIGIBLE') {
-            base.scorePassed = Number(approved.approvedFinalScore) >= (details.passingScore ?? 80);
-          }
-        }
-        return base;
-      })(),
+      qualification: officialMod.toPublicQualificationFromOfficial(officialByApp.get(app.id)),
       expelled_at: mapped.expelled_at,
       expulsion_reason: mapped.expulsion_reason,
-      completion_letter_issued_at: mapped.completion_letter_issued_at,
+      completion_letter_issued_at:
+        officialByApp.get(app.id)?.eligibility === 'ELIGIBLE'
+          ? mapped.completion_letter_issued_at
+          : null,
     };
   });
 

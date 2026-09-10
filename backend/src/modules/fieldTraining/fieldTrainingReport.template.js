@@ -4,6 +4,8 @@ const metrics = require('./fieldTrainingReport.metrics');
 const labels = require('./fieldTrainingReport.labels');
 const dates = require('./fieldTrainingReport.dates');
 const hoursMod = require('./fieldTraining.hours');
+const present = require('../../utils/fieldTraining.reportPresentation');
+const taskSemantics = require('./fieldTraining.taskSemantics');
 
 function esc(value) {
   if (value == null || value === '') return '';
@@ -20,11 +22,11 @@ function cell(value, { missing = metrics.NA } = {}) {
 }
 
 function fmtDate(value) {
-  return dates.formatReportDate(value) || metrics.NA;
+  return dates.formatReportDateAr(value) || present.displayValue(value, metrics.NA);
 }
 
 function fmtDateTime(value) {
-  return dates.formatReportDateTime(value) || metrics.NA;
+  return dates.formatReportDateTimeAr(value) || dates.formatReportDateAr(value) || present.displayValue(value, metrics.NA);
 }
 
 function fmtPct(value) {
@@ -55,6 +57,9 @@ const BASE_STYLES = `
     line-height: 1.65;
   }
   h1, h2, h3 { color: var(--color-primary); }
+  .cover h1, .cover h2, .cover h3, .cover .cover__title, .cover .cover__title span {
+    color: #ffffff !important;
+  }
   .cover {
     min-height: 980px;
     background: linear-gradient(160deg, #0e2136 0%, #132d4a 45%, #1e5a8a 100%);
@@ -72,7 +77,7 @@ const BASE_STYLES = `
   .cover__brands { display:flex; justify-content: space-between; align-items: center; gap: 24px; }
   .logo { height: 64px; width: auto; object-fit: contain; background: rgba(255,255,255,.92); padding: 8px 12px; border-radius: 10px; }
   .logo-fallback { background: rgba(255,255,255,.92); color: var(--color-primary); padding: 12px 16px; border-radius: 10px; font-weight: 700; text-align:center; max-width: 220px; }
-  .cover__title { text-align:center; font-size: 26px; margin: 56px 0 10px; font-weight: 800; }
+  .cover__title { text-align:center; font-size: 26px; margin: 56px 0 10px; font-weight: 800; color: #ffffff !important; }
   .cover__sub { text-align:center; font-size: 18px; color: #f3ead4; margin: 0 0 28px; }
   .cover__meta { max-width: 520px; margin: 0 auto; background: rgba(255,255,255,.08); padding: 18px 22px; border-radius: 14px; }
   .cover__meta p { margin: 6px 0; }
@@ -132,6 +137,10 @@ function universityFallbackName(university) {
 
 function kpiCard(label, value) {
   return `<div class="kpi"><div class="kpi__label">${esc(label)}</div><div class="kpi__value">${cell(value)}</div></div>`;
+}
+
+function kpiCardHtml(label, html) {
+  return `<div class="kpi"><div class="kpi__label">${esc(label)}</div><div class="kpi__value">${html}</div></div>`;
 }
 
 function section(title, body, id) {
@@ -375,7 +384,7 @@ function renderUniversityReportHtml(report, assets = {}) {
       ${kpiCard('حاضر', att.counts?.present)}
       ${kpiCard('غائب', att.counts?.absent)}
       ${kpiCard('متأخر', att.counts?.late)}
-      ${kpiCard('معذور', att.counts?.excused)}
+      ${kpiCard('بعذر', att.counts?.excused)}
       ${kpiCard('غير مؤكد', att.counts?.unconfirmed)}
     </div>
     ${att.by_specialty?.length ? `<h3>الحضور حسب التخصص</h3>${bars(att.by_specialty.map((s) => ({ label: s.label, value: s.average, display: fmtPct(s.average) })))}` : '<p class="muted">لا توجد بيانات حضور كافية للرسوم.</p>'}`,
@@ -645,7 +654,8 @@ function renderStudentReportHtml(report, assets = {}) {
       ['فترة التدريب', `${fmtDate(opp.start_date)} إلى ${fmtDate(opp.end_date)}`],
       ['حالة الطلب', labels.labelOf(labels.APPLICATION_STATUS_AR, app.status)],
       ['حالة التدريب', labels.labelOf(labels.TRAINING_STATUS_AR, app.training_status)],
-      ['تقدم المهمات', app.task_progress?.display || exec.task_progress?.display || metrics.NOT_REQUIRED],
+      ['نتيجة التدريب', present.labelEligibilityStatus(report.official_result?.eligibilityDb || report.completion_decision?.eligibility)],
+      ['تقدم التاسكات', app.task_progress?.display || exec.task_progress?.display || metrics.NOT_REQUIRED],
     ]),
     'identity'
   );
@@ -674,7 +684,7 @@ function renderStudentReportHtml(report, assets = {}) {
       ${kpiCard('حاضر', att.present)}
       ${kpiCard('غائب', att.absent)}
       ${kpiCard('متأخر', att.late)}
-      ${kpiCard('معذور', att.excused)}
+      ${kpiCard('بعذر', att.excused)}
       ${kpiCard('غير مؤكد', att.unconfirmed)}
     </div>
     ${table(
@@ -707,23 +717,92 @@ function renderStudentReportHtml(report, assets = {}) {
     'hours'
   );
 
+  const official = report.official_result || {};
+  const breakdown = official.scoreBreakdown || {};
+  const scoringSection = section(
+    'النتيجة النهائية',
+    `<div class="kpi-grid">
+      ${kpiCardHtml('العلامة النهائية', official.finalScore != null ? present.scoreHtml(official.finalScore, 100) : esc('غير متوفر'))}
+      ${kpiCard('نتيجة التدريب', present.labelEligibilityStatus(official.eligibilityDb || report.completion_decision?.eligibility))}
+      ${kpiCardHtml('الحضور من 20', breakdown.attendancePoints != null ? present.scoreHtml(breakdown.attendancePoints, 20) : esc('غير متوفر'))}
+      ${kpiCardHtml('التقييم البعدي من 20', breakdown.postAssessmentPoints != null ? present.scoreHtml(breakdown.postAssessmentPoints, 20) : esc('غير متوفر'))}
+      ${kpiCardHtml('التاسكات من 40', breakdown.taskPoints != null ? present.scoreHtml(breakdown.taskPoints, 40) : esc('غير متوفر'))}
+      ${kpiCardHtml('السلوك والالتزام من 20', breakdown.behaviorPoints != null ? present.scoreHtml(breakdown.behaviorPoints, 20) : esc('غير متوفر'))}
+    </div>
+    ${
+      present.isEligibleStatus(official.eligibilityDb)
+        ? '<div class="callout">استوفى الطالب متطلبات التدريب المعتمدة.</div>'
+        : present.isNotEligibleStatus(official.eligibilityDb)
+          ? `<ol>${present
+              .buildNotEligibleReasonsAr({
+                eligibility: {
+                  finalScore: official.finalScore,
+                  passingScore: official.passingScore || 80,
+                  eligibilityReasonLabels: official.reasons,
+                },
+                tasks: {
+                  requiredCount: official.requiredTaskCount,
+                  items: (report.tasks || []).map((task) => {
+                    const sub = (report.submissions || []).find(
+                      (row) => String(row.task_id) === String(task.id)
+                    );
+                    return {
+                      submissionStatus: sub ? 'SUBMITTED' : 'NOT_SUBMITTED',
+                    };
+                  }),
+                },
+                professionalEvaluation: { criteria: [] },
+                scoring: { finalScore: official.finalScore, passingScore: official.passingScore || 80 },
+              })
+              .map((r) => `<li>${esc(r)}</li>`)
+              .join('')}</ol>`
+          : ''
+    }`,
+    'result'
+  );
+
+  const taskRows = (report.tasks || []).length
+    ? (report.tasks || []).map((task) => {
+        const sub = (report.submissions || []).find(
+          (row) => String(row.task_id) === String(task.id)
+        );
+        const presented = taskSemantics.resolveTaskPresentation({ task, submission: sub || null });
+        return [
+          task.title,
+          presented.submissionLabelAr,
+          presented.evaluationLabelAr,
+          presented.timingLabelAr || 'غير مطلوب',
+          presented.score != null
+            ? `\u202A${present.ltrScore(presented.score, presented.maxScore || 100)}\u202C`
+            : 'لا توجد',
+          presented.submittedAt ? fmtDate(presented.submittedAt) : 'لا يوجد',
+        ];
+      })
+    : (report.submissions || []).map((s) => {
+        const presented = taskSemantics.resolveTaskPresentation({
+          task: { title: s.task_title },
+          submission: s,
+        });
+        return [
+          s.task_title,
+          presented.submissionLabelAr,
+          presented.evaluationLabelAr,
+          presented.timingLabelAr || 'غير مطلوب',
+          presented.score != null
+            ? `\u202A${present.ltrScore(presented.score, presented.maxScore || 100)}\u202C`
+            : 'لا توجد',
+          presented.submittedAt ? fmtDate(presented.submittedAt) : 'لا يوجد',
+        ];
+      });
+
   const tasksSection = section(
-    'المهام',
-    report.tasks_required === false || (!(report.tasks || []).length && !(report.submissions || []).length)
+    'التاسكات',
+    report.tasks_required === false || (!taskRows.length)
       ? `<p class="muted">${metrics.NOT_REQUIRED}</p>`
       : table(
-          ['المهمة', 'مطلوبة', 'الاستحقاق', 'التسليم', 'التوقيت', 'الحالة', 'الدرجة', 'الحد الأعلى', 'ملاحظات المدرب'],
-          (report.submissions || []).map((s) => [
-            s.task_title,
-            s.is_final_task ? 'نعم' : 'اختيارية/عامة',
-            fmtDate(s.due_date),
-            fmtDateTime(s.submitted_at),
-            s.is_late ? 'متأخر' : s.submitted_at ? 'في الوقت' : metrics.NOT_RECORDED,
-            s.review_status_label || s.review_status,
-            s.manual_score,
-            s.max_score,
-            s.instructor_feedback,
-          ])
+          ['اسم التاسك', 'حالة التسليم', 'حالة التقييم', 'التوقيت', 'العلامة', 'تاريخ التسليم'],
+          taskRows,
+          { empty: 'لا توجد تسليمات حتى الآن.' }
         ),
     'tasks'
   );
@@ -788,7 +867,7 @@ function renderStudentReportHtml(report, assets = {}) {
     'قرار الإكمال',
     kv([
       ['الحالة النهائية', decision.final_status_label],
-      ['الأهلية', labels.labelOf(labels.ELIGIBILITY_AR, decision.eligibility)],
+      ['نتيجة التدريب', labels.labelOf(labels.ELIGIBILITY_AR, decision.eligibility)],
       ['تاريخ الإكمال', fmtDate(decision.completion_date)],
       ['المتطلبات الناقصة', (decision.missing_requirements || []).join('، ') || 'لا يوجد'],
     ]),
@@ -817,7 +896,7 @@ function renderStudentReportHtml(report, assets = {}) {
   const body = `
     ${cover}
     ${pageHeader(university, assets, report.report_title || 'التقرير الفردي')}
-    ${identity}${execSection}${attendanceSection}${hoursSection}${tasksSection}${assessSection}${reqSection}${completionSection}${certSection}${reco}
+    ${identity}${scoringSection}${execSection}${attendanceSection}${hoursSection}${tasksSection}${assessSection}${reqSection}${completionSection}${certSection}${reco}
   `;
   return wrapHtml(report.report_title || 'تقرير الطالب', body);
 }

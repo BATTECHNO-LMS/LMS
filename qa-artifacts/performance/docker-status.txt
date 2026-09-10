@@ -1,0 +1,18 @@
+BATTECHNO LMS Docker status
+Probed at: 2026-09-10T14:30:41Z
+SSH to 187.55.228.232: Permission denied (publickey,password).
+
+Expected from repository docker-compose.yml (not live-verified):
+- container battechno-lms-backend  127.0.0.1:4400 -> 4000
+- container battechno-lms-frontend 127.0.0.1:8080 -> 80
+- restart: unless-stopped
+- backend healthcheck: wget http://127.0.0.1:4000/health every 30s, timeout 5s, retries 5
+- frontend healthcheck: wget http://127.0.0.1/ every 30s
+- no local Postgres service; DATABASE_URL is external (Neon)
+
+Live docker ps / restart count / OOMKilled / docker events: NEEDS_MORE_DATA
+
+Indirect evidence backend process was serving traffic:
+- GET /health HTTP 200 (p50 106ms after warmup)
+- GET /health/ready HTTP 200 database connected
+This does not prove restart_count = 0.

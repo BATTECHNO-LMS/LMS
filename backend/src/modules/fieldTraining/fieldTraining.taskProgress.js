@@ -7,6 +7,7 @@
 
 const { prisma } = require('../../config/db');
 const labels = require('./fieldTrainingReport.labels');
+const { EVALUATION_COMPLETE_STATUSES } = require('./fieldTraining.taskSemantics');
 
 const TASK_PROGRESS_STATUS = Object.freeze({
   NO_REQUIRED_TASKS: 'no_required_tasks',
@@ -18,8 +19,8 @@ const TASK_PROGRESS_STATUS = Object.freeze({
 const TASK_PROGRESS_LABEL_AR = Object.freeze({
   no_required_tasks: 'لا توجد مهمات مطلوبة',
   not_started: 'لم يبدأ المهمات',
-  in_progress: 'قيد إنجاز المهمات',
-  completed: 'أكمل المهمات',
+  in_progress: 'قيد التنفيذ',
+  completed: 'مكتمل',
   cancelled: 'ملغى',
 });
 
@@ -27,7 +28,7 @@ const TASK_PROGRESS_LABEL_EN = Object.freeze({
   no_required_tasks: 'No required tasks',
   not_started: 'Has not started tasks',
   in_progress: 'Tasks in progress',
-  completed: 'Completed tasks',
+  completed: 'Completed',
   cancelled: 'Cancelled',
 });
 
@@ -82,26 +83,40 @@ function submissionCountsTowardProgress(submission) {
   return SUCCESSFUL_TASK_REVIEW_STATUSES.includes(status);
 }
 
-function resolveProgressStatus(totalRequired, submittedRequired) {
+function submissionIsEvaluated(submission) {
+  if (!submission) return false;
+  if (submission.deleted_at || submission.archived_at) return false;
+  const status = String(submission.review_status || submission.status || '').toLowerCase();
+  return EVALUATION_COMPLETE_STATUSES.includes(status);
+}
+
+function resolveProgressStatus(totalRequired, submittedRequired, evaluatedRequired = 0) {
   const total = Math.max(0, Number(totalRequired) || 0);
   const submitted = Math.max(0, Math.min(total, Number(submittedRequired) || 0));
+  const evaluated = Math.max(0, Math.min(total, Number(evaluatedRequired) || 0));
   if (total <= 0) return TASK_PROGRESS_STATUS.NO_REQUIRED_TASKS;
   if (submitted <= 0) return TASK_PROGRESS_STATUS.NOT_STARTED;
-  if (submitted >= total) return TASK_PROGRESS_STATUS.COMPLETED;
+  if (submitted >= total && evaluated >= total) return TASK_PROGRESS_STATUS.COMPLETED;
   return TASK_PROGRESS_STATUS.IN_PROGRESS;
 }
 
-function formatProgressDisplay(status, submittedRequired, totalRequired, { cancelled = false } = {}) {
+function formatProgressDisplay(
+  status,
+  submittedRequired,
+  totalRequired,
+  { cancelled = false, evaluatedRequired = 0 } = {}
+) {
   if (cancelled) {
     if (totalRequired > 0) {
-      return `${submittedRequired} / ${totalRequired} — ${TASK_PROGRESS_LABEL_AR.cancelled}`;
+      return `${submittedRequired} من ${totalRequired} مسلّمة`;
     }
     return TASK_PROGRESS_LABEL_AR.cancelled;
   }
   if (status === TASK_PROGRESS_STATUS.NO_REQUIRED_TASKS) {
     return TASK_PROGRESS_LABEL_AR.no_required_tasks;
   }
-  return `${submittedRequired} / ${totalRequired} — ${TASK_PROGRESS_LABEL_AR[status]}`;
+  const evaluated = Math.max(0, Number(evaluatedRequired) || 0);
+  return `${submittedRequired} من ${totalRequired} مسلّمة · ${evaluated} من ${totalRequired} مقيّمة`;
 }
 
 function isCancelledContext(applicationStatus, opportunityStatus) {
@@ -124,9 +139,10 @@ function deriveTaskProgress(input = {}) {
   const opportunityStatus = input.opportunityStatus || null;
   const totalRequired = Math.max(0, Number(input.totalRequired) || 0);
   const submittedRequired = Math.max(0, Number(input.submittedRequired) || 0);
+  const evaluatedRequired = Math.max(0, Number(input.evaluatedRequired) || 0);
   const cancelled = isCancelledContext(applicationStatus, opportunityStatus);
   const enrolled = ENROLLED_APPLICATION_STATUSES.has(String(applicationStatus || ''));
-  const status = resolveProgressStatus(totalRequired, submittedRequired);
+  const status = resolveProgressStatus(totalRequired, submittedRequired, evaluatedRequired);
   const visible = enrolled || cancelled;
 
   if (!visible) {
@@ -152,8 +168,12 @@ function deriveTaskProgress(input = {}) {
     label_ar: TASK_PROGRESS_LABEL_AR[status],
     label_en: TASK_PROGRESS_LABEL_EN[status],
     submitted_required: status === TASK_PROGRESS_STATUS.NO_REQUIRED_TASKS ? 0 : submittedRequired,
+    evaluated_required: status === TASK_PROGRESS_STATUS.NO_REQUIRED_TASKS ? 0 : evaluatedRequired,
     total_required: totalRequired,
-    display: formatProgressDisplay(status, submittedRequired, totalRequired, { cancelled }),
+    display: formatProgressDisplay(status, submittedRequired, totalRequired, {
+      cancelled,
+      evaluatedRequired,
+    }),
     primary_status: primaryStatus,
     primary_label_ar: TASK_PROGRESS_LABEL_AR[primaryStatus] || TASK_PROGRESS_LABEL_AR[status],
   };
@@ -168,17 +188,23 @@ function countProgressFromLoadedRows({ application, tasks = [], submissions = []
   );
   const requiredIds = new Set(requiredTasks.map((task) => String(task.id)));
   const submittedTaskIds = new Set();
+  const evaluatedTaskIds = new Set();
   for (const submission of submissions) {
     if (String(submission.application_id) !== String(application.id)) continue;
     if (!requiredIds.has(String(submission.task_id))) continue;
-    if (!submissionCountsTowardProgress(submission)) continue;
-    submittedTaskIds.add(String(submission.task_id));
+    if (submissionCountsTowardProgress(submission)) {
+      submittedTaskIds.add(String(submission.task_id));
+    }
+    if (submissionIsEvaluated(submission)) {
+      evaluatedTaskIds.add(String(submission.task_id));
+    }
   }
   return deriveTaskProgress({
     applicationStatus: application.status,
     opportunityStatus: application.opportunity_status || application.opportunity?.status,
     totalRequired: requiredTasks.length,
     submittedRequired: submittedTaskIds.size,
+    evaluatedRequired: evaluatedTaskIds.size,
   });
 }
 
@@ -215,7 +241,7 @@ async function calculateTaskProgressForApplications(applications, options = {}) 
   const opportunityIds = [...new Set(apps.map((app) => app.opportunity_id))];
   const opportunitiesById = options.opportunitiesById || new Map();
 
-  const [requiredGroups, submittedGroups] = await Promise.all([
+  const [requiredGroups, submittedGroups, evaluatedGroups] = await Promise.all([
     prisma.field_training_tasks.groupBy({
       by: ['opportunity_id'],
       where: requiredTaskWhere(opportunityIds),
@@ -226,6 +252,18 @@ async function calculateTaskProgressForApplications(applications, options = {}) 
       where: successfulSubmissionWhere(applicationIds, opportunityIds),
       _count: { _all: true },
     }),
+    prisma.field_training_task_submissions.groupBy({
+      by: ['application_id'],
+      where: {
+        application_id: { in: applicationIds },
+        review_status: { in: [...EVALUATION_COMPLETE_STATUSES] },
+        field_training_tasks: {
+          opportunity_id: { in: opportunityIds },
+          is_required: true,
+        },
+      },
+      _count: { _all: true },
+    }),
   ]);
 
   const requiredByOpp = new Map(
@@ -233,6 +271,9 @@ async function calculateTaskProgressForApplications(applications, options = {}) 
   );
   const submittedByApp = new Map(
     submittedGroups.map((row) => [row.application_id, row._count?._all ?? 0])
+  );
+  const evaluatedByApp = new Map(
+    evaluatedGroups.map((row) => [row.application_id, row._count?._all ?? 0])
   );
 
   for (const app of apps) {
@@ -244,6 +285,7 @@ async function calculateTaskProgressForApplications(applications, options = {}) 
         opportunityStatus: app.opportunity_status || opp?.status,
         totalRequired: requiredByOpp.get(app.opportunity_id) || 0,
         submittedRequired: submittedByApp.get(app.id) || 0,
+        evaluatedRequired: evaluatedByApp.get(app.id) || 0,
       })
     );
   }
@@ -273,6 +315,7 @@ module.exports = {
   isRequiredActiveTask,
   isTaskAssignedToStudent,
   submissionCountsTowardProgress,
+  submissionIsEvaluated,
   resolveProgressStatus,
   formatProgressDisplay,
   deriveTaskProgress,

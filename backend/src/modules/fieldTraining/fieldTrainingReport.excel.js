@@ -5,6 +5,7 @@ const metrics = require('./fieldTrainingReport.metrics');
 const labels = require('./fieldTrainingReport.labels');
 const dates = require('./fieldTrainingReport.dates');
 const hoursMod = require('./fieldTraining.hours');
+const taskSemantics = require('./fieldTraining.taskSemantics');
 
 const NAVY = 'FF132D4A';
 const WHITE = 'FFFFFFFF';
@@ -472,27 +473,36 @@ async function exportStudentReportExcel(report) {
     ['حاضر', att.present],
     ['غائب', att.absent],
     ['متأخر', att.late],
-    ['معذور', att.excused],
+    ['بعذر', att.excused],
     ['غير مؤكد', att.unconfirmed],
   ]);
 
-  if (report.tasks_required === false && !(report.submissions || []).length) {
+  if (report.tasks_required === false && !(report.task_items || []).length && !(report.submissions || []).length) {
     addKeyValueSheet(wb, '05_المهمات', 'المهمات', [['الحالة', metrics.NOT_REQUIRED]]);
   } else {
+    const taskItems =
+      report.task_items?.length
+        ? report.task_items
+        : taskSemantics.presentOpportunityTasks(report.tasks, report.submissions);
     addTableSheet(
       wb,
       '05_المهمات',
-      ['المهمة', 'الاستحقاق', 'التسليم', 'متأخر', 'الحالة', 'الدرجة', 'الحد الأعلى', 'ملاحظات المدرب'],
-      (report.submissions || []).map((s) => [
-        s.task_title,
-        dates.formatReportDate(s.due_date),
-        dates.formatReportDateTime(s.submitted_at),
-        s.is_late ? 'نعم' : 'لا',
-        s.review_status_label || s.review_status,
-        s.manual_score,
-        s.max_score,
-        s.instructor_feedback,
-      ])
+      ['المهمة', 'حالة التسليم', 'حالة التقييم', 'التوقيت', 'العلامة', 'الحد الأعلى', 'تاريخ التسليم', 'ملاحظات المدرب'],
+      taskItems.map((item) => {
+        const sub = (report.submissions || []).find(
+          (row) => String(row.task_id) === String(item.taskId)
+        );
+        return [
+          item.taskTitle || item.title,
+          item.submissionLabelAr,
+          item.evaluationLabelAr,
+          item.timingLabelAr || 'غير مطلوب',
+          item.score != null ? item.score : 'لا توجد',
+          item.maxScore != null ? item.maxScore : '',
+          item.submittedAt ? dates.formatReportDateAr(item.submittedAt) : 'لا يوجد',
+          sub?.instructor_feedback || 'لا يوجد',
+        ];
+      })
     );
   }
 

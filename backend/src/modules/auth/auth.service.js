@@ -257,6 +257,8 @@ async function setActiveOrganization(userId, organizationId) {
     where: { id: userId },
     data: { preferred_organization_id: organizationId, updated_at: new Date() },
   });
+  const { invalidateAuthContextForUser } = require('./authContextCache');
+  invalidateAuthContextForUser(userId);
   const user = await authRepository.findUserProfileById(userId);
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(userId);
   const isGlobal = isGlobalFromRoleRecords(roleRecords);
@@ -584,11 +586,15 @@ async function login(validated) {
           where: { id: user.id },
           data: { preferred_organization_id: matching[0], updated_at: new Date() },
         });
+        const { invalidateAuthContextForUser } = require('./authContextCache');
+        invalidateAuthContextForUser(user.id);
       } else if (preferred) {
         await prisma.users.update({
           where: { id: user.id },
           data: { preferred_organization_id: null, updated_at: new Date() },
         });
+        const { invalidateAuthContextForUser } = require('./authContextCache');
+        invalidateAuthContextForUser(user.id);
       }
     }
   }

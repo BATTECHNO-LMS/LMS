@@ -3,8 +3,8 @@ import { getOpportunitySpecialtyLabel } from '../../../../features/fieldTraining
 
 function programLabel(program, lang) {
   const spec = program?.university_specialty;
-  if (!spec) return '—';
-  return getOpportunitySpecialtyLabel({ specialty: spec }, lang, '—');
+  if (!spec) return 'غير متوفر';
+  return getOpportunitySpecialtyLabel({ specialty: spec }, lang, 'غير متوفر');
 }
 
 /**

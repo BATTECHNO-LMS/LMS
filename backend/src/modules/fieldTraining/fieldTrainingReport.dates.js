@@ -52,10 +52,25 @@ function formatReportDateAr(value) {
   }).format(d);
 }
 
+function formatReportDateTimeAr(value) {
+  const d = parseDate(value);
+  if (!d) return null;
+  return new Intl.DateTimeFormat('ar-JO', {
+    timeZone: REPORT_TZ,
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+}
+
 module.exports = {
   REPORT_TZ,
   parseDate,
   formatReportDate,
   formatReportDateTime,
   formatReportDateAr,
+  formatReportDateTimeAr,
 };

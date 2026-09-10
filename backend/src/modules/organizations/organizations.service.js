@@ -10,6 +10,7 @@ const {
 } = require('../../utils/organizationScope');
 const { emitDomainEvent } = require('../notificationEngine');
 const { AUTH_ERROR_CODES, messageForCode, buildActivationWaitMeta } = require('../../utils/authErrorCatalog');
+const { invalidateAuthContextForUser } = require('../auth/authContextCache');
 
 function mapOrg(row) {
   if (!row) return null;
@@ -490,6 +491,7 @@ async function assignUser(requester, organizationId, body) {
       }
     }
   }
+  invalidateAuthContextForUser(body.user_id);
 
   await recordAudit({
     userId: requester.userId,
@@ -600,6 +602,7 @@ async function verifyMemberEmail(requester, organizationId, body) {
       updated_at: new Date(),
     },
   });
+  invalidateAuthContextForUser(user.id);
 
   await recordAudit({
     userId: requester.userId,
@@ -673,6 +676,7 @@ async function changeMemberActivation(requester, organizationId, body) {
       updated_at: new Date(),
     },
   });
+  invalidateAuthContextForUser(user.id);
 
   await recordAudit({
     userId: requester.userId,

@@ -360,7 +360,7 @@ export function ManageAttendanceTab({
           <option value="">{t('manageHub.selectSessionPlaceholder')}</option>
           {sessions.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.title} — {s.session_date}
+              {s.title}: {s.session_date}
             </option>
           ))}
         </select>
@@ -517,7 +517,7 @@ export function ManageAttendanceTab({
                       <td>
                         {att?.method
                           ? t(`attendance.methods.${att.method}`, att.method)
-                          : '—'}
+                          : 'غير متوفر'}
                       </td>
                       <td>
                         <FormInput
@@ -643,11 +643,11 @@ export function ManageAttendanceTab({
               <ul className="ft-mark-all-present-stats">
                 <li>
                   <strong>{t('attendance.markAllPresent.sessionLabel')}:</strong>{' '}
-                  {selectedSession?.title || '—'}
+                  {selectedSession?.title || 'غير متوفر'}
                 </li>
                 <li>
                   <strong>{t('attendance.markAllPresent.opportunityLabel')}:</strong>{' '}
-                  {opportunityTitle || '—'}
+                  {opportunityTitle || 'غير متوفر'}
                 </li>
                 <li>
                   <strong>{t('attendance.markAllPresent.eligible')}:</strong>{' '}

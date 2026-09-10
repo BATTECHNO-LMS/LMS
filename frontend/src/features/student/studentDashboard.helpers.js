@@ -167,8 +167,14 @@ export function deriveFieldTrainingNextAction(app, opp = {}) {
   if (app.completion_eligibility_status === 'eligible' && !app.completion_letter_issued_at) {
     return { key: 'await_completion_letter', label_ar: 'بانتظار إصدار كتاب إنهاء التدريب' };
   }
-  if (app.completion_letter_issued_at || app.training_status === 'completed') {
+  if (app.completion_letter_issued_at) {
     return { key: 'completed', label_ar: 'تم إصدار كتاب إنهاء التدريب' };
+  }
+  if (app.training_status === 'completed') {
+    if (app.completion_eligibility_status === 'ineligible') {
+      return { key: 'training_completed_ineligible', label_ar: 'اكتمل التدريب — غير مؤهل' };
+    }
+    return { key: 'training_completed', label_ar: 'اكتمل التدريب' };
   }
   if (app.training_status === 'in_training') {
     return { key: 'continue_training', label_ar: 'تابع التدريب والمهام والجلسات' };

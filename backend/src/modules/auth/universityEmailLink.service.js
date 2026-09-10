@@ -88,6 +88,8 @@ async function ensureUserLinkedToUniversityFromEmail(userId, email) {
     }
   });
 
+  const { invalidateAuthContextForUser } = require('./authContextCache');
+  invalidateAuthContextForUser(userId);
   return resolved;
 }
 

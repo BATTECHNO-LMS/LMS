@@ -1,0 +1,11 @@
+﻿{
+  "findingCount": 3,
+  "bySeverity": {
+    "HIGH": 2,
+    "INFO": 1
+  },
+  "byClassification": {
+    "BUSINESS_LOGIC_CONTRADICTION": 2,
+    "EXPECTED_BY_POLICY": 1
+  }
+}

@@ -1,0 +1,16 @@
+BATTECHNO LMS production resource audit
+Probed at: 2026-09-10T14:30:41Z
+Target IP: 187.55.228.232 (DNS A record for lms.battechno.com)
+SSH: FAILED — Permission denied (publickey,password) as root using local id_ed25519.
+No host CPU, RAM, swap, disk, load average, open-file, or Docker stats were collected.
+Do not treat this file as evidence of resource saturation. Host saturation is NEEDS_MORE_DATA.
+
+External observations only:
+- Host Nginx identifies as nginx/1.24.0 (Ubuntu)
+- No Cloudflare cf-ray header
+- TLS 1.3 Let's Encrypt, handshake ~168ms from auditor
+- Keep-alive works (reused ~107ms vs new connection ~230ms for /health)
+- /health 8/8 HTTP 200 during ~16s window
+- /health/ready 8/8 HTTP 200, database: connected
+- Public geo APIs (ip-api.com, ipapi.co) failed/timed out from auditor network
+- Exact CPU/RAM/OOM/restart counts: unavailable without SSH

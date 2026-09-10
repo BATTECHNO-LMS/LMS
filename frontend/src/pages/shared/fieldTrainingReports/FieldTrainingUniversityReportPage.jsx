@@ -187,7 +187,7 @@ export function FieldTrainingUniversityReportPage({ basePath, mode = 'admin' }) 
       {params.university_id && !isLoading && !isError ? (
         <>
           <p className="ft-report-subtitle">
-            {data?.university?.name ?? '—'}
+            {data?.university?.name ?? 'غير متوفر'}
             {data?.university?.name_en ? ` · ${data.university.name_en}` : ''}
           </p>
           {stale ? (

@@ -12,8 +12,9 @@ const { normalizeRoleCodes, normalizeRoleRecords } = require('../../utils/roleCa
 const { ALL_PERMISSION_CODES } = require('../../utils/permissionCatalog');
 const { applyPortalScope } = require('./portalAccess');
 const { AUTH_ERROR_CODES: AUTH_ERROR_CODES, messageForCode: messageForCode } = require('../../utils/authErrorCatalog');
-const { getPermissionCodesForRoleIds } = require('./rolePermissionCache');
+const { getPermissionCodesForRoleIds, getRoleRecordsByIds } = require('./rolePermissionCache');
 const { universityIdentityCache, organizationIdentityCache } = require('../../utils/lookupCache');
+const { authContextCache } = require('./authContextCache');
 
 /**
  * Official university scope for non-global users:
@@ -181,12 +182,7 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
   const guessedUniversityId = user.primary_university_id ?? null;
 
   const [roleRecords, guessedUniversity, permissionsFromRoleIds] = await Promise.all([
-    roleIds.length
-      ? prisma.roles.findMany({
-          where: { id: { in: roleIds } },
-          select: { id: true, code: true, name: true },
-        })
-      : Promise.resolve([]),
+    roleIds.length ? getRoleRecordsByIds(prisma, roleIds) : Promise.resolve([]),
     getUniversityIdentity(guessedUniversityId),
     roleIds.length ? loadPermissionCodesForRoleIds(roleIds) : Promise.resolve([]),
   ]);
@@ -312,11 +308,27 @@ async function loadCurrentAuthContextFromDb(userId, options = {}) {
   return applyPortalScope(authUser, portalType);
 }
 
-/** @type {(userId: string) => Promise<AuthRequestUser>} */
+/** @type {(userId: string, options?: object) => Promise<AuthRequestUser>} */
 let activeLoader = loadCurrentAuthContextFromDb;
 
+async function loadCurrentAuthContextCached(userId, options = {}) {
+  const portalType = options.portalType;
+  const hit = authContextCache.get(userId, portalType);
+  if (hit) return hit;
+  const pending = authContextCache.getInflight(userId, portalType);
+  if (pending) return pending.then((value) => structuredClone(value));
+  const load = loadCurrentAuthContextFromDb(userId, options).then((value) => {
+    authContextCache.set(userId, portalType, value);
+    return value;
+  });
+  return authContextCache.rememberInflight(userId, portalType, load);
+}
+
 function loadCurrentAuthContext(userId, options = {}) {
-  return activeLoader(userId, options);
+  if (activeLoader !== loadCurrentAuthContextFromDb) {
+    return activeLoader(userId, options);
+  }
+  return loadCurrentAuthContextCached(userId, options);
 }
 
 function setCurrentAuthContextLoaderForTests(fn) {
@@ -325,6 +337,7 @@ function setCurrentAuthContextLoaderForTests(fn) {
 
 function resetCurrentAuthContextLoaderForTests() {
   activeLoader = loadCurrentAuthContextFromDb;
+  authContextCache.clear();
 }
 
 module.exports = {

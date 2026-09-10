@@ -175,7 +175,7 @@ describe('field training report presentation polish', () => {
     assert.equal(present.labelTrainingStatus('completed'), 'مكتمل');
     assert.equal(present.labelEligibilityStatus('ineligible'), 'غير مؤهل');
     assert.equal(present.labelSourceHuman('AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE'), 'قرار إداري معتمد');
-    assert.equal(present.labelSourceHuman('EXCEL_BASELINE'), 'النتيجة النهائية المعتمدة');
+    assert.equal(present.labelSourceHuman('AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT'), 'نتيجة معتمدة بعد المراجعة');
   });
 
   it('builds factual not-eligible reasons instead of admin jargon', () => {

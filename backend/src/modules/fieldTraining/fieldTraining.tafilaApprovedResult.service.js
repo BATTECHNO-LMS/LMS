@@ -33,12 +33,12 @@ const SOURCE = Object.freeze({
 });
 
 const SOURCE_AR = Object.freeze({
-  EXCEL_BASELINE: 'النتيجة المعتمدة المرسلة للجامعة',
-  VERIFIED_RECALCULATION_FROM_LMS_EVIDENCE: 'إعادة احتساب معتمدة',
+  EXCEL_BASELINE: 'النتيجة النهائية المعتمدة',
+  VERIFIED_RECALCULATION_FROM_LMS_EVIDENCE: 'النتيجة النهائية المعتمدة',
   AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE: 'قرار إداري معتمد',
-  AUTHORIZED_GRADE_OVERRIDE: 'تصحيح علامة معتمد',
+  AUTHORIZED_GRADE_OVERRIDE: 'قرار إداري معتمد',
   AUTHORIZED_MANUAL_REVIEW: 'مراجعة واعتماد نهائي',
-  AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'تقييم نهائي معتمد للدفعة السابقة',
+  AUTHORIZED_MANUAL_REVIEW_LEGACY_TASK_COMPONENT: 'نتيجة معتمدة بعد المراجعة',
 });
 
 const REASON_AR = Object.freeze({
@@ -69,7 +69,8 @@ function clamp(n, min, max) {
 }
 
 function sourceLabelAr(source) {
-  return SOURCE_AR[source] || source || '—';
+  const present = require('../../utils/fieldTraining.reportPresentation');
+  return present.labelSourceHuman(source) || 'النتيجة النهائية المعتمدة';
 }
 
 function buildApprovedResult({
@@ -876,6 +877,12 @@ async function persistApprovedPlanRow(planRow, calculatedRow) {
         : {}),
     },
   });
+
+  await require('./fieldTraining.completionLetter.service').syncCompletionLettersWithEligibility(
+    planRow.applicationId,
+    outcome,
+    { reason: 'approved_result_persist' }
+  );
 }
 
 async function applyReconciliationPlan(plan, { actorUserId = null } = {}) {
@@ -917,54 +924,17 @@ async function applyReconciliationPlan(plan, { actorUserId = null } = {}) {
 
 /**
  * Canonical resolver used by UI/report/export surfaces.
+ * Delegates to the module-wide official result resolver (overlay-first).
  */
 async function resolveApprovedTafilaEvaluationResult(applicationId) {
   return resolveFieldTrainingApprovedResult(applicationId);
 }
 
-async function resolveFieldTrainingApprovedResult(applicationId) {
-  const app = await prisma.field_training_applications.findUnique({
-    where: { id: applicationId },
-    select: {
-      id: true,
-      opportunity_id: true,
-      student_id: true,
-      completion_eligibility_status: true,
-      eligibility_reason: true,
-    },
-  });
-  if (!app) return null;
-  const details = app.eligibility_reason?.details || {};
-  const stored = details.approvedEvaluationResult;
-  if (!stored || typeof stored !== 'object') {
-    if (!isPrimaryTafilaOpportunity(app.opportunity_id)) return null;
-    return null;
-  }
-  const breakdown = stored.scoreBreakdown || details.scoreBreakdown || null;
-  return {
-    applicationId: app.id,
-    opportunityId: app.opportunity_id,
-    approvedStatus: stored.approvedStatus || null,
-    approvedEligibility: stored.approvedStatus || null,
-    approvedFinalScore: stored.approvedFinalScore ?? null,
-    approvedAttendancePoints: breakdown?.attendancePoints ?? null,
-    approvedPostPoints: breakdown?.postAssessmentPoints ?? null,
-    approvedTaskPoints: breakdown?.taskPoints ?? null,
-    approvedBehaviorPoints: breakdown?.behaviorPoints ?? null,
-    scoreBreakdown: breakdown,
-    rawTaskData: stored.rawTaskData || null,
-    approvedTaskEvaluation: stored.approvedTaskEvaluation || null,
-    approvedReasons: app.eligibility_reason?.labelsAr || [],
-    reasons: app.eligibility_reason?.labelsAr || [],
-    approvedSource: stored.source || null,
-    source: stored.source || null,
-    sourceLabelAr: stored.sourceLabelAr || sourceLabelAr(stored.source),
-    reviewedAt: stored.approvedAt || null,
-    previousExcelScore: stored.previousExcelScore ?? null,
-    recalculatedScore: stored.recalculatedScore ?? details.calculatedFinalScore ?? null,
-    changeReasonAr: stored.changeReasonAr || null,
-    workflowStatus: stored.workflowStatus || app.completion_eligibility_status,
-  };
+async function resolveFieldTrainingApprovedResult(applicationId, options = {}) {
+  return require('./fieldTraining.officialResult.service').resolveFieldTrainingApprovedResult(
+    applicationId,
+    options
+  );
 }
 
 function applyApprovedDisplayToQualification(qualification, details, opportunityId) {

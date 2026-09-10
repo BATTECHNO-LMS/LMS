@@ -382,7 +382,7 @@ export function ManageCompletionTab({ opportunityId, opportunity = null }) {
                 `${t('completionLetter.issuedCount')}: ${preview.letters_already_issued}`,
                 `${t('completionLetter.willIssue')}: ${preview.letters_to_issue}`,
                 `${t('completionLetter.notEligibleExcluded')}: ${preview.notEligibleExcluded ?? 0}`,
-                ...(preview.skipped || []).slice(0, 8).map((row) => `${row.student_name} — ${row.reason_label}`),
+                ...(preview.skipped || []).slice(0, 8).map((row) => `${row.student_name} : ${row.reason_label}`),
               ].map((line) => (
                 <span key={line}>
                   {line}

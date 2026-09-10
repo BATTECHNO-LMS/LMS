@@ -108,6 +108,10 @@ function resolveTrainingStatusOnApproval(opp) {
 }
 
 /**
+ * LEGACY_DB_ONLY eligibility gates (attendance/hours/post/final-task flags).
+ * Isolated: routed only when `resolveFieldTrainingPolicy` selects LEGACY_WEIGHTED_V1
+ * and no approved overlay is present. Not an official scoring formula.
+ *
  * @returns {{ outcome: 'eligible'|'ineligible'|'needs_review', reasons: string[], details: Record<string, unknown> }}
  */
 async function calculateLegacyFieldTrainingEligibility(applicationId) {

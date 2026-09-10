@@ -1,0 +1,35 @@
+BATTECHNO LMS database findings
+Credentials were not printed. Production DATABASE_URL was not readable (SSH denied).
+Local .env was not used as a substitute for production.
+
+Measured (production /health vs /health/ready, keep-alive warm samples):
+- /health (no DB): p50 106ms, min 104ms, max 362ms (first sample cold)
+- /health/ready (prisma $queryRaw SELECT 1): p50 613ms, min 603ms, max 1251ms
+- Steady-state extra cost of SELECT 1: ~500ms (ready p50 minus health p50)
+- All 8 ready probes returned database: connected
+- No 503 not_ready in the sample
+
+Interpretation:
+- This is NOT a down database. It is a high round-trip database.
+- A single Prisma query costing ~500ms will make any sequential query chain feel like a hang.
+- Auth middleware runs several Prisma queries on every authenticated request (see currentAuthContext.js).
+- Prisma defaults in compose: PRISMA_CONNECTION_LIMIT=25, PRISMA_POOL_TIMEOUT=20, connect_timeout 15s
+- Pooler detection: host matching -pooler. sets pgbouncer=true
+- withDbRetry 3 attempts can multiply a slow/failing query
+
+N+1:
+- Eligibility list uses batched IN queries (hours, tasks, official results). Classic 151x attendance queries were NOT found on that endpoint.
+- Student Attendance page (frontend) fetches assessments, then sessions per cohort, then attendance per session.
+- persistMany writes qualifications sequentially per application.
+- loadBatchContext loads preview_json for all applied supervisor import batches (can be large).
+
+Indexes present in schema.prisma for field_training_applications(opportunity_id, student_id, status), attendance(application_id), submissions(application_id). EXPLAIN ANALYZE was not run.
+
+Connection counts / pool wait / Neon region: NEEDS_MORE_DATA
+Region concern: SELECT 1 at ~500ms is consistent with a remote Neon region relative to the app server, or a cold/compute-limited Neon endpoint. Not confirmed without host+URL inspection.
+
+Unbounded lists:
+- GET .../opportunities/:id/eligibility returns all approved applications (Tafila-scale ~151) with full qualification objects
+- findPublishedMany (student opportunities) has no take
+- prisma.grades.findMany({ select: { score: true } }) in analytics.service.js has no take
+- UsersListPage requests page_size 500

@@ -18,37 +18,39 @@ const GOLD_BORDER = { style: 'medium', color: { argb: GOLD } };
 const SHEET_NAME = 'طلاب التدريب الميداني';
 
 const COLUMN_HEADERS = Object.freeze([
-  'م',
+  '#',
   'اسم الطالب',
   'الرقم الجامعي',
-  'المشرف الأكاديمي',
-  'البريد الإلكتروني الجامعي',
+  'البريد الإلكتروني',
   'التخصص',
+  'المشرف الأكاديمي',
   'الجامعة',
   'فرصة التدريب',
   'جهة التدريب',
+  'نمط التدريب',
   'حالة الطلب',
   'حالة التدريب',
-  'تقدم المهمات',
-  'التاسكات_المسلمة',
-  'التاسكات_المكتملة_تقييماً',
-  'حالة التقييم البعدي',
-  'درجة التقييم البعدي',
-  'الساعات التدريبية المنجزة',
-  'الحضور_من_20',
-  'البعدي_من_20',
-  'علامة_التاسكات_من_40',
-  'السلوك_من_20',
-  'العلامة_النهائية',
-  'حالة الأهلية',
+  'نتيجة التدريب',
+  'العلامة النهائية',
+  'نسبة الحضور',
+  'علامة الحضور من 20',
+  'التقييم البعدي',
+  'علامة التقييم البعدي من 20',
+  'التاسكات المطلوبة',
+  'التاسكات المسلمة',
+  'التاسكات التي تم تقييمها',
+  'تقدم التاسكات',
+  'علامة التاسكات من 40',
+  'علامة السلوك والالتزام من 20',
+  'الساعات المنجزة',
   'سبب عدم التأهيل',
   'تاريخ التقديم',
 ]);
 
-const COLUMN_WIDTHS = [6, 26, 18, 22, 30, 22, 22, 28, 24, 16, 22, 28, 12, 14, 22, 18, 28, 14, 16, 14, 14, 16, 16, 42, 18];
+const COLUMN_WIDTHS = [6, 26, 18, 28, 22, 22, 22, 28, 24, 14, 16, 18, 16, 16, 14, 16, 16, 16, 14, 14, 16, 28, 16, 18, 22, 42, 18];
 const UNIVERSITY_NUMBER_COL = 3;
-const SUPERVISOR_COL = 4;
-const FINAL_RESULT_COL = 23;
+const SUPERVISOR_COL = 6;
+const FINAL_RESULT_COL = 13;
 
 const ELIGIBILITY_EXPORT_AR = Object.freeze({
   eligible: 'مؤهل',
@@ -110,65 +112,86 @@ function textOrEmpty(value) {
  */
 function mapStudentExcelRow(source, index) {
   const email = textOrEmpty(source.student_email);
+  const requiredTasks =
+    source.requiredTaskCount ??
+    source.qualification?.scoreComponents?.tasks?.requiredCount ??
+    source.task_progress?.total_required ??
+    null;
+  const submittedTasks =
+    source.submittedTaskCount ??
+    source.qualification?.scoreComponents?.tasks?.submittedCount ??
+    source.task_progress?.submitted_required ??
+    source.tasks_submitted ??
+    null;
+  const evaluatedTasks =
+    source.gradedTaskCount ??
+    source.qualification?.scoreComponents?.tasks?.acceptedCount ??
+    source.task_progress?.evaluated_required ??
+    source.tasks_graded ??
+    null;
+  const trainingMode = labels.labelOf(
+    labels.TRAINING_MODE_AR,
+    source.training_mode || source.trainingMode,
+    ''
+  );
+  const trainingResult = eligibilityExportLabel(
+    source.officialResult?.eligibilityDb ||
+      source.qualification?.workflowOutcome ||
+      source.qualification?.eligibilityStatus ||
+      source.eligibility_status ||
+      source.completion_eligibility_status
+  );
   return {
     seq: index + 1,
     studentName: textOrEmpty(source.student_name),
     universityNumber: extractUniversityNumberFromEmail(email),
-    academicSupervisor: textOrEmpty(source.academic_supervisor_name || source.academicSupervisor),
     email,
     specialty: textOrEmpty(source.specialty_label || source.university_specialty_label),
+    academicSupervisor: textOrEmpty(source.academic_supervisor_name || source.academicSupervisor),
     university: textOrEmpty(source.university_name || source.student_university),
     opportunity: textOrEmpty(source.opportunity_title),
     hostOrganization: textOrEmpty(source.training_organization || source.organization_name),
+    trainingMode,
     applicationStatus: applicationStatusLabel(source.application_status || source.status),
     trainingStatus: trainingStatusLabel(source.training_status),
-    taskProgress: textOrEmpty(source.task_progress?.display || source.task_progress_display),
-    tasksSubmitted:
-      source.qualification?.approvedEvaluationResult?.approvedTaskEvaluation?.submittedCount ??
-      source.qualification?.scoreComponents?.tasks?.submittedCount ??
-      source.tasks_submitted ??
+    trainingResult,
+    eligibilityStatus: trainingResult,
+    finalScore:
+      source.officialResult?.finalScore ??
+      source.qualification?.finalScore ??
+      source.qualification?.approvedFinalScore ??
+      source.final_score ??
       '',
-    tasksGraded:
-      source.qualification?.approvedEvaluationResult?.approvedTaskEvaluation?.submittedCount ??
-      source.qualification?.scoreComponents?.tasks?.acceptedCount ??
-      source.tasks_graded ??
+    attendancePercent:
+      source.officialResult?.attendancePercentage ??
+      source.qualification?.scoreComponents?.attendance?.effectivePercentage ??
+      source.attendance_percentage ??
       '',
-    postAssessmentStatus: textOrEmpty(
-      source.post_assessment_attempt_status_label || source.post_assessment_status_label
-    ),
-    postAssessmentScore:
-      source.post_assessment_score != null && source.post_assessment_score !== ''
-        ? Number(source.post_assessment_score)
-        : '',
-    completedHoursLabel: (() => {
-      const hours =
-        source.completed_training_hours ?? source.training_hours?.completed_training_hours;
-      if (hours == null || hours === '') return '';
-      return hoursMod.formatCompletedHoursLabelAr(hours);
-    })(),
-    eligibilityStatus: eligibilityExportLabel(
-      source.qualification?.workflowOutcome ||
-        source.qualification?.eligibilityStatus ||
-        source.eligibility_status ||
-        source.completion_eligibility_status
-    ),
     attendancePoints:
       source.qualification?.scoreBreakdown?.attendancePoints ??
       pointsOf(source, 'attendance.points', 'attendance_points'),
+    postAssessmentStatus: textOrEmpty(
+      source.post_assessment_attempt_status_label || source.post_assessment_status_label
+    ),
     postAssessmentPoints:
       source.qualification?.scoreBreakdown?.postAssessmentPoints ??
       pointsOf(source, 'postAssessment.points', 'post_assessment_points'),
+    requiredTasks: requiredTasks ?? '',
+    tasksSubmitted: submittedTasks ?? '',
+    tasksEvaluated: evaluatedTasks ?? '',
+    taskProgress: textOrEmpty(source.task_progress?.display || source.task_progress_display),
     tasksPoints:
       source.qualification?.scoreBreakdown?.taskPoints ??
       pointsOf(source, 'tasks.points', 'tasks_points'),
     behaviorPoints:
       source.qualification?.scoreBreakdown?.behaviorPoints ??
       pointsOf(source, 'behavior.points', 'behavior_points'),
-    finalScore:
-      source.qualification?.approvedFinalScore ??
-      source.qualification?.finalScore ??
-      source.final_score ??
-      '',
+    completedHoursLabel: (() => {
+      const hours =
+        source.completed_training_hours ?? source.training_hours?.completed_training_hours;
+      if (hours == null || hours === '') return '';
+      return hoursMod.formatCompletedHoursLabelAr(hours);
+    })(),
     ineligibilityReason: qualificationReasons(source),
     submittedAt: dates.formatReportDateAr(source.submitted_at || source.created_at) || '',
   };
@@ -179,26 +202,28 @@ function toCellArray(row) {
     row.seq,
     row.studentName,
     row.universityNumber,
-    row.academicSupervisor,
     row.email,
     row.specialty,
+    row.academicSupervisor,
     row.university,
     row.opportunity,
     row.hostOrganization,
+    row.trainingMode,
     row.applicationStatus,
     row.trainingStatus,
-    row.taskProgress,
-    row.tasksSubmitted,
-    row.tasksGraded,
-    row.postAssessmentStatus,
-    row.postAssessmentScore,
-    row.completedHoursLabel,
+    row.trainingResult,
+    row.finalScore,
+    row.attendancePercent,
     row.attendancePoints,
+    row.postAssessmentStatus,
     row.postAssessmentPoints,
+    row.requiredTasks,
+    row.tasksSubmitted,
+    row.tasksEvaluated,
+    row.taskProgress,
     row.tasksPoints,
     row.behaviorPoints,
-    row.finalScore,
-    row.eligibilityStatus,
+    row.completedHoursLabel,
     row.ineligibilityReason,
     row.submittedAt,
   ];
@@ -257,7 +282,7 @@ async function exportFieldTrainingStudentsExcel(sources, { opportunityTitle } = 
     uniCell.numFmt = '@';
     if (mapped.universityNumber) uniCell.value = String(mapped.universityNumber);
     excelRow.getCell(SUPERVISOR_COL).value = mapped.academicSupervisor || '';
-    excelRow.getCell(FINAL_RESULT_COL).value = mapped.eligibilityStatus || '';
+    excelRow.getCell(FINAL_RESULT_COL).value = mapped.trainingResult || '';
   });
 
   ws.columns = COLUMN_WIDTHS.map((width) => ({ width }));

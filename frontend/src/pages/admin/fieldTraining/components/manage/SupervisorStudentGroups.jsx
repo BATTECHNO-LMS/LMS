@@ -149,7 +149,7 @@ export function SupervisorStudentGroups({ opportunityId, apiScope = 'admin' }) {
       </div>
 
       <p className="muted">
-        {t('groups.studentCount')}: {totals.students || 0} — {t('groups.completedReports')}: {totals.completed_reports || 0} — {t('groups.pendingReports')}: {totals.pending_reports || 0}
+        {t('groups.studentCount')}: {totals.students || 0} · {t('groups.completedReports')}: {totals.completed_reports || 0} · {t('groups.pendingReports')}: {totals.pending_reports || 0}
       </p>
 
       {query.isLoading ? <LoadingSpinner /> : (
@@ -170,7 +170,7 @@ export function SupervisorStudentGroups({ opportunityId, apiScope = 'admin' }) {
                       setExpanded(next);
                     }}
                   >
-                    <span>{group.title || `${group.supervisor_label} — ${group.student_count}`}</span>
+                    <span>{group.title || `${group.supervisor_label} : ${group.student_count}`}</span>
                     {group.unassigned ? <StatusBadge variant="warning">{t('groups.unassigned')}</StatusBadge> : null}
                     {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                   </button>
@@ -185,7 +185,7 @@ export function SupervisorStudentGroups({ opportunityId, apiScope = 'admin' }) {
                   </Button>
                 </div>
                 <p className="muted">
-                  {t('groups.completedReports')}: {group.completed_reports} — {t('groups.pendingReports')}: {group.pending_reports}
+                  {t('groups.completedReports')}: {group.completed_reports} · {t('groups.pendingReports')}: {group.pending_reports}
                 </p>
                 {open ? (
                   <ul className="ft-supervisor-students">
