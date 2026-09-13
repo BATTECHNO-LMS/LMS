@@ -273,11 +273,11 @@ export function FieldTrainingComprehensiveStudentReportPage({
           items={[
             [
               t('eligibilityCard.attendancePoints'),
-              {q.scoreBreakdown?.attendancePoints != null
+              q.scoreBreakdown?.attendancePoints != null
                 ? `${q.scoreBreakdown.attendancePoints} / 20`
                 : components.attendance?.points != null
                   ? `${components.attendance.points} / 20`
-                  : t('common.unavailable', 'غير متوفر')},
+                  : t('common.unavailable', 'غير متوفر'),
             ],
             [
               t('eligibilityCard.postPoints'),

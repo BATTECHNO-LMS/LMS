@@ -41,7 +41,10 @@ const TRAINING_ERROR_AR = {
   ASSESSMENT_NOT_FOUND: 'الاختبار غير موجود.',
   ASSESSMENT_NOT_PUBLISHED: 'الاختبار غير منشور.',
   ASSESSMENT_NOT_STARTED: 'لم يبدأ الاختبار بعد.',
-  ASSESSMENT_CLOSED: 'انتهت فترة إتاحة الاختبار.',
+  ASSESSMENT_CLOSED: 'انتهى موعد تقديم الامتحان ولم يعد بالإمكان إرسال الإجابات.',
+  ASSESSMENT_DEADLINE_REQUIRED: 'يرجى تحديد موعد إغلاق الامتحان قبل النشر.',
+  ASSESSMENT_DEADLINE_NOT_FUTURE: 'يجب أن يكون موعد إغلاق الامتحان في وقت لاحق عند النشر.',
+  ASSESSMENT_DEADLINE_INVALID: 'موعد إغلاق الامتحان غير صالح.',
   ASSESSMENT_PREREQUISITES_INCOMPLETE:
     'الاختبار البعدي غير متاح حاليًا. أكمل متطلبات الدورة المطلوبة أولًا.',
   ASSESSMENT_ATTEMPTS_EXHAUSTED: 'أكملت جميع المحاولات المتاحة.',

@@ -17,6 +17,10 @@ export const fieldTrainingKeys = {
     [...fieldTrainingKeys.all, scope, 'submissions', opportunityId],
   sessions: (opportunityId, scope = 'admin') =>
     [...fieldTrainingKeys.all, scope, 'sessions', opportunityId],
+  recordedLectures: (opportunityId, scope = 'admin') =>
+    [...fieldTrainingKeys.all, scope, 'recorded-lectures', opportunityId],
+  studentRecordedLecture: (opportunityId, lectureId) =>
+    [...fieldTrainingKeys.all, 'student', 'recorded-lectures', opportunityId, lectureId],
   instructors: () => [...fieldTrainingKeys.all, 'instructors'],
   assessments: (opportunityId, scope = 'admin') =>
     [...fieldTrainingKeys.all, scope, 'assessments', opportunityId],

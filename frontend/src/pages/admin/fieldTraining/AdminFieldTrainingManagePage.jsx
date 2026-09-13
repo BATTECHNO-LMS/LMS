@@ -19,6 +19,7 @@ import { ManageTabNav, MANAGE_TABS } from './components/manage/ManageTabNav.jsx'
 import { ManageHeader } from './components/manage/ManageHeader.jsx';
 import { ManageOverviewTab } from './components/manage/ManageOverviewTab.jsx';
 import { ManageSessionsTab } from './components/manage/ManageSessionsTab.jsx';
+import { ManageRecordedLecturesTab } from './components/manage/ManageRecordedLecturesTab.jsx';
 import { ManageAttendanceTab } from './components/manage/ManageAttendanceTab.jsx';
 import { ManageAssessmentsTab } from './components/manage/ManageAssessmentsTab.jsx';
 import { ManageCompletionTab } from './components/manage/ManageLinkTab.jsx';
@@ -146,6 +147,8 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
             onOpenAttendance={(sessionId) => setTab('attendance', { session: sessionId })}
           />
         );
+      case 'recorded_lectures':
+        return <ManageRecordedLecturesTab opportunityId={id} opportunity={opp} apiScope={apiScope} />;
       case 'attendance':
         return (
           <ManageAttendanceTab

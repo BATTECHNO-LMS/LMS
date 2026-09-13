@@ -61,6 +61,9 @@ const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
 evaluationRoutes.mountReadRoutes(router, fieldTrainingStaff);
 evaluationRoutes.mountWriteRoutes(router, fieldTrainingStaff);
 
+const recordedLectureRoutes = require('./fieldTraining.recordedLectures.routes');
+recordedLectureRoutes.mountManageRoutes(router, fieldTrainingStaff);
+
 /* -------- Static paths (must be before /:id) -------- */
 
 router.get(

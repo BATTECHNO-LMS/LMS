@@ -121,3 +121,29 @@ export function toDatetimeLocalValue(value, timeZone = ASSESSMENT_TIME_ZONE) {
   const hour = get('hour') === '24' ? '00' : get('hour');
   return `${get('year')}-${get('month')}-${get('day')}T${hour}:${get('minute')}`;
 }
+
+/**
+ * Split a stored timestamp into Asia/Amman date and time parts for admin inputs.
+ * @param {unknown} value
+ * @returns {{ date: string, time: string }}
+ */
+export function splitAssessmentDateTime(value) {
+  const local = toDatetimeLocalValue(value);
+  if (!local || !local.includes('T')) return { date: '', time: '' };
+  const [date, time] = local.split('T');
+  return { date: date || '', time: time || '' };
+}
+
+/**
+ * Join admin date+time fields as an Asia/Amman wall-clock string for the API.
+ * The backend interprets timezone-naive values as Asia/Amman.
+ * @param {string} date
+ * @param {string} time
+ * @returns {string | null}
+ */
+export function joinAssessmentDateAndTime(date, time) {
+  const d = String(date || '').trim();
+  const t = String(time || '').trim();
+  if (!d || !t) return null;
+  return `${d}T${t.length === 5 ? `${t}:00` : t}`;
+}

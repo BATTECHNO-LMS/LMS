@@ -33,6 +33,8 @@ router.use(authenticate);
 router.use(requireOrganizationType('UNIVERSITY'));
 const studentOnly = authorizeRoles(env.STUDENT_ROLE_CODE);
 evaluationRoutes.mountStudentRoutes(router, studentOnly);
+const recordedLectureRoutes = require('./fieldTraining.recordedLectures.routes');
+recordedLectureRoutes.mountStudentRoutes(router, studentOnly);
 
 router.get(
   '/my-applications',

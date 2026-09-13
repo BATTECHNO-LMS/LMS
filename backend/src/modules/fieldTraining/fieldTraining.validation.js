@@ -357,11 +357,18 @@ const assessmentQuestionSchema = z.object({
   sort_order: z.coerce.number().int().min(0).optional(),
 });
 
+const assessmentClosesAtSchema = z.preprocess((value) => {
+  if (value === undefined) return undefined;
+  if (value == null || value === '') return null;
+  return value;
+}, z.union([z.string().min(1).max(64), z.null()]).optional());
+
 const assessmentBodySchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(10000).optional().nullable(),
   passing_score: z.coerce.number().min(0).max(100).optional().nullable(),
   status: z.enum(['draft', 'published', 'closed']).optional(),
+  closes_at: assessmentClosesAtSchema,
   questions: z.array(assessmentQuestionSchema).optional(),
 });
 

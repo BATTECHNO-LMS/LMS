@@ -247,8 +247,8 @@ function assertAssessmentWindow(settings, now = new Date()) {
   }
   if (settings.closes_at) {
     const closes = new Date(settings.closes_at);
-    if (!Number.isNaN(closes.getTime()) && now > closes) {
-      throw new ApiError(403, 'انتهت فترة التقييم');
+    if (!Number.isNaN(closes.getTime()) && now >= closes) {
+      throw new ApiError(403, 'انتهى موعد تقديم الامتحان ولم يعد بالإمكان إرسال الإجابات.', null, 'ASSESSMENT_CLOSED');
     }
   }
 }

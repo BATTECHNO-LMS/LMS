@@ -13,6 +13,8 @@ import {
   fetchStudentAssessment,
   submitStudentAssessment,
   downloadCompletionLetter,
+  fetchStudentRecordedLectures,
+  fetchStudentRecordedLecture,
 } from '../fieldTraining.service.js';
 import { fieldTrainingKeys } from './fieldTrainingQueryKeys.js';
 import { STALE } from '../../../lib/queryDefaults.js';
@@ -119,6 +121,26 @@ export function useStudentFieldTrainingAssessments(opportunityId, options = {}) 
     queryFn: () => fetchStudentAssessments(opportunityId),
     enabled: Boolean(opportunityId),
     staleTime: 30_000,
+    ...options,
+  });
+}
+
+export function useStudentRecordedLectures(opportunityId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.recordedLectures(opportunityId, 'student'),
+    queryFn: () => fetchStudentRecordedLectures(opportunityId),
+    enabled: Boolean(opportunityId),
+    staleTime: STALE.fieldTraining,
+    ...options,
+  });
+}
+
+export function useStudentRecordedLecture(opportunityId, lectureId, options = {}) {
+  return useQuery({
+    queryKey: fieldTrainingKeys.studentRecordedLecture(opportunityId, lectureId),
+    queryFn: () => fetchStudentRecordedLecture(opportunityId, lectureId),
+    enabled: Boolean(opportunityId && lectureId),
+    staleTime: STALE.fieldTraining,
     ...options,
   });
 }

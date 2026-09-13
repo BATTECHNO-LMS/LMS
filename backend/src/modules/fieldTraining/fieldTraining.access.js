@@ -67,6 +67,88 @@ function canManageFieldTraining(user, opportunity) {
   return isFieldTrainingAdmin(user);
 }
 
+function isInstitutionFieldTrainingUser(user) {
+  return user?.portalType === 'INSTITUTION' || user?.organizationType === 'INSTITUTION';
+}
+
+function isFieldTrainingReviewerOnly(user) {
+  if (isSystemWideAdmin(user)) return false;
+  if (isFieldTrainingAdmin(user)) return false;
+  if (isInstitutionFieldTrainingUser(user)) return false;
+  const roles = normalizeRoles(user);
+  return roles.includes('reviewer') && Boolean(user?.universityId);
+}
+
+function assertUniversityFieldTrainingPortal(user) {
+  if (!user) {
+    throw new ApiError(401, 'يجب تسجيل الدخول للمتابعة.', null, 'UNAUTHORIZED');
+  }
+  if (isSystemWideAdmin(user)) return;
+  if (isInstitutionFieldTrainingUser(user)) {
+    throw new ApiError(
+      403,
+      'لا تملك صلاحية الوصول إلى هذه المحاضرة.',
+      null,
+      'PORTAL_MISMATCH'
+    );
+  }
+  const roles = normalizeRoles(user);
+  if (roles.includes('trainer') || roles.includes('trainee')) {
+    throw new ApiError(
+      403,
+      'لا تملك صلاحية الوصول إلى هذه المحاضرة.',
+      null,
+      'PORTAL_MISMATCH'
+    );
+  }
+}
+
+async function assertOpportunityUniversityScope(user, opportunity) {
+  const uni = user?.universityId;
+  if (!uni) {
+    throw new ApiError(403, 'لم يتم ربط حسابك بجامعة.', null, 'UNIVERSITY_REQUIRED');
+  }
+  if (opportunity.university_id) {
+    if (String(opportunity.university_id) !== String(uni)) {
+      throw new ApiError(403, 'لا تملك صلاحية الوصول إلى هذه المحاضرة.', null, 'FIELD_TRAINING_FORBIDDEN');
+    }
+    return;
+  }
+  const allowed = await ftEligibility.hasActiveEligibilityForUniversity(opportunity.id, uni);
+  if (!allowed) {
+    throw new ApiError(403, 'لا تملك صلاحية الوصول إلى هذه المحاضرة.', null, 'FIELD_TRAINING_FORBIDDEN');
+  }
+}
+
+async function assertRecordedLectureReadAccess(user, opportunity) {
+  if (!opportunity) throw new ApiError(404, 'فرصة التدريب غير موجودة.');
+  assertUniversityFieldTrainingPortal(user);
+  if (isSystemWideAdmin(user)) return { readOnly: false };
+  if (canManageFieldTraining(user, opportunity)) {
+    await assertAdminOpportunityAccess(user, opportunity);
+    return { readOnly: false };
+  }
+  if (isFieldTrainingReviewerOnly(user)) {
+    await assertOpportunityUniversityScope(user, opportunity);
+    return { readOnly: true };
+  }
+  throw new ApiError(403, 'لا تملك صلاحية الوصول إلى هذه المحاضرة.', null, 'FIELD_TRAINING_FORBIDDEN');
+}
+
+async function assertRecordedLectureManageAccess(user, opportunity) {
+  const access = await assertRecordedLectureReadAccess(user, opportunity);
+  if (access.readOnly || isFieldTrainingReviewerOnly(user)) {
+    throw new ApiError(
+      403,
+      'ليس لديك صلاحية إنشاء أو تعديل المحاضرات المسجلة.',
+      null,
+      'RECORDED_LECTURE_READ_ONLY'
+    );
+  }
+  await assertManageOpportunityAccess(user, opportunity);
+  return access;
+}
+
 async function assertAdminOpportunityAccess(user, opportunity) {
   if (!opportunity) throw new ApiError(404, 'Opportunity not found');
   if (isSystemWideAdmin(user)) return;
@@ -217,6 +299,12 @@ module.exports = {
   isUniversityScopedFieldTrainingUser,
   isAssignedInstructor,
   canManageFieldTraining,
+  isInstitutionFieldTrainingUser,
+  isFieldTrainingReviewerOnly,
+  assertUniversityFieldTrainingPortal,
+  assertOpportunityUniversityScope,
+  assertRecordedLectureReadAccess,
+  assertRecordedLectureManageAccess,
   manageOpportunityListWhere,
   normalizeRoles,
 };

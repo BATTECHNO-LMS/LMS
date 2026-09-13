@@ -166,6 +166,8 @@ class AssessmentSummaryCard extends StatelessWidget {
         return l10n.assessmentNotPublished;
       case AssessmentPrimaryAction.unavailable:
         return l10n.assessmentUnavailable;
+      case AssessmentPrimaryAction.closed:
+        return 'مغلق';
     }
   }
 
@@ -177,6 +179,7 @@ class AssessmentSummaryCard extends StatelessWidget {
         return _StatusTone.completed;
       case AssessmentPrimaryAction.notPublished:
       case AssessmentPrimaryAction.unavailable:
+      case AssessmentPrimaryAction.closed:
         return _StatusTone.unavailable;
     }
   }
@@ -191,6 +194,8 @@ class AssessmentSummaryCard extends StatelessWidget {
         return l10n.assessmentUnavailable;
       case AssessmentPrimaryAction.unavailable:
         return l10n.assessmentUnavailable;
+      case AssessmentPrimaryAction.closed:
+        return 'انتهى موعد تقديم الامتحان.';
     }
   }
 }

@@ -316,7 +316,6 @@ export function FieldTrainingApplicationsReportPage({ basePath, mode = 'admin' }
                       <dt>{t('table.completionLetter')}</dt>
                       <dd>{row.completion_letter_status_label}</dd>
                     </div>
-                    </div>
                     <div className="ft-report-detail-grid__item">
                       <dt>{t('filters.from')}</dt>
                       <dd>{formatFtDate(row.submitted_at)}</dd>

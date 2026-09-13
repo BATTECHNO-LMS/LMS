@@ -12,6 +12,17 @@ import {
 } from '../../../../features/fieldTraining/index.js';
 import { fieldTrainingKeys } from '../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { getApiErrorMessage } from '../../../../services/apiHelpers.js';
+import { formatAssessmentDateTime } from '../../../../features/training/assessmentPresentation/assessmentDate.js';
+
+function remainingUntilClose(closesAt) {
+  if (!closesAt) return null;
+  const ms = new Date(closesAt).getTime() - Date.now();
+  if (!Number.isFinite(ms) || ms <= 0 || ms > 24 * 60 * 60 * 1000) return null;
+  const hours = Math.floor(ms / 3600000);
+  const minutes = Math.max(1, Math.floor((ms % 3600000) / 60000));
+  if (hours >= 1) return `${hours} س`;
+  return `${minutes} د`;
+}
 
 function formatRemaining(totalSeconds) {
   const safe = Math.max(0, Number(totalSeconds) || 0);
@@ -159,7 +170,7 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
   const [savedHint, setSavedHint] = useState(false);
   const autoSubmitRef = useRef(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error: loadError } = useQuery({
     queryKey: [...fieldTrainingKeys.studentAssessments(opportunityId), type, 'take'],
     queryFn: () => fetchStudentAssessment(opportunityId, type),
     enabled: Boolean(opportunityId && type),
@@ -214,19 +225,27 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
 
   useEffect(() => {
     if (submitted || remaining !== 0 || autoSubmitRef.current || !assessment?.questions?.length) return;
+    if (assessment.is_closed || assessment.isClosed) return;
     autoSubmitRef.current = true;
     submitMut.mutate(answers);
   }, [remaining, submitted, answers, assessment, submitMut]);
 
   useEffect(() => {
-    if (!hydrated || submitted) return undefined;
+    if (!hydrated || submitted || assessment?.is_closed || assessment?.isClosed) return undefined;
     const id = window.setTimeout(() => {
       saveMut.mutate(answers);
     }, 8000);
     return () => window.clearTimeout(id);
-  }, [answers, hydrated, submitted]);
+  }, [answers, hydrated, submitted, assessment]);
 
   if (isLoading) return <LoadingSpinner />;
+  if (isError) {
+    return (
+      <p className="form-field__error" role="alert">
+        {getApiErrorMessage(loadError, t('studentTraining.assessment.closedMessage'))}
+      </p>
+    );
+  }
 
   if ((existingAttempt?.submitted_at && !result) || result) {
     const shown = result || existingAttempt;
@@ -282,6 +301,17 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
           {assessment.student_instructions}
         </p>
       ) : null}
+      {assessment.closes_at || assessment.closesAt ? (
+        <p className="ft-qb-hint">
+          {t('studentTraining.assessment.closesAt')}:{' '}
+          {formatAssessmentDateTime(assessment.closes_at || assessment.closesAt)}
+        </p>
+      ) : null}
+      {assessment.is_closed || assessment.isClosed ? (
+        <p className="form-field__error" role="alert">
+          {t('studentTraining.assessment.closedMessage')}
+        </p>
+      ) : null}
       {remaining != null ? (
         <p className="ft-qb-hint" role="timer">
           {t('studentTraining.assessment.timeRemaining')}: {formatRemaining(remaining)}
@@ -298,7 +328,7 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
           <StudentQuestionField
             question={q}
             value={answers[q.id]}
-            disabled={submitMut.isPending}
+            disabled={submitMut.isPending || assessment.is_closed || assessment.isClosed}
             onChange={(next) => setAnswers((prev) => ({ ...prev, [q.id]: next }))}
           />
         </div>
@@ -308,7 +338,11 @@ function AssessmentTakeForm({ opportunityId, type, onDone }) {
           {error}
         </p>
       ) : null}
-      <Button type="submit" variant="primary" disabled={submitMut.isPending}>
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={submitMut.isPending || assessment.is_closed || assessment.isClosed}
+      >
         {submitMut.isPending
           ? t('studentTraining.assessment.submitting')
           : t('studentTraining.assessment.submit')}
@@ -355,32 +389,53 @@ export function StudentAssessmentsTab({ opportunityId, enabled, opp }) {
       );
     }
 
+    const closed = Boolean(item.is_closed || item.isClosed);
+    const remaining = !closed ? remainingUntilClose(item.closes_at || item.closesAt) : null;
+
     return (
       <article className="ft-assessment-card">
         <header className="ft-assessment-card__head">
           <h3>{item.title || t(titleKey)}</h3>
-          <StatusBadge variant={attemptStatusVariant(item.attempt_status)}>
-            {attemptStatusLabel(t, item)}
+          <StatusBadge variant={closed ? 'muted' : attemptStatusVariant(item.attempt_status)}>
+            {closed
+              ? t('studentTraining.assessment.closed')
+              : item.can_take
+                ? t('studentTraining.assessment.available')
+                : attemptStatusLabel(t, item)}
           </StatusBadge>
         </header>
         <p>{t(descKey)}</p>
+        {item.closes_at || item.closesAt ? (
+          <p>
+            {t('studentTraining.assessment.closesAt')}:{' '}
+            {formatAssessmentDateTime(item.closes_at || item.closesAt)}
+          </p>
+        ) : null}
+        {remaining ? (
+          <p className="ft-qb-hint">
+            {t('studentTraining.assessment.remaining', { value: remaining })}
+          </p>
+        ) : null}
+        {closed && !item.attempt?.submitted_at ? (
+          <p className="ft-assessment-card__locked">{t('studentTraining.assessment.closedMessage')}</p>
+        ) : null}
         {item.attempt?.submitted_at ? (
           <p>
             {t('studentTraining.assessment.score')}: {item.attempt.score}%
             {item.attempt.level ? ` · ${t(`knowledgeLevel.${item.attempt.level}`)}` : ''}
           </p>
         ) : null}
-        {item.can_take && item.attempt_status === 'in_progress' ? (
+        {!closed && item.can_take && item.attempt_status === 'in_progress' ? (
           <Button type="button" variant="primary" onClick={() => setActiveType(type)}>
             {t('studentTraining.assessment.continue')}
           </Button>
         ) : null}
-        {item.can_take && item.attempt_status !== 'in_progress' && !item.attempt?.submitted_at ? (
+        {!closed && item.can_take && item.attempt_status !== 'in_progress' && !item.attempt?.submitted_at ? (
           <Button type="button" variant="primary" onClick={() => setActiveType(type)}>
             {t(`studentTraining.assessment.start${type === 'pre' ? 'Pre' : 'Post'}`)}
           </Button>
         ) : null}
-        {!item.can_take && !item.attempt?.submitted_at ? (
+        {!closed && !item.can_take && !item.attempt?.submitted_at ? (
           <p className="ft-assessment-card__locked">
             {type === 'post'
               ? t('studentTraining.assessment.postLockedUntilReady')

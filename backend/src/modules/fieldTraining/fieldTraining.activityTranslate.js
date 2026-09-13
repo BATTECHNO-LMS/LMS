@@ -90,6 +90,51 @@ function translateStudentActivityEvent(event = {}) {
       description: 'تم نشر تقييم مرتبط بالتدريب الميداني',
       category: CATEGORY.ASSESSMENTS,
     },
+    FIELD_TRAINING_ASSESSMENT_UPDATED: {
+      title: 'تحديث تقييم',
+      description: 'تم تحديث تقييم مرتبط بالتدريب الميداني',
+      category: CATEGORY.ASSESSMENTS,
+    },
+    RECORDED_LECTURE_CREATED: {
+      title: 'إضافة محاضرة مسجلة',
+      description: 'تم إنشاء محاضرة مسجلة مرتبطة بالتدريب الميداني',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURE_UPDATED: {
+      title: 'تحديث محاضرة مسجلة',
+      description: 'تم تحديث بيانات محاضرة مسجلة',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURE_PUBLISHED: {
+      title: 'نشر محاضرة مسجلة',
+      description: 'تم نشر محاضرة مسجلة للطلبة',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURE_HIDDEN: {
+      title: 'إخفاء محاضرة مسجلة',
+      description: 'تم إخفاء محاضرة مسجلة عن الطلبة',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURE_IMPORTED_SINGLE: {
+      title: 'استيراد محاضرة من YouTube',
+      description: 'تم استيراد محاضرة مسجلة من فيديو YouTube',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURES_IMPORTED_PLAYLIST: {
+      title: 'استيراد قائمة تشغيل YouTube',
+      description: 'تم استيراد محاضرات مسجلة من قائمة تشغيل YouTube',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURES_REORDERED: {
+      title: 'إعادة ترتيب المحاضرات المسجلة',
+      description: 'تم حفظ ترتيب المحاضرات المسجلة',
+      category: CATEGORY.TRAINING,
+    },
+    RECORDED_LECTURE_PLAYLIST_SYNCED: {
+      title: 'مزامنة قائمة تشغيل YouTube',
+      description: 'تمت مزامنة محاضرات مسجلة مع قائمة تشغيل YouTube',
+      category: CATEGORY.TRAINING,
+    },
     FIELD_TRAINING_STARTED: {
       title: 'بدء التدريب',
       description: 'بدأ مسار التدريب الميداني للطالب',

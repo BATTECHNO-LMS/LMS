@@ -340,6 +340,10 @@ export function AppRouter() {
                 element={<Pages.StudentFieldTrainingSelfEvaluationPage />}
               />
               <Route
+                path="field-training/:id/recorded-lectures/:lectureId"
+                element={<Pages.StudentRecordedLecturePlayerPage />}
+              />
+              <Route
                 path="field-training/:id/progress"
                 element={<Pages.StudentFieldTrainingProgressRedirect />}
               />

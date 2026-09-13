@@ -16,6 +16,7 @@ import {
   deleteOpportunityTask,
   fetchOpportunitySubmissions,
   fetchOpportunitySessions,
+  fetchOpportunityRecordedLectures,
   fetchOpportunityAssessments,
   fetchSessionAttendance,
   fetchApplicationProgress,
@@ -183,6 +184,17 @@ export function useOpportunitySessions(opportunityId, options = {}) {
         asAdmin: scope === 'admin',
         asInstructor: scope === 'instructor',
       }),
+    enabled: Boolean(opportunityId),
+    ...options,
+  });
+}
+
+export function useOpportunityRecordedLectures(opportunityId, options = {}) {
+  const scope = options.scope ?? 'admin';
+  return useQuery({
+    queryKey: fieldTrainingKeys.recordedLectures(opportunityId, scope),
+    queryFn: () =>
+      fetchOpportunityRecordedLectures(opportunityId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId),
     ...options,
   });

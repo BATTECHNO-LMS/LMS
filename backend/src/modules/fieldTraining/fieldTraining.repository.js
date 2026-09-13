@@ -1082,13 +1082,15 @@ function mapAttendanceRow(row) {
   };
 }
 
-function mapAssessmentRow(row, { includeQuestions = false } = {}) {
+function mapAssessmentRow(row, { includeQuestions = false, now = new Date() } = {}) {
   const {
     parseAssessmentDescription,
     publicSettings,
   } = require('./fieldTraining.standardizedPostAssessment');
+  const deadline = require('./fieldTraining.assessmentDeadline');
   const parsed = parseAssessmentDescription(row.description);
   const settings = publicSettings(parsed.settings);
+  const availability = deadline.describeAvailability(row, { now, settings });
   const base = {
     id: row.id,
     opportunity_id: row.opportunity_id,
@@ -1097,6 +1099,16 @@ function mapAssessmentRow(row, { includeQuestions = false } = {}) {
     description: parsed.body,
     passing_score: row.passing_score != null ? Number(row.passing_score) : null,
     status: row.status,
+    display_status: availability.display_status,
+    closes_at: availability.closes_at,
+    closesAt: availability.closesAt,
+    opens_at: availability.opens_at,
+    opensAt: availability.opensAt,
+    is_open: availability.is_open,
+    isOpen: availability.isOpen,
+    is_closed: availability.is_closed,
+    isClosed: availability.isClosed,
+    timezone: availability.timezone,
     created_by_id: row.created_by_id,
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -1242,15 +1254,17 @@ async function findAssessmentById(id) {
 }
 
 async function upsertAssessment(data) {
+  const update = {
+    title: data.title,
+    description: data.description,
+    passing_score: data.passing_score,
+    status: data.status,
+  };
+  if (data.closes_at !== undefined) update.closes_at = data.closes_at;
   return prisma.field_training_assessments.upsert({
     where: { opportunity_id_type: { opportunity_id: data.opportunity_id, type: data.type } },
     create: data,
-    update: {
-      title: data.title,
-      description: data.description,
-      passing_score: data.passing_score,
-      status: data.status,
-    },
+    update,
   });
 }
 

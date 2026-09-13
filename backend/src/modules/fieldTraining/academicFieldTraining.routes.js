@@ -155,4 +155,7 @@ router.get(
 const evaluationRoutes = require('./fieldTrainingEvaluation.routes');
 evaluationRoutes.mountReadRoutes(router, academicRoles);
 
+const recordedLectureRoutes = require('./fieldTraining.recordedLectures.routes');
+recordedLectureRoutes.mountReadRoutes(router, academicRoles, { opportunityParam: 'opportunityId' });
+
 module.exports = router;

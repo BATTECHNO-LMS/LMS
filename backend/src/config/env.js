@@ -64,8 +64,21 @@ const env = {
   R2_PUBLIC_BASE_URL: (process.env.R2_PUBLIC_BASE_URL || '').replace(/\/$/, ''),
   /** Comma-separated browser origins allowed for CORS (required in production) */
   CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS || ''),
-  /** YouTube Data API v3 key — enables fetching unlisted playlists (public RSS is not enough). */
+  /** YouTube Data API v3 key — backend-only; never expose to browsers or logs. */
   YOUTUBE_API_KEY: (process.env.YOUTUBE_API_KEY || '').trim(),
+  /** Safety cap for Field Training playlist import. Exceeding this errors (no silent truncate). */
+  YOUTUBE_PLAYLIST_MAX_ITEMS: (() => {
+    const n = Number(process.env.YOUTUBE_PLAYLIST_MAX_ITEMS);
+    if (!Number.isFinite(n) || n <= 0) return 400;
+    return Math.min(Math.max(Math.floor(n), 50), 2000);
+  })(),
+  YOUTUBE_API_TIMEOUT_MS: Number(process.env.YOUTUBE_API_TIMEOUT_MS) || 15_000,
+  /** Unique-watched % at which a recorded lecture is marked complete. Not a scoring rule. */
+  RECORDED_LECTURE_COMPLETION_PERCENT: (() => {
+    const n = Number(process.env.RECORDED_LECTURE_COMPLETION_PERCENT);
+    if (!Number.isFinite(n) || n <= 0 || n > 100) return 90;
+    return n;
+  })(),
   /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
   TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
@@ -74,6 +87,11 @@ const env = {
   AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 40,
   /** Soft cap for GET attendance-window/active (excluded from main apiLimiter). */
   ATTENDANCE_POLL_RATE_LIMIT_MAX: Number(process.env.ATTENDANCE_POLL_RATE_LIMIT_MAX) || 240,
+  /** Soft cap for recorded-lecture heartbeat + player-event (per user + lecture). */
+  RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_MAX:
+    Number(process.env.RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_MAX) || 90,
+  RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_WINDOW_MS:
+    Number(process.env.RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
   /** DB `roles.code` for student registration (must exist in `roles` table). */
   STUDENT_ROLE_CODE: process.env.STUDENT_ROLE_CODE || 'student',
   /** Role code that grants global admin scope in JWT (`isGlobal`). */

@@ -353,6 +353,9 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260830120000_field_training_letters_supervisor_assignments',
       '20260830170000_academic_supervisor_name_text',
       '20260901143000_field_training_evaluation_template_source_fidelity',
+      '20260908140000_field_training_policy_scoring_rules',
+      '20260912120000_field_training_assessment_closes_at',
+      '20260912140000_field_training_recorded_lectures',
     ]);
   });
 

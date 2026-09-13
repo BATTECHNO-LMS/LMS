@@ -30,6 +30,15 @@ describe('field training post-assessment UI', () => {
     assert.match(ar, /"statusGraded": "تم التصحيح"/);
     assert.match(tab, /saveStudentAssessmentProgress/);
     assert.match(tab, /dir="rtl"/);
+    assert.match(tab, /studentTraining\.assessment\.closesAt/);
+    assert.match(tab, /studentTraining\.assessment\.closed/);
+    assert.match(ar, /"closesAt": "موعد الإغلاق"/);
+    assert.match(ar, /"closed": "مغلق"/);
+    assert.match(ar, /"closedMessage": "انتهى موعد تقديم الامتحان\."/);
+    const admin = readSrc('../src/pages/admin/fieldTraining/components/manage/ManageAssessmentsTab.jsx');
+    assert.match(admin, /manageHub\.assessment\.closesAtDate/);
+    assert.match(admin, /manageHub\.assessment\.closesAtTime/);
+    assert.match(admin, /closes_at: joinAssessmentDateAndTime/);
     assert.match(service, /assessments\/\$\{type\}\/save/);
   });
 

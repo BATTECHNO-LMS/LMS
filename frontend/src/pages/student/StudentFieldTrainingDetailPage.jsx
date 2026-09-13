@@ -46,6 +46,7 @@ import { StudentTasksTab } from './fieldTraining/components/StudentTasksTab.jsx'
 import { StudentAssessmentsTab } from './fieldTraining/components/StudentAssessmentsTab.jsx';
 import { StudentCompletionTab } from './fieldTraining/components/StudentCompletionTab.jsx';
 import { StudentEligibilityTab } from './fieldTraining/components/StudentEligibilityTab.jsx';
+import { StudentRecordedLecturesTab } from './fieldTraining/components/StudentRecordedLecturesTab.jsx';
 
 const ACTIVE_TRAINING = new Set([
   'pre_assessment_completed',
@@ -329,6 +330,14 @@ export function StudentFieldTrainingDetailPage() {
       case 'sessions':
         return (
           <StudentSessionsTab opportunityId={id} enabled={canTrainingContent} />
+        );
+      case 'recorded_lectures':
+        return (
+          <StudentRecordedLecturesTab
+            opportunityId={id}
+            enabled={canTrainingContent}
+            opportunityTitle={opp?.title}
+          />
         );
       case 'attendance':
         return (
@@ -640,7 +649,9 @@ export function StudentFieldTrainingDetailPage() {
                   activeTab={activeTab}
                   onTabChange={setActiveTab}
                   disabledTabs={
-                    expelled ? ['sessions', 'tasks', 'assessments', 'completion'] : []
+                    expelled
+                      ? ['sessions', 'recorded_lectures', 'tasks', 'assessments', 'completion']
+                      : []
                   }
                 />
                 <ContextualHelpButton
@@ -655,7 +666,9 @@ export function StudentFieldTrainingDetailPage() {
                             ? 'certificates'
                             : activeTab === 'sessions'
                               ? 'attendance'
-                              : 'progress'
+                              : activeTab === 'recorded_lectures'
+                                ? 'progress'
+                                : 'progress'
                   }
                   route={`/student/field-training/${id}`}
                 />

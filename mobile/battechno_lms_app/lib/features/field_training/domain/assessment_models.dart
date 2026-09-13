@@ -11,6 +11,8 @@ class StudentAssessmentSummary {
     this.attempt,
     this.passingScore,
     this.questionCount,
+    this.isClosed = false,
+    this.closesAt,
   });
 
   final String id;
@@ -21,6 +23,8 @@ class StudentAssessmentSummary {
   final Map<String, dynamic>? attempt;
   final int? passingScore;
   final int? questionCount;
+  final bool isClosed;
+  final String? closesAt;
 
   bool get isSubmitted => attempt?['submitted_at'] != null;
   int? get score => JsonHelpers.integer(attempt, ['score']);
@@ -38,6 +42,8 @@ class StudentAssessmentSummary {
         'questions_count',
         'question_count',
       ]),
+      isClosed: map['is_closed'] == true || map['isClosed'] == true,
+      closesAt: (map['closes_at'] ?? map['closesAt'])?.toString(),
     );
   }
 }
@@ -83,7 +89,7 @@ class AssessmentAvailability {
   final AssessmentPrimaryAction primaryAction;
 }
 
-enum AssessmentPrimaryAction { start, viewResult, unavailable, notPublished }
+enum AssessmentPrimaryAction { start, viewResult, unavailable, notPublished, closed }
 
 enum AssessmentQuestionType {
   multipleChoice,
@@ -144,6 +150,7 @@ class AssessmentLabels {
     if (!isRequired) return AssessmentPrimaryAction.unavailable;
     if (summary == null) return AssessmentPrimaryAction.notPublished;
     if (summary.isSubmitted) return AssessmentPrimaryAction.viewResult;
+    if (summary.isClosed) return AssessmentPrimaryAction.closed;
     if (summary.canTake) return AssessmentPrimaryAction.start;
     return AssessmentPrimaryAction.unavailable;
   }

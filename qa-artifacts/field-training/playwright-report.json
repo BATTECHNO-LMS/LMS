@@ -1,0 +1,215 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\LMS\\qa\\field-training\\playwright\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/field-training-recorded-lectures-student.spec.js"
+    ],
+    "configFile": "D:\\LMS\\qa\\field-training\\playwright\\playwright.config.js",
+    "rootDir": "D:/LMS/qa/field-training/playwright/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/LMS/qa-artifacts/field-training/playwright-raw",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "D:/LMS/qa/field-training/playwright/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\LMS\\qa-artifacts\\field-training\\playwright-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "field-training-recorded-lectures-student.spec.js",
+      "file": "field-training-recorded-lectures-student.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Phase 5 student recorded lectures UX",
+          "file": "field-training-recorded-lectures-student.spec.js",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "unauthenticated student recorded-lecture routes stay inside LMS auth",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6614,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-12T08:42:39.566Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-b06bf-routes-stay-inside-LMS-auth\\test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-b06bf-routes-stay-inside-LMS-auth\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-b06bf-routes-stay-inside-LMS-auth\\trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "01656f20ccab7a40e2cb-20a823006d05278b6440",
+              "file": "field-training-recorded-lectures-student.spec.js",
+              "line": 10,
+              "column": 3
+            },
+            {
+              "title": "optional authenticated student flow uses isolated QA credentials only",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Set QA_STUDENT_EMAIL, QA_STUDENT_PASSWORD, and QA_STUDENT_OPPORTUNITY_ID to run mutating student playback checks. Do not use historical production student accounts.",
+                      "location": {
+                        "file": "D:\\LMS\\qa\\field-training\\playwright\\tests\\field-training-recorded-lectures-student.spec.js",
+                        "line": 37,
+                        "column": 10
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "skipped",
+                      "duration": 250,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-09-12T08:42:46.445Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Set QA_STUDENT_EMAIL, QA_STUDENT_PASSWORD, and QA_STUDENT_OPPORTUNITY_ID to run mutating student playback checks. Do not use historical production student accounts.",
+                          "location": {
+                            "file": "D:\\LMS\\qa\\field-training\\playwright\\tests\\field-training-recorded-lectures-student.spec.js",
+                            "line": 37,
+                            "column": 10
+                          }
+                        }
+                      ],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-2ecb4-solated-QA-credentials-only\\test-finished-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-2ecb4-solated-QA-credentials-only\\video.webm"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "D:\\LMS\\qa-artifacts\\field-training\\playwright-raw\\field-training-recorded-le-2ecb4-solated-QA-credentials-only\\trace.zip"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "01656f20ccab7a40e2cb-20da1531a9d3811dbc49",
+              "file": "field-training-recorded-lectures-student.spec.js",
+              "line": 36,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-12T08:42:38.879Z",
+    "duration": 8438.623,
+    "expected": 1,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

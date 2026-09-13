@@ -228,6 +228,7 @@ class _AssessmentOverviewHero extends StatelessWidget {
       AssessmentPrimaryAction.viewResult => l10n.assessmentCompleted,
       AssessmentPrimaryAction.notPublished => l10n.assessmentNotPublished,
       AssessmentPrimaryAction.unavailable => l10n.assessmentUnavailable,
+      AssessmentPrimaryAction.closed => 'مغلق',
     };
     final statusBg = switch (action) {
       AssessmentPrimaryAction.start => BatColors.accentSoft,

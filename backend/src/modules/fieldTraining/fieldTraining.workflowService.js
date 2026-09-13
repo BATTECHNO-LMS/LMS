@@ -20,6 +20,7 @@ const {
   validateAssessmentQuestions,
 } = require('./fieldTraining.assessmentQuestions');
 const standardizedPost = require('./fieldTraining.standardizedPostAssessment');
+const assessmentDeadline = require('./fieldTraining.assessmentDeadline');
 const {
   buildHoursSummary,
   validateCompletedHoursReplacement,
@@ -312,12 +313,26 @@ async function getSessionParticipants(sessionId, user) {
   };
 }
 
+function resolveIncomingClosesAt(body, existing = null, settings = null) {
+  if (body && Object.prototype.hasOwnProperty.call(body, 'closes_at')) {
+    return assessmentDeadline.parseClosesAtOrThrow(body.closes_at);
+  }
+  return assessmentDeadline.resolveClosesAt(existing, settings);
+}
+
+function assertPublishingDeadline(existing, closesAt, now = new Date()) {
+  const isInitialPublish = !existing || (existing.status !== 'published' && existing.status !== 'closed');
+  assessmentDeadline.assertPublishDeadline(closesAt, { now, isInitialPublish });
+}
+
 async function upsertAssessment(opportunityId, type, body, userId, user) {
   const opp = await repo.findById(opportunityId);
   if (!opp) throw new ApiError(404, 'Opportunity not found');
   await assertManageOpportunityAccess(user, opp);
 
+  const existing = await repo.findAssessmentByOpportunityAndType(opportunityId, type);
   const status = body.status === 'published' ? 'published' : body.status ?? 'draft';
+  const closesAt = resolveIncomingClosesAt(body, existing, existing ? repo.mapAssessmentRow(existing).settings : null);
   if (status === 'published') {
     const validation = validateAssessmentQuestions(body.questions || []);
     if (typeof validation === 'string') {
@@ -326,6 +341,7 @@ async function upsertAssessment(opportunityId, type, body, userId, user) {
     if (body.passing_score != null && Number(body.passing_score) > 100) {
       throw new ApiError(400, 'علامة النجاح لا يمكن أن تتجاوز 100.');
     }
+    assertPublishingDeadline(existing, closesAt);
   }
 
   const assessment = await repo.upsertAssessment({
@@ -335,6 +351,7 @@ async function upsertAssessment(opportunityId, type, body, userId, user) {
     description: body.description ?? null,
     passing_score: body.passing_score ?? null,
     status,
+    closes_at: closesAt,
     created_by_id: userId,
   });
 
@@ -377,6 +394,11 @@ async function publishAssessment(opportunityId, type, userId, user) {
   if (assessment.passing_score != null && Number(assessment.passing_score) > 100) {
     throw new ApiError(400, 'علامة النجاح لا يمكن أن تتجاوز 100.');
   }
+  const publishClosesAt = assessmentDeadline.resolveClosesAt(
+    assessment,
+    repo.mapAssessmentRow(assessment).settings
+  );
+  assertPublishingDeadline(assessment, publishClosesAt);
 
   await prisma.field_training_assessments.update({
     where: { id: assessment.id },
@@ -456,9 +478,13 @@ async function getStudentAssessment(opportunityId, type, studentId) {
 
   const mappedAssessment = repo.mapAssessmentRow(assessment);
   const settings = mappedAssessment.settings;
-  standardizedPost.assertAssessmentWindow(settings);
+  const existingAttempt = await repo.findAssessmentAttempt(assessment.id, app.id);
 
-  let attempt = await repo.findAssessmentAttempt(assessment.id, app.id);
+  if (!existingAttempt?.submitted_at) {
+    assessmentDeadline.assertStudentWindow(assessment, { settings });
+  }
+
+  let attempt = existingAttempt;
   if (attempt?.submitted_at) {
     return {
       assessment: {
@@ -539,7 +565,7 @@ async function saveAssessmentProgress(opportunityId, type, answers, studentId) {
   }
 
   const settings = repo.mapAssessmentRow(assessment).settings;
-  standardizedPost.assertAssessmentWindow(settings);
+  assessmentDeadline.assertStudentWindow(assessment, { settings });
 
   const existing = await repo.findAssessmentAttempt(assessment.id, app.id);
   if (existing?.submitted_at) {
@@ -595,8 +621,9 @@ async function submitAssessment(opportunityId, type, answers, studentId, options
   }
 
   const settings = repo.mapAssessmentRow(assessment).settings;
+  assessmentDeadline.assertNotClosed(assessment, { settings });
   if (!options.skipWindowCheck) {
-    standardizedPost.assertAssessmentWindow(settings);
+    assessmentDeadline.assertStudentWindow(assessment, { settings });
   }
   if (!options.skipRequiredCheck) {
     assertRequiredAnswers(assessment.field_training_assessment_questions, answers);
@@ -1640,7 +1667,20 @@ async function updateAssessmentById(assessmentId, body, user) {
   if (body.description !== undefined) data.description = body.description;
   if (body.passing_score !== undefined) data.passing_score = body.passing_score;
   if (body.status != null) data.status = body.status;
+  if (Object.prototype.hasOwnProperty.call(body, 'closes_at')) {
+    data.closes_at = assessmentDeadline.parseClosesAtOrThrow(body.closes_at);
+  }
 
+  const nextStatus = data.status || assessment.status;
+  if (nextStatus === 'published') {
+    const closesAt =
+      data.closes_at !== undefined
+        ? data.closes_at
+        : assessmentDeadline.resolveClosesAt(assessment, repo.mapAssessmentRow(assessment).settings);
+    assertPublishingDeadline(assessment, closesAt);
+  }
+
+  const previousClosesAt = assessment.closes_at ? new Date(assessment.closes_at).toISOString() : null;
   if (Object.keys(data).length) {
     await prisma.field_training_assessments.update({ where: { id: assessmentId }, data });
   }
@@ -1650,6 +1690,19 @@ async function updateAssessmentById(assessmentId, body, user) {
   }
 
   const full = await repo.findAssessmentById(assessmentId);
+  if (data.closes_at !== undefined) {
+    const nextClosesAt = data.closes_at ? data.closes_at.toISOString() : null;
+    if (previousClosesAt !== nextClosesAt) {
+      await recordAudit({
+        userId: user?.userId,
+        actionType: 'FIELD_TRAINING_ASSESSMENT_UPDATED',
+        entityType: 'field_training_assessment',
+        entityId: assessmentId,
+        oldValues: { closes_at: previousClosesAt },
+        newValues: { closes_at: nextClosesAt, type: assessment.type },
+      });
+    }
+  }
   return {
     assessment: {
       ...repo.mapAssessmentRow(full, { includeQuestions: true }),
@@ -1677,6 +1730,12 @@ async function publishAssessmentById(assessmentId, userId, user) {
   if (typeof validation === 'string') {
     throw new ApiError(400, validation);
   }
+
+  const publishClosesAt = assessmentDeadline.resolveClosesAt(
+    assessment,
+    repo.mapAssessmentRow(assessment).settings
+  );
+  assertPublishingDeadline(assessment, publishClosesAt);
 
   await prisma.field_training_assessments.update({
     where: { id: assessmentId },
@@ -1721,20 +1780,34 @@ async function listStudentAssessments(opportunityId, studentId) {
   return {
     assessments: visible.map((a) => {
       const attempt = attemptByAssessment[a.id] || null;
-      const mapped = repo.mapAssessmentRow(a);
       const status = standardizedPost.resolveAttemptStatus(attempt);
-      const canTake =
+      const workflowCanTake =
         a.type === 'pre'
           ? workflow.canTakePreAssessment(app, opp)
           : workflow.canTakePostAssessment(app, opp);
+      const canTake =
+        a.is_open &&
+        workflowCanTake &&
+        status.key !== 'submitted' &&
+        status.key !== 'graded';
       return {
         id: a.id,
         type: a.type,
         title: a.title,
         status: a.status,
-        description: mapped.description,
-        settings: mapped.settings,
-        student_instructions: mapped.student_instructions,
+        display_status: a.display_status,
+        description: a.description,
+        settings: a.settings,
+        student_instructions: a.student_instructions,
+        closes_at: a.closes_at,
+        closesAt: a.closesAt,
+        opens_at: a.opens_at,
+        opensAt: a.opensAt,
+        is_open: a.is_open,
+        isOpen: a.isOpen,
+        is_closed: a.is_closed,
+        isClosed: a.isClosed,
+        timezone: a.timezone,
         attempt: attempt
           ? {
               score: attempt.score != null ? Number(attempt.score) : null,

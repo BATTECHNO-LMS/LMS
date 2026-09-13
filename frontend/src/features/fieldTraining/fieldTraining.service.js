@@ -309,6 +309,148 @@ export async function fetchOpportunitySessions(opportunityId, { asAdmin = true, 
   return unwrapApiData(res);
 }
 
+export async function fetchOpportunityRecordedLectures(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/recorded-lectures`);
+  return unwrapApiData(res);
+}
+
+export async function previewYoutubeRecordedLecture(opportunityId, url, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/recorded-lectures/youtube/preview`, { url });
+  return unwrapApiData(res);
+}
+
+export async function importYoutubeRecordedLecture(opportunityId, url, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/recorded-lectures/youtube/import`, { url });
+  return unwrapApiData(res);
+}
+
+export async function previewYoutubeRecordedLecturePlaylist(
+  opportunityId,
+  url,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/recorded-lectures/youtube/playlist/preview`, {
+    url,
+  });
+  return unwrapApiData(res);
+}
+
+export async function importYoutubeRecordedLecturePlaylist(
+  opportunityId,
+  body,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(
+    `${base}/${opportunityId}/recorded-lectures/youtube/playlist/import`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export async function updateRecordedLecture(lectureId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/recorded-lectures/${lectureId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function publishRecordedLecture(lectureId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/recorded-lectures/${lectureId}/publish`);
+  return unwrapApiData(res);
+}
+
+export async function hideRecordedLecture(lectureId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/recorded-lectures/${lectureId}/hide`);
+  return unwrapApiData(res);
+}
+
+export async function changeRecordedLectureStatus(lectureId, status, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/recorded-lectures/${lectureId}/status`, { status });
+  return unwrapApiData(res);
+}
+
+export async function reorderOpportunityRecordedLectures(
+  opportunityId,
+  lectureIds,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.patch(`${base}/${opportunityId}/recorded-lectures/reorder`, {
+    lecture_ids: lectureIds,
+  });
+  return unwrapApiData(res);
+}
+
+export async function previewRecordedLecturePlaylistSync(
+  opportunityId,
+  playlistId,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/recorded-lectures/youtube/playlist/sync/preview`, {
+    playlist_id: playlistId,
+  });
+  return unwrapApiData(res);
+}
+
+export async function applyRecordedLecturePlaylistSync(
+  opportunityId,
+  body,
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(
+    `${base}/${opportunityId}/recorded-lectures/youtube/playlist/sync`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentRecordedLectures(opportunityId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/recorded-lectures`);
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentRecordedLecture(opportunityId, lectureId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/recorded-lectures/${lectureId}`);
+  return unwrapApiData(res);
+}
+
+export async function startStudentRecordedLectureWatchSession(opportunityId, lectureId, body = {}) {
+  const res = await apiClient.post(
+    `${student}/${opportunityId}/recorded-lectures/${lectureId}/watch-session`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export async function sendStudentRecordedLectureHeartbeat(opportunityId, lectureId, body) {
+  const res = await apiClient.post(
+    `${student}/${opportunityId}/recorded-lectures/${lectureId}/heartbeat`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export async function sendStudentRecordedLecturePlayerEvent(opportunityId, lectureId, body) {
+  const res = await apiClient.post(
+    `${student}/${opportunityId}/recorded-lectures/${lectureId}/player-event`,
+    body
+  );
+  return unwrapApiData(res);
+}
+
+export function recordedLectureHeartbeatUrl(opportunityId, lectureId) {
+  return `${student}/${opportunityId}/recorded-lectures/${lectureId}/heartbeat`;
+}
+
 export async function createOpportunitySession(opportunityId, body, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.post(`${base}/${opportunityId}/sessions`, body);

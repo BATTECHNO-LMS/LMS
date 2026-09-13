@@ -272,9 +272,10 @@ export function computeTotals(questions) {
 }
 
 /** Passing score stays as percentage 0–100. */
-export function validateBuilderForPublish({ title, questions, passingScore }) {
+export function validateBuilderForPublish({ title, questions, passingScore, closesAt, requireDeadline = false }) {
   if (!String(title || '').trim()) return 'عنوان التقييم مطلوب.';
   if (!questions?.length) return 'أضف سؤالًا واحدًا على الأقل.';
+  if (requireDeadline && !closesAt) return 'يرجى تحديد موعد إغلاق الامتحان قبل النشر.';
 
   const totals = computeTotals(questions);
   const passing = passingScore === '' || passingScore == null ? null : Number(passingScore);

@@ -19,6 +19,10 @@ import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/f
 import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { AssessmentQuestionCard } from './AssessmentQuestionCard.jsx';
 import {
+  joinAssessmentDateAndTime,
+  splitAssessmentDateTime,
+} from '../../../../../features/training/assessmentPresentation/assessmentDate.js';
+import {
   computeTotals,
   countIncompleteQuestions,
   createClientKey,
@@ -67,6 +71,8 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [passingScore, setPassingScore] = useState('60');
+  const [closeDate, setCloseDate] = useState('');
+  const [closeTime, setCloseTime] = useState('');
   const [questions, setQuestions] = useState([createEmptyQuestion()]);
   const [passingTouched, setPassingTouched] = useState(false);
   const [activeKey, setActiveKey] = useState(null);
@@ -84,6 +90,8 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
       setTitle('');
       setDescription('');
       setPassingScore('60');
+      setCloseDate('');
+      setCloseTime('');
       const first = createEmptyQuestion();
       setQuestions([first]);
       setActiveKey(first.clientKey);
@@ -93,6 +101,9 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
     setTitle(assessment.title ?? '');
     setDescription(assessment.description ?? '');
     setPassingScore(assessment.passing_score != null ? String(assessment.passing_score) : '60');
+    const closeParts = splitAssessmentDateTime(assessment.closes_at ?? assessment.closesAt);
+    setCloseDate(closeParts.date);
+    setCloseTime(closeParts.time);
     setPassingTouched(true);
     if (assessment.questions?.length) {
       const hydrated = assessment.questions.map(hydrateQuestionFromApi);
@@ -128,6 +139,7 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
       description: description.trim() || null,
       passing_score: passingScore === '' ? null : Number(passingScore),
       status,
+      closes_at: joinAssessmentDateAndTime(closeDate, closeTime),
       questions: questions.map((q, i) => serializeQuestionForApi(q, i)),
     };
   }
@@ -154,6 +166,8 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
         title,
         questions,
         passingScore,
+        closesAt: joinAssessmentDateAndTime(closeDate, closeTime),
+        requireDeadline: true,
       });
       if (validationError) {
         const err = new Error(validationError);
@@ -250,8 +264,8 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
   if (isLoading) return <AssessmentBuilderSkeleton />;
 
   const busy = saveMut.isPending || publishMut.isPending;
-  const status = assessment?.status || 'draft';
-  const isPublished = status === 'published';
+  const status = assessment?.display_status || assessment?.status || 'draft';
+  const isPublished = assessment?.status === 'published' && status !== 'closed';
   const completeCount = Math.max(0, totals.questionCount - incompleteCount);
   const passingDisplay =
     passingScore !== '' && passingScore != null && Number.isFinite(Number(passingScore))
@@ -397,6 +411,26 @@ export function ManageAssessmentsTab({ opportunityId, type, apiScope = 'admin' }
                   className="ft-qb-form-control"
                 />
                 <p className="ft-qb-hint ft-qb-info-grid__full">{t('manageHub.assessment.passingScoreHelp')}</p>
+                <FormInput
+                  label={t('manageHub.assessment.closesAtDate')}
+                  type="date"
+                  value={closeDate}
+                  onChange={(e) => setCloseDate(e.target.value)}
+                  disabled={busy}
+                  className="ft-qb-form-control"
+                />
+                <FormInput
+                  label={t('manageHub.assessment.closesAtTime')}
+                  type="time"
+                  value={closeTime}
+                  onChange={(e) => setCloseTime(e.target.value)}
+                  disabled={busy}
+                  className="ft-qb-form-control"
+                />
+                <p className="ft-qb-hint ft-qb-info-grid__full">
+                  {t('manageHub.assessment.closesAt')}: {t('manageHub.assessment.closesAtTimezone')}
+                </p>
+                <p className="ft-qb-hint ft-qb-info-grid__full">{t('manageHub.assessment.closesAtHelp')}</p>
                 <div className="ft-qb-info-grid__full">
                   <FormTextarea
                     label={t('manageHub.assessment.description')}

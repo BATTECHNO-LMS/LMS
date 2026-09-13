@@ -404,6 +404,10 @@ export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'
 );
+export const StudentRecordedLecturePlayerPage = lazyNamed(
+  () => import('../../pages/student/StudentRecordedLecturePlayerPage.jsx'),
+  'StudentRecordedLecturePlayerPage'
+);
 export const StudentFieldTrainingProgressRedirect = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingProgressRedirect.jsx'),
   'StudentFieldTrainingProgressRedirect'

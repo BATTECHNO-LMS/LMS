@@ -8205,6 +8205,268 @@
   }
 }
 
+.ft-recorded-import {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.ft-recorded-modes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ft-recorded-mode {
+  border: 1px solid var(--color-border-tinted);
+  background: #fff;
+  border-radius: 999px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  color: var(--color-text-muted);
+
+  &.is-active {
+    background: var(--color-primary, #132d4a);
+    color: #fff;
+    border-color: transparent;
+  }
+}
+
+.ft-recorded-preview-card,
+.ft-recorded-item,
+.ft-recorded-existing li {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.ft-recorded-preview-card {
+  grid-template-columns: 160px 1fr;
+}
+
+.ft-recorded-preview-card__thumb,
+.ft-recorded-item img,
+.ft-recorded-existing img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.ft-recorded-preview-card__thumb--empty,
+.ft-recorded-item__thumb-empty {
+  display: grid;
+  place-items: center;
+  background: var(--color-cream-soft, #f7f1e7);
+  color: var(--color-text-muted);
+  border-radius: 10px;
+  min-height: 72px;
+}
+
+.ft-recorded-playlist__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ft-recorded-playlist__list,
+.ft-recorded-existing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ft-recorded-item {
+  grid-template-columns: auto 96px 1fr auto;
+}
+
+.ft-recorded-item.is-disabled {
+  opacity: 0.72;
+}
+
+.ft-recorded-item__check {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.ft-recorded-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+
+  em {
+    font-style: normal;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+}
+
+.ft-recorded-result {
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+
+  p {
+    margin: 0.35rem 0 0;
+  }
+}
+
+.ft-recorded-existing li {
+  grid-template-columns: 72px 1fr auto;
+
+  img {
+    height: 48px;
+  }
+}
+
+.ft-recorded-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ft-recorded-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ft-recorded-row.is-dragging {
+  z-index: 2;
+  opacity: 0.92;
+}
+
+.ft-recorded-card {
+  display: grid;
+  grid-template-columns: auto 72px 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.ft-recorded-card__handle {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: grab;
+  padding: 0.35rem;
+  border-radius: 8px;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary, #132d4a);
+  }
+
+  &.is-static {
+    cursor: default;
+    opacity: 0.4;
+  }
+}
+
+.ft-recorded-card__thumb {
+  width: 72px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.ft-recorded-card__thumb--empty {
+  display: grid;
+  place-items: center;
+  background: var(--color-cream-soft, #f7f1e7);
+  color: var(--color-text-muted);
+}
+
+.ft-recorded-card__body {
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 0.98rem;
+  }
+
+  p {
+    margin: 0.2rem 0 0;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+  }
+}
+
+.ft-recorded-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  grid-column: 1 / -1;
+}
+
+.ft-recorded-editor {
+  margin: 0.5rem 0 0;
+  padding: 0.9rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 14px;
+  background: rgba(19, 45, 74, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ft-recorded-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.ft-recorded-source {
+  padding: 0.9rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ft-recorded-source__head,
+.ft-recorded-sync__counts {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.ft-recorded-removed h4 {
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 900px) {
+  .ft-recorded-card {
+    grid-template-columns: auto 64px 1fr;
+  }
+
+  .ft-recorded-editor__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media print {
   .ft-comp-report {
     .admin-page-header__actions,
@@ -8219,5 +8481,404 @@
       box-shadow: none !important;
       border: 1px solid #ddd;
     }
+  }
+}
+
+.ft-student-recorded-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.ft-student-recorded {
+  min-width: 0;
+}
+
+.ft-student-recorded__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ft-student-recorded__title {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+}
+
+.ft-student-recorded__opp {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.ft-student-recorded__counts,
+.ft-student-recorded__overall {
+  margin: 0.2rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.92rem;
+}
+
+.ft-student-recorded__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.ft-student-recorded__quiet {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.ft-student-recorded__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.ft-student-recorded__search {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: min(100%, 16rem);
+  flex: 1;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-md;
+  background: var(--color-surface);
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+
+    &:focus {
+      outline: none;
+    }
+  }
+}
+
+.ft-student-recorded__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.ft-student-recorded__filter {
+  min-height: 40px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &.is-active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+  }
+}
+
+.ft-student-recorded-card {
+  display: grid;
+  grid-template-columns: 176px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: $radius-lg;
+  background: var(--color-surface-muted);
+  min-width: 0;
+}
+
+.ft-student-recorded-card--done {
+  border-color: rgba($color-success, 0.35);
+}
+
+.ft-student-recorded-card__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  min-height: 0;
+  border-radius: $radius-md;
+  overflow: hidden;
+  background: var(--color-surface);
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.ft-student-recorded-card__done-mark {
+  position: absolute;
+  inset-inline-end: 0.4rem;
+  inset-block-start: 0.4rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--color-success, #1b7a4e);
+  color: #fff;
+}
+
+.ft-student-recorded-card__ph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 90px;
+  color: var(--color-text-muted);
+}
+
+.ft-student-recorded-card__body {
+  min-width: 0;
+}
+
+.ft-student-recorded-card__title {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ft-student-recorded-card__meta,
+.ft-student-recorded-card__watch,
+.ft-student-recorded-card__status,
+.ft-student-recorded-card__summary {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.ft-student-recorded-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.ft-student-recorded-card__actions {
+  margin-top: 0.7rem;
+
+  .btn {
+    min-height: 42px;
+  }
+}
+
+.ft-recorded-progress {
+  width: 100%;
+  max-width: 22rem;
+  height: 0.45rem;
+  margin: 0.45rem 0 0.2rem;
+  border-radius: 999px;
+  background: rgba($color-primary, 0.12);
+  overflow: hidden;
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-primary);
+  }
+}
+
+.ft-ltr-num {
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+
+.ft-recorded-skel {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.06));
+  background-size: 200% 100%;
+  animation: ft-recorded-skel 1.2s ease-in-out infinite;
+}
+
+.ft-recorded-skel--title {
+  height: 1.1rem;
+  width: 70%;
+  border-radius: 6px;
+  margin-bottom: 0.55rem;
+}
+
+.ft-recorded-skel--line {
+  height: 0.75rem;
+  width: 50%;
+  border-radius: 6px;
+  margin-bottom: 0.4rem;
+}
+
+@keyframes ft-recorded-skel {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.ft-recorded-player-page {
+  min-width: 0;
+}
+
+.ft-recorded-player-page__head {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.ft-recorded-player-page__icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+
+.ft-recorded-player-page__title {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.ft-recorded-player-page__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.ft-recorded-player-page__resume {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+}
+
+.ft-recorded-player-page__restart {
+  margin-top: 0.75rem;
+  min-height: 42px;
+}
+
+.ft-recorded-player__frame {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  padding-top: 56.25%;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  background: #111;
+
+  iframe,
+  .ft-recorded-player__host {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+}
+
+.ft-recorded-player__unsupported,
+.ft-recorded-player-page__warn {
+  margin: 0.85rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: $radius-md;
+  background: rgba($color-warning, 0.1);
+  color: color.adjust($color-warning, $lightness: -12%);
+}
+
+.ft-recorded-player-page__progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.ft-recorded-player-page__end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: $radius-md;
+  background: rgba($color-success, 0.12);
+}
+
+.ft-recorded-player-page__end-note {
+  margin: 0.75rem 0 1rem;
+  color: var(--color-text-muted);
+}
+
+.ft-recorded-player-page__desc {
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.ft-recorded-player-page__desc-text {
+  margin: 0 0 0.5rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ft-recorded-player-page__nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+
+  .btn {
+    min-height: 42px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ft-student-recorded-card {
+    grid-template-columns: 148px 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .ft-student-recorded-card,
+  .ft-student-recorded-card--skeleton {
+    grid-template-columns: 1fr;
+  }
+
+  .ft-student-recorded__head,
+  .ft-recorded-player-page__nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ft-student-recorded__filter,
+  .ft-student-recorded-card__actions .btn,
+  .ft-recorded-player-page__restart,
+  .ft-recorded-player-page__nav .btn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
   }
 }
