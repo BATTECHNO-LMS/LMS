@@ -1,5 +1,6 @@
 const { Resend } = require('resend');
 const { env } = require('../../config/env');
+const { formatEmailFrom } = require('../../config/brand');
 const { log } = require('../../utils/logger');
 const {
   buildEmailVerificationOtpHtml,
@@ -10,8 +11,8 @@ const {
   buildPasswordResetOtpText,
 } = require('../templates/passwordResetOtp.template.js');
 
-const SUBJECT = 'رمز توثيق البريد الإلكتروني - BATTECHNO LMS';
-const PASSWORD_RESET_SUBJECT = 'رمز إعادة تعيين كلمة المرور - BATTECHNO LMS';
+const SUBJECT = 'رمز توثيق البريد الإلكتروني - eprojecto';
+const PASSWORD_RESET_SUBJECT = 'رمز إعادة تعيين كلمة المرور - eprojecto';
 
 let resendClient = null;
 
@@ -41,7 +42,7 @@ async function sendEmailVerificationOtp({ to, otp, userName }) {
   const text = buildEmailVerificationOtpText({ userName, otp, expiryMinutes });
 
   const result = await client.emails.send({
-    from: env.RESEND_FROM_EMAIL,
+    from: formatEmailFrom(env.RESEND_FROM_EMAIL),
     to: [to],
     subject: SUBJECT,
     html,
@@ -79,7 +80,7 @@ async function sendPasswordResetOtpEmail({ to, otp, name }) {
   const text = buildPasswordResetOtpText({ userName: name, otp, expiryMinutes });
 
   const result = await client.emails.send({
-    from: env.RESEND_FROM_EMAIL,
+    from: formatEmailFrom(env.RESEND_FROM_EMAIL),
     to: [to],
     subject: PASSWORD_RESET_SUBJECT,
     html,

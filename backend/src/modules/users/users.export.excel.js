@@ -1,6 +1,6 @@
 const ExcelJS = require('exceljs');
 
-const CREATOR = 'BATTECHNO LMS';
+const CREATOR = 'eprojecto';
 const NAVY = 'FF132D4A';
 const GOLD = 'FFC9A227';
 const CREAM = 'FFFBF7EF';
@@ -210,7 +210,7 @@ async function buildUsersExportWorkbook(payload) {
   });
   summary.mergeCells('A1:B1');
   const titleCell = summary.getCell('A1');
-  titleCell.value = 'تقرير تصدير المستخدمين — BATTECHNO LMS';
+  titleCell.value = 'تقرير تصدير المستخدمين — eprojecto';
   titleCell.font = TITLE_FONT;
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };

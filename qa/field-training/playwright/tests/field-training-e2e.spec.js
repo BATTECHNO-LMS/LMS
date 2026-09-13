@@ -12,7 +12,7 @@ const {
 
 const EMAIL = process.env.QA_EMAIL || 'superadmin@batuni.edu';
 const PASSWORD = process.env.QA_PASSWORD || '12345678';
-const API = process.env.QA_API_BASE_URL || 'https://lms.battechno.com';
+const API = process.env.QA_API_BASE_URL || 'https://eprojecto.com';
 
 test.describe.configure({ mode: 'serial' });
 

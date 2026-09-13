@@ -97,7 +97,7 @@ describe('field training report HTML', () => {
     assert.match(html, /Tahoma/);
     assert.match(html, /التقرير الشامل للتدريب الميداني للجامعة/);
     assert.match(html, /جامعة الاختبار/);
-    assert.match(html, /BATTECHNO LMS/);
+    assert.match(html, /eprojecto/);
     assert.match(html, /الملخص التنفيذي/);
     assert.match(html, /تنبيه جودة البيانات/);
     assert.match(html, /غير متوفر/);

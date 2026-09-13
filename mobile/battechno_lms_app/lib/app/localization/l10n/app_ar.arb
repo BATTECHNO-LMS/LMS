@@ -1,6 +1,6 @@
 {
   "@@locale": "ar",
-  "appName": "BATTECHNO LMS",
+  "appName": "eprojecto",
   "appTagline": "منصة التعلّم الجامعي والتدريب الميداني",
   "welcomeTitle": "مرحبًا بك في رحلتك التعليمية",
   "welcomeSubtitle": "تابع تدريبك الميداني، مهامك، وتقدّمك الأكاديمي من هاتفك.",
@@ -712,7 +712,7 @@
   "pushPermissionSheetBody": "فعّل الإشعارات لتصلك تنبيهات فورية عند قبول التسجيل، مراجعة المهام، وتحديثات التدريب الميداني — حتى عندما يكون التطبيق مغلقًا.",
   "pushPermissionEnableAction": "تفعيل الإشعارات",
   "pushPermissionSkipAction": "ليس الآن",
-  "pushNotificationChannelName": "إشعارات BATTECHNO LMS",
+  "pushNotificationChannelName": "إشعارات eprojecto",
   "pushNotificationChannelDescription": "التنبيهات الفورية لتحديثات الحساب والتدريب الميداني والمهام",
   "pushPermissionSettingsTitle": "إشعارات الجهاز",
   "pushPermissionStatusGranted": "مفعّلة",

@@ -8,8 +8,8 @@ const { prisma } = require('../../config/db');
 
 function loadLogoDataUri() {
   const candidates = [
-    path.join(__dirname, '../../../../frontend/src/assets/images/battechno-lms-logo-transparent.png'),
-    path.join(__dirname, '../../../assets/battechno-lms-logo-transparent.png'),
+    path.join(__dirname, '../../../../frontend/src/assets/images/eprojecto-logo.png'),
+    path.join(__dirname, '../../../assets/eprojecto-logo.png'),
   ];
   for (const filePath of candidates) {
     try {
@@ -54,7 +54,7 @@ async function resolveGeneratorProfile(userId) {
 
 function buildFilename(lang) {
   const stamp = new Date().toISOString().slice(0, 10);
-  return `BATTECHNO-LMS-Analytics-Report-${stamp}.pdf`;
+  return `eprojecto-Analytics-Report-${stamp}.pdf`;
 }
 
 /**

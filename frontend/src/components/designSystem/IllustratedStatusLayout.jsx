@@ -68,7 +68,7 @@ export function IllustratedStatusLayout({
         {logo ? (
           <BrandLogo
             variant="auth"
-            alt="BATTECHNO LMS"
+            alt="eprojecto"
             align="center"
             className="illustrated-status__logo"
           />

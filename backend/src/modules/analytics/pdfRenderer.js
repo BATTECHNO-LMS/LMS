@@ -135,7 +135,7 @@ async function renderHtmlToPdfOnce(html, options = {}) {
     );
     const footerLeft = sanitizePdfFooterText(
       options.footerLeft ||
-        `BATTECHNO LMS · ${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Amman' }).format(new Date())}`
+        `eprojecto · ${new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Amman' }).format(new Date())}`
     );
 
     const pdf = await page.pdf({

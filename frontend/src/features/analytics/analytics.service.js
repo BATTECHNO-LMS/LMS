@@ -27,7 +27,7 @@ export async function downloadAnalyticsPdf(filters = {}, lang = 'ar') {
   });
   const disposition = res.headers['content-disposition'] || '';
   const match = /filename="?([^"]+)"?/i.exec(disposition);
-  const filename = match?.[1] || `BATTECHNO-LMS-Analytics-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = match?.[1] || `eprojecto-Analytics-Report-${new Date().toISOString().slice(0, 10)}.pdf`;
   return { blob: res.data, filename };
 }
 
@@ -39,6 +39,6 @@ export async function downloadAnalyticsExcel(filters = {}) {
   });
   const disposition = res.headers['content-disposition'] || '';
   const match = /filename="?([^"]+)"?/i.exec(disposition);
-  const filename = match?.[1] || `BATTECHNO-LMS-Analytics-Report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const filename = match?.[1] || `eprojecto-Analytics-Report-${new Date().toISOString().slice(0, 10)}.xlsx`;
   return { blob: res.data, filename };
 }

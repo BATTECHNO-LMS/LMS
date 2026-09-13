@@ -1,5 +1,5 @@
 name: battechno_lms_app
-description: Official BATTECHNO LMS mobile application for universities, field training, and academic learning.
+description: Official eprojecto mobile application for universities, field training, and academic learning.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -41,4 +41,4 @@ flutter:
   uses-material-design: true
   generate: true
   assets:
-    - assets/images/battechno_lms_logo.png
+    - assets/images/eprojecto_logo.png

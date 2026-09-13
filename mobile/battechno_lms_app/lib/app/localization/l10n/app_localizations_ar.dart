@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'BATTECHNO LMS';
+  String get appName => 'eprojecto';
 
   @override
   String get appTagline => 'منصة التعلّم الجامعي والتدريب الميداني';
@@ -1648,7 +1648,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get pushPermissionSkipAction => 'ليس الآن';
 
   @override
-  String get pushNotificationChannelName => 'إشعارات BATTECHNO LMS';
+  String get pushNotificationChannelName => 'إشعارات eprojecto';
 
   @override
   String get pushNotificationChannelDescription =>

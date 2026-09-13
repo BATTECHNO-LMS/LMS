@@ -22,6 +22,7 @@ import institutionLoginIllustration from '../../assets/landing/illustrations/ins
 import { PORTAL_ENTRIES, PORTAL_SELECTION_PATH, PORTAL_TYPES } from '../../constants/portalConfig.js';
 import { resolveAuthenticatedLandingRoute } from '../../utils/resolveAuthenticatedLandingRoute.js';
 import { rememberSelectedPortal } from '../../utils/portal.js';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 
 const EASE = AUTH_MOTION_EASE;
 
@@ -50,6 +51,7 @@ export function LoginPage({
     returnTo || (from && from !== '/login' && !from.startsWith('/login/') ? from : null);
   const registrationPendingNotice = searchParams.get('registered') === 'pending';
   const reduced = useReducedMotion();
+  useDocumentTitle(t('login.title'));
 
   const portalEntry =
     portalType === PORTAL_TYPES.INSTITUTION

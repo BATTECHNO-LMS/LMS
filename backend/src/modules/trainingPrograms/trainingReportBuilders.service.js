@@ -69,7 +69,7 @@ async function loadProgramContext(programId, { cohortId } = {}) {
     trainers,
     branches,
     branding: {
-      platformName: 'BATTECHNO LMS',
+      platformName: 'eprojecto',
       platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
       institutionName: program.organizations?.name || null,
       institutionCode: program.organizations?.code || null,
@@ -102,7 +102,7 @@ function metaCover(ctx, reportType, extras = {}) {
     institutionCode: organization?.code || null,
     institutionLogoUrl: singleBrand ? null : organization?.logo_url || null,
     singleBrand,
-    platformName: 'BATTECHNO LMS',
+    platformName: 'eprojecto',
     platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
     branches: branches.map((b) => b.name),
     cohorts: cohorts.map((c) => ({ id: c.id, name: c.name, code: c.code })),

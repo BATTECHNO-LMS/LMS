@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const exportRepo = require('./analyticsExcelExport.repository');
 
-const CREATOR = 'BATTECHNO LMS';
+const CREATOR = 'eprojecto';
 const NAVY = 'FF1B2A4A';
 const GOLD = 'FFD4AF37';
 const CREAM = 'FFFFF8F0';
@@ -27,7 +27,7 @@ const THIN_BORDER = {
 
 function buildFilename() {
   const stamp = new Date().toISOString().slice(0, 10);
-  return `BATTECHNO-LMS-Analytics-Report-${stamp}.xlsx`;
+  return `eprojecto-Analytics-Report-${stamp}.xlsx`;
 }
 
 function formatScopeLabel(universityScopeName) {
@@ -124,7 +124,7 @@ function addExecutiveSummarySheet(wb, data) {
 
   ws.mergeCells('A1:D1');
   const titleCell = ws.getCell('A1');
-  titleCell.value = 'تقرير تحليلات BATTECHNO LMS';
+  titleCell.value = 'تقرير تحليلات eprojecto';
   titleCell.font = TITLE_FONT;
   titleCell.fill = HEADER_FILL;
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -592,7 +592,7 @@ function addReportNotesSheet(wb, data) {
   const generatedAt = data.generatedAt.toISOString().replace('T', ' ').slice(0, 19);
 
   const notes = [
-    ['عنوان التقرير', 'تقرير تحليلات BATTECHNO LMS — تقرير إداري'],
+    ['عنوان التقرير', 'تقرير تحليلات eprojecto — تقرير إداري'],
     ['تاريخ الإنشاء', generatedAt],
     ['نطاق الجامعة', scopeLabel],
     ['الفترة الزمنية', dateRange],
@@ -607,7 +607,7 @@ function addReportNotesSheet(wb, data) {
     ['الأدلة الناقصة', 'جلسات بدون ملفات أدلة مرتبطة'],
     [''],
     ['ملاحظات مهمة', ''],
-    ['مصدر البيانات', 'قاعدة بيانات BATTECHNO LMS — بيانات حقيقية فقط'],
+    ['مصدر البيانات', 'قاعدة بيانات eprojecto — بيانات حقيقية فقط'],
     ['البيانات الحساسة', 'لا يتم تصدير كلمات المرور أو الرموز الداخلية'],
     ['التدريب الميداني', data.fieldTraining.available ? 'متاح ضمن النطاق' : 'غير متوفر في قاعدة البيانات'],
     [''],

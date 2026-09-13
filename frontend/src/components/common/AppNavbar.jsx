@@ -10,7 +10,6 @@ import { TenantSwitcher } from './TenantSwitcher.jsx';
 import { TenantReadonlyBadge } from './TenantReadonlyBadge.jsx';
 
 export function AppNavbar({
-  projectTitle,
   pageTitle,
   userName,
   userEmail,
@@ -21,7 +20,6 @@ export function AppNavbar({
   onToggleMobileSidebar,
 }) {
   const { t } = useTranslation('common');
-  const title = projectTitle ?? t('brand');
   /** Icon-only lang + user to save horizontal space on tablet / narrow desktop */
   const narrowHeader = useMediaQuery('(max-width: 1024px)');
   /** Hide tenant switcher on phones where global scope is rarely changed */
@@ -43,7 +41,6 @@ export function AppNavbar({
           </button>
         ) : null}
         <BrandLogo variant="app-header" alt={t('logo.alt')} />
-        <span className="app-header__logo">{title}</span>
         <span className="app-header__divider" aria-hidden />
         <span className="app-header__page-title">{pageTitle}</span>
       </div>

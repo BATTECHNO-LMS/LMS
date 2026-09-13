@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appName": "BATTECHNO LMS",
+  "appName": "eprojecto",
   "appTagline": "University learning and field training platform",
   "welcomeTitle": "Welcome to your learning journey",
   "welcomeSubtitle": "Track field training, tasks, and academic progress from your phone.",
@@ -712,7 +712,7 @@
   "pushPermissionSheetBody": "Turn on notifications to get instant alerts for enrollment approvals, task reviews, and field training updates — even when the app is closed.",
   "pushPermissionEnableAction": "Enable notifications",
   "pushPermissionSkipAction": "Not now",
-  "pushNotificationChannelName": "BATTECHNO LMS notifications",
+  "pushNotificationChannelName": "eprojecto notifications",
   "pushNotificationChannelDescription": "Real-time alerts for account, field training, and task updates",
   "pushPermissionSettingsTitle": "Device notifications",
   "pushPermissionStatusGranted": "Enabled",

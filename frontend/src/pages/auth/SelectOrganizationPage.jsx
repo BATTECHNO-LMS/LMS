@@ -56,7 +56,7 @@ export function SelectOrganizationPage() {
       <div className="auth-split-wrap">
         <section className="auth-split__form" style={{ maxWidth: 720, margin: '0 auto', width: '100%' }}>
           <div className="auth-split__form-inner">
-            <BrandLogo variant="auth" alt="BATTECHNO LMS" className="auth-split__logo" />
+            <BrandLogo variant="auth" alt="eprojecto" className="auth-split__logo" />
             <header className="auth-split__header">
               <h1 className="auth-split__title">اختر الجهة</h1>
               <p className="auth-split__subtitle">

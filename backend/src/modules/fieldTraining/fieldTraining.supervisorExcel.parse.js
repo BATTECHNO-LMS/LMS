@@ -306,7 +306,7 @@ function summarizeParse(rows) {
 
 async function buildSupervisorAssignmentTemplate() {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'BATTECHNO LMS';
+  workbook.creator = 'eprojecto';
   const ws = workbook.addWorksheet(SHEET_NAME);
   ws.views = [{ rightToLeft: true, state: 'frozen', ySplit: 1 }];
   ws.addRow([...TEMPLATE_HEADERS]);

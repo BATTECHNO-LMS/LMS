@@ -523,8 +523,8 @@ function buildAnalyticsReportHtml(ctx) {
   const hasFieldTraining = ft?.available !== false && (ft?.totalOpportunities || 0) > 0;
 
   const logoHtml = ctx.logoDataUri
-    ? `<img src="${ctx.logoDataUri}" alt="BATTECHNO LMS" class="brand-logo" />`
-    : `<div class="brand-wordmark">BATTECHNO LMS</div>`;
+    ? `<img src="${ctx.logoDataUri}" alt="eprojecto" class="brand-logo" />`
+    : `<div class="brand-wordmark">eprojecto</div>`;
 
   return `<!DOCTYPE html>
 <html lang="${lang}" dir="${isRtl ? 'rtl' : 'ltr'}">

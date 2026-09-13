@@ -28,7 +28,7 @@ export function SettingsPage() {
   useEffect(() => {
     if (!data?.settings) return;
     setForm({
-      platform_name: data.settings.platform_name ?? 'BATTECHNO LMS',
+      platform_name: data.settings.platform_name ?? 'eprojecto',
       timezone: data.settings.timezone ?? 'Asia/Riyadh',
       default_locale: data.settings.default_locale ?? 'ar',
       support_email: data.settings.support_email ?? '',

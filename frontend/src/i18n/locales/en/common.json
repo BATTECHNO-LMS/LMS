@@ -1,6 +1,6 @@
 {
-  "appName": "BATTECHNO LMS",
-  "brand": "BATTECHNO-LMS",
+  "appName": "eprojecto",
+  "brand": "eprojecto",
   "actions": {
     "save": "Save",
     "cancel": "Cancel",
@@ -72,7 +72,7 @@
     "closeDrawer": "Close sidebar"
   },
   "logo": {
-    "alt": "LMS — Learning Management System"
+    "alt": "eprojecto"
   },
   "passwordVisibility": {
     "show": "Show password",

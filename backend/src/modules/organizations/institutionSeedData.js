@@ -65,7 +65,7 @@ const BATTECHNO_INSTITUTION = Object.freeze({
   allowsPublicTraineeRegistration: false,
   /**
    * Institution branding uses the platform BrandLogo asset
-   * (`frontend/src/assets/images/battechno-lms-logo-transparent.png`).
+   * (`frontend/src/assets/images/eprojecto-logo.png`).
    * `logo_url` stays null so reports use a single-brand header (no duplicated logos).
    */
   logoUrl: null,

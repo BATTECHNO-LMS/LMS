@@ -21,6 +21,13 @@
   &--collapsed {
     width: $sidebar-collapsed-width;
 
+    .app-sidebar__logo-image {
+      width: 2.85rem;
+      height: auto;
+      max-width: 2.85rem;
+      padding: 0.2rem;
+    }
+
     .app-sidebar__brand-text,
     .app-sidebar__link span:not(.app-sidebar__icon),
     .sidebar-nav__label,
@@ -73,10 +80,14 @@
 }
 
 .app-sidebar__logo-image {
-  width: 2.65rem;
-  height: 2.65rem;
+  width: auto;
+  height: 3.35rem;
+  max-width: 10rem;
   object-fit: contain;
   flex-shrink: 0;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.28rem 0.45rem;
 }
 
 .app-sidebar__brand-text {

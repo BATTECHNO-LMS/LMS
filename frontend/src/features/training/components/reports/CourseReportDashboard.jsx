@@ -165,7 +165,7 @@ export function CourseReportDashboard({ programId, cohortId, canGenerate = false
 
       <header className="training-report-hub__header">
         <div>
-          <p className="training-report-hub__eyebrow">{meta.institutionName || 'BATTECHNO LMS'}</p>
+          <p className="training-report-hub__eyebrow">{meta.institutionName || 'eprojecto'}</p>
           <h3 className="training-report-hub__title">{report.reportTitle || meta.reportTitle || 'تقرير الدورة'}</h3>
           <p className="training-report-hub__course">{meta.courseName || snap.courseInfo?.name || snap.programTitle}</p>
           <div className="training-report-hub__meta-row">

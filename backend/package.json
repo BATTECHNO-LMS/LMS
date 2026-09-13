@@ -2,7 +2,7 @@
   "name": "battechno-lms-api",
   "version": "0.1.0",
   "private": true,
-  "description": "BATTECHNO-LMS REST API",
+  "description": "eprojecto REST API",
   "main": "src/server.js",
   "scripts": {
     "postinstall": "prisma generate",

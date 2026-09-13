@@ -247,7 +247,7 @@ function buildStudentsExcelFilename({ opportunityTitle, stamp } = {}) {
 
 async function exportFieldTrainingStudentsExcel(sources, { opportunityTitle } = {}) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BATTECHNO LMS';
+  wb.creator = 'eprojecto';
   wb.created = new Date();
 
   const ws = wb.addWorksheet(SHEET_NAME);

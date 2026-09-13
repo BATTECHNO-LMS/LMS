@@ -2,7 +2,7 @@
   "a11y": {
     "skipToMain": "Skip to main content"
   },
-  "brand": "BATTECHNO-LMS",
+  "brand": "eprojecto",
   "brandSubtitle": "Training courses, micro-credentials, and field training",
   "header": {
     "navPortals": "Portals",
@@ -20,7 +20,7 @@
     "menuClose": "Close menu"
   },
   "hero": {
-    "mainTitle": "BATTECHNO-LMS",
+    "mainTitle": "eprojecto",
     "headline": "One platform for training courses, micro-credentials, and field training",
     "title": "One platform for training courses, micro-credentials, and field training",
     "description": "Manage registration, cohorts, sessions, attendance, tasks, assessments, reports, and certificates in a single system. Field training is available through the university portal only.",
@@ -29,7 +29,7 @@
     "ctaExplore": "Explore portals",
     "trustBadge": "Trusted by academic and training institutions",
     "partnersLine": "Supported by a network of academic and institutional partners",
-    "companyTitle": "About BATTECHNO",
+    "companyTitle": "About BATMAN TECHNOLOGY",
     "companyLead": "An IT company established in 2017, working in information technology and freelancing.",
     "companyBody": "We deliver modern technical and educational solutions — from training courses and micro-credentials to university field training, reports, and digital certificates.",
     "badge": "Advanced learning platform",
@@ -180,10 +180,10 @@
   },
   "about": {
     "eyebrow": "Company",
-    "title": "BATTECHNO in focus",
+    "title": "BATMAN TECHNOLOGY in focus",
     "lead": "An IT company established in 2017, working in information technology and freelancing.",
     "p1": "We build secure, scalable digital platforms for universities and training institutions.",
-    "p2": "BATTECHNO-LMS unifies training courses, micro-credentials, and university field training in one workspace.",
+    "p2": "eprojecto unifies training courses, micro-credentials, and university field training in one workspace.",
     "chip1": "Role-based permissions",
     "chip2": "Traceable reports",
     "chip3": "Digital certificates"
@@ -195,7 +195,7 @@
   },
   "cta": {
     "title": "Manage your learning journey professionally",
-    "subtitle": "Join BATTECHNO LMS to manage courses, micro-credentials, university field training, reports, and certificates from one platform.",
+    "subtitle": "Join eprojecto to manage courses, micro-credentials, university field training, reports, and certificates from one platform.",
     "primary": "Enter platform",
     "secondary": "Create student account"
   },
@@ -261,7 +261,7 @@
     "categoryUniversity": "University",
     "title": "Partners",
     "success": "Success partners",
-    "successDesc": "Organizations that grow learner outcomes with BATTECHNO delivery.",
+    "successDesc": "Organizations that grow learner outcomes with BATMAN TECHNOLOGY delivery.",
     "academic": "Academic partners",
     "academicDesc": "Universities and faculties aligning credentials with national frameworks."
   },
@@ -288,7 +288,7 @@
     "home": {
       "greeting": "Welcome to",
       "dashboardTitle": "Dashboard",
-      "platform": "BATTECHNO-LMS",
+      "platform": "eprojecto",
       "tagline": "Courses, credentials, and training at a glance",
       "activePrograms": "Active programs",
       "program1": "Professional skills course",
@@ -336,8 +336,9 @@
     }
   },
   "footer": {
-    "description": "BATTECHNO LMS is a platform for managing training courses, micro-credentials, university field training, reports, and digital certificates for educational and training institutions.",
-    "rights": "© {{year}} BATTECHNO. All rights reserved.",
+    "description": "eprojecto is a digital platform for managing training, education, certificates, and field training for educational and training institutions.",
+    "rights": "© {{year}} eprojecto. All rights reserved.",
+    "developedBy": "Developed by BATMAN TECHNOLOGY",
     "contact": "Contact",
     "support": "Support",
     "privacy": "Privacy",

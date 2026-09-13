@@ -16,7 +16,7 @@ module.exports = defineConfig({
     ['json', { outputFile: path.join(artifacts, 'playwright-report.json') }],
   ],
   use: {
-    baseURL: process.env.QA_BASE_URL || 'https://lms.battechno.com',
+    baseURL: process.env.QA_BASE_URL || 'https://eprojecto.com',
     headless: process.env.QA_HEADED === '1' ? false : true,
     viewport: { width: 1440, height: 900 },
     locale: 'ar',

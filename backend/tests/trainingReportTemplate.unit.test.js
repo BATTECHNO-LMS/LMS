@@ -17,7 +17,7 @@ describe('trainingReport.template', () => {
             reportTitle: 'التقرير الفردي لنتائج المتدرب',
             courseName: 'اجتياز مقابلات العمل',
             institutionName: 'مؤسسة ولي العهد',
-            platformName: 'BATTECHNO LMS',
+            platformName: 'eprojecto',
             platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
             trainingDates: { startLabel: '2 أغسطس 2026', endLabel: '3 أغسطس 2026' },
             totalHours: 6,
@@ -56,7 +56,7 @@ describe('trainingReport.template', () => {
     assert.match(html, /dir="rtl"/);
     assert.match(html, /التقرير الفردي لنتائج المتدرب/);
     assert.match(html, /مؤسسة ولي العهد/);
-    assert.match(html, /BATTECHNO LMS/);
+    assert.match(html, /eprojecto/);
     assert.match(html, /جدول المحتويات/);
   });
 
@@ -73,7 +73,7 @@ describe('trainingReport.template', () => {
             institutionName: 'شركة الرجل الوطواط للتكنولوجيا – BATTECHNO',
             institutionCode: 'BATTECHNO',
             singleBrand: true,
-            platformName: 'BATTECHNO LMS',
+            platformName: 'eprojecto',
             platformNameAr: 'شركة الرجل الوطواط للتكنولوجيا',
             trainingDates: { startLabel: null, endLabel: null },
             totalHours: null,

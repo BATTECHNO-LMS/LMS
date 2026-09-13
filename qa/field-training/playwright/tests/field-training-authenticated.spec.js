@@ -10,7 +10,7 @@ const {
 
 const EMAIL = process.env.QA_EMAIL || 'superadmin@batuni.edu';
 const PASSWORD = process.env.QA_PASSWORD || '12345678';
-const API = process.env.QA_API_BASE_URL || 'https://lms.battechno.com';
+const API = process.env.QA_API_BASE_URL || 'https://eprojecto.com';
 const OPP = '4d9466cb-127b-42f2-ac08-88e7fcc7c7df';
 
 async function apiLogin(request) {

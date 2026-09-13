@@ -33,7 +33,7 @@ class BattechnoLmsApp extends ConsumerWidget {
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'BATTECHNO LMS',
+      title: 'eprojecto',
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [

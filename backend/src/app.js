@@ -17,6 +17,8 @@ const app = express();
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
+  'https://eprojecto.com',
+  'https://www.eprojecto.com',
   'https://lms.battechno.com',
   'https://www.lms.battechno.com',
   'http://localhost:3000',
@@ -73,7 +75,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    service: 'BATTECHNO-LMS API',
+    service: 'eprojecto API',
     status: 'running',
   });
 });

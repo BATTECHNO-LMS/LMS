@@ -181,7 +181,7 @@ function buildCover({ title, university, meta, assets }) {
     university?.name || 'الجامعة',
     universityFallbackName(university)
   );
-  const batLogo = logoHtml(assets.battechnoLogoDataUri, 'BATTECHNO LMS', 'BATTECHNO LMS');
+  const batLogo = logoHtml(assets.battechnoLogoDataUri, 'eprojecto', 'eprojecto');
   return `<section class="cover">
     <div class="cover__brands">
       <div>${batLogo}</div>
@@ -198,7 +198,7 @@ function buildCover({ title, university, meta, assets }) {
       <p><strong>الإصدار:</strong> ${esc(meta.version || '1')}</p>
     </div>
     <div class="cover__footer">
-      <span>BATTECHNO LMS · شركة الرجل الوطواط للتكنولوجيا</span>
+      <span>eprojecto · شركة الرجل الوطواط للتكنولوجيا</span>
       <span class="confidential">للاستخدام الإداري</span>
     </div>
   </section>`;
@@ -208,9 +208,7 @@ function pageHeader(university, assets, reportType) {
   const uni = assets.universityLogoDataUri
     ? `<img src="${assets.universityLogoDataUri}" alt="" />`
     : `<span>${esc(university?.name || '')}</span>`;
-  const bat = assets.battechnoLogoDataUri
-    ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />`
-    : '<span>BATTECHNO</span>';
+  const bat = '<span>BATMAN TECHNOLOGY</span>';
   return `<div class="page-header">
     <div class="page-header__logos">${bat}${uni}</div>
     <div class="page-header__text"><strong>${esc(reportType)}</strong></div>

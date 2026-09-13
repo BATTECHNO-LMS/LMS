@@ -1,4 +1,5 @@
-# Production stack for BATTECHNO LMS (host Nginx terminates TLS).
+# Production stack for eprojecto (host Nginx terminates TLS).
+# Internal Docker service names remain battechno-lms-* as technical identifiers.
 # Backend uses external DATABASE_URL (e.g. Neon) from .env — no local Postgres service.
 
 services:
@@ -36,7 +37,7 @@ services:
       args:
         # Same-origin API via Nginx proxy (/api → backend)
         VITE_API_BASE_URL: ""
-        VITE_APP_ORIGINS: "https://lms.battechno.com,https://www.lms.battechno.com"
+        VITE_APP_ORIGINS: "https://eprojecto.com,https://www.eprojecto.com"
     container_name: battechno-lms-frontend
     restart: unless-stopped
     depends_on:

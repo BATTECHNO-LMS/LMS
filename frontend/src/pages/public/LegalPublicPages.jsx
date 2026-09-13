@@ -4,19 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { HomeFooter } from '../../components/landing/HomeFooter.jsx';
 import { LandingBrandLogo } from '../../components/landing/LandingBrandLogo.jsx';
 import { useLocale } from '../../features/locale/index.js';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 
 const PRIVACY_EMAIL = 'privacy@battechno.com';
 
 function LegalShell({ children, title }) {
   const { t } = useTranslation('landing');
   const { dir, locale, setLocale } = useLocale();
+  useDocumentTitle(title);
 
   return (
     <div id="battechno-landing" className="min-h-screen bg-[#F7F5F0]" dir={dir} lang={locale}>
       <header className="border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="landing-container flex items-center justify-between gap-4 py-4">
           <Link to="/" className="inline-flex items-center gap-3 no-underline">
-            <LandingBrandLogo alt={t('brand')} className="!mb-0 !h-9" />
+            <LandingBrandLogo alt={t('brand')} className="!mb-0 !h-12" />
           </Link>
           <div className="flex items-center gap-3">
             <button
@@ -54,15 +56,15 @@ function DeletionRequestForm() {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) return;
 
-    const subject = encodeURIComponent('BATTECHNO LMS account deletion request');
+    const subject = encodeURIComponent('eprojecto account deletion request');
     const body = encodeURIComponent(
       [
-        'BATTECHNO LMS account deletion request',
+        'eprojecto account deletion request',
         '',
         `Registered email: ${trimmedEmail}`,
         name.trim() ? `Name: ${name.trim()}` : null,
         '',
-        message.trim() || 'I request deletion of my BATTECHNO LMS account and associated data.',
+        message.trim() || 'I request deletion of my eprojecto account and associated data.',
         '',
         'Please verify account ownership before processing.',
       ]

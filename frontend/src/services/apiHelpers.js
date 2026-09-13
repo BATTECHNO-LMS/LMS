@@ -1,5 +1,5 @@
 /**
- * Unwrap BATTECHNO-LMS API envelope: `{ success, message?, data }`.
+ * Unwrap eprojecto API envelope: `{ success, message?, data }`.
  * @param {import('axios').AxiosResponse} res
  * @returns {unknown}
  */

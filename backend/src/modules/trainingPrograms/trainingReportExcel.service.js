@@ -72,7 +72,7 @@ async function renderTrainingReportExcel(report, { includeRaw = false } = {}) {
   const snap = report.snapshot_json || {};
   const meta = snap.meta || {};
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BATTECHNO LMS';
+  wb.creator = 'eprojecto';
   wb.created = new Date();
 
   const title = REPORT_TYPE_TITLES_AR[report.report_type] || meta.reportTitle || 'تقرير';

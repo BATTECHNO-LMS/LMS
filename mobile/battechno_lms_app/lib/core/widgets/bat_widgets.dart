@@ -760,16 +760,7 @@ class BatLogoHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset('assets/images/battechno_lms_logo.png', height: height),
-        const SizedBox(height: 8),
-        Text(
-          'BATTECHNO LMS',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w900,
-            color: BatColors.heading,
-            letterSpacing: 0.4,
-          ),
-        ),
+        Image.asset('assets/images/eprojecto_logo.png', height: height),
       ],
     );
   }

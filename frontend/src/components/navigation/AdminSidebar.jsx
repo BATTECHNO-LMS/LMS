@@ -82,7 +82,7 @@ function SidebarNavGroup({ group, onNavigate }) {
 }
 
 export function AdminSidebar({
-  brand = 'BATTECHNO-LMS',
+  brand = 'eprojecto',
   groups = [],
   collapsed = false,
   className,
@@ -104,7 +104,7 @@ export function AdminSidebar({
     >
       <div className="app-sidebar__brand">
         <BrandLogo variant="sidebar" alt={t('logo.alt')} />
-        <span className="app-sidebar__brand-text">{brand}</span>
+        <span className="sr-only">{brand}</span>
         <button
           type="button"
           className="app-sidebar__drawer-close"

@@ -16,6 +16,7 @@ const {
 
 const GENERIC_REPORT_MARKERS = Object.freeze([
   'BATTECHNO LMS',
+  'eprojecto',
   'هذا التقرير للاستخدام الإداري الداخلي',
   'ھذا التقرير للاستخدام الإداري الداخلي',
   'Internal administrative use only',

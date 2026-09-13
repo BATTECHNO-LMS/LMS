@@ -50,7 +50,7 @@ async function writePdf(html, filePath, label) {
   try {
     const buffer = await renderHtmlToPdf(html, {
       lang: 'ar',
-      footerLeft: `BATTECHNO LMS · ${label}`,
+      footerLeft: `eprojecto · ${label}`,
       footerNote: dates.formatReportDateTime(new Date()),
     });
     fs.writeFileSync(filePath, buffer);
@@ -78,7 +78,7 @@ function inspectHtml(html) {
     googleFonts: /fonts\.googleapis\.com/.test(html),
     hasTitleUniversity: html.includes('التقرير الشامل للتدريب الميداني للجامعة'),
     hasTitleStudent: html.includes('التقرير الفردي للتدريب الميداني للطالب'),
-    hasBattechno: html.includes('BATTECHNO LMS'),
+    hasBattechno: html.includes('eprojecto'),
     brokenImg: /<img[^>]+src=""/.test(html),
   };
 }

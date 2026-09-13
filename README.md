@@ -1,6 +1,14 @@
-# BATTECHNO LMS
+# eprojecto
 
-A full-stack Learning Management System for university micro-credential programs. The platform supports multi-role portals (admin, instructor, student, university reviewer), curriculum delivery, assessments, quality assurance, recognition workflows, and certificate issuance.
+eprojecto is the current product name.
+Previously branded internally/publicly as BATTECHNO LMS.
+
+A full-stack learning platform for training courses, micro-credentials, university field training, reports, and certificates. The platform supports multi-role portals (admin, instructor, student, university reviewer), curriculum delivery, assessments, quality assurance, recognition workflows, and certificate issuance.
+
+Canonical production URL: https://eprojecto.com  
+Owning company: BATMAN TECHNOLOGY (شركة الرجل الوطواط للتكنولوجيا)
+
+Internal package names such as `battechno-lms-api` and `battechno-lms-web`, Docker container names, and the host path `/root/BATTECHNO_LMS` remain technical identifiers and are not the user-facing product name.
 
 ## Repository structure
 

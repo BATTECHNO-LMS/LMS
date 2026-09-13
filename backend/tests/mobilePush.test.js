@@ -340,7 +340,7 @@ describe('pushNotification.service (disabled by default / privacy helpers)', () 
     process.env.PUSH_GENERIC_LOCK_SCREEN = 'true';
     const arAlert = pushService.buildAlertPayload({ title: 'secret', body: 'secret body', locale: 'ar' });
     const enAlert = pushService.buildAlertPayload({ title: 'secret', body: 'secret body', locale: 'en' });
-    assert.equal(arAlert.title.includes('BATTECHNO'), true);
+    assert.equal(arAlert.title.includes('eprojecto'), true);
     assert.notEqual(enAlert.title, arAlert.title);
   });
 });

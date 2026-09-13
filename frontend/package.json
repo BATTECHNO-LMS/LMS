@@ -2,6 +2,7 @@
   "name": "battechno-lms-web",
   "version": "0.1.0",
   "private": true,
+  "description": "eprojecto web client",
   "type": "module",
   "scripts": {
     "dev": "vite",

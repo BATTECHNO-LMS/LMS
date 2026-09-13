@@ -260,7 +260,7 @@ async function exportUniversityReportInner(user, query = {}, format = 'pdf') {
   const html = renderUniversityReportHtml(report, assets);
   const buffer = await renderHtmlToPdf(html, {
     lang: 'ar',
-    footerLeft: `BATTECHNO LMS · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
+    footerLeft: `eprojecto · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
     footerNote: report.meta?.generated_at_label || '',
   });
   return {
@@ -297,7 +297,7 @@ async function exportStudentReportInner(user, applicationId, format = 'pdf') {
   const html = renderStudentReportHtml(report, assets);
   const buffer = await renderHtmlToPdf(html, {
     lang: 'ar',
-    footerLeft: `BATTECHNO LMS · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
+    footerLeft: `eprojecto · ${report.meta?.reference || ''} · v${report.meta?.version || 1}`,
     footerNote: report.meta?.generated_at_label || '',
   });
   return {

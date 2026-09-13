@@ -145,7 +145,7 @@ export function InstitutionRegisterPage() {
         <div className="auth-split auth-split--register">
           <motion.section className="auth-split__form" {...formMotion}>
             <div className="auth-split__form-inner auth-split__form-inner--wide">
-              <BrandLogo variant="auth" alt="BATTECHNO LMS" className="auth-split__logo" />
+              <BrandLogo variant="auth" alt="eprojecto" className="auth-split__logo" />
 
               <header className="auth-split__header auth-split__header--register">
                 <p className="auth-form__portal-label">

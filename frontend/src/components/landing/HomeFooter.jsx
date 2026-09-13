@@ -31,6 +31,7 @@ export function HomeFooter() {
             <LandingBrandLogo variant="footer" alt={t('brand')} />
             <p className="landing-footer__desc">{t('footer.description')}</p>
             <p className="landing-footer__tagline">{t('footer.tagline')}</p>
+            <p className="landing-footer__developed">{t('footer.developedBy')}</p>
           </div>
 
           <div className="landing-footer__col">
@@ -74,7 +75,6 @@ export function HomeFooter() {
           <span className="landing-footer__divider" aria-hidden />
           <div className="landing-footer__meta">
             <p>{t('footer.rights', { year: String(year) })}</p>
-            <p className="landing-footer__meta-brand">BATTECHNO · 2017</p>
           </div>
         </div>
       </div>

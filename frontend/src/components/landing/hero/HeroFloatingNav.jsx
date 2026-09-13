@@ -16,7 +16,7 @@ const NAV_LINKS = [
 ];
 
 /**
- * Floating pill navbar — reference-inspired, BATTECHNO LMS theme.
+ * Floating pill navbar — reference-inspired, eprojecto theme.
  */
 export function HeroFloatingNav() {
   const { t } = useTranslation('landing');

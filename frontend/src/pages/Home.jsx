@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '../features/locale/index.js';
+import { useDocumentTitle } from '../hooks/useDocumentTitle.js';
 import { LandingStatsProvider } from '../features/landing/LandingStatsContext.jsx';
 import { HeroFloatingNav } from '../components/landing/hero/HeroFloatingNav.jsx';
 import { HomeHero } from '../components/landing/HomeHero.jsx';
@@ -19,6 +20,7 @@ import '../phone-device.css';
 export function Home() {
   const { t, i18n } = useTranslation('landing');
   const { dir } = useLocale();
+  useDocumentTitle(t('brand'));
 
   return (
     <LandingStatsProvider>

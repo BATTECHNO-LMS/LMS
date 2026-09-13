@@ -15,12 +15,14 @@ import { forgotPassword } from '../../features/auth/auth.service.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
 import { setStorageItem, storageKeys } from '../../utils/storage.js';
 import loginIllustration from '../../assets/landing/illustrations/hero-student-learning.svg';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 
 export function ForgotPasswordPage() {
   const { t, i18n } = useTranslation('auth');
   const { t: tCommon } = useTranslation('common');
   const navigate = useNavigate();
   const reduced = useReducedMotion();
+  useDocumentTitle(t('forgotPassword.title'));
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');

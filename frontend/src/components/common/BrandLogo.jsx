@@ -1,4 +1,5 @@
-import battechnoLogo from '../../assets/images/battechno-lms-logo-transparent.png';
+import logoSrc from '../../assets/images/eprojecto-logo.png';
+import { APP_NAME } from '../../config/brand.js';
 
 /** @typedef {'header' | 'hero' | 'portal' | 'cockpit' | 'phone' | 'footer' | 'auth' | 'app-header' | 'sidebar'} BrandLogoVariant */
 
@@ -8,11 +9,8 @@ const EXTRA_CLASS = {
   sidebar: 'app-sidebar__logo-image',
 };
 
-const PRIORITY_VARIANTS = new Set(['header', 'hero', 'portal', 'auth']);
-
 /**
- * Transparent LMS brand mark — no background box, aspect ratio preserved.
- * Sizing lives in `_brand-logo.scss` so it works outside `#battechno-landing`.
+ * Official eprojecto lockup. Use this asset everywhere in the product shell.
  * @param {{
  *   variant?: BrandLogoVariant,
  *   alt: string,
@@ -30,18 +28,13 @@ export function BrandLogo({
 }) {
   const extra = EXTRA_CLASS[variant] || '';
   const alignClass = align === 'center' ? 'brand-logo--center' : '';
-  const eager = PRIORITY_VARIANTS.has(variant);
 
   return (
     <img
-      src={battechnoLogo}
-      alt={alt}
-      width={1024}
-      height={682}
+      src={logoSrc}
+      alt={alt || APP_NAME}
       className={`brand-logo brand-logo--${variant} ${alignClass} ${extra} ${className} ${imgClassName}`.trim()}
       decoding="async"
-      fetchpriority={eager ? 'high' : 'auto'}
-      loading={eager ? 'eager' : 'lazy'}
     />
   );
 }

@@ -9,12 +9,14 @@ import { AuthBackgroundDecor } from '../../../pages/auth/AuthBackgroundDecor.jsx
 import { AuthVisualPanel } from '../../../pages/auth/AuthVisualPanel.jsx';
 import { AUTH_MOTION_EASE } from '../../../pages/auth/authMotion.js';
 import registerIllustration from '../../../assets/landing/illustrations/journey-flow.svg';
+import { useDocumentTitle } from '../../../hooks/useDocumentTitle.js';
 
 export function RegisterPage() {
   const { t } = useTranslation('auth');
   const { t: tCommon } = useTranslation('common');
   const { isAuthenticated, user } = useAuth();
   const reduced = useReducedMotion();
+  useDocumentTitle(t('register.title'));
 
   if (isAuthenticated && user) {
     return <Navigate to={getDefaultDashboardPath(user)} replace />;

@@ -17,9 +17,10 @@ function toLogoDataUri(buf, mime) {
 
 function loadBattechnoLogoDataUri() {
   const candidates = [
-    path.join(__dirname, '../../../../frontend/src/assets/images/battechno-lms-logo-transparent.png'),
-    path.join(__dirname, '../../../assets/battechno-lms-logo-transparent.png'),
-    path.join(process.cwd(), '../frontend/src/assets/images/battechno-lms-logo-transparent.png'),
+    path.join(__dirname, '../../../../frontend/src/assets/images/eprojecto-logo.png'),
+    path.join(__dirname, '../../../assets/eprojecto-logo.png'),
+    path.join(process.cwd(), '../frontend/src/assets/images/eprojecto-logo.png'),
+    path.join(process.cwd(), 'assets/eprojecto-logo.png'),
   ];
   for (const file of candidates) {
     try {

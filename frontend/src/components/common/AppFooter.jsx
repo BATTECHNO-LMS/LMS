@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { APP_NAME } from '../../config/brand.js';
 
 export function AppFooter() {
   const { t } = useTranslation('common');
@@ -6,7 +7,7 @@ export function AppFooter() {
   return (
     <footer className="app-footer">
       <p className="app-footer__text">
-        © {year} {t('brand')} — {t('rights')}
+        © {year} {APP_NAME}. {t('rights')}
       </p>
     </footer>
   );

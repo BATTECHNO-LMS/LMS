@@ -38,7 +38,7 @@ export function PortalSelection({
       <div className="portal-selection__inner">
         {showLogo ? (
           <div className="portal-selection__brand">
-            <BrandLogo variant="portal" alt="BATTECHNO LMS" align="center" />
+            <BrandLogo variant="portal" alt="eprojecto" align="center" />
           </div>
         ) : null}
 

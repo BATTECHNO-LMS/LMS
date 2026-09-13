@@ -1,4 +1,4 @@
-# Multi-stage production build for BATTECHNO LMS frontend (Vite SPA).
+# Multi-stage production build for eprojecto frontend (Vite SPA).
 FROM node:20-alpine AS build
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN npm ci
 COPY . .
 
 ARG VITE_API_BASE_URL=
-ARG VITE_APP_ORIGINS=https://lms.battechno.com
+ARG VITE_APP_ORIGINS=https://eprojecto.com
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 ENV VITE_APP_ORIGINS=$VITE_APP_ORIGINS
 

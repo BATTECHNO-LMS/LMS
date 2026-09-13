@@ -60,6 +60,15 @@ export function BaseDashboardLayout({ brand }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [sidebarOpen, isMobileShell, closeSidebar]);
 
+  useEffect(() => {
+    const brandName = resolvedBrand || tCommon('appName');
+    const prev = document.title;
+    document.title = pageTitle ? `${pageTitle} | ${brandName}` : brandName;
+    return () => {
+      document.title = prev;
+    };
+  }, [pageTitle, resolvedBrand, tCommon, i18n.language]);
+
   const drawerOpen = isMobileShell && sidebarOpen;
 
   return (

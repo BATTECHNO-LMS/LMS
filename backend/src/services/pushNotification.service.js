@@ -18,7 +18,7 @@
  */
 
 const GENERIC_ALERT = {
-  ar: { title: 'لديك إشعار جديد في منصة BATTECHNO', body: 'اضغط لعرض التفاصيل داخل التطبيق.' },
+  ar: { title: 'لديك إشعار جديد في eprojecto', body: 'اضغط لعرض التفاصيل داخل التطبيق.' },
   en: { title: 'You have a new notification', body: 'Open the app to view the details.' },
 };
 

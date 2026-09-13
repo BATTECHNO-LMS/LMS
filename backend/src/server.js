@@ -63,7 +63,7 @@ async function start() {
 
   const server = app.listen(port, () => {
     // eslint-disable-next-line no-console
-    console.log(`BATTECHNO-LMS API listening on port ${port}`);
+    console.log(`eprojecto API listening on port ${port}`);
   });
 
   async function shutdown(signal) {

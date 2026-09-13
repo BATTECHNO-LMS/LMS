@@ -30,6 +30,30 @@ test('GET /health/ready returns 503 when DATABASE_URL is not configured', async 
   assert.strictEqual(res.body.db, false);
 });
 
+test('CORS preflight allows canonical frontend for /api/auth/login', async () => {
+  const res = await request(app)
+    .options('/api/auth/login')
+    .set('Origin', 'https://eprojecto.com')
+    .set('Access-Control-Request-Method', 'POST')
+    .set('Access-Control-Request-Headers', 'content-type, authorization, x-requested-with');
+
+  assert.strictEqual(res.status, 204);
+  assert.strictEqual(res.headers['access-control-allow-origin'], 'https://eprojecto.com');
+  assert.match(res.headers['access-control-allow-methods'], /POST/);
+  assert.ok(res.headers['access-control-allow-credentials']);
+});
+
+test('CORS preflight allows www canonical frontend', async () => {
+  const res = await request(app)
+    .options('/api/auth/me')
+    .set('Origin', 'https://www.eprojecto.com')
+    .set('Access-Control-Request-Method', 'GET')
+    .set('Access-Control-Request-Headers', 'authorization');
+
+  assert.strictEqual(res.status, 204);
+  assert.strictEqual(res.headers['access-control-allow-origin'], 'https://www.eprojecto.com');
+});
+
 test('CORS preflight allows production frontend for /api/auth/login', async () => {
   const res = await request(app)
     .options('/api/auth/login')

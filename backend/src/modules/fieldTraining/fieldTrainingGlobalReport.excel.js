@@ -30,7 +30,7 @@ function addTable(ws, headers, rows) {
 
 async function exportGlobalReportExcel(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BATTECHNO LMS';
+  wb.creator = 'eprojecto';
   const s = report.summary ?? {};
 
   const executive = wb.addWorksheet('الملخص التنفيذي');

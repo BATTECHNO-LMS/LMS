@@ -34,12 +34,12 @@ User ID always comes from DB-backed auth context — never from the client body.
 
 ## Public URLs
 
-- https://lms.battechno.com/account-deletion
-- https://lms.battechno.com/privacy-policy
+- https://eprojecto.com/account-deletion
+- https://eprojecto.com/privacy-policy
 
 ## Google Play field suggestion
 
-> Users can request account deletion in the BATTECHNO LMS app: Profile → Settings → Account Management → Delete Account. Inactive users can use the web form or email privacy@battechno.com from their registered address. Web page: https://lms.battechno.com/account-deletion
+> Users can request account deletion in the eprojecto app: Profile → Settings → Account Management → Delete Account. Inactive users can use the web form or email privacy@battechno.com from their registered address. Web page: https://eprojecto.com/account-deletion
 
 ## Admin processing
 

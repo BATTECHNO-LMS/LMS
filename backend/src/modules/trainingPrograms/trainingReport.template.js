@@ -103,8 +103,8 @@ function buildCover(meta, assets) {
     ? `<img class="logo logo--institution" src="${assets.institutionLogoDataUri}" alt="${escapeHtml(meta.institutionName || 'المؤسسة')}" />`
     : `<div class="logo-fallback">${escapeHtml(meta.institutionName || 'المؤسسة')}</div>`;
   const batLogo = assets.battechnoLogoDataUri
-    ? `<img class="logo logo--battechno" src="${assets.battechnoLogoDataUri}" alt="BATTECHNO LMS" />`
-    : `<div class="logo-fallback">BATTECHNO LMS</div>`;
+    ? `<img class="logo logo--battechno" src="${assets.battechnoLogoDataUri}" alt="eprojecto" />`
+    : `<div class="logo-fallback">eprojecto</div>`;
 
   const brands = singleBrand
     ? `<div class="cover__brands cover__brands--single">
@@ -116,9 +116,9 @@ function buildCover(meta, assets) {
     </div>`;
 
   const executionLine = singleBrand
-    ? `<p><strong>تنفيذ وتشغيل:</strong> ${escapeHtml(meta.institutionName || meta.platformNameAr || 'BATTECHNO')} – ${escapeHtml(meta.platformName || 'BATTECHNO LMS')}</p>`
+    ? `<p><strong>تنفيذ وتشغيل:</strong> ${escapeHtml(meta.institutionName || meta.platformNameAr || 'BATMAN TECHNOLOGY')} – ${escapeHtml(meta.platformName || 'eprojecto')}</p>`
     : `<p><strong>تنفيذ:</strong> ${escapeHtml(meta.institutionName || '—')}</p>
-      <p><strong>بالتعاون مع:</strong> ${escapeHtml(meta.platformNameAr || '')} – ${escapeHtml(meta.platformName || 'BATTECHNO LMS')}</p>`;
+      <p><strong>بالتعاون مع:</strong> ${escapeHtml(meta.platformNameAr || '')} – ${escapeHtml(meta.platformName || 'eprojecto')}</p>`;
 
   return `
   <section class="cover">
@@ -518,16 +518,14 @@ function buildTrainingReportHtml(report, assets = {}, { printable = false } = {}
   const singleBrandHeader = Boolean(assets.singleBrand || meta.singleBrand);
   let headerLogosHtml;
   if (singleBrandHeader) {
-    headerLogosHtml = assets.battechnoLogoDataUri
-      ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />`
-      : '<span>BATTECHNO</span>';
+    headerLogosHtml = '<span>BATMAN TECHNOLOGY</span>';
   } else {
     const institutionPart = assets.institutionLogoDataUri
       ? `<img src="${assets.institutionLogoDataUri}" alt="" />`
       : `<span>${escapeHtml(meta.institutionName || '')}</span>`;
     const platformPart = assets.battechnoLogoDataUri
-      ? `<img src="${assets.battechnoLogoDataUri}" alt="BATTECHNO" />`
-      : '<span>BATTECHNO</span>';
+      ? `<img src="${assets.battechnoLogoDataUri}" alt="eprojecto" />`
+      : '<span>eprojecto</span>';
     headerLogosHtml = `${institutionPart}${platformPart}`;
   }
 

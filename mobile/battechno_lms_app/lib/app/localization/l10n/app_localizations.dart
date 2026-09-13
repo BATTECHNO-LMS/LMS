@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In ar, this message translates to:
-  /// **'BATTECHNO LMS'**
+  /// **'eprojecto'**
   String get appName;
 
   /// No description provided for @appTagline.
@@ -3155,7 +3155,7 @@ abstract class AppLocalizations {
   /// No description provided for @pushNotificationChannelName.
   ///
   /// In ar, this message translates to:
-  /// **'إشعارات BATTECHNO LMS'**
+  /// **'إشعارات eprojecto'**
   String get pushNotificationChannelName;
 
   /// No description provided for @pushNotificationChannelDescription.

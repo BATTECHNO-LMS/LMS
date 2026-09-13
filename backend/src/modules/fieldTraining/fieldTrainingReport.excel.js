@@ -107,7 +107,7 @@ function applyStatusFill(ws, colIndex, startRow, rowCount, mapFn) {
 
 async function exportUniversityReportExcel(report, options = {}) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BATTECHNO LMS';
+  wb.creator = 'eprojecto';
   wb.created = new Date();
   const summary = report.summary || {};
   const meta = report.meta || {};
@@ -409,7 +409,7 @@ async function exportUniversityReportExcel(report, options = {}) {
 
 async function exportStudentReportExcel(report) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'BATTECHNO LMS';
+  wb.creator = 'eprojecto';
   wb.created = new Date();
   const exec = report.executive_summary || {};
   const student = report.student || {};

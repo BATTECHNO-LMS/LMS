@@ -1,6 +1,6 @@
-# BATTECHNO LMS — Mobile App
+# eprojecto — Mobile App
 
-Official Flutter mobile client for the BATTECHNO LMS platform.
+Official Flutter mobile client for the eprojecto platform (previously branded as BATTECHNO LMS).
 
 ## Purpose
 
@@ -192,8 +192,8 @@ See [docs/PHASE_25_PUSH_NOTIFICATIONS.md](docs/PHASE_25_PUSH_NOTIFICATIONS.md) f
 ### Account deletion (Play compliance)
 
 - In-app request flow: Settings → Account Management → Delete Account
-- Public instructions: https://lms.battechno.com/account-deletion
-- Privacy policy: https://lms.battechno.com/privacy-policy
+- Public instructions: https://eprojecto.com/account-deletion
+- Privacy policy: https://eprojecto.com/privacy-policy
 
 See [docs/ACCOUNT_DELETION.md](docs/ACCOUNT_DELETION.md).
 
