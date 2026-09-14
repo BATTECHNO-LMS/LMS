@@ -1,0 +1,3714 @@
+{
+  "apply": true,
+  "opportunityId": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+  "lmsStudents": 151,
+  "baselineMappings": 151,
+  "matched": 151,
+  "missing": [],
+  "historicalEligible": 146,
+  "historicalNotEligible": 5,
+  "taskEvaluationsCorrected": 144,
+  "eligibleBelow80After": 0,
+  "eligibleNullAfter": 0,
+  "breakdownMismatch": 0,
+  "eligibleWithFailureReasons": 0,
+  "finalEligible": 146,
+  "finalNotEligible": 5,
+  "laithGrades": {
+    "ok": true,
+    "dryRun": false,
+    "universityNumber": "320230601066",
+    "studentName": "ليث محمد احمد بريوش",
+    "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+    "task3": {
+      "id": "56670cb5-d177-4734-9938-c5dd11a0ed22",
+      "title": "المهمة الثالثة: فحص وتأمين REST API وفق أساسيات أمن تطبيقات الويب",
+      "contribution": 0
+    },
+    "task4": {
+      "id": "28ce4ff0-392b-47e7-8df1-f39002f085e5",
+      "title": "المهمة الرابعة: تصميم وتنفيذ واجهة متجر إلكتروني متجاوبة باستخدام React",
+      "contribution": 0
+    },
+    "changes": [
+      {
+        "label": "Task 1",
+        "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+        "title": "المهمة الأولى: تصميم قاعدة بيانات متجر إلكتروني باستخدام Neon PostgreSQL",
+        "previousScore": 84,
+        "newScore": 84,
+        "maxScore": 100,
+        "submissionId": "50378afe-8746-4578-add6-21121a9484cb",
+        "createdSubmission": false
+      },
+      {
+        "label": "Task 2",
+        "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+        "title": "المهمة الثانية: بناء واختبار REST API باستخدام Node.js وExpress وربطها بقاعدة بيانات Neon واختبارها عبر Postman",
+        "previousScore": 78,
+        "newScore": 78,
+        "maxScore": 100,
+        "submissionId": "1f72e8c1-74b7-43a5-8bad-f1e90faa4e3c",
+        "createdSubmission": false
+      }
+    ]
+  },
+  "laith": {
+    "applicationId": "c8ca4e24-65f0-4a0e-96e0-6042042c7556",
+    "studentName": "ليث محمد احمد بريوش",
+    "universityNumber": "320230601066",
+    "excelScore": null,
+    "excelStatus": "NOT_ELIGIBLE",
+    "currentLmsScore": null,
+    "currentLmsStatus": "ineligible",
+    "recalculatedScore": null,
+    "attendancePoints": 20,
+    "postPoints": 14.4,
+    "tasksPoints": 16.2,
+    "behaviorPoints": 8.8,
+    "taskDetails": [
+      {
+        "taskId": "28ce4ff0-392b-47e7-8df1-f39002f085e5",
+        "title": "المهمة الرابعة: تصميم وتنفيذ واجهة متجر إلكتروني متجاوبة باستخدام React",
+        "rawScore": null,
+        "maxScore": null,
+        "reviewStatus": null,
+        "normalizedPercent": 0,
+        "source": "MISSING_OR_NOT_ACCEPTED",
+        "accepted": false
+      },
+      {
+        "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+        "title": "المهمة الثانية: بناء واختبار REST API باستخدام Node.js وExpress وربطها بقاعدة بيانات Neon واختبارها عبر Postman",
+        "rawScore": 78,
+        "maxScore": 100,
+        "reviewStatus": "graded",
+        "normalizedPercent": 78,
+        "source": "NUMERIC_GRADE",
+        "accepted": true
+      },
+      {
+        "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+        "title": "المهمة الأولى: تصميم قاعدة بيانات متجر إلكتروني باستخدام Neon PostgreSQL",
+        "rawScore": 84,
+        "maxScore": 100,
+        "reviewStatus": "graded",
+        "normalizedPercent": 84,
+        "source": "NUMERIC_GRADE",
+        "accepted": true
+      },
+      {
+        "taskId": "56670cb5-d177-4734-9938-c5dd11a0ed22",
+        "title": "المهمة الثالثة: فحص وتأمين REST API وفق أساسيات أمن تطبيقات الويب",
+        "rawScore": null,
+        "maxScore": null,
+        "reviewStatus": null,
+        "normalizedPercent": 0,
+        "source": "MISSING_OR_NOT_ACCEPTED",
+        "accepted": false
+      }
+    ],
+    "zeroParticipationApplied": false,
+    "rawTaskData": {
+      "points": 16.2,
+      "details": [
+        {
+          "taskId": "28ce4ff0-392b-47e7-8df1-f39002f085e5",
+          "title": "المهمة الرابعة: تصميم وتنفيذ واجهة متجر إلكتروني متجاوبة باستخدام React",
+          "rawScore": null,
+          "maxScore": null,
+          "reviewStatus": null,
+          "normalizedPercent": 0,
+          "source": "MISSING_OR_NOT_ACCEPTED",
+          "accepted": false
+        },
+        {
+          "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+          "title": "المهمة الثانية: بناء واختبار REST API باستخدام Node.js وExpress وربطها بقاعدة بيانات Neon واختبارها عبر Postman",
+          "rawScore": 78,
+          "maxScore": 100,
+          "reviewStatus": "graded",
+          "normalizedPercent": 78,
+          "source": "NUMERIC_GRADE",
+          "accepted": true
+        },
+        {
+          "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+          "title": "المهمة الأولى: تصميم قاعدة بيانات متجر إلكتروني باستخدام Neon PostgreSQL",
+          "rawScore": 84,
+          "maxScore": 100,
+          "reviewStatus": "graded",
+          "normalizedPercent": 84,
+          "source": "NUMERIC_GRADE",
+          "accepted": true
+        },
+        {
+          "taskId": "56670cb5-d177-4734-9938-c5dd11a0ed22",
+          "title": "المهمة الثالثة: فحص وتأمين REST API وفق أساسيات أمن تطبيقات الويب",
+          "rawScore": null,
+          "maxScore": null,
+          "reviewStatus": null,
+          "normalizedPercent": 0,
+          "source": "MISSING_OR_NOT_ACCEPTED",
+          "accepted": false
+        }
+      ],
+      "acceptedCount": 2,
+      "requiredCount": 4
+    },
+    "missingMapping": false,
+    "finalApprovedScore": 59.4,
+    "finalApprovedStatus": "NOT_ELIGIBLE",
+    "changeReason": "LAITH_ADMIN_OVERRIDE",
+    "changeReasonAr": "قرار إداري معتمد بعدم التأهيل مع الاحتفاظ بالعلامات الفعلية للطالب.",
+    "approvedEvaluationResult": {
+      "approvedFinalScore": 59.4,
+      "approvedStatus": "NOT_ELIGIBLE",
+      "workflowStatus": "ineligible",
+      "source": "AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE",
+      "sourceLabelAr": "قرار إداري معتمد",
+      "previousExcelScore": null,
+      "recalculatedScore": null,
+      "changeReasonAr": "قرار إداري معتمد بعدم التأهيل مع الاحتفاظ بالعلامات الفعلية للطالب.",
+      "scoreBreakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 14.4,
+        "taskPoints": 16.2,
+        "behaviorPoints": 8.8
+      },
+      "approvedTaskEvaluation": {
+        "points": 16.2,
+        "task1": 84,
+        "task2": 78,
+        "task3": 0,
+        "task4": 0,
+        "source": "AUTHORIZED_GRADE_OVERRIDE"
+      },
+      "rawTaskData": {
+        "points": 16.2,
+        "details": [
+          {
+            "taskId": "28ce4ff0-392b-47e7-8df1-f39002f085e5",
+            "title": "المهمة الرابعة: تصميم وتنفيذ واجهة متجر إلكتروني متجاوبة باستخدام React",
+            "rawScore": null,
+            "maxScore": null,
+            "reviewStatus": null,
+            "normalizedPercent": 0,
+            "source": "MISSING_OR_NOT_ACCEPTED",
+            "accepted": false
+          },
+          {
+            "taskId": "6c93fd3d-abda-4380-9c66-ba8cdd1a7088",
+            "title": "المهمة الثانية: بناء واختبار REST API باستخدام Node.js وExpress وربطها بقاعدة بيانات Neon واختبارها عبر Postman",
+            "rawScore": 78,
+            "maxScore": 100,
+            "reviewStatus": "graded",
+            "normalizedPercent": 78,
+            "source": "NUMERIC_GRADE",
+            "accepted": true
+          },
+          {
+            "taskId": "8170b96a-6184-44d0-a6f1-724f900395e7",
+            "title": "المهمة الأولى: تصميم قاعدة بيانات متجر إلكتروني باستخدام Neon PostgreSQL",
+            "rawScore": 84,
+            "maxScore": 100,
+            "reviewStatus": "graded",
+            "normalizedPercent": 84,
+            "source": "NUMERIC_GRADE",
+            "accepted": true
+          },
+          {
+            "taskId": "56670cb5-d177-4734-9938-c5dd11a0ed22",
+            "title": "المهمة الثالثة: فحص وتأمين REST API وفق أساسيات أمن تطبيقات الويب",
+            "rawScore": null,
+            "maxScore": null,
+            "reviewStatus": null,
+            "normalizedPercent": 0,
+            "source": "MISSING_OR_NOT_ACCEPTED",
+            "accepted": false
+          }
+        ],
+        "acceptedCount": 2,
+        "requiredCount": 4
+      },
+      "approvedAt": "2026-09-08T16:55:18.253Z",
+      "opportunityId": "4d9466cb-127b-42f2-ac08-88e7fcc7c7df",
+      "laithTaskComponent": 16.2,
+      "laithBlocked": null,
+      "eligibilityOverride": "FORCE_NOT_ELIGIBLE",
+      "laithBehaviorSource": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    "scoreBreakdown": {
+      "attendancePoints": 20,
+      "postAssessmentPoints": 14.4,
+      "taskPoints": 16.2,
+      "behaviorPoints": 8.8
+    },
+    "laithBlocked": null,
+    "taskCorrected": true,
+    "needsRecalcBranch": false
+  },
+  "laithBehavior": {
+    "behaviorPoints": 8.8,
+    "professionalTotal": 22,
+    "filledCriteria": 7,
+    "source": "AUTHORIZED_MANUAL_REVIEW"
+  },
+  "correctedSample": [
+    {
+      "studentName": "Ragheb alla ragheb hamad",
+      "universityNumber": "320220603102",
+      "excelScore": 88,
+      "oldStatus": "eligible",
+      "oldScore": 88,
+      "rawTaskPoints": 25,
+      "correctedTaskPoints": 30,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "مصعب عصام عبد الرحمن ابو هاني",
+      "universityNumber": "320230602003",
+      "excelScore": 86,
+      "oldStatus": "eligible",
+      "oldScore": 86,
+      "rawTaskPoints": 25.2,
+      "correctedTaskPoints": 28,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "روان صلاح الدين علي نايفه",
+      "universityNumber": "320230601062",
+      "excelScore": 89,
+      "oldStatus": "eligible",
+      "oldScore": 89,
+      "rawTaskPoints": 17,
+      "correctedTaskPoints": 32.2,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "بشار عثمان محمد الوحيدي",
+      "universityNumber": "320230602006",
+      "excelScore": 98,
+      "oldStatus": "eligible",
+      "oldScore": 98,
+      "rawTaskPoints": 33.8,
+      "correctedTaskPoints": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "Halaabuhmaid",
+      "universityNumber": "320220603068",
+      "excelScore": 73,
+      "oldStatus": "ineligible",
+      "oldScore": 51.1,
+      "rawTaskPoints": 0,
+      "correctedTaskPoints": 31.7,
+      "newFinalScore": 82.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "باتر محمد عوض الله ابو الحاج",
+      "universityNumber": "320220603199",
+      "excelScore": 88,
+      "oldStatus": "eligible",
+      "oldScore": 88,
+      "rawTaskPoints": 24.8,
+      "correctedTaskPoints": 30.8,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "لجين عزمي محمود العواودة",
+      "universityNumber": "320240603002",
+      "excelScore": 99,
+      "oldStatus": "eligible",
+      "oldScore": 99,
+      "rawTaskPoints": 34.9,
+      "correctedTaskPoints": 40,
+      "newFinalScore": 98.4,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "حسن علي عيد حمدوني",
+      "universityNumber": "320210601046",
+      "excelScore": 83,
+      "oldStatus": "eligible",
+      "oldScore": 83,
+      "rawTaskPoints": 33.4,
+      "correctedTaskPoints": 31.4,
+      "newFinalScore": 83,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "ابراهيم خضر احمد الحوامدة",
+      "universityNumber": "320230603020",
+      "excelScore": 91,
+      "oldStatus": "eligible",
+      "oldScore": 91,
+      "rawTaskPoints": 33.3,
+      "correctedTaskPoints": 35.4,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "المعتز بالله محمود المبيض",
+      "universityNumber": "320220603015",
+      "excelScore": 98,
+      "oldStatus": "eligible",
+      "oldScore": 98,
+      "rawTaskPoints": 33.3,
+      "correctedTaskPoints": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "صبا اشرف عبد الله الدهني",
+      "universityNumber": "320220603156",
+      "excelScore": 99,
+      "oldStatus": "eligible",
+      "oldScore": 99,
+      "rawTaskPoints": 35.1,
+      "correctedTaskPoints": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "نغم حابس سليم الشخانبه",
+      "universityNumber": "320220603105",
+      "excelScore": 97,
+      "oldStatus": "eligible",
+      "oldScore": 97,
+      "rawTaskPoints": 34.2,
+      "correctedTaskPoints": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "محمد سامح محمد الضروس",
+      "universityNumber": "320220603209",
+      "excelScore": 91,
+      "oldStatus": "eligible",
+      "oldScore": 91,
+      "rawTaskPoints": 25.4,
+      "correctedTaskPoints": 32.6,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "فراس عبدالإله نور الشباطات",
+      "universityNumber": "320230603013",
+      "excelScore": 97,
+      "oldStatus": "eligible",
+      "oldScore": 97,
+      "rawTaskPoints": 34.2,
+      "correctedTaskPoints": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "يوسف احمد حلمي الهرشه",
+      "universityNumber": "320230602024",
+      "excelScore": 86,
+      "oldStatus": "eligible",
+      "oldScore": 86,
+      "rawTaskPoints": 33.6,
+      "correctedTaskPoints": 28.8,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "BAHA'A ALDEEN ABU-FARASH",
+      "universityNumber": "21220019",
+      "excelScore": 69,
+      "oldStatus": "ineligible",
+      "oldScore": 57.9,
+      "rawTaskPoints": 17.1,
+      "correctedTaskPoints": 40,
+      "newFinalScore": 80.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "رامي صلاح عبد الرحمن الجرابعة",
+      "universityNumber": "320220605255",
+      "excelScore": 99,
+      "oldStatus": "eligible",
+      "oldScore": 99,
+      "rawTaskPoints": 34,
+      "correctedTaskPoints": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "عاطف سيف عباس القطامين",
+      "universityNumber": "320210605021",
+      "excelScore": 96,
+      "oldStatus": "eligible",
+      "oldScore": 96,
+      "rawTaskPoints": 33.9,
+      "correctedTaskPoints": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "موسى رائد موسى الرواشده",
+      "universityNumber": "320200601069",
+      "excelScore": 97,
+      "oldStatus": "eligible",
+      "oldScore": 97,
+      "rawTaskPoints": 34,
+      "correctedTaskPoints": 38.2,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "RASHA SALEM SULEIMANALKHAWALDEH",
+      "universityNumber": "320220602015",
+      "excelScore": 91,
+      "oldStatus": "eligible",
+      "oldScore": 91,
+      "rawTaskPoints": 25,
+      "correctedTaskPoints": 32.6,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "عيسى وائل يوسف عويمر",
+      "universityNumber": "320220605260",
+      "excelScore": 77,
+      "oldStatus": "ineligible",
+      "oldScore": 70.7,
+      "rawTaskPoints": 16.7,
+      "correctedTaskPoints": 30.2,
+      "newFinalScore": 84.2,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "عُلا محمد عبد الرزاق الربيحات",
+      "universityNumber": "320220603213",
+      "excelScore": 87,
+      "oldStatus": "eligible",
+      "oldScore": 87,
+      "rawTaskPoints": 25.7,
+      "correctedTaskPoints": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "حمزة خالد سليمان سعيد",
+      "universityNumber": "320220605124",
+      "excelScore": 93,
+      "oldStatus": "eligible",
+      "oldScore": 93,
+      "rawTaskPoints": 34.7,
+      "correctedTaskPoints": 33,
+      "newFinalScore": 93,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "جميله سميح ماجد القطيطات",
+      "universityNumber": "320230605012",
+      "excelScore": 92,
+      "oldStatus": "eligible",
+      "oldScore": 92,
+      "rawTaskPoints": 26,
+      "correctedTaskPoints": 33.6,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "هاشم زيد عبدالحي الخلايلة",
+      "universityNumber": "320220603012",
+      "excelScore": 78,
+      "oldStatus": "ineligible",
+      "oldScore": 61,
+      "rawTaskPoints": 8.6,
+      "correctedTaskPoints": 32.2,
+      "newFinalScore": 84.6,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "عبادة احمد عبدالرحيم عبدالرحمن",
+      "universityNumber": "320220603207",
+      "excelScore": 96,
+      "oldStatus": "eligible",
+      "oldScore": 96,
+      "rawTaskPoints": 33.3,
+      "correctedTaskPoints": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "محمود محمد يوسف جوده",
+      "universityNumber": "320220605070",
+      "excelScore": 99,
+      "oldStatus": "eligible",
+      "oldScore": 99,
+      "rawTaskPoints": 34.1,
+      "correctedTaskPoints": 40,
+      "newFinalScore": 98.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "فراس عيسى لياس زكاك",
+      "universityNumber": "320230602027",
+      "excelScore": 84,
+      "oldStatus": "eligible",
+      "oldScore": 84,
+      "rawTaskPoints": 17.6,
+      "correctedTaskPoints": 27.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "مصطفى سليم محمد عياد",
+      "universityNumber": "320220603052",
+      "excelScore": 99,
+      "oldStatus": "eligible",
+      "oldScore": 99,
+      "rawTaskPoints": 34.3,
+      "correctedTaskPoints": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    },
+    {
+      "studentName": "امينا اشرف احمد الفريحات",
+      "universityNumber": "320220605206",
+      "excelScore": 96,
+      "oldStatus": "eligible",
+      "oldScore": 96,
+      "rawTaskPoints": 33.7,
+      "correctedTaskPoints": 37.2,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW"
+    }
+  ],
+  "students": [
+    {
+      "studentName": "Ragheb alla ragheb hamad",
+      "universityNumber": "320220603102",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25,
+      "correctedTaskComponent": 30,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 30,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "مصعب عصام عبد الرحمن ابو هاني",
+      "universityNumber": "320230602003",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.2,
+      "correctedTaskComponent": 28,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 28,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "روان صلاح الدين علي نايفه",
+      "universityNumber": "320230601062",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 17,
+      "correctedTaskComponent": 32.2,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.2,
+        "behaviorPoints": 16.8
+      }
+    },
+    {
+      "studentName": "بشار عثمان محمد الوحيدي",
+      "universityNumber": "320230602006",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.8,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "Halaabuhmaid",
+      "universityNumber": "320220603068",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 73,
+      "currentScore": 51.1,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 31.7,
+      "newFinalScore": 82.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 17.5,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31.7,
+        "behaviorPoints": 13.6
+      }
+    },
+    {
+      "studentName": "باتر محمد عوض الله ابو الحاج",
+      "universityNumber": "320220603199",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 24.8,
+      "correctedTaskComponent": 30.8,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 30.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "لجين عزمي محمود العواودة",
+      "universityNumber": "320240603002",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.9,
+      "correctedTaskComponent": 40,
+      "newFinalScore": 98.4,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 40,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "حسن علي عيد حمدوني",
+      "universityNumber": "320210601046",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 83,
+      "currentScore": 83,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.4,
+      "correctedTaskComponent": 31.4,
+      "newFinalScore": 83,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 13.6,
+        "taskPoints": 31.4,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "ابراهيم خضر احمد الحوامدة",
+      "universityNumber": "320230603020",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 35.4,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 16.8,
+        "taskPoints": 35.4,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "المعتز بالله محمود المبيض",
+      "universityNumber": "320220603015",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "صبا اشرف عبد الله الدهني",
+      "universityNumber": "320220603156",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35.1,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "نغم حابس سليم الشخانبه",
+      "universityNumber": "320220603105",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.2,
+      "correctedTaskComponent": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمد سامح محمد الضروس",
+      "universityNumber": "320220603209",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.4,
+      "correctedTaskComponent": 32.6,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "فراس عبدالإله نور الشباطات",
+      "universityNumber": "320230603013",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.2,
+      "correctedTaskComponent": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "يوسف احمد حلمي الهرشه",
+      "universityNumber": "320230602024",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.6,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 28.8,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "BAHA'A ALDEEN ABU-FARASH",
+      "universityNumber": "21220019",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 69,
+      "currentScore": 57.9,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 17.1,
+      "correctedTaskComponent": 40,
+      "newFinalScore": 80.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 7.2,
+        "taskPoints": 40,
+        "behaviorPoints": 13.6
+      }
+    },
+    {
+      "studentName": "رامي صلاح عبد الرحمن الجرابعة",
+      "universityNumber": "320220605255",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عاطف سيف عباس القطامين",
+      "universityNumber": "320210605021",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.9,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "موسى رائد موسى الرواشده",
+      "universityNumber": "320200601069",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 38.2,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 38.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "RASHA SALEM SULEIMANALKHAWALDEH",
+      "universityNumber": "320220602015",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25,
+      "correctedTaskComponent": 32.6,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "عيسى وائل يوسف عويمر",
+      "universityNumber": "320220605260",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 77,
+      "currentScore": 70.7,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 16.7,
+      "correctedTaskComponent": 30.2,
+      "newFinalScore": 84.2,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 30.2,
+        "behaviorPoints": 15.6
+      }
+    },
+    {
+      "studentName": "عُلا محمد عبد الرزاق الربيحات",
+      "universityNumber": "320220603213",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.7,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "حمزة خالد سليمان سعيد",
+      "universityNumber": "320220605124",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 93,
+      "currentScore": 93,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 33,
+      "newFinalScore": 93,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "جميله سميح ماجد القطيطات",
+      "universityNumber": "320230605012",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26,
+      "correctedTaskComponent": 33.6,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "هاشم زيد عبدالحي الخلايلة",
+      "universityNumber": "320220603012",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 78,
+      "currentScore": 61,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 8.6,
+      "correctedTaskComponent": 32.2,
+      "newFinalScore": 84.6,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 17.6,
+        "taskPoints": 32.2,
+        "behaviorPoints": 14.8
+      }
+    },
+    {
+      "studentName": "عبادة احمد عبدالرحيم عبدالرحمن",
+      "universityNumber": "320220603207",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمود محمد يوسف جوده",
+      "universityNumber": "320220605070",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.1,
+      "correctedTaskComponent": 40,
+      "newFinalScore": 98.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 40,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "فراس عيسى لياس زكاك",
+      "universityNumber": "320230602027",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 17.6,
+      "correctedTaskComponent": 27.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 27.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "مصطفى سليم محمد عياد",
+      "universityNumber": "320220603052",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.3,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "امينا اشرف احمد الفريحات",
+      "universityNumber": "320220605206",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 37.2,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 37.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "سامي عاصم حسن الصالحي",
+      "universityNumber": "320230602073",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.8,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمد عبدالمولى محمد اجويعد",
+      "universityNumber": "320230602067",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.9,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "احمد عبد الرؤوف احمد المغربي",
+      "universityNumber": "320220602070",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.1,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "منير محمد علي عمران",
+      "universityNumber": "320220603062",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 37.8,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 37.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبدالرحمن سرور عبدالقادر بني عامر",
+      "universityNumber": "320220605063",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عروه مهند سليمان العمايره",
+      "universityNumber": "320230603002",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 80,
+      "currentScore": 80,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": null,
+      "newFinalScore": 80,
+      "finalStatus": "ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_EXCEL_ELIGIBLE_GE80",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": null,
+        "behaviorPoints": null
+      }
+    },
+    {
+      "studentName": "نادر بشير مصطفى زريقات",
+      "universityNumber": "320230602002",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 93,
+      "currentScore": 93,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.3,
+      "correctedTaskComponent": 33,
+      "newFinalScore": 93,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبدالله محمود عايش أبوعواد",
+      "universityNumber": "320220605085",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.6,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 28.8,
+        "behaviorPoints": 19.2
+      }
+    },
+    {
+      "studentName": "ظفار جعفر حسن الصرايره",
+      "universityNumber": "320230605007",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.4,
+      "correctedTaskComponent": 33.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 12.8,
+        "taskPoints": 33.6,
+        "behaviorPoints": 17.6
+      }
+    },
+    {
+      "studentName": "احمد خليل احمد النعيمات",
+      "universityNumber": "320220603242",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 90,
+      "currentScore": 90,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.2,
+      "correctedTaskComponent": 30.8,
+      "newFinalScore": 90,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 30.8,
+        "behaviorPoints": 19.2
+      }
+    },
+    {
+      "studentName": "يونس جهاد يونس الجعبه",
+      "universityNumber": "320220603098",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.9,
+      "correctedTaskComponent": 33.6,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "احمد عاطف محمد كامل ابو رجب التميمي",
+      "universityNumber": "320220602016",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "Bahaa Aldahamsheh",
+      "universityNumber": "320220605075",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 37,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عز الدين ابراهيم يوسف قطوش",
+      "universityNumber": "320230602004",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 38.6,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 38.6,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "تالين خالد احمد المزايدة",
+      "universityNumber": "320220603206",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.7,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "امجد احمد عادل زيد الكيلاني",
+      "universityNumber": "320220605020",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.8,
+      "correctedTaskComponent": 34.4,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 34.4,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "Musallam abu seif",
+      "universityNumber": "320230605014",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 33.4,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 33.4,
+        "behaviorPoints": 19.2
+      }
+    },
+    {
+      "studentName": "ليث محمد احمد بريوش",
+      "universityNumber": "320230601066",
+      "oldApprovedStatus": "NOT_ELIGIBLE",
+      "oldApprovedScore": null,
+      "currentScore": null,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 16.2,
+      "correctedTaskComponent": 16.2,
+      "newFinalScore": 59.4,
+      "finalStatus": "NOT_ELIGIBLE",
+      "source": "AUTHORIZED_ADMIN_ELIGIBILITY_OVERRIDE",
+      "changeReason": "LAITH_ADMIN_OVERRIDE",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 14.4,
+        "taskPoints": 16.2,
+        "behaviorPoints": 8.8
+      }
+    },
+    {
+      "studentName": "انس حسن محمود محمد",
+      "universityNumber": "320220603203",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.2,
+      "correctedTaskComponent": 31.8,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 31.8,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "عبد الرحمن محمد احمد هديب",
+      "universityNumber": "320220605041",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35.3,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبدالرحمن ماهر عبدالرحمن عبدالغني",
+      "universityNumber": "320220603005",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 18,
+      "correctedTaskComponent": 32.2,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 32.2,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "ضياء الدين ابراهيم عبد السلام ابو علي",
+      "universityNumber": "320220605231",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.4,
+      "correctedTaskComponent": 29.8,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 29.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "احمد عطيه عقل الوليدي",
+      "universityNumber": "320220602037",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.5,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "ايهم فيصل احمد زعارير",
+      "universityNumber": "320240605125",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "محمد محمود محمد حسين",
+      "universityNumber": "320220603075",
+      "oldApprovedStatus": "NOT_ELIGIBLE",
+      "oldApprovedScore": 0,
+      "currentScore": 0,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 0,
+      "newFinalScore": 0,
+      "finalStatus": "NOT_ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_APPROVED_NOT_ELIGIBLE",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": null,
+        "taskPoints": 0,
+        "behaviorPoints": null
+      }
+    },
+    {
+      "studentName": "نورهان علي حمود الخوالده",
+      "universityNumber": "320230602066",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 38.6,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 38.6,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "محمود احمد محمود الترعاني",
+      "universityNumber": "320220603099",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 24.9,
+      "correctedTaskComponent": 33.4,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 33.4,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "يوسف علي يوسف ابو سرحان",
+      "universityNumber": "320220605258",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.4,
+      "correctedTaskComponent": 30,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 30,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "MUAYAD HUSNI MAHMOUD NUSAIRAT",
+      "universityNumber": "320200602030",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 17.4,
+      "correctedTaskComponent": 27.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 27.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "رؤى عبدالله محمود مغربي",
+      "universityNumber": "320230602046",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.4,
+      "correctedTaskComponent": 33.8,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 33.8,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "براءه خالد الشمايله",
+      "universityNumber": "320220603220",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.2,
+      "correctedTaskComponent": 30,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 30,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "احمد رائد محمد البريقي",
+      "universityNumber": "320220605218",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 17.2,
+      "correctedTaskComponent": 27.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 27.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "عبدالله رائد سعيد عبد الغني",
+      "universityNumber": "320220603003",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 31,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمد أشرف عبد الحافظ البكار",
+      "universityNumber": "320230602018",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.9,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "amro Mohisn",
+      "universityNumber": "320230602057",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.4,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمد فايز نمر جسين",
+      "universityNumber": "320220603217",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.1,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 28.8,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "شهد حسين فالح الزواهرة",
+      "universityNumber": "320220605259",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عريب احمد محمد المسعيدين",
+      "universityNumber": "320230602113",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محيسن احمد عيد المريعات",
+      "universityNumber": "320230602096",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.4,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "MANAR FARHAN MOHAMMAD ALARJAN",
+      "universityNumber": "320210602023",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 16.6,
+      "correctedTaskComponent": 29.6,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "ريما عادل طارق محمود",
+      "universityNumber": "320250603244",
+      "oldApprovedStatus": "NOT_ELIGIBLE",
+      "oldApprovedScore": 0,
+      "currentScore": 0,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 0,
+      "newFinalScore": 0,
+      "finalStatus": "NOT_ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_APPROVED_NOT_ELIGIBLE",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": null,
+        "taskPoints": 0,
+        "behaviorPoints": null
+      }
+    },
+    {
+      "studentName": "قصي عماد عبدالله عياش",
+      "universityNumber": "320220601004",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.1,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "Ahmad Mohamad",
+      "universityNumber": "320220605090",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 70,
+      "currentScore": 52.8,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 81.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 29,
+        "behaviorPoints": 13.6
+      }
+    },
+    {
+      "studentName": "Yazan Jehad AbuTair",
+      "universityNumber": "320220603045",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.7,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "محمد رياض احمد القناص",
+      "universityNumber": "320220605160",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبدالرحمن خالد دخيل الله العساسفة",
+      "universityNumber": "320230602053",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 40,
+      "newFinalScore": 98.4,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 40,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "Layan Aljamal",
+      "universityNumber": "320250602134",
+      "oldApprovedStatus": "NOT_ELIGIBLE",
+      "oldApprovedScore": 0,
+      "currentScore": 0,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 0,
+      "newFinalScore": 0,
+      "finalStatus": "NOT_ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_APPROVED_NOT_ELIGIBLE",
+      "breakdown": {
+        "attendancePoints": 0,
+        "postAssessmentPoints": 0,
+        "taskPoints": 0,
+        "behaviorPoints": 0
+      }
+    },
+    {
+      "studentName": "رويد جمال عبداللطيف فوده",
+      "universityNumber": "320210601146",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 76,
+      "currentScore": 54,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 29.9,
+      "newFinalScore": 83.9,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.9,
+        "behaviorPoints": 14
+      }
+    },
+    {
+      "studentName": "يوسف معاذ يوسف سلمان",
+      "universityNumber": "320230603007",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 39.2,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "مؤنس ابراهيم علي السوالقة",
+      "universityNumber": "320230603005",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.7,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "غيداء خليل محمدحسن أبوسيف",
+      "universityNumber": "320240603015",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.9,
+      "correctedTaskComponent": 39.2,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "نادين محمد يوسف أبو درويش",
+      "universityNumber": "320220602027",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 16.8,
+      "correctedTaskComponent": 29.6,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "جود احمد محمد ابو علي",
+      "universityNumber": "320220603066",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.2,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "ايه إسماعيل عيسى حيمور",
+      "universityNumber": "320240603003",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 39.8,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عمر مخلد خلف الزبون",
+      "universityNumber": "320210601081",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35.1,
+      "correctedTaskComponent": 37.8,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 37.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "نور ظافر عبدالله عبدالقادر",
+      "universityNumber": "320220605188",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.2,
+      "correctedTaskComponent": 28,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 28,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "اية تركي محمد الخوالده",
+      "universityNumber": "120220612060",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.9,
+      "correctedTaskComponent": 29.8,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 29.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "صهيب احمد محمد خضر",
+      "universityNumber": "320220603017",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 68,
+      "currentScore": 50.8,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 30.2,
+      "newFinalScore": 81,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 17.6,
+        "taskPoints": 30.2,
+        "behaviorPoints": 13.2
+      }
+    },
+    {
+      "studentName": "حمزه محمود جبريل الرواجفه",
+      "universityNumber": "320220603189",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 80,
+      "currentScore": 80,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.1,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 80,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 14.4,
+        "taskPoints": 28.8,
+        "behaviorPoints": 16.8
+      }
+    },
+    {
+      "studentName": "فرح فايز ناجي العبادى",
+      "universityNumber": "320220603150",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 38.2,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 38.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عبد الكريم علي محمد حسن ابو سيف",
+      "universityNumber": "320220605004",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.9,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.2
+      }
+    },
+    {
+      "studentName": "حمزه صدام احمد عبيدات",
+      "universityNumber": "320220605162",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "مثنى سليمان خليل العمايرة",
+      "universityNumber": "320220605131",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 80,
+      "currentScore": 80,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": null,
+      "newFinalScore": 80,
+      "finalStatus": "ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_EXCEL_ELIGIBLE_GE80",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": null,
+        "behaviorPoints": null
+      }
+    },
+    {
+      "studentName": "رنيم علي تركي الربابعه",
+      "universityNumber": "320230605016",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 88,
+      "currentScore": 88,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 16.8,
+      "correctedTaskComponent": 31.2,
+      "newFinalScore": 88,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31.2,
+        "behaviorPoints": 16.8
+      }
+    },
+    {
+      "studentName": "حمدالله انور حمدالله عيسى",
+      "universityNumber": "320220603007",
+      "oldApprovedStatus": "NOT_ELIGIBLE",
+      "oldApprovedScore": 0,
+      "currentScore": 0,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 0,
+      "newFinalScore": 0,
+      "finalStatus": "NOT_ELIGIBLE",
+      "source": "EXCEL_BASELINE",
+      "changeReason": "PRESERVE_APPROVED_NOT_ELIGIBLE",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": null,
+        "taskPoints": 0,
+        "behaviorPoints": null
+      }
+    },
+    {
+      "studentName": "عمرو خليل جمعة حمام",
+      "universityNumber": "320230605021",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 24.9,
+      "correctedTaskComponent": 32.6,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "مظفر عمر محمد المومني",
+      "universityNumber": "320220605157",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "لما ابراهيم عبد الرزاق الرواجفه",
+      "universityNumber": "320210603079",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.4,
+      "correctedTaskComponent": 38.6,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 38.6,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "شيماء محمد ابراهيم العطيوي",
+      "universityNumber": "320220605048",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "Qasim Mohammad Ahmed hdaib",
+      "universityNumber": "320210603015",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 9,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 16
+      }
+    },
+    {
+      "studentName": "شهد عبدالوهاب عبدالحميد المحيسن",
+      "universityNumber": "320220601007",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.6,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "Mahmoud Omar Abu Najem",
+      "universityNumber": "320220605182",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 93,
+      "currentScore": 93,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 33,
+      "newFinalScore": 93,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "متيم محمد سليم البراري",
+      "universityNumber": "320230605038",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.8,
+      "correctedTaskComponent": 33.4,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 16,
+        "taskPoints": 33.4,
+        "behaviorPoints": 17.6
+      }
+    },
+    {
+      "studentName": "قتيبه فوزي طايع الزيادات",
+      "universityNumber": "320200603040",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.9,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "SEIF NABIL MAHMOUD ELMUGHRABI",
+      "universityNumber": "320220603092",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.2,
+      "correctedTaskComponent": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "زيد مامون تيسير حسين",
+      "universityNumber": "320210601043",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 74,
+      "currentScore": 66.7,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 16.7,
+      "correctedTaskComponent": 33.2,
+      "newFinalScore": 83.2,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 15.2,
+        "taskPoints": 33.2,
+        "behaviorPoints": 14.8
+      }
+    },
+    {
+      "studentName": "يزن نادر محمد دبوس",
+      "universityNumber": "320220602065",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.9,
+      "correctedTaskComponent": 31.8,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 31.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "دانه جواد احمد الغنيمات",
+      "universityNumber": "320220605227",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 17.4,
+      "correctedTaskComponent": 32.2,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.2,
+        "behaviorPoints": 16.8
+      }
+    },
+    {
+      "studentName": "يوسف رياض يوسف",
+      "universityNumber": "320230601009",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 68,
+      "currentScore": 50,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 81,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 16.8,
+        "taskPoints": 31,
+        "behaviorPoints": 13.2
+      }
+    },
+    {
+      "studentName": "Abd alsalam abu Mahfuoz",
+      "universityNumber": "320220603170",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.1,
+      "correctedTaskComponent": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "صبحي عبدالمهدي صبحي دار مصلح",
+      "universityNumber": "320220603123",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 18,
+      "correctedTaskComponent": 33.1,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 17.5,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33.1,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "محمد إبراهيم مسلم شاهين",
+      "universityNumber": "320200601081",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26,
+      "correctedTaskComponent": 27.6,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 27.6,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "محمود تيسير احمد الغوانمه",
+      "universityNumber": "320220605149",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 83,
+      "currentScore": 83,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.2,
+      "correctedTaskComponent": 25,
+      "newFinalScore": 83,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 25,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "عبادة عمر احمد ابو خضير",
+      "universityNumber": "320220603198",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.4,
+      "correctedTaskComponent": 33.6,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33.6,
+        "behaviorPoints": 18.4
+      }
+    },
+    {
+      "studentName": "عمر هاشم احمد القناص",
+      "universityNumber": "320230603022",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 24.9,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 28.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "عبدالله رائد سليمان قبج",
+      "universityNumber": "320230601004",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 73,
+      "currentScore": 54,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 28.8,
+      "newFinalScore": 82.8,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 28.8,
+        "behaviorPoints": 14
+      }
+    },
+    {
+      "studentName": "عبد الرحمن خضر يوسف خليل",
+      "universityNumber": "320210601097",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.6,
+      "correctedTaskComponent": 26,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 26,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "نماء سعد خلف الحويطات",
+      "universityNumber": "320220603054",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 16.5,
+      "correctedTaskComponent": 29.6,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "همسة اشتيوي الشرفاء",
+      "universityNumber": "320230602037",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 86,
+      "currentScore": 86,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 16.9,
+      "correctedTaskComponent": 29.6,
+      "newFinalScore": 86,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.6,
+        "behaviorPoints": 16.4
+      }
+    },
+    {
+      "studentName": "اصيل احمد عبد الكريم السكارنة",
+      "universityNumber": "320220602035",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 84,
+      "currentScore": 84,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26.2,
+      "correctedTaskComponent": 26.8,
+      "newFinalScore": 84,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 26.8,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "بتول عمار ياسر السكافي",
+      "universityNumber": "320230602014",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.5,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "احمد منير منصور مغايرة",
+      "universityNumber": "320220605228",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 32.4,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "إبراهيم محمود احمد كرجغلي",
+      "universityNumber": "320220605111",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 87,
+      "currentScore": 87,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.7,
+      "correctedTaskComponent": 29,
+      "newFinalScore": 87,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "تامر وائل نواف العلص",
+      "universityNumber": "320220603026",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 76,
+      "currentScore": 54,
+      "currentStatus": "ineligible",
+      "currentTaskComponent": 0,
+      "correctedTaskComponent": 29.9,
+      "newFinalScore": 83.9,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.9,
+        "behaviorPoints": 14
+      }
+    },
+    {
+      "studentName": "ثائر علي محمد الشماسين",
+      "universityNumber": "320230602065",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "محمد مروان محمود ابراهيم",
+      "universityNumber": "320220603067",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.2,
+      "correctedTaskComponent": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "مجد بسام سالم الصعيدي",
+      "universityNumber": "320220605217",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 37,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "رنا مأمون الحجاج",
+      "universityNumber": "320220605060",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 37,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "Ahmad Mohammed Ahmad Soub",
+      "universityNumber": "320230602064",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35,
+      "correctedTaskComponent": 39.8,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبد المجيد اياد عبد المجيد الخطيب",
+      "universityNumber": "320220603233",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.2,
+      "correctedTaskComponent": 32.4,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "أيهم عماد عبدالرحمن ابوالرب",
+      "universityNumber": "320240605129",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 93,
+      "currentScore": 93,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 33,
+      "newFinalScore": 93,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 33,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عبدالرحمن عماد خليل القطامين",
+      "universityNumber": "320230602055",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 25.7,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "اسراء احمد ماجد مراشده",
+      "universityNumber": "320230602116",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34,
+      "correctedTaskComponent": 37.4,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "ميساء مازن محمد السوالمة",
+      "universityNumber": "320230601021",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 39.8,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "عمرو وليد عبد الفتاح الحتاوي",
+      "universityNumber": "320220603232",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 32.1,
+      "correctedTaskComponent": 36.4,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 36.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "مريم هايل يوسف الهوامله",
+      "universityNumber": "320230603014",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 39.2,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عمر جهاد محمود جبريل",
+      "universityNumber": "320220603142",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 79,
+      "currentScore": 83.2,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.2,
+      "correctedTaskComponent": 33.2,
+      "newFinalScore": 83.2,
+      "finalStatus": "ELIGIBLE",
+      "source": "VERIFIED_RECALCULATION_FROM_LMS_EVIDENCE",
+      "changeReason": "VERIFIED_LIVE_GE80",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 12.8,
+        "taskPoints": 33.2,
+        "behaviorPoints": 17.2
+      }
+    },
+    {
+      "studentName": "القاسم مناور احمد العميريين",
+      "universityNumber": "320220605065",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35,
+      "correctedTaskComponent": 29.4,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 29.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "عبدالله غسان علي ابوخرمه",
+      "universityNumber": "320220602019",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 97,
+      "currentScore": 97,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.7,
+      "correctedTaskComponent": 37,
+      "newFinalScore": 97,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 37,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "احمد ابراهيم عدنان ابوزيد",
+      "universityNumber": "320220605251",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 98,
+      "currentScore": 98,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 38.4,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 38.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "ann momani",
+      "universityNumber": "320230605005",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.5,
+      "correctedTaskComponent": 39.8,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 39.8,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "فاروق محمد فاروق عبيدات",
+      "universityNumber": "320230603015",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "صهيب عصام علي العوده",
+      "universityNumber": "320220605212",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 33.8,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 33.8,
+        "behaviorPoints": 18.8
+      }
+    },
+    {
+      "studentName": "إبراهيم عطاالله إبراهيم الشباطات",
+      "universityNumber": "320220605261",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 92,
+      "currentScore": 92,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.3,
+      "correctedTaskComponent": 32.4,
+      "newFinalScore": 92,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 32.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "اجياد ياسين عبدالحميد العمرو",
+      "universityNumber": "320220605165",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 91,
+      "currentScore": 91,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.3,
+      "correctedTaskComponent": 31.4,
+      "newFinalScore": 91,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31.4,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "Mayes Mohaamad2005",
+      "universityNumber": "320230602062",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 35.3,
+      "correctedTaskComponent": 39,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39,
+        "behaviorPoints": 20
+      }
+    },
+    {
+      "studentName": "يرين نضال نصيرات",
+      "universityNumber": "320210602057",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 96,
+      "currentScore": 96,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.9,
+      "correctedTaskComponent": 37.2,
+      "newFinalScore": 96,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 19.2,
+        "taskPoints": 37.2,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "Mohammad Slaman Al-Qatameen",
+      "universityNumber": "320230603008",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.1,
+      "correctedTaskComponent": 40,
+      "newFinalScore": 98,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 18.4,
+        "taskPoints": 40,
+        "behaviorPoints": 19.6
+      }
+    },
+    {
+      "studentName": "Mahmoud Aldarawish",
+      "universityNumber": "320220603024",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 90,
+      "currentScore": 90,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 33.7,
+      "correctedTaskComponent": 30.8,
+      "newFinalScore": 90,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 30.8,
+        "behaviorPoints": 19.2
+      }
+    },
+    {
+      "studentName": "اسامة حسام شكري شحادة",
+      "universityNumber": "320230602075",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 89,
+      "currentScore": 89,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 26,
+      "correctedTaskComponent": 31,
+      "newFinalScore": 89,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 31,
+        "behaviorPoints": 18
+      }
+    },
+    {
+      "studentName": "زيد عمر محمد الجواودة",
+      "universityNumber": "320230602147",
+      "oldApprovedStatus": "ELIGIBLE",
+      "oldApprovedScore": 99,
+      "currentScore": 99,
+      "currentStatus": "eligible",
+      "currentTaskComponent": 34.2,
+      "correctedTaskComponent": 39.4,
+      "newFinalScore": 99,
+      "finalStatus": "ELIGIBLE",
+      "source": "AUTHORIZED_MANUAL_REVIEW",
+      "changeReason": "AUTHORIZED_MANUAL_REVIEW_TASK_CORRECTION",
+      "breakdown": {
+        "attendancePoints": 20,
+        "postAssessmentPoints": 20,
+        "taskPoints": 39.4,
+        "behaviorPoints": 19.6
+      }
+    }
+  ],
+  "validations": [
+    {
+      "name": "baseline_count_151",
+      "ok": true
+    },
+    {
+      "name": "no_duplicate_uni_in_population",
+      "ok": true
+    },
+    {
+      "name": "lms_students_151",
+      "ok": true
+    },
+    {
+      "name": "hist_eligible_preserved",
+      "ok": true
+    },
+    {
+      "name": "eligible_below_80_after_zero",
+      "ok": true
+    },
+    {
+      "name": "eligible_null_after_zero",
+      "ok": true
+    },
+    {
+      "name": "breakdown_mismatch_zero",
+      "ok": true
+    },
+    {
+      "name": "eligible_failure_reasons_zero",
+      "ok": true
+    },
+    {
+      "name": "scores_in_range",
+      "ok": true
+    },
+    {
+      "name": "laith_not_eligible",
+      "ok": true
+    },
+    {
+      "name": "approved_not_eligible_preserved",
+      "ok": true
+    },
+    {
+      "name": "laith_task1_84",
+      "ok": true
+    },
+    {
+      "name": "laith_task2_78",
+      "ok": true
+    },
+    {
+      "name": "laith_task3_unsubmitted_zero",
+      "ok": true
+    },
+    {
+      "name": "laith_task4_unsubmitted_zero",
+      "ok": true
+    },
+    {
+      "name": "laith_task_points_16_2",
+      "ok": true
+    },
+    {
+      "name": "laith_final_numeric_below_80",
+      "ok": true
+    }
+  ],
+  "validationPassed": true,
+  "persisted": 151,
+  "appliedAt": "2026-09-08T17:00:27.181Z"
+}

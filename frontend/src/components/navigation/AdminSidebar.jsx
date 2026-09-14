@@ -100,11 +100,11 @@ export function AdminSidebar({
         className
       )}
       data-collapsed={collapsed ? 'true' : 'false'}
+      data-brand={brand}
       aria-label={t('sidebar.adminMenuAria')}
     >
       <div className="app-sidebar__brand">
         <BrandLogo variant="sidebar" alt={t('logo.alt')} />
-        <span className="sr-only">{brand}</span>
         <button
           type="button"
           className="app-sidebar__drawer-close"

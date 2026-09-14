@@ -845,6 +845,12 @@
     border-radius: 9999px;
   }
 
+  #battechno-landing .hero-floating-nav .brand-logo-link {
+    position: relative;
+    z-index: 1;
+    max-width: min(100%, 9rem);
+  }
+
   #battechno-landing .hero-floating-nav__bar--mobile,
   #battechno-landing .hero-floating-nav__bar--menu {
     border-radius: 1rem;
@@ -1264,11 +1270,13 @@
     }
   }
 
+  #battechno-landing .landing-footer__brand .brand-logo-link,
   #battechno-landing .landing-footer__brand img {
     margin-inline: auto;
   }
 
   @media (min-width: 640px) {
+    #battechno-landing .landing-footer__brand .brand-logo-link,
     #battechno-landing .landing-footer__brand img {
       margin-inline: 0;
     }

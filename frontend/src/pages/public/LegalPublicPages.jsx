@@ -17,9 +17,7 @@ function LegalShell({ children, title }) {
     <div id="battechno-landing" className="min-h-screen bg-[#F7F5F0]" dir={dir} lang={locale}>
       <header className="border-b border-black/5 bg-white/80 backdrop-blur">
         <div className="landing-container flex items-center justify-between gap-4 py-4">
-          <Link to="/" className="inline-flex items-center gap-3 no-underline">
-            <LandingBrandLogo alt={t('brand')} className="!mb-0 !h-12" />
-          </Link>
+          <LandingBrandLogo variant="header" alt={t('brand')} />
           <div className="flex items-center gap-3">
             <button
               type="button"

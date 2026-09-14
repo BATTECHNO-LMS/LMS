@@ -36,9 +36,7 @@ export function HeroFloatingNav() {
         <span className="hero-floating-nav__glow" aria-hidden />
         <span className="hero-floating-nav__wave-edge" aria-hidden />
         <div className="hero-floating-nav__inner flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-          <Link to="/" className="relative z-[1] shrink-0 ps-1" onClick={close}>
-            <BrandLogo variant="header" alt={t('brand')} />
-          </Link>
+          <BrandLogo variant="header" alt={t('brand')} className="relative z-[1] shrink-0 ps-1" onNavigate={close} />
 
           <nav className="relative z-[1] flex min-w-0 flex-1 flex-wrap items-center justify-center gap-0.5" aria-label="Primary">
             {NAV_LINKS.map(({ href, key }) => (
@@ -83,9 +81,9 @@ export function HeroFloatingNav() {
           >
             {open ? <FiX size={20} /> : <FiMenu size={20} />}
           </button>
-          <Link to="/" className="relative z-[1] flex flex-1 justify-center" onClick={close}>
-            <BrandLogo variant="header" alt={t('brand')} />
-          </Link>
+          <div className="relative z-[1] flex min-w-0 flex-1 justify-center">
+            <BrandLogo variant="header" alt={t('brand')} onNavigate={close} />
+          </div>
           <div className="relative z-[1]">
             <PortalLoginMenu label={t('header.login')} compact />
           </div>

@@ -180,10 +180,10 @@
 .illustrated-status__logo {
   position: relative;
   z-index: 1;
-  max-width: 12rem;
-  height: auto;
-  filter: brightness(0) invert(1);
-  opacity: 0.95;
+  max-width: 11rem;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.55rem;
 }
 
 .illustrated-status__illustration {

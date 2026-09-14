@@ -72,7 +72,8 @@
     "closeDrawer": "إغلاق الشريط الجانبي"
   },
   "logo": {
-    "alt": "شعار eprojecto"
+    "alt": "eprojecto",
+    "homeAria": "العودة إلى الصفحة الرئيسية"
   },
   "passwordVisibility": {
     "show": "إظهار كلمة المرور",

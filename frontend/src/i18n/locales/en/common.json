@@ -72,7 +72,8 @@
     "closeDrawer": "Close sidebar"
   },
   "logo": {
-    "alt": "eprojecto"
+    "alt": "eprojecto",
+    "homeAria": "Back to home page"
   },
   "passwordVisibility": {
     "show": "Show password",

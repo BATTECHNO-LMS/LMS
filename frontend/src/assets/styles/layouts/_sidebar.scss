@@ -21,11 +21,17 @@
   &--collapsed {
     width: $sidebar-collapsed-width;
 
-    .app-sidebar__logo-image {
-      width: 2.85rem;
-      height: auto;
-      max-width: 2.85rem;
+    .brand-logo-link--sidebar {
       padding: 0.2rem;
+      max-width: 3.15rem;
+    }
+
+    .app-sidebar__logo-image,
+    .brand-logo--sidebar {
+      width: auto;
+      height: auto;
+      max-width: 2.65rem;
+      max-height: 2.65rem;
     }
 
     .app-sidebar__brand-text,
@@ -81,13 +87,8 @@
 
 .app-sidebar__logo-image {
   width: auto;
-  height: 3.35rem;
-  max-width: 10rem;
   object-fit: contain;
   flex-shrink: 0;
-  background: #fff;
-  border-radius: 0.75rem;
-  padding: 0.28rem 0.45rem;
 }
 
 .app-sidebar__brand-text {
