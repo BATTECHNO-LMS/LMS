@@ -4,11 +4,48 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const analyticsController = require('./analytics.controller');
-const { analyticsQuerySchema } = require('./analytics.validation');
+const { analyticsQuerySchema, commandCenterQuerySchema } = require('./analytics.validation');
 
 const router = express.Router();
 const superAdminOnly = authorizeRoles('super_admin');
+const commandCenterRead = authorizeRoles('super_admin', 'admin');
 const fieldTrainingAnalyticsRead = authorizeRoles('super_admin', ...env.REPORT_READ_ROLE_CODES);
+
+router.get(
+  '/command-center',
+  authenticate,
+  commandCenterRead,
+  validateRequest({ query: commandCenterQuerySchema }),
+  analyticsController.commandCenterOverview
+);
+router.get(
+  '/command-center/live',
+  authenticate,
+  commandCenterRead,
+  validateRequest({ query: commandCenterQuerySchema }),
+  analyticsController.commandCenterLiveStream
+);
+router.get(
+  '/command-center/live-snapshot',
+  authenticate,
+  commandCenterRead,
+  validateRequest({ query: commandCenterQuerySchema }),
+  analyticsController.commandCenterLiveSnapshot
+);
+router.get(
+  '/command-center/filters',
+  authenticate,
+  commandCenterRead,
+  validateRequest({ query: commandCenterQuerySchema }),
+  analyticsController.commandCenterFilters
+);
+router.get(
+  '/command-center/drilldown',
+  authenticate,
+  commandCenterRead,
+  validateRequest({ query: commandCenterQuerySchema }),
+  analyticsController.commandCenterDrilldown
+);
 
 router.get('/overview', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.overview);
 router.get('/universities', authenticate, superAdminOnly, validateRequest({ query: analyticsQuerySchema }), analyticsController.universities);

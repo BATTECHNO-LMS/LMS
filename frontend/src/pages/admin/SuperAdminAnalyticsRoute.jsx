@@ -2,16 +2,17 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../features/auth/index.js';
 import { ROLES } from '../../constants/roles.js';
 import { UnauthorizedPage } from '../../components/permissions/UnauthorizedPage.jsx';
-import { SuperAdminAnalyticsPage } from './SuperAdminAnalyticsPage.jsx';
+import { AnalyticsCommandCenterPage } from './analytics/AnalyticsCommandCenterPage.jsx';
 
-/** Renders analytics only for super_admin; others see localized unauthorized message. */
+/** Command Center for super_admin and organization admin. */
 export function SuperAdminAnalyticsRoute() {
   const { user } = useAuth();
   const { t } = useTranslation('analytics');
+  const allowed = user?.role === ROLES.SUPER_ADMIN || user?.role === ROLES.ADMIN || user?.isGlobal;
 
-  if (user?.role !== ROLES.SUPER_ADMIN) {
+  if (!allowed) {
     return <UnauthorizedPage title={t('unauthorized.title')} description={t('unauthorized.description')} />;
   }
 
-  return <SuperAdminAnalyticsPage />;
+  return <AnalyticsCommandCenterPage />;
 }

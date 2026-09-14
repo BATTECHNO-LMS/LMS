@@ -1,7 +1,7 @@
 {
   "unauthorized": {
-    "title": "You are not authorized to access the advanced analytics dashboard",
-    "description": "This area is restricted to super administrators. Return to your dashboard or contact the system owner."
+    "title": "You are not authorized to access analytics",
+    "description": "This area is restricted to platform administrators. Return to your dashboard or contact the system owner."
   },
   "page": {
     "title": "Statistics & analytics dashboard",
@@ -286,5 +286,131 @@
     "2026-02": "Feb 2026",
     "2026-03": "Mar 2026",
     "2026-04": "Apr 2026"
+  },
+  "cc": {
+    "page": {
+      "title": "Analytics & KPIs",
+      "subtitle": "A real-time view of platform performance"
+    },
+    "live": "Live",
+    "updating": "Updating…",
+    "updatedAgo": "Last updated {{seconds}} seconds ago",
+    "close": "Close",
+    "filters": {
+      "button": "Filters",
+      "period": "Period",
+      "today": "Today",
+      "d7": "Last 7 days",
+      "d30": "Last 30 days",
+      "custom": "Custom",
+      "orgType": "Organization type",
+      "organization": "Organization",
+      "opportunity": "Program / opportunity",
+      "role": "Role",
+      "from": "From",
+      "to": "To",
+      "all": "All",
+      "universities": "Universities",
+      "institutions": "Institutions",
+      "clearOrg": "Clear filter"
+    },
+    "kpi": {
+      "online": "Users online now",
+      "onlineInfo": "Requires live auth sessions. Not inferred from last login.",
+      "onlineHelper": "Presence source is not available yet",
+      "unavailable": "Unavailable",
+      "active": "Active users",
+      "activeInfo": "Users who performed meaningful activity in the selected period.",
+      "students": "Total students",
+      "opportunities": "Training opportunities",
+      "lectures": "Recorded lectures",
+      "certificates": "Certificates issued",
+      "newUsers": "New users",
+      "helper": "Based on the selected period",
+      "vsPrevious": "Compared with the previous period",
+      "new": "New",
+      "noCompare": "No comparison data"
+    },
+    "charts": {
+      "activeTrend": "Active users over time",
+      "roles": "Users by role",
+      "live": "Live activity"
+    },
+    "activity": { "user": "User" },
+    "ft": {
+      "funnel": "Field training stages",
+      "eligibleDrill": "View eligible students",
+      "scores": "Field training score distribution",
+      "attendance": "Attendance rate",
+      "present": "Present",
+      "absent": "Absent",
+      "unspecified": "Unspecified",
+      "prePost": "Assessment progress",
+      "preAvg": "PRE average",
+      "postAvg": "POST average",
+      "improvement": "Improvement"
+    },
+    "lectures": {
+      "title": "Recorded lectures",
+      "published": "Published lectures",
+      "started": "Started watching",
+      "completed": "Completed",
+      "rate": "Completion rate",
+      "uniqueHours": "Unique watch hours",
+      "watching": "Currently watching"
+    },
+    "heatmap": {
+      "title": "Activity by day and time",
+      "low": "Least activity",
+      "high": "Most activity"
+    },
+    "orgs": {
+      "title": "University and institution performance",
+      "activeUsers": "Active users",
+      "students": "Students",
+      "training": "Training completion",
+      "certificates": "Certificates"
+    },
+    "courses": {
+      "title": "Courses",
+      "published": "Published courses",
+      "enrollments": "Enrollments",
+      "completed": "Completed",
+      "rate": "Completion rate",
+      "programs": "Training programs",
+      "programEnroll": "Program enrollments"
+    },
+    "mc": {
+      "title": "Micro-credentials",
+      "hidden": "Not available for institution scope.",
+      "published": "Published credentials",
+      "enrollments": "Enrollments",
+      "completed": "Completed",
+      "certs": "Certificates issued in period"
+    },
+    "certs": { "letters": "Completion letters (separate from certificates)" },
+    "health": {
+      "title": "System health",
+      "api": "API",
+      "db": "Database",
+      "ok": "Connected",
+      "down": "Disconnected",
+      "jobs": "Failed completion-letter jobs"
+    },
+    "drawer": { "title": "KPI details", "error": "Could not load details." },
+    "empty": {
+      "generic": "Not enough data for the selected period.",
+      "trend": "Not enough activity to plot a trend.",
+      "activity": "No recent activity in this scope."
+    },
+    "roles": {
+      "student": "Student",
+      "trainee": "Trainee",
+      "trainer": "Trainer",
+      "instructor": "Instructor",
+      "admin": "Admin",
+      "reviewer": "Reviewer",
+      "super_admin": "Super admin"
+    }
   }
 }

@@ -33,6 +33,42 @@ const analyticsQuerySchema = z
     };
   });
 
+const commandCenterQuerySchema = z
+  .object({
+    period: z.enum(['today', '7d', '30d', 'custom']).optional().default('30d'),
+    dateFrom: z.string().max(40).optional(),
+    dateTo: z.string().max(40).optional(),
+    from: z.string().max(40).optional(),
+    to: z.string().max(40).optional(),
+    organizationId: z.string().uuid().optional(),
+    organization_id: z.string().uuid().optional(),
+    universityId: z.string().uuid().optional(),
+    university_id: z.string().uuid().optional(),
+    organizationType: z.enum(['UNIVERSITY', 'INSTITUTION']).optional(),
+    organization_type: z.enum(['UNIVERSITY', 'INSTITUTION']).optional(),
+    opportunityId: z.string().uuid().optional(),
+    opportunity_id: z.string().uuid().optional(),
+    courseId: z.string().uuid().optional(),
+    microCredentialId: z.string().uuid().optional(),
+    role: z.string().max(40).optional(),
+    orgMetric: z.enum(['activeUsers', 'students', 'trainingCompletion', 'courseCompletion', 'certificates']).optional(),
+    type: z.string().max(40).optional(),
+    bucket: z.string().max(20).optional(),
+    page: z.coerce.number().int().min(1).max(500).optional(),
+    pageSize: z.coerce.number().int().min(1).max(50).optional(),
+    activityCategory: z.string().max(40).optional(),
+  })
+  .transform((q) => ({
+    ...q,
+    dateFrom: q.dateFrom || q.from,
+    dateTo: q.dateTo || q.to,
+    organizationId: q.organizationId || q.organization_id,
+    universityId: q.universityId || q.university_id,
+    organizationType: q.organizationType || q.organization_type,
+    opportunityId: q.opportunityId || q.opportunity_id,
+  }));
+
 module.exports = {
   analyticsQuerySchema,
+  commandCenterQuerySchema,
 };

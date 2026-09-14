@@ -31,6 +31,12 @@ function canReach(user, pathname) {
 }
 
 describe('product scope navigation', () => {
+  it('University Admin, Institution Admin, and Super Admin can reach /admin/analytics', () => {
+    assert.equal(canReach(uniAdmin, '/admin/analytics'), true);
+    assert.equal(canReach(superAdmin, '/admin/analytics'), true);
+    assert.equal(canReach(instAdmin, '/admin/analytics'), true);
+  });
+
   it('University Admin sees Courses, Micro-Credentials, and Field Training', () => {
     const paths = flattenAdminNavPaths(ROLES.ADMIN, uniAdmin);
     assert.ok(paths.includes('/admin/training-courses'));

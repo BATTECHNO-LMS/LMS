@@ -1,5 +1,5 @@
 const analyticsService = require('./analytics.service');
-const ftAnalyticsRepo = require('../fieldTraining/fieldTrainingAnalytics.repository');
+const commandCenter = require('./commandCenter.service');
 const { isSystemWideAdmin, resolveUniversityIdFilter } = require('../../utils/universityScope');
 const analyticsPdfService = require('./analyticsPdf.service');
 const analyticsExcelExportService = require('./analyticsExcelExport.service');
@@ -145,6 +145,80 @@ async function exportExcel(req, res, next) {
   }
 }
 
+async function commandCenterOverview(req, res, next) {
+  try {
+    const data = await commandCenter.getCommandCenterOverview(req.user, req.validated.query);
+    return success(res, data, { message: 'Analytics command center retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function commandCenterLiveSnapshot(req, res, next) {
+  try {
+    const data = await commandCenter.getLiveSnapshot(req.user, req.validated.query);
+    return success(res, data, { message: 'Analytics live snapshot retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function commandCenterFilters(req, res, next) {
+  try {
+    const data = await commandCenter.getFilterOptions(req.user, req.validated.query);
+    return success(res, data, { message: 'Analytics filters retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function commandCenterDrilldown(req, res, next) {
+  try {
+    const data = await commandCenter.getDrilldown(req.user, req.validated.query);
+    return success(res, data, { message: 'Analytics drilldown retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function commandCenterLiveStream(req, res, next) {
+  try {
+    await commandCenter.getLiveSnapshot(req.user, req.validated.query);
+  } catch (e) {
+    return next(e);
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+  let closed = false;
+  const send = async () => {
+    if (closed) return;
+    try {
+      const data = await commandCenter.getLiveSnapshot(req.user, req.validated.query);
+      res.write(`event: snapshot\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch (err) {
+      if (err?.statusCode === 401 || err?.statusCode === 403) {
+        res.write(`event: auth\ndata: ${JSON.stringify({ code: err.code || 'FORBIDDEN' })}\n\n`);
+        closed = true;
+        res.end();
+        return;
+      }
+      res.write(`event: error\ndata: ${JSON.stringify({ message: 'live_update_failed' })}\n\n`);
+    }
+  };
+
+  await send();
+  const interval = setInterval(send, 8000);
+  req.on('close', () => {
+    closed = true;
+    clearInterval(interval);
+  });
+}
+
 module.exports = {
   overview,
   universities,
@@ -159,4 +233,9 @@ module.exports = {
   fieldTraining,
   exportPdf,
   exportExcel,
+  commandCenterOverview,
+  commandCenterLiveSnapshot,
+  commandCenterFilters,
+  commandCenterDrilldown,
+  commandCenterLiveStream,
 };

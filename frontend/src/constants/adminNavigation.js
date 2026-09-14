@@ -44,6 +44,7 @@ export const ADMIN_NAV_GROUPS = [
     titleKey: 'admin.groups.main',
     items: [
       entry('/admin/dashboard', 'admin.items.dashboard', LayoutDashboard, [S, Ad]),
+      entry('/admin/analytics', 'admin.items.analytics', BarChart3, [S, Ad]),
       entry('/admin/training-courses', 'admin.items.trainingCourses', BookOpen, [Ad]),
       entry('/admin/micro-credentials', 'admin.items.microCredentials', GraduationCap, [Ad]),
       entry('/admin/field-training', 'admin.items.fieldTraining', Briefcase, [Ad], {
@@ -121,6 +122,7 @@ export const ADMIN_NAV_GROUPS = [
 const ADMIN_EXTRA_PATH_PREFIXES = {
   shared: [
     '/admin/dashboard',
+    '/admin/analytics',
     '/admin/notifications',
     '/admin/notification-settings',
     '/admin/certificates',
