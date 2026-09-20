@@ -6,8 +6,10 @@ const {
   buildStorageKey,
   assertSafeStorageKey,
   getMaxBytesForMime,
+  isAllowedFolder,
 } = require('../../shared/storage/fileRules');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
+const { resolveMimeType, isAllowedSubmissionFile } = require('../fieldTraining/fieldTraining.submissionFileRules');
 const repo = require('./files.repository');
 
 function canAccessFile(file, user) {
@@ -57,6 +59,66 @@ async function presignUpload(body, user) {
     relatedEntityId: body.relatedEntityId ?? null,
     createdById: user.userId,
   };
+}
+
+async function uploadDirect(file, body, user) {
+  if (!file || !file.buffer) {
+    throw new ApiError(400, 'لم يُرفق ملف', null, 'FILE_VALIDATION_ERROR');
+  }
+
+  const originalName = String(file.originalname || body.fileName || 'file').trim() || 'file';
+  const mimeType = resolveMimeType(originalName, file.mimetype || body.mimeType);
+  const size = Number(file.size) || Buffer.byteLength(file.buffer);
+  const validation = validateUploadRequest({
+    fileName: originalName,
+    mimeType,
+    size,
+    folder: body.folder,
+  });
+  if (!validation.valid) {
+    const fallback = isAllowedSubmissionFile({ fileName: originalName, mimeType, size });
+    if (!isAllowedFolder(body.folder) || !fallback.valid) {
+      throw new ApiError(
+        400,
+        validation.errors[0] || fallback.errors[0] || 'Invalid upload request',
+        null,
+        'FILE_VALIDATION_ERROR'
+      );
+    }
+  }
+
+  const provider = getProvider();
+  if (typeof provider.putObjectBuffer !== 'function') {
+    throw new ApiError(503, 'Storage provider cannot store buffers', null, 'STORAGE_PROVIDER_ERROR');
+  }
+
+  const folder = validation.valid ? validation.folder : String(body.folder || '').trim().toLowerCase();
+  const storageKey = buildStorageKey(folder, originalName);
+  assertSafeStorageKey(storageKey);
+
+  try {
+    await provider.putObjectBuffer(storageKey, file.buffer, mimeType);
+  } catch {
+    throw new ApiError(503, 'تعذّر رفع الملف. حاول لاحقًا.', null, 'STORAGE_PROVIDER_ERROR');
+  }
+
+  const bucket = getStorageBackend() === 'r2' ? env.R2_BUCKET_NAME : env.UPLOAD_DIR || 'uploads';
+  const visibility = body.visibility === 'public' ? 'public' : 'private';
+  const url = visibility === 'public' ? resolvePublicUrl(storageKey) : null;
+
+  return repo.createFile({
+    userId: user.userId,
+    createdById: user.userId,
+    relatedEntityType: body.relatedEntityType ?? null,
+    relatedEntityId: body.relatedEntityId ?? null,
+    originalName,
+    storageKey,
+    bucket,
+    mimeType,
+    size: Buffer.byteLength(file.buffer),
+    visibility,
+    url,
+  });
 }
 
 async function confirmUpload(body, user) {
@@ -197,6 +259,7 @@ async function resolveUploadInput(input, user) {
 module.exports = {
   presignUpload,
   confirmUpload,
+  uploadDirect,
   getDownloadUrl,
   deleteFile,
   getFileByIdForUser,

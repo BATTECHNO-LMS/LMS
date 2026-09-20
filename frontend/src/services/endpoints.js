@@ -76,6 +76,7 @@ export const endpoints = {
   files: {
     presignUpload: `${API_V}/files/presign-upload`,
     confirmUpload: `${API_V}/files/confirm-upload`,
+    upload: `${API_V}/files/upload`,
   },
   public: {
     landingStats: `${API_V}/public/landing-stats`,

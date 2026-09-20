@@ -19,6 +19,15 @@ async function confirmUpload(req, res, next) {
   }
 }
 
+async function uploadDirect(req, res, next) {
+  try {
+    const data = await filesService.uploadDirect(req.file, req.validated.body, req.user);
+    return success(res, data, { status: 201, message: 'File uploaded' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function downloadUrl(req, res, next) {
   try {
     const data = await filesService.getDownloadUrl(req.validated.params.id, req.user);
@@ -50,6 +59,7 @@ async function health(req, res, next) {
 module.exports = {
   presignUpload,
   confirmUpload,
+  uploadDirect,
   downloadUrl,
   remove,
   health,

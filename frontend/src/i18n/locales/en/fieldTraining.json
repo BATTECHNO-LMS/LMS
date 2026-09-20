@@ -414,6 +414,7 @@
     "filesCount": "{{count}} file(s)",
     "uploadProgress": "Uploading… {{percent}}%",
     "fileTooLarge": "File exceeds the allowed size",
+    "unsupportedType": "This file type is not supported",
     "tooManyFiles": "Too many files for one submission",
     "archiveAiWarning": "File uploaded successfully, but the archive will not be analyzed automatically. Attach a description or a supported file for a more accurate evaluation.",
     "aiSupportedFilesTitle": "Files the AI can read",

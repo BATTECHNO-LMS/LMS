@@ -5,9 +5,11 @@ const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const { fileUploadLimiter } = require('./files.rateLimit.middleware');
 const filesController = require('./files.controller');
+const { handleDirectUpload } = require('./files.upload');
 const {
   presignUploadBodySchema,
   confirmUploadBodySchema,
+  directUploadBodySchema,
   uuidParamSchema,
 } = require('./files.validation');
 
@@ -29,6 +31,15 @@ router.post(
   fileUploadLimiter,
   validateRequest({ body: confirmUploadBodySchema }),
   filesController.confirmUpload
+);
+
+router.post(
+  '/upload',
+  authenticate,
+  fileUploadLimiter,
+  handleDirectUpload,
+  validateRequest({ body: directUploadBodySchema }),
+  filesController.uploadDirect
 );
 
 router.get('/health/storage', authenticate, adminOnly, filesController.health);

@@ -6,7 +6,7 @@ import { uploadFileToStorage, mapUploadError } from '../../features/uploads/uplo
 import { validateFileForUpload, formatMaxSize } from '../../features/uploads/uploadRules.js';
 
 /**
- * Reusable file uploader with presigned R2 flow and progress.
+ * Reusable file uploader with same-origin API upload and progress.
  */
 export function FileUploader({
   onUploaded,

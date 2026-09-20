@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const routes = require('./routes');
 const authRoutes = require('./modules/auth/auth.routes');
 const { env } = require('./config/env');
+const { getBrowserCorsOrigins } = require('./config/corsOrigins');
 const { prisma } = require('./config/db');
 const { errorMiddleware } = require('./middlewares/error.middleware');
 const { requestIdMiddleware } = require('./middlewares/requestId.middleware');
@@ -16,17 +17,7 @@ const app = express();
 
 app.set('trust proxy', 1);
 
-const allowedOrigins = [
-  'https://eprojecto.com',
-  'https://www.eprojecto.com',
-  'https://lms.battechno.com',
-  'https://www.lms.battechno.com',
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:5173',
-  ...env.CORS_ORIGINS,
-];
+const allowedOrigins = getBrowserCorsOrigins();
 
 const corsOptions = {
   origin(origin, callback) {

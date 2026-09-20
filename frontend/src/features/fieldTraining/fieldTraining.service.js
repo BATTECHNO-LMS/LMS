@@ -220,12 +220,16 @@ export async function submitFieldTrainingTaskWithMeta(taskId, file, meta = {}) {
   }
   fileIds = [...new Set(fileIds.filter(Boolean))];
   const { onProgress, accept, maxBytes, fileId, analysis_file_id, ...restMeta } = meta;
-  const res = await apiClient.post(`${student}/tasks/${taskId}/submit`, {
-    fileId: fileIds[0] || fileId || undefined,
-    fileIds: fileIds.length ? fileIds : undefined,
-    analysis_file_id: analysis_file_id || fileIds[0] || undefined,
-    ...restMeta,
-  });
+  const res = await apiClient.post(
+    `${student}/tasks/${taskId}/submit`,
+    {
+      fileId: fileIds[0] || fileId || undefined,
+      fileIds: fileIds.length ? fileIds : undefined,
+      analysis_file_id: analysis_file_id || fileIds[0] || undefined,
+      ...restMeta,
+    },
+    { timeout: 120000 }
+  );
   return unwrapApiData(res);
 }
 

@@ -86,6 +86,7 @@ function errorMiddleware(err, req, res, next) {
       log('error', apiErr.message || 'ApiError 5xx', {
         requestId,
         code,
+        prismaCode: err?.code || null,
         name: err?.name,
         ...(env.NODE_ENV === 'production' ? {} : { stack: err?.stack }),
       });

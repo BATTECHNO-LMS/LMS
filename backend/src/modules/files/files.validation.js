@@ -25,6 +25,18 @@ const confirmUploadBodySchema = z.object({
   relatedEntityId: z.string().uuid().optional().nullable(),
 });
 
+const emptyToUndefined = (value) => (value === '' || value == null ? undefined : value);
+
+const directUploadBodySchema = z.object({
+  folder: folderSchema,
+  visibility: z.preprocess(
+    (value) => (value === '' || value == null ? 'private' : value),
+    visibilitySchema
+  ),
+  relatedEntityType: z.preprocess(emptyToUndefined, z.string().max(100).optional().nullable()),
+  relatedEntityId: z.preprocess(emptyToUndefined, z.string().uuid().optional().nullable()),
+});
+
 const uuidParamSchema = z.object({
   id: z.string().uuid(),
 });
@@ -32,5 +44,6 @@ const uuidParamSchema = z.object({
 module.exports = {
   presignUploadBodySchema,
   confirmUploadBodySchema,
+  directUploadBodySchema,
   uuidParamSchema,
 };

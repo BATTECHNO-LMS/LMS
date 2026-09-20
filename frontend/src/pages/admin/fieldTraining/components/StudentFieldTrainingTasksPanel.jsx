@@ -97,10 +97,12 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
       refetch();
       setSubmitSuccess(true);
     } catch (err) {
-      if (err?.code === 'TOO_LARGE') {
+      if (err?.code === 'TOO_LARGE' || err?.code === 'FILE_TOO_LARGE') {
         setError(t('tasks.fileTooLarge'));
+      } else if (err?.code === 'INVALID_TYPE' || err?.code === 'FILE_VALIDATION_ERROR') {
+        setError(t('tasks.unsupportedType'));
       } else {
-        setError(getApiErrorMessage(err, tCommon('errors.generic')));
+        setError(getApiErrorMessage(err, t('tasks.serverError')));
       }
     } finally {
       setSubmittingTaskId(null);

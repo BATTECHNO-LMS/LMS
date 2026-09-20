@@ -1,11 +1,16 @@
 /**
  * Apply CORS policy to the Cloudflare R2 bucket for browser presigned uploads.
- * Uses the same origins as API CORS (CORS_ORIGINS in .env).
+ * Uses the same origins as API CORS (built-in production hosts + CORS_ORIGINS).
+ *
+ * The object-read/write R2 token cannot change bucket CORS (Access Denied).
+ * If this script fails, paste the printed JSON into:
+ * Cloudflare Dashboard → R2 → bucket → Settings → CORS policy
  *
  * Usage: node scripts/r2-setup-cors.js
  */
 const { S3Client, PutBucketCorsCommand, GetBucketCorsCommand } = require('@aws-sdk/client-s3');
 const { env } = require('../src/config/env');
+const { getBrowserCorsOrigins } = require('../src/config/corsOrigins');
 
 function createR2Client() {
   return new S3Client({
@@ -19,12 +24,19 @@ function createR2Client() {
   });
 }
 
-async function main() {
-  if (env.STORAGE_BACKEND !== 'r2') {
-    console.log('R2 CORS setup skipped (STORAGE_BACKEND is not r2).');
-    return;
-  }
+function buildCorsRules(origins) {
+  return [
+    {
+      AllowedOrigins: origins,
+      AllowedMethods: ['GET', 'PUT', 'HEAD'],
+      AllowedHeaders: ['*'],
+      ExposeHeaders: ['ETag', 'Content-Length', 'Content-Type'],
+      MaxAgeSeconds: 3600,
+    },
+  ];
+}
 
+async function main() {
   const missing = [];
   if (!env.R2_ENDPOINT) missing.push('R2_ENDPOINT');
   if (!env.R2_ACCESS_KEY_ID) missing.push('R2_ACCESS_KEY_ID');
@@ -35,34 +47,38 @@ async function main() {
     process.exit(1);
   }
 
-  const origins = env.CORS_ORIGINS.filter(Boolean);
+  const origins = getBrowserCorsOrigins();
   if (!origins.length) {
-    console.error('CORS_ORIGINS is empty. Add at least http://localhost:5173 to backend/.env');
+    console.error('No browser CORS origins configured.');
     process.exit(1);
   }
 
-  const corsRules = [
-    {
-      AllowedOrigins: origins,
-      AllowedMethods: ['GET', 'PUT', 'HEAD'],
-      AllowedHeaders: ['*'],
-      ExposeHeaders: ['ETag', 'Content-Length', 'Content-Type'],
-      MaxAgeSeconds: 3600,
-    },
-  ];
-
-  const client = createR2Client();
+  const corsRules = buildCorsRules(origins);
   const bucket = env.R2_BUCKET_NAME;
+  const policyJson = JSON.stringify({ CORSRules: corsRules }, null, 2);
 
   console.log(`Applying R2 CORS on bucket "${bucket}" for origins:`);
   origins.forEach((o) => console.log(`  - ${o}`));
 
-  await client.send(
-    new PutBucketCorsCommand({
-      Bucket: bucket,
-      CORSConfiguration: { CORSRules: corsRules },
-    })
-  );
+  const client = createR2Client();
+
+  try {
+    await client.send(
+      new PutBucketCorsCommand({
+        Bucket: bucket,
+        CORSConfiguration: { CORSRules: corsRules },
+      })
+    );
+  } catch (err) {
+    const denied = err?.name === 'AccessDenied' || /access denied/i.test(String(err.message || ''));
+    if (denied) {
+      console.error('\nCould not update bucket CORS: the R2 API token lacks Admin permission.');
+      console.error('Paste this policy in Cloudflare Dashboard → R2 → Settings → CORS policy:\n');
+      console.error(policyJson);
+      process.exit(1);
+    }
+    throw err;
+  }
 
   const current = await client.send(new GetBucketCorsCommand({ Bucket: bucket }));
   console.log('\nCurrent bucket CORS policy:');

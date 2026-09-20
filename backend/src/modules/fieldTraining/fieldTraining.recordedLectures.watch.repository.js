@@ -110,52 +110,67 @@ async function ensureProgress({ lectureId, applicationId, studentId, videoDurati
   }
 }
 
+function isRetryableTxError(err) {
+  const code = String(err?.code || '');
+  return code === 'P2034' || code === 'P2024';
+}
+
 async function applyHeartbeatTransaction({
   progressId,
   next,
   segments,
   duplicate,
 }) {
-  return prisma.$transaction(async (tx) => {
-    await tx.$queryRaw`SELECT id FROM field_training_recorded_lecture_progress WHERE id = ${progressId}::uuid FOR UPDATE`;
-    const current = await tx.field_training_recorded_lecture_progress.findUnique({
-      where: { id: progressId },
-      include: progressIncludeSegments,
-    });
-    if (!current) return null;
-    if (duplicate) {
-      return mapProgressRow(current);
-    }
-    await tx.field_training_recorded_lecture_watch_segments.deleteMany({
-      where: { progress_id: progressId },
-    });
-    if (segments.length) {
-      await tx.field_training_recorded_lecture_watch_segments.createMany({
-        data: segments.map(([start, end]) => ({
-          progress_id: progressId,
-          start_second: start,
-          end_second: end,
-        })),
+  const maxAttempts = 3;
+  let lastErr;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const current = await tx.field_training_recorded_lecture_progress.findUnique({
+          where: { id: progressId },
+          include: progressIncludeSegments,
+        });
+        if (!current) return null;
+        if (duplicate) {
+          return mapProgressRow(current);
+        }
+        await tx.field_training_recorded_lecture_watch_segments.deleteMany({
+          where: { progress_id: progressId },
+        });
+        if (segments.length) {
+          await tx.field_training_recorded_lecture_watch_segments.createMany({
+            data: segments.map(([start, end]) => ({
+              progress_id: progressId,
+              start_second: start,
+              end_second: end,
+            })),
+          });
+        }
+        const updated = await tx.field_training_recorded_lecture_progress.update({
+          where: { id: progressId },
+          data: {
+            video_duration_seconds: next.video_duration_seconds,
+            unique_watched_seconds: next.unique_watched_seconds,
+            total_playback_seconds: next.total_playback_seconds,
+            last_position_seconds: next.last_position_seconds,
+            progress_percentage: next.progress_percentage,
+            started_at: next.started_at,
+            last_watched_at: next.last_watched_at,
+            completed_at: next.completed_at,
+            heartbeat_cursors: next.heartbeat_cursors,
+            updated_at: new Date(),
+          },
+          include: progressIncludeSegments,
+        });
+        return mapProgressRow(updated);
       });
+    } catch (err) {
+      lastErr = err;
+      if (!isRetryableTxError(err) || attempt === maxAttempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 50 * attempt));
     }
-    const updated = await tx.field_training_recorded_lecture_progress.update({
-      where: { id: progressId },
-      data: {
-        video_duration_seconds: next.video_duration_seconds,
-        unique_watched_seconds: next.unique_watched_seconds,
-        total_playback_seconds: next.total_playback_seconds,
-        last_position_seconds: next.last_position_seconds,
-        progress_percentage: next.progress_percentage,
-        started_at: next.started_at,
-        last_watched_at: next.last_watched_at,
-        completed_at: next.completed_at,
-        heartbeat_cursors: next.heartbeat_cursors,
-        updated_at: new Date(),
-      },
-      include: progressIncludeSegments,
-    });
-    return mapProgressRow(updated);
-  });
+  }
+  throw lastErr;
 }
 
 module.exports = {
