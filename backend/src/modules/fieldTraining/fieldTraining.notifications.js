@@ -115,18 +115,37 @@ async function notifyFieldTrainingTaskSubmitted(params) {
 
 async function notifyStudentsTrainingStarted(params) {
   const { studentIds, opportunityId, opportunityTitle } = params;
-  let created = 0;
-  for (const userId of studentIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'بدء التدريب الميداني',
-      body: `بدأ التدريب لفرصة "${opportunityTitle || ''}".`,
-      type: 'success',
-      actionUrl: `/student/field-training/${opportunityId}?tab=overview`,
-    });
-    if (row) created += 1;
+  const uniqueIds = [...new Set((studentIds || []).filter(Boolean))];
+  if (!uniqueIds.length) return { created_count: 0 };
+
+  const title = 'بدء التدريب الميداني';
+  const body = `بدأ التدريب لفرصة "${opportunityTitle || ''}".`;
+  const actionUrl = `/student/field-training/${opportunityId}?tab=overview`;
+  const rows = uniqueIds.map((userId) => ({
+    user_id: userId,
+    title,
+    body,
+    type: 'success',
+    action_url: actionUrl,
+  }));
+
+  try {
+    const result = await prisma.notifications.createMany({ data: rows });
+    return { created_count: result.count };
+  } catch (_bulkErr) {
+    let created = 0;
+    for (const userId of uniqueIds) {
+      const row = await createNotificationForUser({
+        userId,
+        title,
+        body,
+        type: 'success',
+        actionUrl,
+      });
+      if (row) created += 1;
+    }
+    return { created_count: created };
   }
-  return { created_count: created };
 }
 
 async function notifyStudentsNewSession(params) {

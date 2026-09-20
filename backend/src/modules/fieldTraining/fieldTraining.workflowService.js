@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { ApiError } = require('../../utils/apiError');
+const { log } = require('../../utils/logger');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { env } = require('../../config/env');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
@@ -78,19 +79,28 @@ async function startTraining(opportunityId, userId, user) {
     data: { training_status: 'in_training', training_started_at: now },
   });
 
-  const participants = await repo.findActiveParticipants(opportunityId);
-  await ftNotify.notifyStudentsTrainingStarted({
-    studentIds: participants.map((p) => p.student_id),
-    opportunityId,
-    opportunityTitle: opp.title,
-  });
-
   await recordAudit({
     userId,
     actionType: 'FIELD_TRAINING_STARTED',
     entityType: 'field_training_opportunity',
     entityId: opportunityId,
   });
+
+  void repo
+    .findActiveParticipants(opportunityId)
+    .then((participants) =>
+      ftNotify.notifyStudentsTrainingStarted({
+        studentIds: participants.map((p) => p.student_id),
+        opportunityId,
+        opportunityTitle: opp.title,
+      })
+    )
+    .catch((err) => {
+      log('error', 'notifyStudentsTrainingStarted failed after training start', {
+        opportunityId,
+        message: err?.message,
+      });
+    });
 
   const updated = await repo.findById(opportunityId);
   return { opportunity: repo.mapOpportunityRow(updated) };
