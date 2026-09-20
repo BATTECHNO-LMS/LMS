@@ -276,7 +276,7 @@ export function StudentFieldTrainingTasksPanel({ opportunityId }) {
                     >
                       {t('selfEval.viewSubmission')}
                     </Link>
-                  ) : reviewStatus === 'needs_revision' ? (
+                  ) : presented.evaluationState === 'returned' ? (
                     <Button
                       type="button"
                       variant="outline"
