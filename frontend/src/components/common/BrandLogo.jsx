@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import logoSrc from '../../assets/images/eprojecto-logo.png';
+import logoSrc from '../../assets/images/eprojecto-logo.webp';
 import { APP_NAME } from '../../config/brand.js';
 import { cn } from '../../utils/helpers.js';
 
 export const BRAND_HOME_PATH = '/';
-export const BRAND_LOGO_WIDTH = 894;
-export const BRAND_LOGO_HEIGHT = 530;
+export const BRAND_LOGO_WIDTH = 640;
+export const BRAND_LOGO_HEIGHT = 379;
 
 /** @typedef {'header' | 'hero' | 'portal' | 'cockpit' | 'phone' | 'footer' | 'auth' | 'app-header' | 'sidebar'} BrandLogoVariant */
 

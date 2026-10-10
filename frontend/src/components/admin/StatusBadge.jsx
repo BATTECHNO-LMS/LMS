@@ -7,6 +7,9 @@ const VARIANTS = {
   info: 'status-badge--info',
   warning: 'status-badge--warning',
   danger: 'status-badge--danger',
+  error: 'status-badge--error',
+  live: 'status-badge--live',
+  neutral: 'status-badge--neutral',
 };
 
 export function StatusBadge({ children, variant = 'default', className }) {

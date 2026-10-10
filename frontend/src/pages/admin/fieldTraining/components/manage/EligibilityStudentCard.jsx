@@ -4,6 +4,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, FileText, RefreshCw, XCircle } fr
 import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
 import { Button } from '../../../../../components/common/Button.jsx';
 import { formatCountOf, formatScore, resolveTaskPresentation } from '../../../../../features/fieldTraining/fieldTrainingTaskSemantics.js';
+import { trainingStatusVariant } from '../../../../../features/fieldTraining/fieldTrainingUi.js';
 
 function eligibilityVariant(status) {
   if (status === 'eligible') return 'success';

@@ -17,4 +17,8 @@ async function recordAudit(payload) {
   return recordAuditEntry(payload);
 }
 
-module.exports = { recordAudit };
+async function recordAuditMany(payloads) {
+  return require('../shared/services/audit.service').recordAuditMany(payloads);
+}
+
+module.exports = { recordAudit, recordAuditMany };

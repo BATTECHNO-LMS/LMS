@@ -1,3 +1,9 @@
+import youthLogo from '../../assets/partners/ministry-youth-transparent.webp';
+import tafilaLogo from '../../assets/partners/tafila-university-transparent.webp';
+import mutahLogo from '../../assets/partners/mutah-university-transparent.webp';
+import zaytoonahLogo from '../../assets/partners/al-zaytoonah-university-transparent.webp';
+import yarmoukLogo from '../../assets/partners/yarmouk-university-transparent.webp';
+
 /** Keys under landing.features.list.<key>.* in i18n */
 export const FEATURE_KEYS = [
   'usersRoles',
@@ -15,7 +21,7 @@ export const HERO_STAT_KEYS = ['microCreds', 'universities', 'cohorts'];
 
 /**
  * Ministries & universities for partners section + in-phone preview.
- * `logoUrl` → files in `frontend/public/partners/` (served as `/partners/...`).
+ * `logoUrl` → Vite-hashed files in `src/assets/partners/`.
  * `descriptionKey` → `landing.institutions.descriptions.<id>` in i18n.
  * @type {ReadonlyArray<{ id: string, nameKey: string, category: 'ministry' | 'university', initials: string, logoUrl: string, descriptionKey: string }>}
  */
@@ -25,7 +31,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.youthMinistry',
     category: 'ministry',
     initials: 'وش',
-    logoUrl: '/partners/ministry-youth-transparent.png',
+    logoUrl: youthLogo,
     descriptionKey: 'institutions.descriptions.youth',
   },
   {
@@ -33,7 +39,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.tafilaTech',
     category: 'university',
     initials: 'طت',
-    logoUrl: '/partners/tafila-university-transparent.png',
+    logoUrl: tafilaLogo,
     descriptionKey: 'institutions.descriptions.ttu',
   },
   {
@@ -41,7 +47,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.mutah',
     category: 'university',
     initials: 'مؤ',
-    logoUrl: '/partners/mutah-university-transparent.png',
+    logoUrl: mutahLogo,
     descriptionKey: 'institutions.descriptions.mutah',
   },
   {
@@ -49,7 +55,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.zaytoonah',
     category: 'university',
     initials: 'ز',
-    logoUrl: '/partners/al-zaytoonah-university-transparent.png',
+    logoUrl: zaytoonahLogo,
     descriptionKey: 'institutions.descriptions.zay',
   },
   {
@@ -57,7 +63,7 @@ export const PARTNER_INSTITUTIONS = [
     nameKey: 'institutions.yarmouk',
     category: 'university',
     initials: 'ير',
-    logoUrl: '/partners/yarmouk-university-transparent.png',
+    logoUrl: yarmoukLogo,
     descriptionKey: 'institutions.descriptions.yarmouk',
   },
 ];

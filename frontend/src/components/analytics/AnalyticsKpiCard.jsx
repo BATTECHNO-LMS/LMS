@@ -4,7 +4,7 @@ import { AnalyticsTrendBadge } from './AnalyticsTrendBadge.jsx';
 
 function MiniSparkline({ points = [], dark }) {
   if (!points.length) return null;
-  const w = 88;
+  const w = 96;
   const h = 28;
   const max = Math.max(...points, 1);
   const min = Math.min(...points, 0);
@@ -16,9 +16,13 @@ function MiniSparkline({ points = [], dark }) {
       return `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(' ');
+  const stroke = dark ? '#7eb6ff' : '#c9a227';
+  const fill = dark ? 'rgba(126,182,255,0.16)' : 'rgba(201,162,39,0.14)';
+  const area = `${d} L${w} ${h} L0 ${h} Z`;
   return (
     <svg className="analytics-kpi-card__spark" width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
-      <path d={d} fill="none" stroke={dark ? '#7eb6ff' : '#c9a227'} strokeWidth="1.75" />
+      <path d={area} fill={fill} stroke="none" />
+      <path d={d} fill="none" stroke={stroke} strokeWidth="1.75" />
     </svg>
   );
 }
@@ -31,18 +35,19 @@ export function AnalyticsKpiCard({
   trendKind,
   helperText,
   className,
-  variant = 'standard',
+  variant = 'default',
   live,
   info,
   sparkline,
   onClick,
 }) {
-  const dark = variant === 'highlight';
+  const resolved = variant === 'standard' ? 'default' : variant;
+  const dark = resolved === 'highlight';
   return (
     <div
       className={cn(
         'analytics-kpi-card',
-        `analytics-kpi-card--${variant}`,
+        `analytics-kpi-card--${resolved}`,
         onClick && 'analytics-kpi-card--action',
         className
       )}
@@ -63,7 +68,7 @@ export function AnalyticsKpiCard({
       <div className="analytics-kpi-card__head">
         {Icon ? (
           <span className="analytics-kpi-card__icon" aria-hidden>
-            <Icon size={22} strokeWidth={1.75} />
+            <Icon size={18} strokeWidth={1.75} />
           </span>
         ) : null}
         <div className="analytics-kpi-card__meta">
@@ -71,23 +76,27 @@ export function AnalyticsKpiCard({
             {title}
             {info ? (
               <button type="button" className="analytics-kpi-card__info" title={info} aria-label={info}>
-                <Info size={14} strokeWidth={2} />
+                <Info size={13} strokeWidth={2} />
               </button>
             ) : null}
             {live ? <span className="analytics-live-dot" aria-hidden /> : null}
           </p>
-          {trendKind === 'new' ? (
-            <span className="analytics-trend analytics-trend--up">جديد</span>
-          ) : trendKind === 'none' ? (
-            <span className="analytics-trend analytics-trend--flat">لا توجد بيانات مقارنة</span>
-          ) : trend != null ? (
-            <AnalyticsTrendBadge value={trend} />
-          ) : null}
         </div>
       </div>
       <p className="analytics-kpi-card__value">{value}</p>
-      {helperText ? <p className="analytics-kpi-card__helper">{helperText}</p> : null}
+      <div className="analytics-kpi-card__foot">
+        {trendKind === 'new' ? (
+          <span className="analytics-trend analytics-trend--up">جديد</span>
+        ) : trendKind === 'none' ? (
+          <span className="analytics-trend analytics-trend--flat">لا توجد بيانات مقارنة</span>
+        ) : trend != null ? (
+          <AnalyticsTrendBadge value={trend} />
+        ) : null}
+        {helperText ? <p className="analytics-kpi-card__helper">{helperText}</p> : null}
+      </div>
       {sparkline?.length ? <MiniSparkline points={sparkline} dark={dark} /> : null}
     </div>
   );
 }
+
+export { AnalyticsKpiCard as KpiCard };

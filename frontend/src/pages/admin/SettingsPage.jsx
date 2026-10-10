@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Settings } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { TextField } from '../../components/admin/TextField.jsx';
@@ -68,6 +69,7 @@ export function SettingsPage() {
   return (
     <div className="page page--dashboard page--admin">
       <AdminPageHeader
+        icon={Settings}
         title={tr(isArabic, 'الإعدادات', 'Settings')}
         description={tr(
           isArabic,

@@ -21,10 +21,18 @@ async function recalcCohortAttendancePercentages(cohortId) {
       enrollment_status: { in: ['enrolled', 'pending', 'completed'] },
     },
   });
+  const records = await attendanceRepository.findRecordsForSessionsAndStudents(
+    sessionIds,
+    enrollments.map((e) => e.student_id)
+  );
+  const byStudent = new Map();
+  for (const record of records) {
+    if (!byStudent.has(record.student_id)) byStudent.set(record.student_id, new Map());
+    byStudent.get(record.student_id).set(record.session_id, record.attendance_status);
+  }
   const updates = [];
   for (const e of enrollments) {
-    const records = await attendanceRepository.findRecordsForSessionsAndStudent(sessionIds, e.student_id);
-    const bySession = new Map(records.map((r) => [r.session_id, r.attendance_status]));
+    const bySession = byStudent.get(e.student_id) || new Map();
     let score = 0;
     for (const sid of sessionIds) {
       const st = bySession.get(sid);

@@ -3337,10 +3337,30 @@ model training_task_submissions {
 
   training_tasks       training_tasks       @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   training_enrollments training_enrollments @relation(fields: [enrollment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  training_task_submission_files training_task_submission_files[]
 
   @@index([task_id], map: "idx_training_task_submissions_task")
   @@index([enrollment_id], map: "idx_training_task_submissions_enrollment")
   @@index([user_id], map: "idx_training_task_submissions_user")
+}
+
+/// Attachments for course task submissions (multi-file). Original name kept as metadata; storage_key is collision-safe.
+model training_task_submission_files {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submission_id String   @db.Uuid
+  file_id       String?  @db.Uuid
+  storage_key   String   @db.VarChar(1024)
+  original_name String   @db.VarChar(500)
+  mime_type     String?  @db.VarChar(255)
+  size          BigInt   @default(0)
+  sort_order    Int      @default(0)
+  is_archive    Boolean  @default(false)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  training_task_submissions training_task_submissions @relation(fields: [submission_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([submission_id], map: "idx_training_task_submission_files_submission")
+  @@index([file_id], map: "idx_training_task_submission_files_file")
 }
 
 model training_assessments {

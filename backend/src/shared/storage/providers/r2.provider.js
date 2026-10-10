@@ -141,6 +141,31 @@ async function getObjectBuffer(storageKey) {
   return Buffer.concat(chunks);
 }
 
+async function getObjectStream(storageKey) {
+  const key = assertSafeStorageKey(storageKey);
+  const res = await getClient().send(
+    new GetObjectCommand({ Bucket: getBucket(), Key: key })
+  );
+  if (!res.Body) throw new Error('Empty object body');
+  return { stream: res.Body, contentLength: Number(res.ContentLength || 0) || null };
+}
+
+async function putObjectFile(storageKey, sourcePath, mimeType, size) {
+  const key = assertSafeStorageKey(storageKey);
+  const fs = require('fs');
+  const length = Number(size) || (await fs.promises.stat(sourcePath)).size;
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+      Body: fs.createReadStream(sourcePath),
+      ContentLength: length,
+      ContentType: mimeType || 'application/octet-stream',
+    })
+  );
+  return { size: length };
+}
+
 async function putObjectBuffer(storageKey, buffer, mimeType) {
   const key = assertSafeStorageKey(storageKey);
   await getClient().send(
@@ -165,5 +190,7 @@ module.exports = {
   createPresignedGetUrl,
   checkHealth,
   getObjectBuffer,
+  getObjectStream,
   putObjectBuffer,
+  putObjectFile,
 };

@@ -7,7 +7,7 @@ export function AppFooter() {
   return (
     <footer className="app-footer">
       <p className="app-footer__text">
-        © {year} {APP_NAME}. {t('rights')}
+        © {year} {APP_NAME}. {t('rights')}. {t('developedBy')}
       </p>
     </footer>
   );

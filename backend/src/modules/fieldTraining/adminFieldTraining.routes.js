@@ -41,6 +41,7 @@ const {
   updateApplicationHoursBodySchema,
   listCompletionLettersQuerySchema,
   bulkIssueBodySchema,
+  bulkStudentReportsExportBodySchema,
   jobIdParamSchema,
   applySupervisorImportBodySchema,
   resolveSupervisorImportBodySchema,
@@ -444,6 +445,38 @@ router.get(
   fieldTrainingStaff,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listEligibility
+);
+
+router.post(
+  '/:id/reports/students/bulk-export/preview',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: bulkStudentReportsExportBodySchema }),
+  workflowController.previewBulkStudentReports
+);
+
+router.post(
+  '/:id/reports/students/bulk-export',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: bulkStudentReportsExportBodySchema }),
+  workflowController.startBulkStudentReports
+);
+
+router.get(
+  '/:id/reports/students/bulk-export/jobs/:jobId',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: jobIdParamSchema }),
+  workflowController.getBulkStudentReportsJob
+);
+
+router.get(
+  '/:id/reports/students/bulk-export/jobs/:jobId/download',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: jobIdParamSchema }),
+  workflowController.downloadBulkStudentReportsZip
 );
 
 router.get(

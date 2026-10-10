@@ -18,7 +18,7 @@ describe('eprojecto BrandLogo home navigation', () => {
     assert.match(src, /<Link/);
     assert.match(src, /to=\{BRAND_HOME_PATH\}/);
     assert.match(src, /aria-label=\{homeLabel\}/);
-    assert.match(src, /eprojecto-logo\.png/);
+    assert.match(src, /eprojecto-logo\.webp/);
     assert.match(src, /BRAND_LOGO_WIDTH/);
     assert.doesNotMatch(src, /<a\s+href="\/"/);
     assert.doesNotMatch(src, /battechno-lms-logo/);

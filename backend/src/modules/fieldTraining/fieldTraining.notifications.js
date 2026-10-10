@@ -2,6 +2,7 @@ const { prisma } = require('../../config/db');
 const { env } = require('../../config/env');
 const {
   createNotificationForUser,
+  createNotificationsForUsers,
   userIdsByRoleCodes,
 } = require('../../shared/services/notification.service');
 
@@ -18,20 +19,13 @@ async function findFieldTrainingAdminUserIds(universityId) {
 async function notifyAdminsFieldTrainingApplicationSubmitted(params) {
   const { opportunityId, opportunityTitle, universityId, studentName } = params;
   const userIds = await findFieldTrainingAdminUserIds(universityId);
-  if (!userIds.length) return { created_count: 0 };
-
-  let created = 0;
-  for (const userId of userIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'طلب تدريب ميداني جديد',
-      body: `قدّم الطالب ${studentName || ''} طلبًا على فرصة "${opportunityTitle || ''}".`.trim(),
-      type: 'action_required',
-      actionUrl: `/admin/field-training/${opportunityId}/applications`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds,
+    title: 'طلب تدريب ميداني جديد',
+    body: `قدّم الطالب ${studentName || ''} طلبًا على فرصة "${opportunityTitle || ''}".`.trim(),
+    type: 'action_required',
+    actionUrl: `/admin/field-training/${opportunityId}/applications`,
+  });
 }
 
 async function notifyStudentFieldTrainingApplicationApproved(params) {
@@ -67,20 +61,13 @@ async function notifyApprovedStudentsNewTask(params) {
     select: { student_id: true },
   });
   const userIds = [...new Set(apps.map((a) => a.student_id))];
-  if (!userIds.length) return { created_count: 0 };
-
-  let created = 0;
-  for (const userId of userIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'مهمة تدريب ميداني جديدة',
-      body: `تمت إضافة مهمة "${taskTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
-      type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}?tab=tasks`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds,
+    title: 'مهمة تدريب ميداني جديدة',
+    body: `تمت إضافة مهمة "${taskTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
+    type: 'info',
+    actionUrl: `/student/field-training/${opportunityId}?tab=tasks`,
+  });
 }
 
 async function notifyFieldTrainingTaskSubmitted(params) {
@@ -150,34 +137,24 @@ async function notifyStudentsTrainingStarted(params) {
 
 async function notifyStudentsNewSession(params) {
   const { studentIds, opportunityId, opportunityTitle, sessionTitle } = params;
-  let created = 0;
-  for (const userId of studentIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'جلسة تدريب جديدة',
-      body: `تمت جدولة جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
-      type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds: studentIds,
+    title: 'جلسة تدريب جديدة',
+    body: `تمت جدولة جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
+    type: 'info',
+    actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
+  });
 }
 
 async function notifyStudentsMarkedAbsent(params) {
   const { studentIds, opportunityId, opportunityTitle, sessionTitle } = params;
-  let created = 0;
-  for (const userId of studentIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'تسجيل غياب',
-      body: `تم تسجيل غيابك عن جلسة "${sessionTitle || ''}" في فرصة "${opportunityTitle || ''}".`,
-      type: 'warning',
-      actionUrl: `/student/field-training/${opportunityId}?tab=attendance`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds: studentIds,
+    title: 'تسجيل غياب',
+    body: `تم تسجيل غيابك عن جلسة "${sessionTitle || ''}" في فرصة "${opportunityTitle || ''}".`,
+    type: 'warning',
+    actionUrl: `/student/field-training/${opportunityId}?tab=attendance`,
+  });
 }
 
 async function notifyStudentsAttendanceWindowOpened(params) {
@@ -210,19 +187,13 @@ async function notifyStudentsAttendanceWindowOpened(params) {
   if (!studentIds.length) return { created_count: 0 };
 
   const actionUrl = `/student/field-training/${opportunityId}?tab=sessions&attendanceWindow=${windowId || ''}&sessionId=${sessionId || ''}`;
-  let created = 0;
-  // Use createNotificationForUser to ensure fanoutPushForRow runs (FCM is sent best-effort).
-  for (const userId of studentIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title,
-      body,
-      type: 'action_required',
-      actionUrl,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds: studentIds,
+    title,
+    body,
+    type: 'action_required',
+    actionUrl,
+  });
 }
 
 async function notifyStudentExpelled(params) {
@@ -265,18 +236,13 @@ function staffActionUrl(userId, instructorId, opportunityId, adminPath) {
 
 async function notifyStudentsSessionUpdated(params) {
   const { studentIds, opportunityId, opportunityTitle, sessionTitle } = params;
-  let created = 0;
-  for (const userId of studentIds || []) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'تحديث جلسة تدريب',
-      body: `تم تحديث جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
-      type: 'info',
-      actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds: studentIds,
+    title: 'تحديث جلسة تدريب',
+    body: `تم تحديث جلسة "${sessionTitle || ''}" لفرصة "${opportunityTitle || ''}".`,
+    type: 'info',
+    actionUrl: `/student/field-training/${opportunityId}?tab=sessions`,
+  });
 }
 
 async function notifyStudentTaskReviewed(params) {
@@ -298,19 +264,14 @@ async function notifyStudentTaskReviewed(params) {
 
 async function notifyStudentsPostAssessmentAvailable(params) {
   const { studentIds, opportunityId, opportunityTitle } = params;
-  let created = 0;
-  for (const userId of studentIds || []) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'التقييم البعدي متاح',
-      body: `التقييم البعدي متاح الآن لفرصة "${opportunityTitle || ''}".`,
-      type: 'action_required',
-      actionUrl: `/student/field-training/${opportunityId}?tab=assessments`,
-      dedupeByActionUrl: true,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds: studentIds,
+    title: 'التقييم البعدي متاح',
+    body: `التقييم البعدي متاح الآن لفرصة "${opportunityTitle || ''}".`,
+    type: 'action_required',
+    actionUrl: `/student/field-training/${opportunityId}?tab=assessments`,
+    dedupeByActionUrl: true,
+  });
 }
 
 async function notifyStaffPreAssessmentCompleted(params) {
@@ -437,20 +398,13 @@ async function notifyAdminsExpulsionRequested(params) {
     applicationId,
   } = params;
   const userIds = await findFieldTrainingAdminUserIds(universityId);
-  if (!userIds.length) return { created_count: 0 };
-
-  let created = 0;
-  for (const userId of userIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: 'طلب استبعاد طالب من التدريب الميداني',
-      body: `طلب المدرب ${instructorName || ''} استبعاد الطالب ${studentName || ''} من فرصة "${opportunityTitle || ''}". السبب: ${reason || ''}`.trim(),
-      type: 'action_required',
-      actionUrl: `/admin/field-training/${opportunityId}/applications`,
-    });
-    if (row) created += 1;
-  }
-  return { created_count: created };
+  return createNotificationsForUsers({
+    userIds,
+    title: 'طلب استبعاد طالب من التدريب الميداني',
+    body: `طلب المدرب ${instructorName || ''} استبعاد الطالب ${studentName || ''} من فرصة "${opportunityTitle || ''}". السبب: ${reason || ''}`.trim(),
+    type: 'action_required',
+    actionUrl: `/admin/field-training/${opportunityId}/applications`,
+  });
 }
 
 module.exports = {

@@ -1,7 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../features/auth/index.js';
-import { Home } from '../../pages/Home.jsx';
+import { RouteFallback } from './RouteFallback.jsx';
 import { resolveAuthenticatedPublicPageRedirect } from '../../utils/resolveAuthenticatedLandingRoute.js';
+
+const Home = lazy(() => import('../../pages/Home.jsx').then((mod) => ({ default: mod.Home })));
 
 export function RootRedirect() {
   const { isAuthenticated, user } = useAuth();
@@ -11,5 +14,9 @@ export function RootRedirect() {
     return <Navigate to={resolution.path} replace />;
   }
 
-  return <Home />;
+  return (
+    <Suspense fallback={<RouteFallback />}>
+      <Home />
+    </Suspense>
+  );
 }

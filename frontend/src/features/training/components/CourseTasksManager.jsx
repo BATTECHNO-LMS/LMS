@@ -11,6 +11,8 @@ import {
   updateTask,
 } from '../training.service.js';
 import { toDatetimeLocalValue } from '../assessmentPresentation/assessmentDate.js';
+import { getApiErrorMessage } from '../../../services/apiHelpers.js';
+import { TaskSubmissionsReviewPanel } from './taskSubmission/TaskSubmissionsReviewPanel.jsx';
 
 const EMPTY = {
   title: '',
@@ -27,8 +29,9 @@ function toLocalInput(value) {
   return toDatetimeLocalValue(value);
 }
 
-export function CourseTasksManager({ programId, canManage = true }) {
+export function CourseTasksManager({ programId, canManage = true, canGrade = false }) {
   const [items, setItems] = useState([]);
+  const [reviewTaskId, setReviewTaskId] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [attachment, setAttachment] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -194,8 +197,6 @@ export function CourseTasksManager({ programId, canManage = true }) {
             visibility="private"
             relatedEntityType="training_program"
             relatedEntityId={programId}
-            accept="application/pdf,.doc,.docx,.ppt,.pptx,image/*,.zip"
-            maxBytes={50 * 1024 * 1024}
             currentFileName={attachment?.originalName}
             onUploaded={(record) => setAttachment(record)}
             hint="مرفق اختياري للمهمة"
@@ -214,66 +215,89 @@ export function CourseTasksManager({ programId, canManage = true }) {
       ) : null}
 
       {items.length ? (
-        <ul className="simple-list" style={{ marginTop: '1rem' }}>
+        <ul className="task-admin-list">
           {items.map((task) => (
-            <li key={task.id}>
-              <strong>{task.title}</strong>{' '}
-              {task.isPublished ? (
-                <StatusBadge variant="success">منشورة</StatusBadge>
-              ) : (
-                <StatusBadge variant="muted">مسودة</StatusBadge>
-              )}
-              {task.submissionCount > 0 ? (
-                <StatusBadge variant="warning">{task.submissionCount} تسليم</StatusBadge>
-              ) : null}
-              <div className="auth-register__helper">
-                الموعد: {task.dueAt ? new Date(task.dueAt).toLocaleString('ar') : '—'} — الدرجة:{' '}
-                {task.maxScore ?? '—'}
-              </div>
-              {canManage ? (
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditingId(task.id);
-                      setForm({
-                        title: task.title || '',
-                        instructions: task.instructions || '',
-                        due_at: toLocalInput(task.dueAt),
-                        max_score: task.maxScore != null ? String(task.maxScore) : '',
-                        max_attempts: String(task.maxAttempts ?? 3),
-                        external_link: task.externalLinks?.[0] || '',
-                        publish: Boolean(task.isPublished),
-                        is_required: task.isRequired !== false,
-                      });
-                      setAttachment(null);
-                    }}
-                  >
-                    تعديل
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={async () => {
-                      setBusy(true);
-                      try {
-                        await updateTask(task.id, {
-                          publish: !task.isPublished,
-                          unpublish: Boolean(task.isPublished),
-                        });
-                        await refresh();
-                      } catch (err) {
-                        setError(getApiErrorMessage(err, 'تعذر تغيير النشر.'));
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                  >
-                    {task.isPublished ? 'إلغاء النشر' : 'نشر'}
-                  </Button>
+            <li key={task.id} className="task-admin-item">
+              <div className="task-admin-item__head">
+                <div className="task-admin-item__info">
+                  <strong className="task-admin-item__title" dir="auto">
+                    {task.title}
+                  </strong>
+                  <div className="task-admin-item__badges">
+                    {task.isPublished ? (
+                      <StatusBadge variant="success">منشورة</StatusBadge>
+                    ) : (
+                      <StatusBadge variant="muted">مسودة</StatusBadge>
+                    )}
+                    {task.submissionCount > 0 ? (
+                      <StatusBadge variant="warning">{task.submissionCount} تسليم</StatusBadge>
+                    ) : null}
+                  </div>
+                  <p className="task-admin-item__meta">
+                    <span>الموعد: {task.dueAt ? new Date(task.dueAt).toLocaleString('ar') : '—'}</span>
+                    <span>الدرجة: {task.maxScore ?? '—'}</span>
+                  </p>
                 </div>
+                <div className="task-admin-item__actions">
+                {canManage ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setEditingId(task.id);
+                        setForm({
+                          title: task.title || '',
+                          instructions: task.instructions || '',
+                          due_at: toLocalInput(task.dueAt),
+                          max_score: task.maxScore != null ? String(task.maxScore) : '',
+                          max_attempts: String(task.maxAttempts ?? 3),
+                          external_link: task.externalLinks?.[0] || '',
+                          publish: Boolean(task.isPublished),
+                          is_required: task.isRequired !== false,
+                        });
+                        setAttachment(null);
+                      }}
+                    >
+                      تعديل
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={busy}
+                      onClick={async () => {
+                        setBusy(true);
+                        try {
+                          await updateTask(task.id, {
+                            publish: !task.isPublished,
+                            unpublish: Boolean(task.isPublished),
+                          });
+                          await refresh();
+                        } catch (err) {
+                          setError(getApiErrorMessage(err, 'تعذر تغيير النشر.'));
+                        } finally {
+                          setBusy(false);
+                        }
+                      }}
+                    >
+                      {task.isPublished ? 'إلغاء النشر' : 'نشر'}
+                    </Button>
+                  </>
+                ) : null}
+                {canGrade ? (
+                  <Button
+                    type="button"
+                    variant={reviewTaskId === task.id ? 'primary' : 'outline'}
+                    onClick={() => setReviewTaskId((prev) => (prev === task.id ? null : task.id))}
+                    aria-expanded={reviewTaskId === task.id}
+                  >
+                    {reviewTaskId === task.id ? 'إخفاء التسليمات' : `عرض التسليمات (${task.submissionCount || 0})`}
+                  </Button>
+                ) : null}
+                </div>
+              </div>
+              {canGrade && reviewTaskId === task.id ? (
+                <TaskSubmissionsReviewPanel task={task} canGrade={canGrade} />
               ) : null}
             </li>
           ))}

@@ -448,7 +448,40 @@ async function persistLegacyEligibility(applicationId) {
   return result;
 }
 
-async function persistQualification(applicationId, { snapshotEvaluation = true } = {}) {
+async function persistCalculatedRow(row, { snapshotEvaluation = true } = {}) {
+  const applicationId = row?.applicationId;
+  if (!row?.ctx || !applicationId) {
+    return { outcome: 'ineligible', reasons: ['application_not_found'], details: {} };
+  }
+  const policy = resolveFieldTrainingPolicy({
+    application: row.ctx.application,
+    opportunity: row.ctx.opportunity,
+    universityPolicy: row.calculated?.policy || row.ctx.policy,
+    student: row.ctx.student,
+  });
+  const useFixed =
+    policy.preserveApprovedOverlayOnPersist ||
+    policy.family === POLICY_FAMILY.FIXED_COMPONENTS_V1 ||
+    policy.family === POLICY_FAMILY.HISTORICAL_APPROVED_RESULT ||
+    policy.family === POLICY_FAMILY.MANUAL_APPROVED_OVERRIDE ||
+    qualification.isFixedComponentPolicy(row.calculated?.policy) ||
+    qualification.isFixedComponentPolicy(row.ctx.policy);
+  if (!useFixed) {
+    return persistLegacyEligibility(applicationId);
+  }
+  await persistApplicationEligibility(applicationId, row.calculated, row.ctx);
+  if (snapshotEvaluation) {
+    await snapshotCurrentEvaluation(applicationId, row.calculated, row.ctx);
+  }
+  return {
+    outcome: row.calculated.workflowOutcome,
+    reasons: row.calculated.eligibilityReasons || [],
+    details: buildEligibilityDetails(row.calculated, row.ctx),
+    qualification: toPublicQualification(row.calculated),
+  };
+}
+
+async function persistQualification(applicationId, options = {}) {
   if (!applicationId) {
     return { outcome: 'ineligible', reasons: ['application_not_found'], details: {} };
   }
@@ -458,35 +491,7 @@ async function persistQualification(applicationId, { snapshotEvaluation = true }
   persisting.add(applicationId);
   try {
     const row = await calculateForApplication(applicationId);
-    if (!row?.ctx) {
-      return { outcome: 'ineligible', reasons: ['application_not_found'], details: {} };
-    }
-    const policy = resolveFieldTrainingPolicy({
-      application: row.ctx.application,
-      opportunity: row.ctx.opportunity,
-      universityPolicy: row.calculated?.policy || row.ctx.policy,
-      student: row.ctx.student,
-    });
-    const useFixed =
-      policy.preserveApprovedOverlayOnPersist ||
-      policy.family === POLICY_FAMILY.FIXED_COMPONENTS_V1 ||
-      policy.family === POLICY_FAMILY.HISTORICAL_APPROVED_RESULT ||
-      policy.family === POLICY_FAMILY.MANUAL_APPROVED_OVERRIDE ||
-      qualification.isFixedComponentPolicy(row.calculated?.policy) ||
-      qualification.isFixedComponentPolicy(row.ctx.policy);
-    if (!useFixed) {
-      return persistLegacyEligibility(applicationId);
-    }
-    await persistApplicationEligibility(applicationId, row.calculated, row.ctx);
-    if (snapshotEvaluation) {
-      await snapshotCurrentEvaluation(applicationId, row.calculated, row.ctx);
-    }
-    return {
-      outcome: row.calculated.workflowOutcome,
-      reasons: row.calculated.eligibilityReasons || [],
-      details: buildEligibilityDetails(row.calculated, row.ctx),
-      qualification: toPublicQualification(row.calculated),
-    };
+    return persistCalculatedRow(row, options);
   } finally {
     persisting.delete(applicationId);
   }
@@ -535,9 +540,22 @@ async function calculateEligibilityOutcome(applicationId) {
 }
 
 async function persistMany(applicationIds, options = {}) {
+  const ids = [...new Set((applicationIds || []).filter(Boolean))];
+  if (!ids.length) return [];
+  const rows = await calculateForApplications(ids);
+  const byId = new Map(rows.map((row) => [row.applicationId, row]));
   const results = [];
-  for (const id of applicationIds) {
-    results.push(await persistQualification(id, options));
+  for (const id of ids) {
+    if (persisting.has(id)) {
+      results.push({ outcome: 'needs_review', reasons: ['persist_in_progress'], details: {} });
+      continue;
+    }
+    persisting.add(id);
+    try {
+      results.push(await persistCalculatedRow(byId.get(id), options));
+    } finally {
+      persisting.delete(id);
+    }
   }
   return results;
 }

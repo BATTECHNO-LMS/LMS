@@ -35,6 +35,26 @@ export function formatMaxSize(bytes) {
 }
 
 /**
+ * Match a file against an HTML `accept`-style list: exact MIME, `type/*` wildcards and `.ext`.
+ * @param {File} file
+ * @param {string[]} list
+ */
+export function matchesAcceptList(file, list) {
+  const mime = String(file?.type || '').toLowerCase();
+  const name = String(file?.name || '').toLowerCase();
+  const dot = name.lastIndexOf('.');
+  const ext = dot > 0 ? name.slice(dot) : '';
+  return list.some((raw) => {
+    const entry = String(raw || '').trim().toLowerCase();
+    if (!entry) return false;
+    if (entry === '*/*' || entry === '*') return true;
+    if (entry.startsWith('.')) return ext === entry;
+    if (entry.endsWith('/*')) return Boolean(mime) && mime.startsWith(entry.slice(0, -1));
+    return mime === entry;
+  });
+}
+
+/**
  * @param {File} file
  * @param {{ accept?: string[], maxBytes?: number }} [options]
  */
@@ -48,9 +68,9 @@ export function validateFileForUpload(file, options = {}) {
     (Array.isArray(accept) && (accept.length === 0 || accept.includes('*/*')));
   if (!acceptAll) {
     const list = Array.isArray(accept) ? accept : [accept];
-    if (mime && !list.includes(mime) && !list.includes('*/*')) {
-      // Allow empty browser MIME for archives (.rar/.7z) when extension-based backend check will run
-      if (mime) return { valid: false, code: 'INVALID_TYPE' };
+    // Empty browser MIME (common for .rar/.7z) defers to the backend extension check.
+    if (mime && !matchesAcceptList(file, list)) {
+      return { valid: false, code: 'INVALID_TYPE' };
     }
   }
   const maxBytes = options.maxBytes ?? getMaxBytesForMime(mime || 'application/octet-stream');

@@ -34,7 +34,7 @@ export function ReportsPage() {
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader title={<>{t('reportsPage.title')}</>} description={<>{t('reportsPage.description')}</>} />
+      <AdminPageHeader icon={FileSpreadsheet} title={<>{t('reportsPage.title')}</>} description={<>{t('reportsPage.description')}</>} />
       <AdminFilterBar>
         <SelectField id="report-type" label={t('reportsPage.colName')} value={reportType} onChange={(e) => setReportType(e.target.value)}>
           {REPORT_TYPES.map((rt) => (

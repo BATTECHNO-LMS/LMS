@@ -643,9 +643,9 @@
   border-radius: $radius-md;
   background: linear-gradient(
     90deg,
-    $color-border-tinted 0%,
-    $color-surface-header 40%,
-    $color-border-tinted 80%
+    $color-sand 0%,
+    $color-ivory 40%,
+    $color-sand 80%
   );
   background-size: 200% 100%;
   animation: ds-skeleton-shimmer 1.2s ease-in-out infinite;

@@ -4,8 +4,6 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
 import { FormInput } from '../../components/forms/FormInput.jsx';
-import { FormTextarea } from '../../components/forms/FormTextarea.jsx';
-import { FileUploader } from '../../components/forms/FileUploader.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { LoadingSpinner } from '../../components/common/LoadingSpinner.jsx';
 import { EmptyState } from '../../components/common/EmptyState.jsx';
@@ -13,9 +11,9 @@ import {
   confirmAttendance,
   getTraineeProgramDetail,
   getPrePostComparison,
-  submitTask,
   downloadTaskInstructionFile,
 } from '../../features/training/training.service.js';
+import { TraineeTaskCard } from '../../features/training/components/taskSubmission/TraineeTaskCard.jsx';
 import {
   TrainingAssessmentAttemptPanel,
   EvaluationWizard,
@@ -25,7 +23,6 @@ import { CompletionRequirementList } from '../../features/training/components/co
 import { getApiErrorMessage, isCanceledRequest } from '../../services/apiHelpers.js';
 import { RouteFallback } from '../../components/common/RouteFallback.jsx';
 import { formatAssessmentDateTime } from '../../features/training/assessmentPresentation/assessmentDate.js';
-import { trainingTaskStatusLabel } from '../../features/training/trainingTaskStatus.js';
 import { mergeTraineeProgramDetail } from '../../features/training/mergeCourseDetail.js';
 import { openProtectedUploadUrl } from '../../utils/protectedUploadUrl.js';
 const TABS = [
@@ -64,8 +61,6 @@ export function TraineeCourseDetailPage() {
   const [message, setMessage] = useState('');
   const [businessCode, setBusinessCode] = useState('');
   const [attendanceCodes, setAttendanceCodes] = useState({});
-  const [taskDrafts, setTaskDrafts] = useState({});
-  const [taskFiles, setTaskFiles] = useState({});
   const [comparison, setComparison] = useState(null);
   const [tabLoading, setTabLoading] = useState(false);
 
@@ -399,80 +394,29 @@ export function TraineeCourseDetailPage() {
           {tabLoading && data.tasks == null ? (
             <LoadingSpinner />
           ) : (data.tasks || []).length ? (
-            <ul className="simple-list">
+            <ul className="assign-list">
               {data.tasks.map((task) => (
                 <li key={task.id}>
-                  <strong>{task.title}</strong>
-                  {task.instructions ? (
-                    <div className="auth-register__helper">{task.instructions}</div>
-                  ) : null}
-                  {task.hasAttachment || task.attachmentUrl ? (
-                    <div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={async () => {
-                          try {
-                            await downloadTaskInstructionFile(task.id);
-                          } catch (err) {
-                            setError(getApiErrorMessage(err, 'تعذر تحميل ملف التعليمات.'));
-                          }
-                        }}
-                      >
-                        تحميل التعليمات
-                      </Button>
-                    </div>
-                  ) : null}
-                  {task.submission ? (
-                    <div>
-                      الحالة: {trainingTaskStatusLabel(task.submission.status)}
-                      {task.submission.score != null ? ` — الدرجة: ${task.submission.score}` : ''}
-                      {task.submission.feedback ? ` — ${task.submission.feedback}` : ''}
-                    </div>
-                  ) : null}
-                  {task.canSubmit ? (
-                    <form
-                      className="crud-form"
-                      onSubmit={async (e) => {
-                        e.preventDefault();
-                        setBusy(true);
-                        setError('');
-                        try {
-                          await submitTask(task.id, {
-                            content_text: taskDrafts[task.id] || '',
-                            content_url: taskFiles[task.id]?.url || taskFiles[task.id]?.storageKey || null,
-                          });
-                          setMessage('تم تسليم المهمة.');
-                          await refresh({ silent: true, sections: 'tasks' });
-                        } catch (err) {
-                          setError(getApiErrorMessage(err, 'تعذر تسليم المهمة.'));
-                        } finally {
-                          setBusy(false);
-                        }
-                      }}
-                    >
-                      <FormTextarea
-                        id={`task-${task.id}`}
-                        label="تسليمك النصي"
-                        value={taskDrafts[task.id] || ''}
-                        onChange={(e) =>
-                          setTaskDrafts((prev) => ({ ...prev, [task.id]: e.target.value }))
-                        }
-                      />
-                      <FileUploader
-                        folder="training"
-                        visibility="private"
-                        relatedEntityType="training_task"
-                        relatedEntityId={task.id}
-                        accept="application/pdf,.doc,.docx,.ppt,.pptx,image/*,.zip"
-                        onUploaded={(file) => setTaskFiles((prev) => ({ ...prev, [task.id]: file }))}
-                        onError={(err) => setError(getApiErrorMessage(err, 'تعذر رفع الملف.'))}
-                      />
-                      <Button type="submit" variant="primary" disabled={busy}>
-                        تسليم المهمة
-                      </Button>
-                    </form>
-                  ) : null}
+                  <TraineeTaskCard
+                    task={task}
+                    onError={setError}
+                    onDownloadInstructions={async () => {
+                      try {
+                        await downloadTaskInstructionFile(task.id);
+                      } catch (err) {
+                        setError(getApiErrorMessage(err, 'تعذر تحميل ملف التعليمات.'));
+                      }
+                    }}
+                    onSubmitted={async (result) => {
+                      setError('');
+                      setMessage(
+                        result?.fileCount
+                          ? `تم تسليم المهمة بنجاح مع ${result.fileCount} ${result.fileCount === 1 ? 'ملف' : 'ملفات'}.`
+                          : 'تم تسليم المهمة بنجاح.'
+                      );
+                      await refresh({ silent: true, sections: 'tasks' });
+                    }}
+                  />
                 </li>
               ))}
             </ul>

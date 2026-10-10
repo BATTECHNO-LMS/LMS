@@ -79,6 +79,7 @@ export function BaseDashboardLayout({ brand }) {
         isMobileShell && sidebarOpen && 'layout--dashboard-sidebar-open'
       )}
     >
+      <div className="ep-motif" aria-hidden />
       <AdminSidebar
         brand={resolvedBrand}
         groups={groups}

@@ -9,18 +9,18 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
+  background: rgba($color-secondary, 0.42);
+  backdrop-filter: blur(4px);
 }
 
 .modal {
   width: 100%;
   max-width: 26rem;
-  background: var(--gradient-card-face);
-  border-radius: $radius-lg;
+  background: var(--color-card);
+  border-radius: $radius-xl;
   border: 1px solid var(--color-border-tinted);
-  box-shadow: var(--shadow-card-3d);
-  padding: 1.25rem 1.35rem;
+  box-shadow: var(--shadow-modal);
+  padding: 1.2rem 1.3rem;
 }
 
 .modal--confirm {

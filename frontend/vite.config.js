@@ -33,7 +33,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
           if (id.includes('xlsx')) return 'xlsx';
-          if (id.includes('jspdf')) return 'jspdf';
           if (id.includes('framer-motion')) return 'framer-motion';
           if (id.includes('react-icons')) return 'react-icons';
           if (id.includes('recharts')) return 'recharts';

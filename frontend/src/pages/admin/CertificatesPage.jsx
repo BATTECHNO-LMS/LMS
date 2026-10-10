@@ -67,7 +67,7 @@ export function CertificatesPage() {
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader title={t('list.title')} description={t('list.description')} />
+      <AdminPageHeader icon={Award} title={t('list.title')} description={t('list.description')} />
       <AdminActionBar>
         {canWrite ? (
           <Link className="btn btn--primary" to="/admin/certificates/issue">

@@ -6,14 +6,14 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.5rem 1.1rem;
+  padding: 0.5rem 1.05rem;
   min-height: 2.5rem;
   border-radius: $radius-md;
   border: 1px solid transparent;
-  font-weight: 700;
-  font-size: 0.9375rem;
+  font-weight: 600;
+  font-size: 0.875rem;
   cursor: pointer;
-  @include transition(background-color border-color color, 0.15s);
+  @include transition(background-color border-color color box-shadow, 0.16s);
 
   &:disabled {
     opacity: 0.55;
@@ -47,24 +47,27 @@ a.btn {
 }
 
 .btn--secondary {
-  background: $color-secondary;
-  color: #fff;
-  border-color: $color-secondary;
+  background: $color-card;
+  color: $color-heading;
+  border-color: rgba($color-primary, 0.18);
 
   &:hover:not(:disabled) {
-    filter: brightness(1.06);
+    background: $color-accent-soft;
+    border-color: rgba($color-accent, 0.45);
+    color: $color-heading;
+    filter: none;
   }
 }
 
 .btn--accent {
-  background: $color-accent;
-  color: $color-primary;
-  border-color: $color-accent;
+  background: $color-accent-soft;
+  color: $color-heading;
+  border-color: rgba($color-accent, 0.45);
   font-weight: 600;
 
   &:hover:not(:disabled) {
-    background: $color-accent-hover;
-    border-color: $color-accent-hover;
+    background: $color-accent;
+    border-color: $color-accent;
     color: $color-primary;
 
     svg {
@@ -75,9 +78,9 @@ a.btn {
 }
 
 .btn--outline {
-  background: transparent;
+  background: $color-card;
   color: $color-primary;
-  border-color: $color-primary;
+  border-color: rgba($color-primary, 0.22);
 
   &:hover:not(:disabled) {
     background: $color-primary;
@@ -108,12 +111,13 @@ a.btn {
 }
 
 .btn--light {
-  background: var(--color-surface-light);
+  background: $color-ivory;
   color: var(--color-text);
-  border-color: var(--color-border);
+  border-color: var(--color-border-tinted);
 
   &:hover:not(:disabled) {
-    border-color: rgba($color-primary, 0.35);
+    border-color: rgba($color-primary, 0.22);
+    background: $color-accent-soft;
   }
 }
 
@@ -123,33 +127,34 @@ a.btn {
   border-color: transparent;
 
   &:hover:not(:disabled) {
-    background: $color-primary;
-    color: #fff;
+    background: $color-accent-soft;
+    color: $color-heading;
 
     svg {
-      color: #fff;
-      stroke: #fff;
+      color: $color-heading;
+      stroke: $color-heading;
     }
   }
 }
 
 .btn--sm {
   min-height: 2rem;
-  padding: 0.3rem 0.7rem;
+  padding: 0.28rem 0.7rem;
   font-size: 0.8125rem;
   gap: 0.35rem;
+  border-radius: $radius-sm;
 }
 
 .btn--md {
   min-height: 2.5rem;
-  padding: 0.5rem 1.1rem;
-  font-size: 0.9375rem;
+  padding: 0.5rem 1.05rem;
+  font-size: 0.875rem;
 }
 
 .btn--lg {
-  min-height: 3rem;
-  padding: 0.65rem 1.35rem;
-  font-size: 1rem;
+  min-height: 2.85rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
   border-radius: $radius-lg;
 }
 
@@ -181,13 +186,13 @@ a.btn {
 
   &:hover:not(:disabled),
   &:focus-visible {
-    background: $color-primary !important;
-    color: #fff !important;
-    border-color: $color-primary !important;
+    background: $color-accent-soft !important;
+    color: $color-heading !important;
+    border-color: rgba($color-primary, 0.16) !important;
 
     svg {
-      color: #fff !important;
-      stroke: #fff !important;
+      color: $color-heading !important;
+      stroke: $color-heading !important;
     }
   }
 }

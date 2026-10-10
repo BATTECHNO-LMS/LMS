@@ -90,13 +90,19 @@ async function sessionIdsForCohort(cohortId) {
 
 async function findRecordsForSessionsAndStudent(sessionIds, studentId) {
   if (!sessionIds.length) return [];
+  return findRecordsForSessionsAndStudents(sessionIds, [studentId]);
+}
+
+async function findRecordsForSessionsAndStudents(sessionIds, studentIds) {
+  const ids = [...new Set((studentIds || []).filter(Boolean))];
+  if (!sessionIds.length || !ids.length) return [];
   try {
     return await prisma.attendance_records.findMany({
       where: {
-        student_id: studentId,
+        student_id: { in: ids },
         session_id: { in: sessionIds },
       },
-      select: { session_id: true, attendance_status: true },
+      select: { session_id: true, student_id: true, attendance_status: true },
     });
   } catch (e) {
     if (isMissingPrismaModelTableError(e, MODEL)) return [];
@@ -126,5 +132,6 @@ module.exports = {
   updateRecord,
   sessionIdsForCohort,
   findRecordsForSessionsAndStudent,
+  findRecordsForSessionsAndStudents,
   findManyBySessionIdsForSummary,
 };

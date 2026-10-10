@@ -43,6 +43,32 @@ async function recordAudit(payload) {
   }
 }
 
+async function recordAuditMany(payloads) {
+  const rows = (payloads || []).filter((payload) => payload && payload.actionType && payload.entityType);
+  if (!rows.length) return { count: 0 };
+  try {
+    return await prisma.audit_logs.createMany({
+      data: rows.map((payload) => ({
+        user_id: payload.userId ?? null,
+        university_id: payload.universityId ?? null,
+        organization_id: payload.organizationId ?? null,
+        action_type: payload.actionType,
+        entity_type: payload.entityType,
+        entity_id: payload.entityId ?? null,
+        old_values: payload.oldValues ?? undefined,
+        new_values: payload.newValues ?? undefined,
+        ip_address: payload.ipAddress ?? null,
+      })),
+    });
+  } catch (err) {
+    const msg = String(err?.message || '');
+    const missingAuditTable = err?.code === 'P2021' || msg.includes('audit_logs') || msg.includes('does not exist');
+    if (!missingAuditTable) throw err;
+    return { count: 0 };
+  }
+}
+
 module.exports = {
   recordAudit,
+  recordAuditMany,
 };

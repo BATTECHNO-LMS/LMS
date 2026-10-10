@@ -1,0 +1,75 @@
+@use '../abstracts/variables' as *;
+
+// Subtle gold/navy line-art motifs at 3–5% visual weight.
+// Encoded SVG: flowing gold curves + thin academic arch outlines.
+
+$ep-motif-gold: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 420' fill='none'%3E%3Cpath d='M-40 310C90 210 240 360 410 275S690 165 860 255' stroke='%23c9a227' stroke-width='1.15'/%3E%3Cpath d='M-30 350C140 240 280 390 490 300S740 190 870 305' stroke='%23c9a227' stroke-width='0.7'/%3E%3Cpath d='M70 400V228q0-38 38-38h78q38 0 38 38v172' stroke='%23132d4a' stroke-width='0.65'/%3E%3Cpath d='M108 190q39-48 78 0' stroke='%23132d4a' stroke-width='0.65'/%3E%3C/svg%3E");
+
+.ep-motif {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background-repeat: no-repeat;
+    pointer-events: none;
+  }
+
+  &::before {
+    inset-inline-end: -6%;
+    top: -8%;
+    width: min(42rem, 70%);
+    height: 18rem;
+    opacity: 0.045;
+    background-image: $ep-motif-gold;
+    background-size: cover;
+  }
+
+  &::after {
+    inset-inline-start: -8%;
+    bottom: -4%;
+    width: min(36rem, 60%);
+    height: 16rem;
+    opacity: 0.035;
+    background-image: $ep-motif-gold;
+    background-size: cover;
+    transform: scaleX(-1);
+  }
+}
+
+.layout--dashboard > .ep-motif,
+.layout--dashboard .layout-dashboard__motif {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.app-sidebar__motif {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 11rem;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: $ep-motif-gold;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 140% auto;
+}
+
+.page-header--decorated,
+.admin-page-header,
+.cc-header {
+  position: relative;
+}
+
+.admin-page-header::before,
+.page-header--decorated::before {
+  opacity: 0.04;
+}

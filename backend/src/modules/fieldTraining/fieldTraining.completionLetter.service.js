@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
-const { recordAudit } = require('../../utils/auditRecorder');
+const { Prisma } = require('@prisma/client');
+const { recordAudit, recordAuditMany } = require('../../utils/auditRecorder');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { assertManageOpportunityAccess, assertApplicationStudentAccess } = require('./fieldTraining.access');
 const ftNotify = require('./fieldTraining.notifications');
@@ -224,16 +225,20 @@ async function invalidateActiveCompletionLettersForApplication(
   }
 
   const now = new Date();
-  for (const letter of letters) {
-    await prisma.field_training_completion_letters.update({
-      where: { id: letter.id },
-      data: {
-        status: 'revoked',
-        metadata: buildLetterInvalidationMetadata(letter, { reason, eligibility, actorUserId }),
-        updated_at: now,
-      },
-    });
-    await recordAudit({
+  const values = letters.map((letter) => {
+    const metadata = buildLetterInvalidationMetadata(letter, { reason, eligibility, actorUserId });
+    return Prisma.sql`(${letter.id}::uuid, ${JSON.stringify(metadata)}::jsonb)`;
+  });
+  await prisma.$executeRaw`
+    UPDATE field_training_completion_letters AS t
+    SET status = 'revoked'::"field_training_completion_letter_status",
+        metadata = v.metadata,
+        updated_at = ${now}::timestamptz
+    FROM (VALUES ${Prisma.join(values)}) AS v(id, metadata)
+    WHERE t.id = v.id
+  `;
+  await recordAuditMany(
+    letters.map((letter) => ({
       userId: actorUserId || null,
       actionType: 'FIELD_TRAINING_COMPLETION_LETTER_REVOKED',
       entityType: 'field_training_completion_letter',
@@ -245,8 +250,8 @@ async function invalidateActiveCompletionLettersForApplication(
         previousStatus: 'issued',
         pdfPreserved: Boolean(letter.pdf_url),
       },
-    }).catch(() => null);
-  }
+    }))
+  ).catch(() => null);
 
   await prisma.field_training_applications.update({
     where: { id: applicationId },

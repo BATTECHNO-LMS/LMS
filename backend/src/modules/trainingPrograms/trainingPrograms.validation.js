@@ -16,6 +16,8 @@ const assessmentIdParam = z.object({ assessmentId: z.string().uuid() });
 const attemptIdParam = z.object({ attemptId: z.string().uuid() });
 const enrollmentIdParam = z.object({ enrollmentId: z.string().uuid() });
 const submissionIdParam = z.object({ submissionId: z.string().uuid() });
+const taskDraftFileParam = z.object({ taskId: z.string().uuid(), fileId: z.string().uuid() });
+const submissionFileParam = z.object({ submissionId: z.string().uuid(), fileId: z.string().uuid() });
 const responseIdParam = z.object({ responseId: z.string().uuid() });
 const evaluationAssignmentIdParam = z.object({ assignmentId: z.string().uuid() });
 const assessmentKindParam = z.object({
@@ -350,6 +352,8 @@ module.exports = {
   sessionIdParam,
   taskIdParam,
   taskResubmitParam,
+  taskDraftFileParam,
+  submissionFileParam,
   assessmentIdParam,
   attemptIdParam,
   assessmentKindParam,

@@ -27,11 +27,12 @@
 .course-material-card,
 .course-lecture-card {
   animation: course-card-enter 200ms ease-out both;
-  border: 1px solid rgba(15, 40, 80, 0.08);
-  border-radius: 12px;
+  border: 1px solid var(--color-border-tinted);
+  border-radius: var(--radius-lg, 0.875rem);
   padding: 0.85rem 1rem;
-  background: #fff;
+  background: var(--color-card);
   margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .course-lecture-card {

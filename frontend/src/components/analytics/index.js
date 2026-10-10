@@ -1,4 +1,4 @@
-export { AnalyticsKpiCard } from './AnalyticsKpiCard.jsx';
+export { AnalyticsKpiCard, KpiCard } from './AnalyticsKpiCard.jsx';
 export { AnalyticsSectionCard } from './AnalyticsSectionCard.jsx';
 export { AnalyticsFilterBar } from './AnalyticsFilterBar.jsx';
 export { AnalyticsTrendBadge } from './AnalyticsTrendBadge.jsx';

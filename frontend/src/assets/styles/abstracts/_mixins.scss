@@ -2,10 +2,10 @@
 
 @mixin focus-ring-primary {
   outline: none;
-  box-shadow: 0 0 0 3px rgba($color-primary, 0.25);
+  box-shadow: 0 0 0 2px rgba($color-primary, 0.22);
 }
 
-@mixin transition($p: all, $d: 0.2s, $e: ease) {
+@mixin transition($p: all, $d: 0.18s, $e: ease) {
   transition: $p $d $e;
 }
 
@@ -24,17 +24,18 @@
 
 @mixin card-surface {
   position: relative;
-  background: var(--gradient-card-face);
+  background: var(--color-card);
   border: 1px solid var(--color-border-tinted);
   border-radius: $radius-lg;
-  box-shadow: var(--shadow-card-3d);
-  @include transition(box-shadow transform, 0.22s ease);
+  box-shadow: var(--shadow-card);
+  @include transition(box-shadow transform border-color, 0.2s ease);
 }
 
-/** رفع بسيط عند التمرير — للبطاقات التفاعلية فقط */
-@mixin card-surface-lift($y: -3px) {
+/** Subtle premium lift — interactive cards only */
+@mixin card-surface-lift($y: -2px) {
   &:hover {
     transform: translateY($y);
+    border-color: rgba($color-primary, 0.14);
     box-shadow: var(--shadow-card-3d-hover);
   }
 }

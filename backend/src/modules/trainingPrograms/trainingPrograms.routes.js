@@ -10,6 +10,23 @@ const v = require('./trainingPrograms.validation');
 const trainerCtrl = require('./trainerAssignments.controller');
 const tv = require('./trainerAssignments.validation');
 const { requireTrainer } = require('./trainerScope');
+const submissionFiles = require('./taskSubmissionFiles.controller');
+const { handleTaskSubmissionUpload } = require('./taskSubmissionFiles.upload');
+const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
+
+const taskSubmissionUploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req),
+  message: {
+    success: false,
+    message: 'تجاوزت الحد المسموح لطلبات الرفع. حاول بعد قليل.',
+    code: 'FILE_UPLOAD_RATE_LIMIT',
+  },
+});
 
 const router = express.Router();
 const anyRole = authorizeRoles(
@@ -341,6 +358,43 @@ router.get(
   manage,
   validateRequest({ params: v.taskIdParam }),
   c.listTaskSubmissions
+);
+router.post(
+  '/tasks/:taskId/submission-files',
+  authenticate,
+  anyRole,
+  taskSubmissionUploadLimiter,
+  validateRequest({ params: v.taskIdParam }),
+  handleTaskSubmissionUpload,
+  submissionFiles.uploadDraft
+);
+router.get(
+  '/tasks/:taskId/submission-files',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskIdParam }),
+  submissionFiles.listDrafts
+);
+router.delete(
+  '/tasks/:taskId/submission-files/:fileId',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.taskDraftFileParam }),
+  submissionFiles.deleteDraft
+);
+router.get(
+  '/task-submissions/:submissionId/files/:fileId/download',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.submissionFileParam }),
+  submissionFiles.downloadAttachment
+);
+router.get(
+  '/task-submissions/:submissionId/legacy-file/download',
+  authenticate,
+  anyRole,
+  validateRequest({ params: v.submissionIdParam }),
+  submissionFiles.downloadLegacyFile
 );
 router.post(
   '/tasks/:taskId/submissions/:submissionId/resubmit',

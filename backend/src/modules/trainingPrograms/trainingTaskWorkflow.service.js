@@ -10,7 +10,15 @@ const { getStorageBackend, getProvider } = require('../../shared/storage/storage
 const path = require('path');
 const fs = require('fs');
 
+const { LIMITS: FILE_LIMITS, ERROR_MESSAGES: FILE_ERROR_MESSAGES } = require('./taskSubmissionFileRules');
+const { recordAudit } = require('../../utils/auditRecorder');
+
 const REVISION_STATUSES = new Set(['REVISION_REQUESTED', 'REOPENED', 'RETURNED']);
+const SUBMISSION_LIMITS = Object.freeze({
+  maxFiles: FILE_LIMITS.maxFiles,
+  maxFileBytes: FILE_LIMITS.maxFileBytes,
+  maxTotalBytes: FILE_LIMITS.maxTotalBytes,
+});
 
 function requireOrgWrite(requester) {
   if (isSystemWideAdmin(requester)) return;
@@ -49,9 +57,19 @@ function mapSubmission(sub) {
     attemptNo: sub.attempt_no,
     contentText: sub.content_text,
     contentUrl: sub.content_url,
+    hasLegacyFile: Boolean(sub.content_url),
+    files: Array.isArray(sub.attachments) ? sub.attachments : [],
     submittedAt: sub.submitted_at,
     gradedAt: sub.graded_at,
   };
+}
+
+async function withAttachments(rows) {
+  const list = (rows || []).filter(Boolean);
+  if (!list.length) return list;
+  const { listAttachmentsBySubmissionIds } = require('./taskSubmissionFiles.service');
+  const map = await listAttachmentsBySubmissionIds(list.map((r) => r.id));
+  return list.map((r) => ({ ...r, attachments: map.get(r.id) || [] }));
 }
 
 function canSubmitTask(task, submissions) {
@@ -85,6 +103,7 @@ function mapTraineeTask(task, submissions) {
     attemptCount: submissions?.length || 0,
     canSubmit: canSubmitTask(task, submissions),
     submission: mapSubmission(latest),
+    submissionLimits: SUBMISSION_LIMITS,
   };
 }
 
@@ -94,7 +113,12 @@ async function getTraineeTaskListExtras(_programId, tasks, submissions) {
     if (!byTask.has(sub.task_id)) byTask.set(sub.task_id, []);
     byTask.get(sub.task_id).push(sub);
   }
-  return (tasks || []).map((task) => mapTraineeTask(task, byTask.get(task.id) || []));
+  const latestRows = [...byTask.values()].map((subs) => pickLatestSubmission(subs));
+  const hydrated = new Map((await withAttachments(latestRows)).map((r) => [r.id, r]));
+  return (tasks || []).map((task) => {
+    const subs = (byTask.get(task.id) || []).map((s) => hydrated.get(s.id) || s);
+    return mapTraineeTask(task, subs);
+  });
 }
 
 async function hydrateAttachmentSettings(settings, body) {
@@ -168,17 +192,42 @@ async function submitTask(requester, taskId, body) {
     throw new ApiError(400, 'لا يمكن تسليم هذه المهمة حالياً', null, 'TASK_NOT_AVAILABLE');
   }
 
-  const row = await prisma.training_task_submissions.create({
-    data: {
-      task_id: taskId,
-      enrollment_id: enrollment.id,
-      user_id: requester.userId,
-      attempt_no: submissions.length + 1,
-      content_text: body.content_text ?? null,
-      content_url: body.content_url ?? null,
-      status: task.grading_mode === 'NONE' ? 'ACCEPTED' : 'SUBMITTED',
-    },
+  const filesSvc = require('./taskSubmissionFiles.service');
+  const fileRows = await filesSvc.resolveDraftFilesForSubmit(requester, taskId, body.file_ids);
+  const contentText = typeof body.content_text === 'string' ? body.content_text.trim() : '';
+  const legacyUrl = fileRows.length ? null : body.content_url ? String(body.content_url).slice(0, 1000) : null;
+  if (!contentText && !legacyUrl && !fileRows.length) {
+    throw new ApiError(400, FILE_ERROR_MESSAGES.SUBMISSION_EMPTY, null, 'SUBMISSION_EMPTY');
+  }
+
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.training_task_submissions.create({
+      data: {
+        task_id: taskId,
+        enrollment_id: enrollment.id,
+        user_id: requester.userId,
+        attempt_no: submissions.length + 1,
+        content_text: contentText || null,
+        content_url: legacyUrl,
+        status: task.grading_mode === 'NONE' ? 'ACCEPTED' : 'SUBMITTED',
+      },
+    });
+    await filesSvc.attachFilesInTransaction(tx, created.id, taskId, requester, fileRows);
+    return created;
   });
+  await recordAudit({
+    userId: requester.userId,
+    actionType: 'TRAINING_TASK_SUBMITTED',
+    entityType: 'training_task_submission',
+    entityId: row.id,
+    newValues: {
+      taskId,
+      attemptNo: row.attempt_no,
+      fileCount: fileRows.length,
+      totalBytes: fileRows.reduce((s, r) => s + Number(r.size || 0), 0),
+    },
+  }).catch(() => null);
+  filesSvc.cleanupStaleDrafts(requester.userId).catch(() => null);
   await emitDomainEvent('TASK_SUBMITTED', {
     organizationId: task.training_programs.organization_id,
     affectedUserId: requester.userId,
@@ -187,7 +236,7 @@ async function submitTask(requester, taskId, body) {
   }).catch(() => null);
   const { computeAndPersistProgress } = require('./trainingPrograms.service');
   await computeAndPersistProgress(enrollment.id).catch(() => null);
-  return { id: row.id, status: row.status, attemptNo: row.attempt_no };
+  return { id: row.id, status: row.status, attemptNo: row.attempt_no, fileCount: fileRows.length };
 }
 
 async function resubmitTask(requester, taskId, _submissionId, body) {
@@ -253,7 +302,7 @@ async function getTaskForRequester(requester, taskId) {
         where: { task_id: taskId, enrollment_id: enrollment.id },
       })
     : [];
-  return mapTraineeTask(task, submissions);
+  return mapTraineeTask(task, await withAttachments(submissions));
 }
 
 function resolveAttachmentUrl(settings) {
@@ -403,7 +452,8 @@ async function getMySubmission(requester, taskId) {
   });
   const latest = pickLatestSubmission(submissions);
   if (!latest) throw new ApiError(404, 'Submission not found');
-  return mapSubmission(latest);
+  const [hydrated] = await withAttachments([latest]);
+  return mapSubmission(hydrated);
 }
 
 async function loadSubmissionOrThrow(submissionId) {
@@ -432,10 +482,21 @@ async function listTaskSubmissions(requester, taskId) {
     where: { task_id: taskId },
     orderBy: [{ submitted_at: 'desc' }],
   });
-  return rows.map((row) => ({
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+  const users = userIds.length
+    ? await prisma.users.findMany({
+        where: { id: { in: userIds } },
+        select: { id: true, full_name: true, email: true },
+      })
+    : [];
+  const userMap = new Map(users.map((u) => [u.id, u]));
+  const hydrated = await withAttachments(rows);
+  return hydrated.map((row) => ({
     ...mapSubmission(row),
     userId: row.user_id,
     enrollmentId: row.enrollment_id,
+    traineeName: userMap.get(row.user_id)?.full_name || null,
+    traineeEmail: userMap.get(row.user_id)?.email || null,
   }));
 }
 
@@ -445,8 +506,9 @@ async function getTaskSubmission(requester, submissionId) {
   if (!isOwner) {
     await requireStaffTaskAccess(requester, submission.training_tasks, 'can_grade_tasks');
   }
+  const [hydrated] = await withAttachments([submission]);
   return {
-    ...mapSubmission(submission),
+    ...mapSubmission(hydrated),
     userId: submission.user_id,
     enrollmentId: submission.enrollment_id,
     taskId: submission.task_id,
@@ -482,6 +544,12 @@ async function reopenSubmission(requester, submissionId, body) {
 }
 
 module.exports = {
+  SUBMISSION_LIMITS,
+  loadTaskOrThrow,
+  findActiveEnrollment,
+  requireStaffTaskAccess,
+  loadSubmissionOrThrow,
+  mapSubmission,
   hydrateAttachmentSettings,
   getTraineeTaskListExtras,
   mapTraineeTask,

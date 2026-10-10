@@ -59,21 +59,35 @@ function Skeleton({ className }) {
   return <div className={`cc-skeleton ${className || ''}`} aria-hidden />;
 }
 
+function initialsFromName(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return '؟';
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('');
+}
+
 function Funnel({ stages = [], locale }) {
   if (!stages.length) return <p className="cc-empty">لا توجد بيانات كافية للفترة المحددة.</p>;
   const max = Math.max(...stages.map((s) => s.count), 1);
   return (
     <ol className="cc-funnel">
-      {stages.map((s) => (
-        <li key={s.key} className="cc-funnel__row">
-          <span className="cc-funnel__label">{s.labelAr}</span>
-          <span className="cc-funnel__bar-wrap">
-            <span className="cc-funnel__bar" style={{ width: `${Math.max((s.count / max) * 100, 4)}%` }} />
-          </span>
-          <span className="cc-funnel__count">{formatNumber(s.count, locale)}</span>
-          <span className="cc-funnel__pct">{formatPct(s.percentOfCohort, locale)}</span>
-        </li>
-      ))}
+      {stages.map((s, i) => {
+        const width = Math.max((s.count / max) * 100, 46);
+        return (
+          <li key={s.key} className="cc-funnel__row">
+            <span className="cc-funnel__label">{s.labelAr}</span>
+            <span className={`cc-funnel__seg cc-funnel__seg--${i % 5}`} style={{ width: `${width}%` }}>
+              <span className="cc-funnel__count">{formatNumber(s.count, locale)}</span>
+            </span>
+            <span className="cc-funnel__pct">{formatPct(s.percentOfCohort, locale)}</span>
+          </li>
+        );
+      })}
     </ol>
   );
 }
@@ -208,19 +222,27 @@ export function AnalyticsCommandCenterPage() {
               <X size={18} />
             </button>
           </div>
-          <label className="analytics-filter-bar__field">
+          <div className="analytics-filter-bar__field">
             <span className="analytics-filter-bar__label">{t('cc.filters.period')}</span>
-            <select
-              className="analytics-filter-bar__select"
-              value={filters.period}
-              onChange={(e) => setFilter('period', e.target.value)}
-            >
-              <option value="today">{t('cc.filters.today')}</option>
-              <option value="7d">{t('cc.filters.d7')}</option>
-              <option value="30d">{t('cc.filters.d30')}</option>
-              <option value="custom">{t('cc.filters.custom')}</option>
-            </select>
-          </label>
+            <div className="cc-period-tabs" role="group" aria-label={t('cc.filters.period')}>
+              {[
+                ['today', t('cc.filters.today')],
+                ['7d', t('cc.filters.d7')],
+                ['30d', t('cc.filters.d30')],
+                ['custom', t('cc.filters.custom')],
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={`cc-period-tabs__btn${filters.period === value ? ' is-active' : ''}`}
+                  aria-pressed={filters.period === value}
+                  onClick={() => setFilter('period', value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {isSuper ? (
             <label className="analytics-filter-bar__field">
               <span className="analytics-filter-bar__label">{t('cc.filters.orgType')}</span>
@@ -384,6 +406,7 @@ export function AnalyticsCommandCenterPage() {
           {roleData.length ? (
             <RoleDonutChart
               data={roleData}
+              centerLabel={t('cc.kpi.active')}
               onSelect={(role) => {
                 if (role) navigate(`/admin/users?role=${encodeURIComponent(role)}`);
               }}
@@ -393,12 +416,23 @@ export function AnalyticsCommandCenterPage() {
           )}
         </article>
         <article className="cc-card">
-          <h2>{t('cc.charts.live')}</h2>
+          <div className="cc-card__head">
+            <h2>{t('cc.charts.live')}</h2>
+            <span className="status-badge status-badge--live">{t('cc.live')}</span>
+          </div>
           <ul className="cc-activity">
             {activity.length ? (
               activity.map((item) => (
                 <li key={item.id}>
-                  <time>{new Date(item.at).toLocaleTimeString(locale.startsWith('en') ? 'en-GB' : 'ar-JO', { hour: '2-digit', minute: '2-digit' })}</time>
+                  <time>
+                    {new Date(item.at).toLocaleTimeString(locale.startsWith('en') ? 'en-GB' : 'ar-JO', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                  <span className="cc-activity__avatar" aria-hidden>
+                    {initialsFromName(item.userName || t('cc.activity.user'))}
+                  </span>
                   {item.href ? (
                     <Link to={item.href}>
                       <strong>{item.userName || t('cc.activity.user')}</strong> {item.action}
@@ -408,6 +442,7 @@ export function AnalyticsCommandCenterPage() {
                       <strong>{item.userName || t('cc.activity.user')}</strong> {item.action}
                     </span>
                   )}
+                  <Activity className="cc-activity__module" size={16} strokeWidth={1.75} aria-hidden />
                 </li>
               ))
             ) : (
@@ -440,10 +475,12 @@ export function AnalyticsCommandCenterPage() {
               present={data.attendance?.present || 0}
               absent={data.attendance?.absent || 0}
               unspecified={data.attendance?.unspecified || 0}
+              rate={data.attendance?.attendanceRate}
               labels={{
                 present: t('cc.ft.present'),
                 absent: t('cc.ft.absent'),
                 unspecified: t('cc.ft.unspecified'),
+                rate: t('cc.ft.attendance'),
               }}
             />
           </article>

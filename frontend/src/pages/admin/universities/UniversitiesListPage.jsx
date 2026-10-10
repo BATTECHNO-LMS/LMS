@@ -83,7 +83,7 @@ export function UniversitiesListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page">
-      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
+      <AdminPageHeader icon={Building2} title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         <Link className="btn btn--primary" to="/admin/universities/create">
           <Plus size={18} aria-hidden /> {t('add')}

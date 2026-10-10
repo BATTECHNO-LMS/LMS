@@ -13,25 +13,43 @@ import {
   Cell,
   BarChart,
   Bar,
+  Label,
 } from 'recharts';
 
 const NAVY = '#132d4a';
 const GOLD = '#c9a227';
 const BLUE = '#3a5f8a';
-const IVORY = '#f7f1e7';
-const SAND = '#e8d9b8';
+const IVORY = '#fcfaf5';
+const SAND = '#f2ebdd';
 const MUTED = '#3e4c5a';
-const BORDER = '#d5dde8';
+const BORDER = 'rgba(19,45,74,0.08)';
 
 const tooltipStyle = {
-  backgroundColor: '#fffdf8',
+  backgroundColor: '#fffefc',
   border: `1px solid ${BORDER}`,
-  borderRadius: 10,
+  borderRadius: 12,
   fontSize: 12,
   color: NAVY,
+  boxShadow: '0 8px 24px rgba(12,31,53,0.08)',
 };
 
-const ROLE_COLORS = [NAVY, GOLD, BLUE, '#6b8cae', '#a8861c', '#8aa2b8'];
+const ROLE_COLORS = [NAVY, GOLD, BLUE, '#4a7c74', '#6b6a8a', '#8aa2b8'];
+const SCORE_COLORS = ['#c45c5c', GOLD, '#4a7c74', NAVY];
+
+function DonutCenter({ viewBox, value, label }) {
+  const { cx, cy } = viewBox || {};
+  if (cx == null || cy == null) return null;
+  return (
+    <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle">
+      <tspan x={cx} dy="-0.25em" fontSize="22" fontWeight="700" fill={NAVY}>
+        {value}
+      </tspan>
+      <tspan x={cx} dy="1.45em" fontSize="11" fill={MUTED}>
+        {label}
+      </tspan>
+    </text>
+  );
+}
 
 export function ActiveUsersTrendChart({ data, labels }) {
   return (
@@ -39,13 +57,13 @@ export function ActiveUsersTrendChart({ data, labels }) {
       <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id="ccActiveFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={NAVY} stopOpacity={0.18} />
+            <stop offset="0%" stopColor={NAVY} stopOpacity={0.16} />
             <stop offset="100%" stopColor={NAVY} stopOpacity={0.02} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-        <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 11 }} />
-        <YAxis tick={{ fill: MUTED, fontSize: 11 }} allowDecimals={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={BORDER} vertical={false} />
+        <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 11 }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fill: MUTED, fontSize: 11 }} allowDecimals={false} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={tooltipStyle} />
         <Legend />
         <Area
@@ -55,6 +73,8 @@ export function ActiveUsersTrendChart({ data, labels }) {
           stroke={NAVY}
           fill="url(#ccActiveFill)"
           strokeWidth={2}
+          dot={{ r: 3, fill: '#fff', stroke: NAVY, strokeWidth: 1.5 }}
+          activeDot={{ r: 4.5 }}
         />
         <Line type="monotone" dataKey="newUsers" name={labels.newer} stroke={GOLD} strokeWidth={2} dot={false} />
       </AreaChart>
@@ -62,7 +82,8 @@ export function ActiveUsersTrendChart({ data, labels }) {
   );
 }
 
-export function RoleDonutChart({ data, onSelect }) {
+export function RoleDonutChart({ data, onSelect, centerLabel }) {
+  const total = data.reduce((sum, row) => sum + Number(row.count || 0), 0);
   return (
     <ResponsiveContainer width="100%" height={280}>
       <PieChart>
@@ -72,7 +93,7 @@ export function RoleDonutChart({ data, onSelect }) {
           nameKey="label"
           cx="50%"
           cy="50%"
-          innerRadius={58}
+          innerRadius={62}
           outerRadius={88}
           paddingAngle={2}
           onClick={(entry) => onSelect?.(entry?.role || entry?.payload?.role)}
@@ -80,6 +101,10 @@ export function RoleDonutChart({ data, onSelect }) {
           {data.map((entry, i) => (
             <Cell key={entry.role || i} fill={ROLE_COLORS[i % ROLE_COLORS.length]} />
           ))}
+          <Label
+            position="center"
+            content={(props) => <DonutCenter {...props} value={total || '—'} label={centerLabel || ''} />}
+          />
         </Pie>
         <Tooltip contentStyle={tooltipStyle} />
         <Legend />
@@ -92,34 +117,38 @@ export function ScoreBarsChart({ data, onSelect }) {
   return (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-        <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 11 }} />
-        <YAxis tick={{ fill: MUTED, fontSize: 11 }} allowDecimals={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={BORDER} vertical={false} />
+        <XAxis dataKey="label" tick={{ fill: MUTED, fontSize: 11 }} axisLine={false} tickLine={false} />
+        <YAxis tick={{ fill: MUTED, fontSize: 11 }} allowDecimals={false} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={tooltipStyle} />
-        <Bar
-          dataKey="count"
-          fill={NAVY}
-          radius={[6, 6, 0, 0]}
-          onClick={(entry) => onSelect?.(entry?.key || entry?.payload?.key)}
-        />
+        <Bar dataKey="count" radius={[6, 6, 0, 0]} onClick={(entry) => onSelect?.(entry?.key || entry?.payload?.key)}>
+          {data.map((entry, i) => (
+            <Cell key={entry.key || i} fill={SCORE_COLORS[i % SCORE_COLORS.length]} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
 
-export function AttendanceDonutChart({ present, absent, unspecified, labels }) {
+export function AttendanceDonutChart({ present, absent, unspecified, rate, labels }) {
   const data = [
-    { key: 'present', label: labels.present, value: present, fill: '#2d8a54' },
+    { key: 'present', label: labels.present, value: present, fill: NAVY },
     { key: 'absent', label: labels.absent, value: absent, fill: '#c41e1e' },
-    { key: 'unspecified', label: labels.unspecified, value: unspecified, fill: '#8aa2b8' },
+    { key: 'unspecified', label: labels.unspecified, value: unspecified, fill: GOLD },
   ].filter((d) => d.value > 0);
+  const center = rate == null ? '—' : `${rate}%`;
   return (
     <ResponsiveContainer width="100%" height={240}>
       <PieChart>
-        <Pie data={data} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={54} outerRadius={82}>
+        <Pie data={data} dataKey="value" nameKey="label" cx="50%" cy="50%" innerRadius={58} outerRadius={84}>
           {data.map((d) => (
             <Cell key={d.key} fill={d.fill} />
           ))}
+          <Label
+            position="center"
+            content={(props) => <DonutCenter {...props} value={center} label={labels.rate || ''} />}
+          />
         </Pie>
         <Tooltip contentStyle={tooltipStyle} />
         <Legend />
@@ -133,8 +162,8 @@ export function OrgBarsChart({ data, onSelect }) {
     <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={BORDER} />
-        <XAxis type="number" tick={{ fill: MUTED, fontSize: 11 }} />
-        <YAxis type="category" dataKey="label" width={120} tick={{ fill: MUTED, fontSize: 11 }} />
+        <XAxis type="number" tick={{ fill: MUTED, fontSize: 11 }} axisLine={false} tickLine={false} />
+        <YAxis type="category" dataKey="label" width={120} tick={{ fill: MUTED, fontSize: 11 }} axisLine={false} tickLine={false} />
         <Tooltip contentStyle={tooltipStyle} />
         <Bar
           dataKey="value"
@@ -158,7 +187,7 @@ export function ActivityHeatmap({ cells = [], labels }) {
     if (!v) return IVORY;
     const t = v / max;
     if (t < 0.25) return SAND;
-    if (t < 0.55) return '#6b8cae';
+    if (t < 0.55) return '#8aa2b8';
     if (t < 0.8) return BLUE;
     return NAVY;
   }

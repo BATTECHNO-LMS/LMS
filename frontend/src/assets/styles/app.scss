@@ -11,6 +11,7 @@
 @use './components/modals';
 @use './components/design-system';
 @use './components/brand-logo';
+@use './components/motifs';
 @use './components/portal-selection';
 @use './components/spinner';
 @use './components/sidebar-nav';
@@ -24,6 +25,7 @@
 @use './components/training-reports';
 @use './components/course-content';
 @use './components/submission-ui';
+@use './components/task-submission';
 @use './components/analytics-cards';
 @use './components/analytics-filters';
 @use './components/analytics-charts';

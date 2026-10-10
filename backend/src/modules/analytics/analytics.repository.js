@@ -257,29 +257,46 @@ async function getUniversitiesOverview(filters) {
   scope.cohorts.forEach((c) => {
     if (uniCohorts.has(c.university_id)) uniCohorts.get(c.university_id).push(c.id);
   });
-  const result = [];
-  for (const uni of universities) {
+  const allCohortIds = [...new Set(scope.cohorts.map((c) => c.id).filter(Boolean))];
+  const [enrollRows, recognitionGroups] = await Promise.all([
+    allCohortIds.length
+      ? prisma.enrollments.findMany({
+          where: { cohort_id: { in: allCohortIds }, ...inDateRange('enrolled_at', filters) },
+          select: { student_id: true, cohort_id: true },
+        })
+      : [],
+    allCohortIds.length
+      ? prisma.recognition_requests.groupBy({
+          by: ['cohort_id'],
+          where: { cohort_id: { in: allCohortIds }, ...inDateRange('created_at', filters) },
+          _count: { _all: true },
+        })
+      : [],
+  ]);
+  const studentsByCohort = new Map();
+  for (const row of enrollRows) {
+    if (!studentsByCohort.has(row.cohort_id)) studentsByCohort.set(row.cohort_id, new Set());
+    studentsByCohort.get(row.cohort_id).add(row.student_id);
+  }
+  const recognitionByCohort = new Map(
+    recognitionGroups.map((group) => [group.cohort_id, group._count._all])
+  );
+  return universities.map((uni) => {
     const cohortIds = uniCohorts.get(uni.id) || [];
-    const enrollRows = cohortIds.length
-      ? await prisma.enrollments.findMany({
-          where: { cohort_id: { in: cohortIds }, ...inDateRange('enrolled_at', filters) },
-          select: { student_id: true },
-        })
-      : [];
-    const recognitionCount = cohortIds.length
-      ? await prisma.recognition_requests.count({
-          where: { cohort_id: { in: cohortIds }, ...inDateRange('created_at', filters) },
-        })
-      : 0;
-    result.push({
+    const students = new Set();
+    let recognitionRequests = 0;
+    for (const cohortId of cohortIds) {
+      for (const studentId of studentsByCohort.get(cohortId) || []) students.add(studentId);
+      recognitionRequests += recognitionByCohort.get(cohortId) || 0;
+    }
+    return {
       university_id: uni.id,
       name: uni.name,
       cohorts: cohortIds.length,
-      students: new Set(enrollRows.map((r) => r.student_id)).size,
-      recognitionRequests: recognitionCount,
-    });
-  }
-  return result;
+      students: students.size,
+      recognitionRequests,
+    };
+  });
 }
 
 async function getEnrollmentGrowth(filters) {
@@ -817,20 +834,30 @@ async function getFieldTrainingAnalytics(filters) {
       specialties.map((s) => [s.id, s.name_ar || s.name_en || s.id])
     );
 
+    const scopedUniIds = byUniversityRows.map((row) => row.university_id).filter(Boolean);
+    const applicationRows = scopedUniIds.length
+      ? await prisma.field_training_applications.findMany({
+          where: {
+            ...dateWhere,
+            field_training_opportunities: { university_id: { in: scopedUniIds } },
+          },
+          select: { field_training_opportunities: { select: { university_id: true } } },
+        })
+      : [];
+    const applicationsByUniversity = new Map();
+    for (const row of applicationRows) {
+      const universityId = row.field_training_opportunities?.university_id;
+      if (!universityId) continue;
+      applicationsByUniversity.set(universityId, (applicationsByUniversity.get(universityId) || 0) + 1);
+    }
     const byUniversity = [];
     for (const row of byUniversityRows) {
       if (!row.university_id) continue;
-      const appCount = await prisma.field_training_applications.count({
-        where: {
-          ...dateWhere,
-          field_training_opportunities: { university_id: row.university_id },
-        },
-      });
       byUniversity.push({
         university_id: row.university_id,
         name: uniName.get(row.university_id) || row.university_id,
         opportunities: row._count._all,
-        applications: appCount,
+        applications: applicationsByUniversity.get(row.university_id) || 0,
       });
     }
 

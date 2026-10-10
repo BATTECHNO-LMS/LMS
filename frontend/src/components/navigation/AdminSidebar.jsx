@@ -119,6 +119,11 @@ export function AdminSidebar({
           <SidebarNavGroup key={group.id} group={group} onNavigate={onNavigate} />
         ))}
       </nav>
+      <div className="app-sidebar__motif" aria-hidden />
+      <div className="app-sidebar__footer">
+        <p className="app-sidebar__footer-brand">{brand}</p>
+        <p className="app-sidebar__footer-meta">{t('developedBy')}</p>
+      </div>
     </aside>
   );
 }

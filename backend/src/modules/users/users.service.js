@@ -192,11 +192,22 @@ async function listUsers(query, requester = {}) {
   const page_size = query.page_size;
   const skip = (page - 1) * page_size;
 
-  const [total, rows, role_counts] = await Promise.all([
+  const [total, rows, role_counts, statusGroups, emailVerifiedCount] = await Promise.all([
     usersRepository.countMany(where),
     usersRepository.findManyForList(where, skip, page_size),
     countUsersByCanonicalRole(scopedUniversityId, requester),
+    prisma.users.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+    }),
+    prisma.users.count({
+      where: { AND: [where, { email_verified_at: { not: null } }] },
+    }),
   ]);
+  const status_counts = Object.fromEntries(
+    (statusGroups || []).map((group) => [group.status, group._count._all])
+  );
 
   const items = await mapUsersWithRoles(rows);
 
@@ -224,6 +235,8 @@ async function listUsers(query, requester = {}) {
   return {
     items: enriched,
     role_counts,
+    status_counts,
+    email_verified_count: emailVerifiedCount,
     meta: buildListMeta(total, page, page_size),
   };
 }

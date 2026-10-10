@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDebouncedValue } from '../../../hooks/useDebouncedValue.js';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, MailCheck, LayoutGrid, Table2, Users, UserCheck, UserX, Mail, MailWarning, FileSpreadsheet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +42,7 @@ import {
 } from '../../../features/users/index.js';
 
 const VIEW_KEY = 'battechno.admin.users.viewMode';
+const USERS_PAGE_SIZE = 20;
 
 function accountStatusLabel(t, status) {
   if (status === 'active') return t('list.accountActive');
@@ -64,7 +66,12 @@ export function UsersListPage() {
   const { user } = useAuth();
   const { filterRows, scopeId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => searchParams.get('search') || '');
+  const [page, setPage] = useState(() => {
+    const raw = Number(searchParams.get('page') || 1);
+    return Number.isFinite(raw) && raw > 0 ? raw : 1;
+  });
+  const debouncedQ = useDebouncedValue(q, 350);
   const [role, setRole] = useState(() => searchParams.get('role') || '');
 
   useEffect(() => {
@@ -114,48 +121,47 @@ export function UsersListPage() {
     setSearchParams(next, { replace: true });
   };
 
+  const filterKey = `${debouncedQ}|${status}|${role}|${emailVerifiedFilter}|${scopeId || ''}`;
+  const filterKeyRef = useRef(filterKey);
+  useEffect(() => {
+    if (filterKeyRef.current === filterKey) return;
+    filterKeyRef.current = filterKey;
+    setPage(1);
+  }, [filterKey]);
+
   const listParams = useMemo(() => {
-    const params = { page: 1, page_size: 500 };
+    const params = { page, page_size: USERS_PAGE_SIZE };
     if (status) params.status = status;
     if (role) params.role = role;
     if (emailVerifiedFilter === 'true' || emailVerifiedFilter === 'false') {
       params.email_verified = emailVerifiedFilter;
     }
     if (scopeId && scopeId !== TENANT_SCOPE_ALL) params.university_id = scopeId;
+    if (debouncedQ.trim()) params.search = debouncedQ.trim();
     return params;
-  }, [status, emailVerifiedFilter, scopeId, role]);
+  }, [page, status, emailVerifiedFilter, scopeId, role, debouncedQ]);
 
   const { data, isLoading, isError, error } = useUsers(listParams);
 
   const rows = useMemo(() => {
     const items = data?.items ?? [];
-    const mapped = items.map(mapUserListRow);
-    const scoped = filterRows(mapped);
-    const qq = q.trim().toLowerCase();
-    return scoped.filter((r) => {
-      const matchQ = !qq || r.name.toLowerCase().includes(qq) || r.email.toLowerCase().includes(qq);
-      return matchQ;
-    });
-  }, [data, filterRows, q]);
+    return filterRows(items.map(mapUserListRow));
+  }, [data, filterRows]);
 
   const roleCounts = data?.role_counts || {};
 
-  const pendingStudents = useMemo(
-    () =>
-      rows.filter(
-        (r) => r.status === 'inactive' && (Array.isArray(r.roles) ? r.roles : []).includes('student')
-      ),
-    [rows]
-  );
-
-  const unverifiedUsers = useMemo(() => rows.filter((r) => !r.emailVerified), [rows]);
-
+  const statusCounts = data?.status_counts || {};
+  const totalUsers = data?.meta?.total ?? rows.length;
+  const emailVerifiedCount =
+    typeof data?.email_verified_count === 'number'
+      ? data.email_verified_count
+      : rows.filter((r) => r.emailVerified).length;
   const stats = {
-    total: data?.meta?.total ?? rows.length,
-    emailVerified: rows.filter((r) => r.emailVerified).length,
-    emailUnverified: unverifiedUsers.length,
-    active: rows.filter((r) => r.status === 'active').length,
-    pendingActivation: rows.filter((r) => r.status === 'inactive').length,
+    total: totalUsers,
+    emailVerified: emailVerifiedCount,
+    emailUnverified: Math.max(0, totalUsers - emailVerifiedCount),
+    active: statusCounts.active ?? rows.filter((r) => r.status === 'active').length,
+    pendingActivation: statusCounts.inactive ?? rows.filter((r) => r.status === 'inactive').length,
     admin: roleCounts.admin ?? 0,
     instructor: roleCounts.instructor ?? 0,
     student: roleCounts.student ?? 0,
@@ -163,20 +169,20 @@ export function UsersListPage() {
   };
 
   async function handleActivateAll() {
-    if (!pendingStudents.length) {
+    if (!stats.pendingActivation) {
       setFeedback(t('list.activateAllNone'));
       return;
     }
-    const ok = window.confirm(t('list.activateAllConfirm', { count: pendingStudents.length }));
+    const ok = window.confirm(t('list.activateAllConfirm', { count: stats.pendingActivation }));
     if (!ok) return;
 
     setFeedback('');
     try {
-      const payload = { user_ids: pendingStudents.map((r) => r.id) };
+      const payload = {};
       if (scopeId && scopeId !== TENANT_SCOPE_ALL) payload.university_id = scopeId;
       const result = await activateAllPending.mutateAsync(payload);
       const activated = result?.activated ?? 0;
-      const total = result?.total_pending ?? pendingStudents.length;
+      const total = result?.total_pending ?? stats.pendingActivation;
       const failed = result?.failed ?? 0;
       setFeedback(
         failed > 0
@@ -204,7 +210,7 @@ export function UsersListPage() {
   async function confirmVerifyAll() {
     setFeedback('');
     try {
-      const payload = { user_ids: unverifiedUsers.map((r) => r.id) };
+      const payload = {};
       if (scopeId && scopeId !== TENANT_SCOPE_ALL) payload.university_id = scopeId;
       if (status) payload.status = status;
       const result = await verifyAllEmails.mutateAsync(payload);
@@ -308,7 +314,7 @@ export function UsersListPage() {
 
   return (
     <div className="page page--dashboard page--admin crud-page page--admin-users">
-      <AdminPageHeader title={<>{t('title')}</>} description={<>{t('description')}</>} />
+      <AdminPageHeader icon={Users} title={<>{t('title')}</>} description={<>{t('description')}</>} />
       <AdminActionBar>
         {canWrite ? (
           <Link className="btn btn--primary" to="/admin/users/create">
@@ -329,11 +335,11 @@ export function UsersListPage() {
           <button
             type="button"
             className="btn btn--outline"
-            disabled={busy || unverifiedUsers.length === 0}
+            disabled={busy || stats.emailUnverified === 0}
             onClick={() => setVerifyAllOpen(true)}
           >
             <MailCheck size={18} aria-hidden /> {t('list.verifyAll')}
-            {unverifiedUsers.length ? ` (${unverifiedUsers.length})` : ''}
+            {stats.emailUnverified ? ` (${stats.emailUnverified})` : ''}
           </button>
         ) : null}
         {viewToggle}
@@ -394,7 +400,7 @@ export function UsersListPage() {
       <SectionCard
         title={<>{t('listTitle')}</>}
         actions={
-          canActivate && pendingStudents.length > 0 ? (
+          canActivate && stats.pendingActivation > 0 ? (
             <button
               type="button"
               className="btn btn--primary btn--sm"
@@ -402,7 +408,7 @@ export function UsersListPage() {
               onClick={handleActivateAll}
             >
               {t('list.activateAll')}
-              {pendingStudents.length ? ` (${pendingStudents.length})` : ''}
+              {stats.pendingActivation ? ` (${stats.pendingActivation})` : ''}
             </button>
           ) : null
         }
@@ -436,6 +442,19 @@ export function UsersListPage() {
           ) : (
             <p className="admin-users-empty">{emptyTitle}</p>
           )
+        ) : null}
+
+        {!isLoading && viewMode === 'cards' ? (
+          <div className="data-table__pagination">
+            <span>{t('list.count', { count: data?.meta?.total ?? rows.length })}</span>
+            <button type="button" className="btn btn--outline btn--sm" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+              {tCommon('pagination.previous')}
+            </button>
+            <span>{tCommon('pagination.status', { page, totalPages: data?.meta?.total_pages ?? 1 })}</span>
+            <button type="button" className="btn btn--outline btn--sm" disabled={page >= (data?.meta?.total_pages ?? 1)} onClick={() => setPage((current) => current + 1)}>
+              {tCommon('pagination.next')}
+            </button>
+          </div>
         ) : null}
 
         {!isLoading && viewMode === 'table' ? (
@@ -531,7 +550,29 @@ export function UsersListPage() {
               rows={rows}
               footer={
                 <div className="data-table__pagination">
-                  {t('list.count', { count: rows.length })}
+                  <span>{t('list.count', { count: data?.meta?.total ?? rows.length })}</span>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    disabled={page <= 1}
+                    onClick={() => setPage((current) => Math.max(1, current - 1))}
+                  >
+                    {tCommon('pagination.previous')}
+                  </button>
+                  <span>
+                    {tCommon('pagination.status', {
+                      page,
+                      totalPages: data?.meta?.total_pages ?? 1,
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    disabled={page >= (data?.meta?.total_pages ?? 1)}
+                    onClick={() => setPage((current) => current + 1)}
+                  >
+                    {tCommon('pagination.next')}
+                  </button>
                 </div>
               }
             />
@@ -554,7 +595,7 @@ export function UsersListPage() {
       <ConfirmDeleteModal
         open={verifyAllOpen}
         title={t('list.verifyAllConfirmTitle')}
-        message={t('list.verifyAllConfirmText', { count: unverifiedUsers.length })}
+        message={t('list.verifyAllConfirmText', { count: stats.emailUnverified })}
         confirmLabel={t('list.verifyAllConfirm')}
         cancelLabel={tCommon('actions.cancel')}
         confirmVariant="primary"

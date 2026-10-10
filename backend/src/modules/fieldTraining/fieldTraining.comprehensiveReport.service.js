@@ -266,22 +266,23 @@ async function loadStudentActivity({ studentId, applicationId, opportunityId, li
   };
 }
 
-async function getComprehensiveStudentReport(opportunityId, applicationId, user, query = {}) {
-  const app = await repo.findApplicationById(applicationId);
+async function getComprehensiveStudentReport(opportunityId, applicationId, user, query = {}, options = {}) {
+  const preloaded = options.preloaded || {};
+  const app = preloaded.application || (await repo.findApplicationById(applicationId));
   if (!app) throw new ApiError(404, 'Application not found');
   if (String(app.opportunity_id) !== String(opportunityId)) {
     throw new ApiError(404, 'Application not found for this opportunity');
   }
-  const opp = await repo.findById(opportunityId);
+  const opp = preloaded.opportunity || (await repo.findById(opportunityId));
   if (!opp) throw new ApiError(404, 'Opportunity not found');
-  await ftAccess.assertManageOpportunityAccess(user, opp);
-  await ftAccess.assertApplicationStudentAccess(user, app.student_id);
+  if (!options.accessAlreadyAsserted) {
+    await ftAccess.assertManageOpportunityAccess(user, opp);
+    await ftAccess.assertApplicationStudentAccess(user, app.student_id);
+  }
 
-  const [profiles, qualRow, sessions, tasks, submissions, attendanceRows, attempts, ratings, hoursProgress] =
-    await Promise.all([
-      repo.findStudentProfilesByIds([app.student_id]),
-      qualificationService.calculateForApplication(applicationId),
-      prisma.field_training_sessions.findMany({
+  const sessionQuery = preloaded.sessions
+    ? Promise.resolve(preloaded.sessions)
+    : prisma.field_training_sessions.findMany({
         where: { opportunity_id: opportunityId },
         orderBy: [{ session_date: 'asc' }, { start_time: 'asc' }],
         select: {
@@ -292,8 +293,10 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
           end_time: true,
           is_required: true,
         },
-      }),
-      prisma.field_training_tasks.findMany({
+      });
+  const taskQuery = preloaded.tasks
+    ? Promise.resolve(preloaded.tasks)
+    : prisma.field_training_tasks.findMany({
         where: { opportunity_id: opportunityId },
         orderBy: { created_at: 'asc' },
         select: {
@@ -304,7 +307,16 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
           grading_mode: true,
           due_date: true,
         },
-      }),
+      });
+
+  const [profiles, qualRow, sessions, tasks, submissions, attendanceRows, attempts, ratings, hoursProgress] =
+    await Promise.all([
+      preloaded.profile
+        ? Promise.resolve([preloaded.profile])
+        : repo.findStudentProfilesByIds([app.student_id]),
+      qualificationService.calculateForApplication(applicationId),
+      sessionQuery,
+      taskQuery,
       prisma.field_training_task_submissions.findMany({
         where: { application_id: applicationId },
         orderBy: { submitted_at: 'desc' },
@@ -1063,12 +1075,26 @@ function renderComprehensiveReportHtml(report, assets = {}) {
 }
 
 
-async function exportComprehensiveStudentReportPdf(opportunityId, applicationId, user, query = {}) {
-  const report = await getComprehensiveStudentReport(opportunityId, applicationId, user, query);
+async function exportComprehensiveStudentReportPdf(
+  opportunityId,
+  applicationId,
+  user,
+  query = {},
+  options = {}
+) {
+  const report = await getComprehensiveStudentReport(
+    opportunityId,
+    applicationId,
+    user,
+    query,
+    options
+  );
   const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
   const { loadBattechnoLogoDataUri } = require('../trainingPrograms/trainingReportPdf.service');
+  const battechnoLogoDataUri =
+    options.preloaded?.battechnoLogoDataUri || loadBattechnoLogoDataUri();
   const html = renderComprehensiveReportHtml(report, {
-    battechnoLogoDataUri: loadBattechnoLogoDataUri(),
+    battechnoLogoDataUri,
   });
   const buffer = await renderHtmlToPdf(html, {
     lang: 'ar',

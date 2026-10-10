@@ -49,7 +49,10 @@
     "choose": "اختر اللغة"
   },
   "pagination": {
-    "stub": "ترقيم الصفحات — سيتم تفعيله لاحقاً"
+    "stub": "ترقيم الصفحات — سيتم تفعيله لاحقاً",
+    "previous": "السابق",
+    "next": "التالي",
+    "status": "صفحة {{page}} من {{totalPages}}"
   },
   "loading": "جاري التحميل",
   "user": {
@@ -58,6 +61,16 @@
   },
   "notifications": "الإشعارات",
   "rights": "جميع الحقوق محفوظة",
+  "developedBy": "من تطوير BATMAN TECHNOLOGY",
+  "roles": {
+    "super_admin": "مسؤول النظام",
+    "admin": "مسؤول",
+    "reviewer": "مراجع",
+    "instructor": "مشرف أكاديمي",
+    "trainer": "مدرب",
+    "trainee": "متدرب",
+    "student": "طالب"
+  },
   "table": {
     "actions": "الإجراءات"
   },

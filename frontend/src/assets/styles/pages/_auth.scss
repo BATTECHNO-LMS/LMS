@@ -11,12 +11,19 @@
   padding: clamp(1rem, 3vw, 2rem);
   overflow-x: hidden;
   overflow-y: auto;
-  background: linear-gradient(
-    165deg,
-    color-mix(in srgb, $color-accent-soft 48%, white) 0%,
-    $color-bg 32%,
-    color-mix(in srgb, $color-bg 88%, $color-primary 12%) 100%
-  );
+  background: var(--gradient-page);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.045;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 420' fill='none'%3E%3Cpath d='M-40 310C90 210 240 360 410 275S690 165 860 255' stroke='%23c9a227' stroke-width='1.15'/%3E%3Cpath d='M70 400V228q0-38 38-38h78q38 0 38 38v172' stroke='%23132d4a' stroke-width='0.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 8% 82%;
+    background-size: min(48rem, 80vw) auto;
+  }
 }
 
 .auth-page {

@@ -6,3 +6,4 @@ export { AlertBanner } from './AlertBanner.jsx';
 export { ErrorState } from './ErrorState.jsx';
 export { LoadingSkeleton } from './LoadingSkeleton.jsx';
 export { StatusDetailList } from './StatusDetailList.jsx';
+export { AnalyticsKpiCard as KpiCard } from '../analytics/AnalyticsKpiCard.jsx';

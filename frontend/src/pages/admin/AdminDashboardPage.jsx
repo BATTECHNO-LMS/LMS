@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Users, Building2, Layers, ClipboardList, UserPlus, BookOpen } from 'lucide-react';
+import { Users, Building2, Layers, ClipboardList, UserPlus, BookOpen, LayoutDashboard } from 'lucide-react';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
@@ -54,7 +54,11 @@ export function AdminDashboardPage() {
 
   return (
     <div className="page page--dashboard page--admin">
-      <AdminPageHeader title={<>{t('admin.title')}</>} description={<>{t('admin.description')}</>} />
+      <AdminPageHeader
+        icon={LayoutDashboard}
+        title={<>{t('admin.title')}</>}
+        description={<>{t('admin.description')}</>}
+      />
       {isLoading ? (
         <LoadingSpinner />
       ) : isError ? (

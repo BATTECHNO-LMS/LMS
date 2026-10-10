@@ -36,6 +36,8 @@ const {
   reviewSubmissionBodySchema,
   updateApplicationHoursBodySchema,
   listApplicationsQuerySchema,
+  bulkStudentReportsExportBodySchema,
+  jobIdParamSchema,
 } = require('./fieldTraining.validation');
 
 const router = express.Router();
@@ -415,6 +417,38 @@ router.get(
   instructorOnly,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.listEligibility
+);
+
+router.post(
+  '/:id/reports/students/bulk-export/preview',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema, body: bulkStudentReportsExportBodySchema }),
+  workflowController.previewBulkStudentReports
+);
+
+router.post(
+  '/:id/reports/students/bulk-export',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema, body: bulkStudentReportsExportBodySchema }),
+  workflowController.startBulkStudentReports
+);
+
+router.get(
+  '/:id/reports/students/bulk-export/jobs/:jobId',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: jobIdParamSchema }),
+  workflowController.getBulkStudentReportsJob
+);
+
+router.get(
+  '/:id/reports/students/bulk-export/jobs/:jobId/download',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: jobIdParamSchema }),
+  workflowController.downloadBulkStudentReportsZip
 );
 
 router.get(

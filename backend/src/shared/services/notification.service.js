@@ -125,19 +125,68 @@ function fanoutPushForRow(row) {
 async function createNotificationsForUsers(payload) {
   const uniqueUserIds = [...new Set((payload?.userIds || []).filter(Boolean))];
   if (!uniqueUserIds.length) return { created_count: 0 };
-  let created = 0;
-  for (const userId of uniqueUserIds) {
-    const row = await createNotificationForUser({
-      userId,
-      title: payload.title,
-      body: payload.body,
-      type: payload.type,
-      actionUrl: payload.actionUrl,
-      dedupeWindowHours: payload.dedupeWindowHours,
+
+  let targetIds = uniqueUserIds;
+  if (payload.dedupeByActionUrl && payload.actionUrl) {
+    const existing = await prisma.notifications.findMany({
+      where: {
+        user_id: { in: uniqueUserIds },
+        title: payload.title,
+        action_url: payload.actionUrl,
+      },
+      select: { user_id: true },
     });
-    if (row) created += 1;
+    const skip = new Set(existing.map((row) => row.user_id));
+    targetIds = uniqueUserIds.filter((id) => !skip.has(id));
+  } else if (payload.dedupeWindowHours && payload.dedupeWindowHours > 0) {
+    const since = new Date(Date.now() - payload.dedupeWindowHours * 3600 * 1000);
+    const existing = await prisma.notifications.findMany({
+      where: {
+        user_id: { in: uniqueUserIds },
+        title: payload.title,
+        created_at: { gte: since },
+      },
+      select: { user_id: true },
+    });
+    const skip = new Set(existing.map((row) => row.user_id));
+    targetIds = uniqueUserIds.filter((id) => !skip.has(id));
   }
-  return { created_count: created };
+  if (!targetIds.length) return { created_count: 0 };
+
+  const type = normalizeType(payload.type);
+  const data = targetIds.map((userId) => {
+    const row = {
+      user_id: userId,
+      title: payload.title,
+      body: payload.body ?? null,
+      type,
+    };
+    if (payload.actionUrl != null) row.action_url = payload.actionUrl;
+    return row;
+  });
+
+  try {
+    const rows = await prisma.notifications.createManyAndReturn({ data });
+    for (const row of rows) fanoutPushForRow(row);
+    return { created_count: rows.length };
+  } catch (err) {
+    const msg = String(err?.message || '');
+    if (!msg.includes('action_url') && !msg.includes('Unknown arg') && !msg.includes('createManyAndReturn')) {
+      throw err;
+    }
+    let created = 0;
+    for (const userId of targetIds) {
+      const row = await createNotificationForUser({
+        userId,
+        title: payload.title,
+        body: payload.body,
+        type: payload.type,
+        actionUrl: payload.actionUrl,
+      });
+      if (row) created += 1;
+    }
+    return { created_count: created };
+  }
 }
 
 async function userIdsByRoleCodes(roleCodes, { universityId } = {}) {

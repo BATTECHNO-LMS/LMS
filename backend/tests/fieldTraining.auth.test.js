@@ -146,3 +146,44 @@ test('POST /api/v1/student/field-training/:id/apply requires authentication', as
   const res = await request(app).post(`/api/v1/student/field-training/${id}/apply`).send({});
   assert.strictEqual(res.status, 401);
 });
+
+test('bulk student reports export routes require authentication', async () => {
+  const id = '00000000-0000-4000-8000-000000000001';
+  const jobId = '00000000-0000-4000-8000-000000000002';
+  const preview = await request(app)
+    .post(`/api/v1/admin/field-training/${id}/reports/students/bulk-export/preview`)
+    .send({});
+  assert.strictEqual(preview.status, 401);
+  assert.strictEqual(preview.body.code, 'UNAUTHORIZED');
+
+  const start = await request(app)
+    .post(`/api/v1/admin/field-training/${id}/reports/students/bulk-export`)
+    .send({});
+  assert.strictEqual(start.status, 401);
+
+  const status = await request(app).get(
+    `/api/v1/admin/field-training/${id}/reports/students/bulk-export/jobs/${jobId}`
+  );
+  assert.strictEqual(status.status, 401);
+
+  const download = await request(app).get(
+    `/api/v1/admin/field-training/${id}/reports/students/bulk-export/jobs/${jobId}/download`
+  );
+  assert.strictEqual(download.status, 401);
+  assert.strictEqual(download.body.code, 'UNAUTHORIZED');
+  assert.match(String(download.body.message || ''), /انتهت جلستك|غير مصرح/);
+});
+
+test('static private bulk-export path is not publicly downloadable', async () => {
+  const res = await request(app).get(
+    '/uploads/private/ft-student-report-exports/00000000-0000-4000-8000-000000000002/result.zip'
+  );
+  assert.strictEqual(res.status, 404);
+});
+
+test('legacy bulk-export uploads path is blocked', async () => {
+  const res = await request(app).get(
+    '/uploads/ft-student-report-exports/00000000-0000-4000-8000-000000000002/result.zip'
+  );
+  assert.strictEqual(res.status, 404);
+});

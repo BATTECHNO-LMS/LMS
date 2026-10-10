@@ -60,6 +60,20 @@ async function getObjectBuffer(storageKey) {
   return fs.promises.readFile(abs);
 }
 
+async function getObjectStream(storageKey) {
+  const abs = getAbsolutePath(storageKey);
+  const stat = await fs.promises.stat(abs);
+  return { stream: fs.createReadStream(abs), contentLength: stat.size };
+}
+
+async function putObjectFile(storageKey, sourcePath) {
+  const abs = getAbsolutePath(storageKey);
+  await fs.promises.mkdir(path.dirname(abs), { recursive: true });
+  await fs.promises.copyFile(sourcePath, abs);
+  const stat = await fs.promises.stat(abs);
+  return { size: stat.size };
+}
+
 async function putObjectBuffer(storageKey, buffer) {
   const abs = getAbsolutePath(storageKey);
   await fs.promises.mkdir(path.dirname(abs), { recursive: true });
@@ -76,5 +90,7 @@ module.exports = {
   checkHealth,
   getAbsolutePath,
   getObjectBuffer,
+  getObjectStream,
   putObjectBuffer,
+  putObjectFile,
 };

@@ -23,28 +23,28 @@
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  min-height: 2.4rem;
-  padding: 0.45rem 0.85rem;
+  min-height: 2.3rem;
+  padding: 0.4rem 0.8rem;
   border: 0;
-  border-radius: $radius-md;
+  border-radius: $radius-sm;
   background: transparent;
   color: var(--color-text-muted);
-  font-weight: 700;
-  font-size: 0.875rem;
+  font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
   @include transition(background-color color, 0.15s);
 
   &:hover,
   &:focus-visible {
-    background: rgba($color-primary, 0.08);
+    background: $color-accent-soft;
     color: $color-primary;
     outline: none;
   }
 
   &--active {
-    background: #fff;
-    color: $color-primary;
-    box-shadow: var(--shadow-sm);
+    background: $color-primary;
+    color: #fff;
+    box-shadow: none;
   }
 }
 
@@ -122,36 +122,38 @@
 
 .admin-page-header {
   position: relative;
-  margin-bottom: 1.5rem;
-  padding: 1.5rem 1.6rem;
+  margin-bottom: 1.25rem;
+  padding: 1.05rem 1.15rem;
   border-radius: $radius-lg;
   background:
-    radial-gradient(130% 150% at 100% 0%, rgba($color-accent, 0.12), transparent 55%),
-    linear-gradient(135deg, $color-accent-soft 0%, var(--color-cream-soft) 48%, var(--color-card) 100%);
+    linear-gradient(180deg, rgba($color-ivory, 0.92) 0%, $color-card 100%);
   border: 1px solid var(--color-border-tinted);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 
-  /** subtle academic dot pattern */
   &::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba($color-primary, 0.06) 1px, transparent 1.4px);
-    background-size: 20px 20px;
-    opacity: 0.55;
+    inset-inline-end: -4%;
+    top: -30%;
+    width: 14rem;
+    height: 8rem;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 160' fill='none'%3E%3Cpath d='M-10 110C70 40 150 140 230 80S360 30 430 90' stroke='%23c9a227' stroke-width='1.2'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: cover;
     pointer-events: none;
   }
 
-  /** gold accent bar on the inline-start edge */
   &::after {
     content: '';
     position: absolute;
     inset-inline-start: 0;
-    top: 0;
-    bottom: 0;
-    width: 4px;
-    background: linear-gradient(180deg, $color-accent, $color-accent-hover);
+    top: 0.85rem;
+    bottom: 0.85rem;
+    width: 3px;
+    border-radius: $radius-pill;
+    background: $color-accent;
   }
 
   > * {
@@ -160,26 +162,39 @@
   }
 }
 
-.admin-page-header__breadcrumb {
-  font-size: 0.8125rem;
-  color: var(--color-text-muted);
-  margin-bottom: 0.35rem;
+.admin-page-header__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.admin-page-header__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-md;
+  background: $color-primary;
+  color: $color-accent;
+  flex-shrink: 0;
 }
 
 .admin-page-header__title {
-  margin: 0 0 0.4rem;
-  font-size: 1.5rem;
-  font-weight: 800;
+  margin: 0 0 0.25rem;
+  font-size: 1.35rem;
+  font-weight: 700;
   letter-spacing: -0.01em;
   color: var(--color-heading);
 }
 
 .admin-page-header__desc {
   margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 0.875rem;
+  line-height: 1.6;
   color: var(--color-text-muted);
   max-width: 48rem;
+  font-weight: 400;
 }
 
 /** Optional quick-action row inside the dashboard hero */
@@ -947,13 +962,13 @@
     border-color 0.22s ease;
 
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 22px 44px -18px rgba($color-primary, 0.34);
-    border-color: rgba($color-accent, 0.5);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-3d-hover);
+    border-color: rgba($color-primary, 0.16);
   }
 
   &:hover .course-card__cover-img {
-    transform: scale(1.05);
+    transform: scale(1.03);
   }
 
   &.is-active {
@@ -1646,13 +1661,13 @@
 .file-uploader__bar {
   height: 6px;
   border-radius: 999px;
-  background: var(--color-border, #e5e7eb);
+  background: var(--color-border, #f2ebdd);
   overflow: hidden;
 }
 
 .file-uploader__bar-fill {
   height: 100%;
-  background: var(--color-primary, #2563eb);
+  background: var(--color-primary, #132d4a);
   transition: width 0.2s ease;
 }
 

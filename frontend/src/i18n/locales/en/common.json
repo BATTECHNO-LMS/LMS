@@ -49,7 +49,10 @@
     "choose": "Choose language"
   },
   "pagination": {
-    "stub": "Pagination — will be enabled later"
+    "stub": "Pagination — will be enabled later",
+    "previous": "Previous",
+    "next": "Next",
+    "status": "Page {{page}} of {{totalPages}}"
   },
   "loading": "Loading",
   "user": {
@@ -58,6 +61,16 @@
   },
   "notifications": "Notifications",
   "rights": "All rights reserved",
+  "developedBy": "Developed by BATMAN TECHNOLOGY",
+  "roles": {
+    "super_admin": "System administrator",
+    "admin": "Admin",
+    "reviewer": "Reviewer",
+    "instructor": "Academic supervisor",
+    "trainer": "Trainer",
+    "trainee": "Trainee",
+    "student": "Student"
+  },
   "table": {
     "actions": "Actions"
   },

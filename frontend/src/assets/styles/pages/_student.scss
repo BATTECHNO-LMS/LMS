@@ -358,22 +358,20 @@
 
 .student-course-card {
   @include card-surface;
+  @include card-surface-lift(-2px);
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0;
-  border-radius: 1.05rem;
+  border-radius: $radius-lg;
   overflow: hidden;
   min-width: 0;
   height: 100%;
-
-  &:hover {
-    box-shadow: var(--shadow-card-3d-hover);
-  }
 }
 
 .student-course-card__cover {
-  height: 9rem;
+  aspect-ratio: 16 / 9;
+  height: auto;
   overflow: hidden;
   background: linear-gradient(145deg, rgba($color-primary, 0.12), rgba($color-accent, 0.16));
 

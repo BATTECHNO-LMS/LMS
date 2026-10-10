@@ -9,9 +9,6 @@ import { RootRedirect } from '../../components/common/RootRedirect.jsx';
 import { RoleShellPermissionOutlet } from '../../components/permissions/RoleShellPermissionOutlet.jsx';
 import { ADMIN_ROLE_SET, ROLES } from '../../constants/roles.js';
 import { PortalPickerPage } from '../../pages/auth/PortalPickerPage.jsx';
-import { InstitutionLoginPage, UniversitiesLoginPage } from '../../pages/auth/InstitutionLoginPage.jsx';
-import { InstitutionRegisterPage } from '../../pages/auth/InstitutionRegisterPage.jsx';
-import { RegisterPage } from '../../features/auth/pages/RegisterPage.jsx';
 import { getCurrentPortalKey } from '../../utils/portal.js';
 
 function SubdomainLoginRedirect() {
@@ -44,16 +41,16 @@ export function AppRouter() {
       </Route>
 
       <Route path="/institutions" element={<AuthLayout />}>
-        <Route path="login" element={<InstitutionLoginPage />} />
-        <Route path="register" element={<InstitutionRegisterPage />} />
+        <Route path="login" element={<Pages.InstitutionLoginPage />} />
+        <Route path="register" element={<Pages.InstitutionRegisterPage />} />
       </Route>
 
       <Route path="/universities" element={<AuthLayout />}>
-        <Route path="login" element={<UniversitiesLoginPage />} />
+        <Route path="login" element={<Pages.UniversitiesLoginPage />} />
       </Route>
 
       <Route path="/register" element={<AuthLayout />}>
-        <Route index element={<RegisterPage />} />
+        <Route index element={<Pages.RegisterPage />} />
       </Route>
 
       <Route path="/verify-email" element={<AuthLayout />}>

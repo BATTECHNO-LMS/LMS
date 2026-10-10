@@ -1372,21 +1372,29 @@ async function updateApplicationHours(applicationId, body, user) {
   };
 }
 
-async function getComprehensiveStudentReport(opportunityId, applicationId, user, query = {}) {
+async function getComprehensiveStudentReport(opportunityId, applicationId, user, query = {}, options = {}) {
   return require('./fieldTraining.comprehensiveReport.service').getComprehensiveStudentReport(
     opportunityId,
     applicationId,
     user,
-    query
+    query,
+    options
   );
 }
 
-async function exportComprehensiveStudentReportPdf(opportunityId, applicationId, user, query = {}) {
+async function exportComprehensiveStudentReportPdf(
+  opportunityId,
+  applicationId,
+  user,
+  query = {},
+  options = {}
+) {
   return require('./fieldTraining.comprehensiveReport.service').exportComprehensiveStudentReportPdf(
     opportunityId,
     applicationId,
     user,
-    query
+    query,
+    options
   );
 }
 

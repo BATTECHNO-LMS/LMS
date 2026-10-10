@@ -101,6 +101,14 @@ app.get('/health/ready', async (req, res) => {
 app.use('/uploads/field-training/completion-letters', (_req, res) => {
   res.status(404).json({ message: 'Not found' });
 });
+// Bulk student-report ZIPs must never be served via static /uploads — only the
+// authenticated + authorized API download route may stream them.
+app.use('/uploads/private', (_req, res) => {
+  res.status(404).json({ message: 'Not found' });
+});
+app.use('/uploads/ft-student-report-exports', (_req, res) => {
+  res.status(404).json({ message: 'Not found' });
+});
 app.use(
   '/uploads',
   authenticate,

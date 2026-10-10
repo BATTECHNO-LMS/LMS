@@ -405,6 +405,7 @@ export function AdminFieldTrainingPage() {
   return (
     <div className="page page--dashboard page--admin crud-page ft-page">
       <AdminPageHeader
+        icon={Briefcase}
         title={t('title')}
         description={t('adminHeroDescription')}
         actions={

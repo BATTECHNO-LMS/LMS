@@ -13,10 +13,27 @@ export const apiClient = axios.create({
   timeout: 30000,
 });
 
+function readConfigHeader(headers, name) {
+  if (!headers) return undefined;
+  if (typeof headers.get === 'function') {
+    return headers.get(name) || headers.get(String(name).toLowerCase()) || undefined;
+  }
+  return headers[name] || headers[String(name).toLowerCase()];
+}
+
+function setConfigHeader(headers, name, value) {
+  if (!headers) return;
+  if (typeof headers.set === 'function') {
+    headers.set(name, value);
+    return;
+  }
+  headers[name] = value;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = getStorageItem(storageKeys.authToken);
   if (token && typeof token === 'string') {
-    config.headers.Authorization = `Bearer ${token}`;
+    setConfigHeader(config.headers, 'Authorization', `Bearer ${token}`);
   }
   // Let the browser set multipart boundary. A preset Content-Type (including
   // the axios default application/json) makes multer reject the file with 400.
@@ -34,7 +51,8 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const hadAuth = Boolean(error.config?.headers?.Authorization);
+    const authHeader = readConfigHeader(error.config?.headers, 'Authorization');
+    const hadAuth = Boolean(authHeader);
     if (error.response?.status === 401 && hadAuth) {
       triggerUnauthorized();
     }

@@ -7,6 +7,7 @@ import {
   saveFieldTrainingSubmissionBlob,
   parseFilename,
   rethrowBlobApiError,
+  assertBlobDownloadSuccess,
 } from './fieldTrainingDownload.js';
 
 const admin = endpoints.adminFieldTraining;
@@ -615,6 +616,62 @@ export async function downloadComprehensiveStudentReportPdf(
     );
     saveFieldTrainingSubmissionBlob({ blob: res.data, filename });
     return { blob: res.data, filename };
+  } catch (err) {
+    await rethrowBlobApiError(err);
+  }
+}
+
+export async function previewBulkStudentReports(opportunityId, body = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/reports/students/bulk-export/preview`, body);
+  return unwrapApiData(res);
+}
+
+export async function startBulkStudentReports(opportunityId, body = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/reports/students/bulk-export`, body, {
+    timeout: 120000,
+  });
+  return unwrapApiData(res);
+}
+
+export async function fetchBulkStudentReportsJob(opportunityId, jobId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/reports/students/bulk-export/jobs/${jobId}`);
+  return unwrapApiData(res);
+}
+
+export async function downloadBulkStudentReportsZip(opportunityId, jobId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  try {
+    const res = await apiClient.get(
+      `${base}/${opportunityId}/reports/students/bulk-export/jobs/${jobId}/download`,
+      {
+        responseType: 'blob',
+        timeout: 300000,
+        headers: {
+          Accept: 'application/zip, application/octet-stream, */*',
+        },
+      }
+    );
+    await assertBlobDownloadSuccess(res);
+    const filename = parseFilename(
+      res.headers['content-disposition'],
+      'eprojecto-field-training-student-reports.zip'
+    );
+    const zipBlob =
+      res.data instanceof Blob
+        ? res.data.type && res.data.type !== 'application/json'
+          ? res.data
+          : new Blob([res.data], { type: 'application/zip' })
+        : new Blob([res.data], { type: 'application/zip' });
+    saveFieldTrainingSubmissionBlob({ blob: zipBlob, filename });
+    return {
+      filename,
+      included: Number(res.headers['x-zip-included'] || 0),
+      failed: Number(res.headers['x-zip-failed'] || 0),
+      matching: Number(res.headers['x-zip-matching'] || 0),
+    };
   } catch (err) {
     await rethrowBlobApiError(err);
   }

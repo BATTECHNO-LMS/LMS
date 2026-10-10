@@ -11,6 +11,7 @@ export function openRemoteDownloadUrl(url) {
 
 /**
  * Trigger browser download for an authenticated field training submission blob.
+ * Uses a temporary object URL — never navigates to a protected API URL.
  * @param {{ blob: Blob; filename: string }} file
  */
 export function saveFieldTrainingSubmissionBlob({ blob, filename }) {
@@ -22,7 +23,8 @@ export function saveFieldTrainingSubmissionBlob({ blob, filename }) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Delay revoke so Chrome/Safari can start the download before the blob URL is invalidated.
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 export function parseFilename(contentDisposition, fallback) {
@@ -38,6 +40,10 @@ export function parseFilename(contentDisposition, fallback) {
   return match?.[1] ?? fallback;
 }
 
+/**
+ * When Axios uses responseType:'blob', JSON error bodies arrive as Blobs.
+ * Parse them back onto err.response.data so getApiErrorMessage works.
+ */
 export async function rethrowBlobApiError(err) {
   const data = err?.response?.data;
   if (data && typeof data.text === 'function') {
@@ -45,10 +51,58 @@ export async function rethrowBlobApiError(err) {
       const parsed = JSON.parse(await data.text());
       err.response.data = parsed;
     } catch {
-      /* keep original blob */
+      /* keep original blob — never show [object Blob] */
+      if (data instanceof Blob) {
+        err.response.data = {
+          success: false,
+          message: null,
+          code: 'BLOB_ERROR',
+        };
+      }
     }
   }
   throw err;
+}
+
+/**
+ * Guard against proxies/misconfigurations that return JSON with HTTP 200
+ * while Axios was expecting a binary download.
+ * @param {import('axios').AxiosResponse} res
+ */
+export async function assertBlobDownloadSuccess(res) {
+  const data = res?.data;
+  const contentType = String(res?.headers?.['content-type'] || data?.type || '').toLowerCase();
+  const looksJson =
+    contentType.includes('application/json') ||
+    contentType.includes('text/json') ||
+    contentType.includes('text/plain');
+  if (!(data instanceof Blob) || !looksJson) return res;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(await data.text());
+  } catch {
+    return res;
+  }
+  const code = String(parsed?.code || '');
+  let status = Number(parsed?.statusCode || parsed?.status || 0);
+  if (!status || status < 400) {
+    if (code === 'UNAUTHORIZED' || code === 'TOKEN_INVALID' || code === 'PORTAL_REQUIRED') {
+      status = 401;
+    } else if (code === 'FORBIDDEN' || code === 'PORTAL_MISMATCH' || code === 'FIELD_TRAINING_FORBIDDEN') {
+      status = 403;
+    } else {
+      status = Number(res.status) >= 400 ? Number(res.status) : 400;
+    }
+  }
+  const error = new Error(parsed?.message || 'Download failed');
+  error.response = {
+    status,
+    data: parsed,
+    headers: res.headers,
+  };
+  error.config = res.config;
+  throw error;
 }
 
 export const saveCompletionLetterBlob = saveFieldTrainingSubmissionBlob;

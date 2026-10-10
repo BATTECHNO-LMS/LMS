@@ -2,15 +2,15 @@
 @use '../abstracts/mixins' as *;
 
 .app-sidebar__nav--grouped {
-  padding: 0.5rem 0 1rem;
+  padding: 0.4rem 0 0.75rem;
 }
 
 .sidebar-nav-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.85rem;
 }
 
 .sidebar-nav-group--collapsible {
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.5rem;
 }
 
 .sidebar-nav-group__toggle {
@@ -19,23 +19,23 @@
   justify-content: space-between;
   gap: 0.5rem;
   width: calc(100% - 1rem);
-  margin: 0.35rem 0.5rem 0.25rem;
-  padding: 0.55rem 0.7rem;
+  margin: 0.25rem 0.5rem 0.2rem;
+  padding: 0.45rem 0.7rem;
   border: 0;
   border-radius: $radius-md;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  background: transparent;
+  color: $color-text-muted;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-align: start;
   cursor: pointer;
-  @include transition(background-color color, 0.15s);
+  @include transition(background-color color, 0.16s);
 
   &:hover,
   &:focus-visible {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
+    background: $color-accent-soft;
+    color: $color-heading;
   }
 }
 
@@ -46,26 +46,18 @@
 
 .sidebar-nav-group__chevron {
   flex-shrink: 0;
-  opacity: 0.75;
+  opacity: 0.7;
   transition: transform 0.18s ease;
   transform: rotate(0deg);
 
-  [dir='rtl'] & {
-    transform: rotate(0deg);
-  }
-
   &--open {
     transform: rotate(180deg);
-
-    [dir='rtl'] & {
-      transform: rotate(180deg);
-    }
   }
 }
 
 .sidebar-nav-group--open .sidebar-nav-group__toggle {
-  background: rgba($color-accent, 0.14);
-  color: #fff;
+  background: rgba($color-accent, 0.12);
+  color: $color-heading;
 }
 
 .sidebar-nav-group__list {
@@ -79,25 +71,25 @@
 }
 
 .sidebar-nav-group__item {
-  margin: 0.15rem 0.5rem;
+  margin: 0.12rem 0.5rem;
 }
 
 .sidebar-nav__section-title {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0.85rem 0.85rem 0.45rem;
+  margin: 0.7rem 0.85rem 0.35rem;
   font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba($color-primary, 0.48);
 
   &::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.16), transparent);
+    background: linear-gradient(90deg, rgba($color-primary, 0.12), transparent);
   }
 }
 
@@ -106,49 +98,70 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  min-height: 2.75rem;
-  padding: 0.55rem 0.8rem;
+  min-height: 2.55rem;
+  padding: 0.45rem 0.75rem;
   border-radius: $radius-md;
-  color: rgba(255, 255, 255, 0.86);
+  color: $color-heading;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none !important;
-  @include transition(background-color color box-shadow, 0.15s);
+  @include transition(background-color color box-shadow transform, 0.16s);
 
-  /** Soft, readable hover — translucent cream wash with gold icon cue */
   &:hover,
   &:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff !important;
+    background: $color-accent-soft;
+    color: $color-heading !important;
+
+    [dir='rtl'] & {
+      transform: translateX(-3px);
+    }
+
+    [dir='ltr'] & {
+      transform: translateX(3px);
+    }
 
     .sidebar-nav__icon {
-      color: $color-accent !important;
-      stroke: $color-accent !important;
+      color: $color-accent-dark !important;
+      stroke: $color-accent-dark !important;
     }
   }
 }
 
-/** Active — strong gold highlight with depth + inline-start indicator */
 .sidebar-nav__link--active,
 .sidebar-nav__link--active:hover,
 .sidebar-nav__link--active:focus-visible {
-  background: linear-gradient(135deg, $color-accent 0%, $color-accent-hover 100%);
-  color: $color-primary !important;
-  font-weight: 700;
+  background: $color-primary;
+  color: #fff !important;
+  font-weight: 600;
+  transform: none;
   box-shadow:
-    0 4px 12px -4px rgba($color-accent, 0.55),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    0 1px 2px rgba(12, 31, 53, 0.08),
+    0 8px 18px rgba(19, 45, 74, 0.18);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.35rem;
+    top: 50%;
+    width: 3px;
+    height: 1.15rem;
+    margin-top: -0.575rem;
+    border-radius: $radius-pill;
+    background: $color-accent;
+  }
 
   .sidebar-nav__icon {
-    color: $color-primary !important;
-    stroke: $color-primary !important;
+    color: $color-accent !important;
+    stroke: $color-accent !important;
   }
 }
 
 .sidebar-nav__icon {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.78);
-  @include transition(color, 0.15s);
+  width: 1.15rem;
+  height: 1.15rem;
+  color: $color-primary-light;
+  @include transition(color, 0.16s);
 }
 
 .sidebar-nav__label {

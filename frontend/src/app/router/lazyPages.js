@@ -646,3 +646,20 @@ export const SelectOrganizationPage = lazyNamed(
   () => import('../../pages/auth/SelectOrganizationPage.jsx'),
   'SelectOrganizationPage'
 );
+export const HomePage = lazyNamed(() => import('../../pages/Home.jsx'), 'Home');
+export const RegisterPage = lazyNamed(
+  () => import('../../features/auth/pages/RegisterPage.jsx'),
+  'RegisterPage'
+);
+export const InstitutionRegisterPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionRegisterPage.jsx'),
+  'InstitutionRegisterPage'
+);
+export const InstitutionLoginPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
+  'InstitutionLoginPage'
+);
+export const UniversitiesLoginPage = lazyNamed(
+  () => import('../../pages/auth/InstitutionLoginPage.jsx'),
+  'UniversitiesLoginPage'
+);

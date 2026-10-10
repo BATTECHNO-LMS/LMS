@@ -1,0 +1,1264 @@
+@use '../abstracts/variables' as *;
+
+// Course task submission — trainee task card, multi-file upload, file rows, confirm step,
+// reviewer cards. Page-level columns use a media query (the dashboard sidebar changes the
+// available width); components inside use container queries so they adapt to their column.
+
+// ---------------------------------------------------------------------------
+// Trainee task list + card
+// ---------------------------------------------------------------------------
+
+.assign-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: $space-5;
+  min-width: 0;
+
+  > li {
+    min-width: 0;
+  }
+}
+
+.assign-card {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: $space-5;
+  padding: $space-5 $space-6;
+  border: 1px solid $color-border;
+  border-inline-start: 4px solid $color-accent;
+  border-radius: $radius-xl;
+  background: $color-card;
+  box-shadow: $shadow-soft;
+}
+
+.assign-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-2 $space-4;
+  min-width: 0;
+}
+
+.assign-card__title {
+  flex: 1 1 16rem;
+  min-width: 0;
+  margin: 0;
+  font-size: $font-size-xl;
+  font-weight: 800;
+  line-height: $line-height-tight;
+  color: $color-heading;
+  overflow-wrap: anywhere;
+}
+
+// Titles and file names keep their own direction (dir="auto") but align with the RTL layout.
+[dir='rtl'] .assign-card__title,
+[dir='rtl'] .task-file-row__name {
+  text-align: right;
+}
+
+.assign-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.assign-card__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: $space-5;
+  min-width: 0;
+}
+
+.assign-card__main {
+  display: grid;
+  gap: $space-5;
+  min-width: 0;
+  align-content: start;
+}
+
+.assign-summary {
+  min-width: 0;
+  padding: $space-4;
+  border: 1px solid $color-border-tinted;
+  border-radius: $radius-lg;
+  background: $color-cream-soft;
+}
+
+.assign-summary__grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: $space-3;
+}
+
+.assign-summary__item {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: $space-1 $space-3;
+
+  dt {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    color: $color-text-muted;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    font-size: $font-size-sm;
+    font-weight: 700;
+    color: $color-heading;
+    overflow-wrap: anywhere;
+  }
+
+  &--late dd {
+    color: $color-danger-text;
+  }
+}
+
+.assign-section {
+  display: grid;
+  gap: $space-3;
+  min-width: 0;
+}
+
+.assign-section__title {
+  margin: 0;
+  font-size: $font-size-md;
+  font-weight: 700;
+  color: $color-heading;
+}
+
+.assign-section__btn {
+  justify-self: start;
+}
+
+.assign-instructions {
+  min-width: 0;
+  margin: 0;
+  font-size: $font-size-sm;
+  line-height: $line-height-relaxed;
+  color: $color-text;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.assign-previous {
+  padding: $space-4;
+  border: 1px solid $color-border-tinted;
+  border-radius: $radius-lg;
+  background: $color-card;
+}
+
+.assign-previous__chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    padding: 2px $space-3;
+    border-radius: $radius-pill;
+    background: $color-primary-soft;
+    color: $color-primary;
+    font-size: $font-size-xs;
+    font-weight: 600;
+  }
+}
+
+.assign-previous__chips li.assign-previous__score {
+  background: $color-accent-soft;
+  color: $color-accent-dark;
+}
+
+.assign-previous__files-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-1;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.assign-previous__count {
+  padding: 0 $space-2;
+  border-radius: $radius-pill;
+  background: $color-primary-soft;
+  color: $color-primary;
+  font-size: $font-size-xs;
+  font-weight: 700;
+}
+
+.assign-previous__empty {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+.assign-previous__text {
+  margin: 0;
+  padding: $space-3;
+  border-radius: $radius-md;
+  background: $color-cream-soft;
+  font-size: $font-size-sm;
+  line-height: $line-height-base;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.assign-feedback {
+  display: grid;
+  gap: $space-2;
+  min-width: 0;
+  padding: $space-4;
+  border: 1px solid rgba($color-accent, 0.45);
+  border-inline-start: 4px solid $color-accent;
+  border-radius: $radius-lg;
+  background: $color-accent-soft;
+}
+
+.assign-feedback__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-heading;
+
+  svg {
+    color: $color-accent-dark;
+  }
+}
+
+.assign-feedback__text {
+  margin: 0;
+  font-size: $font-size-sm;
+  line-height: $line-height-base;
+  color: $color-text;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 480px) {
+  .assign-summary__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .assign-summary__item {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 768px) {
+  .assign-summary__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .assign-card__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+    align-items: start;
+  }
+
+  .assign-card__main {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .assign-summary {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .assign-summary__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .assign-summary__item {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: $space-3;
+    border-bottom: 1px solid $color-border-tinted;
+
+    &:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .assign-card {
+    gap: $space-4;
+    padding: $space-4 $space-3;
+  }
+
+  .assign-card__title {
+    font-size: $font-size-lg;
+  }
+
+  .assign-card__layout,
+  .assign-card__main {
+    gap: $space-4;
+  }
+
+  .assign-summary,
+  .assign-previous,
+  .assign-feedback {
+    padding: $space-3;
+  }
+
+  .assign-section__btn {
+    justify-self: stretch;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Submission form
+// ---------------------------------------------------------------------------
+
+.task-submit {
+  container-type: inline-size;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: $space-5;
+  border: 1px solid $color-border;
+  border-radius: $radius-xl;
+  background: linear-gradient(180deg, $color-card 0%, $color-cream 100%);
+  box-shadow: $shadow-soft;
+  display: grid;
+  gap: $space-4;
+}
+
+.task-submit__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $space-2 $space-4;
+  min-width: 0;
+}
+
+.task-submit__title {
+  margin: 0;
+  font-size: $font-size-lg;
+  font-weight: 700;
+  color: $color-heading;
+}
+
+.task-submit__limits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1 $space-2;
+
+  li {
+    padding: 2px $space-2;
+    border-radius: $radius-pill;
+    background: $color-primary-soft;
+    color: $color-primary;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+
+.task-dropzone {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-6 $space-4;
+  border: 2px dashed rgba($color-accent, 0.55);
+  border-radius: $radius-lg;
+  background: rgba($color-accent-soft, 0.45);
+  text-align: center;
+  transition: border-color $transition-base, background $transition-base, box-shadow $transition-base;
+
+  &--active {
+    border-color: $color-accent;
+    background: $color-accent-soft;
+    box-shadow: 0 0 0 4px rgba($color-accent, 0.15);
+  }
+
+  &--disabled {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.task-dropzone__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.task-dropzone__icon {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: $color-accent-dark;
+}
+
+.task-dropzone__text {
+  display: grid;
+  gap: $space-1;
+  min-width: 0;
+  justify-items: center;
+}
+
+.task-dropzone__lead {
+  margin: 0;
+  font-weight: 700;
+  color: $color-heading;
+}
+
+.task-dropzone__sub {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+.task-dropzone__btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0 $space-6;
+  white-space: nowrap;
+  border-radius: $radius-md;
+  background: $color-primary;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background $transition-fast;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+.task-dropzone:focus-within .task-dropzone__btn {
+  outline: 3px solid rgba($color-accent, 0.6);
+  outline-offset: 2px;
+}
+
+.task-dropzone__meta {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: $space-1;
+  margin: 0;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+}
+
+@container (min-width: 36rem) {
+  .task-dropzone {
+    flex-direction: row;
+    gap: $space-4;
+    padding: $space-5 $space-6;
+    text-align: start;
+  }
+
+  .task-dropzone__icon {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .task-dropzone__text {
+    flex: 1;
+    justify-items: start;
+  }
+}
+
+.task-submit__notice {
+  margin: 0;
+  padding: $space-2 $space-3;
+  border-radius: $radius-md;
+  background: $color-warning-soft;
+  color: $color-warning-text;
+  font-size: $font-size-sm;
+  overflow-wrap: anywhere;
+}
+
+.task-file-list {
+  container-type: inline-size;
+  display: grid;
+  gap: $space-2;
+  min-width: 0;
+}
+
+.task-file-list__summary {
+  margin: 0;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.task-file-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: $space-2;
+  min-width: 0;
+}
+
+.task-file-row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  padding: $space-3;
+  border: 1px solid $color-border;
+  border-radius: $radius-md;
+  background: $color-card;
+  min-width: 0;
+  max-width: 100%;
+
+  &--error {
+    border-color: rgba($color-danger, 0.35);
+    background: $color-danger-soft;
+  }
+
+  &--done {
+    border-color: rgba($color-success, 0.25);
+  }
+}
+
+.task-file-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: $radius-md;
+  background: $color-primary-soft;
+  color: $color-primary;
+
+  &--pdf { background: #fdecec; color: #b42318; }
+  &--doc { background: #e8f1f8; color: #1e5a8a; }
+  &--sheet { background: #e8f6ee; color: #1f6b3d; }
+  &--slides { background: #fff1e6; color: #b54708; }
+  &--image { background: #f3ead4; color: #8a6d12; }
+  &--video { background: #efe9f8; color: #5b3e96; }
+  &--audio { background: #e9f4f2; color: #2f6b62; }
+  &--archive { background: $color-accent-soft; color: $color-accent-dark; }
+  &--code { background: #eef1f4; color: #243241; }
+  &--design { background: #fbeaf2; color: #9d2a63; }
+}
+
+.task-file-row__meta {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.task-file-row__name {
+  font-weight: 600;
+  color: $color-heading;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-file-row__sub {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px $space-2;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+}
+
+.task-file-row__ext {
+  padding: 0 $space-1;
+  border-radius: $radius-sm;
+  background: $color-primary-soft;
+  color: $color-primary;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.task-file-row__done {
+  color: $color-success-text;
+}
+
+.task-file-row__error {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: $space-1;
+  font-size: $font-size-xs;
+  color: $color-danger-text;
+  overflow-wrap: anywhere;
+}
+
+.task-file-row__bar {
+  height: 6px;
+  margin-top: $space-1;
+  border-radius: $radius-pill;
+  background: rgba($color-primary, 0.1);
+  overflow: hidden;
+}
+
+.task-file-row__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, $color-accent 0%, $color-primary-light 100%);
+  transition: width 200ms linear;
+}
+
+.task-file-row__actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+}
+
+.task-file-row__ok {
+  color: $color-success;
+}
+
+.task-file-row__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid $color-border;
+  border-radius: $radius-sm;
+  background: $color-card;
+  color: $color-primary;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-soft;
+  }
+
+  &--danger {
+    color: $color-danger;
+
+    &:hover:not(:disabled) {
+      background: $color-danger-soft;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.task-file-row__action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: $space-1;
+  min-height: 2.25rem;
+  padding: 0 $space-3;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: $radius-sm;
+  background: $color-card;
+  color: $color-primary;
+  font-weight: 600;
+  font-size: $font-size-sm;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-soft;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+}
+
+.task-submit__comment {
+  display: grid;
+  gap: $space-1;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  color: $color-heading;
+
+  textarea {
+    width: 100%;
+    min-height: 5.5rem;
+    padding: $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: #fff;
+    font: inherit;
+    font-weight: 400;
+    color: $color-text;
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+      box-shadow: 0 0 0 3px rgba($color-accent, 0.18);
+    }
+  }
+}
+
+.task-submit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+  justify-content: flex-start;
+}
+
+.task-submit__primary,
+.task-submit__secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $space-2;
+  min-height: 2.75rem;
+  padding: 0 $space-5;
+  border-radius: $radius-md;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background $transition-fast, box-shadow $transition-fast;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.task-submit__primary {
+  border: 1px solid $color-primary;
+  background: $color-primary;
+  color: #fff;
+  box-shadow: inset 0 -2px 0 rgba($color-accent, 0.65);
+
+  &:hover:not(:disabled) {
+    background: $color-primary-hover;
+  }
+}
+
+.task-submit__secondary {
+  border: 1px solid rgba($color-primary, 0.25);
+  background: $color-card;
+  color: $color-primary;
+
+  &:hover:not(:disabled) {
+    background: $color-primary-soft;
+  }
+}
+
+.task-confirm {
+  display: grid;
+  gap: $space-3;
+  padding: $space-4;
+  border: 1px solid rgba($color-accent, 0.45);
+  border-radius: $radius-lg;
+  background: $color-accent-soft;
+}
+
+.task-confirm__lead {
+  margin: 0;
+  font-weight: 700;
+  color: $color-heading;
+}
+
+.task-confirm__facts {
+  margin: 0;
+  padding-inline-start: $space-5;
+  display: grid;
+  gap: $space-1;
+  font-size: $font-size-sm;
+}
+
+.task-file-list__items--compact {
+  .task-file-row {
+    flex-wrap: nowrap;
+    padding: $space-2 $space-3;
+  }
+
+  .task-file-icon {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .task-file-row__name {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.task-confirm__comment {
+  margin: 0;
+  padding: $space-3;
+  border-inline-start: 3px solid $color-accent;
+  border-radius: $radius-sm;
+  background: $color-card;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.task-admin-list {
+  list-style: none;
+  margin: $space-4 0 0;
+  padding: 0;
+  display: grid;
+  gap: $space-3;
+}
+
+.task-admin-item {
+  display: grid;
+  gap: $space-4;
+  padding: $space-4 $space-5;
+  border: 1px solid $color-border;
+  border-inline-start: 4px solid $color-accent;
+  border-radius: $radius-lg;
+  background: $color-card;
+  box-shadow: $shadow-sm;
+  min-width: 0;
+}
+
+.task-admin-item__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $space-3;
+}
+
+.task-admin-item__info {
+  flex: 1 1 18rem;
+  min-width: 0;
+  display: grid;
+  gap: $space-2;
+}
+
+.task-admin-item__title {
+  font-size: $font-size-lg;
+  line-height: 1.4;
+  color: $color-heading;
+  overflow-wrap: anywhere;
+}
+
+.task-admin-item__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.task-admin-item__meta {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-1 $space-4;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+
+.task-admin-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $space-2;
+}
+
+.task-review {
+  padding: $space-4;
+  border-radius: $radius-lg;
+  background: $color-cream;
+  border: 1px solid $color-border;
+}
+
+.task-review__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: $space-4;
+}
+
+.task-review-card {
+  display: grid;
+  gap: $space-4;
+  padding: $space-5;
+  border: 1px solid $color-border;
+  border-radius: $radius-lg;
+  background: $color-card;
+  box-shadow: $shadow-sm;
+  min-width: 0;
+}
+
+.task-review-card__head {
+  display: flex;
+  align-items: center;
+  gap: $space-3;
+  min-width: 0;
+}
+
+.task-review-card__avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: $color-primary;
+  color: #fff;
+  font-weight: 700;
+  font-size: $font-size-lg;
+  box-shadow: inset 0 -3px 0 rgba($color-accent, 0.7);
+}
+
+.task-review-card__who {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.task-review-card__name {
+  display: block;
+  font-size: $font-size-lg;
+  color: $color-heading;
+  overflow-wrap: anywhere;
+}
+
+.task-review-card__email {
+  display: block;
+  font-size: $font-size-xs;
+  color: $color-text-muted;
+  overflow-wrap: anywhere;
+  text-align: end;
+}
+
+.task-review-card__chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: $space-1;
+    padding: 2px $space-3;
+    border-radius: $radius-pill;
+    background: $color-primary-soft;
+    color: $color-primary;
+    font-size: $font-size-xs;
+    font-weight: 600;
+  }
+}
+
+.task-review-card__chip--score {
+  background: $color-accent-soft !important;
+  color: $color-accent-dark !important;
+}
+
+.task-review-card__section {
+  display: grid;
+  gap: $space-2;
+  min-width: 0;
+}
+
+.task-review-card__section-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  font-size: $font-size-sm;
+  font-weight: 700;
+  color: $color-heading;
+
+  svg {
+    color: $color-accent-dark;
+  }
+}
+
+.task-review-card__count {
+  margin-inline-start: auto;
+  font-size: $font-size-xs;
+  font-weight: 600;
+  color: $color-text-muted;
+}
+
+.task-review-card__empty {
+  display: flex;
+  align-items: center;
+  gap: $space-2;
+  padding: $space-4;
+  border: 1px dashed $color-border;
+  border-radius: $radius-md;
+  background: $color-cream;
+  color: $color-text-muted;
+  font-size: $font-size-sm;
+}
+
+.task-review-card__status {
+  flex-shrink: 0;
+  padding: 2px $space-3;
+  border-radius: $radius-pill;
+  background: $color-info-soft;
+  color: $color-info-text;
+  font-size: $font-size-xs;
+  font-weight: 700;
+
+  &--graded,
+  &--accepted {
+    background: $color-success-soft;
+    color: $color-success-text;
+  }
+
+  &--revision_requested,
+  &--reopened,
+  &--returned {
+    background: $color-warning-soft;
+    color: $color-warning-text;
+  }
+
+  &--rejected {
+    background: $color-danger-soft;
+    color: $color-danger-text;
+  }
+}
+
+.task-review-card__text {
+  margin: 0;
+  padding: $space-3;
+  border-radius: $radius-md;
+  background: $color-cream;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.task-review-card__grade {
+  display: grid;
+  grid-template-columns: minmax(8rem, 11rem) minmax(0, 1fr);
+  gap: $space-3 $space-4;
+  align-items: start;
+  padding-top: $space-4;
+  border-top: 1px solid $color-border;
+
+  label {
+    display: grid;
+    gap: $space-1;
+    min-width: 0;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $color-heading;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: $space-2 $space-3;
+    border: 1px solid $color-border;
+    border-radius: $radius-md;
+    background: #fff;
+    font: inherit;
+    font-weight: 400;
+    color: $color-text;
+
+    &:focus {
+      outline: none;
+      border-color: $color-accent;
+      box-shadow: 0 0 0 3px rgba($color-accent, 0.18);
+    }
+  }
+
+  textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+  }
+}
+
+.task-review-card__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: $space-2;
+}
+
+.task-spin {
+  animation: task-spin 0.9s linear infinite;
+}
+
+@keyframes task-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-spin {
+    animation: none;
+  }
+
+  .task-file-row__bar-fill {
+    transition: none;
+  }
+}
+
+// Narrow file rows: the name may use two lines, icon actions stay inline at full tap size,
+// and text actions (download) move to their own full-width row.
+@container (max-width: 30rem) {
+  .task-file-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: $space-2 $space-3;
+  }
+
+  .task-file-row__meta {
+    flex: 1 1 0;
+  }
+
+  .task-file-row__name {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .task-file-row__ok {
+    display: none;
+  }
+
+  .task-file-row__icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .task-file-row__action {
+    flex-basis: 100%;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+}
+
+@container (max-width: 26rem) {
+  .task-submit__actions {
+    flex-direction: column;
+  }
+
+  .task-dropzone__btn,
+  .task-submit__primary,
+  .task-submit__secondary {
+    width: 100%;
+  }
+}
+
+@media (pointer: coarse) {
+  .task-file-row__icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .task-file-row__action {
+    min-height: 2.75rem;
+  }
+}
+
+// Small screens: the form sits inside the task card, so drop its own frame instead of
+// stacking a fourth level of padding around the file rows.
+@media (max-width: 640px) {
+  .assign-card__main > .task-submit {
+    padding: $space-4 0 0;
+    border: 0;
+    border-top: 1px solid $color-border-tinted;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  .task-submit {
+    padding: $space-4 $space-3;
+    gap: $space-3;
+  }
+
+  .task-dropzone {
+    padding: $space-4 $space-3;
+  }
+
+  .task-dropzone__icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .task-file-row {
+    padding: $space-2;
+  }
+
+  .task-file-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .task-confirm {
+    padding: $space-3;
+  }
+}
+
+@media (max-width: 480px) {
+  .task-review-card__grade {
+    grid-template-columns: 1fr;
+  }
+
+  .task-admin-item,
+  .task-review-card {
+    padding: $space-4 $space-3;
+  }
+
+  .task-review {
+    padding: $space-2;
+  }
+
+  .task-admin-item__actions > * {
+    flex: 1 1 auto;
+  }
+}

@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const { Prisma } = require('@prisma/client');
 const { prisma } = require('../../config/db');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { env } = require('../../config/env');
@@ -1194,42 +1195,52 @@ async function deleteSession(id) {
 }
 
 async function upsertAttendanceRecords(sessionId, records, recordedById) {
+  if (!records?.length) return [];
   const now = new Date();
-  const results = [];
+  const byApplication = new Map();
   for (const rec of records) {
-    const row = await prisma.field_training_attendance.upsert({
-      where: {
-        session_id_application_id: {
-          session_id: sessionId,
-          application_id: rec.applicationId,
-        },
-      },
-      create: {
-        session_id: sessionId,
-        application_id: rec.applicationId,
-        student_id: rec.studentId,
-        status: rec.status,
-        note: rec.note ?? null,
-        method: rec.method || 'manual',
-        manual_reason: rec.manual_reason ?? null,
-        recorded_by_id: recordedById,
-        recorded_at: now,
-        confirmed_at: ['present', 'late', 'excused'].includes(rec.status) ? now : null,
-      },
-      update: {
-        status: rec.status,
-        note: rec.note ?? null,
-        method: rec.method || 'manual',
-        manual_reason: rec.manual_reason ?? null,
-        recorded_by_id: recordedById,
-        recorded_at: now,
-        confirmed_at: ['present', 'late', 'excused'].includes(rec.status) ? now : null,
-        updated_at: now,
-      },
-    });
-    results.push(row);
+    if (rec?.applicationId) byApplication.set(rec.applicationId, rec);
   }
-  return results;
+  const rows = [...byApplication.values()];
+  if (!rows.length) return [];
+
+  const values = rows.map((rec) => {
+    const confirmed = ['present', 'late', 'excused'].includes(rec.status) ? now : null;
+    return Prisma.sql`(
+      gen_random_uuid(),
+      ${sessionId}::uuid,
+      ${rec.applicationId}::uuid,
+      ${rec.studentId}::uuid,
+      ${rec.status}::"field_training_attendance_status",
+      ${rec.note ?? null},
+      ${(rec.method || 'manual')}::"field_training_attendance_method",
+      ${rec.manual_reason ?? null},
+      ${recordedById || null}::uuid,
+      ${now}::timestamptz,
+      ${confirmed}::timestamptz,
+      ${now}::timestamptz,
+      ${now}::timestamptz
+    )`;
+  });
+
+  return prisma.$queryRaw`
+    INSERT INTO field_training_attendance (
+      id, session_id, application_id, student_id, status, note, method,
+      manual_reason, recorded_by_id, recorded_at, confirmed_at, created_at, updated_at
+    )
+    VALUES ${Prisma.join(values)}
+    ON CONFLICT (session_id, application_id)
+    DO UPDATE SET
+      status = EXCLUDED.status,
+      note = EXCLUDED.note,
+      method = EXCLUDED.method,
+      manual_reason = EXCLUDED.manual_reason,
+      recorded_by_id = EXCLUDED.recorded_by_id,
+      recorded_at = EXCLUDED.recorded_at,
+      confirmed_at = EXCLUDED.confirmed_at,
+      updated_at = EXCLUDED.updated_at
+    RETURNING *
+  `;
 }
 
 async function findAssessmentByOpportunityAndType(opportunityId, type) {

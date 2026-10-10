@@ -3830,6 +3830,71 @@
   gap: 0.5rem;
 }
 
+.ft-eligibility-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ft-eligibility-toolbar__search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: min(100%, 16rem);
+  flex: 1 1 14rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--color-border, #d7dee8);
+  border-radius: 0.55rem;
+  background: #fff;
+  color: var(--color-text-muted);
+
+  input {
+    width: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit;
+  }
+}
+
+.ft-eligibility-toolbar__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+
+  select {
+    min-width: 9rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--color-border, #d7dee8);
+    border-radius: 0.5rem;
+    background: #fff;
+  }
+}
+
+.ft-eligibility-toolbar__count {
+  margin: 0;
+  margin-inline-start: auto;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+  .ft-bulk-export-label {
+    // Keep full label for accessibility; allow wrapping instead of icon-only.
+    white-space: normal;
+    text-align: start;
+  }
+
+  .ft-manage-panel__head-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .ft-manage-panel__title {
   margin: 0;
   font-size: 1.15rem;
@@ -5597,18 +5662,19 @@
 
 .ft-report-opportunity-card {
   display: block;
-  padding: 1.1rem 1.2rem;
-  border-radius: 16px;
-  border: 1px solid rgba(15, 40, 80, 0.08);
-  background: #fff;
-  box-shadow: 0 6px 18px rgba(15, 40, 80, 0.05);
+  padding: 1rem 1.1rem;
+  border-radius: $radius-lg;
+  border: 1px solid var(--color-border-tinted);
+  background: var(--color-card);
+  box-shadow: var(--shadow-card);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 
   &:hover {
-    border-color: rgba(201, 162, 39, 0.55);
-    box-shadow: 0 10px 24px rgba(15, 40, 80, 0.08);
+    transform: translateY(-2px);
+    border-color: rgba($color-primary, 0.16);
+    box-shadow: var(--shadow-card-3d-hover);
   }
 }
 

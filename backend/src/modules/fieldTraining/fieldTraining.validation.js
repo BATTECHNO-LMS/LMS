@@ -160,6 +160,13 @@ const bulkIssueBodySchema = z.object({
   retry_failed_ids: z.array(z.string().uuid()).optional().default([]),
 });
 
+const bulkStudentReportsExportBodySchema = z.object({
+  eligibility_status: z.string().max(64).optional().nullable(),
+  training_status: z.string().max(64).optional().nullable(),
+  search: z.string().max(200).optional().nullable(),
+  sync: z.boolean().optional(),
+});
+
 const jobIdParamSchema = z.object({
   id: z.string().uuid(),
   jobId: z.string().uuid(),
@@ -558,6 +565,7 @@ module.exports = {
   listStudentQuerySchema,
   listCompletionLettersQuerySchema,
   bulkIssueBodySchema,
+  bulkStudentReportsExportBodySchema,
   jobIdParamSchema,
   applySupervisorImportBodySchema,
   resolveSupervisorImportBodySchema,

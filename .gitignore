@@ -1,5 +1,11 @@
 ﻿# Local / generated
 .deploy-tools/
+qa-artifacts/field-training/traces/
+qa-artifacts/field-training/videos/
+qa-artifacts/field-training/screenshots/
+qa-artifacts/field-training/playwright-raw/
+qa-artifacts/**/*.webm
+qa-artifacts/**/*.zip
 node_modules/
 dist/
 build/

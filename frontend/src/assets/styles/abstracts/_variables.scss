@@ -1,4 +1,4 @@
-// eprojecto — design tokens (navy wordmark + gold accent)
+// eprojecto — premium institutional design tokens (navy + gold on warm ivory)
 
 // Primary — deep navy (main brand / LMS wordmark)
 $color-primary: #132d4a;
@@ -17,18 +17,23 @@ $color-accent-hover: #a8861c;
 $color-accent-dark: #a8861c;
 $color-accent-soft: #f3ead4;
 
-$color-bg: #f4f6f8;
-$color-cream: #f7f1e7;
-$color-cream-soft: #fbf7ef;
-$color-card: #ffffff;
+// Warm ivory surfaces — approved premium identity
+$color-ivory: #fcfaf5;
+$color-cream: #f8f4ea;
+$color-sand: #f2ebdd;
+$color-card: #fffefc;
+$color-bg: #fcfaf5;
+$color-cream-soft: #fcfaf5;
+$color-page-end: #f9f6ef;
+
 $color-text: #243241;
 $color-heading: #132d4a;
-// ~7:1 on off-white (#f4f6f8 / #f7f1e7) — WCAG AA for body copy
+// ~7:1 on ivory — WCAG AA for body copy
 $color-text-muted: #3e4c5a;
-$color-border: #d5dde8;
-$color-surface-header: #e9eef5;
-$color-surface-light: #f8f9fb;
-$color-border-tinted: #e4e9f0;
+$color-border: rgba(19, 45, 74, 0.1);
+$color-surface-header: #f8f4ea;
+$color-surface-light: #fcfaf5;
+$color-border-tinted: rgba(19, 45, 74, 0.08);
 
 $color-success: #2d8a54;
 $color-info: #1e5a8a;
@@ -45,6 +50,18 @@ $color-success-text: #1f6b3d;
 $color-info-text: #184a72;
 $color-warning-text: #9a6700;
 $color-danger-text: #a81717;
+
+$color-live: #1f7a45;
+$color-live-soft: #e6f5ec;
+$color-live-dot: #22a45a;
+
+$color-chart-navy: #132d4a;
+$color-chart-blue: #3a5f8a;
+$color-chart-gold: #c9a227;
+$color-chart-teal: #4a7c74;
+$color-chart-purple: #6b6a8a;
+$color-chart-gray: #8aa2b8;
+$color-chart-sand: #e8d9b8;
 
 $font-family-base: 'Tajawal', 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif;
 
@@ -71,40 +88,50 @@ $space-10: 2.5rem;
 $space-12: 3rem;
 $space-16: 4rem;
 
-$radius-sm: 0.375rem;
-$radius-md: 0.5rem;
-$radius-lg: 0.75rem;
-$radius-xl: 1rem;
-$radius-2xl: 1.25rem;
+// Radius: compact premium, never pill-everything
+$radius-sm: 0.5rem; // 8px
+$radius-md: 0.625rem; // 10px
+$radius-lg: 0.875rem; // 14px
+$radius-xl: 1rem; // 16px
+$radius-2xl: 1.25rem; // 20px
 $radius-pill: 50rem;
 
-$shadow-sm: 0 1px 2px rgba(19, 45, 74, 0.05);
-$shadow-md: 0 4px 14px rgba(19, 45, 74, 0.07);
-$shadow-soft: 0 2px 10px rgba(19, 45, 74, 0.06);
-$shadow-card: 0 8px 24px -10px rgba(19, 45, 74, 0.14);
-$shadow-modal: 0 24px 64px -16px rgba(19, 45, 74, 0.28);
+$shadow-sm: 0 1px 2px rgba(12, 31, 53, 0.03);
+$shadow-md:
+  0 1px 2px rgba(12, 31, 53, 0.03),
+  0 8px 24px rgba(12, 31, 53, 0.045);
+$shadow-soft:
+  0 1px 2px rgba(12, 31, 53, 0.03),
+  0 6px 18px rgba(12, 31, 53, 0.04);
+$shadow-card:
+  0 1px 2px rgba(12, 31, 53, 0.03),
+  0 8px 24px rgba(12, 31, 53, 0.045);
+$shadow-modal:
+  0 8px 32px rgba(12, 31, 53, 0.12),
+  0 2px 8px rgba(12, 31, 53, 0.06);
 
 $shadow-card-3d:
-  0 1px 0 rgba(255, 255, 255, 0.7) inset,
-  0 2px 4px rgba(0, 0, 0, 0.04),
-  0 6px 16px rgba(19, 45, 74, 0.08),
-  0 14px 36px -10px rgba(0, 0, 0, 0.1);
+  0 1px 2px rgba(12, 31, 53, 0.03),
+  0 8px 24px rgba(12, 31, 53, 0.045);
 
 $shadow-card-3d-hover:
-  0 1px 0 rgba(255, 255, 255, 0.85) inset,
-  0 4px 8px rgba(0, 0, 0, 0.06),
-  0 12px 28px rgba(19, 45, 74, 0.14),
-  0 24px 48px -12px rgba(0, 0, 0, 0.12);
+  0 2px 4px rgba(12, 31, 53, 0.04),
+  0 12px 28px rgba(12, 31, 53, 0.08);
+
+$shadow-dropdown:
+  0 4px 8px rgba(12, 31, 53, 0.04),
+  0 16px 36px rgba(12, 31, 53, 0.1);
 
 $container-sm: 40rem;
 $container-md: 48rem;
 $container-lg: 64rem;
 $container-xl: 72rem;
 $container-page: 75rem;
+$container-dashboard: 90rem;
 
-$sidebar-width: 16.5rem;
+$sidebar-width: 16.75rem;
 $sidebar-collapsed-width: 4.5rem;
-$header-height: 4.5rem;
+$header-height: 4rem;
 
 $z-header: 130;
 $z-sidebar: 110;
@@ -116,9 +143,9 @@ $z-modal: 410;
 $z-toast: 500;
 $z-tour: 450;
 
-$transition-fast: 120ms ease;
+$transition-fast: 150ms ease;
 $transition-base: 180ms ease;
-$transition-slow: 280ms ease;
+$transition-slow: 250ms ease;
 
 :root {
   color-scheme: light;
@@ -135,17 +162,22 @@ $transition-slow: 280ms ease;
   --color-accent-hover: #{$color-accent-hover};
   --color-accent-dark: #{$color-accent-dark};
   --color-accent-soft: #{$color-accent-soft};
+  --color-ivory: #{$color-ivory};
+  --color-sand: #{$color-sand};
+  --color-page-end: #{$color-page-end};
   --color-bg: #{$color-bg};
   --color-page: #{$color-bg};
   --color-cream: #{$color-cream};
   --color-cream-soft: #{$color-cream-soft};
   --color-card: #{$color-card};
   --color-surface: #{$color-card};
-  --color-surface-alt: #{$color-surface-light};
+  --color-surface-alt: #{$color-cream};
+  --color-surface-muted: #{$color-cream};
   --color-text: #{$color-text};
   --color-text-primary: #{$color-text};
   --color-text-secondary: #{$color-text-muted};
   --color-heading: #{$color-heading};
+  --color-navy: #{$color-primary};
   --color-text-muted: #{$color-text-muted};
   --color-muted: #{$color-text-muted};
   --color-border: #{$color-border};
@@ -165,6 +197,16 @@ $transition-slow: 280ms ease;
   --color-warning-text: #{$color-warning-text};
   --color-danger-text: #{$color-danger-text};
   --color-dark: #{$color-dark};
+  --color-live: #{$color-live};
+  --color-live-soft: #{$color-live-soft};
+  --color-live-dot: #{$color-live-dot};
+  --color-chart-navy: #{$color-chart-navy};
+  --color-chart-blue: #{$color-chart-blue};
+  --color-chart-gold: #{$color-chart-gold};
+  --color-chart-teal: #{$color-chart-teal};
+  --color-chart-purple: #{$color-chart-purple};
+  --color-chart-gray: #{$color-chart-gray};
+  --color-chart-sand: #{$color-chart-sand};
   --shadow-sm: #{$shadow-sm};
   --shadow-md: #{$shadow-md};
   --shadow-soft: #{$shadow-soft};
@@ -172,6 +214,7 @@ $transition-slow: 280ms ease;
   --shadow-modal: #{$shadow-modal};
   --shadow-card-3d: #{$shadow-card-3d};
   --shadow-card-3d-hover: #{$shadow-card-3d-hover};
+  --shadow-dropdown: #{$shadow-dropdown};
   --font-family-base: #{$font-family-base};
   --font-size-xs: #{$font-size-xs};
   --font-size-sm: #{$font-size-sm};
@@ -192,7 +235,9 @@ $transition-slow: 280ms ease;
   --space-12: #{$space-12};
   --container-page: #{$container-page};
   --container-md: #{$container-md};
-  --gradient-card-face: linear-gradient(165deg, #ffffff 0%, #fafbfc 45%, #f4f6f8 100%);
+  --container-dashboard: #{$container-dashboard};
+  --gradient-card-face: #{$color-card};
+  --gradient-page: linear-gradient(180deg, #{$color-ivory} 0%, #{$color-page-end} 100%);
   --radius-sm: #{$radius-sm};
   --radius-md: #{$radius-md};
   --radius-lg: #{$radius-lg};

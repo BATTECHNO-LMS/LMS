@@ -205,7 +205,77 @@ async function downloadComprehensiveStudentReportPdf(req, res, next) {
       'Content-Disposition',
       `attachment; filename="${safeAscii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
     );
+    res.setHeader('Cache-Control', 'private, no-store');
     return res.send(result.buffer);
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function previewBulkStudentReports(req, res, next) {
+  try {
+    const bulk = require('./fieldTraining.studentReportsBulk.service');
+    const data = await bulk.previewBulkStudentReports(
+      req.validated.params.id,
+      req.user,
+      req.validated.body || {}
+    );
+    return success(res, data, { message: 'Bulk student report export preview ready' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function startBulkStudentReports(req, res, next) {
+  try {
+    const bulk = require('./fieldTraining.studentReportsBulk.service');
+    const data = await bulk.startBulkStudentReports(
+      req.validated.params.id,
+      req.user,
+      req.validated.body || {}
+    );
+    return success(res, data, { message: 'Bulk student report export started' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getBulkStudentReportsJob(req, res, next) {
+  try {
+    const bulk = require('./fieldTraining.studentReportsBulk.service');
+    const data = await bulk.getBulkStudentReportsJob(
+      req.validated.params.id,
+      req.validated.params.jobId,
+      req.user
+    );
+    return success(res, data, { message: 'Bulk student report export job retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function downloadBulkStudentReportsZip(req, res, next) {
+  try {
+    const fs = require('fs');
+    const bulk = require('./fieldTraining.studentReportsBulk.service');
+    const file = await bulk.downloadBulkStudentReportsZip(
+      req.validated.params.id,
+      req.validated.params.jobId,
+      req.user
+    );
+    res.setHeader('Content-Type', file.contentType || 'application/zip');
+    res.setHeader('Content-Disposition', file.contentDisposition);
+    res.setHeader('Cache-Control', 'private, no-store');
+    if (file.summary) {
+      res.setHeader('X-Zip-Included', String(file.summary.included ?? 0));
+      res.setHeader('X-Zip-Failed', String(file.summary.failed ?? 0));
+      res.setHeader('X-Zip-Matching', String(file.summary.matching ?? 0));
+    }
+    // Stream via createReadStream (same pattern as completion-letter PDFs).
+    // Do not use sendFile or redirect to /uploads — Bearer auth must stay on the API route.
+    const stream = fs.createReadStream(file.absPath);
+    stream.on('error', (err) => next(err));
+    return stream.pipe(res);
   } catch (e) {
     return next(e);
   }
@@ -540,6 +610,10 @@ module.exports = {
   getApplicationProgress,
   getComprehensiveStudentReport,
   downloadComprehensiveStudentReportPdf,
+  previewBulkStudentReports,
+  startBulkStudentReports,
+  getBulkStudentReportsJob,
+  downloadBulkStudentReportsZip,
   getApplicationHours,
   updateApplicationHours,
   recalculateEligibility,

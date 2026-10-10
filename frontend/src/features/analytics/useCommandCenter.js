@@ -69,7 +69,8 @@ export function useCommandCenter() {
     queryFn: () => fetchCommandCenterOverview(filters),
     staleTime: 20_000,
     placeholderData: keepPreviousData,
-    refetchInterval: 30_000,
+    // Historical overview keeps its own refresh only while the live stream is down.
+    refetchInterval: liveStatus === 'sse' ? false : 30_000,
   });
 
   const filtersQuery = useQuery({
@@ -101,7 +102,9 @@ export function useCommandCenter() {
 
     const connect = () => {
       if (stopped || document.hidden) return;
+      if (es && es.readyState !== EventSource.CLOSED) return;
       try {
+        es?.close();
         es = new EventSource(commandCenterLiveUrl(filters));
         es.addEventListener('snapshot', (event) => {
           try {
@@ -120,8 +123,10 @@ export function useCommandCenter() {
         });
         es.onerror = () => {
           es.close();
+          es = undefined;
           setLiveStatus('polling');
           backoff = Math.min(backoff * 2, 30_000);
+          if (timer) window.clearTimeout(timer);
           timer = window.setTimeout(connect, backoff);
         };
       } catch {
@@ -132,9 +137,11 @@ export function useCommandCenter() {
     const onVis = () => {
       if (document.hidden) {
         es?.close();
-      } else {
-        connect();
+        es = undefined;
+        if (timer) window.clearTimeout(timer);
+        return;
       }
+      connect();
     };
 
     connect();
