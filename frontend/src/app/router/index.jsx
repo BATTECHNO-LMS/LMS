@@ -8,6 +8,7 @@ import { RoleBasedRoute } from '../../components/common/RoleBasedRoute.jsx';
 import { RootRedirect } from '../../components/common/RootRedirect.jsx';
 import { RoleShellPermissionOutlet } from '../../components/permissions/RoleShellPermissionOutlet.jsx';
 import { ADMIN_ROLE_SET, ROLES } from '../../constants/roles.js';
+import { INTERNSHIP_JOURNEY_PATH } from '../../constants/publicRoutes.js';
 import { PortalPickerPage } from '../../pages/auth/PortalPickerPage.jsx';
 import { getCurrentPortalKey } from '../../utils/portal.js';
 
@@ -79,6 +80,7 @@ export function AppRouter() {
       <Route path="/account-deletion" element={<Pages.AccountDeletionPage />} />
 
       <Route path="/verify/report/:verificationCode" element={<Pages.ReportVerificationPage />} />
+      <Route path={INTERNSHIP_JOURNEY_PATH} element={<Pages.InternshipJourneyPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/admin" element={<Pages.AdminLayout />}>

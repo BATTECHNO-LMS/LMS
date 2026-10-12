@@ -590,6 +590,10 @@ export const ReportVerificationPage = lazyNamed(
   () => import('../../pages/public/ReportVerificationPage.jsx'),
   'ReportVerificationPage'
 );
+export const InternshipJourneyPage = lazyNamed(
+  () => import('../../pages/public/InternshipJourneyPage.jsx'),
+  'InternshipJourneyPage'
+);
 
 // —— Layouts (keep auth layout eager in the router) ——
 export const AdminLayout = lazyNamed(() => import('../../layouts/AdminLayout.jsx'), 'AdminLayout');

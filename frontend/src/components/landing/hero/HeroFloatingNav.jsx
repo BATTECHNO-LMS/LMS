@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMenu, FiX } from 'react-icons/fi';
@@ -7,6 +7,7 @@ import { useLocale } from '../../../features/locale/index.js';
 import { BrandLogo } from '../../common/BrandLogo.jsx';
 import { PortalLoginMenu } from '../../portal/PortalLoginMenu.jsx';
 import { PORTAL_ENTRIES, PORTAL_SELECTION_PATH } from '../../../constants/portalConfig.js';
+import { INTERNSHIP_JOURNEY_PATH } from '../../../constants/publicRoutes.js';
 
 const NAV_LINKS = [
   { href: '#portal-entry', key: 'header.navPortals' },
@@ -27,6 +28,9 @@ export function HeroFloatingNav() {
 
   const linkClass =
     'whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-semibold text-bat-text transition hover:bg-bat-accent-soft/50 hover:text-bat-primary sm:px-2.5 sm:text-[0.8125rem]';
+  const activeLinkClass = 'bg-bat-accent-soft/50 text-bat-primary';
+  const mobileLinkClass =
+    'rounded-lg px-3 py-2.5 text-sm font-semibold text-bat-text hover:bg-bat-accent-soft/40';
 
   return (
     <header className="hero-floating-nav sticky top-0 z-50 w-full px-[var(--landing-container-pad)] pt-4 pb-2 sm:pt-5 sm:pb-2.5">
@@ -44,6 +48,13 @@ export function HeroFloatingNav() {
                 {t(key)}
               </a>
             ))}
+            <NavLink
+              to={INTERNSHIP_JOURNEY_PATH}
+              className={({ isActive }) => `${linkClass}${isActive ? ` ${activeLinkClass}` : ''}`}
+              onClick={close}
+            >
+              {t('header.navInternshipJourney')}
+            </NavLink>
           </nav>
 
           <div className="relative z-[1] flex shrink-0 items-center gap-1.5 sm:gap-2">
@@ -104,10 +115,17 @@ export function HeroFloatingNav() {
             <span className="hero-floating-nav__wave-edge" aria-hidden />
             <div className="hero-floating-nav__inner relative z-[1] flex flex-col gap-0.5">
               {NAV_LINKS.map(({ href, key }) => (
-                <a key={key} href={href} className="rounded-lg px-3 py-2.5 text-sm font-semibold text-bat-text hover:bg-bat-accent-soft/40" onClick={close}>
+                <a key={key} href={href} className={mobileLinkClass} onClick={close}>
                   {t(key)}
                 </a>
               ))}
+              <NavLink
+                to={INTERNSHIP_JOURNEY_PATH}
+                className={({ isActive }) => `${mobileLinkClass}${isActive ? ` ${activeLinkClass}` : ''}`}
+                onClick={close}
+              >
+                {t('header.navInternshipJourney')}
+              </NavLink>
               <Link
                 to={PORTAL_ENTRIES.UNIVERSITY.loginPath}
                 className="mt-1 rounded-xl bg-bat-primary px-3 py-2.5 text-center text-sm font-semibold text-white"
