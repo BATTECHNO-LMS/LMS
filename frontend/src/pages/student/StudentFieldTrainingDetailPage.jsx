@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../features/activity/navigationActivity.js';
 import {
   ArrowLeft,
   Award,
@@ -207,6 +208,7 @@ function ApplicationStatusCard({
 
 export function StudentFieldTrainingDetailPage() {
   const { id } = useParams();
+  useNavigationActivity(NAVIGATION_MODULES.FIELD_TRAINING, id);
   const [searchParams, setSearchParams] = useSearchParams();
   const { t, i18n } = useTranslation('fieldTraining');
   const { t: tCommon } = useTranslation('common');

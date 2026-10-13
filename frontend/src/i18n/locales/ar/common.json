@@ -57,7 +57,8 @@
   "loading": "جاري التحميل",
   "user": {
     "fallbackName": "مستخدم",
-    "logout": "تسجيل الخروج"
+    "logout": "تسجيل الخروج",
+    "endSession": "إنهاء الجلسة"
   },
   "notifications": "الإشعارات",
   "rights": "جميع الحقوق محفوظة",

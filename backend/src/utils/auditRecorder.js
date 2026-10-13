@@ -1,24 +1,15 @@
-const { recordAudit: recordAuditEntry } = require('../shared/services/audit.service');
+const auditService = require('../shared/services/audit.service');
 
 /**
  * Record an audit log row (internal use from services / future hooks).
- * @param {{
- *   userId?: string | null,
- *   universityId?: string | null,
- *   actionType: string,
- *   entityType: string,
- *   entityId?: string | null,
- *   oldValues?: unknown,
- *   newValues?: unknown,
- *   ipAddress?: string | null,
- * }} payload
+ * See shared/services/audit.service.js for payload fields and the failure policy.
  */
-async function recordAudit(payload) {
-  return recordAuditEntry(payload);
+async function recordAudit(payload, options) {
+  return auditService.recordAudit(payload, options);
 }
 
-async function recordAuditMany(payloads) {
-  return require('../shared/services/audit.service').recordAuditMany(payloads);
+async function recordAuditMany(payloads, options) {
+  return auditService.recordAuditMany(payloads, options);
 }
 
 module.exports = { recordAudit, recordAuditMany };

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -16,8 +16,48 @@ import { setOnUnauthorized } from '../../../services/authSessionBridge.js';
 import { getRememberedPortalLoginPath } from '../../../utils/portal.js';
 import { resolveAuthenticatedLandingRoute } from '../../../utils/resolveAuthenticatedLandingRoute.js';
 import { PORTAL_SELECTION_PATH } from '../../../constants/portalConfig.js';
+import { endCurrentSession } from '../session/sessionApi.js';
+import { SessionManager } from '../session/SessionManager.jsx';
+import {
+  AUTH_CHANNEL_NAME,
+  LAST_ACTIVITY_PING_STORAGE_KEY,
+  LAST_ACTIVITY_STORAGE_KEY,
+  LOGOUT_REASON_STORAGE_KEY,
+  RETURN_TO_STORAGE_KEY,
+  loginPathWithReason,
+  sanitizeReturnTo,
+} from '../session/sessionPolicy.js';
 
 export const AuthContext = createContext(null);
+
+function openAuthChannel() {
+  if (typeof window === 'undefined' || typeof window.BroadcastChannel !== 'function') return null;
+  try {
+    return new window.BroadcastChannel(AUTH_CHANNEL_NAME);
+  } catch {
+    return null;
+  }
+}
+
+function rememberReturnTo() {
+  if (typeof window === 'undefined') return;
+  const current = `${window.location.pathname}${window.location.search}`;
+  const safe = sanitizeReturnTo(current);
+  try {
+    if (safe) window.sessionStorage.setItem(RETURN_TO_STORAGE_KEY, safe);
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearActivityMarkers() {
+  try {
+    window.localStorage.removeItem(LAST_ACTIVITY_STORAGE_KEY);
+    window.localStorage.removeItem(LAST_ACTIVITY_PING_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 function normalizeUser(raw) {
   if (!raw || typeof raw !== 'object') return null;
@@ -44,13 +84,78 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
+  const channelRef = useRef(null);
+  const endingRef = useRef(false);
+  const userRef = useRef(null);
+  userRef.current = user;
+
   const clearSession = useCallback(() => {
     removeStorageItem(storageKeys.authToken);
     removeStorageItem(storageKeys.authUser);
     removeStorageItem(storageKeys.tenantScope);
+    clearActivityMarkers();
     setUser(null);
     qc.clear();
   }, [qc]);
+
+  const broadcastLogout = useCallback((reason) => {
+    try {
+      window.localStorage.setItem(LOGOUT_REASON_STORAGE_KEY, String(reason || 'SESSION_ENDED'));
+    } catch {
+      /* ignore */
+    }
+    try {
+      channelRef.current?.postMessage({ type: 'logout', reason: reason || 'SESSION_ENDED' });
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  /**
+   * Local end of an already-ended (or rejected) session: clear auth, inform other tabs,
+   * and send the user to the right portal login with the reason. Never renews silently.
+   */
+  const expireSession = useCallback(
+    (code, { broadcast = true } = {}) => {
+      const hadSession = Boolean(userRef.current) || Boolean(getStorageItem(storageKeys.authToken));
+      if (!hadSession || endingRef.current) return;
+      endingRef.current = true;
+      rememberReturnTo();
+      if (broadcast) broadcastLogout(code);
+      clearSession();
+      setIsAuthReady(true);
+      navigate(loginPathWithReason(getRememberedPortalLoginPath(), code || 'SESSION_ENDED'), {
+        replace: true,
+      });
+    },
+    [broadcastLogout, clearSession, navigate]
+  );
+
+  useEffect(() => {
+    const channel = openAuthChannel();
+    channelRef.current = channel;
+    function onMessage(event) {
+      if (event?.data?.type === 'logout') expireSession(event.data.reason, { broadcast: false });
+    }
+    function onStorage(event) {
+      if (event.key !== storageKeys.authToken || event.newValue != null) return;
+      let reason = 'SESSION_ENDED';
+      try {
+        reason = window.localStorage.getItem(LOGOUT_REASON_STORAGE_KEY) || reason;
+      } catch {
+        /* ignore */
+      }
+      expireSession(reason, { broadcast: false });
+    }
+    channel?.addEventListener('message', onMessage);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      channel?.removeEventListener('message', onMessage);
+      channel?.close();
+      channelRef.current = null;
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [expireSession]);
 
   const applySession = useCallback((token, nextUser) => {
     if (token) setStorageItem(storageKeys.authToken, token);
@@ -64,6 +169,12 @@ export function AuthProvider({ children }) {
     async (token) => {
       if (!token || typeof token !== 'string') {
         throw new Error('Missing authentication token');
+      }
+      endingRef.current = false;
+      try {
+        window.localStorage.removeItem(LOGOUT_REASON_STORAGE_KEY);
+      } catch {
+        /* ignore */
       }
       setStorageItem(storageKeys.authToken, token);
       try {
@@ -123,14 +234,9 @@ export function AuthProvider({ children }) {
   }, [bootstrap]);
 
   useEffect(() => {
-    const handler = () => {
-      clearSession();
-      setIsAuthReady(true);
-      navigate(getRememberedPortalLoginPath(), { replace: true });
-    };
-    setOnUnauthorized(handler);
+    setOnUnauthorized((code) => expireSession(code || 'UNAUTHORIZED'));
     return () => setOnUnauthorized(null);
-  }, [clearSession, navigate]);
+  }, [expireSession]);
 
   const login = useCallback(
     async ({ email, password, portalType, preferredReturnTo } = {}) => {
@@ -186,12 +292,19 @@ export function AuthProvider({ children }) {
     [persistTokenAndHydrate, qc]
   );
 
+  /** "إنهاء الجلسة": end the server session first so the current JWT is rejected afterwards. */
   const logout = useCallback(async () => {
-    await logoutRequest();
+    endingRef.current = true;
+    try {
+      await endCurrentSession('USER_LOGOUT');
+    } catch {
+      await logoutRequest();
+    }
+    broadcastLogout('USER_LOGOUT');
     clearSession();
     setIsAuthReady(true);
     navigate(PORTAL_SELECTION_PATH, { replace: true });
-  }, [clearSession, navigate]);
+  }, [broadcastLogout, clearSession, navigate]);
 
   const refreshProfile = useCallback(async () => {
     const token = getStorageItem(storageKeys.authToken);
@@ -239,6 +352,7 @@ export function AuthProvider({ children }) {
       logout,
       refreshProfile,
       clearSession,
+      expireSession,
       setActiveOrganization,
     }),
     [
@@ -251,9 +365,15 @@ export function AuthProvider({ children }) {
       logout,
       refreshProfile,
       clearSession,
+      expireSession,
       setActiveOrganization,
     ]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {user ? <SessionManager onExpire={expireSession} onLogout={logout} /> : null}
+    </AuthContext.Provider>
+  );
 }

@@ -247,6 +247,12 @@ async function createSection(courseId, body) {
     title: body.title.trim(),
     sort_order: body.sort_order ?? maxOrder + 1,
   });
+  await recordAudit({
+    actionType: 'COURSE_SECTION_CREATED',
+    entityType: 'course_section',
+    entityId: section?.id ?? null,
+    newValues: { course_id: courseId, title: section?.title ?? body.title.trim(), sort_order: section?.sort_order ?? null },
+  });
   return { section };
 }
 
@@ -257,6 +263,13 @@ async function updateSection(courseId, sectionId, body) {
   if (body.title != null) data.title = body.title.trim();
   if (body.sort_order != null) data.sort_order = body.sort_order;
   const updated = await repo.updateSection(sectionId, data);
+  await recordAudit({
+    actionType: 'COURSE_SECTION_UPDATED',
+    entityType: 'course_section',
+    entityId: sectionId,
+    oldValues: { title: section.title ?? null, sort_order: section.sort_order ?? null },
+    newValues: { course_id: courseId, ...data },
+  });
   return { section: updated };
 }
 
@@ -264,6 +277,12 @@ async function deleteSection(courseId, sectionId) {
   const section = await repo.findSectionInCourse(courseId, sectionId);
   if (!section) throw new ApiError(404, 'Section not found');
   await repo.deleteSection(sectionId);
+  await recordAudit({
+    actionType: 'COURSE_SECTION_DELETED',
+    entityType: 'course_section',
+    entityId: sectionId,
+    oldValues: { course_id: courseId, title: section.title ?? null },
+  });
   return { deleted: true };
 }
 
@@ -288,6 +307,18 @@ async function createLesson(courseId, sectionId, body) {
     is_preview: body.is_preview ?? false,
     is_required: body.is_required ?? true,
     status: body.status ?? defaultStatus,
+  });
+  await recordAudit({
+    actionType: 'COURSE_LESSON_CREATED',
+    entityType: 'course_lesson',
+    entityId: lesson?.id ?? null,
+    newValues: {
+      course_id: courseId,
+      section_id: sectionId,
+      title: lesson?.title ?? body.title.trim(),
+      type: lesson?.type ?? body.type ?? null,
+      status: lesson?.status ?? null,
+    },
   });
   return { lesson };
 }
@@ -315,6 +346,18 @@ async function updateLesson(courseId, lessonId, body) {
   }
   delete data.section_id;
   const updated = await repo.updateLesson(lessonId, data);
+  await recordAudit({
+    actionType: 'COURSE_LESSON_UPDATED',
+    entityType: 'course_lesson',
+    entityId: lessonId,
+    oldValues: { title: lesson.title ?? null, status: lesson.status ?? null },
+    newValues: {
+      course_id: courseId,
+      title: updated?.title ?? lesson.title ?? null,
+      status: updated?.status ?? lesson.status ?? null,
+      changed_fields: Object.keys(data),
+    },
+  });
   return { lesson: updated };
 }
 
@@ -322,6 +365,12 @@ async function deleteLesson(courseId, lessonId) {
   const lesson = await repo.findLessonInCourse(courseId, lessonId);
   if (!lesson) throw new ApiError(404, 'Lesson not found');
   await repo.deleteLesson(lessonId);
+  await recordAudit({
+    actionType: 'COURSE_LESSON_DELETED',
+    entityType: 'course_lesson',
+    entityId: lessonId,
+    oldValues: { course_id: courseId, section_id: lesson.section_id ?? null, title: lesson.title ?? null },
+  });
   return { deleted: true };
 }
 

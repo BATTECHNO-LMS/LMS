@@ -796,6 +796,17 @@ async function issueOne(applicationId, userId, user, { allowSkip = false, preloa
     entityId: letter.id,
     newValues: { application_id: applicationId, source_data_hash: sourceHash },
   });
+  if (app.training_status !== 'completed') {
+    await recordAudit({
+      userId,
+      subjectUserId: app.student_id,
+      actionType: 'FIELD_TRAINING_COMPLETED',
+      entityType: 'field_training_application',
+      entityId: applicationId,
+      oldValues: { training_status: app.training_status ?? null },
+      newValues: { opportunityId: opp.id, training_status: 'completed', completion_letter_id: letter.id },
+    });
+  }
 
   return {
     outcome: existing ? 'regenerated' : 'issued',
@@ -1039,6 +1050,22 @@ async function downloadIssuedZip(opportunityId, user) {
     onFile: (entry) => {
       const absPath = repo.resolveSubmissionAbsolutePath(entry.pdfUrl);
       return readPdfBuffer(absPath);
+    },
+  });
+
+  await recordAudit({
+    userId: user?.userId ?? null,
+    universityId: university?.id ?? null,
+    actionType: 'FIELD_TRAINING_COMPLETION_LETTERS_ZIP_DOWNLOADED',
+    entityType: 'field_training_opportunity',
+    entityId: opportunityId,
+    newValues: {
+      opportunityId,
+      selected: entries.length,
+      included: included.length,
+      failed: failed.length + failedCount,
+      missing: pendingEligible.length,
+      application_ids: included.map((e) => e.applicationId).filter(Boolean).slice(0, 500),
     },
   });
 

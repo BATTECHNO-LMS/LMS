@@ -5,6 +5,7 @@ const analyticsPdfService = require('./analyticsPdf.service');
 const analyticsExcelExportService = require('./analyticsExcelExport.service');
 const { success } = require('../../utils/apiResponse');
 const { ApiError } = require('../../utils/apiError');
+const authSessions = require('../auth/authSession.service');
 
 async function overview(req, res, next) {
   try {
@@ -198,6 +199,16 @@ async function commandCenterLiveStream(req, res, next) {
   const send = async () => {
     if (closed) return;
     try {
+      // Stream ticks never extend the session; they only stop once it has ended.
+      if (req.user?.sessionId) {
+        const verdict = await authSessions.validateSession({ sid: req.user.sessionId, userId: req.user.userId });
+        if (!verdict.ok) {
+          res.write(`event: auth\ndata: ${JSON.stringify({ code: verdict.code })}\n\n`);
+          closed = true;
+          res.end();
+          return;
+        }
+      }
       const data = await commandCenter.getLiveSnapshot(req.user, req.validated.query);
       res.write(`event: snapshot\ndata: ${JSON.stringify(data)}\n\n`);
     } catch (err) {

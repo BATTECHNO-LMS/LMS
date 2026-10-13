@@ -10,7 +10,36 @@ const {
 } = require('../../shared/storage/fileRules');
 const { resolvePublicUrl } = require('../../shared/storage/fileStorage');
 const { resolveMimeType, isAllowedSubmissionFile } = require('../fieldTraining/fieldTraining.submissionFileRules');
+const { recordAudit } = require('../../utils/auditRecorder');
 const repo = require('./files.repository');
+
+function fileAuditValues(file) {
+  return {
+    context: file?.relatedEntityType ?? null,
+    relatedEntityId: file?.relatedEntityId ?? null,
+    fileName: file?.originalName ?? null,
+    sizeBytes: file?.size != null ? Number(file.size) : null,
+    mimeType: file?.mimeType ?? null,
+    visibility: file?.visibility ?? null,
+  };
+}
+
+function fileOwnerId(file) {
+  return file?.userId || file?.createdById || null;
+}
+
+async function auditFileEvent(actionType, file, user, { asOld = false } = {}) {
+  const values = fileAuditValues(file);
+  await recordAudit({
+    userId: user?.userId ?? null,
+    subjectUserId: fileOwnerId(file),
+    actionType,
+    entityType: 'file',
+    entityId: file?.id ?? null,
+    oldValues: asOld ? values : undefined,
+    newValues: asOld ? undefined : values,
+  });
+}
 
 function canAccessFile(file, user) {
   if (!file || !user) return false;
@@ -106,7 +135,7 @@ async function uploadDirect(file, body, user) {
   const visibility = body.visibility === 'public' ? 'public' : 'private';
   const url = visibility === 'public' ? resolvePublicUrl(storageKey) : null;
 
-  return repo.createFile({
+  const created = await repo.createFile({
     userId: user.userId,
     createdById: user.userId,
     relatedEntityType: body.relatedEntityType ?? null,
@@ -119,6 +148,8 @@ async function uploadDirect(file, body, user) {
     visibility,
     url,
   });
+  await auditFileEvent('FILE_UPLOADED', created, user);
+  return created;
 }
 
 async function confirmUpload(body, user) {
@@ -151,7 +182,7 @@ async function confirmUpload(body, user) {
   const url =
     visibility === 'public' ? resolvePublicUrl(storageKey) : null;
 
-  return repo.createFile({
+  const created = await repo.createFile({
     userId: user.userId,
     createdById: user.userId,
     relatedEntityType: body.relatedEntityType ?? null,
@@ -164,6 +195,8 @@ async function confirmUpload(body, user) {
     visibility,
     url,
   });
+  await auditFileEvent('FILE_UPLOADED', created, user);
+  return created;
 }
 
 async function getDownloadUrl(fileId, user) {
@@ -174,16 +207,19 @@ async function getDownloadUrl(fileId, user) {
   }
 
   if (file.visibility === 'public' && file.url) {
+    await auditFileEvent('FILE_DOWNLOADED', file, user);
     return { url: file.url, expiresIn: null };
   }
 
   const provider = getProvider();
   if (getStorageBackend() === 'local') {
     const publicUrl = resolvePublicUrl(file.storageKey);
+    await auditFileEvent('FILE_DOWNLOADED', file, user);
     return { url: publicUrl, expiresIn: null };
   }
 
   const signed = await provider.createPresignedGetUrl({ storageKey: file.storageKey });
+  await auditFileEvent('FILE_DOWNLOADED', file, user);
   return signed;
 }
 
@@ -209,7 +245,9 @@ async function deleteFile(fileId, user) {
     }
   }
 
-  return repo.softDelete(fileId);
+  const deleted = await repo.softDelete(fileId);
+  await auditFileEvent('FILE_DELETED', file, user, { asOld: true });
+  return deleted;
 }
 
 async function getFileByIdForUser(fileId, user) {

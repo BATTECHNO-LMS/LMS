@@ -22,6 +22,8 @@ import {
   previewAdminCompletionLetter,
 } from '../../../features/fieldTraining/index.js';
 import { Button } from '../../../components/common/Button.jsx';
+import { StudentActivityTable } from '../../../components/activity/StudentActivityTable.jsx';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../../features/activity/navigationActivity.js';
 
 function DetailGrid({ items }) {
   return (
@@ -45,6 +47,10 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
   const [letterBusy, setLetterBusy] = useState('');
   const [letterError, setLetterError] = useState('');
   const paths = getReportPaths(basePath, mode);
+  useNavigationActivity(NAVIGATION_MODULES.REPORT, applicationId, {
+    entityType: 'field_training_report',
+    reportKey: 'field_training_student',
+  });
 
   const { data, isLoading, isError, error } = useFieldTrainingStudentReport(applicationId, {
     staleTime: 30_000,
@@ -162,7 +168,17 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             ))}
           </div>
           <nav className="ft-report-tabs" aria-label={t('studentReport.tabsLabel')}>
-            {['summary', 'attendance', 'hours', 'tasks', 'assessments', 'progress', 'completion', 'certificate'].map((key) => (
+            {[
+              'summary',
+              'attendance',
+              'hours',
+              'tasks',
+              'assessments',
+              'progress',
+              'completion',
+              'certificate',
+              ...(Array.isArray(data.activity_timeline) ? ['activity'] : []),
+            ].map((key) => (
               <button
                 key={key}
                 type="button"
@@ -484,6 +500,14 @@ export function FieldTrainingStudentReportPage({ basePath, applicationId, mode =
             ) : null}
           </SectionCard>
           </div>
+
+          {Array.isArray(data.activity_timeline) ? (
+            <div className={`ft-report-tab-panel${tab === 'activity' ? ' is-active' : ''}`}>
+              <SectionCard title={t('studentReport.tabs.activity')}>
+                <StudentActivityTable events={data.activity_timeline} />
+              </SectionCard>
+            </div>
+          ) : null}
         </>
       ) : null}
     </div>

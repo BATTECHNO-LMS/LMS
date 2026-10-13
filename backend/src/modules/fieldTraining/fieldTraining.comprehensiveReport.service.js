@@ -9,12 +9,11 @@ const qualificationService = require('./fieldTraining.qualification.service');
 const {
   PROFESSIONAL_CRITERIA,
 } = require('./fieldTrainingEvaluation.constants');
-const {
-  LOGIN_ACTION,
-  STUDENT_ACTIVITY_ACTIONS,
-  translateStudentActivityEvent,
-  CATEGORY,
-} = require('./fieldTraining.activityTranslate');
+const { LOGIN_ACTION } = require('./fieldTraining.activityTranslate');
+const { getStudentActivityTimeline } = require('../../shared/audit/studentActivityTimeline.service');
+const { resolveUserTenant } = require('../../shared/services/audit.service');
+const { isSystemWideAdmin } = require('../../utils/universityScope');
+const { logger } = require('../../utils/logger');
 const present = require('../../utils/fieldTraining.reportPresentation');
 const taskSemantics = require('./fieldTraining.taskSemantics');
 
@@ -151,53 +150,52 @@ function buildQualificationSummary(publicQ, calculated) {
   };
 }
 
-async function loadStudentActivity({ studentId, applicationId, opportunityId, limit = 100 }) {
-  const take = Math.min(200, Math.max(20, Number(limit) || 100));
-  let rows = [];
-  try {
-    rows = await prisma.audit_logs.findMany({
-      where: {
-        action_type: { in: [...STUDENT_ACTIVITY_ACTIONS] },
-        OR: [
-          { user_id: studentId },
-          { entity_id: studentId },
-          { entity_id: applicationId },
-          { entity_id: opportunityId },
-        ],
-      },
-      orderBy: { created_at: 'desc' },
-      take,
-      select: {
-        id: true,
-        user_id: true,
-        action_type: true,
-        entity_type: true,
-        entity_id: true,
-        new_values: true,
-        created_at: true,
-      },
-    });
-  } catch {
-    rows = [];
-  }
+/** Legacy report filter keys → canonical audit categories. */
+const ACTIVITY_FILTER_CATEGORIES = Object.freeze({
+  ACCOUNT: ['AUTH', 'USER'],
+  ATTENDANCE: ['ATTENDANCE'],
+  TASKS: ['ASSIGNMENT'],
+  ASSESSMENTS: ['ASSESSMENT', 'EVALUATION'],
+  ELIGIBILITY: ['COMPLETION_LETTER', 'CERTIFICATE'],
+});
 
-  // Keep only events that are about this student/application when the entity is an opportunity-level action.
-  rows = rows.filter((row) => {
-    if (row.action_type === LOGIN_ACTION) {
-      return row.user_id === studentId || row.entity_id === studentId;
-    }
-    if (row.entity_id === applicationId || row.entity_id === studentId) return true;
-    const nv = row.new_values && typeof row.new_values === 'object' ? row.new_values : {};
-    if (String(nv.applicationId || nv.application_id || '') === String(applicationId)) return true;
-    if (String(nv.studentId || nv.student_id || '') === String(studentId)) return true;
-    // Opportunity-scoped events that don't name the student are noisy — skip unless entity is application.
-    if (row.entity_id === opportunityId) {
-      return ['FIELD_TRAINING_STARTED', 'FIELD_TRAINING_ASSESSMENT_PUBLISHED'].includes(row.action_type) === false
-        ? Boolean(nv.applicationId || nv.studentId)
-        : false;
-    }
-    return row.user_id === studentId;
-  });
+function matchesActivityFilter(event, filterKey) {
+  if (!filterKey) return true;
+  if (ACTIVITY_FILTER_CATEGORIES[filterKey]?.includes(event.category)) return true;
+  const action = String(event.action || '');
+  if (filterKey === 'TASKS') return action.includes('TASK');
+  if (filterKey === 'ELIGIBILITY') {
+    return /ELIGIBILITY|QUALIFICATION|COMPLETED|EXPELLED|REINSTATED/.test(action);
+  }
+  if (filterKey === 'ASSESSMENTS') return action.includes('ASSESSMENT') || action.includes('EVALUATION');
+  return !ACTIVITY_FILTER_CATEGORIES[filterKey];
+}
+
+async function timelineScopeFor(user, studentId) {
+  if (isSystemWideAdmin(user)) return { type: 'global' };
+  const tenant = await resolveUserTenant(studentId);
+  if (!tenant?.universityId && !tenant?.organizationId) return null;
+  return { type: 'university', universityId: tenant.universityId, organizationId: tenant.organizationId };
+}
+
+/**
+ * Student activity for the comprehensive report: summary KPIs plus the canonical, full,
+ * chronological activity history (rendered across as many PDF pages as needed).
+ */
+async function loadStudentActivity({ studentId, opportunityId, user }) {
+  let events = [];
+  try {
+    const result = await getStudentActivityTimeline({
+      studentId,
+      opportunityId,
+      organizationScope: await timelineScopeFor(user, studentId),
+      order: 'asc',
+    });
+    events = result.events;
+  } catch (err) {
+    logger.warn('STUDENT_ACTIVITY_TIMELINE_FAILED', { reason: err?.message });
+    events = [];
+  }
 
   const firstLoginAudit = await prisma.audit_logs
     .findFirst({
@@ -227,18 +225,21 @@ async function loadStudentActivity({ studentId, applicationId, opportunityId, li
     select: { last_login_at: true, created_at: true },
   });
 
-  const timeline = rows.map((row) => {
-    const translated = translateStudentActivityEvent(row);
-    return {
-      id: row.id,
-      at: row.created_at,
-      atLabelAr: formatDateTimeAr(row.created_at),
-      title: translated.title,
-      description: translated.description,
-      category: translated.category,
-      categoryLabelAr: translated.categoryLabelAr,
-    };
-  });
+  const timeline = events.map((event) => ({
+    id: event.id,
+    at: event.at,
+    atLabelAr: event.at_label,
+    action: event.action,
+    title: event.action_label,
+    description: event.details,
+    category: event.category,
+    categoryLabelAr: event.category_label,
+    actorLabelAr: event.actor.is_self
+      ? 'الطالب'
+      : [event.actor.name, event.actor.role].filter(Boolean).join(' · '),
+    outcome: event.outcome,
+    outcomeLabelAr: event.outcome_label,
+  }));
 
   return {
     summary: {
@@ -251,12 +252,8 @@ async function loadStudentActivity({ studentId, applicationId, opportunityId, li
       firstLoginAtLabelAr: formatDateAr(firstLoginAudit?.created_at),
       lastLoginAt: student?.last_login_at || null,
       lastLoginAtLabelAr: formatDateAr(student?.last_login_at),
-      firstActivityAt: timeline.length
-        ? timeline[timeline.length - 1]?.at
-        : student?.created_at || null,
-      firstActivityAtLabelAr: formatDateAr(
-        timeline.length ? timeline[timeline.length - 1]?.at : student?.created_at
-      ),
+      firstActivityAt: timeline.length ? timeline[0]?.at : student?.created_at || null,
+      firstActivityAtLabelAr: formatDateAr(timeline.length ? timeline[0]?.at : student?.created_at),
       trackingEnabled: trackingExists,
       loginNoteAr: trackingExists
         ? null
@@ -467,16 +464,12 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
 
   const activity = await loadStudentActivity({
     studentId: app.student_id,
-    applicationId,
     opportunityId,
-    limit: Number(query.activity_limit) || 80,
+    user,
   });
 
   const categoryFilter = String(query.activity_category || '').toUpperCase();
-  const filteredTimeline =
-    categoryFilter && CATEGORY[categoryFilter]
-      ? activity.timeline.filter((row) => row.category === categoryFilter)
-      : activity.timeline;
+  const filteredTimeline = activity.timeline.filter((row) => matchesActivityFilter(row, categoryFilter));
 
   return {
     generatedAt: new Date().toISOString(),
@@ -723,10 +716,12 @@ function renderComprehensiveReportHtml(report, assets = {}) {
     return Boolean(String(title).trim() || String(description).trim());
   });
 
-  const timelineRows = usefulTimeline.slice(0, 60).map((ev) => [
-    ev.atLabelAr || ev.occurredAtLabelAr || present.formatDateAr(ev.at) || 'غير متوفر',
-    ev.categoryLabelAr || 'نشاط',
+  const timelineRows = usefulTimeline.map((ev) => [
+    ev.atLabelAr || present.formatDateAr(ev.at) || 'غير متوفر',
     present.sanitizeVisibleText(ev.title || ev.titleAr, 'حدث'),
+    ev.categoryLabelAr || 'نشاط',
+    present.sanitizeVisibleText(ev.actorLabelAr, 'النظام'),
+    ev.outcomeLabelAr || 'ناجحة',
     present.sanitizeVisibleText(ev.description || ev.detailAr, 'لا يوجد'),
   ]);
 
@@ -842,6 +837,10 @@ function renderComprehensiveReportHtml(report, assets = {}) {
     th, td { border: 1px solid var(--color-border); padding: 8px 9px; text-align: right; vertical-align: top; }
     th { background: var(--color-primary); color: #fff; font-weight: 700; }
     tr:nth-child(even) td { background: #f8fafc; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    #activity { page-break-inside: auto; break-inside: auto; }
+    #activity table { font-size: 11px; }
+    .subhead { font-size: 14px; margin: 16px 0 6px; color: var(--color-primary); }
     .muted { color: #5c6675; font-size: 12px; }
     .kv { display: grid; grid-template-columns: 200px 1fr; gap: 6px 14px; margin: 8px 0; }
     .kv div:nth-child(odd) { font-weight: 700; color: #3d4a5c; }
@@ -1051,13 +1050,10 @@ function renderComprehensiveReportHtml(report, assets = {}) {
           )}</div>`
         : ''
     }
-    ${
-      timelineRows.length
-        ? table(['التاريخ', 'التصنيف', 'الحدث', 'التفاصيل'], timelineRows, {
-            empty: 'لا يوجد نشاط مسجّل بعد.',
-          })
-        : ''
-    }`,
+    <h3 class="subhead">سجل نشاط الطالب</h3>
+    ${table(['التاريخ والوقت', 'العملية', 'القسم', 'بواسطة', 'النتيجة', 'التفاصيل'], timelineRows, {
+      empty: 'لا يوجد نشاط مسجّل بعد.',
+    })}`,
     'activity'
   )}
 

@@ -30,6 +30,7 @@ router.use('/notifications', require('../modules/notifications/notifications.rou
 router.use('/analytics', require('../modules/analytics/analytics.routes'));
 router.use('/reports', require('../modules/reports/reports.routes'));
 router.use('/audit-logs', require('../modules/audit-logs/auditLogs.routes'));
+router.use('/activity', require('../modules/activity/activity.routes'));
 router.use('/dashboard', require('../modules/dashboard/dashboard.routes'));
 router.use('/settings', require('../modules/settings/settings.routes'));
 router.use('/admin/courses', require('../modules/courses/adminCourses.routes'));

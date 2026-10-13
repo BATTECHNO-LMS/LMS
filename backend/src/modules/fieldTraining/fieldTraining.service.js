@@ -523,6 +523,33 @@ async function updateAdminOpportunity(id, body, userId, user) {
     oldValues: { title: existing.title },
     newValues: data,
   });
+  const policyKeys = [
+    'required_training_hours',
+    'minimum_attendance_percentage',
+    'minimum_post_assessment_score',
+    'requires_pre_assessment',
+    'requires_post_assessment',
+    'requires_final_task',
+    'completion_rules',
+  ];
+  const policyValue = (v) => (v != null && typeof v === 'object' && typeof v.toNumber === 'function' ? v.toNumber() : v ?? null);
+  const changedPolicyKeys = policyKeys.filter(
+    (k) =>
+      data[k] !== undefined && JSON.stringify(policyValue(data[k])) !== JSON.stringify(policyValue(existing[k]))
+  );
+  if (changedPolicyKeys.length) {
+    await recordAudit({
+      userId,
+      actionType: 'FIELD_TRAINING_QUALIFICATION_POLICY_UPDATED',
+      entityType: 'field_training_opportunity',
+      entityId: id,
+      oldValues: Object.fromEntries(changedPolicyKeys.map((k) => [k, policyValue(existing[k])])),
+      newValues: {
+        opportunityId: id,
+        ...Object.fromEntries(changedPolicyKeys.map((k) => [k, policyValue(data[k])])),
+      },
+    });
+  }
   if (
     data.assigned_instructor_id &&
     String(data.assigned_instructor_id) !== String(existing.assigned_instructor_id || '')
@@ -1036,6 +1063,17 @@ async function applyToOpportunity(opportunityId, body, studentId) {
     });
   }
 
+  await recordAudit({
+    userId: studentId,
+    subjectUserId: studentId,
+    universityId: studentProfile?.primary_university_id ?? null,
+    actionType: 'FIELD_TRAINING_APPLICATION_SUBMITTED',
+    entityType: 'field_training_application',
+    entityId: application?.id ?? null,
+    oldValues: existing?.status === 'cancelled' ? { status: 'cancelled' } : undefined,
+    newValues: { opportunityId, status: 'pending', reapplied: existing?.status === 'cancelled' },
+  });
+
   await ftNotify.notifyAdminsFieldTrainingApplicationSubmitted({
     opportunityId: opp.id,
     opportunityTitle: opp.title,
@@ -1056,6 +1094,15 @@ async function cancelApplication(applicationId, studentId) {
     throw new ApiError(400, 'Only pending applications can be cancelled');
   }
   const updated = await repo.updateApplication(applicationId, { status: 'cancelled' });
+  await recordAudit({
+    userId: studentId,
+    subjectUserId: studentId,
+    actionType: 'FIELD_TRAINING_APPLICATION_CANCELLED',
+    entityType: 'field_training_application',
+    entityId: applicationId,
+    oldValues: { status: app.status },
+    newValues: { opportunityId: app.opportunity_id, status: 'cancelled' },
+  });
   return { application: repo.mapApplicationRow(updated) };
 }
 
@@ -1224,6 +1271,20 @@ async function createOpportunityTask(opportunityId, body, user) {
     const fileData = instructionFileDataFromResolved(resolved, user.userId);
     taskRow = await repo.updateTask(task.id, fileData);
   }
+  await recordAudit({
+    userId: user?.userId ?? null,
+    actionType: 'FIELD_TRAINING_TASK_CREATED',
+    entityType: 'field_training_task',
+    entityId: taskRow.id,
+    newValues: {
+      opportunityId,
+      title: taskRow.title,
+      grading_mode: taskRow.grading_mode ?? gradingMode,
+      is_final_task: Boolean(taskRow.is_final_task),
+      is_required: taskRow.is_required !== false,
+      has_instruction_file: Boolean(body.instruction_file_id),
+    },
+  });
   await ftNotify.notifyApprovedStudentsNewTask({
     opportunityId,
     opportunityTitle: opp.title,
@@ -1270,6 +1331,30 @@ async function updateOpportunityTask(taskId, body, user) {
   }
 
   const updated = await repo.updateTask(taskId, data);
+  const changedFields = Object.keys(data).filter((k) => !k.startsWith('instruction_file'));
+  if (body.remove_instruction_file || body.instruction_file_id) changedFields.push('instruction_file');
+  await recordAudit({
+    userId: user?.userId ?? null,
+    actionType: 'FIELD_TRAINING_TASK_UPDATED',
+    entityType: 'field_training_task',
+    entityId: taskId,
+    oldValues: {
+      title: task.title,
+      grading_mode: task.grading_mode ?? null,
+      due_date: task.due_date ?? null,
+      is_required: task.is_required ?? null,
+      is_final_task: task.is_final_task ?? null,
+    },
+    newValues: {
+      opportunityId: task.opportunity_id,
+      title: updated?.title ?? task.title,
+      grading_mode: updated?.grading_mode ?? task.grading_mode ?? null,
+      due_date: updated?.due_date ?? null,
+      is_required: updated?.is_required ?? null,
+      is_final_task: updated?.is_final_task ?? null,
+      changed_fields: changedFields,
+    },
+  });
   return { task: repo.mapTaskRow(updated) };
 }
 
@@ -1278,6 +1363,13 @@ async function deleteOpportunityTask(taskId, user) {
   if (!task) throw new ApiError(404, 'Task not found');
   await assertManageOpportunityAccess(user, task.field_training_opportunities);
   await repo.deleteTask(taskId);
+  await recordAudit({
+    userId: user?.userId ?? null,
+    actionType: 'FIELD_TRAINING_TASK_DELETED',
+    entityType: 'field_training_task',
+    entityId: taskId,
+    oldValues: { opportunityId: task.opportunity_id, title: task.title },
+  });
   return { ok: true };
 }
 
@@ -1549,6 +1641,25 @@ async function submitTaskFile(taskId, file, studentId, body = {}, user = { userI
   }
   await repo.updateApplication(app.id, appUpdate);
   await workflow.persistEligibility(app.id);
+
+  await recordAudit({
+    userId: user?.userId ?? studentId,
+    subjectUserId: studentId,
+    actionType: 'FIELD_TRAINING_TASK_SUBMITTED',
+    entityType: 'field_training_task_submission',
+    entityId: submission?.id ?? null,
+    newValues: {
+      opportunityId: task.opportunity_id,
+      taskId,
+      taskTitle: task.title,
+      fileCount: resolvedFiles.length,
+      totalBytes: resolvedFiles.reduce((s, f) => s + Number(f.file_size || 0), 0),
+      fileNames: resolvedFiles.map((f) => f.file_name).slice(0, 20),
+      hasProjectUrl: Boolean(projectUrl),
+      isLate,
+      reviewStatus,
+    },
+  });
 
   const opp = await repo.findById(task.opportunity_id);
   const profiles = await repo.findStudentProfilesByIds([studentId]);

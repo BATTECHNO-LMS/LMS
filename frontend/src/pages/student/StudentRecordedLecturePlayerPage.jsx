@@ -16,11 +16,13 @@ import {
 } from '../../features/fieldTraining/recordedLectureTime.js';
 import { RecordedLecturePlayer } from './fieldTraining/components/RecordedLecturePlayer.jsx';
 import { useRecordedLectureWatchTracking } from './fieldTraining/components/useRecordedLectureWatchTracking.js';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../features/activity/navigationActivity.js';
 
 const DESC_LIMIT = 320;
 
 export function StudentRecordedLecturePlayerPage() {
   const { id: opportunityId, lectureId } = useParams();
+  useNavigationActivity(NAVIGATION_MODULES.RECORDED_LECTURE, lectureId);
   const { t, i18n } = useTranslation('fieldTraining');
   const { data, isLoading, isError, error } = useStudentRecordedLecture(opportunityId, lectureId);
   const lecture = data?.lecture;

@@ -1,4 +1,5 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const { env } = require('../config/env');
 
 const windowMs = env.RATE_LIMIT_WINDOW_MS;
@@ -41,4 +42,36 @@ const authLimiter = rateLimit({
   message: { success: false, message: 'Too many authentication attempts', code: 'AUTH_RATE_LIMIT' },
 });
 
-module.exports = { apiLimiter, authLimiter, attendancePollLimiter, isAttendanceWindowActivePoll };
+/** Credential-attempt key: real client IP (trust proxy) + normalized identifier. */
+function credentialAttemptKey(req) {
+  const ip = ipKeyGenerator(req.ip || '');
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 254) : '';
+  return `${ip}|${email}`;
+}
+
+/**
+ * Login / forgot-password brute-force cap. Keyed per client + identifier so one client
+ * cannot hammer an account and one shared NAT cannot lock out every other user.
+ */
+const credentialAttemptLimiter = rateLimit({
+  windowMs,
+  max: env.AUTH_RATE_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipPreflight,
+  keyGenerator: credentialAttemptKey,
+  message: {
+    success: false,
+    message: 'تم تجاوز عدد المحاولات المسموح. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.',
+    code: 'AUTH_RATE_LIMIT',
+  },
+});
+
+module.exports = {
+  apiLimiter,
+  authLimiter,
+  attendancePollLimiter,
+  credentialAttemptLimiter,
+  credentialAttemptKey,
+  isAttendanceWindowActivePoll,
+};

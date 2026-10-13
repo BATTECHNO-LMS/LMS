@@ -12,7 +12,7 @@ const { ApiError } = require('../../utils/apiError');
 const { buildProgressRequirements } = require('./trainingProgress.helpers');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
-const { recordAudit } = require('../../shared/services/audit.service');
+const { recordAudit, recordAuditMany } = require('../../shared/services/audit.service');
 const { emitDomainEvent } = require('../notificationEngine');
 const { buildIndividualTrainingReportData } = require('./trainingReportBuilders.service');
 const officialReports = require('./trainingReports.service');
@@ -687,6 +687,7 @@ async function reopenTraining(requester, programId, { reason, enrollmentIds } = 
   }
 
   const reopened = [];
+  const revokedCertificates = [];
   for (const enrollment of enrollments) {
     await prisma.training_enrollments.update({
       where: { id: enrollment.id },
@@ -696,10 +697,17 @@ async function reopenTraining(requester, programId, { reason, enrollmentIds } = 
       where: { enrollment_id: enrollment.id },
       data: { status: 'PENDING_REVIEW', updated_at: new Date() },
     });
+    const issuedCertificates = await prisma.training_certificates.findMany({
+      where: { enrollment_id: enrollment.id, status: 'ISSUED' },
+      select: { id: true, certificate_number: true },
+    });
     await prisma.training_certificates.updateMany({
       where: { enrollment_id: enrollment.id, status: 'ISSUED' },
       data: { status: 'REVOKED', revoked_at: new Date(), updated_at: new Date() },
     });
+    for (const cert of issuedCertificates) {
+      revokedCertificates.push({ cert, enrollment });
+    }
     await emitDomainEvent('TRAINING_REOPENED', {
       organizationId: program.organization_id,
       affectedUserId: enrollment.user_id,
@@ -718,6 +726,26 @@ async function reopenTraining(requester, programId, { reason, enrollmentIds } = 
     entityId: programId,
     newValues: { reason: trimmedReason, enrollmentIds: reopened },
   });
+  if (revokedCertificates.length) {
+    await recordAuditMany(
+      revokedCertificates.map(({ cert, enrollment }) => ({
+        userId: requester.userId,
+        subjectUserId: enrollment.user_id,
+        organizationId: program.organization_id,
+        actionType: 'TRAINING_CERTIFICATE_REVOKED',
+        entityType: 'training_certificate',
+        entityId: cert.id,
+        oldValues: { status: 'ISSUED' },
+        newValues: {
+          status: 'REVOKED',
+          certificateNumber: cert.certificate_number,
+          enrollmentId: enrollment.id,
+          programId,
+          reason: trimmedReason,
+        },
+      }))
+    );
+  }
 
   return { programId, reopened, reason: trimmedReason };
 }

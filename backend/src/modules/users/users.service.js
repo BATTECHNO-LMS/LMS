@@ -663,6 +663,24 @@ async function updateUser(id, body, requester = {}, meta = {}) {
     ipAddress: meta.ipAddress ?? null,
   });
 
+  if (requestedRoleCodes) {
+    const oldRoleCodes = [...normalizeRoleCodes(currentRoleCodes)].sort();
+    const newRoleCodes = [...requestedRoleCodes].sort();
+    if (oldRoleCodes.join(',') !== newRoleCodes.join(',')) {
+      await recordAudit({
+        userId: meta.actorUserId ?? requester.userId ?? null,
+        subjectUserId: id,
+        universityId: nextUniversityId ?? null,
+        actionType: 'USER_ROLE_CHANGED',
+        entityType: 'user',
+        entityId: id,
+        oldValues: { role_codes: oldRoleCodes },
+        newValues: { role_codes: newRoleCodes },
+        ipAddress: meta.ipAddress ?? null,
+      });
+    }
+  }
+
   return getUserById(id, requester);
 }
 

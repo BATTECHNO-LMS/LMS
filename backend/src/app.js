@@ -15,7 +15,8 @@ const { authenticate } = require('./middlewares/auth.middleware');
 
 const app = express();
 
-app.set('trust proxy', 1);
+// Never `true`: only loopback / private proxy hops are trusted (see env.TRUST_PROXY_SETTING).
+app.set('trust proxy', env.TRUST_PROXY_SETTING);
 
 const allowedOrigins = getBrowserCorsOrigins();
 
@@ -116,6 +117,7 @@ app.use(
 );
 
 app.use('/api/auth', authRoutes);
+app.use(`/api/${env.API_VERSION}/auth`, authRoutes);
 app.use(`/api/${env.API_VERSION}`, routes);
 
 app.use(errorMiddleware);

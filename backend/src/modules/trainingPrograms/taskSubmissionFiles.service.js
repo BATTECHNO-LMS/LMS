@@ -9,7 +9,10 @@ const { log } = require('../../utils/logger');
 const { getProvider, getStorageBackend } = require('../../shared/storage/storageProvider');
 const { buildStorageKey, assertSafeStorageKey } = require('../../shared/storage/fileRules');
 const filesRepo = require('../files/files.repository');
+const { recordAudit } = require('../../utils/auditRecorder');
 const rules = require('./taskSubmissionFileRules');
+
+const AUDIT_CONTEXT = 'training_task_submission';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -142,6 +145,21 @@ async function uploadDraftFile(requester, taskId, file) {
       throw fail(503, 'STORAGE_ERROR');
     }
 
+    await recordAudit({
+      userId: requester.userId,
+      subjectUserId: requester.userId,
+      actionType: 'FILE_UPLOADED',
+      entityType: 'file',
+      entityId: record.id,
+      newValues: {
+        context: AUDIT_CONTEXT,
+        taskId,
+        fileName: check.originalName,
+        sizeBytes: Number(check.size || 0),
+        mimeType: check.mimeType,
+      },
+    });
+
     return {
       id: record.id,
       originalName: record.originalName,
@@ -188,6 +206,20 @@ async function deleteDraftFile(requester, taskId, fileId) {
   await prisma.files.update({
     where: { id: row.id },
     data: { deleted_at: new Date(), updated_at: new Date() },
+  });
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: requester.userId,
+    actionType: 'FILE_DELETED',
+    entityType: 'file',
+    entityId: row.id,
+    oldValues: {
+      context: AUDIT_CONTEXT,
+      taskId,
+      fileName: row.original_name,
+      sizeBytes: Number(row.size || 0),
+      mimeType: row.mime_type || null,
+    },
   });
   return { id: row.id, removed: true };
 }
@@ -361,6 +393,21 @@ async function openSubmissionAttachment(requester, submissionId, attachmentId) {
   });
   if (!row) throw new ApiError(404, 'الملف غير موجود', null, 'FILE_NOT_FOUND');
   const opened = await openStoredObject(row.storage_key);
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: submission.user_id ?? null,
+    actionType: 'FILE_DOWNLOADED',
+    entityType: 'file',
+    entityId: row.file_id ?? row.id,
+    newValues: {
+      context: AUDIT_CONTEXT,
+      submissionId,
+      taskId: submission.task_id ?? null,
+      fileName: row.original_name,
+      sizeBytes: Number(row.size || 0),
+      mimeType: row.mime_type || null,
+    },
+  });
   return {
     ...opened,
     fileName: row.original_name,
@@ -384,9 +431,24 @@ async function openLegacySubmissionFile(requester, submissionId) {
   }
   const record = await prisma.files.findFirst({
     where: { storage_key: storageKey, deleted_at: null },
-    select: { original_name: true, mime_type: true },
+    select: { id: true, original_name: true, mime_type: true, size: true },
   });
   const opened = await openStoredObject(storageKey);
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: submission.user_id ?? null,
+    actionType: 'FILE_DOWNLOADED',
+    entityType: 'file',
+    entityId: record?.id ?? null,
+    newValues: {
+      context: AUDIT_CONTEXT,
+      submissionId,
+      taskId: submission.task_id ?? null,
+      fileName: record?.original_name || legacyDisplayName(storageKey),
+      sizeBytes: record?.size != null ? Number(record.size) : opened?.contentLength ?? null,
+      mimeType: record?.mime_type || null,
+    },
+  });
   return {
     mode: 'stream',
     ...opened,

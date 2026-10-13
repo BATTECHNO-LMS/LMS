@@ -671,6 +671,25 @@ async function submitAssessment(opportunityId, type, answers, studentId, options
 
   await repo.updateApplication(app.id, appUpdate);
 
+  await recordAudit({
+    userId: studentId,
+    subjectUserId: studentId,
+    actionType: 'FIELD_TRAINING_ASSESSMENT_SUBMITTED',
+    entityType: 'field_training_assessment_attempt',
+    entityId: attempt?.id ?? null,
+    newValues: {
+      opportunityId,
+      assessmentId: assessment.id,
+      type,
+      score: scorePercent,
+      maxScore: 100,
+      scorePoints,
+      maxPoints,
+      level,
+      pendingManual: questionResults.some((r) => r.gradingStatus === 'pending_manual'),
+    },
+  });
+
   const eligibility = await workflow.persistEligibility(app.id);
   if (type === 'post') {
     const oppRow = await repo.findById(opportunityId);
@@ -1908,6 +1927,21 @@ async function ensureCompletionLetterPdfReady(applicationId, actorUserId, app, l
   return refreshed;
 }
 
+async function auditCompletionLetterDownload(app, letter, actorUserId) {
+  await recordAudit({
+    userId: actorUserId ?? null,
+    subjectUserId: app.student_id,
+    actionType: 'FIELD_TRAINING_COMPLETION_LETTER_DOWNLOADED',
+    entityType: 'field_training_completion_letter',
+    entityId: letter?.id ?? null,
+    newValues: {
+      applicationId: app.id,
+      opportunityId: app.opportunity_id,
+      letterNo: letter?.letter_no ?? null,
+    },
+  });
+}
+
 async function buildCompletionLetterDownloadPayload(app, letter) {
   const profiles = await repo.findStudentProfilesByIds([app.student_id]);
   const { resolveOfficialUniversityNumber } = require('./fieldTrainingEvaluation.universityNumber');
@@ -1952,7 +1986,9 @@ async function downloadCompletionLetter(applicationId, studentId) {
 
   const letter = await repo.findCompletionLetterByApplicationForStudent(applicationId, studentId);
   const ready = await ensureCompletionLetterPdfReady(applicationId, studentId, app, letter);
-  return buildCompletionLetterDownloadPayload(app, ready);
+  const payload = await buildCompletionLetterDownloadPayload(app, ready);
+  await auditCompletionLetterDownload(app, ready, studentId);
+  return payload;
 }
 
 async function downloadCompletionLetterAsManager(applicationId, user) {
@@ -1979,7 +2015,9 @@ async function downloadCompletionLetterAsManager(applicationId, user) {
     app,
     letter
   );
-  return buildCompletionLetterDownloadPayload(app, ready);
+  const payload = await buildCompletionLetterDownloadPayload(app, ready);
+  await auditCompletionLetterDownload(app, ready, user.userId || user.id);
+  return payload;
 }
 
 module.exports = {

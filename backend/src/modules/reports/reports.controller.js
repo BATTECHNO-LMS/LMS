@@ -1,6 +1,7 @@
 ﻿const reportsService = require('./reports.service');
 const { success } = require('../../utils/apiResponse');
 const { recordAudit } = require('../../shared/services/audit.service');
+const { isDuplicateReportRead } = require('../../shared/audit/reportReadDedupe');
 const { resolveUniversityIdFilter, isSystemWideAdmin } = require('../../utils/universityScope');
 
 function scopeFiltersForUser(query, user) {
@@ -18,6 +19,7 @@ function scopeFiltersForUser(query, user) {
 }
 
 async function auditReportRead(req, reportType, summary) {
+  if (isDuplicateReportRead(req.user?.userId, reportType, null)) return;
   await recordAudit({
     userId: req.user?.userId ?? null,
     universityId: req.user?.universityId ?? null,

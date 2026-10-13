@@ -29,6 +29,12 @@ const AUTH_ERROR_CODES = Object.freeze({
   UNAUTHORIZED: 'UNAUTHORIZED',
   PORTAL_MISMATCH: 'PORTAL_MISMATCH',
   PORTAL_REQUIRED: 'PORTAL_REQUIRED',
+  TOKEN_INVALID: 'TOKEN_INVALID',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
+  SESSION_ENDED: 'SESSION_ENDED',
+  SESSION_IDLE_TIMEOUT: 'SESSION_IDLE_TIMEOUT',
+  SESSION_ABSOLUTE_EXPIRED: 'SESSION_ABSOLUTE_EXPIRED',
 });
 
 const AUTH_MESSAGES = Object.freeze({
@@ -76,6 +82,18 @@ const AUTH_MESSAGES = Object.freeze({
     'هذا الحساب مرتبط ببوابة مختلفة. يرجى تسجيل الدخول من البوابة المناسبة.',
   [AUTH_ERROR_CODES.PORTAL_REQUIRED]:
     'يرجى تسجيل الدخول من بوابة الجامعات أو بوابة المؤسسات.',
+  [AUTH_ERROR_CODES.TOKEN_INVALID]:
+    'انتهت جلستك أو غير مصرح لك. سجّل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.TOKEN_EXPIRED]:
+    'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.SESSION_NOT_FOUND]:
+    'انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.SESSION_ENDED]:
+    'تم إنهاء جلستك. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.SESSION_IDLE_TIMEOUT]:
+    'انتهت جلستك بسبب عدم النشاط. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.SESSION_ABSOLUTE_EXPIRED]:
+    'انتهت المدة القصوى لجلستك. يرجى تسجيل الدخول مرة أخرى.',
   PORTAL_MISMATCH_UNIVERSITY:
     'هذا الحساب مرتبط ببوابة الجامعات. يرجى تسجيل الدخول من بوابة الجامعات.',
   PORTAL_MISMATCH_INSTITUTION:

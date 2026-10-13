@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { storageKeys, getStorageItem } from '../utils/storage.js';
 import { triggerUnauthorized } from './authSessionBridge.js';
+import { shouldLogoutForResponse } from '../features/auth/session/sessionPolicy.js';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -52,9 +53,10 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     const authHeader = readConfigHeader(error.config?.headers, 'Authorization');
-    const hadAuth = Boolean(authHeader);
-    if (error.response?.status === 401 && hadAuth) {
-      triggerUnauthorized();
+    const status = error.response?.status;
+    const code = error.response?.data?.code;
+    if (shouldLogoutForResponse({ status, code, hadAuth: Boolean(authHeader) })) {
+      triggerUnauthorized(code);
     }
     return Promise.reject(error);
   }

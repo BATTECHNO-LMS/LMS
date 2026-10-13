@@ -10,6 +10,7 @@ const { prisma } = require('../../config/db');
 const { ApiError } = require('../../utils/apiError');
 const { assertOrganizationAccess, isSystemWideAdmin } = require('../../utils/organizationScope');
 const { emitDomainEvent } = require('../notificationEngine');
+const { recordAudit } = require('../../utils/auditRecorder');
 const { isTrainerOnly, assertTrainerProgramAccess } = require('./trainerGuards');
 const {
   prepareQuestionForStorage,
@@ -274,6 +275,11 @@ async function upsertAssessment(requester, programId, kindRaw, body = {}) {
     body.status === 'published' ||
     (body.status === 'draft' ? false : body.is_published);
 
+  const previous = await prisma.training_assessments.findUnique({
+    where: { program_id_kind: { program_id: programId, kind } },
+    select: { id: true, title: true, is_published: true, pass_score: true, max_attempts: true },
+  });
+
   const row = await prisma.training_assessments.upsert({
     where: { program_id_kind: { program_id: programId, kind } },
     create: {
@@ -335,6 +341,41 @@ async function upsertAssessment(requester, programId, kindRaw, body = {}) {
     }
   }
 
+  const assessmentAuditValues = (r) =>
+    r
+      ? {
+          title: r.title ?? null,
+          is_published: Boolean(r.is_published),
+          pass_score: r.pass_score != null ? Number(r.pass_score) : null,
+          max_attempts: r.max_attempts ?? null,
+        }
+      : undefined;
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: program.organization_id,
+    actionType: previous ? 'TRAINING_ASSESSMENT_UPDATED' : 'TRAINING_ASSESSMENT_CREATED',
+    entityType: 'training_assessment',
+    entityId: row.id,
+    oldValues: assessmentAuditValues(previous),
+    newValues: {
+      program_id: programId,
+      kind,
+      ...assessmentAuditValues(row),
+      question_count: questionsPayload ? questionsPayload.length : undefined,
+    },
+  });
+  if (row.is_published && !previous?.is_published) {
+    await recordAudit({
+      userId: requester.userId,
+      organizationId: program.organization_id,
+      actionType: 'TRAINING_ASSESSMENT_PUBLISHED',
+      entityType: 'training_assessment',
+      entityId: row.id,
+      oldValues: { is_published: Boolean(previous?.is_published) },
+      newValues: { program_id: programId, kind, is_published: true },
+    });
+  }
+
   if (row.is_published) {
     await emitDomainEvent(kind === 'PRE_TEST' ? 'PRE_TEST_AVAILABLE' : 'POST_TEST_AVAILABLE', {
       organizationId: program.organization_id,
@@ -376,6 +417,20 @@ async function publishAssessment(requester, assessmentId) {
   const updated = await prisma.training_assessments.update({
     where: { id: assessmentId },
     data: { is_published: true, updated_at: new Date() },
+  });
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: row.training_programs.organization_id,
+    actionType: 'TRAINING_ASSESSMENT_PUBLISHED',
+    entityType: 'training_assessment',
+    entityId: updated.id,
+    oldValues: { is_published: Boolean(row.is_published) },
+    newValues: {
+      program_id: row.program_id,
+      kind: row.kind,
+      is_published: true,
+      question_count: row.training_assessment_questions.length,
+    },
   });
   await emitDomainEvent(row.kind === 'PRE_TEST' ? 'PRE_TEST_AVAILABLE' : 'POST_TEST_AVAILABLE', {
     organizationId: row.training_programs.organization_id,
@@ -603,6 +658,25 @@ async function submitAttempt(requester, attemptId, answers) {
       submitted_at: new Date(),
       graded_at: pendingManual ? null : new Date(),
       updated_at: new Date(),
+    },
+  });
+
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: attempt.user_id,
+    organizationId: assessment.training_programs.organization_id,
+    actionType: 'TRAINING_ASSESSMENT_SUBMITTED',
+    entityType: 'training_assessment_attempt',
+    entityId: row.id,
+    newValues: {
+      assessmentId: assessment.id,
+      programId: assessment.program_id,
+      kind: assessment.kind,
+      attemptNo: row.attempt_no ?? null,
+      status,
+      score: graded.scorePercent,
+      maxScore: graded.maxPoints,
+      pendingManual,
     },
   });
 

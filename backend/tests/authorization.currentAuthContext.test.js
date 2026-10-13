@@ -9,7 +9,9 @@ const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const { authenticate } = require('../src/middlewares/auth.middleware');
 const { authorizeRoles } = require('../src/middlewares/authorization.middleware');
-const { signToken } = require('../src/utils/jwt');
+const { signTestToken: signToken, installTestSessionStore } = require('./helpers/authzFixtures');
+
+installTestSessionStore();
 const { env } = require('../src/config/env');
 const { ApiError } = require('../src/utils/apiError');
 const {
@@ -176,7 +178,7 @@ describe('IDENTITY-002/003 current auth revalidation', () => {
     );
     const out = await runMiddlewareAsync(authenticate, bearerReq(token));
     assert.equal(out.status, 401);
-    assert.equal(out.body.code, 'TOKEN_INVALID');
+    assert.equal(out.body.code, 'TOKEN_EXPIRED');
     assert.equal(loaderCalls, 0);
   });
 

@@ -25,6 +25,7 @@ const {
   AUTH_ERROR_CODES,
   buildAccountGateDetails,
   messageForCode,
+  maskEmail,
 } = require('../../utils/authErrorCatalog');
 const { evaluatePortalAccess, throwIfPortalMismatch } = require('./portalAccess');
 
@@ -494,8 +495,66 @@ async function register(validated) {
   };
 }
 
+const LOGIN_DENIED_CODES = new Set([
+  AUTH_ERROR_CODES.EMAIL_NOT_VERIFIED,
+  AUTH_ERROR_CODES.ACCOUNT_PENDING_ACTIVATION,
+  AUTH_ERROR_CODES.ACCOUNT_REJECTED,
+  AUTH_ERROR_CODES.ACCOUNT_DISABLED,
+  AUTH_ERROR_CODES.ACCOUNT_INACTIVE,
+  AUTH_ERROR_CODES.PORTAL_MISMATCH,
+  AUTH_ERROR_CODES.PORTAL_REQUIRED,
+]);
+
+/**
+ * Audit a rejected login. Stores only a masked identifier + one-way hash (for correlating
+ * repeated attempts), the outcome and reason. Never the password, hash, token or headers.
+ */
+async function recordLoginRejection(validated, attempt, err) {
+  const code = err?.code || null;
+  let actionType = null;
+  let outcome = 'FAILED';
+  let reason = code;
+  if (code === AUTH_ERROR_CODES.INVALID_CREDENTIALS) {
+    actionType = 'USER_LOGIN_FAILED';
+    reason = attempt.userId ? 'INVALID_PASSWORD' : 'UNKNOWN_IDENTIFIER';
+  } else if (LOGIN_DENIED_CODES.has(code)) {
+    actionType = 'LOGIN_ACCOUNT_DENIED';
+    outcome = 'DENIED';
+  }
+  if (!actionType) return;
+  const normalized = String(validated?.email || '').trim().toLowerCase();
+  const crypto = require('crypto');
+  await recordAudit({
+    userId: null,
+    subjectUserId: attempt.userId || null,
+    actionType,
+    entityType: 'user',
+    entityId: attempt.userId || null,
+    outcome,
+    newValues: {
+      reason,
+      identifierMasked: normalized ? maskEmail(normalized) : null,
+      identifierHash: normalized ? crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 24) : null,
+      portalType: validated?.portalType || null,
+    },
+    ipAddress: validated?.ipAddress || null,
+    userAgent: validated?.userAgent || null,
+  });
+}
+
 async function login(validated) {
+  const attempt = { userId: null };
+  try {
+    return await loginWithCredentials(validated, attempt);
+  } catch (err) {
+    await recordLoginRejection(validated, attempt, err);
+    throw err;
+  }
+}
+
+async function loginWithCredentials(validated, attempt) {
   const user = await authRepository.findUserByEmail(validated.email);
+  if (user) attempt.userId = user.id;
   if (!user) {
     throw new ApiError(
       401,
@@ -603,32 +662,40 @@ async function login(validated) {
   const profile = await toLoginUser(profileUser ?? user, roleRecords, permissionCodes, isGlobal, {
     portalType: validated.portalType || null,
   });
-  const token = signToken(
-    buildTokenPayload(user.id, roleRecords, profile.primary_university_id, validated.portalType)
-  );
+  const authSessions = require('./authSession.service');
+  const session = await authSessions.createSession({
+    userId: user.id,
+    ipAddress: validated.ipAddress || null,
+    userAgent: validated.userAgent || null,
+    portalType: validated.portalType || null,
+    loginMethod: 'PASSWORD',
+  });
+  const token = signToken({
+    ...buildTokenPayload(user.id, roleRecords, profile.primary_university_id, validated.portalType),
+    sessionId: session.id,
+  });
 
   await authRepository.touchLastLogin(user.id);
-  try {
-    const { recordAudit } = require('../../utils/auditRecorder');
-    await recordAudit({
-      userId: user.id,
-      universityId: user.primary_university_id || profile?.primary_university_id || null,
-      actionType: 'USER_LOGIN_SUCCESS',
-      entityType: 'user',
-      entityId: user.id,
-      newValues: {
-        source: 'password_login',
-        portalType: validated.portalType || null,
-      },
-      ipAddress: validated.ipAddress || null,
-    });
-  } catch {
-    // Login must succeed even if audit write fails.
-  }
+  await recordAudit({
+    userId: user.id,
+    subjectUserId: user.id,
+    sessionId: session.id,
+    universityId: user.primary_university_id || profile?.primary_university_id || null,
+    actionType: 'USER_LOGIN_SUCCESS',
+    entityType: 'user',
+    entityId: user.id,
+    newValues: {
+      source: 'password_login',
+      portalType: validated.portalType || null,
+    },
+    ipAddress: validated.ipAddress || null,
+    userAgent: validated.userAgent || null,
+  });
 
   return {
     token,
     user: profile,
+    session: authSessions.describeSession(session),
   };
 }
 

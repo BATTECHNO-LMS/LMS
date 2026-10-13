@@ -1,6 +1,7 @@
 'use strict';
 
 const { prisma } = require('../../config/db');
+const { recordAudit } = require('../../shared/services/audit.service');
 
 const watchLectureSelect = {
   id: true,
@@ -110,6 +111,25 @@ async function ensureProgress({ lectureId, applicationId, studentId, videoDurati
   }
 }
 
+/**
+ * Watch milestones are the only recorded-lecture audit events (started / completed, once
+ * each). Individual heartbeats are progress data, never audit rows.
+ */
+async function recordWatchMilestones({ row, started, completed }) {
+  const base = {
+    userId: row.student_id,
+    subjectUserId: row.student_id,
+    entityType: 'field_training_recorded_lecture',
+    entityId: row.lecture_id,
+  };
+  if (started) {
+    await recordAudit({ ...base, actionType: 'RECORDED_LECTURE_STARTED', newValues: { applicationId: row.application_id } });
+  }
+  if (completed) {
+    await recordAudit({ ...base, actionType: 'RECORDED_LECTURE_COMPLETED', newValues: { applicationId: row.application_id } });
+  }
+}
+
 function isRetryableTxError(err) {
   const code = String(err?.code || '');
   return code === 'P2034' || code === 'P2024';
@@ -125,7 +145,8 @@ async function applyHeartbeatTransaction({
   let lastErr;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      return await prisma.$transaction(async (tx) => {
+      const transitions = { started: false, completed: false, row: null };
+      const result = await prisma.$transaction(async (tx) => {
         const current = await tx.field_training_recorded_lecture_progress.findUnique({
           where: { id: progressId },
           include: progressIncludeSegments,
@@ -134,6 +155,9 @@ async function applyHeartbeatTransaction({
         if (duplicate) {
           return mapProgressRow(current);
         }
+        transitions.started = !current.started_at && Boolean(next.started_at);
+        transitions.completed = !current.completed_at && Boolean(next.completed_at);
+        transitions.row = current;
         await tx.field_training_recorded_lecture_watch_segments.deleteMany({
           where: { progress_id: progressId },
         });
@@ -164,6 +188,10 @@ async function applyHeartbeatTransaction({
         });
         return mapProgressRow(updated);
       });
+      if (transitions.row && (transitions.started || transitions.completed)) {
+        await recordWatchMilestones(transitions);
+      }
+      return result;
     } catch (err) {
       lastErr = err;
       if (!isRetryableTxError(err) || attempt === maxAttempts) throw err;

@@ -1,6 +1,7 @@
 ﻿const express = require('express');
 const { validateBody, validateRequest } = require('../../middlewares/validate.middleware');
 const { authMiddleware } = require('../../middlewares/auth.middleware');
+const { credentialAttemptLimiter } = require('../../middlewares/rateLimit.middleware');
 const {
   registerSchema,
   institutionRegisterSchema,
@@ -34,7 +35,12 @@ router.post(
 );
 router.post('/verify-email-otp', validateBody(verifyEmailOtpSchema), authController.verifyEmailOtp);
 router.post('/resend-email-otp', validateBody(resendEmailOtpSchema), authController.resendEmailOtp);
-router.post('/forgot-password', validateBody(forgotPasswordSchema), authController.forgotPassword);
+router.post(
+  '/forgot-password',
+  credentialAttemptLimiter,
+  validateBody(forgotPasswordSchema),
+  authController.forgotPassword
+);
 router.post(
   '/verify-password-reset-otp',
   validateBody(verifyPasswordResetOtpSchema),
@@ -46,7 +52,7 @@ router.post(
   authController.resendPasswordResetOtp
 );
 router.post('/reset-password', validateBody(resetPasswordSchema), authController.resetPassword);
-router.post('/login', validateBody(loginSchema), authController.login);
+router.post('/login', credentialAttemptLimiter, validateBody(loginSchema), authController.login);
 router.post('/account-status', validateBody(accountStatusSchema), authController.accountStatus);
 router.get('/me', authMiddleware, authController.me);
 router.get('/me/assignments', authMiddleware, authController.listMyAssignments);
@@ -57,5 +63,9 @@ router.post(
   authController.setActiveOrganization
 );
 router.post('/logout', authController.logout);
+router.get('/session', authMiddleware, authController.sessionStatus);
+router.post('/session/activity', authMiddleware, authController.sessionActivity);
+router.post('/session/presence', authMiddleware, authController.sessionPresence);
+router.post('/sessions/current/end', authMiddleware, authController.endCurrentSession);
 
 module.exports = router;

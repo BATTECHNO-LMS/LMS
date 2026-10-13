@@ -2,8 +2,10 @@ const reportService = require('./fieldTrainingReport.service');
 const studentsExcelExport = require('./fieldTrainingStudentsExport.service');
 const { success } = require('../../utils/apiResponse');
 const { recordAudit } = require('../../shared/services/audit.service');
+const { isDuplicateReportRead } = require('../../shared/audit/reportReadDedupe');
 
 async function auditReport(req, action, entityId, summary) {
+  if (action === 'report.read' && isDuplicateReportRead(req.user?.userId, summary?.type, entityId)) return;
   try {
     await recordAudit({
       userId: req.user?.userId ?? null,

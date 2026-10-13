@@ -99,6 +99,7 @@ const BASE_STYLES = `
   th { background: var(--color-primary); color: #fff; font-weight: 600; }
   tr:nth-child(even) td { background: #f8fafc; }
   tr { page-break-inside: avoid; }
+  #activity { page-break-inside: auto; break-inside: auto; }
   .muted { color: #5c6675; font-size: 11px; }
   .callout { background: #e7edf4; border-right: 4px solid var(--color-action); padding: 10px 12px; border-radius: 8px; margin: 8px 0; }
   .callout--warn { border-right-color: var(--color-warning); background: #f8eedf; }
@@ -891,10 +892,29 @@ function renderStudentReportHtml(report, assets = {}) {
     'reco'
   );
 
+  const activitySection = Array.isArray(report.activity_timeline)
+    ? section(
+        'سجل نشاط الطالب',
+        table(
+          ['التاريخ والوقت', 'العملية', 'القسم', 'بواسطة', 'النتيجة', 'التفاصيل'],
+          report.activity_timeline.map((ev) => [
+            ev.at_label,
+            ev.action_label,
+            ev.category_label,
+            ev.actor?.is_self ? 'الطالب' : [ev.actor?.name, ev.actor?.role].filter(Boolean).join(' · '),
+            ev.outcome_label,
+            ev.details || 'لا يوجد',
+          ]),
+          { empty: 'لا يوجد نشاط مسجّل ضمن نطاق هذا التدريب.', wide: true }
+        ),
+        'activity'
+      )
+    : '';
+
   const body = `
     ${cover}
     ${pageHeader(university, assets, report.report_title || 'التقرير الفردي')}
-    ${identity}${scoringSection}${execSection}${attendanceSection}${hoursSection}${tasksSection}${assessSection}${reqSection}${completionSection}${certSection}${reco}
+    ${identity}${scoringSection}${execSection}${attendanceSection}${hoursSection}${tasksSection}${assessSection}${reqSection}${completionSection}${certSection}${reco}${activitySection}
   `;
   return wrapHtml(report.report_title || 'تقرير الطالب', body);
 }

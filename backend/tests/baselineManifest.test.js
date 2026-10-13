@@ -358,6 +358,8 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20260912140000_field_training_recorded_lectures',
       '20260912160000_field_training_recorded_lecture_watch_progress',
       '20261006120000_training_task_submission_files',
+      '20261013150000_auth_sessions_and_audit_context',
+      '20261013160000_audit_logs_subject_backfill',
     ]);
   });
 

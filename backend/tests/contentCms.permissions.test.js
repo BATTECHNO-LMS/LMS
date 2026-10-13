@@ -10,7 +10,9 @@ const assert = require('node:assert/strict');
 const express = require('express');
 const request = require('supertest');
 const app = require('../src/app');
-const { signToken } = require('../src/utils/jwt');
+const { signTestToken: signToken, installTestSessionStore } = require('./helpers/authzFixtures');
+
+installTestSessionStore();
 const { ApiError } = require('../src/utils/apiError');
 const { errorMiddleware } = require('../src/middlewares/error.middleware');
 const { authorizeRoles } = require('../src/middlewares/authorization.middleware');

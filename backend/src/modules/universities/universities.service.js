@@ -1,4 +1,5 @@
 ﻿const { ApiError } = require('../../utils/apiError');
+const { recordAudit } = require('../../utils/auditRecorder');
 const universitiesRepository = require('./universities.repository');
 
 function emptyToNull(value) {
@@ -130,10 +131,22 @@ async function createUniversity(body) {
   await assertDomainsAvailable(body.email_domains || []);
 
   try {
-    return await universitiesRepository.createUniversityWithRelations(payload, {
+    const createdUniversity = await universitiesRepository.createUniversityWithRelations(payload, {
       emailDomains: body.email_domains || [],
       specialties: body.specialties || [],
     });
+    await recordAudit({
+      universityId: createdUniversity?.id ?? null,
+      actionType: 'UNIVERSITY_CREATED',
+      entityType: 'university',
+      entityId: createdUniversity?.id ?? null,
+      newValues: {
+        name: createdUniversity?.name ?? payload.name,
+        code: createdUniversity?.code ?? payload.code ?? null,
+        status: createdUniversity?.status ?? payload.status ?? null,
+      },
+    });
+    return createdUniversity;
   } catch (e) {
     if (e && e.code === 'P2002') {
       const target = e.meta?.target;
@@ -167,10 +180,27 @@ async function updateUniversity(id, body) {
   }
 
   try {
-    return await universitiesRepository.updateUniversityWithRelations(id, payload, {
+    const updatedUniversity = await universitiesRepository.updateUniversityWithRelations(id, payload, {
       emailDomains: body.email_domains,
       specialties: body.specialties,
     });
+    const changedKeys = Object.keys(payload).filter((k) => k !== 'updated_at');
+    await recordAudit({
+      universityId: id,
+      actionType: 'UNIVERSITY_UPDATED',
+      entityType: 'university',
+      entityId: id,
+      oldValues: { name: existing.name, code: existing.code ?? null, status: existing.status ?? null },
+      newValues: {
+        name: updatedUniversity?.name ?? payload.name ?? existing.name,
+        code: updatedUniversity?.code ?? (payload.code !== undefined ? payload.code : existing.code ?? null),
+        status: updatedUniversity?.status ?? payload.status ?? existing.status ?? null,
+        changed_fields: changedKeys,
+        email_domains_changed: body.email_domains !== undefined,
+        specialties_changed: body.specialties !== undefined,
+      },
+    });
+    return updatedUniversity;
   } catch (e) {
     if (e && e.code === 'P2002') {
       const target = e.meta?.target;

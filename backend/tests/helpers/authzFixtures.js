@@ -158,6 +158,68 @@ function runMiddlewareSync(middleware, req) {
   };
 }
 
+/**
+ * In-memory auth session store for middleware tests: any `sid` equal to a user id is an
+ * open, recently active session of that user. Ended sessions can be simulated via `end`.
+ */
+function installTestSessionStore() {
+  const authSessions = require('../../src/modules/auth/authSession.service');
+  const ended = new Map();
+  const store = {
+    async findById(id) {
+      const now = Date.now();
+      const endReason = ended.get(id) || null;
+      return {
+        id,
+        user_id: id,
+        created_at: new Date(now - 60_000),
+        last_seen_at: new Date(now),
+        last_activity_at: new Date(now),
+        absolute_expires_at: new Date(now + 3_600_000),
+        ended_at: endReason ? new Date(now) : null,
+        end_reason: endReason,
+        is_active: !endReason,
+      };
+    },
+    async create(data) {
+      return { id: data.user_id, ...data };
+    },
+    async endIfOpen(id, { endReason }) {
+      if (ended.has(id)) return false;
+      ended.set(id, endReason);
+      return true;
+    },
+    async touchActivity() {
+      return { updated: true, firstActivity: false };
+    },
+    async touchPresence() {
+      return true;
+    },
+    async findExpiredOpen() {
+      return [];
+    },
+    async listForUser() {
+      return [];
+    },
+  };
+  authSessions.setAuthSessionStoreForTests(store);
+  return {
+    end(id, reason = 'USER_LOGOUT') {
+      ended.set(id, reason);
+      authSessions.invalidateSessionCache(id);
+    },
+    reset() {
+      authSessions.resetAuthSessionStoreForTests();
+    },
+  };
+}
+
+/** signToken for tests: binds the token to the synthetic session `sid = userId`. */
+function signTestToken(payload) {
+  const { signToken } = require('../../src/utils/jwt');
+  return signToken({ ...payload, sessionId: payload.sessionId ?? payload.userId });
+}
+
 /** @deprecated Use runMiddlewareAsync for authenticate */
 async function runMiddleware(middleware, req) {
   return runMiddlewareAsync(middleware, req);
@@ -178,4 +240,6 @@ module.exports = {
   runMiddleware,
   runMiddlewareAsync,
   runMiddlewareSync,
+  installTestSessionStore,
+  signTestToken,
 };

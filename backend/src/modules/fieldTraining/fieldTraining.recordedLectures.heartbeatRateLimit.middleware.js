@@ -18,7 +18,7 @@ const recordedLectureHeartbeatLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator: (req) => {
-    const userId = req.user?.userId || ipKeyGenerator(req);
+    const userId = req.user?.userId || ipKeyGenerator(req.ip || '');
     const lectureId = req.params?.lectureId || 'unknown';
     return `${userId}:${lectureId}`;
   },

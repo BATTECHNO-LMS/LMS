@@ -57,7 +57,8 @@
   "loading": "Loading",
   "user": {
     "fallbackName": "User",
-    "logout": "Log out"
+    "logout": "Log out",
+    "endSession": "End session"
   },
   "notifications": "Notifications",
   "rights": "All rights reserved",

@@ -66,9 +66,14 @@ async function start() {
     console.log(`eprojecto API listening on port ${port}`);
   });
 
+  if (env.DATABASE_URL) {
+    require('./modules/auth/authSession.service').startSessionSweeper();
+  }
+
   async function shutdown(signal) {
     // eslint-disable-next-line no-console
     console.log(`${signal} received; closing HTTP server and database pool.`);
+    require('./modules/auth/authSession.service').stopSessionSweeper();
     await new Promise((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
     });

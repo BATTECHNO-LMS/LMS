@@ -83,7 +83,7 @@ export function UserDropdown({ userName, userEmail, onLogout, compact = false })
               onLogout?.();
             }}
           >
-            {t('user.logout')}
+            {t('user.endSession')}
           </Button>
         </div>
       ) : null}

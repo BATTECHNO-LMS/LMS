@@ -22,6 +22,10 @@ export const endpoints = {
     resetPassword: `${API_ROOT}/auth/reset-password`,
     registerUniversitySpecialties: (universityId) =>
       `${API_ROOT}/auth/register/universities/${universityId}/specialties`,
+    session: `${API_V}/auth/session`,
+    sessionActivity: `${API_V}/auth/session/activity`,
+    sessionPresence: `${API_V}/auth/session/presence`,
+    endCurrentSession: `${API_V}/auth/sessions/current/end`,
     me: `${API_ROOT}/auth/me`,
     myAssignments: `${API_ROOT}/auth/me/assignments`,
     activeOrganization: `${API_ROOT}/auth/me/active-organization`,
@@ -52,6 +56,7 @@ export const endpoints = {
   adminNotificationTemplates: `${API_V}/admin/notification-templates`,
   adminNotificationsOps: `${API_V}/admin/notifications`,
   auditLogs: `${API_V}/audit-logs`,
+  activityNavigation: `${API_V}/activity/navigation`,
   analytics: `${API_V}/analytics`,
   dashboard: `${API_V}/dashboard`,
   roles: `${API_V}/roles`,

@@ -20,7 +20,7 @@ const taskSubmissionUploadLimiter = rateLimit({
   max: 120,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
   message: {
     success: false,
     message: 'تجاوزت الحد المسموح لطلبات الرفع. حاول بعد قليل.',

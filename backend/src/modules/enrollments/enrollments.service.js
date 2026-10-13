@@ -140,6 +140,14 @@ async function createForCohort(cohortId, body, requester) {
     recognition_eligibility_status: 'unknown',
   });
 
+  await recordAudit({
+    subjectUserId: body.student_id,
+    actionType: 'COURSE_ENROLLMENT_CREATED',
+    entityType: 'enrollment',
+    entityId: created.id,
+    newValues: { cohort_id: cohortId, enrollment_status: created.enrollment_status ?? 'enrolled' },
+  });
+
   return serializeEnrollment(created);
 }
 
@@ -156,6 +164,22 @@ async function patchStatus(id, body, requester) {
   }
 
   const updated = await enrollmentsRepository.update(id, data);
+  const { updated_at: _updatedAt, ...changes } = data;
+  const removed =
+    ['withdrawn', 'cancelled', 'rejected'].includes(data.enrollment_status) &&
+    data.enrollment_status !== row.enrollment_status;
+  await recordAudit({
+    subjectUserId: row.student_id ?? null,
+    actionType: removed ? 'COURSE_ENROLLMENT_REMOVED' : 'COURSE_ENROLLMENT_UPDATED',
+    entityType: 'enrollment',
+    entityId: id,
+    oldValues: {
+      enrollment_status: row.enrollment_status ?? null,
+      final_status: row.final_status ?? null,
+      recognition_eligibility_status: row.recognition_eligibility_status ?? null,
+    },
+    newValues: { cohort_id: row.cohort_id, ...changes },
+  });
   return serializeEnrollment(updated);
 }
 

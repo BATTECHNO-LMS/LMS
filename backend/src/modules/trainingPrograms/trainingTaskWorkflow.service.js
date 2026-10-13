@@ -34,6 +34,12 @@ function requireOrgWrite(requester) {
   }
 }
 
+function decimalOrNull(value) {
+  if (value === null || value === undefined) return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function parseSettings(settingsJson) {
   return settingsJson && typeof settingsJson === 'object' ? settingsJson : {};
 }
@@ -259,6 +265,21 @@ async function gradeTask(requester, submissionId, body) {
       graded_by: requester.userId,
       graded_at: new Date(),
       updated_at: new Date(),
+    },
+  });
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: submission.user_id,
+    organizationId: submission.training_tasks.training_programs.organization_id ?? null,
+    actionType: 'TRAINING_TASK_GRADED',
+    entityType: 'training_task_submission',
+    entityId: row.id,
+    oldValues: { score: decimalOrNull(submission.score), status: submission.status ?? null },
+    newValues: {
+      taskId: submission.task_id,
+      score: decimalOrNull(row.score),
+      status: row.status,
+      maxScore: decimalOrNull(submission.training_tasks.max_score),
     },
   });
   await emitDomainEvent('TASK_GRADED', {
@@ -526,6 +547,16 @@ async function requestRevision(requester, submissionId, body) {
       updated_at: new Date(),
     },
   });
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: submission.user_id,
+    organizationId: submission.training_tasks.training_programs.organization_id ?? null,
+    actionType: 'TRAINING_TASK_REVISION_REQUESTED',
+    entityType: 'training_task_submission',
+    entityId: row.id,
+    oldValues: { status: submission.status ?? null },
+    newValues: { taskId: submission.task_id, status: row.status },
+  });
   return { id: row.id, status: row.status, feedback: row.feedback };
 }
 
@@ -539,6 +570,16 @@ async function reopenSubmission(requester, submissionId, body) {
       feedback: body.feedback ?? submission.feedback,
       updated_at: new Date(),
     },
+  });
+  await recordAudit({
+    userId: requester.userId,
+    subjectUserId: submission.user_id,
+    organizationId: submission.training_tasks.training_programs.organization_id ?? null,
+    actionType: 'TRAINING_TASK_REOPENED',
+    entityType: 'training_task_submission',
+    entityId: row.id,
+    oldValues: { status: submission.status ?? null },
+    newValues: { taskId: submission.task_id, status: row.status },
   });
   return { id: row.id, status: row.status, feedback: row.feedback };
 }

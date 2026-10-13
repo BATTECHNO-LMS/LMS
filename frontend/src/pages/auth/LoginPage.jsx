@@ -23,6 +23,11 @@ import { PORTAL_ENTRIES, PORTAL_SELECTION_PATH, PORTAL_TYPES } from '../../const
 import { resolveAuthenticatedLandingRoute } from '../../utils/resolveAuthenticatedLandingRoute.js';
 import { rememberSelectedPortal } from '../../utils/portal.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import {
+  RETURN_TO_STORAGE_KEY,
+  loginReasonMessage,
+  sanitizeReturnTo,
+} from '../../features/auth/session/sessionPolicy.js';
 
 const EASE = AUTH_MOTION_EASE;
 
@@ -43,10 +48,16 @@ export function LoginPage({
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const from = location.state?.from?.pathname;
-  const returnTo =
-    typeof location.state?.returnTo === 'string' && location.state.returnTo.startsWith('/')
-      ? location.state.returnTo
-      : null;
+  const returnTo = useMemo(() => {
+    const fromState = sanitizeReturnTo(location.state?.returnTo);
+    if (fromState) return fromState;
+    try {
+      return sanitizeReturnTo(window.sessionStorage.getItem(RETURN_TO_STORAGE_KEY));
+    } catch {
+      return null;
+    }
+  }, [location.state]);
+  const sessionReasonMessage = loginReasonMessage(searchParams.get('reason'));
   const postLoginTarget =
     returnTo || (from && from !== '/login' && !from.startsWith('/login/') ? from : null);
   const registrationPendingNotice = searchParams.get('registered') === 'pending';
@@ -116,6 +127,11 @@ export function LoginPage({
         preferredReturnTo: postLoginTarget,
       });
 
+      try {
+        window.sessionStorage.removeItem(RETURN_TO_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
       navigate(redirectTo, { replace: true });
     } catch (err) {
       const code = err?.response?.data?.code;
@@ -316,6 +332,12 @@ export function LoginPage({
               </header>
 
               <form className="auth-form auth-form--login" onSubmit={handleSubmit(onSubmit)} noValidate>
+                {sessionReasonMessage && !serverError ? (
+                  <p className="auth-form__session-notice" role="status">
+                    {sessionReasonMessage}
+                  </p>
+                ) : null}
+
                 {registrationPendingNotice ? (
                   <p className="auth-register__helper" role="status">
                     {t('register.pendingApproval')}

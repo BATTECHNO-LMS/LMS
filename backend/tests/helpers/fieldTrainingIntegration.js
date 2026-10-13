@@ -8,8 +8,10 @@ if (!globalThis.__battechnoIntegrationDbGuardApplied) {
   );
 }
 
+const crypto = require('crypto');
 const { prisma } = require('../../src/config/db');
 const { signToken } = require('../../src/utils/jwt');
+const authSessions = require('../../src/modules/auth/authSession.service');
 const { seedTestAccounts } = require('../../scripts/lib/testAccounts');
 
 const ADMIN_EMAIL = 'superadmin@batuni.edu';
@@ -107,15 +109,69 @@ function rolesForUser(user) {
   return user.roleCodes || [];
 }
 
+/**
+ * Tokens must be bound to a real server-side session (`sid`). `bearerForUser` is sync, so
+ * the session row is created lazily the first time the auth middleware looks it up.
+ */
+const sessionIdByUserPortal = new Map();
+const pendingSessions = new Map();
+let lazySessionStoreInstalled = false;
+
+function installLazySessionStore() {
+  if (lazySessionStoreInstalled) return;
+  lazySessionStoreInstalled = true;
+  const base = authSessions.defaultAuthSessionStore;
+  authSessions.setAuthSessionStoreForTests({
+    ...base,
+    async findById(id) {
+      const pending = pendingSessions.get(id);
+      if (pending) {
+        if (!pending.ready) {
+          const now = new Date();
+          pending.ready = prisma.auth_sessions.create({
+            data: {
+              id,
+              user_id: pending.userId,
+              created_at: now,
+              last_seen_at: now,
+              last_activity_at: now,
+              absolute_expires_at: new Date(now.getTime() + 12 * 3_600_000),
+              portal_type: pending.portalType,
+              is_active: true,
+            },
+          });
+        }
+        await pending.ready;
+        pendingSessions.delete(id);
+      }
+      return base.findById(id);
+    },
+  });
+}
+
+function sessionIdFor(userId, portalType) {
+  installLazySessionStore();
+  const key = `${userId}:${portalType}`;
+  let sid = sessionIdByUserPortal.get(key);
+  if (!sid) {
+    sid = crypto.randomUUID();
+    sessionIdByUserPortal.set(key, sid);
+    pendingSessions.set(sid, { userId, portalType, ready: null });
+  }
+  return sid;
+}
+
 function bearerForUser(user, { isGlobal = false } = {}) {
   const roles = rolesForUser(user);
   const superAdmin = roles.includes('super_admin');
+  const portalType = roles.includes('trainee') || roles.includes('trainer') ? 'INSTITUTION' : 'UNIVERSITY';
   return `Bearer ${signToken({
     userId: user.id,
     roles,
     universityId: user.primary_university_id,
     isGlobal: isGlobal || superAdmin,
-    portalType: roles.includes('trainee') || roles.includes('trainer') ? 'INSTITUTION' : 'UNIVERSITY',
+    portalType,
+    sessionId: sessionIdFor(user.id, portalType),
   })}`;
 }
 

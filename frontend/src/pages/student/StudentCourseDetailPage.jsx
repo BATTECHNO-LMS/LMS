@@ -9,9 +9,11 @@ import { useStartStudentCourse, useStudentCourse } from '../../features/courses/
 import { LessonTrainingWorkflow } from './components/LessonTrainingWorkflow.jsx';
 import { PagePermissionGate } from '../../components/permissions/PagePermissionGate.jsx';
 import { UI_PERMISSION } from '../../constants/permissions.js';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../features/activity/navigationActivity.js';
 
 export function StudentCourseDetailPage() {
   const { id } = useParams();
+  useNavigationActivity(NAVIGATION_MODULES.COURSE, id);
   const { t } = useTranslation('courses');
   const { data, isLoading, isError, refetch } = useStudentCourse(id);
   const startMut = useStartStudentCourse();

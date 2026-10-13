@@ -10,7 +10,9 @@ const assert = require('node:assert/strict');
 const { ZodError } = require('zod');
 const { authenticate } = require('../src/middlewares/auth.middleware');
 const { authorizeRoles } = require('../src/middlewares/authorization.middleware');
-const { signToken } = require('../src/utils/jwt');
+const { signTestToken: signToken, installTestSessionStore } = require('./helpers/authzFixtures');
+
+installTestSessionStore();
 const { isGlobalFromRoleRecords, buildTokenPayload } = require('../src/modules/auth/auth.service');
 const {
   setCurrentAuthContextLoaderForTests,

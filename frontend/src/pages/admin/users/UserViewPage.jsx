@@ -34,6 +34,7 @@ import {
 } from '../../../features/users/index.js';
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { ASSIGNABLE_USER_ROLE_CODES } from '../../../constants/roles.js';
+import { UserActivityTimeline, UserSessionsList } from '../../../components/activity/UserActivityPanel.jsx';
 
 const TABS = ['personal', 'academic', 'account', 'activity'];
 
@@ -242,7 +243,6 @@ export function UserViewPage() {
         ? t('list.accountSuspended')
         : t('list.accountInactive');
   const activity = row.activity || {};
-  const audits = Array.isArray(row.recent_audits) ? row.recent_audits : [];
   const busy =
     updateUser.isPending ||
     updateStatus.isPending ||
@@ -579,21 +579,13 @@ export function UserViewPage() {
               <dd>{activity.certificates_count ?? 0}</dd>
             </div>
           </dl>
-          {audits.length ? (
-            <div className="admin-user-audit">
-              <h3 className="admin-user-audit__title">{t('detail.activity.recentAudits')}</h3>
-              <ul className="admin-user-audit__list">
-                {audits.map((a) => (
-                  <li key={a.id}>
-                    <strong>{a.action_type}</strong>
-                    <span>{formatDt(a.created_at)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-muted">{t('detail.activity.noAudits')}</p>
-          )}
+        </SectionCard>
+      ) : null}
+
+      {tab === 'activity' ? (
+        <SectionCard className="activity-panel">
+          <UserActivityTimeline userId={id} />
+          <UserSessionsList userId={id} canRevoke={canWrite} />
         </SectionCard>
       ) : null}
 

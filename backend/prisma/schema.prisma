@@ -356,6 +356,17 @@ model audit_logs {
   new_values      Json?
   ip_address      String?  @db.VarChar(64)
   created_at      DateTime @default(now()) @db.Timestamptz(6)
+  /// User whose data/state the action affected (e.g. the graded student). `user_id` stays the actor.
+  subject_user_id String?  @db.Uuid
+  /// auth_sessions.id of the actor's session, when the action happened inside an authenticated request.
+  session_id      String?  @db.Uuid
+  request_id      String?  @db.VarChar(128)
+  /// AUTH | SECURITY | USER | ORGANIZATION | COURSE | ... (see shared/audit/auditActions.js)
+  category        String?  @db.VarChar(40)
+  /// SUCCESS | FAILED | DENIED
+  outcome         String?  @db.VarChar(16)
+  actor_role      String?  @db.VarChar(40)
+  user_agent      String?  @db.VarChar(512)
 
   @@index([user_id], map: "idx_audit_logs_user_id")
   @@index([university_id], map: "idx_audit_logs_university_id")
@@ -363,6 +374,38 @@ model audit_logs {
   @@index([action_type], map: "idx_audit_logs_action_type")
   @@index([entity_type], map: "idx_audit_logs_entity_type")
   @@index([created_at], map: "idx_audit_logs_created_at")
+  @@index([subject_user_id, created_at], map: "idx_audit_logs_subject_created")
+  @@index([session_id, created_at], map: "idx_audit_logs_session_created")
+  @@index([category, created_at], map: "idx_audit_logs_category_created")
+  @@index([action_type, created_at], map: "idx_audit_logs_action_created")
+  @@index([user_id, created_at], map: "idx_audit_logs_user_created")
+}
+
+/// Server-side authentication session. One row per successful login (per device/tab-group).
+/// Never stores the raw JWT, password, or any refresh secret.
+model auth_sessions {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                 String    @db.Uuid
+  created_at              DateTime  @default(now()) @db.Timestamptz(6)
+  /// Presence (tab open / background requests). Never controls idle timeout.
+  last_seen_at            DateTime  @default(now()) @db.Timestamptz(6)
+  /// Last real human activity. Controls the idle timeout.
+  last_activity_at        DateTime  @default(now()) @db.Timestamptz(6)
+  absolute_expires_at     DateTime  @db.Timestamptz(6)
+  ended_at                DateTime? @db.Timestamptz(6)
+  /// USER_LOGOUT | ADMIN_REVOKED | IDLE_TIMEOUT | ABSOLUTE_EXPIRY
+  end_reason              String?   @db.VarChar(32)
+  ip_address              String?   @db.VarChar(64)
+  user_agent              String?   @db.VarChar(512)
+  created_by_login_method String    @default("PASSWORD") @db.VarChar(32)
+  portal_type             String?   @db.VarChar(32)
+  is_active               Boolean   @default(true)
+
+  user users @relation("UserAuthSessions", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, is_active], map: "idx_auth_sessions_user_active")
+  @@index([last_activity_at], map: "idx_auth_sessions_last_activity")
+  @@index([absolute_expires_at], map: "idx_auth_sessions_absolute_expires")
 }
 
 model permissions {
@@ -672,6 +715,7 @@ model users {
   assigned_organization_members  user_organization_assignments[] @relation("OrganizationAssignmentActor")
   field_training_supervisor_ratings field_training_supervisor_ratings[] @relation("FtSupervisorRatingStudent")
   field_training_final_evaluations field_training_final_evaluations[] @relation("FtFinalEvaluationStudent")
+  auth_sessions                  auth_sessions[]                  @relation("UserAuthSessions")
 
   @@index([primary_university_id], map: "idx_users_primary_university_id")
   @@index([university_specialty_id], map: "idx_users_university_specialty_id")

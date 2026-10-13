@@ -734,7 +734,7 @@ async function listCohorts(requester, programId) {
   }));
 }
 
-async function enrollUser(requester, cohortId, body) {
+async function enrollUser(requester, cohortId, body, { skipAudit = false } = {}) {
   const cohort = await prisma.training_cohorts.findUnique({ where: { id: cohortId } });
   if (!cohort) throw new ApiError(404, 'Cohort not found');
   requireOrgWrite(requester);
@@ -771,6 +771,12 @@ async function enrollUser(requester, cohortId, body) {
   }
 
   const status = body.status || (body.invite ? 'INVITED' : 'ACTIVE');
+  const previousEnrollment = skipAudit
+    ? null
+    : await prisma.training_enrollments.findUnique({
+        where: { cohort_id_user_id: { cohort_id: cohortId, user_id: body.user_id } },
+        select: { id: true, status: true },
+      });
   const row = await prisma.training_enrollments.upsert({
     where: { cohort_id_user_id: { cohort_id: cohortId, user_id: body.user_id } },
     create: {
@@ -804,6 +810,32 @@ async function enrollUser(requester, cohortId, body) {
       entityType: 'training_enrollment',
       entityId: row.id,
     }).catch(() => null);
+  }
+
+  if (!skipAudit) {
+    const removed =
+      Boolean(previousEnrollment) &&
+      ['WITHDRAWN', 'REJECTED'].includes(row.status) &&
+      previousEnrollment.status !== row.status;
+    await recordAudit({
+      userId: requester.userId,
+      subjectUserId: body.user_id,
+      organizationId: cohort.organization_id,
+      actionType: !previousEnrollment
+        ? 'COURSE_ENROLLMENT_CREATED'
+        : removed
+          ? 'COURSE_ENROLLMENT_REMOVED'
+          : 'COURSE_ENROLLMENT_UPDATED',
+      entityType: 'training_enrollment',
+      entityId: row.id,
+      oldValues: previousEnrollment ? { status: previousEnrollment.status } : undefined,
+      newValues: {
+        cohort_id: cohortId,
+        program_id: cohort.program_id ?? null,
+        status: row.status,
+        status_reason: body.status_reason ?? null,
+      },
+    });
   }
 
   return { id: row.id, status: row.status, userId: row.user_id, cohortId };
@@ -864,12 +896,40 @@ async function importEnrollmentsCommit(requester, cohortId, rows) {
   const created = [];
   for (const item of preview.preview) {
     if (item.status !== 'ok') continue;
-    const enrollment = await enrollUser(requester, cohortId, {
-      user_id: item.userId,
-      status: 'ACTIVE',
-    });
+    const enrollment = await enrollUser(
+      requester,
+      cohortId,
+      {
+        user_id: item.userId,
+        status: 'ACTIVE',
+      },
+      { skipAudit: true }
+    );
     created.push(enrollment);
   }
+  const cohort = await prisma.training_cohorts.findUnique({
+    where: { id: cohortId },
+    select: { organization_id: true, program_id: true },
+  });
+  const countByStatus = (s) => preview.preview.filter((p) => p.status === s).length;
+  await recordAudit({
+    userId: requester.userId,
+    organizationId: cohort?.organization_id ?? null,
+    actionType: 'COURSE_ENROLLMENTS_IMPORTED',
+    entityType: 'training_cohort',
+    entityId: cohortId,
+    newValues: {
+      cohort_id: cohortId,
+      program_id: cohort?.program_id ?? null,
+      total_rows: preview.preview.length,
+      created_count: created.length,
+      duplicate_count: countByStatus('duplicate'),
+      missing_user_count: countByStatus('missing_user'),
+      error_count: countByStatus('error'),
+      affected_user_ids: created.map((e) => e.userId).slice(0, 500),
+      affected_user_ids_truncated: created.length > 500,
+    },
+  });
   return { createdCount: created.length, created };
 }
 
@@ -1174,12 +1234,14 @@ async function markAllPresent(requester, sessionId, { mode = 'safe' } = {}) {
   const existingByEnrollment = new Map(existingRows.map((row) => [row.enrollment_id, row]));
   const toCreate = [];
   const toUpdateIds = [];
+  const affectedUserIds = [];
   const now = new Date();
   for (const enrollment of enrollments) {
     const existing = existingByEnrollment.get(enrollment.id);
     if (mode === 'safe' && existing && !['absent', 'unconfirmed'].includes(String(existing.status).toLowerCase())) {
       continue;
     }
+    affectedUserIds.push(enrollment.user_id);
     if (!existing) {
       toCreate.push({
         session_id: sessionId,
@@ -1217,7 +1279,12 @@ async function markAllPresent(requester, sessionId, { mode = 'safe' } = {}) {
     actionType: 'TRAINING_MARK_ALL_PRESENT',
     entityType: 'training_session',
     entityId: sessionId,
-    newValues: { mode, updated },
+    newValues: {
+      mode,
+      updated,
+      affected_count: affectedUserIds.length,
+      affected_student_ids: affectedUserIds.slice(0, 1000),
+    },
   });
   return { updated };
 }
@@ -2080,6 +2147,20 @@ async function issueCertificateCore(enrollmentId, issuedByUserId) {
         programTitle: enrollment.training_cohorts.training_programs.title,
         cohortName: enrollment.training_cohorts.name,
       },
+    },
+  });
+  await recordAudit({
+    userId: issuedByUserId || null,
+    subjectUserId: enrollment.user_id,
+    organizationId: enrollment.organization_id,
+    actionType: 'TRAINING_CERTIFICATE_ISSUED',
+    entityType: 'training_certificate',
+    entityId: row.id,
+    newValues: {
+      certificateNumber: row.certificate_number,
+      enrollmentId,
+      programId: enrollment.training_cohorts.program_id ?? null,
+      status: row.status,
     },
   });
   await emitDomainEvent('CERTIFICATE_ISSUED', {

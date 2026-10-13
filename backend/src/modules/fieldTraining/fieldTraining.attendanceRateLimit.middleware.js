@@ -6,7 +6,7 @@ const attendanceConfirmLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
   message: {
     success: false,
     message: 'تجاوزت الحد المسموح لمحاولات تأكيد الحضور. حاول لاحقًا.',

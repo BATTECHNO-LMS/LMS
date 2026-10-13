@@ -95,7 +95,8 @@
       "assessments": "Assessments",
       "progress": "Progress",
       "completion": "Completion",
-      "certificate": "Certificate"
+      "certificate": "Certificate",
+      "activity": "Student activity log"
     }
   },
   "metrics": {

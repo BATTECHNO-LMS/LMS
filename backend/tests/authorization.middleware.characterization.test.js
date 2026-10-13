@@ -9,7 +9,9 @@ const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 const { authenticate } = require('../src/middlewares/auth.middleware');
 const { authorizeRoles } = require('../src/middlewares/authorization.middleware');
-const { signToken } = require('../src/utils/jwt');
+const { signTestToken: signToken, installTestSessionStore } = require('./helpers/authzFixtures');
+
+installTestSessionStore();
 const { env } = require('../src/config/env');
 const { ApiError } = require('../src/utils/apiError');
 const {
@@ -78,7 +80,7 @@ describe('authenticate (JWT + current-state) characterization', () => {
     assert.equal(out.body.code, 'TOKEN_INVALID');
   });
 
-  it('denies expired token with 401 TOKEN_INVALID', async () => {
+  it('denies expired token with 401 TOKEN_EXPIRED', async () => {
     const token = jwt.sign(
       { userId: SYNTH_USER_A, roles: ['student'], universityId: SYNTH_UNI_A, isGlobal: false },
       secret(),
@@ -86,7 +88,7 @@ describe('authenticate (JWT + current-state) characterization', () => {
     );
     const out = await runMiddlewareAsync(authenticate, bearerReq(token));
     assert.equal(out.status, 401);
-    assert.equal(out.body.code, 'TOKEN_INVALID');
+    assert.equal(out.body.code, 'TOKEN_EXPIRED');
   });
 
   it('accepts valid synthetic token and populates req.user from current context', async () => {

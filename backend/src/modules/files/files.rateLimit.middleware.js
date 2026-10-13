@@ -7,7 +7,7 @@ const fileUploadLimiter = rateLimit({
   max: Number(env.FILE_UPLOAD_RATE_LIMIT_MAX) || 30,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
   message: {
     success: false,
     message: 'تجاوزت الحد المسموح لطلبات الرفع. حاول لاحقًا.',

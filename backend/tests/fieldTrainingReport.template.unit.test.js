@@ -116,6 +116,30 @@ describe('field training report HTML', () => {
     assert.match(html, /طالب تجريبي/);
     assert.match(html, /غير مطلوب/);
   });
+
+  it('student HTML renders the full activity history (all rows, six columns, no technical ids)', () => {
+    const events = Array.from({ length: 120 }, (_, i) => ({
+      at_label: `حدث ${i + 1}`,
+      action_label: 'تسليم مهمة',
+      category_label: 'التدريب الميداني',
+      actor: { name: 'الطالب', role: null, is_self: true },
+      outcome_label: 'ناجحة',
+      details: 'تقرير الأسبوع',
+    }));
+    const html = renderStudentReportHtml({ ...emptyStudentReport(), activity_timeline: events });
+    assert.match(html, /سجل نشاط الطالب/);
+    for (const head of ['التاريخ والوقت', 'العملية', 'القسم', 'بواسطة', 'النتيجة', 'التفاصيل']) {
+      assert.match(html, new RegExp(head));
+    }
+    assert.match(html, /حدث 1</);
+    assert.match(html, /حدث 120</);
+    assert.doesNotMatch(html, /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  });
+
+  it('student HTML omits the activity section for viewers without it', () => {
+    const html = renderStudentReportHtml(emptyStudentReport());
+    assert.doesNotMatch(html, /سجل نشاط الطالب/);
+  });
 });
 
 describe('field training report Excel', () => {

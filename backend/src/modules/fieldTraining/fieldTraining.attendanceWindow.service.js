@@ -633,6 +633,12 @@ async function markAllPresent(sessionId, body, user, reqMeta = {}) {
     ...toCreate.map((app) => app.id),
     ...toUpdate.map((item) => item.app.id),
   ];
+  const affectedStudentIds = [
+    ...new Set([
+      ...toCreate.map((app) => app.student_id),
+      ...toUpdate.map((item) => item.app?.student_id ?? item.row?.student_id),
+    ].filter(Boolean)),
+  ];
   for (const applicationId of affectedApplicationIds) {
     await workflow.refreshAttendancePercentage(applicationId);
     await workflow.persistEligibility(applicationId);
@@ -662,6 +668,8 @@ async function markAllPresent(sessionId, body, user, reqMeta = {}) {
       method: 'bulk_manual',
       marked_by: user.userId,
       confirmed_at: now.toISOString(),
+      affected_count: affectedStudentIds.length,
+      affected_student_ids: affectedStudentIds.slice(0, 1000),
     },
     ipAddress: reqMeta.ipAddress || null,
   });

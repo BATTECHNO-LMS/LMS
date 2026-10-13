@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, Suspense } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../features/activity/navigationActivity.js';
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader.jsx';
 import { SectionCard } from '../../components/admin/SectionCard.jsx';
 import { StatusBadge } from '../../components/admin/StatusBadge.jsx';
@@ -53,6 +54,7 @@ const TAB_SECTIONS = {
 
 export function TraineeCourseDetailPage() {
   const { programId, tab: tabParam } = useParams();
+  useNavigationActivity(NAVIGATION_MODULES.COURSE, programId);
   const [tab, setTab] = useState(tabParam || 'overview');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -13,6 +13,9 @@ const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { loadBattechnoLogoDataUri, loadInstitutionLogoDataUri } = require('../trainingPrograms/trainingReportPdf.service');
 const dates = require('./fieldTrainingReport.dates');
 const crypto = require('crypto');
+const { getStudentActivityTimeline } = require('../../shared/audit/studentActivityTimeline.service');
+const { resolveUserTenant } = require('../../shared/services/audit.service');
+const { logger } = require('../../utils/logger');
 
 function scopeUniversityId(user, requestedUniversityId) {
   if (isSystemWideAdmin(user)) {
@@ -217,7 +220,37 @@ async function getStudentReport(user, applicationId, action = reportAccess.REPOR
   });
   if (!report) throw new ApiError(404, 'Application not found');
   const capabilities = access.capabilities || reportAccess.buildReportCapabilities(user);
-  return { ...attachReportMeta(report, user), capabilities };
+  const activityTimeline =
+    access.viewer === 'student' ? undefined : await loadReportActivityTimeline(user, access.app);
+  return {
+    ...attachReportMeta(report, user),
+    capabilities,
+    ...(activityTimeline ? { activity_timeline: activityTimeline } : {}),
+  };
+}
+
+/** Full chronological activity of the student within this training opportunity (staff viewers). */
+async function loadReportActivityTimeline(user, app) {
+  try {
+    let organizationScope = { type: 'global' };
+    if (!isSystemWideAdmin(user)) {
+      const tenant = await resolveUserTenant(app.student_id);
+      organizationScope =
+        tenant?.universityId || tenant?.organizationId
+          ? { type: 'university', universityId: tenant.universityId, organizationId: tenant.organizationId }
+          : null;
+    }
+    const { events } = await getStudentActivityTimeline({
+      studentId: app.student_id,
+      opportunityId: app.opportunity_id,
+      organizationScope,
+      order: 'asc',
+    });
+    return events;
+  } catch (err) {
+    logger.warn('STUDENT_ACTIVITY_TIMELINE_FAILED', { reason: err?.message });
+    return [];
+  }
 }
 
 function asciiDownloadSlug(value, fallback) {

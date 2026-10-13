@@ -26,6 +26,29 @@ function parseCorsOrigins(csv) {
   return [...new Set(csv.split(',').map((s) => s.trim()).filter(Boolean))];
 }
 
+function parseBoundedInt(raw, fallback, min, max) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(Math.floor(n), min), max);
+}
+
+/**
+ * Express `trust proxy` value. Never a blanket `true` (that would trust a client-forged
+ * X-Forwarded-For). Production chain is host nginx -> frontend container nginx -> Express,
+ * so both proxies sit on loopback / private (Docker bridge) addresses.
+ * - "true"/"1": trust loopback + private ranges (`loopback,uniquelocal`)
+ * - "false"/unset: trust loopback only (local dev, Vite proxy)
+ * - integer: explicit hop count
+ * - anything else: passed through as a CSV of names/subnets (e.g. "loopback,172.16.0.0/12")
+ */
+function parseTrustProxySetting(raw) {
+  const v = typeof raw === 'string' ? raw.trim() : '';
+  if (!v || v === 'false' || v === '0') return 'loopback';
+  if (v === 'true' || v === '1') return 'loopback,uniquelocal';
+  if (/^\d+$/.test(v)) return Number(v);
+  return v;
+}
+
 function parseAuthContextCacheTtlMs(raw) {
   if (raw === '0' || raw === 0) return 0;
   const n = Number(raw);
@@ -81,6 +104,44 @@ const env = {
   })(),
   /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
   TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
+  /** Resolved Express `trust proxy` value (see parseTrustProxySetting). */
+  TRUST_PROXY_SETTING: parseTrustProxySetting(process.env.TRUST_PROXY),
+  /** Server-side session idle timeout (minutes without real user activity). */
+  AUTH_IDLE_TIMEOUT_MINUTES: parseBoundedInt(process.env.AUTH_IDLE_TIMEOUT_MINUTES, 30, 1, 24 * 60),
+  /** Frontend shows the "session about to end" warning this many minutes before idle expiry. */
+  AUTH_IDLE_WARNING_MINUTES: parseBoundedInt(process.env.AUTH_IDLE_WARNING_MINUTES, 5, 1, 60),
+  /** Hard cap on a session's lifetime regardless of activity (hours). JWT exp matches it. */
+  AUTH_SESSION_ABSOLUTE_TIMEOUT_HOURS: parseBoundedInt(
+    process.env.AUTH_SESSION_ABSOLUTE_TIMEOUT_HOURS,
+    12,
+    1,
+    24 * 30
+  ),
+  /** In-process session validation cache TTL (ms). Revocation in the same process is immediate. */
+  AUTH_SESSION_CACHE_TTL_MS: parseBoundedInt(process.env.AUTH_SESSION_CACHE_TTL_MS, 10_000, 0, 60_000),
+  /** Minimum seconds between `last_activity_at` writes for one session. */
+  AUTH_SESSION_ACTIVITY_WRITE_THROTTLE_SECONDS: parseBoundedInt(
+    process.env.AUTH_SESSION_ACTIVITY_WRITE_THROTTLE_SECONDS,
+    30,
+    0,
+    300
+  ),
+  /** Minimum seconds between `last_seen_at` (presence) writes for one session. */
+  AUTH_SESSION_PRESENCE_WRITE_THROTTLE_SECONDS: parseBoundedInt(
+    process.env.AUTH_SESSION_PRESENCE_WRITE_THROTTLE_SECONDS,
+    60,
+    0,
+    600
+  ),
+  /** Background sweep that closes idle/expired sessions (ms). 0 disables. */
+  AUTH_SESSION_SWEEP_INTERVAL_MS: parseBoundedInt(
+    process.env.AUTH_SESSION_SWEEP_INTERVAL_MS,
+    5 * 60 * 1000,
+    0,
+    60 * 60 * 1000
+  ),
+  /** Dedupe window for navigation-opened audit events (same session + module + entity). */
+  AUDIT_NAVIGATION_DEDUPE_MINUTES: parseBoundedInt(process.env.AUDIT_NAVIGATION_DEDUPE_MINUTES, 30, 1, 24 * 60),
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   /** SPA dashboards issue many GETs; 300/15m is too low with attendance polling. */
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 1200,
@@ -281,4 +342,4 @@ const env = {
   AUTH_CONTEXT_CACHE_MAX: Number(process.env.AUTH_CONTEXT_CACHE_MAX) || 2_000,
 };
 
-module.exports = { env, parseRoleCodes, parseRoleCodesWithFallback };
+module.exports = { env, parseRoleCodes, parseRoleCodesWithFallback, parseTrustProxySetting };

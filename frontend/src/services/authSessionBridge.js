@@ -1,10 +1,11 @@
-/** @type {null | (() => void)} */
+/** @type {null | ((code?: string) => void)} */
 let onUnauthorized = null;
 
 export function setOnUnauthorized(handler) {
   onUnauthorized = typeof handler === 'function' ? handler : null;
 }
 
-export function triggerUnauthorized() {
-  if (onUnauthorized) onUnauthorized();
+/** @param {string} [code] backend auth error code (e.g. SESSION_IDLE_TIMEOUT) */
+export function triggerUnauthorized(code) {
+  if (onUnauthorized) onUnauthorized(code);
 }

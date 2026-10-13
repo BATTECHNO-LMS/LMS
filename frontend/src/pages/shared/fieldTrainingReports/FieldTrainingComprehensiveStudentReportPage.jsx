@@ -489,8 +489,12 @@ export function FieldTrainingComprehensiveStudentReportPage({
               <time>{item.atLabelAr}</time>
               <div>
                 <strong>{item.title}</strong>
-                <p>{item.description}</p>
-                <span>{item.categoryLabelAr}</span>
+                {item.description ? <p>{item.description}</p> : null}
+                <span>
+                  {[item.categoryLabelAr, item.actorLabelAr ? `بواسطة: ${item.actorLabelAr}` : null, item.outcomeLabelAr]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
               </div>
             </li>
           ))}

@@ -28,6 +28,7 @@ import {
   fetchAiSupportedSubmissionFileTypes,
 } from '../../features/fieldTraining/fieldTraining.service.js';
 import { saveFieldTrainingSubmissionBlob } from '../../features/fieldTraining/fieldTrainingDownload.js';
+import { NAVIGATION_MODULES, useNavigationActivity } from '../../features/activity/navigationActivity.js';
 import { fieldTrainingKeys } from '../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 import { uploadFileToStorage } from '../../features/uploads/uploadFileToStorage.js';
 import { getApiErrorMessage } from '../../services/apiHelpers.js';
@@ -76,6 +77,7 @@ function resolveHttpErrorMessage(err, t, fallbackKey = 'selfEval.loadError') {
 
 export function StudentFieldTrainingSelfEvaluationPage() {
   const { opportunityId, taskId } = useParams();
+  useNavigationActivity(NAVIGATION_MODULES.ASSIGNMENT, taskId, { entityType: 'field_training_task' });
   const navigate = useNavigate();
   const { t } = useTranslation('fieldTraining');
   const { t: tUpload } = useTranslation('uploads');

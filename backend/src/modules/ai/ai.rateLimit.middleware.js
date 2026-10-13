@@ -7,7 +7,7 @@ const aiGenerateLimiter = rateLimit({
   max: Number(env.AI_RATE_LIMIT_MAX) || 20,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req),
+  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
   message: {
     success: false,
     message: 'تم تجاوز الحد المسموح مؤقتًا. يرجى المحاولة لاحقًا.',

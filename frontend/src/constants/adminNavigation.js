@@ -57,6 +57,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/reports', 'admin.items.reports', FileSpreadsheet, [Ad]),
       entry('/admin/certificates', 'admin.items.certificates', Award, [Ad]),
       entry('/admin/notifications', 'admin.items.notifications', Bell, [Ad]),
+      entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [Ad]),
     ],
   },
   {

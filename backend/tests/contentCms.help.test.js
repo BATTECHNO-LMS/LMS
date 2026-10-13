@@ -8,7 +8,9 @@ const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../src/app');
-const { signToken } = require('../src/utils/jwt');
+const { signTestToken: signToken, installTestSessionStore } = require('./helpers/authzFixtures');
+
+installTestSessionStore();
 const {
   setCurrentAuthContextLoaderForTests,
   resetCurrentAuthContextLoaderForTests,

@@ -7,6 +7,8 @@ import {
   fetchCommandCenterLive,
   commandCenterLiveUrl,
 } from './commandCenter.service.js';
+import { triggerUnauthorized } from '../../services/authSessionBridge.js';
+import { isSessionEndCode } from '../auth/session/sessionPolicy.js';
 
 const FILTER_KEYS = [
   'period',
@@ -117,9 +119,16 @@ export function useCommandCenter() {
             /* ignore malformed frames */
           }
         });
-        es.addEventListener('auth', () => {
+        es.addEventListener('auth', (event) => {
           setLiveStatus('auth');
           es.close();
+          let code = null;
+          try {
+            code = JSON.parse(event.data)?.code || null;
+          } catch {
+            /* ignore */
+          }
+          if (isSessionEndCode(code)) triggerUnauthorized(code);
         });
         es.onerror = () => {
           es.close();

@@ -66,7 +66,7 @@
       "recognition": "Recognition requests",
       "certificates": "Digital certificates",
       "reports": "Reports",
-      "auditLogs": "Audit log",
+      "auditLogs": "Activity log",
       "notifications": "Notifications"
     }
   },

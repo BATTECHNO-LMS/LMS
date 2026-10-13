@@ -95,7 +95,8 @@
       "assessments": "الاختبارات",
       "progress": "التقدم",
       "completion": "الإكمال",
-      "certificate": "الشهادة"
+      "certificate": "الشهادة",
+      "activity": "سجل نشاط الطالب"
     }
   },
   "metrics": {
