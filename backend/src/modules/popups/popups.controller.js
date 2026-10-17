@@ -2,9 +2,10 @@
 
 const { success, created } = require('../../utils/apiResponse');
 const popupsService = require('./popups.service');
+const { getSecurityClientIp } = require('../../shared/security/clientIdentity');
 
 function clientIp(req) {
-  return req.ip || req.headers['x-forwarded-for'] || null;
+  return getSecurityClientIp(req);
 }
 
 async function adminList(req, res, next) {

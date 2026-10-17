@@ -1,4 +1,5 @@
 import { ADMIN_ROLE_SET } from '../constants/roles.js';
+import { sanitizeReturnTo } from '../features/auth/session/sessionPolicy.js';
 
 /** Must match backend `notifyAdminsStudentRegistrationPending` title. */
 const NEW_STUDENT_REGISTRATION_TITLE = 'New Student Registration';
@@ -12,15 +13,17 @@ function userHasAdminShellAccess(user) {
 }
 
 /**
- * Prefer server-provided `action_url` (relative app paths); fallback to admin heuristics.
+ * Prefer server-provided `action_url` (safe relative app paths only); fallback to admin heuristics.
+ * Protocol-relative (`//evil`) and absolute URLs are rejected.
  * @param {{ type?: string, title?: string, body?: string | null, action_url?: string | null } | null | undefined} notification
  * @param {unknown} user
  * @returns {string | null}
  */
 export function getNotificationLink(notification, user) {
   const raw = notification?.action_url;
-  if (typeof raw === 'string' && raw.startsWith('/')) {
-    return raw;
+  if (typeof raw === 'string') {
+    const safe = sanitizeReturnTo(raw);
+    if (safe) return safe;
   }
   return getAdminNotificationDeepLink(notification, user);
 }

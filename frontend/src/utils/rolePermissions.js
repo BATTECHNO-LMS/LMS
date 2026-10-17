@@ -196,6 +196,7 @@ const ROUTE_RULES = [
   [/^\/student\/dashboard\/?$/, P.canViewDashboard],
   [/^\/student\/user-guide(\/|$)/, P.canViewDashboard],
   [/^\/student\/notification-settings(\/|$)/, P.canViewNotifications],
+  [/^\/student\/security\/?$/, P.canViewDashboard],
 
   [/^\/trainee\/courses\/[^/]+(\/|$)/, P.canViewEnrolledPrograms],
   [/^\/trainee\/courses\/?$/, P.canViewEnrolledPrograms],
@@ -203,6 +204,7 @@ const ROUTE_RULES = [
   [/^\/trainee\/notifications(\/|$)/, P.canViewNotifications],
   [/^\/trainee\/user-guide(\/|$)/, P.canViewDashboard],
   [/^\/trainee\/notification-settings(\/|$)/, P.canViewNotifications],
+  [/^\/trainee\/security\/?$/, P.canViewDashboard],
   [/^\/trainee\/profile\/?$/, P.canViewDashboard],
   [/^\/trainee\/?$/, P.canViewDashboard],
 
@@ -217,6 +219,7 @@ const ROUTE_RULES = [
   [/^\/instructor\/dashboard\/?$/, P.canViewDashboard],
   [/^\/instructor\/user-guide(\/|$)/, P.canViewDashboard],
   [/^\/instructor\/notification-settings(\/|$)/, P.canViewNotifications],
+  [/^\/instructor\/security\/?$/, P.canViewDashboard],
 
   [/^\/reviewer\/university-reports(\/|$)/, P.canViewUniversityReports],
   [/^\/reviewer\/certificates(\/|$)/, P.canViewLinkedCertificates],
@@ -224,6 +227,7 @@ const ROUTE_RULES = [
   [/^\/reviewer\/dashboard\/?$/, P.canViewDashboard],
   [/^\/reviewer\/user-guide(\/|$)/, P.canViewDashboard],
   [/^\/reviewer\/notification-settings(\/|$)/, P.canViewNotifications],
+  [/^\/reviewer\/security\/?$/, P.canViewDashboard],
   [/^\/reviewer\/field-training(\/|$)/, P.canViewUniversityReports],
 
   [/^\/student\/notifications(\/|$)/, P.canViewNotifications],

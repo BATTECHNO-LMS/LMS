@@ -8,3 +8,8 @@ coverage
 .env.*
 !.env.example
 *.log
+*.map
+playwright-report
+test-results
+qa
+.nyc_output

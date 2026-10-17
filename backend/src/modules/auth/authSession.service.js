@@ -7,7 +7,7 @@
  * - `last_activity_at` = last real human activity → controls the idle timeout.
  * - `last_seen_at`     = presence / background traffic → never extends the session.
  * - Ending a session is a conditional update (`ended_at IS NULL`) so the matching audit
- *   event (USER_LOGOUT / AUTH_SESSION_IDLE_TIMEOUT / AUTH_SESSION_ENDED) is written once.
+ *   event (USER_LOGOUT / AUTH_SESSION_IDLE_TIMEOUT / AUTH_SESSION_ENDED / AUTH_SESSION_REVOKED) is written once.
  */
 
 const { prisma } = require('../../config/db');
@@ -16,6 +16,7 @@ const { recordAudit } = require('../../shared/services/audit.service');
 const { SESSION_END_REASONS, AUDIT_OUTCOMES } = require('../../shared/audit/auditActions');
 const { AUTH_ERROR_CODES } = require('../../utils/authErrorCatalog');
 const { logger } = require('../../utils/logger');
+const { getRequestContext } = require('../../shared/requestContext');
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -30,6 +31,8 @@ const SESSION_SELECT = Object.freeze({
   end_reason: true,
   is_active: true,
   portal_type: true,
+  authentication_level: true,
+  mfa_verified_at: true,
 });
 
 function sessionConfig() {
@@ -154,6 +157,13 @@ const dbStore = {
       take: limit,
     });
   },
+  async listOpenForUser(userId) {
+    return prisma.auth_sessions.findMany({
+      where: { user_id: userId, ended_at: null },
+      select: SESSION_SELECT,
+      take: 200,
+    });
+  },
   async listForUser(userId, { take = 20 } = {}) {
     return prisma.auth_sessions.findMany({
       where: { user_id: userId },
@@ -161,6 +171,22 @@ const dbStore = {
       take,
       select: { ...SESSION_SELECT, ip_address: false, user_agent: false, created_by_login_method: true },
     });
+  },
+  /** Owner's own security page: includes client metadata, which callers reduce to a label / masked IP. */
+  async listForOwner(userId, { take = 20 } = {}) {
+    return prisma.auth_sessions.findMany({
+      where: { user_id: userId },
+      orderBy: { created_at: 'desc' },
+      take,
+      select: { ...SESSION_SELECT, ip_address: true, user_agent: true, created_by_login_method: true },
+    });
+  },
+  async markMfaVerified(id, at) {
+    const res = await prisma.auth_sessions.updateMany({
+      where: { id, ended_at: null, is_active: true },
+      data: { authentication_level: 'MFA', mfa_verified_at: at },
+    });
+    return res.count === 1;
   },
 };
 
@@ -212,8 +238,18 @@ function isUuid(value) {
 /**
  * Create a session for a successful login. Returns the row (id → JWT `sid`).
  */
-async function createSession({ userId, ipAddress, userAgent, portalType, loginMethod = 'PASSWORD', now = new Date() }) {
+async function createSession({
+  userId,
+  ipAddress,
+  userAgent,
+  portalType,
+  loginMethod = 'PASSWORD',
+  authenticationLevel = 'PASSWORD',
+  mfaVerifiedAt = null,
+  now = new Date(),
+}) {
   const cfg = sessionConfig();
+  const mfaLevel = authenticationLevel === 'MFA';
   const row = await store.create({
     user_id: userId,
     created_at: now,
@@ -223,8 +259,11 @@ async function createSession({ userId, ipAddress, userAgent, portalType, loginMe
     ip_address: ipAddress ? String(ipAddress).slice(0, 64) : null,
     user_agent: userAgent ? String(userAgent).slice(0, 512) : null,
     created_by_login_method: loginMethod,
+    created_request_id: getRequestContext()?.requestId ? String(getRequestContext().requestId).slice(0, 128) : null,
     portal_type: portalType || null,
     is_active: true,
+    authentication_level: mfaLevel ? 'MFA' : 'PASSWORD',
+    mfa_verified_at: mfaLevel ? mfaVerifiedAt || now : null,
   });
   cachePut(row, toMs(now));
   await recordAudit({
@@ -236,6 +275,7 @@ async function createSession({ userId, ipAddress, userAgent, portalType, loginMe
     entityId: row.id,
     newValues: {
       loginMethod,
+      authenticationLevel: mfaLevel ? 'MFA' : 'PASSWORD',
       portalType: portalType || null,
       idleTimeoutMinutes: cfg.idleTimeoutMinutes,
       absoluteExpiresAt: new Date(toMs(row.absolute_expires_at)).toISOString(),
@@ -247,16 +287,31 @@ async function createSession({ userId, ipAddress, userAgent, portalType, loginMe
 const END_ACTION_BY_REASON = Object.freeze({
   [SESSION_END_REASONS.USER_LOGOUT]: 'USER_LOGOUT',
   [SESSION_END_REASONS.IDLE_TIMEOUT]: 'AUTH_SESSION_IDLE_TIMEOUT',
-  [SESSION_END_REASONS.ABSOLUTE_EXPIRY]: 'AUTH_SESSION_ENDED',
-  [SESSION_END_REASONS.ADMIN_REVOKED]: 'AUTH_SESSION_ENDED',
+  [SESSION_END_REASONS.ABSOLUTE_EXPIRY]: 'AUTH_SESSION_ABSOLUTE_EXPIRED',
+  [SESSION_END_REASONS.USER_REVOKED]: 'AUTH_SESSION_ENDED',
+  [SESSION_END_REASONS.USER_REVOKED_OTHER_SESSIONS]: 'AUTH_SESSION_ENDED',
+  [SESSION_END_REASONS.ADMIN_REVOKED]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.PASSWORD_RESET]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.PASSWORD_CHANGED]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.SECURITY_REVOKED]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.ROLE_CHANGED]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.SCOPE_CHANGED]: 'AUTH_SESSION_REVOKED',
+  [SESSION_END_REASONS.MFA_RESET]: 'AUTH_SESSION_REVOKED',
 });
+
+const KNOWN_END_REASONS = new Set(Object.values(SESSION_END_REASONS));
 
 /**
  * End a session exactly once and write the matching audit event.
  * @returns {Promise<boolean>} true if this call ended it
  */
-async function endSession(row, endReason, { now = new Date(), actorUserId, detectedBy = 'server', endedAt } = {}) {
+async function endSession(
+  row,
+  endReason,
+  { now = new Date(), actorUserId, detectedBy = 'server', endedAt, audit = true } = {}
+) {
   if (!row?.id) return false;
+  if (!KNOWN_END_REASONS.has(endReason)) throw new Error(`Unknown session end reason: ${String(endReason).slice(0, 40)}`);
   const cfg = sessionConfig();
   const effectiveEndedAt = endedAt || now;
   let ended = false;
@@ -266,6 +321,7 @@ async function endSession(row, endReason, { now = new Date(), actorUserId, detec
     invalidateSessionCache(row.id);
   }
   if (!ended) return false;
+  if (!audit) return true;
 
   const lastActivityAt = row.last_activity_at ? new Date(toMs(row.last_activity_at)).toISOString() : null;
   const newValues = {
@@ -418,6 +474,66 @@ function stopSessionSweeper() {
   sweepTimer = null;
 }
 
+/**
+ * End every open session of a user (password reset/change, role/status/scope change,
+ * future admin "end all"). One audit event per ended session; already-ended rows are skipped.
+ * @param {string} userId
+ * @param {string} endReason one of SESSION_END_REASONS
+ * @param {{ actorUserId?: string|null, exceptSessionId?: string|null, now?: Date }} [opts]
+ * @returns {Promise<number>} sessions ended by this call
+ */
+async function revokeUserSessions(
+  userId,
+  endReason,
+  { actorUserId = null, exceptSessionId = null, now = new Date(), audit = true, detectedBy = 'server' } = {}
+) {
+  if (!isUuid(userId)) return 0;
+  const rows = await store.listOpenForUser(userId);
+  let ended = 0;
+  for (const row of rows) {
+    if (exceptSessionId && row.id === exceptSessionId) continue;
+    // eslint-disable-next-line no-await-in-loop
+    if (await endSession(row, endReason, { now, actorUserId: actorUserId || userId, detectedBy, audit })) ended += 1;
+  }
+  return ended;
+}
+
+/** Canonical "end all sessions of this user" (password reset, MFA reset, role change, ...). */
+const endAllUserSessions = (userId, endReason, opts) => revokeUserSessions(userId, endReason, opts);
+
+/**
+ * Record a fresh MFA verification (login step-up) on an open session.
+ * Updates the in-process cache so the next request sees the new assurance immediately.
+ */
+async function markSessionMfaVerified(sessionId, { now = new Date() } = {}) {
+  if (!isUuid(sessionId)) return false;
+  const ok = await store.markMfaVerified(sessionId, now);
+  const hit = sessionCache.get(sessionId);
+  if (ok && hit) {
+    hit.row = { ...hit.row, authentication_level: 'MFA', mfa_verified_at: now };
+  } else {
+    invalidateSessionCache(sessionId);
+  }
+  return ok;
+}
+
+async function listSessionsForOwner(userId, options) {
+  return store.listForOwner(userId, options);
+}
+
+/**
+ * Same as revokeUserSessions, but never throws: the account change that triggered it has
+ * already been committed, and stale sessions are still bounded by the DB-driven auth context.
+ */
+async function revokeUserSessionsSafely(userId, endReason, opts) {
+  try {
+    return await revokeUserSessions(userId, endReason, opts);
+  } catch (err) {
+    logger.error('AUTH_SESSION_REVOKE_FAILED', { endReason, error: String(err?.message || err).slice(0, 200) });
+    return 0;
+  }
+}
+
 async function getSessionById(sid) {
   if (!isUuid(sid)) return null;
   return store.findById(sid);
@@ -444,6 +560,11 @@ module.exports = {
   stopSessionSweeper,
   getSessionById,
   listSessionsForUser,
+  revokeUserSessions,
+  revokeUserSessionsSafely,
+  endAllUserSessions,
+  markSessionMfaVerified,
+  listSessionsForOwner,
   invalidateSessionCache,
   codeForEndReason,
   setAuthSessionStoreForTests,

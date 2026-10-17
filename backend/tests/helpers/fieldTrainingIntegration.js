@@ -138,6 +138,8 @@ function installLazySessionStore() {
               absolute_expires_at: new Date(now.getTime() + 12 * 3_600_000),
               portal_type: pending.portalType,
               is_active: true,
+              authentication_level: 'MFA',
+              mfa_verified_at: now,
             },
           });
         }

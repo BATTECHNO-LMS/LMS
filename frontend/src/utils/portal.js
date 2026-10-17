@@ -51,8 +51,29 @@ export function getRememberedPortal() {
   return null;
 }
 
-export function getRememberedPortalLoginPath() {
-  const value = getRememberedPortal();
+/**
+ * Read the `portalType` claim of a JWT without verifying it. Only for choosing which
+ * login page to show after the session ends — never for authorization.
+ */
+export function portalTypeFromToken(token) {
+  if (typeof token !== 'string') return null;
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    const json = atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '='));
+    const value = JSON.parse(json)?.portalType;
+    return value === 'UNIVERSITY' || value === 'INSTITUTION' ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string|null} [portalType] the signed-in user's portal (preferred over the per-tab hint,
+ *   which is missing in tabs that never visited a login page)
+ */
+export function getRememberedPortalLoginPath(portalType = null) {
+  const value = portalType === 'INSTITUTION' || portalType === 'UNIVERSITY' ? portalType : getRememberedPortal();
   if (value === 'INSTITUTION') return '/institutions/login';
   if (value === 'UNIVERSITY') return '/universities/login';
   return getLoginPathForCurrentPortal();

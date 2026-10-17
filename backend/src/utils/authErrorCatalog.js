@@ -35,6 +35,22 @@ const AUTH_ERROR_CODES = Object.freeze({
   SESSION_ENDED: 'SESSION_ENDED',
   SESSION_IDLE_TIMEOUT: 'SESSION_IDLE_TIMEOUT',
   SESSION_ABSOLUTE_EXPIRED: 'SESSION_ABSOLUTE_EXPIRED',
+  /** Login state (not an error): password verified, MFA code required. */
+  MFA_REQUIRED: 'MFA_REQUIRED',
+  /** Login state (not an error): password verified, MFA enrollment required before any session. */
+  MFA_ENROLLMENT_REQUIRED: 'MFA_ENROLLMENT_REQUIRED',
+  MFA_CODE_INVALID: 'MFA_CODE_INVALID',
+  MFA_CHALLENGE_INVALID: 'MFA_CHALLENGE_INVALID',
+  MFA_TEMPORARILY_LOCKED: 'MFA_TEMPORARILY_LOCKED',
+  /** 401: a privileged account's session lacks MFA assurance → fresh login required. */
+  MFA_SESSION_REQUIRED: 'MFA_SESSION_REQUIRED',
+  MFA_NOT_ENABLED: 'MFA_NOT_ENABLED',
+  MFA_ALREADY_ENABLED: 'MFA_ALREADY_ENABLED',
+  MFA_DISABLE_FORBIDDEN: 'MFA_DISABLE_FORBIDDEN',
+  MFA_UNAVAILABLE: 'MFA_UNAVAILABLE',
+  PASSWORD_CONFIRMATION_INVALID: 'PASSWORD_CONFIRMATION_INVALID',
+  /** 403: the operation needs a recent MFA verification on this session. */
+  STEP_UP_REQUIRED: 'STEP_UP_REQUIRED',
 });
 
 const AUTH_MESSAGES = Object.freeze({
@@ -91,9 +107,27 @@ const AUTH_MESSAGES = Object.freeze({
   [AUTH_ERROR_CODES.SESSION_ENDED]:
     'تم إنهاء جلستك. يرجى تسجيل الدخول مرة أخرى.',
   [AUTH_ERROR_CODES.SESSION_IDLE_TIMEOUT]:
-    'انتهت جلستك بسبب عدم النشاط. يرجى تسجيل الدخول مرة أخرى.',
+    'انتهت جلستك بسبب عدم النشاط لمدة 30 دقيقة. يرجى تسجيل الدخول مرة أخرى.',
   [AUTH_ERROR_CODES.SESSION_ABSOLUTE_EXPIRED]:
     'انتهت المدة القصوى لجلستك. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.MFA_REQUIRED]: 'أدخل رمز التحقق من تطبيق المصادقة لإكمال تسجيل الدخول.',
+  [AUTH_ERROR_CODES.MFA_ENROLLMENT_REQUIRED]:
+    'يتطلب حسابك إعداد المصادقة الثنائية قبل المتابعة.',
+  [AUTH_ERROR_CODES.MFA_CODE_INVALID]: 'رمز التحقق غير صحيح أو انتهت صلاحيته.',
+  [AUTH_ERROR_CODES.MFA_CHALLENGE_INVALID]:
+    'انتهت صلاحية طلب التحقق. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.MFA_TEMPORARILY_LOCKED]:
+    'تم إيقاف محاولات التحقق مؤقتًا بسبب كثرة المحاولات. يرجى المحاولة لاحقًا.',
+  [AUTH_ERROR_CODES.MFA_SESSION_REQUIRED]:
+    'يتطلب حسابك التحقق الثنائي. يرجى تسجيل الدخول مرة أخرى.',
+  [AUTH_ERROR_CODES.MFA_NOT_ENABLED]: 'المصادقة الثنائية غير مفعّلة لهذا الحساب.',
+  [AUTH_ERROR_CODES.MFA_ALREADY_ENABLED]: 'المصادقة الثنائية مفعّلة مسبقًا.',
+  [AUTH_ERROR_CODES.MFA_DISABLE_FORBIDDEN]:
+    'المصادقة الثنائية إلزامية لهذا الحساب ولا يمكن إيقافها.',
+  [AUTH_ERROR_CODES.MFA_UNAVAILABLE]: 'خدمة المصادقة الثنائية غير متاحة حاليًا.',
+  [AUTH_ERROR_CODES.PASSWORD_CONFIRMATION_INVALID]: 'كلمة المرور غير صحيحة.',
+  [AUTH_ERROR_CODES.STEP_UP_REQUIRED]:
+    'يتطلب هذا الإجراء إعادة التحقق من هويتك باستخدام تطبيق المصادقة.',
   PORTAL_MISMATCH_UNIVERSITY:
     'هذا الحساب مرتبط ببوابة الجامعات. يرجى تسجيل الدخول من بوابة الجامعات.',
   PORTAL_MISMATCH_INSTITUTION:
@@ -103,6 +137,10 @@ const AUTH_MESSAGES = Object.freeze({
 const ACTIVATION_SLA_HOURS = 48;
 
 function messageForCode(code, fallback) {
+  if (code === AUTH_ERROR_CODES.SESSION_IDLE_TIMEOUT) {
+    const minutes = require('../config/env').env.AUTH_IDLE_TIMEOUT_MINUTES;
+    return `انتهت جلستك بسبب عدم النشاط لمدة ${minutes} دقيقة. يرجى تسجيل الدخول مرة أخرى.`;
+  }
   return AUTH_MESSAGES[code] || fallback || AUTH_MESSAGES[AUTH_ERROR_CODES.SERVER_ERROR];
 }
 

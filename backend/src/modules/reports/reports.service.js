@@ -1,19 +1,15 @@
 ﻿const repo = require('./reports.repository');
 const { ApiError } = require('../../utils/apiError');
+const { escapeCsvCell } = require('../../shared/security/spreadsheetSafe');
 
 const REPORT_TYPES = new Set(['universities', 'cohorts', 'attendance', 'assessments', 'recognition', 'certificates']);
 
 function toCsv(rows) {
   if (!rows.length) return '';
   const cols = Object.keys(rows[0]);
-  const esc = (v) => {
-    if (v == null) return '';
-    const s = String(v);
-    return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
   const lines = [cols.join(',')];
   for (const row of rows) {
-    lines.push(cols.map((c) => esc(row[c])).join(','));
+    lines.push(cols.map((c) => escapeCsvCell(row[c])).join(','));
   }
   return lines.join('\n');
 }
@@ -83,4 +79,5 @@ async function exportReport(type, format, filters) {
 module.exports = {
   getReportByType,
   exportReport,
+  toCsv,
 };

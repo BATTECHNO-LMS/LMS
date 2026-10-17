@@ -126,3 +126,53 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: Reject accidental source maps in dist
+        run: |
+          if find dist -name '*.map' -type f | grep -q .; then
+            echo "Source maps must not ship in production dist"
+            exit 1
+          fi
+      - name: Scan dist for secret-like patterns (names only)
+        run: |
+          if grep -RInE '(JWT_SECRET|MFA_ENCRYPTION_KEY|R2_SECRET_ACCESS_KEY|DATABASE_URL|BEGIN (RSA |OPENSSH )?PRIVATE KEY)' dist; then
+            echo "Possible secret material in frontend dist"
+            exit 1
+          fi
+          echo "No obvious secret patterns in dist"
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    # Advisory until Phase 4 exception register + safe upgrades land; still surfaces in CI logs.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Backend npm audit (high+)
+        working-directory: backend
+        run: npm audit --audit-level=high
+      - name: Frontend npm audit (high+)
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+  sast-semgrep:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep OWASP (advisory until tuned)
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/owasp-top-ten

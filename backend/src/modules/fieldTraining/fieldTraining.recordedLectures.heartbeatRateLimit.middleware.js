@@ -1,8 +1,7 @@
 'use strict';
 
-const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
 const { env } = require('../../config/env');
+const { createRateLimiter, userOrIpKey } = require('../../middlewares/rateLimit.middleware');
 
 const windowMs = Number(env.RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_WINDOW_MS) || 60 * 1000;
 const max = Number(env.RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_MAX) || 90;
@@ -12,15 +11,15 @@ const max = Number(env.RECORDED_LECTURE_HEARTBEAT_RATE_LIMIT_MAX) || 90;
  * Normal playback is ~6 requests/min per tab; two tabs plus seeks stay under 90/min.
  * Does not change the platform-wide limiter.
  */
-const recordedLectureHeartbeatLimiter = rateLimit({
+const recordedLectureHeartbeatLimiter = createRateLimiter({
+  name: 'recorded_lecture_heartbeat',
+  routeGroup: 'field_training_recorded_lectures',
+  keyType: 'user_or_ip_resource',
   windowMs,
   max,
-  standardHeaders: true,
-  legacyHeaders: false,
   keyGenerator: (req) => {
-    const userId = req.user?.userId || ipKeyGenerator(req.ip || '');
-    const lectureId = req.params?.lectureId || 'unknown';
-    return `${userId}:${lectureId}`;
+    const lectureId = String(req.params?.lectureId || 'unknown').slice(0, 64);
+    return `${userOrIpKey(req)}:${lectureId}`;
   },
   message: {
     success: false,

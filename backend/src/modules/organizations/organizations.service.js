@@ -455,6 +455,19 @@ async function assignUser(requester, organizationId, body) {
     );
   }
 
+  const { isMfaRequiredForUser } = require('../auth/mfa/mfaPolicy');
+  const newRolePrivileged = isMfaRequiredForUser({ roles: [], assignmentRoleCodes: [roleCode] });
+  const previous = await prisma.user_organization_assignments.findFirst({
+    where: { user_id: body.user_id, organization_id: organizationId, is_active: true },
+    select: { role_code: true },
+  });
+  const previousPrivileged = Boolean(
+    previous && isMfaRequiredForUser({ roles: [], assignmentRoleCodes: [previous.role_code] })
+  );
+  if (newRolePrivileged || previousPrivileged) {
+    require('../auth/mfa/stepUp').assertStepUp(requester);
+  }
+
   await prisma.user_organization_assignments.updateMany({
     where: {
       user_id: body.user_id,
@@ -492,6 +505,15 @@ async function assignUser(requester, organizationId, body) {
     }
   }
   invalidateAuthContextForUser(body.user_id);
+
+  if ((previous && previous.role_code !== roleCode) || (!previous && newRolePrivileged)) {
+    const { revokeUserSessionsSafely } = require('../auth/authSession.service');
+    const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
+    await revokeUserSessionsSafely(body.user_id, SESSION_END_REASONS.ROLE_CHANGED, {
+      actorUserId: requester.userId,
+      exceptSessionId: String(requester.userId) === String(body.user_id) ? requester.sessionId || null : null,
+    });
+  }
 
   await recordAudit({
     userId: requester.userId,
@@ -644,6 +666,13 @@ async function changeMemberActivation(requester, organizationId, body) {
 
   const user = await prisma.users.findUnique({ where: { id: body.user_id } });
   if (!user) throw new ApiError(404, 'User not found');
+
+  if (body.action !== 'activate') {
+    const { isMfaRequiredForUser } = require('../auth/mfa/mfaPolicy');
+    if (isMfaRequiredForUser({ roles: [], assignmentRoleCodes: [assignment.role_code] })) {
+      require('../auth/mfa/stepUp').assertStepUp(requester);
+    }
+  }
 
   let status = user.status;
   let activated_at = user.activated_at;

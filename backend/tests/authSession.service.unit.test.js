@@ -2,8 +2,10 @@
 
 const { describe, it, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
 const { installAuditCapture } = require('./helpers/auditCapture');
 const authSessions = require('../src/modules/auth/authSession.service');
+const { runWithRequestContext } = require('../src/shared/requestContext');
 
 const USER = '11111111-1111-4111-8111-111111111111';
 const OTHER = '22222222-2222-4222-8222-222222222222';
@@ -27,9 +29,12 @@ function makeStore() {
       return r ? { ...r } : null;
     },
     async create(data) {
-      const row = { id: SID, ended_at: null, end_reason: null, ...data };
+      const row = { id: rows.size ? randomUUID() : SID, ended_at: null, end_reason: null, ...data };
       rows.set(row.id, row);
       return { ...row };
+    },
+    async listOpenForUser(userId) {
+      return [...rows.values()].filter((r) => r.user_id === userId && !r.ended_at).map((r) => ({ ...r }));
     },
     async endIfOpen(id, { endReason, endedAt }) {
       const r = rows.get(id);
@@ -185,14 +190,90 @@ describe('auth sessions — idle timeout policy', () => {
     assert.equal(verdict.code, 'SESSION_ENDED');
   });
 
-  it('admin revoke → AUTH_SESSION_ENDED with ADMIN_REVOKED', async () => {
+  it('admin revoke → AUTH_SESSION_REVOKED with ADMIN_REVOKED', async () => {
     const row = await authSessions.getSessionById(SID);
     await authSessions.endSession(row, 'ADMIN_REVOKED', { now: at(2), actorUserId: OTHER });
-    const ended = audit.byAction('AUTH_SESSION_ENDED');
+    const ended = audit.byAction('AUTH_SESSION_REVOKED');
     assert.equal(ended.length, 1);
     assert.equal(ended[0].user_id, OTHER);
     assert.equal(ended[0].subject_user_id, USER);
     assert.equal(ended[0].new_values.endReason, 'ADMIN_REVOKED');
+  });
+
+  it('29m59s without activity is still active; exactly 30m is expired (via validateSession)', async () => {
+    const active = await authSessions.validateSession({ sid: SID, userId: USER, now: new Date(at(30).getTime() - 1000) });
+    assert.equal(active.ok, true);
+    const expired = await authSessions.validateSession({ sid: SID, userId: USER, now: at(30) });
+    assert.equal(expired.code, 'SESSION_IDLE_TIMEOUT');
+  });
+
+  it('absolute expiry ends the session once with AUTH_SESSION_ABSOLUTE_EXPIRED, even when active', async () => {
+    for (let h = 0.25; h < 12; h += 0.25) {
+      const s = (await authSessions.validateSession({ sid: SID, userId: USER, now: at(h * 60) })).session;
+      assert.ok(s, `active at ${h}h`);
+      await authSessions.recordActivity(s, { now: at(h * 60) });
+    }
+    const a = await authSessions.validateSession({ sid: SID, userId: USER, now: at(12 * 60) });
+    const b = await authSessions.validateSession({ sid: SID, userId: USER, now: at(12 * 60 + 1) });
+    await authSessions.sweepExpiredSessions({ now: at(13 * 60) });
+    assert.equal(a.code, 'SESSION_ABSOLUTE_EXPIRED');
+    assert.equal(b.code, 'SESSION_ABSOLUTE_EXPIRED');
+    assert.equal(audit.byAction('AUTH_SESSION_ABSOLUTE_EXPIRED').length, 1);
+    assert.equal(audit.byAction('AUTH_SESSION_IDLE_TIMEOUT').length, 0);
+    assert.equal(store.rows.get(SID).end_reason, 'ABSOLUTE_EXPIRY');
+  });
+
+  it('multiple devices: each login is an independent session', async () => {
+    const second = await authSessions.createSession({ userId: USER, portalType: 'UNIVERSITY', now: at(1) });
+    assert.notEqual(second.id, SID);
+    await authSessions.endSession(await authSessions.getSessionById(SID), 'USER_LOGOUT', { now: at(2) });
+    assert.equal((await authSessions.validateSession({ sid: SID, userId: USER, now: at(3) })).code, 'SESSION_ENDED');
+    assert.equal((await authSessions.validateSession({ sid: second.id, userId: USER, now: at(3) })).ok, true);
+  });
+
+  it('revokeUserSessions ends all open sessions once (PASSWORD_RESET), skipping already-ended ones', async () => {
+    const second = await authSessions.createSession({ userId: USER, portalType: 'STUDENT', now: at(1) });
+    await authSessions.createSession({ userId: OTHER, portalType: 'STUDENT', now: at(1) });
+    audit.clear();
+    assert.equal(await authSessions.revokeUserSessions(USER, 'PASSWORD_RESET', { now: at(5) }), 2);
+    assert.equal(await authSessions.revokeUserSessions(USER, 'PASSWORD_RESET', { now: at(6) }), 0);
+    const ended = audit.byAction('AUTH_SESSION_REVOKED');
+    assert.equal(ended.length, 2);
+    assert.ok(ended.every((r) => r.new_values.endReason === 'PASSWORD_RESET' && r.subject_user_id === USER));
+    assert.equal((await authSessions.validateSession({ sid: SID, userId: USER, now: at(7) })).code, 'SESSION_ENDED');
+    assert.equal((await authSessions.validateSession({ sid: second.id, userId: USER, now: at(7) })).code, 'SESSION_ENDED');
+    assert.equal([...store.rows.values()].filter((r) => r.user_id === OTHER && !r.ended_at).length, 1, 'other users untouched');
+  });
+
+  it('revokeUserSessions can keep the acting session (self role/status edit)', async () => {
+    const second = await authSessions.createSession({ userId: USER, portalType: 'UNIVERSITY', now: at(1) });
+    const n = await authSessions.revokeUserSessions(USER, 'SECURITY_REVOKED', { now: at(2), exceptSessionId: SID, actorUserId: OTHER });
+    assert.equal(n, 1);
+    assert.equal((await authSessions.validateSession({ sid: SID, userId: USER, now: at(3) })).ok, true);
+    assert.equal(store.rows.get(second.id).end_reason, 'SECURITY_REVOKED');
+    assert.equal(audit.byAction('AUTH_SESSION_REVOKED')[0].user_id, OTHER);
+  });
+
+  it('revokeUserSessionsSafely never throws', async () => {
+    authSessions.setAuthSessionStoreForTests({ ...store, listOpenForUser: async () => { throw new Error('db down'); } });
+    assert.equal(await authSessions.revokeUserSessionsSafely(USER, 'PASSWORD_RESET'), 0);
+  });
+
+  it('unknown end reasons are refused', async () => {
+    const row = await authSessions.getSessionById(SID);
+    await assert.rejects(() => authSessions.endSession(row, 'WHATEVER'), /Unknown session end reason/);
+    assert.equal(store.rows.get(SID).ended_at, null);
+  });
+
+  it('session stores the creating request id, never tokens or passwords', async () => {
+    const row = await runWithRequestContext({ requestId: 'req-abc-123' }, () =>
+      authSessions.createSession({ userId: OTHER, portalType: 'STUDENT', now: at(1) })
+    );
+    assert.equal(row.created_request_id, 'req-abc-123');
+    const keys = Object.keys(store.rows.get(row.id));
+    for (const banned of ['token', 'jwt', 'password', 'password_hash', 'otp', 'cookie', 'authorization']) {
+      assert.equal(keys.includes(banned), false, banned);
+    }
   });
 
   it('a session cannot be used by another user or with a malformed sid', async () => {

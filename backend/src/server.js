@@ -5,13 +5,33 @@ const { validateJwtSecret } = require('./config/jwtSecretValidation');
 
 const port = env.PORT;
 
+function databaseUrlLooksTlsSafe(rawUrl) {
+  const u = String(rawUrl || '');
+  // Neon and most hosted Postgres require TLS; accept common SSL query params without logging the URL.
+  if (/[?&]sslmode=(require|verify-ca|verify-full|prefer)/i.test(u)) return true;
+  if (/[?&]ssl=true/i.test(u)) return true;
+  // Neon default endpoints enforce TLS at the wire level even when sslmode is omitted.
+  if (/\.neon\.tech([:/?]|$)/i.test(u)) return true;
+  return false;
+}
+
 function assertProductionConfig() {
   if (env.NODE_ENV !== 'production') return;
   const errors = [];
   if (!env.DATABASE_URL) errors.push('DATABASE_URL is required in production');
+  else if (!databaseUrlLooksTlsSafe(env.DATABASE_URL)) {
+    errors.push(
+      'DATABASE_URL must use TLS (sslmode=require|verify-ca|verify-full, or a provider that enforces TLS such as Neon)'
+    );
+  }
   const jwtCheck = validateJwtSecret(env.JWT_SECRET, { minLength: env.JWT_SECRET_MIN_LENGTH });
   if (!jwtCheck.ok) {
     errors.push(jwtCheck.reason);
+  }
+  if (!env.PUBLIC_BASE_URL) {
+    errors.push('PUBLIC_BASE_URL is required in production (canonical links; do not use request Host)');
+  } else if (/^http:\/\//i.test(env.PUBLIC_BASE_URL) && !/localhost|127\.0\.0\.1/i.test(env.PUBLIC_BASE_URL)) {
+    errors.push('PUBLIC_BASE_URL must be https in production');
   }
   if (env.STORAGE_BACKEND === 'r2') {
     const { getRequiredR2Config } = require('./shared/storage/providers/r2.provider');
@@ -26,11 +46,31 @@ function assertProductionConfig() {
       errors.push('OPENAI_API_KEY is required when AI_PROVIDER=openai');
     }
   }
+  if (!env.MFA_ENABLED) errors.push('MFA_ENABLED=false is not allowed in production');
   if (errors.length) {
     // eslint-disable-next-line no-console
     console.error('Invalid production configuration:\n', errors.join('\n'));
     process.exit(1);
   }
+}
+
+/** MFA secrets are never stored or read without a valid key — refuse to start instead. */
+function assertMfaConfig() {
+  const { validateMfaConfiguration } = require('./shared/security/mfaCrypto');
+  const check = validateMfaConfiguration();
+  if (check.ok) {
+    if (!env.MFA_ENABLED) {
+      // eslint-disable-next-line no-console
+      console.warn('[mfa] MFA_ENABLED=false — multi-factor authentication is OFF (local development only).');
+    }
+    return;
+  }
+  // eslint-disable-next-line no-console
+  console.error(
+    `[mfa] Invalid MFA configuration: ${check.reason}.` +
+      (env.NODE_ENV === 'production' ? '' : ' For local development set MFA_ENCRYPTION_KEY or MFA_ENABLED=false.')
+  );
+  process.exit(1);
 }
 
 function warnDevStorageAiConfig() {
@@ -51,6 +91,7 @@ function warnDevStorageAiConfig() {
 
 async function start() {
   assertProductionConfig();
+  assertMfaConfig();
   warnDevStorageAiConfig();
   if (!env.DATABASE_URL) {
     // eslint-disable-next-line no-console

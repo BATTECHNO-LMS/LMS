@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { Clock3 } from 'lucide-react';
 import { AppModal } from '../../../components/designSystem/AppModal.jsx';
 import { Button } from '../../../components/common/Button.jsx';
@@ -9,14 +8,17 @@ import {
   ACTIVITY_PING_THROTTLE_MS,
   ACTIVITY_STORAGE_THROTTLE_MS,
   IDLE_CHECK_INTERVAL_MS,
-  IDLE_WARNING_MESSAGE_AR,
+  IDLE_MINUTES_STORAGE_KEY,
   LAST_ACTIVITY_PING_STORAGE_KEY,
   LAST_ACTIVITY_STORAGE_KEY,
+  NAVIGATION_ACTIVITY_EVENT,
   PRESENCE_INTERVAL_MS,
   computeIdleState,
+  idleWarningMessage,
   isHumanActivityEvent,
   planActivityPing,
   remainingIdleMs,
+  resolveIdleConfig,
 } from './sessionPolicy.js';
 
 function readNumber(key) {
@@ -52,14 +54,25 @@ function formatRemaining(ms) {
  * @param {{ onExpire: (code: string) => void, onLogout: () => Promise<void> | void }} props
  */
 export function SessionManager({ onExpire, onLogout }) {
-  const location = useLocation();
   const lastActivityRef = useRef(Date.now());
   const lastStoredRef = useRef(0);
   const trailingTimerRef = useRef(null);
   const pingInFlightRef = useRef(false);
   const expiredRef = useRef(false);
+  const idleConfigRef = useRef(resolveIdleConfig(null));
   const [warning, setWarning] = useState(false);
   const [remaining, setRemaining] = useState(0);
+  const [warningMinutes, setWarningMinutes] = useState(
+    Math.round(idleConfigRef.current.warningBeforeMs / 60000)
+  );
+
+  const adoptServerConfig = useCallback((response) => {
+    const session = response?.data?.data?.session;
+    if (!session) return;
+    idleConfigRef.current = resolveIdleConfig(session);
+    setWarningMinutes(Math.round(idleConfigRef.current.warningBeforeMs / 60000));
+    writeNumber(IDLE_MINUTES_STORAGE_KEY, Math.round(idleConfigRef.current.idleTimeoutMs / 60000));
+  }, []);
 
   const sharedLastActivity = useCallback(
     () => Math.max(lastActivityRef.current, readNumber(LAST_ACTIVITY_STORAGE_KEY)),
@@ -87,13 +100,13 @@ export function SessionManager({ onExpire, onLogout }) {
     pingInFlightRef.current = true;
     writeNumber(LAST_ACTIVITY_PING_STORAGE_KEY, now);
     try {
-      await sendActivityPing();
+      adoptServerConfig(await sendActivityPing());
     } catch {
       /* 401 session codes are handled by the API client interceptor */
     } finally {
       pingInFlightRef.current = false;
     }
-  }, [sharedLastActivity]);
+  }, [adoptServerConfig, sharedLastActivity]);
 
   const markActivity = useCallback(
     ({ force = false } = {}) => {
@@ -126,13 +139,14 @@ export function SessionManager({ onExpire, onLogout }) {
     if (expiredRef.current) return;
     const now = Date.now();
     const last = sharedLastActivity();
-    const state = computeIdleState({ now, lastActivityAt: last });
+    const { idleTimeoutMs, warningBeforeMs } = idleConfigRef.current;
+    const state = computeIdleState({ now, lastActivityAt: last, idleTimeoutMs, warningBeforeMs });
     if (state === 'expired') {
       expireForIdle();
       return;
     }
     setWarning(state === 'warning');
-    setRemaining(remainingIdleMs({ now, lastActivityAt: last }));
+    setRemaining(remainingIdleMs({ now, lastActivityAt: last, idleTimeoutMs }));
   }, [expireForIdle, sharedLastActivity]);
 
   useEffect(() => {
@@ -142,17 +156,14 @@ export function SessionManager({ onExpire, onLogout }) {
       markActivity();
     };
     const opts = { passive: true, capture: true };
-    ACTIVITY_EVENTS.forEach((type) => window.addEventListener(type, handler, opts));
+    const types = [...ACTIVITY_EVENTS, NAVIGATION_ACTIVITY_EVENT];
+    types.forEach((type) => window.addEventListener(type, handler, opts));
     return () => {
-      ACTIVITY_EVENTS.forEach((type) => window.removeEventListener(type, handler, opts));
+      types.forEach((type) => window.removeEventListener(type, handler, opts));
       if (trailingTimerRef.current) window.clearTimeout(trailingTimerRef.current);
       trailingTimerRef.current = null;
     };
   }, [markActivity]);
-
-  useEffect(() => {
-    markActivity();
-  }, [location.pathname, markActivity]);
 
   useEffect(() => {
     const id = window.setInterval(checkIdle, IDLE_CHECK_INTERVAL_MS);
@@ -174,15 +185,21 @@ export function SessionManager({ onExpire, onLogout }) {
   useEffect(() => {
     const id = window.setInterval(() => {
       if (expiredRef.current || document.visibilityState !== 'visible') return;
-      sendPresencePing().catch(() => {});
+      sendPresencePing().then(adoptServerConfig, () => {});
     }, PRESENCE_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, []);
+  }, [adoptServerConfig]);
 
   useEffect(() => {
     if (!warning) return undefined;
     const id = window.setInterval(() => {
-      setRemaining(remainingIdleMs({ now: Date.now(), lastActivityAt: sharedLastActivity() }));
+      setRemaining(
+        remainingIdleMs({
+          now: Date.now(),
+          lastActivityAt: sharedLastActivity(),
+          idleTimeoutMs: idleConfigRef.current.idleTimeoutMs,
+        })
+      );
     }, 1000);
     return () => window.clearInterval(id);
   }, [warning, sharedLastActivity]);
@@ -198,7 +215,7 @@ export function SessionManager({ onExpire, onLogout }) {
       variant="warning"
       icon={<Clock3 size={20} />}
       title="تنبيه انتهاء الجلسة"
-      description={IDLE_WARNING_MESSAGE_AR}
+      description={idleWarningMessage(warningMinutes)}
       closeOnOverlay={false}
       footer={
         <div className="session-timeout__actions">

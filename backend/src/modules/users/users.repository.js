@@ -203,13 +203,21 @@ async function updateUser(id, data, tx = prisma) {
   return row;
 }
 
-/** Inactive users with the student role, optionally scoped to a university. */
-async function findInactiveStudents({ studentRoleId, university_id }) {
+/**
+ * Inactive users with the student role, optionally scoped to a university and/or
+ * an explicit id allowlist. When `university_id` is omitted the caller must already
+ * have verified system-wide authority — this helper does not invent global access.
+ */
+async function findInactiveStudents({ studentRoleId, university_id, user_ids } = {}) {
   const roleLinks = await prisma.user_roles.findMany({
     where: { role_id: studentRoleId },
     select: { user_id: true },
   });
-  const studentUserIds = roleLinks.map((r) => r.user_id);
+  let studentUserIds = roleLinks.map((r) => r.user_id);
+  if (Array.isArray(user_ids) && user_ids.length) {
+    const allow = new Set(user_ids.map(String));
+    studentUserIds = studentUserIds.filter((id) => allow.has(String(id)));
+  }
   if (!studentUserIds.length) return [];
 
   const base = {

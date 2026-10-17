@@ -14,6 +14,9 @@ export async function login(credentials) {
   }
   const res = await apiClient.post(endpoints.auth.login, body);
   const payload = unwrapApiData(res);
+  if (payload?.mfa?.challengeToken) {
+    return { data: { mfa: payload.mfa } };
+  }
   const token = payload?.token;
   if (!token || typeof token !== 'string') {
     throw new Error('Invalid login response: missing token');

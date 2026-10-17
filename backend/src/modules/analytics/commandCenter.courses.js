@@ -7,9 +7,29 @@ const { scopeUsersSql } = require('./commandCenter.sql');
 
 async function getContentCoursesAnalytics(scope, period) {
   const studentScope = scopeUsersSql(scope);
+  // Published course count must follow tenant scope — a global catalog count
+  // would leak platform-wide volume to university/organization admins.
+  const publishedScoped = prisma.$queryRaw`
+    SELECT COUNT(DISTINCT c.id)::int AS c
+    FROM courses c
+    WHERE c.status = 'published'::course_status
+      AND (
+        ${
+          scope.isGlobal && !scope.universityId && !scope.organizationId && !scope.organizationType
+            ? Prisma.sql`TRUE`
+            : Prisma.sql`EXISTS (
+                SELECT 1
+                FROM course_enrollments e
+                JOIN users u ON u.id = e.student_id
+                WHERE e.course_id = c.id
+                  ${studentScope}
+              )`
+        }
+      )
+  `;
 
-  const [published, enrollments, completed, startedInPeriod, popular] = await Promise.all([
-    prisma.courses.count({ where: { status: 'published' } }),
+  const [publishedRows, enrollments, completed, startedInPeriod, popular] = await Promise.all([
+    publishedScoped,
     prisma.$queryRaw`
       SELECT
         COUNT(*)::int AS enrollments,
@@ -51,6 +71,7 @@ async function getContentCoursesAnalytics(scope, period) {
     `,
   ]);
 
+  const published = intCount(publishedRows[0]?.c);
   const e = enrollments[0] || {};
   const enrollmentCount = intCount(e.enrollments);
   const completedCount = intCount(e.completed);
@@ -143,10 +164,21 @@ async function getMicroCredentialAnalytics(scope, period) {
 
   const [published, enroll, certs] = await Promise.all([
     prisma.$queryRaw`
-      SELECT COUNT(*)::int AS c
+      SELECT COUNT(DISTINCT mc.id)::int AS c
       FROM micro_credentials mc
       WHERE mc.status IN ('active'::micro_credential_status, 'approved'::micro_credential_status)
         ${mcFilter}
+        AND (
+          ${
+            scope.isGlobal && !scope.universityId
+              ? Prisma.sql`TRUE`
+              : Prisma.sql`EXISTS (
+                  SELECT 1 FROM cohorts co
+                  WHERE co.micro_credential_id = mc.id
+                    ${uniFilter}
+                )`
+          }
+        )
     `,
     prisma.$queryRaw`
       SELECT

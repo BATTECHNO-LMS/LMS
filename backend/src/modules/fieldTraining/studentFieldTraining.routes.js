@@ -3,6 +3,7 @@ const { authenticate } = require('../../middlewares/auth.middleware');
 const { authorizeRoles, requireOrganizationType } = require('../../middlewares/authorization.middleware');
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
+const { getSecurityClientIp } = require('../../shared/security/clientIdentity');
 const studentFieldTrainingController = require('./studentFieldTraining.controller');
 const workflowController = require('./fieldTraining.workflow.controller');
 const reportController = require('./fieldTrainingReport.controller');
@@ -107,7 +108,7 @@ router.post(
         req.validated.body,
         req.user,
         {
-          ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
+          ipAddress: getSecurityClientIp(req),
           deviceInfo: String(req.headers['user-agent'] || '').slice(0, 500) || null,
         }
       );

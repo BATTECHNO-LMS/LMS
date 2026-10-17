@@ -19,6 +19,14 @@ export const OUTCOME_VARIANTS = Object.freeze({
   SUCCESS: 'success',
   FAILED: 'danger',
   DENIED: 'warning',
+  BLOCKED: 'danger',
+});
+
+export const SEVERITY_VARIANTS = Object.freeze({
+  INFO: 'neutral',
+  WARNING: 'warning',
+  HIGH: 'danger',
+  CRITICAL: 'danger',
 });
 
 export const SESSION_END_REASON_LABELS_AR = Object.freeze({
@@ -26,6 +34,14 @@ export const SESSION_END_REASON_LABELS_AR = Object.freeze({
   ADMIN_REVOKED: 'إنهاء من الإدارة',
   IDLE_TIMEOUT: 'انتهت لعدم النشاط',
   ABSOLUTE_EXPIRY: 'انتهت المدة القصوى',
+  PASSWORD_RESET: 'إنهاء بعد إعادة تعيين كلمة المرور',
+  PASSWORD_CHANGED: 'إنهاء بعد تغيير كلمة المرور',
+  SECURITY_REVOKED: 'إنهاء أمني',
+  ROLE_CHANGED: 'إنهاء بسبب تغيير الدور',
+  SCOPE_CHANGED: 'إنهاء بسبب تغيير نطاق الحساب',
+  MFA_RESET: 'إنهاء بعد إعادة تعيين المصادقة الثنائية',
+  USER_REVOKED: 'أنهاها المستخدم من صفحة الأمان',
+  USER_REVOKED_OTHER_SESSIONS: 'إنهاء الجلسات الأخرى من المستخدم',
 });
 
 /** Keys whose values are shown in the human-readable details list (others stay super-admin raw JSON). */
@@ -57,6 +73,15 @@ const DETAIL_KEY_LABELS_AR = Object.freeze({
   endReason: 'سبب الانتهاء',
   portalType: 'البوابة',
   identifierMasked: 'المعرّف (مقنّع)',
+  limiter: 'آلية التقييد',
+  routeGroup: 'مجموعة المسارات',
+  route: 'المسار',
+  method: 'نوع الطلب',
+  purpose: 'الغرض',
+  attemptsUsed: 'المحاولات المستخدمة',
+  maxAttempts: 'الحد الأقصى للمحاولات',
+  retryAfterSeconds: 'الانتظار (ثوانٍ)',
+  scopeType: 'نطاق الرفض',
   module: 'القسم',
   completed_training_hours: 'الساعات المكتملة',
 });
@@ -71,6 +96,10 @@ export function roleLabel(code) {
 
 export function outcomeVariant(outcome) {
   return OUTCOME_VARIANTS[String(outcome || 'SUCCESS')] || 'default';
+}
+
+export function severityVariant(severity) {
+  return SEVERITY_VARIANTS[String(severity || '')] || 'default';
 }
 
 export function formatAuditDateTime(value, locale = 'ar-JO') {
@@ -142,12 +171,10 @@ export function describeValueChanges(oldValues, newValues) {
     (k) => DETAIL_KEY_LABELS_AR[k]
   );
   return keys
-    .map((key) => ({
-      key,
-      label: DETAIL_KEY_LABELS_AR[key],
-      before: displayScalar(before[key]),
-      after: displayScalar(after[key]),
-    }))
+    .map((key) => {
+      const show = key === 'endReason' ? (v) => SESSION_END_REASON_LABELS_AR[v] || displayScalar(v) : displayScalar;
+      return { key, label: DETAIL_KEY_LABELS_AR[key], before: show(before[key]), after: show(after[key]) };
+    })
     .filter((row) => row.before != null || row.after != null);
 }
 
@@ -172,6 +199,11 @@ export function buildAuditQueryParams(filters = {}, { page = 1, pageSize = 25 } 
     userId: 'user_id',
     subjectUserId: 'subject_user_id',
     involvingUserId: 'involving_user_id',
+    securityCategory: 'security_category',
+    severity: 'severity',
+    securityOnly: 'security_only',
+    ipAddress: 'ip_address',
+    requestId: 'request_id',
   };
   for (const [key, param] of Object.entries(map)) {
     const value = filters[key];

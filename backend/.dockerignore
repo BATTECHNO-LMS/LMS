@@ -7,4 +7,12 @@ coverage
 .env.*
 !.env.example
 uploads
+tmp
 *.log
+*.dump
+*.sql.bak
+*.pem
+*.key
+qa
+tests/fixtures/large
+.nyc_output

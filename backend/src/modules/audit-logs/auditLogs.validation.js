@@ -1,6 +1,14 @@
 ﻿const { z } = require('zod');
 const { paginationQueryShape, normalizePagination } = require('../../utils/pagination');
-const { AUDIT_CATEGORIES, AUDIT_OUTCOMES } = require('../../shared/audit/auditActions');
+const net = require('net');
+const {
+  AUDIT_CATEGORIES,
+  AUDIT_OUTCOMES,
+  SECURITY_CATEGORIES,
+  SECURITY_SEVERITIES,
+} = require('../../shared/audit/auditActions');
+
+const REQUEST_ID_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('Invalid id'),
@@ -37,6 +45,15 @@ const listAuditLogsQuerySchema = z
     entity_type: z.string().max(120).optional(),
     entity_id: z.string().uuid().optional(),
     session_id: z.string().uuid().optional(),
+    security_category: z.enum(Object.keys(SECURITY_CATEGORIES)).optional(),
+    severity: z.enum(Object.keys(SECURITY_SEVERITIES)).optional(),
+    security_only: z.enum(['true', 'false']).optional(),
+    ip_address: z
+      .string()
+      .max(64)
+      .refine((v) => net.isIP(v.trim()) !== 0, 'Invalid IP address')
+      .optional(),
+    request_id: z.string().max(128).regex(REQUEST_ID_RE, 'Invalid request id').optional(),
     from: z.string().max(40).optional(),
     to: z.string().max(40).optional(),
     search: z.string().max(255).optional(),
@@ -63,6 +80,11 @@ const listAuditLogsQuerySchema = z
       entity_type: q.entity_type?.trim() || undefined,
       entity_id: q.entity_id,
       session_id: q.session_id,
+      security_category: q.security_category,
+      severity: q.severity,
+      security_only: q.security_only === 'true',
+      ip_address: q.ip_address?.trim() || undefined,
+      request_id: q.request_id || undefined,
       from: parseDate(q.from),
       to: parseDate(q.to, { endOfDay: true }),
       search: q.search?.trim() || undefined,

@@ -76,9 +76,14 @@ function assertAdminCanAccessPopup(user, popup) {
   if (!uni) {
     throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
   }
-  if (popup.system_key) return;
+  // System / empty-target popups are platform-wide; only system-wide admins may mutate.
+  if (popup.system_key) {
+    throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
+  }
   const targets = popup.target_university_ids || [];
-  if (targets.length === 0) return;
+  if (targets.length === 0) {
+    throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
+  }
   if (!targets.includes(uni)) {
     throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
   }
@@ -772,6 +777,7 @@ async function recordAcknowledge(user, id) {
 
 module.exports = {
   PROTECTED_SYSTEM_KEYS,
+  assertAdminCanAccessPopup,
   adminListPopups,
   adminCreatePopup,
   adminUpdatePopup,

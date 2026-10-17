@@ -20,7 +20,10 @@ const { hashPassword } = require('../../utils/password');
 const { sendPasswordResetOtpEmail } = require('../../shared/services/email.service');
 const { recordAudit } = require('../../utils/auditRecorder');
 const otpRepository = require('./passwordResetOtp.repository');
-const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
+const { AUTH_ERROR_CODES, messageForCode, maskEmail } = require('../../utils/authErrorCatalog');
+const { recordOtpFailure, recordOtpRateLimited } = require('./otpSecurityEvents');
+const { revokeUserSessionsSafely } = require('./authSession.service');
+const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
 
 const FORGOT_SUCCESS =
   'إذا كان البريد الإلكتروني مسجلاً لدينا، سيتم إرسال رمز التحقق إليه.';
@@ -79,7 +82,7 @@ async function requestPasswordReset(email) {
       actionType: 'PASSWORD_RESET_REQUESTED',
       entityType: 'user',
       entityId: user.id,
-      newValues: { email: normalizedEmail },
+      newValues: { identifierMasked: maskEmail(normalizedEmail) },
     });
   }
 
@@ -137,12 +140,25 @@ async function verifyPasswordResetOtp(email, otp) {
   }
 
   if (record.attempts_count >= env.PASSWORD_RESET_OTP_MAX_ATTEMPTS) {
+    await recordOtpRateLimited({
+      userId: user.id,
+      otpId: record.id,
+      purpose: 'PASSWORD_RESET',
+      maxAttempts: env.PASSWORD_RESET_OTP_MAX_ATTEMPTS,
+    });
     throw new ApiError(429, MAX_ATTEMPTS_ERROR, null, AUTH_ERROR_CODES.OTP_RATE_LIMITED);
   }
 
   const isValid = verifyEmailOtpCode(otp, normalizedEmail, record.code_hash);
   if (!isValid) {
     await otpRepository.incrementOtpAttempts(record.id);
+    await recordOtpFailure({
+      userId: user.id,
+      otpId: record.id,
+      purpose: 'PASSWORD_RESET',
+      attemptsUsed: (record.attempts_count || 0) + 1,
+      maxAttempts: env.PASSWORD_RESET_OTP_MAX_ATTEMPTS,
+    });
     throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 
@@ -160,7 +176,7 @@ async function verifyPasswordResetOtp(email, otp) {
     actionType: 'PASSWORD_RESET_OTP_VERIFIED',
     entityType: 'user',
     entityId: user.id,
-    newValues: { email: normalizedEmail },
+    newValues: { identifierMasked: maskEmail(normalizedEmail) },
   });
 
   return {
@@ -205,8 +221,10 @@ async function resetPasswordWithToken({ email, resetToken, newPassword }) {
     actionType: 'PASSWORD_RESET_COMPLETED',
     entityType: 'user',
     entityId: user.id,
-    newValues: { email: normalizedEmail },
+    newValues: { identifierMasked: maskEmail(normalizedEmail) },
   });
+
+  await revokeUserSessionsSafely(user.id, SESSION_END_REASONS.PASSWORD_RESET, { actorUserId: user.id });
 
   return { message: RESET_SUCCESS };
 }

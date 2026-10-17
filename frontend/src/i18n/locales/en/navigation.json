@@ -67,6 +67,7 @@
       "certificates": "Digital certificates",
       "reports": "Reports",
       "auditLogs": "Activity log",
+      "security": "Security & sessions",
       "notifications": "Notifications"
     }
   },

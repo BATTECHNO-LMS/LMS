@@ -179,6 +179,10 @@ function installTestSessionStore() {
         ended_at: endReason ? new Date(now) : null,
         end_reason: endReason,
         is_active: !endReason,
+        // Synthetic sessions model a completed (and fresh) MFA login so privileged route
+        // tests exercise authorization; MFA enforcement has dedicated tests.
+        authentication_level: 'MFA',
+        mfa_verified_at: new Date(now - 60_000),
       };
     },
     async create(data) {

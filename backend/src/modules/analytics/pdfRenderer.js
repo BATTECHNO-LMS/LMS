@@ -86,6 +86,8 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       timeout: LAUNCH_TIMEOUT_MS,
       protocolTimeout: RENDER_TIMEOUT_MS,
       ...(executablePath ? { executablePath } : {}),
+      // Alpine Chromium in Docker still requires --no-sandbox even as non-root (user namespace
+      // limitations). Mitigations: request allowlist below, timeouts, read_only rootfs + cap_drop.
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -94,12 +96,36 @@ async function renderHtmlToPdfOnce(html, options = {}) {
         '--disable-software-rasterizer',
         '--font-render-hinting=medium',
         '--hide-scrollbars',
+        '--disable-extensions',
+        '--disable-background-networking',
       ],
     });
 
     const page = await browser.newPage();
     page.setDefaultTimeout(RENDER_TIMEOUT_MS);
     await page.emulateMediaType('print');
+    // Block outbound network from untrusted HTML (SSRF / beacon). Allow document
+    // plumbing + the Google Fonts hosts used by report templates only.
+    const FONT_HOST_ALLOW = new Set(['fonts.googleapis.com', 'fonts.gstatic.com']);
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const u = String(req.url() || '');
+      if (
+        u.startsWith('data:') ||
+        u.startsWith('about:') ||
+        u.startsWith('blob:') ||
+        u.startsWith('file:')
+      ) {
+        return req.continue();
+      }
+      try {
+        const host = new URL(u).hostname.toLowerCase();
+        if (FONT_HOST_ALLOW.has(host)) return req.continue();
+      } catch {
+        /* fall through */
+      }
+      return req.abort('blockedbyclient');
+    });
     await page.setContent(String(html || ''), { waitUntil: 'domcontentloaded', timeout: 20_000 });
 
     if (options.waitForFonts || options.requiredFontFamily) {

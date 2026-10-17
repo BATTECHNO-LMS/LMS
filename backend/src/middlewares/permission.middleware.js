@@ -2,6 +2,7 @@
 
 const { normalizeRoleCodes } = require('../utils/roleCanon');
 const { isWritePermissionCode } = require('../utils/permissionCatalog');
+const { recordAuthorizationDenial } = require('../shared/security/securityEvents');
 
 /**
  * Require at least one of the given permission codes on req.user.permissions.
@@ -27,6 +28,7 @@ function requirePermission(...permissionCodes) {
       !roles.includes('admin');
 
     if (isReviewerScoped && needed.some(isWritePermissionCode)) {
+      recordAuthorizationDenial(req, { reason: 'REVIEWER_READ_ONLY', code: 'FORBIDDEN', requiredPermissions: needed });
       return res.status(403).json({
         success: false,
         message: 'لا تملك صلاحية تنفيذ هذه العملية.',
@@ -42,6 +44,7 @@ function requirePermission(...permissionCodes) {
     if (have.has('*') || have.has('ui.all')) return next();
     const ok = needed.some((code) => have.has(code));
     if (!ok) {
+      recordAuthorizationDenial(req, { reason: 'PERMISSION_MISSING', code: 'FORBIDDEN', requiredPermissions: needed });
       return res.status(403).json({
         success: false,
         message: 'لا تملك صلاحية تنفيذ هذه العملية.',
@@ -72,6 +75,7 @@ function enforceReviewerReadOnly(req, res, next) {
   }
   if (roles.includes('student') && path.includes('/student/')) return next();
 
+  recordAuthorizationDenial(req, { reason: 'REVIEWER_READ_ONLY', code: 'REVIEWER_READ_ONLY' });
   return res.status(403).json({
     success: false,
     message: 'Reviewer is read-only',

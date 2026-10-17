@@ -41,7 +41,11 @@ function paintAlt(row, index) {
 
 function excelCellValue(value) {
   if (value == null || value === '') return metrics.NA;
-  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'string') return value;
+  if (typeof value === 'string') {
+    const { sanitizeSpreadsheetCell } = require('../../shared/security/spreadsheetSafe');
+    return sanitizeSpreadsheetCell(value);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') return value;
   if (value instanceof Date) return value;
   if (typeof value === 'bigint') return Number(value);
   if (typeof value === 'object' && typeof value.toNumber === 'function') {

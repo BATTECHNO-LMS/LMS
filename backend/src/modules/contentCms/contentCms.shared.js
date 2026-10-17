@@ -109,30 +109,16 @@ function assertTargetUniversitiesInScope(user, universityIds) {
   }
 }
 
+const { sanitizeCtaOrAppUrl } = require('../../shared/security/safeAppPath');
+
 /**
- * Reject dangerous URL schemes; allow http(s), root-relative paths, and mailto.
+ * Reject dangerous URL schemes and open-redirect forms (protocol-relative `//`,
+ * backslashes). Allow http(s), safe root-relative app paths, and mailto.
  * @param {unknown} url
  * @returns {string | null}
  */
 function sanitizeCtaUrl(url) {
-  if (url == null) return null;
-  const raw = String(url).trim();
-  if (!raw) return null;
-
-  const lower = raw.toLowerCase();
-  if (
-    lower.startsWith('javascript:') ||
-    lower.startsWith('data:') ||
-    lower.startsWith('vbscript:')
-  ) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(raw) || raw.startsWith('/') || /^mailto:/i.test(raw)) {
-    return raw;
-  }
-
-  return null;
+  return sanitizeCtaOrAppUrl(url);
 }
 
 /**

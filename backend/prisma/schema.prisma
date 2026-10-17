@@ -363,10 +363,14 @@ model audit_logs {
   request_id      String?  @db.VarChar(128)
   /// AUTH | SECURITY | USER | ORGANIZATION | COURSE | ... (see shared/audit/auditActions.js)
   category        String?  @db.VarChar(40)
-  /// SUCCESS | FAILED | DENIED
+  /// SUCCESS | FAILED | DENIED | BLOCKED
   outcome         String?  @db.VarChar(16)
   actor_role      String?  @db.VarChar(40)
   user_agent      String?  @db.VarChar(512)
+  /// Security events only: AUTHENTICATION | AUTHORIZATION | RATE_LIMIT | SESSION | ACCOUNT_SECURITY | SYSTEM_SECURITY
+  security_category String? @db.VarChar(32)
+  /// Security events only: INFO | WARNING | HIGH | CRITICAL
+  severity        String?  @db.VarChar(16)
 
   @@index([user_id], map: "idx_audit_logs_user_id")
   @@index([university_id], map: "idx_audit_logs_university_id")
@@ -379,6 +383,9 @@ model audit_logs {
   @@index([category, created_at], map: "idx_audit_logs_category_created")
   @@index([action_type, created_at], map: "idx_audit_logs_action_created")
   @@index([user_id, created_at], map: "idx_audit_logs_user_created")
+  @@index([security_category, created_at], map: "idx_audit_logs_security_created")
+  @@index([ip_address, created_at], map: "idx_audit_logs_ip_created")
+  @@index([request_id], map: "idx_audit_logs_request_id")
 }
 
 /// Server-side authentication session. One row per successful login (per device/tab-group).
@@ -393,19 +400,92 @@ model auth_sessions {
   last_activity_at        DateTime  @default(now()) @db.Timestamptz(6)
   absolute_expires_at     DateTime  @db.Timestamptz(6)
   ended_at                DateTime? @db.Timestamptz(6)
-  /// USER_LOGOUT | ADMIN_REVOKED | IDLE_TIMEOUT | ABSOLUTE_EXPIRY
+  /// SESSION_END_REASONS (shared/audit/auditActions.js), e.g. USER_LOGOUT | IDLE_TIMEOUT | ADMIN_REVOKED | ROLE_CHANGED | MFA_RESET
   end_reason              String?   @db.VarChar(32)
   ip_address              String?   @db.VarChar(64)
   user_agent              String?   @db.VarChar(512)
   created_by_login_method String    @default("PASSWORD") @db.VarChar(32)
+  /// Request id of the login that created the session (correlates with audit/app logs).
+  created_request_id      String?   @db.VarChar(128)
   portal_type             String?   @db.VarChar(32)
   is_active               Boolean   @default(true)
+  /// PASSWORD | MFA — server-side assurance level of this session (authoritative; JWT `amr` is informational).
+  authentication_level    String    @default("PASSWORD") @db.VarChar(16)
+  /// Last successful MFA verification on this session (login or step-up). Drives step-up freshness.
+  mfa_verified_at         DateTime? @db.Timestamptz(6)
 
   user users @relation("UserAuthSessions", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id, is_active], map: "idx_auth_sessions_user_active")
   @@index([last_activity_at], map: "idx_auth_sessions_last_activity")
   @@index([absolute_expires_at], map: "idx_auth_sessions_absolute_expires")
+}
+
+/// MFA factor of a user. Only TOTP today. The secret is AES-256-GCM encrypted (never stored or returned in plaintext).
+/// A row with enabled_at = NULL and disabled_at = NULL is a pending (unverified) enrollment.
+model user_mfa_methods {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  type             String    @default("TOTP") @db.VarChar(16)
+  secret_encrypted String
+  is_primary       Boolean   @default(true)
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  verified_at      DateTime? @db.Timestamptz(6)
+  enabled_at       DateTime? @db.Timestamptz(6)
+  disabled_at      DateTime? @db.Timestamptz(6)
+  /// USER_DISABLED | ADMIN_RESET | ACCOUNT_DELETED | REPLACED
+  disabled_reason  String?   @db.VarChar(32)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  /// Last accepted TOTP time step: a code from the same or an earlier step is rejected (replay protection).
+  last_used_step   BigInt?
+  /// Consecutive wrong codes (reset on success) and the resulting temporary cooldown.
+  failed_attempts  Int       @default(0)
+  locked_until     DateTime? @db.Timestamptz(6)
+
+  user users @relation("UserMfaMethods", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, enabled_at], map: "idx_user_mfa_methods_user_enabled")
+}
+
+/// One-time MFA recovery codes. Only an HMAC of each code is stored.
+model user_mfa_recovery_codes {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  code_hash  String    @db.VarChar(128)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  used_at    DateTime? @db.Timestamptz(6)
+  revoked_at DateTime? @db.Timestamptz(6)
+
+  user users @relation("UserMfaRecoveryCodes", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, used_at], map: "idx_user_mfa_recovery_codes_user_used")
+  @@index([user_id, code_hash], map: "idx_user_mfa_recovery_codes_user_hash")
+}
+
+/// Pre-session MFA challenge (password verified, MFA pending). Only the SHA-256 of the challenge token is stored.
+model auth_mfa_challenges {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  token_hash         String    @unique @db.VarChar(64)
+  /// LOGIN (enrolled user) | ENROLL (MFA required, not yet enrolled)
+  purpose            String    @db.VarChar(16)
+  /// PENDING | VERIFIED (enrolled, awaiting recovery-code acknowledgement) | COMPLETED | LOCKED | CANCELLED
+  status             String    @default("PENDING") @db.VarChar(16)
+  portal_type        String?   @db.VarChar(32)
+  ip_address         String?   @db.VarChar(64)
+  user_agent         String?   @db.VarChar(512)
+  attempts           Int       @default(0)
+  created_request_id String?   @db.VarChar(128)
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at         DateTime  @db.Timestamptz(6)
+  verified_at        DateTime? @db.Timestamptz(6)
+  completed_at       DateTime? @db.Timestamptz(6)
+
+  user users @relation("UserMfaChallenges", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, created_at], map: "idx_auth_mfa_challenges_user_created")
+  @@index([expires_at], map: "idx_auth_mfa_challenges_expires")
 }
 
 model permissions {
@@ -716,6 +796,9 @@ model users {
   field_training_supervisor_ratings field_training_supervisor_ratings[] @relation("FtSupervisorRatingStudent")
   field_training_final_evaluations field_training_final_evaluations[] @relation("FtFinalEvaluationStudent")
   auth_sessions                  auth_sessions[]                  @relation("UserAuthSessions")
+  mfa_methods                    user_mfa_methods[]               @relation("UserMfaMethods")
+  mfa_recovery_codes             user_mfa_recovery_codes[]        @relation("UserMfaRecoveryCodes")
+  mfa_challenges                 auth_mfa_challenges[]            @relation("UserMfaChallenges")
 
   @@index([primary_university_id], map: "idx_users_primary_university_id")
   @@index([university_specialty_id], map: "idx_users_university_specialty_id")

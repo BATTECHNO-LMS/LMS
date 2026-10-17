@@ -7,9 +7,25 @@ const service = require('./fieldTrainingEvaluation.service');
 const excelEvaluation = require('./fieldTrainingExcelEvaluation.service');
 const { MAX_TEMPLATE_BYTES } = require('./fieldTrainingEvaluation.constants');
 
+const ALLOWED_TEMPLATE_MIME = new Set([
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'application/octet-stream',
+]);
+const ALLOWED_TEMPLATE_EXT = new Set(['.docx', '.doc']);
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_TEMPLATE_BYTES, files: 1 },
+  fileFilter(_req, file, cb) {
+    const name = String(file.originalname || '').toLowerCase();
+    const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : '';
+    const mime = String(file.mimetype || '').toLowerCase();
+    if (ALLOWED_TEMPLATE_EXT.has(ext) || ALLOWED_TEMPLATE_MIME.has(mime)) {
+      return cb(null, true);
+    }
+    return cb(new ApiError(400, 'يُسمح بملفات Word (.docx) فقط', null, 'INVALID_TEMPLATE_TYPE'));
+  },
 });
 
 function sendFile(res, file) {
@@ -47,7 +63,7 @@ async function listTemplates(req, res, next) {
 
 async function uploadTemplate(req, res, next) {
   try {
-    const data = await service.uploadTemplate(req.user, { ...(req.validated?.body || req.body), ...req.body }, req.file);
+    const data = await service.uploadTemplate(req.user, req.validated?.body || {}, req.file);
     return success(res, data, { status: 201, message: 'Template uploaded' });
   } catch (err) {
     return next(err);

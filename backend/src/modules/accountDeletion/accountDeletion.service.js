@@ -269,6 +269,9 @@ async function processDeletionRequest(requester, requestId, body, { ipAddress } 
     await repo.anonymizeUserIdentity(existing.user_id, tx);
     await repo.deleteUserOtps(existing.user_id, tx);
     await repo.disablePushRegistrations(existing.user_id, tx);
+    await tx.user_mfa_recovery_codes.deleteMany({ where: { user_id: existing.user_id } });
+    await tx.auth_mfa_challenges.deleteMany({ where: { user_id: existing.user_id } });
+    await tx.user_mfa_methods.deleteMany({ where: { user_id: existing.user_id } });
     return tx.account_deletion_requests.update({
       where: { id: requestId },
       data: {
@@ -283,6 +286,11 @@ async function processDeletionRequest(requester, requestId, body, { ipAddress } 
 
   const { invalidateAuthContextForUser } = require('../auth/authContextCache');
   invalidateAuthContextForUser(existing.user_id);
+  const { revokeUserSessionsSafely } = require('../auth/authSession.service');
+  const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
+  await revokeUserSessionsSafely(existing.user_id, SESSION_END_REASONS.SECURITY_REVOKED, {
+    actorUserId: requester.userId,
+  });
 
   await recordAudit({
     userId: requester.userId,

@@ -1,0 +1,20 @@
+# eprojecto — Gitleaks config (Phase 4)
+title = "eprojecto"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Benign placeholders and docs"
+paths = [
+  '''(.*?)(\.env\.example)$''',
+  '''(.*?)(EPROJECTO_SECURITY_.*\.md)$''',
+  '''(.*?)(docs/security/.*)$''',
+  '''(.*?)(package-lock\.json)$''',
+]
+regexes = [
+  '''your-local-dev-secret-at-least-32-chars''',
+  '''ci-test-jwt-secret-at-least-32-characters''',
+  '''CHANGE_ME''',
+  '''placeholder''',
+]

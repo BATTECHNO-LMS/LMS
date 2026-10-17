@@ -400,6 +400,10 @@ export const NotificationPreferencesPage = lazyNamed(
   () => import('../../pages/common/NotificationPreferencesPage.jsx'),
   'NotificationPreferencesPage'
 );
+export const SecuritySessionsPage = lazyNamed(
+  () => import('../../pages/common/SecuritySessionsPage.jsx'),
+  'SecuritySessionsPage'
+);
 export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'

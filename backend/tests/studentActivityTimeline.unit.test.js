@@ -69,6 +69,42 @@ describe('student activity timeline', () => {
     );
   });
 
+  it('absolute expiry and security terminations read naturally, without codes or ids', () => {
+    assert.match(
+      summarizeDetails({ action_type: 'AUTH_SESSION_ABSOLUTE_EXPIRED', new_values: { endReason: 'ABSOLUTE_EXPIRY' } }),
+      /انتهت المدة القصوى للجلسة/
+    );
+    const cases = {
+      ADMIN_REVOKED: /أنهت الإدارة الجلسة/,
+      PASSWORD_RESET: /إعادة تعيين كلمة المرور/,
+      SECURITY_REVOKED: /صلاحيات الحساب أو حالته/,
+    };
+    for (const [endReason, re] of Object.entries(cases)) {
+      const text = summarizeDetails({ action_type: 'AUTH_SESSION_ENDED', new_values: { endReason, sessionId: STAFF } });
+      assert.match(text, re, endReason);
+      assert.doesNotMatch(text, /[A-Z_]{6,}|[0-9a-f]{8}-/, `${endReason}: no raw codes / ids`);
+    }
+    const logout = presentRow(
+      { id: 'r2', user_id: STUDENT, subject_user_id: STUDENT, action_type: 'USER_LOGOUT', session_id: STAFF, ip_address: '10.0.0.9', created_at: new Date() },
+      null,
+      STUDENT
+    );
+    assert.ok(/[\u0600-\u06FF]/.test(logout.action_label));
+    assert.doesNotMatch(JSON.stringify({ ...logout, id: undefined }), /10\.0\.0\.9/);
+    const printed = [logout.at_label, logout.action_label, logout.category_label, logout.outcome_label, logout.details].join(' ');
+    assert.doesNotMatch(printed, /USER_LOGOUT|[0-9a-f]{8}-/, 'PDF columns carry no codes / ids');
+  });
+
+  it('Phase 1A security events stay out of the student timeline by default', () => {
+    const { SECURITY_ONLY_ACTIONS } = require('../src/shared/audit/studentActivityTimeline.service');
+    for (const a of ['AUTHORIZATION_DENIED', 'CROSS_SCOPE_ACCESS_DENIED', 'RATE_LIMIT_TRIGGERED', 'OTP_FAILED', 'LOGIN_BRUTE_FORCE_SUSPECTED']) {
+      assert.equal(SECURITY_ONLY_ACTIONS.has(a), true, a);
+    }
+    for (const a of ['USER_LOGOUT', 'AUTH_SESSION_IDLE_TIMEOUT', 'AUTH_SESSION_ENDED', 'AUTH_SESSION_ABSOLUTE_EXPIRED']) {
+      assert.equal(SECURITY_ONLY_ACTIONS.has(a) || EXCLUDED_ACTIONS.has(a), false, `${a} is shown`);
+    }
+  });
+
   it('technical session/navigation noise is excluded', () => {
     for (const a of ['AUTH_SESSION_CREATED', 'AUTH_SESSION_ACTIVITY_STARTED', 'report.read']) {
       assert.equal(EXCLUDED_ACTIONS.has(a), true, a);

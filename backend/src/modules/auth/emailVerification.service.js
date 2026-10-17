@@ -13,6 +13,7 @@ const {
 const { sendEmailVerificationOtp } = require('../../shared/services/email.service');
 const otpRepository = require('./emailVerificationOtp.repository');
 const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
+const { recordOtpFailure, recordOtpRateLimited } = require('./otpSecurityEvents');
 
 const GENERIC_OTP_ERROR = messageForCode(AUTH_ERROR_CODES.INVALID_OTP);
 const RESEND_SUCCESS = 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.';
@@ -84,6 +85,12 @@ async function verifyEmailOtpForUser(email, otp) {
   }
 
   if (record.attempts_count >= env.EMAIL_OTP_MAX_ATTEMPTS) {
+    await recordOtpRateLimited({
+      userId: user.id,
+      otpId: record.id,
+      purpose: 'EMAIL_VERIFICATION',
+      maxAttempts: env.EMAIL_OTP_MAX_ATTEMPTS,
+    });
     throw new ApiError(
       429,
       messageForCode(AUTH_ERROR_CODES.OTP_RATE_LIMITED),
@@ -95,6 +102,13 @@ async function verifyEmailOtpForUser(email, otp) {
   const isValid = verifyEmailOtpCode(otp, normalizedEmail, record.code_hash);
   if (!isValid) {
     await otpRepository.incrementOtpAttempts(record.id);
+    await recordOtpFailure({
+      userId: user.id,
+      otpId: record.id,
+      purpose: 'EMAIL_VERIFICATION',
+      attemptsUsed: (record.attempts_count || 0) + 1,
+      maxAttempts: env.EMAIL_OTP_MAX_ATTEMPTS,
+    });
     throw new ApiError(400, GENERIC_OTP_ERROR, null, AUTH_ERROR_CODES.INVALID_OTP);
   }
 

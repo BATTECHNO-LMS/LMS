@@ -85,6 +85,7 @@ describe('audit action registry', () => {
       'AUTH_SESSION_ACTIVITY_STARTED',
       'AUTH_SESSION_IDLE_TIMEOUT',
       'AUTH_SESSION_ENDED',
+      'AUTH_SESSION_REVOKED',
       'USER_LOGOUT',
       'TOKEN_INVALID',
       'TOKEN_EXPIRED',
@@ -97,8 +98,17 @@ describe('audit action registry', () => {
       'ABSOLUTE_EXPIRY',
       'ADMIN_REVOKED',
       'IDLE_TIMEOUT',
+      'MFA_RESET',
+      'PASSWORD_CHANGED',
+      'PASSWORD_RESET',
+      'ROLE_CHANGED',
+      'SCOPE_CHANGED',
+      'SECURITY_REVOKED',
       'USER_LOGOUT',
+      'USER_REVOKED',
+      'USER_REVOKED_OTHER_SESSIONS',
     ]);
+    assert.ok(AUDIT_ACTIONS.AUTH_SESSION_ABSOLUTE_EXPIRED);
   });
 
   it('navigation events are registered; noise is not', () => {

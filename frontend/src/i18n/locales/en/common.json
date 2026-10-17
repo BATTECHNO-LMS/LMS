@@ -58,7 +58,8 @@
   "user": {
     "fallbackName": "User",
     "logout": "Log out",
-    "endSession": "End session"
+    "endSession": "End session",
+    "securitySessions": "Security & sessions"
   },
   "notifications": "Notifications",
   "rights": "All rights reserved",

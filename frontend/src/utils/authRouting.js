@@ -159,7 +159,13 @@ export function resolveAccessRoleForPath(user, pathname) {
  */
 export function isSafeBackPath(pathname) {
   if (!pathname || typeof pathname !== 'string') return false;
-  const path = pathname.replace(/\/+$/, '') || '/';
+  const raw = pathname.trim();
+  // Open-redirect guards (align with sanitizeReturnTo).
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.includes('\\')) return false;
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001f\u007f]/.test(raw)) return false;
+  if (/^\/[a-z][a-z0-9+.-]*:/i.test(raw)) return false;
+  const path = raw.split(/[?#]/)[0].replace(/\/+$/, '') || '/';
   if (path === '/' || path === '/login' || path.startsWith('/login/')) return false;
   if (path === '/unauthorized' || path === '/forbidden') return false;
   if (path.startsWith('/register') || path.startsWith('/verify-') || path.startsWith('/forgot-')) {

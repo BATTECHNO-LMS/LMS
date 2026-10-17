@@ -5,6 +5,7 @@ const { ApiError } = require('../utils/apiError');
 const { env } = require('../config/env');
 const { log } = require('../utils/logger');
 const { AUTH_ERROR_CODES, messageForCode } = require('../utils/authErrorCatalog');
+const { classifyForbiddenError, recordAuthorizationDenial } = require('../shared/security/securityEvents');
 
 const TECHNICAL_MESSAGE_RE =
   /prisma|econnrefused|ecanceled|etimedout|stack|sqlstate|p20\d{2}|axioserror|validationerror|internal server|unauthorized|forbidden|enoent|aggregateerror/i;
@@ -82,9 +83,21 @@ function errorMiddleware(err, req, res, next) {
   if (apiErr) {
     const code = apiErr.code || AUTH_ERROR_CODES.SERVER_ERROR;
     const safeMessage = sanitizeUserMessage(apiErr.message, code);
+    if (apiErr.statusCode === 403) {
+      const denial = classifyForbiddenError(apiErr);
+      if (denial) {
+        recordAuthorizationDenial(req, {
+          eventType: denial.eventType,
+          reason: denial.reason,
+          code: apiErr.code || null,
+          scopeType: denial.scopeType,
+        });
+      }
+    }
     if (apiErr.statusCode >= 500) {
       log('error', apiErr.message || 'ApiError 5xx', {
-        requestId,
+        requestId: req?.id || null,
+        supportRequestId: requestId,
         code,
         prismaCode: err?.code || null,
         name: err?.name,
@@ -101,7 +114,8 @@ function errorMiddleware(err, req, res, next) {
   }
 
   log('error', err?.message || 'Unhandled error', {
-    requestId,
+    requestId: req?.id || null,
+    supportRequestId: requestId,
     name: err?.name,
     prismaCode: err?.code || null,
     ...(env.NODE_ENV === 'production' ? {} : { stack: err?.stack }),

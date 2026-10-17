@@ -1,5 +1,6 @@
 const path = require('path');
 const { filterDeprecatedFromRoleAllowlist } = require('../utils/runtimeRoles');
+const { resolveTrustProxyConfig, buildTrustProxyFn } = require('./trustProxy');
 
 // Resolve backend/.env regardless of process cwd (e.g. monorepo root).
 require('dotenv').config({
@@ -33,20 +34,11 @@ function parseBoundedInt(raw, fallback, min, max) {
 }
 
 /**
- * Express `trust proxy` value. Never a blanket `true` (that would trust a client-forged
- * X-Forwarded-For). Production chain is host nginx -> frontend container nginx -> Express,
- * so both proxies sit on loopback / private (Docker bridge) addresses.
- * - "true"/"1": trust loopback + private ranges (`loopback,uniquelocal`)
- * - "false"/unset: trust loopback only (local dev, Vite proxy)
- * - integer: explicit hop count
- * - anything else: passed through as a CSV of names/subnets (e.g. "loopback,172.16.0.0/12")
+ * Express `trust proxy` value: a hop-capped, subnet-restricted function (see config/trustProxy).
+ * Never a blanket `true` (that would trust a client-forged X-Forwarded-For).
  */
-function parseTrustProxySetting(raw) {
-  const v = typeof raw === 'string' ? raw.trim() : '';
-  if (!v || v === 'false' || v === '0') return 'loopback';
-  if (v === 'true' || v === '1') return 'loopback,uniquelocal';
-  if (/^\d+$/.test(v)) return Number(v);
-  return v;
+function parseTrustProxySetting(raw, extra = {}) {
+  return buildTrustProxyFn(resolveTrustProxyConfig({ ...extra, TRUST_PROXY: raw }));
 }
 
 function parseAuthContextCacheTtlMs(raw) {
@@ -67,6 +59,9 @@ const env = {
   PRISMA_POOL_TIMEOUT: Number(process.env.PRISMA_POOL_TIMEOUT) || 20,
   JWT_SECRET: process.env.JWT_SECRET || '',
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
+  /** Optional `iss` / `aud` claims; when set, tokens without the matching claim are rejected. */
+  JWT_ISSUER: String(process.env.JWT_ISSUER || '').trim(),
+  JWT_AUDIENCE: String(process.env.JWT_AUDIENCE || '').trim(),
   /** Minimum length for JWT_SECRET when NODE_ENV=production */
   JWT_SECRET_MIN_LENGTH: Number(process.env.JWT_SECRET_MIN_LENGTH) || 32,
   UPLOAD_DIR: process.env.UPLOAD_DIR || 'uploads',
@@ -104,8 +99,18 @@ const env = {
   })(),
   /** Set true when behind a reverse proxy (for rate limiting / secure cookies) */
   TRUST_PROXY: process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1',
-  /** Resolved Express `trust proxy` value (see parseTrustProxySetting). */
-  TRUST_PROXY_SETTING: parseTrustProxySetting(process.env.TRUST_PROXY),
+  /** Resolved trusted-proxy topology ({ subnets, hops }); see config/trustProxy. */
+  TRUST_PROXY_CONFIG: resolveTrustProxyConfig(process.env),
+  /** Resolved Express `trust proxy` function (see parseTrustProxySetting). */
+  TRUST_PROXY_SETTING: buildTrustProxyFn(resolveTrustProxyConfig(process.env)),
+  /**
+   * Accept X-Request-Id from the immediate peer only when it is a trusted proxy AND this is
+   * true (host nginx must overwrite the header with `$request_id`). Otherwise always generate.
+   */
+  TRUST_UPSTREAM_REQUEST_ID:
+    process.env.TRUST_UPSTREAM_REQUEST_ID === 'true' || process.env.TRUST_UPSTREAM_REQUEST_ID === '1',
+  /** Kill switch for the per-client general API limiter (default on). */
+  API_RATE_LIMIT_ENABLED: !['false', '0'].includes(String(process.env.API_RATE_LIMIT_ENABLED || '').trim()),
   /** Server-side session idle timeout (minutes without real user activity). */
   AUTH_IDLE_TIMEOUT_MINUTES: parseBoundedInt(process.env.AUTH_IDLE_TIMEOUT_MINUTES, 30, 1, 24 * 60),
   /** Frontend shows the "session about to end" warning this many minutes before idle expiry. */
@@ -140,12 +145,47 @@ const env = {
     0,
     60 * 60 * 1000
   ),
+  /** Multi-factor authentication (TOTP). Disabling it is a deliberate operator decision. */
+  MFA_ENABLED: !['false', '0'].includes(String(process.env.MFA_ENABLED || '').trim().toLowerCase()),
+  /** 32-byte key (base64 or 64 hex chars) for AES-256-GCM encryption of TOTP secrets. Never logged. */
+  MFA_ENCRYPTION_KEY: String(process.env.MFA_ENCRYPTION_KEY || '').trim(),
+  /** Roles (canonical codes) that must enroll in MFA before any session is issued. */
+  MFA_REQUIRED_ROLE_CODES: parseRoleCodes(
+    typeof process.env.MFA_REQUIRED_ROLE_CODES === 'string' && process.env.MFA_REQUIRED_ROLE_CODES.trim()
+      ? process.env.MFA_REQUIRED_ROLE_CODES
+      : 'super_admin,admin'
+  ),
+  /** Lifetime of the pre-session MFA challenge (password verified, MFA pending). */
+  MFA_CHALLENGE_TTL_MINUTES: parseBoundedInt(process.env.MFA_CHALLENGE_TTL_MINUTES, 5, 1, 15),
+  /** Wrong codes accepted per challenge before it is locked (password must be re-entered). */
+  MFA_MAX_ATTEMPTS: parseBoundedInt(process.env.MFA_MAX_ATTEMPTS, 5, 1, 10),
+  /** Consecutive wrong codes per user (across challenges / step-up) before a temporary cooldown. */
+  MFA_USER_LOCK_THRESHOLD: parseBoundedInt(process.env.MFA_USER_LOCK_THRESHOLD, 10, 3, 50),
+  /** First cooldown length; doubles for every further threshold reached (capped at 24h). */
+  MFA_USER_LOCK_MINUTES: parseBoundedInt(process.env.MFA_USER_LOCK_MINUTES, 15, 1, 24 * 60),
+  /** Sensitive operations require an MFA verification on the current session within this window. */
+  MFA_STEP_UP_MAX_AGE_MINUTES: parseBoundedInt(process.env.MFA_STEP_UP_MAX_AGE_MINUTES, 10, 1, 60),
+  /** One-time recovery codes generated per enrollment / regeneration. */
+  MFA_RECOVERY_CODE_COUNT: parseBoundedInt(process.env.MFA_RECOVERY_CODE_COUNT, 10, 8, 12),
+  /** Issuer shown in authenticator apps. */
+  MFA_ISSUER: String(process.env.MFA_ISSUER || 'eprojecto').trim().slice(0, 40) || 'eprojecto',
   /** Dedupe window for navigation-opened audit events (same session + module + entity). */
   AUDIT_NAVIGATION_DEDUPE_MINUTES: parseBoundedInt(process.env.AUDIT_NAVIGATION_DEDUPE_MINUTES, 30, 1, 24 * 60),
   RATE_LIMIT_WINDOW_MS: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   /** SPA dashboards issue many GETs; 300/15m is too low with attendance polling. */
   RATE_LIMIT_MAX: Number(process.env.RATE_LIMIT_MAX) || 1200,
   AUTH_RATE_LIMIT_MAX: Number(process.env.AUTH_RATE_LIMIT_MAX) || 40,
+  /** OTP verify/resend + reset-password attempts per client IP + identifier per window. */
+  OTP_RATE_LIMIT_MAX: Number(process.env.OTP_RATE_LIMIT_MAX) || 30,
+  /** Failed logins per client IP + identifier before progressive cooldown starts. */
+  LOGIN_FAILURE_FREE_ATTEMPTS: parseBoundedInt(process.env.LOGIN_FAILURE_FREE_ATTEMPTS, 5, 1, 50),
+  /** First cooldown (seconds); doubles per further failure up to LOGIN_FAILURE_MAX_COOLDOWN_SECONDS. */
+  LOGIN_FAILURE_BASE_COOLDOWN_SECONDS: parseBoundedInt(process.env.LOGIN_FAILURE_BASE_COOLDOWN_SECONDS, 30, 1, 3600),
+  LOGIN_FAILURE_MAX_COOLDOWN_SECONDS: parseBoundedInt(process.env.LOGIN_FAILURE_MAX_COOLDOWN_SECONDS, 900, 1, 3600),
+  /** Failed logins from one client IP across any identifiers before that IP is cooled down. */
+  LOGIN_FAILURE_IP_FREE_ATTEMPTS: parseBoundedInt(process.env.LOGIN_FAILURE_IP_FREE_ATTEMPTS, 30, 5, 1000),
+  /** Failures on one account (all IPs) that raise a brute-force alert (detection only, no lockout). */
+  LOGIN_FAILURE_ACCOUNT_ALERT_THRESHOLD: parseBoundedInt(process.env.LOGIN_FAILURE_ACCOUNT_ALERT_THRESHOLD, 20, 5, 1000),
   /** Soft cap for GET attendance-window/active (excluded from main apiLimiter). */
   ATTENDANCE_POLL_RATE_LIMIT_MAX: Number(process.env.ATTENDANCE_POLL_RATE_LIMIT_MAX) || 240,
   /** Soft cap for recorded-lecture heartbeat + player-event (per user + lecture). */

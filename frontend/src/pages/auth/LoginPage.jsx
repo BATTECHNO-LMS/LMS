@@ -23,13 +23,23 @@ import { PORTAL_ENTRIES, PORTAL_SELECTION_PATH, PORTAL_TYPES } from '../../const
 import { resolveAuthenticatedLandingRoute } from '../../utils/resolveAuthenticatedLandingRoute.js';
 import { rememberSelectedPortal } from '../../utils/portal.js';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
+import { MfaLoginStep } from '../../features/auth/mfa/components/MfaLoginStep.jsx';
 import {
+  IDLE_MINUTES_STORAGE_KEY,
   RETURN_TO_STORAGE_KEY,
   loginReasonMessage,
   sanitizeReturnTo,
 } from '../../features/auth/session/sessionPolicy.js';
 
 const EASE = AUTH_MOTION_EASE;
+
+function readStoredIdleMinutes() {
+  try {
+    return Number(window.localStorage.getItem(IDLE_MINUTES_STORAGE_KEY)) || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Shared login UI. Portal-specific pages pass `portalType` for labels + non-authoritative hint.
@@ -43,7 +53,7 @@ export function LoginPage({
 }) {
   const { t, i18n } = useTranslation('auth');
   const { t: tCommon } = useTranslation('common');
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, completeLogin, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -57,7 +67,9 @@ export function LoginPage({
       return null;
     }
   }, [location.state]);
-  const sessionReasonMessage = loginReasonMessage(searchParams.get('reason'));
+  const sessionReasonMessage = loginReasonMessage(searchParams.get('reason'), {
+    idleMinutes: readStoredIdleMinutes(),
+  });
   const postLoginTarget =
     returnTo || (from && from !== '/login' && !from.startsWith('/login/') ? from : null);
   const registrationPendingNotice = searchParams.get('registered') === 'pending';
@@ -72,6 +84,7 @@ export function LoginPage({
         : null;
 
   const [submitting, setSubmitting] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState(null);
   const [serverError, setServerError] = useState('');
   const [mismatchNotice, setMismatchNotice] = useState(null);
   const [statusModal, setStatusModal] = useState({
@@ -114,25 +127,41 @@ export function LoginPage({
     return <Navigate to={resolution.path} replace />;
   }
 
+  function goToLanding(redirectTo) {
+    try {
+      window.sessionStorage.removeItem(RETURN_TO_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    navigate(redirectTo, { replace: true });
+  }
+
+  async function onMfaAuthenticated(token) {
+    const { redirectTo } = await completeLogin(token, {
+      portalType: portalType || undefined,
+      preferredReturnTo: postLoginTarget,
+    });
+    setMfaChallenge(null);
+    goToLanding(redirectTo);
+  }
+
   async function onSubmit(values) {
     setServerError('');
     setMismatchNotice(null);
     setSubmitting(true);
     try {
       if (portalType) rememberSelectedPortal(portalType);
-      const { redirectTo } = await login({
+      const result = await login({
         email: values.email.trim(),
         password: values.password,
         portalType: portalType || undefined,
         preferredReturnTo: postLoginTarget,
       });
-
-      try {
-        window.sessionStorage.removeItem(RETURN_TO_STORAGE_KEY);
-      } catch {
-        /* ignore */
+      if (result.mfa) {
+        setMfaChallenge(result.mfa);
+        return;
       }
-      navigate(redirectTo, { replace: true });
+      goToLanding(result.redirectTo);
     } catch (err) {
       const code = err?.response?.data?.code;
       const details = err?.response?.data?.details || null;
@@ -319,6 +348,15 @@ export function LoginPage({
             <div className="auth-split__form-inner">
               <BrandLogo variant="auth" alt={tCommon('logo.alt')} className="auth-split__logo" />
 
+              {mfaChallenge ? (
+                <MfaLoginStep
+                  key={mfaChallenge.challengeToken}
+                  mfa={mfaChallenge}
+                  onAuthenticated={onMfaAuthenticated}
+                  onRestart={() => setMfaChallenge(null)}
+                />
+              ) : (
+              <>
               <header className="auth-split__header">
                 {badgeLabel ? (
                   <p className="auth-form__portal-label" style={{ marginBottom: '0.5rem' }}>
@@ -434,6 +472,8 @@ export function LoginPage({
                   </Link>
                 </motion.p>
               </form>
+              </>
+              )}
             </div>
           </motion.section>
 

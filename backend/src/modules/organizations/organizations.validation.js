@@ -5,6 +5,24 @@ const { z } = require('zod');
 const uuidParamSchema = z.object({ id: z.string().uuid() });
 const orgIdParamSchema = z.object({ organizationId: z.string().uuid() });
 
+/** Public https logo, or a relative path under /uploads (no protocol-relative / traversal). */
+const logoUrlSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .optional()
+  .nullable()
+  .refine(
+    (v) => {
+      if (v == null || v === '') return true;
+      if (/^https:\/\//i.test(v)) return !v.toLowerCase().includes('javascript:');
+      if (v.startsWith('//') || v.includes('\\') || v.includes('..')) return false;
+      if (v.startsWith('/uploads/') || v.startsWith('uploads/')) return true;
+      return false;
+    },
+    { message: 'logo_url must be https://… or an /uploads/… path' }
+  );
+
 const createInstitutionBodySchema = z.object({
   name: z.string().trim().min(2).max(255),
   name_en: z.string().trim().max(255).optional().nullable(),
@@ -28,7 +46,7 @@ const createInstitutionBodySchema = z.object({
   address: z.string().trim().max(500).optional().nullable(),
   contact_email: z.string().trim().email().max(255).optional().nullable(),
   contact_phone: z.string().trim().max(50).optional().nullable(),
-  logo_url: z.string().trim().max(1000).optional().nullable(),
+  logo_url: logoUrlSchema,
   notes: z.string().optional().nullable(),
   status: z.enum(['active', 'inactive', 'archived']).optional(),
   allows_public_trainee_registration: z.boolean().optional(),

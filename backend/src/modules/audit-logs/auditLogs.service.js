@@ -1,4 +1,4 @@
-﻿const { ApiError } = require('../../utils/apiError');
+const { ApiError, crossScopeForbidden } = require('../../utils/apiError');
 const { prisma } = require('../../config/db');
 const { normalizeRoles } = require('../../utils/deliveryAccess');
 const { isSystemWideAdmin } = require('../../utils/universityScope');
@@ -8,8 +8,12 @@ const {
   getAuditActionMeta,
   categoryLabel,
   outcomeLabel,
+  securityCategoryLabel,
+  severityLabel,
   buildAuditCatalog,
   listActionsForCategory,
+  listActionsForSecurityCategory,
+  AUDIT_ACTIONS,
   SESSION_END_REASONS,
 } = require('../../shared/audit/auditActions');
 const { resolveUserTenant } = require('../../shared/services/audit.service');
@@ -86,12 +90,47 @@ async function searchUserIds(term) {
   return users.map((u) => u.id);
 }
 
+const SECURITY_ACTIONS = Object.entries(AUDIT_ACTIONS)
+  .filter(([, meta]) => meta.security)
+  .map(([action]) => action);
+
+function actionsWithDefaultSeverity(severity) {
+  return Object.entries(AUDIT_ACTIONS)
+    .filter(([, meta]) => meta.security?.severity === severity)
+    .map(([action]) => action);
+}
+
 async function buildListWhere(query, requester) {
   const scope = resolveAuditScope(requester);
   const scoped = scopeWhere(scope);
   if (scoped === DENY_ALL) return DENY_ALL;
+  // IP / request id are technical metadata only system-wide admins may see, so only they may filter on them.
+  if ((query.ip_address || query.request_id) && scope?.type !== 'global') {
+    throw new ApiError(403, 'Forbidden', null, 'AUDIT_FILTER_GLOBAL_ONLY');
+  }
   const and = [];
   if (scoped) and.push(scoped);
+  // Rows written before security_category/severity existed are matched through the registry.
+  if (query.security_only) {
+    and.push({ OR: [{ security_category: { not: null } }, { action_type: { in: SECURITY_ACTIONS } }] });
+  }
+  if (query.security_category) {
+    const legacy = listActionsForSecurityCategory(query.security_category);
+    and.push({
+      OR: [
+        { security_category: query.security_category },
+        ...(legacy.length ? [{ security_category: null, action_type: { in: legacy } }] : []),
+      ],
+    });
+  }
+  if (query.severity) {
+    const legacy = actionsWithDefaultSeverity(query.severity);
+    and.push({
+      OR: [{ severity: query.severity }, ...(legacy.length ? [{ severity: null, action_type: { in: legacy } }] : [])],
+    });
+  }
+  if (query.ip_address) and.push({ ip_address: query.ip_address });
+  if (query.request_id) and.push({ request_id: query.request_id });
 
   if (query.university_id) and.push({ university_id: query.university_id });
   if (query.organization_id) and.push({ organization_id: query.organization_id });
@@ -152,6 +191,8 @@ function labelFields(row) {
   const meta = getAuditActionMeta(row.action_type);
   const category = row.category || meta?.category || 'SYSTEM';
   const outcome = row.outcome || 'SUCCESS';
+  const securityCategory = row.security_category || meta?.security?.category || null;
+  const severity = row.severity || meta?.security?.severity || null;
   return {
     action_label: meta?.labelAr || null,
     action_label_en: meta?.labelEn || null,
@@ -162,6 +203,12 @@ function labelFields(row) {
     outcome,
     outcome_label: outcomeLabel(outcome),
     outcome_label_en: outcomeLabel(outcome, 'en'),
+    security_category: securityCategory,
+    security_category_label: securityCategory ? securityCategoryLabel(securityCategory) : null,
+    security_category_label_en: securityCategory ? securityCategoryLabel(securityCategory, 'en') : null,
+    severity,
+    severity_label: severity ? severityLabel(severity) : null,
+    severity_label_en: severity ? severityLabel(severity, 'en') : null,
   };
 }
 
@@ -234,7 +281,7 @@ async function getAuditLogById(id, requester) {
   if (!scope) throw new ApiError(403, 'Forbidden');
   const row = await repo.findById(id);
   if (!row) throw new ApiError(404, 'Audit log not found');
-  if (!rowInScope(row, scope)) throw new ApiError(403, 'Forbidden');
+  if (!rowInScope(row, scope)) throw crossScopeForbidden('Forbidden', { scopeType: 'university' });
   const audit_log = await hydrateAuditDetail(row, scope);
   return { audit_log };
 }
@@ -248,7 +295,7 @@ async function getStudentTimeline(studentId, query, requester) {
   if (!scope) throw new ApiError(403, 'Forbidden');
   const student = await prisma.users.findUnique({ where: { id: studentId }, select: { id: true } });
   if (!student) throw new ApiError(404, 'User not found');
-  if (!(await userInScope(studentId, scope))) throw new ApiError(403, 'Forbidden');
+  if (!(await userInScope(studentId, scope))) throw crossScopeForbidden('Forbidden', { scopeType: 'user' });
   const { events, total } = await getStudentActivityTimeline({
     studentId,
     organizationScope: scope,
@@ -283,7 +330,7 @@ function presentSession(row, now = new Date()) {
 async function listUserSessions(userId, requester) {
   const scope = resolveAuditScope(requester);
   if (!scope) throw new ApiError(403, 'Forbidden');
-  if (!(await userInScope(userId, scope))) throw new ApiError(403, 'Forbidden');
+  if (!(await userInScope(userId, scope))) throw crossScopeForbidden('Forbidden', { scopeType: 'user' });
   const rows = await authSessions.listSessionsForUser(userId, { take: 25 });
   return { sessions: rows.map((r) => presentSession(r)) };
 }
@@ -294,7 +341,16 @@ async function revokeSession(sessionId, requester) {
   if (!scope) throw new ApiError(403, 'Forbidden');
   const row = await authSessions.getSessionById(sessionId);
   if (!row) throw new ApiError(404, 'Session not found');
-  if (!(await userInScope(row.user_id, scope))) throw new ApiError(403, 'Forbidden');
+  if (!(await userInScope(row.user_id, scope))) throw crossScopeForbidden('Forbidden', { scopeType: 'user' });
+  // Ending a privileged user's session: only global may touch a global user, and a fresh
+  // MFA proof is required of the requester.
+  const { getMfaStore } = require('../auth/mfa/mfa.store');
+  const { isMfaRequiredForUser } = require('../auth/mfa/mfaPolicy');
+  const subject = await getMfaStore().loadPolicySubject(row.user_id);
+  if (subject.isGlobal && !requester.isGlobal) throw new ApiError(403, 'Forbidden', null, 'FORBIDDEN');
+  if (row.user_id !== requester.userId && (subject.isGlobal || isMfaRequiredForUser(subject))) {
+    require('../auth/mfa/stepUp').assertStepUp(requester);
+  }
   const ended = await authSessions.endSession(row, SESSION_END_REASONS.ADMIN_REVOKED, {
     actorUserId: requester.userId,
     detectedBy: 'admin',
@@ -310,6 +366,7 @@ module.exports = {
   listUserSessions,
   revokeSession,
   resolveAuditScope,
+  userInScope,
   scopeWhere,
   rowInScope,
   buildListWhere,

@@ -2,9 +2,10 @@
 
 const accountDeletionService = require('./accountDeletion.service');
 const { success, created } = require('../../utils/apiResponse');
+const { getSecurityClientIp } = require('../../shared/security/clientIdentity');
 
 function clientIp(req) {
-  return req.ip || req.headers['x-forwarded-for'] || null;
+  return getSecurityClientIp(req);
 }
 
 async function getMine(req, res, next) {

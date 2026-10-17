@@ -1,6 +1,6 @@
 'use strict';
 
-const { ApiError } = require('./apiError');
+const { ApiError, crossScopeForbidden } = require('./apiError');
 const { isSystemWideAdmin } = require('./universityScope');
 
 /**
@@ -18,7 +18,7 @@ function resolveOrganizationIdFilter(requester, requestedOrganizationId) {
 
   const orgId = requester?.organizationId;
   if (requestedOrganizationId && orgId && String(requestedOrganizationId) !== String(orgId)) {
-    throw new ApiError(403, 'Forbidden: cannot access another organization');
+    throw crossScopeForbidden('Forbidden: cannot access another organization', { scopeType: 'organization' });
   }
   if (requestedOrganizationId && !orgId) {
     throw new ApiError(403, 'Forbidden');
@@ -36,8 +36,11 @@ function assertOrganizationAccess(requester, recordOrganizationId) {
   if (!orgId) {
     throw new ApiError(403, 'Forbidden');
   }
-  if (!recordOrganizationId || String(recordOrganizationId) !== String(orgId)) {
+  if (!recordOrganizationId) {
     throw new ApiError(403, 'Forbidden');
+  }
+  if (String(recordOrganizationId) !== String(orgId)) {
+    throw crossScopeForbidden('Forbidden', { scopeType: 'organization' });
   }
 }
 

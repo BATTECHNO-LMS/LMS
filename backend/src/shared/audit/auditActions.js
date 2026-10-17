@@ -54,52 +54,183 @@ const AUDIT_OUTCOMES = Object.freeze({
   SUCCESS: 'SUCCESS',
   FAILED: 'FAILED',
   DENIED: 'DENIED',
+  BLOCKED: 'BLOCKED',
 });
 
 const OUTCOME_LABELS = Object.freeze({
   SUCCESS: { ar: 'نجاح', en: 'Success' },
   FAILED: { ar: 'فشل', en: 'Failed' },
   DENIED: { ar: 'مرفوض', en: 'Denied' },
+  BLOCKED: { ar: 'محظور مؤقتًا', en: 'Blocked' },
 });
 
 /** Security-relevant categories: writes are retried and failures are logged at error level. */
 const SECURITY_CRITICAL_CATEGORIES = new Set(['AUTH', 'SECURITY']);
 
+/**
+ * Security-event taxonomy (`audit_logs.security_category`). A row is a security event when
+ * its action is registered with `security`. Callers can never pass free-text categories.
+ */
+const SECURITY_CATEGORIES = Object.freeze({
+  AUTHENTICATION: 'AUTHENTICATION',
+  AUTHORIZATION: 'AUTHORIZATION',
+  RATE_LIMIT: 'RATE_LIMIT',
+  SESSION: 'SESSION',
+  ACCOUNT_SECURITY: 'ACCOUNT_SECURITY',
+  SYSTEM_SECURITY: 'SYSTEM_SECURITY',
+});
+
+const SECURITY_CATEGORY_LABELS = Object.freeze({
+  AUTHENTICATION: { ar: 'التحقق من الهوية', en: 'Authentication' },
+  AUTHORIZATION: { ar: 'الصلاحيات', en: 'Authorization' },
+  RATE_LIMIT: { ar: 'تقييد المعدل', en: 'Rate limiting' },
+  SESSION: { ar: 'الجلسات', en: 'Sessions' },
+  ACCOUNT_SECURITY: { ar: 'أمان الحساب', en: 'Account security' },
+  SYSTEM_SECURITY: { ar: 'أمان النظام', en: 'System security' },
+});
+
+/** `audit_logs.severity`. A single failed login is INFO; HIGH/CRITICAL are reserved for attacks. */
+const SECURITY_SEVERITIES = Object.freeze({
+  INFO: 'INFO',
+  WARNING: 'WARNING',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL',
+});
+
+const SEVERITY_LABELS = Object.freeze({
+  INFO: { ar: 'معلومة', en: 'Info' },
+  WARNING: { ar: 'تحذير', en: 'Warning' },
+  HIGH: { ar: 'مرتفع', en: 'High' },
+  CRITICAL: { ar: 'حرج', en: 'Critical' },
+});
+
 const C = AUDIT_CATEGORIES;
-/** @type {Record<string, { category: string, labelAr: string, labelEn: string, legacy?: boolean, subjectFromEntity?: boolean }>} */
+const S = SECURITY_CATEGORIES;
+const V = SECURITY_SEVERITIES;
+/** @type {Record<string, { category: string, labelAr: string, labelEn: string, legacy?: boolean, subjectFromEntity?: boolean, security?: { category: string, severity: string } }>} */
 const registry = {};
 
 function a(action, category, labelAr, labelEn, opts = {}) {
-  registry[action] = Object.freeze({ category, labelAr, labelEn, ...opts });
+  const { security, ...rest } = opts;
+  registry[action] = Object.freeze({
+    category,
+    labelAr,
+    labelEn,
+    ...rest,
+    ...(security ? { security: Object.freeze({ category: security[0], severity: security[1] }) } : {}),
+  });
 }
 
 // ── AUTH ────────────────────────────────────────────────────────────────────
-a('USER_LOGIN_SUCCESS', C.AUTH, 'تسجيل دخول ناجح', 'Login succeeded');
-a('USER_LOGIN_FAILED', C.AUTH, 'محاولة دخول فاشلة', 'Login failed');
-a('LOGIN_ACCOUNT_DENIED', C.AUTH, 'رفض الدخول بسبب حالة الحساب', 'Login denied (account state)');
-a('AUTH_SESSION_CREATED', C.AUTH, 'بدء جلسة', 'Session created');
-a('AUTH_SESSION_ACTIVITY_STARTED', C.AUTH, 'بدء النشاط في الجلسة', 'Session activity started');
-a('AUTH_SESSION_IDLE_TIMEOUT', C.AUTH, 'انتهاء الجلسة لعدم النشاط', 'Session ended (idle timeout)');
-a('AUTH_SESSION_ENDED', C.AUTH, 'انتهاء الجلسة', 'Session ended');
-a('USER_LOGOUT', C.AUTH, 'تسجيل خروج', 'Logout');
+a('USER_LOGIN_SUCCESS', C.AUTH, 'تسجيل دخول ناجح', 'Login succeeded', { security: [S.AUTHENTICATION, V.INFO] });
+a('USER_LOGIN_FAILED', C.AUTH, 'محاولة دخول فاشلة', 'Login failed', { security: [S.AUTHENTICATION, V.INFO] });
+a('LOGIN_ACCOUNT_DENIED', C.AUTH, 'رفض الدخول بسبب حالة الحساب', 'Login denied (account state)', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('AUTH_SESSION_CREATED', C.AUTH, 'بدأت جلسة تسجيل الدخول', 'Session started', { security: [S.SESSION, V.INFO] });
+a('AUTH_SESSION_ACTIVITY_STARTED', C.AUTH, 'بدء النشاط في الجلسة', 'Session activity started', {
+  security: [S.SESSION, V.INFO],
+});
+a('AUTH_SESSION_IDLE_TIMEOUT', C.AUTH, 'انتهت الجلسة لعدم النشاط', 'Session ended (idle timeout)', {
+  security: [S.SESSION, V.INFO],
+});
+a('AUTH_SESSION_ABSOLUTE_EXPIRED', C.AUTH, 'انتهت صلاحية الجلسة', 'Session expired (maximum lifetime)', {
+  security: [S.SESSION, V.INFO],
+});
+/** The user ended one of their own sessions (or, historically, any revocation — see newValues.endReason). */
+a('AUTH_SESSION_ENDED', C.AUTH, 'تم إنهاء جلسة', 'Session ended', { security: [S.SESSION, V.INFO] });
+/** Forced end: admin, password reset, role/scope/status change, MFA reset (see newValues.endReason). */
+a('AUTH_SESSION_REVOKED', C.AUTH, 'تم إنهاء الجلسة أمنيًا', 'Session revoked', { security: [S.SESSION, V.WARNING] });
+a('AUTH_OTHER_SESSIONS_ENDED', C.SECURITY, 'تم إنهاء جميع الجلسات الأخرى', 'All other sessions ended', {
+  security: [S.SESSION, V.INFO],
+});
+a('USER_LOGOUT', C.AUTH, 'تم تسجيل الخروج', 'Logout', { security: [S.SESSION, V.INFO] });
 a('USER_REGISTERED', C.AUTH, 'تسجيل حساب جديد', 'User registered', { subjectFromEntity: true });
 a('INSTITUTION_USER_REGISTERED', C.AUTH, 'تسجيل حساب مؤسسة', 'Institution user registered', {
   subjectFromEntity: true,
 });
 a('PASSWORD_RESET_REQUESTED', C.AUTH, 'طلب استعادة كلمة المرور', 'Password reset requested', {
   subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
 });
 a('PASSWORD_RESET_OTP_VERIFIED', C.AUTH, 'التحقق من رمز الاستعادة', 'Password reset code verified', {
   subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
 });
 a('PASSWORD_RESET_COMPLETED', C.AUTH, 'إعادة تعيين كلمة المرور', 'Password reset completed', {
   subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
 });
 
 // ── SECURITY ────────────────────────────────────────────────────────────────
-a('TOKEN_INVALID', C.SECURITY, 'رمز دخول غير صالح', 'Invalid token');
-a('TOKEN_EXPIRED', C.SECURITY, 'رمز دخول منتهي', 'Expired token');
-a('PERMISSION_DENIED', C.SECURITY, 'محاولة وصول غير مصرّح بها', 'Permission denied');
+a('TOKEN_INVALID', C.SECURITY, 'رمز دخول غير صالح', 'Invalid token', { security: [S.AUTHENTICATION, V.WARNING] });
+a('TOKEN_EXPIRED', C.SECURITY, 'رمز دخول منتهي', 'Expired token', { security: [S.SESSION, V.INFO] });
+a('AUTHORIZATION_DENIED', C.SECURITY, 'رفض صلاحية الوصول', 'Authorization denied', {
+  security: [S.AUTHORIZATION, V.WARNING],
+});
+a('CROSS_SCOPE_ACCESS_DENIED', C.SECURITY, 'محاولة وصول إلى جهة أخرى', 'Cross-scope access denied', {
+  security: [S.AUTHORIZATION, V.HIGH],
+});
+a('RATE_LIMIT_TRIGGERED', C.SECURITY, 'تجاوز حد الطلبات', 'Rate limit triggered', {
+  security: [S.RATE_LIMIT, V.WARNING],
+});
+a('LOGIN_BRUTE_FORCE_SUSPECTED', C.SECURITY, 'اشتباه بهجوم تخمين كلمة المرور', 'Login brute force suspected', {
+  security: [S.AUTHENTICATION, V.HIGH],
+});
+a('OTP_FAILED', C.SECURITY, 'رمز تحقق خاطئ', 'Verification code failed', {
+  subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
+});
+a('OTP_LOCKED_TEMPORARILY', C.SECURITY, 'إيقاف رمز التحقق مؤقتًا', 'Verification code locked', {
+  subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
+});
+a('OTP_RATE_LIMITED', C.SECURITY, 'تجاوز محاولات رمز التحقق', 'Verification code attempts exceeded', {
+  subjectFromEntity: true,
+  security: [S.RATE_LIMIT, V.WARNING],
+});
+// MFA — never carries a secret, code, QR or recovery code (only outcome / method / counts).
+a('MFA_ENROLLMENT_STARTED', C.SECURITY, 'بدء إعداد المصادقة الثنائية', 'MFA enrollment started', {
+  security: [S.ACCOUNT_SECURITY, V.INFO],
+});
+a('MFA_ENABLED', C.SECURITY, 'تم تفعيل المصادقة الثنائية', 'MFA enabled', { security: [S.ACCOUNT_SECURITY, V.INFO] });
+a('MFA_DISABLED', C.SECURITY, 'تم إيقاف المصادقة الثنائية', 'MFA disabled', {
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
+});
+a('MFA_CHALLENGE_CREATED', C.SECURITY, 'طلب التحقق الثنائي', 'MFA challenge created', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('MFA_CHALLENGE_SUCCESS', C.SECURITY, 'نجح التحقق الثنائي', 'MFA challenge succeeded', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('MFA_CHALLENGE_FAILED', C.SECURITY, 'فشل التحقق الثنائي', 'MFA challenge failed', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('MFA_RATE_LIMIT_TRIGGERED', C.SECURITY, 'إيقاف مؤقت لمحاولات التحقق الثنائي', 'MFA attempts throttled', {
+  security: [S.RATE_LIMIT, V.HIGH],
+});
+a('MFA_RECOVERY_CODE_USED', C.SECURITY, 'تم استخدام رمز استرداد', 'Recovery code used', {
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
+});
+a('MFA_RECOVERY_CODES_REGENERATED', C.SECURITY, 'تم إعادة إنشاء رموز الاسترداد', 'Recovery codes regenerated', {
+  security: [S.ACCOUNT_SECURITY, V.INFO],
+});
+a('MFA_RESET_BY_ADMIN', C.SECURITY, 'تمت إعادة ضبط المصادقة الثنائية بواسطة المسؤول', 'MFA reset by administrator', {
+  security: [S.ACCOUNT_SECURITY, V.HIGH],
+});
+a('MFA_ADMIN_RESET_DENIED', C.SECURITY, 'رفض إعادة ضبط المصادقة الثنائية', 'MFA reset denied', {
+  security: [S.AUTHORIZATION, V.HIGH],
+});
+a('MFA_STEP_UP_SUCCESS', C.SECURITY, 'نجحت إعادة المصادقة لعملية حساسة', 'Step-up authentication succeeded', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('MFA_STEP_UP_FAILED', C.SECURITY, 'فشلت إعادة المصادقة لعملية حساسة', 'Step-up authentication failed', {
+  security: [S.AUTHENTICATION, V.INFO],
+});
+a('PERMISSION_DENIED', C.SECURITY, 'محاولة وصول غير مصرّح بها', 'Permission denied', {
+  legacy: true,
+  security: [S.AUTHORIZATION, V.WARNING],
+});
 a('ACCOUNT_DELETION_REQUESTED', C.USER, 'طلب حذف الحساب', 'Account deletion requested');
 a('ACCOUNT_DELETION_CANCELLED', C.USER, 'إلغاء طلب حذف الحساب', 'Account deletion cancelled');
 a('ACCOUNT_DELETION_PROCESSING', C.USER, 'معالجة طلب حذف الحساب', 'Account deletion processing');
@@ -109,16 +240,25 @@ a('ACCOUNT_DELETION_COMPLETED', C.USER, 'اكتمال حذف الحساب', 'Acc
 // ── USER ────────────────────────────────────────────────────────────────────
 a('USER_CREATED', C.USER, 'إنشاء مستخدم', 'User created', { subjectFromEntity: true });
 a('USER_UPDATED', C.USER, 'تعديل بيانات مستخدم', 'User updated', { subjectFromEntity: true });
-a('USER_ROLE_CHANGED', C.USER, 'تغيير صلاحيات مستخدم', 'User roles changed', { subjectFromEntity: true });
-a('USER_STATUS_CHANGED', C.USER, 'تغيير حالة مستخدم', 'User status changed', { subjectFromEntity: true });
+a('USER_ROLE_CHANGED', C.USER, 'تغيير صلاحيات مستخدم', 'User roles changed', {
+  subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
+});
+a('USER_STATUS_CHANGED', C.USER, 'تغيير حالة مستخدم', 'User status changed', {
+  subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
+});
 a('USER_PASSWORD_RESET', C.USER, 'إعادة تعيين كلمة مرور مستخدم', 'User password reset by admin', {
   subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
 });
 a('USER_ACTIVATED', C.USER, 'تفعيل مستخدم', 'User activated', { subjectFromEntity: true });
 a('USER_EMAIL_VERIFIED', C.USER, 'توثيق بريد مستخدم', 'User email verified', { subjectFromEntity: true });
 a('BULK_EMAIL_VERIFIED', C.USER, 'توثيق بريد جماعي', 'Bulk email verification');
 a('USERS_EXCEL_EXPORTED', C.REPORT, 'تصدير المستخدمين (Excel)', 'Users exported (Excel)');
-a('ROLE_PERMISSIONS_UPDATED', C.USER, 'تعديل صلاحيات دور', 'Role permissions updated');
+a('ROLE_PERMISSIONS_UPDATED', C.USER, 'تعديل صلاحيات دور', 'Role permissions updated', {
+  security: [S.ACCOUNT_SECURITY, V.WARNING],
+});
 a('REVIEWER_UNIVERSITY_ASSIGNED', C.USER, 'ربط مراجع بجامعة', 'Reviewer assigned to university');
 a('REVIEWER_UNIVERSITY_UNASSIGNED', C.USER, 'إلغاء ربط مراجع بجامعة', 'Reviewer unassigned');
 a('TRAINER_USER_CREATED', C.USER, 'إنشاء حساب مدرب', 'Trainer account created', { subjectFromEntity: true });
@@ -133,7 +273,10 @@ a('ORG_ASSIGNMENT_CREATED', C.ORGANIZATION, 'ربط مستخدم بمؤسسة', 
 a('EMAIL_VERIFIED_ADMIN', C.USER, 'توثيق بريد عضو المؤسسة', 'Member email verified', { subjectFromEntity: true });
 a('ACCOUNT_ACTIVATE', C.USER, 'تفعيل حساب عضو', 'Member account activated', { subjectFromEntity: true });
 a('ACCOUNT_REJECT', C.USER, 'رفض حساب عضو', 'Member account rejected', { subjectFromEntity: true });
-a('ACCOUNT_DISABLE', C.USER, 'تعطيل حساب عضو', 'Member account disabled', { subjectFromEntity: true });
+a('ACCOUNT_DISABLE', C.USER, 'تعطيل حساب عضو', 'Member account disabled', {
+  subjectFromEntity: true,
+  security: [S.ACCOUNT_SECURITY, V.INFO],
+});
 a('UNIVERSITY_CREATED', C.ORGANIZATION, 'إنشاء جامعة', 'University created');
 a('UNIVERSITY_UPDATED', C.ORGANIZATION, 'تعديل جامعة', 'University updated');
 a('UNIVERSITY_DELETED', C.ORGANIZATION, 'حذف جامعة', 'University deleted');
@@ -359,9 +502,23 @@ const NAVIGATION_ACTIONS = Object.freeze({
 /** Session end reasons (auth_sessions.end_reason). */
 const SESSION_END_REASONS = Object.freeze({
   USER_LOGOUT: 'USER_LOGOUT',
-  ADMIN_REVOKED: 'ADMIN_REVOKED',
   IDLE_TIMEOUT: 'IDLE_TIMEOUT',
   ABSOLUTE_EXPIRY: 'ABSOLUTE_EXPIRY',
+  ADMIN_REVOKED: 'ADMIN_REVOKED',
+  PASSWORD_RESET: 'PASSWORD_RESET',
+  PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+  /** Account status changed / account deletion / generic security revocation. */
+  SECURITY_REVOKED: 'SECURITY_REVOKED',
+  /** Platform or organization role (incl. global access) changed. */
+  ROLE_CHANGED: 'ROLE_CHANGED',
+  /** University / organization scope changed. */
+  SCOPE_CHANGED: 'SCOPE_CHANGED',
+  /** MFA factor reset by an administrator. */
+  MFA_RESET: 'MFA_RESET',
+  /** The user ended one of their own other sessions. */
+  USER_REVOKED: 'USER_REVOKED',
+  /** The user ended all their other sessions. */
+  USER_REVOKED_OTHER_SESSIONS: 'USER_REVOKED_OTHER_SESSIONS',
 });
 
 function getAuditActionMeta(action) {
@@ -401,6 +558,29 @@ function listActionsForCategory(category) {
     .map(([action]) => action);
 }
 
+/** Actions registered under a security category (matches rows written before the column existed). */
+function listActionsForSecurityCategory(securityCategory) {
+  return Object.entries(AUDIT_ACTIONS)
+    .filter(([, meta]) => meta.security?.category === securityCategory)
+    .map(([action]) => action);
+}
+
+function securityMetaForAction(action) {
+  return getAuditActionMeta(action)?.security || null;
+}
+
+function securityCategoryLabel(code, locale = 'ar') {
+  const meta = SECURITY_CATEGORY_LABELS[code];
+  if (!meta) return null;
+  return locale === 'en' ? meta.en : meta.ar;
+}
+
+function severityLabel(code, locale = 'ar') {
+  const meta = SEVERITY_LABELS[code];
+  if (!meta) return null;
+  return locale === 'en' ? meta.en : meta.ar;
+}
+
 /** Catalog for the Logs page filters (labels resolved server-side). */
 function buildAuditCatalog() {
   return {
@@ -414,9 +594,20 @@ function buildAuditCatalog() {
       label_ar: OUTCOME_LABELS[code].ar,
       label_en: OUTCOME_LABELS[code].en,
     })),
+    security_categories: Object.keys(SECURITY_CATEGORIES).map((code) => ({
+      code,
+      label_ar: SECURITY_CATEGORY_LABELS[code].ar,
+      label_en: SECURITY_CATEGORY_LABELS[code].en,
+    })),
+    severities: Object.keys(SECURITY_SEVERITIES).map((code) => ({
+      code,
+      label_ar: SEVERITY_LABELS[code].ar,
+      label_en: SEVERITY_LABELS[code].en,
+    })),
     actions: Object.entries(AUDIT_ACTIONS).map(([code, meta]) => ({
       code,
       category: meta.category,
+      security_category: meta.security?.category || null,
       label_ar: meta.labelAr,
       label_en: meta.labelEn,
       legacy: Boolean(meta.legacy),
@@ -433,12 +624,20 @@ module.exports = {
   NAVIGATION_ACTIONS,
   SESSION_END_REASONS,
   SECURITY_CRITICAL_CATEGORIES,
+  SECURITY_CATEGORIES,
+  SECURITY_CATEGORY_LABELS,
+  SECURITY_SEVERITIES,
+  SEVERITY_LABELS,
   getAuditActionMeta,
   isRegisteredAuditAction,
   categoryForAction,
   actionLabel,
   categoryLabel,
   outcomeLabel,
+  securityCategoryLabel,
+  severityLabel,
+  securityMetaForAction,
   listActionsForCategory,
+  listActionsForSecurityCategory,
   buildAuditCatalog,
 };

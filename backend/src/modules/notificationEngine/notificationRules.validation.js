@@ -9,6 +9,29 @@ const {
   NOTIFICATION_EVENTS,
 } = require('./notificationEvents.catalog');
 const { OFFICIAL_ROLES } = require('./notificationEngine.shared');
+const { sanitizeAppRelativePath, sanitizeCtaOrAppUrl } = require('../../shared/security/safeAppPath');
+
+function optionalSafeActionUrl(max = 2000) {
+  return z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .nullable()
+    .transform((v) => {
+      if (v == null || v === '') return v;
+      // Templates may include {{vars}} — allow only if remaining static form is a relative path or https.
+      if (/\{\{/.test(v)) {
+        // Reject protocol-relative / schemes even inside templates.
+        if (v.startsWith('//') || v.includes('\\') || /^(javascript|data|vbscript|file):/i.test(v)) {
+          return null;
+        }
+        return v;
+      }
+      return sanitizeCtaOrAppUrl(v) ?? sanitizeAppRelativePath(v);
+    })
+    .refine((v) => v !== null, { message: 'رابط غير صالح' });
+}
 
 const uuidParamSchema = z.object({
   id: z.string().uuid('معرّف غير صالح'),
@@ -83,7 +106,7 @@ const createTemplateBodySchema = z
     title_template: z.string().trim().min(1).max(500),
     body_template: z.string().trim().min(1).max(10000),
     action_label_template: z.string().trim().max(120).optional().nullable(),
-    action_url_template: z.string().trim().max(1000).optional().nullable(),
+    action_url_template: optionalSafeActionUrl(1000),
     locale: z.string().trim().max(10).default('ar'),
     status: templateStatusEnum.optional(),
   })
@@ -99,7 +122,7 @@ const previewTemplateBodySchema = z
     title_template: z.string().trim().min(1).max(500),
     body_template: z.string().trim().min(1).max(10000),
     action_label_template: z.string().trim().max(120).optional().nullable(),
-    action_url_template: z.string().trim().max(1000).optional().nullable(),
+    action_url_template: optionalSafeActionUrl(1000),
     vars: z.record(z.unknown()).default({}),
   })
   .strict();
@@ -153,7 +176,7 @@ const manualSendBodySchema = z
     event_type: eventTypeEnum,
     title: z.string().trim().min(1).max(255),
     body: z.string().trim().max(5000).optional().nullable(),
-    action_url: z.string().trim().max(2000).optional().nullable(),
+    action_url: optionalSafeActionUrl(2000),
     action_label: z.string().trim().max(120).optional().nullable(),
     university_id: z.string().uuid().optional().nullable(),
     opportunity_id: z.string().uuid().optional().nullable(),

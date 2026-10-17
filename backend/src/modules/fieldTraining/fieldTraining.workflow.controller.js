@@ -1,5 +1,6 @@
 const workflowService = require('./fieldTraining.workflowService');
 const { success, created } = require('../../utils/apiResponse');
+const { getSecurityClientIp } = require('../../shared/security/clientIdentity');
 
 async function startTraining(req, res, next) {
   try {
@@ -497,7 +498,7 @@ const previewCompletionLetterAsAcademic = previewCompletionLetterAsManager;
 
 function requestMeta(req) {
   return {
-    ipAddress: req.ip || req.headers['x-forwarded-for'] || null,
+    ipAddress: getSecurityClientIp(req),
     deviceInfo: String(req.headers['user-agent'] || '').slice(0, 500) || null,
   };
 }

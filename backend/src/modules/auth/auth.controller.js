@@ -4,6 +4,7 @@ const { created, success, okMessage } = require('../../utils/apiResponse');
 const { verifyToken } = require('../../utils/jwt');
 const { extractBearerToken } = require('../../middlewares/auth.middleware');
 const { truncateUserAgent } = require('../../shared/requestContext');
+const { getSecurityClientIp } = require('../../shared/security/clientIdentity');
 
 async function register(req, res, next) {
   try {
@@ -31,9 +32,13 @@ async function login(req, res, next) {
   try {
     const data = await authService.login({
       ...req.validated,
-      ipAddress: req.ip || null,
+      ipAddress: getSecurityClientIp(req),
       userAgent: truncateUserAgent(req.headers['user-agent']),
     });
+    if (data.mfa) {
+      res.set('Cache-Control', 'no-store');
+      return success(res, data, { message: 'يرجى إكمال التحقق الثنائي لتسجيل الدخول.' });
+    }
     return success(res, data, { message: 'تم تسجيل الدخول بنجاح.' });
   } catch (e) {
     return next(e);

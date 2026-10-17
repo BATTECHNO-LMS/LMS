@@ -31,7 +31,40 @@ const SECURITY_ONLY_ACTIONS = new Set([
   'TOKEN_INVALID',
   'TOKEN_EXPIRED',
   'PERMISSION_DENIED',
+  'AUTHORIZATION_DENIED',
+  'CROSS_SCOPE_ACCESS_DENIED',
+  'RATE_LIMIT_TRIGGERED',
+  'LOGIN_BRUTE_FORCE_SUSPECTED',
+  'OTP_FAILED',
+  'OTP_LOCKED_TEMPORARILY',
+  'OTP_RATE_LIMITED',
+  'AUTH_OTHER_SESSIONS_ENDED',
+  'MFA_ENROLLMENT_STARTED',
+  'MFA_ENABLED',
+  'MFA_DISABLED',
+  'MFA_CHALLENGE_CREATED',
+  'MFA_CHALLENGE_SUCCESS',
+  'MFA_CHALLENGE_FAILED',
+  'MFA_RATE_LIMIT_TRIGGERED',
+  'MFA_RECOVERY_CODE_USED',
+  'MFA_RECOVERY_CODES_REGENERATED',
+  'MFA_RESET_BY_ADMIN',
+  'MFA_ADMIN_RESET_DENIED',
+  'MFA_STEP_UP_SUCCESS',
+  'MFA_STEP_UP_FAILED',
 ]);
+
+const SESSION_REVOKE_REASON_AR = Object.freeze({
+  ADMIN_REVOKED: 'أنهت الإدارة الجلسة',
+  PASSWORD_RESET: 'أُنهيت الجلسة بعد إعادة تعيين كلمة المرور',
+  PASSWORD_CHANGED: 'أُنهيت الجلسة بعد تغيير كلمة المرور',
+  SECURITY_REVOKED: 'أُنهيت الجلسة بسبب تغيير في صلاحيات الحساب أو حالته',
+  ROLE_CHANGED: 'أُنهيت الجلسة بسبب تغيير الدور',
+  SCOPE_CHANGED: 'أُنهيت الجلسة بسبب تغيير نطاق الحساب',
+  MFA_RESET: 'أُنهيت الجلسة بعد إعادة تعيين المصادقة الثنائية',
+  USER_REVOKED: 'أنهى المستخدم الجلسة من صفحة الأمان',
+  USER_REVOKED_OTHER_SESSIONS: 'أنهى المستخدم الجلسات الأخرى',
+});
 
 const ROLE_LABEL_AR = Object.freeze({
   super_admin: 'مدير النظام',
@@ -138,10 +171,17 @@ function summarizeDetails(row) {
     const minutes = clean(nv.idleMinutes, 5) || '30';
     parts.push(`انتهت الجلسة تلقائيًا بعد ${minutes} دقيقة من عدم النشاط`);
   }
+  if (row.action_type === 'AUTH_SESSION_ABSOLUTE_EXPIRED') {
+    parts.push('انتهت المدة القصوى للجلسة');
+  }
+  if (row.action_type === 'AUTH_SESSION_ENDED' || row.action_type === 'AUTH_SESSION_REVOKED') {
+    const text = SESSION_REVOKE_REASON_AR[clean(nv.endReason, 40)];
+    if (text) parts.push(text);
+  }
   if (row.action_type === 'USER_LOGIN_FAILED' || row.action_type === 'LOGIN_ACCOUNT_DENIED') {
     const reason = clean(nv.reason, 40);
     if (reason === 'INVALID_PASSWORD') parts.push('كلمة مرور غير صحيحة');
-    else if (reason === 'UNKNOWN_IDENTIFIER') parts.push('حساب غير معروف');
+    else if (reason === 'UNKNOWN_IDENTIFIER' || reason === 'ACCOUNT_NOT_FOUND_OR_INVALID') parts.push('حساب غير معروف');
     else if (reason) parts.push('الحساب غير متاح للدخول حاليًا');
   }
 

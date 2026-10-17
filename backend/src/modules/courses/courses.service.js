@@ -338,13 +338,29 @@ async function publishAllDraftLessons(courseId) {
 async function updateLesson(courseId, lessonId, body) {
   const lesson = await repo.findLessonInCourse(courseId, lessonId);
   if (!lesson) throw new ApiError(404, 'Lesson not found');
-  const data = { ...body };
-  if (data.title != null) data.title = data.title.trim();
-  if (data.section_id != null && data.section_id !== lesson.section_id) {
-    const section = await repo.findSectionInCourse(courseId, data.section_id);
-    if (!section) throw new ApiError(400, 'Invalid section for this course');
+  // Explicit allowlist — never forward arbitrary body keys into Prisma.
+  const data = {};
+  for (const key of [
+    'title',
+    'description',
+    'type',
+    'video_url',
+    'content',
+    'resource_url',
+    'duration_minutes',
+    'sort_order',
+    'is_preview',
+    'is_required',
+    'status',
+  ]) {
+    if (body[key] !== undefined) data[key] = body[key];
   }
-  delete data.section_id;
+  if (data.title != null) data.title = String(data.title).trim();
+  if (body.section_id != null && body.section_id !== lesson.section_id) {
+    const section = await repo.findSectionInCourse(courseId, body.section_id);
+    if (!section) throw new ApiError(400, 'Invalid section for this course');
+    data.section_id = body.section_id;
+  }
   const updated = await repo.updateLesson(lessonId, data);
   await recordAudit({
     actionType: 'COURSE_LESSON_UPDATED',

@@ -4,6 +4,9 @@ const { authorizeRoles } = require('../../middlewares/authorization.middleware')
 const { validateRequest } = require('../../middlewares/validate.middleware');
 const { env } = require('../../config/env');
 const usersController = require('./users.controller');
+const mfaController = require('../auth/mfa/mfa.controller');
+const { adminMfaResetSchema } = require('../auth/mfa/mfa.validation');
+const { requireStepUp } = require('../auth/mfa/stepUp');
 const {
   uuidParamSchema,
   listUsersQuerySchema,
@@ -37,6 +40,7 @@ router.get(
   '/export/excel',
   authenticate,
   adminRead,
+  requireStepUp,
   validateRequest({ query: exportUsersExcelQuerySchema }),
   usersController.exportExcel
 );
@@ -101,8 +105,27 @@ router.post(
   '/:id/reset-password',
   authenticate,
   userWrite,
+  requireStepUp,
   validateRequest({ params: uuidParamSchema, body: adminResetPasswordBodySchema }),
   usersController.resetPassword
+);
+
+router.get(
+  '/:id/mfa',
+  authenticate,
+  adminRead,
+  validateRequest({ params: uuidParamSchema }),
+  mfaController.noStore,
+  mfaController.adminStatus
+);
+
+router.post(
+  '/:id/mfa/reset',
+  authenticate,
+  userWrite,
+  requireStepUp,
+  validateRequest({ params: uuidParamSchema, body: adminMfaResetSchema }),
+  mfaController.adminReset
 );
 
 router.patch(

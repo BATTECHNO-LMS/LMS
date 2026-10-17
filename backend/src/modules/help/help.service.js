@@ -116,7 +116,10 @@ function assertAdminCanAccessTargets(user, targetUniversityIds) {
     throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
   }
   const targets = targetUniversityIds || [];
-  if (targets.length === 0) return;
+  // Empty targets = platform-wide content; only system-wide admins may manage.
+  if (targets.length === 0) {
+    throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
+  }
   if (!targets.includes(uni)) {
     throw new ApiError(403, CONTENT_ADMIN_FORBIDDEN_MSG, null, 'CONTENT_ADMIN_FORBIDDEN');
   }
@@ -1252,8 +1255,11 @@ async function adminRestoreArticleVersion(user, id, version) {
         title_en: snap?.title_en ?? existing.title_en,
         summary_ar: snap?.summary_ar ?? snapshot.summary_ar,
         summary_en: snap?.summary_en ?? existing.summary_en,
-        content_ar: snap?.content_ar ?? snapshot.content_ar,
-        content_en: snap?.content_en ?? existing.content_en,
+        content_ar: sanitizeHtml(snap?.content_ar ?? snapshot.content_ar),
+        content_en: (() => {
+          const raw = snap?.content_en ?? existing.content_en;
+          return raw ? sanitizeHtml(raw) : raw;
+        })(),
         keywords: snap?.keywords ?? snapshot.keywords ?? [],
         target_roles: snap?.target_roles ?? snapshot.target_roles ?? existing.target_roles,
         related_route: snap?.related_route ?? snapshot.related_route,
@@ -1282,6 +1288,17 @@ async function adminRestoreArticleVersion(user, id, version) {
 
 async function adminReorderArticles(user, items) {
   assertContentAdmin(user);
+  const ids = items.map((item) => item.id);
+  const rows = await prisma.help_articles.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, target_university_ids: true },
+  });
+  if (rows.length !== ids.length) {
+    throw new ApiError(404, 'المقال غير موجود');
+  }
+  for (const row of rows) {
+    assertAdminCanAccessTargets(user, row.target_university_ids);
+  }
   await prisma.$transaction(
     items.map((item) =>
       prisma.help_articles.update({
@@ -1641,6 +1658,7 @@ module.exports = {
   adminRestoreArticleVersion,
   adminRestoreVersion,
   adminReorderArticles,
+  assertAdminCanAccessTargets,
   adminHelpAnalytics,
   adminListGuides,
   adminGetGuide,

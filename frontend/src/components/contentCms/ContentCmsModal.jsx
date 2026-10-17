@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../common/Button.jsx';
 import { AppModal } from '../designSystem/index.js';
+import { openSafeCtaUrl } from '../../utils/safeCtaNavigation.js';
 
 /**
  * Shared modal shell for managed popups and announcement POPUP channel.
@@ -31,13 +32,7 @@ export function ContentCmsModal({
 
   const handleCta = () => {
     onCta?.();
-    if (ctaUrl) {
-      if (/^https?:\/\//i.test(ctaUrl)) {
-        window.open(ctaUrl, '_blank', 'noopener,noreferrer');
-      } else {
-        navigate(ctaUrl);
-      }
-    }
+    openSafeCtaUrl(ctaUrl, { navigate });
   };
 
   const hasFooter =

@@ -5,13 +5,16 @@ const path = require('path');
 const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
 const { buildTrainingReportHtml } = require('./trainingReport.template');
 const { prisma } = require('../../config/db');
+const { env } = require('../../config/env');
+const { assertSafePublicUrl } = require('../fieldTraining/fieldTraining.urlFetch');
 
 const MAX_LOGO_BYTES = 1_500_000;
 
 function toLogoDataUri(buf, mime) {
   if (!buf || buf.length > MAX_LOGO_BYTES) return null;
   const safeMime = String(mime || 'image/png').split(';')[0].trim().toLowerCase();
-  if (!/^image\/(png|jpe?g|webp|gif|svg\+xml)$/.test(safeMime)) return null;
+  // SVG intentionally excluded — active content must not be embedded into PDF HTML.
+  if (!/^image\/(png|jpe?g|webp|gif)$/.test(safeMime)) return null;
   return `data:${safeMime};base64,${Buffer.from(buf).toString('base64')}`;
 }
 
@@ -36,41 +39,77 @@ function loadBattechnoLogoDataUri() {
   return null;
 }
 
+/**
+ * Resolve a logo path only under the configured upload root (no arbitrary cwd reads).
+ * @param {string} logoUrl
+ * @returns {string | null}
+ */
 function resolveLocalUploadPath(logoUrl) {
   if (!logoUrl) return null;
   if (logoUrl.startsWith('data:')) return null;
-  if (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')) return null;
-  const cleaned = logoUrl.replace(/^\//, '');
-  const candidates = [
-    path.join(process.cwd(), cleaned),
-    path.join(process.cwd(), 'uploads', path.basename(cleaned)),
-    path.join(process.cwd(), 'public', cleaned),
-  ];
-  for (const file of candidates) {
-    if (fs.existsSync(file)) return file;
+  if (/^https?:\/\//i.test(logoUrl)) return null;
+
+  const uploadRoot = path.resolve(env.UPLOAD_DIR || 'uploads');
+  let relative = String(logoUrl).replace(/\\/g, '/').replace(/^\//, '');
+  // Common stored forms: "uploads/org/logo.png" or "org/logo.png"
+  if (relative.startsWith('uploads/')) relative = relative.slice('uploads/'.length);
+
+  const resolved = path.resolve(uploadRoot, relative);
+  const rootWithSep = uploadRoot.endsWith(path.sep) ? uploadRoot : `${uploadRoot}${path.sep}`;
+  if (resolved !== uploadRoot && !resolved.startsWith(rootWithSep)) {
+    return null;
+  }
+  try {
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) return resolved;
+  } catch {
+    return null;
   }
   return null;
+}
+
+async function fetchPublicLogo(logoUrl) {
+  await assertSafePublicUrl(logoUrl);
+  const res = await fetch(logoUrl, {
+    method: 'GET',
+    redirect: 'manual',
+    signal: AbortSignal.timeout(5_000),
+    headers: { Accept: 'image/*,*/*;q=0.1' },
+  });
+  if ([301, 302, 303, 307, 308].includes(res.status)) {
+    // Do not follow redirects without re-validating — treat as unavailable.
+    return null;
+  }
+  if (!res.ok) return null;
+  const contentType = (res.headers.get('content-type') || 'image/png').split(';')[0].trim();
+  if (!/^image\/(png|jpe?g|webp|gif)$/i.test(contentType)) return null;
+  const arr = Buffer.from(await res.arrayBuffer());
+  return toLogoDataUri(arr, contentType);
 }
 
 async function loadInstitutionLogoDataUri(logoUrl) {
   if (!logoUrl) return null;
   if (logoUrl.startsWith('data:')) {
+    // Only allow raster data-URIs (no SVG).
+    if (!/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(logoUrl)) return null;
     return logoUrl.length > MAX_LOGO_BYTES * 2 ? null : logoUrl;
   }
   const local = resolveLocalUploadPath(logoUrl);
   if (local) {
     const buf = fs.readFileSync(local);
     const ext = path.extname(local).toLowerCase();
-    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : 'image/png';
+    const mime =
+      ext === '.jpg' || ext === '.jpeg'
+        ? 'image/jpeg'
+        : ext === '.webp'
+          ? 'image/webp'
+          : ext === '.gif'
+            ? 'image/gif'
+            : 'image/png';
     return toLogoDataUri(buf, mime);
   }
-  if (logoUrl.startsWith('http://') || logoUrl.startsWith('https://')) {
+  if (/^https?:\/\//i.test(logoUrl)) {
     try {
-      const res = await fetch(logoUrl, { signal: AbortSignal.timeout(5_000) });
-      if (!res.ok) return null;
-      const arr = Buffer.from(await res.arrayBuffer());
-      const contentType = res.headers.get('content-type') || 'image/png';
-      return toLogoDataUri(arr, contentType);
+      return await fetchPublicLogo(logoUrl);
     } catch {
       return null;
     }
@@ -99,8 +138,7 @@ async function loadBrandAssets(report) {
     }
   }
 
-  const singleBrand =
-    Boolean(snap.meta?.singleBrand) || organizationCode === 'BATTECHNO';
+  const singleBrand = Boolean(snap.meta?.singleBrand) || organizationCode === 'BATTECHNO';
 
   return {
     battechnoLogoDataUri: loadBattechnoLogoDataUri(),
@@ -118,6 +156,6 @@ async function renderTrainingReportPdf(report) {
 module.exports = {
   loadBattechnoLogoDataUri,
   loadInstitutionLogoDataUri,
-  loadBrandAssets,
+  resolveLocalUploadPath,
   renderTrainingReportPdf,
 };

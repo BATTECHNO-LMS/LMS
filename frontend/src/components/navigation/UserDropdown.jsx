@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ChevronDown, ShieldCheck } from 'lucide-react';
 import { cn } from '../../utils/helpers.js';
+import { getSecurityPathForUser } from '../../utils/securityPath.js';
 import { Button } from '../common/Button.jsx';
 import { useAuth } from '../../features/auth/index.js';
 
@@ -72,6 +74,16 @@ export function UserDropdown({ userName, userEmail, onLogout, compact = false })
             <div className="user-dropdown__email" role="presentation">
               {userEmail}
             </div>
+          ) : null}
+          {user ? (
+            <Link
+              to={getSecurityPathForUser(user)}
+              className="btn btn--ghost user-dropdown__logout"
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              <ShieldCheck size={16} aria-hidden /> {t('user.securitySessions')}
+            </Link>
           ) : null}
           <Button
             type="button"

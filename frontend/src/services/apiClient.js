@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { storageKeys, getStorageItem } from '../utils/storage.js';
 import { triggerUnauthorized } from './authSessionBridge.js';
+import { requestStepUp } from './stepUpBridge.js';
 import { shouldLogoutForResponse } from '../features/auth/session/sessionPolicy.js';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? '';
@@ -49,14 +50,31 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+/** Error code from JSON or (for blob downloads) a JSON body delivered as a Blob. */
+async function readErrorCode(data) {
+  if (data && typeof data === 'object' && typeof Blob !== 'undefined' && data instanceof Blob) {
+    try {
+      return JSON.parse(await data.text())?.code;
+    } catch {
+      return undefined;
+    }
+  }
+  return data?.code;
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const authHeader = readConfigHeader(error.config?.headers, 'Authorization');
     const status = error.response?.status;
-    const code = error.response?.data?.code;
+    const code = await readErrorCode(error.response?.data);
     if (shouldLogoutForResponse({ status, code, hadAuth: Boolean(authHeader) })) {
       triggerUnauthorized(code);
+    }
+    // Sensitive operation needs a fresh MFA proof: verify in the modal, then retry once.
+    if (status === 403 && code === 'STEP_UP_REQUIRED' && error.config && !error.config.__stepUpRetried) {
+      const verified = await requestStepUp(error.response?.data?.details || {});
+      if (verified) return apiClient({ ...error.config, __stepUpRetried: true });
     }
     return Promise.reject(error);
   }

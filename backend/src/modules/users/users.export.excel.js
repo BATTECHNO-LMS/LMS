@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs');
+const { sanitizeSpreadsheetCell } = require('../../shared/security/spreadsheetSafe');
 
 const CREATOR = 'eprojecto';
 const NAVY = 'FF132D4A';
@@ -43,7 +44,7 @@ const STATUS_LABELS_AR = {
 
 function cellText(value) {
   if (value == null || value === '') return '';
-  return String(value);
+  return String(sanitizeSpreadsheetCell(value));
 }
 
 function roleLabelAr(code) {

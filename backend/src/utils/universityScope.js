@@ -1,4 +1,4 @@
-const { ApiError } = require('./apiError');
+const { ApiError, crossScopeForbidden } = require('./apiError');
 
 /**
  * Super Admin (isGlobal) may access all universities.
@@ -25,7 +25,7 @@ function resolveUniversityIdFilter(requester, requestedUniversityId) {
 
   const uni = requester?.universityId;
   if (requestedUniversityId && uni && String(requestedUniversityId) !== String(uni)) {
-    throw new ApiError(403, 'Forbidden: cannot access another university');
+    throw crossScopeForbidden('Forbidden: cannot access another university', { scopeType: 'university' });
   }
   if (requestedUniversityId && !uni) {
     throw new ApiError(403, 'Forbidden');
@@ -48,8 +48,11 @@ function assertUniversityRecordAccess(requester, recordUniversityId) {
   if (!uni) {
     throw new ApiError(403, 'Forbidden');
   }
-  if (!recordUniversityId || String(recordUniversityId) !== String(uni)) {
+  if (!recordUniversityId) {
     throw new ApiError(403, 'Forbidden');
+  }
+  if (String(recordUniversityId) !== String(uni)) {
+    throw crossScopeForbidden('Forbidden', { scopeType: 'university' });
   }
 }
 

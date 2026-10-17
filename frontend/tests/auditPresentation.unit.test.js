@@ -8,6 +8,7 @@ import {
   countActiveFilters,
   describeValueChanges,
   outcomeVariant,
+  severityVariant,
   sessionStatusLabel,
   subjectLabel,
 } from '../src/features/auditLogs/auditPresentation.js';
@@ -19,6 +20,28 @@ describe('activity log presentation', () => {
     assert.deepEqual([...AUDIT_PAGE_SIZES], [25, 50]);
     assert.equal(buildAuditQueryParams({}, { page: 1, pageSize: 1000 }).page_size, 25);
     assert.equal(buildAuditQueryParams({}, { page: 3, pageSize: 50 }).page_size, 50);
+  });
+
+  test('security filters map to the backend contract', () => {
+    const params = buildAuditQueryParams(
+      { securityCategory: 'RATE_LIMIT', severity: 'HIGH', securityOnly: true, ipAddress: ' 203.0.113.10 ', requestId: '' },
+      { page: 1, pageSize: 25 }
+    );
+    assert.deepEqual(params, {
+      page: 1,
+      page_size: 25,
+      security_category: 'RATE_LIMIT',
+      severity: 'HIGH',
+      security_only: 'true',
+      ip_address: '203.0.113.10',
+    });
+  });
+
+  test('blocked outcome and severities have badge variants', () => {
+    assert.equal(outcomeVariant('BLOCKED'), 'danger');
+    assert.equal(severityVariant('HIGH'), 'danger');
+    assert.equal(severityVariant('WARNING'), 'warning');
+    assert.equal(severityVariant('nonsense'), 'default');
   });
 
   test('query params drop empty values and invalid ids', () => {
@@ -71,5 +94,12 @@ describe('activity log presentation', () => {
     assert.equal(sessionStatusLabel({ is_active: true }), 'نشطة');
     assert.equal(sessionStatusLabel({ is_active: false, end_reason: 'IDLE_TIMEOUT' }), 'انتهت لعدم النشاط');
     assert.equal(sessionStatusLabel({ is_active: false, end_reason: 'ADMIN_REVOKED' }), 'إنهاء من الإدارة');
+    assert.equal(sessionStatusLabel({ is_active: false, end_reason: 'PASSWORD_RESET' }), 'إنهاء بعد إعادة تعيين كلمة المرور');
+    assert.equal(sessionStatusLabel({ is_active: false, end_reason: 'SECURITY_REVOKED' }), 'إنهاء أمني');
+  });
+
+  test('end reason detail is shown in Arabic, never as a raw code', () => {
+    const rows = describeValueChanges({}, { endReason: 'PASSWORD_RESET' });
+    assert.deepEqual(rows.map((r) => [r.key, r.after]), [['endReason', 'إنهاء بعد إعادة تعيين كلمة المرور']]);
   });
 });

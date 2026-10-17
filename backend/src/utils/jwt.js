@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { env } = require('../config/env');
 
+const JWT_ALGORITHM = 'HS256';
+
 function getSecret() {
   if (env.JWT_SECRET) return env.JWT_SECRET;
   if (env.NODE_ENV === 'production') {
@@ -39,11 +41,22 @@ function signToken(payload) {
       : null,
   };
   if (payload.sessionId) claims.sid = payload.sessionId;
-  return jwt.sign(claims, getSecret(), { expiresIn: resolveExpiresIn(payload) });
+  if (Array.isArray(payload.amr)) claims.amr = payload.amr.filter((m) => typeof m === 'string').slice(0, 4);
+  return jwt.sign(claims, getSecret(), {
+    algorithm: JWT_ALGORITHM,
+    expiresIn: resolveExpiresIn(payload),
+    ...(env.JWT_ISSUER ? { issuer: env.JWT_ISSUER } : {}),
+    ...(env.JWT_AUDIENCE ? { audience: env.JWT_AUDIENCE } : {}),
+  });
 }
 
+/** Only HS256 is accepted (no `none`, no algorithm switching); iss/aud enforced when configured. */
 function verifyToken(token) {
-  return jwt.verify(token, getSecret());
+  return jwt.verify(token, getSecret(), {
+    algorithms: [JWT_ALGORITHM],
+    ...(env.JWT_ISSUER ? { issuer: env.JWT_ISSUER } : {}),
+    ...(env.JWT_AUDIENCE ? { audience: env.JWT_AUDIENCE } : {}),
+  });
 }
 
 module.exports = { signToken, verifyToken };

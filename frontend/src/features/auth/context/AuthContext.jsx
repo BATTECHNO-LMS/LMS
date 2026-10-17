@@ -13,17 +13,20 @@ import { storageKeys, getStorageItem, setStorageItem, removeStorageItem } from '
 import { ROLES } from '../../../constants/roles.js';
 import { TENANT_SCOPE_ALL } from '../../../constants/tenants.js';
 import { setOnUnauthorized } from '../../../services/authSessionBridge.js';
-import { getRememberedPortalLoginPath } from '../../../utils/portal.js';
+import { getRememberedPortalLoginPath, portalTypeFromToken } from '../../../utils/portal.js';
 import { resolveAuthenticatedLandingRoute } from '../../../utils/resolveAuthenticatedLandingRoute.js';
 import { PORTAL_SELECTION_PATH } from '../../../constants/portalConfig.js';
 import { endCurrentSession } from '../session/sessionApi.js';
 import { SessionManager } from '../session/SessionManager.jsx';
+import { StepUpProvider } from '../mfa/components/StepUpProvider.jsx';
+import { getSecurityPathForUser } from '../../../utils/securityPath.js';
 import {
   AUTH_CHANNEL_NAME,
   LAST_ACTIVITY_PING_STORAGE_KEY,
   LAST_ACTIVITY_STORAGE_KEY,
   LOGOUT_REASON_STORAGE_KEY,
   RETURN_TO_STORAGE_KEY,
+  authBroadcastEvent,
   loginPathWithReason,
   sanitizeReturnTo,
 } from '../session/sessionPolicy.js';
@@ -88,6 +91,11 @@ export function AuthProvider({ children }) {
   const endingRef = useRef(false);
   const userRef = useRef(null);
   userRef.current = user;
+  /** Portal of the signed-in session, kept per tab: another tab may clear the shared token first. */
+  const portalRef = useRef(null);
+  useEffect(() => {
+    if (user) portalRef.current = portalTypeFromToken(getStorageItem(storageKeys.authToken)) ?? portalRef.current;
+  }, [user]);
 
   const clearSession = useCallback(() => {
     removeStorageItem(storageKeys.authToken);
@@ -105,7 +113,11 @@ export function AuthProvider({ children }) {
       /* ignore */
     }
     try {
-      channelRef.current?.postMessage({ type: 'logout', reason: reason || 'SESSION_ENDED' });
+      channelRef.current?.postMessage({
+        type: 'logout',
+        event: authBroadcastEvent(reason),
+        reason: reason || 'SESSION_ENDED',
+      });
     } catch {
       /* ignore */
     }
@@ -120,11 +132,12 @@ export function AuthProvider({ children }) {
       const hadSession = Boolean(userRef.current) || Boolean(getStorageItem(storageKeys.authToken));
       if (!hadSession || endingRef.current) return;
       endingRef.current = true;
+      const portalType = portalTypeFromToken(getStorageItem(storageKeys.authToken)) ?? portalRef.current;
       rememberReturnTo();
       if (broadcast) broadcastLogout(code);
       clearSession();
       setIsAuthReady(true);
-      navigate(loginPathWithReason(getRememberedPortalLoginPath(), code || 'SESSION_ENDED'), {
+      navigate(loginPathWithReason(getRememberedPortalLoginPath(portalType), code || 'SESSION_ENDED'), {
         replace: true,
       });
     },
@@ -238,11 +251,10 @@ export function AuthProvider({ children }) {
     return () => setOnUnauthorized(null);
   }, [expireSession]);
 
-  const login = useCallback(
-    async ({ email, password, portalType, preferredReturnTo } = {}) => {
-      qc.clear();
-      const { data } = await loginRequest({ email, password, portalType });
-      const normalized = await persistTokenAndHydrate(data.token);
+  /** Token issued (password-only or after MFA) → hydrate profile → landing route. */
+  const completeLogin = useCallback(
+    async (token, { portalType, preferredReturnTo } = {}) => {
+      const normalized = await persistTokenAndHydrate(token);
       setIsAuthReady(true);
       if (!normalized) {
         throw new Error('تعذر تحميل بيانات حسابك حاليًا. حاول تسجيل الدخول مرة أخرى.');
@@ -260,7 +272,21 @@ export function AuthProvider({ children }) {
         user: normalized,
       };
     },
-    [persistTokenAndHydrate, qc]
+    [persistTokenAndHydrate]
+  );
+
+  /**
+   * Password step. MFA accounts get `{ mfa }` (challenge, no token) and must finish through
+   * the MFA screen, which then calls `completeLogin(token)`.
+   */
+  const login = useCallback(
+    async ({ email, password, portalType, preferredReturnTo } = {}) => {
+      qc.clear();
+      const { data } = await loginRequest({ email, password, portalType });
+      if (data?.mfa) return { mfa: data.mfa };
+      return completeLogin(data.token, { portalType, preferredReturnTo });
+    },
+    [completeLogin, qc]
   );
 
   const signUp = useCallback(
@@ -348,6 +374,7 @@ export function AuthProvider({ children }) {
       applySession,
       persistTokenAndHydrate,
       login,
+      completeLogin,
       signUp,
       logout,
       refreshProfile,
@@ -361,6 +388,7 @@ export function AuthProvider({ children }) {
       applySession,
       persistTokenAndHydrate,
       login,
+      completeLogin,
       signUp,
       logout,
       refreshProfile,
@@ -374,6 +402,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={value}>
       {children}
       {user ? <SessionManager onExpire={expireSession} onLogout={logout} /> : null}
+      {user ? <StepUpProvider securityPath={getSecurityPathForUser(user)} /> : null}
     </AuthContext.Provider>
   );
 }

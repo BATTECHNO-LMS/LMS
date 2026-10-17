@@ -79,11 +79,21 @@ describe('testDatabaseGuard', () => {
     assert.equal(result.appHostClass, 'local');
   });
 
-  test('accepts remote only with ALLOW_REMOTE_TEST_DATABASE=true and isolation', () => {
+  test('rejects Neon TEST_DATABASE_URL without ALLOW_NEON_TEST_DATABASE', () => {
     const env = baseEnv({
       DATABASE_URL: 'postgresql://u:p@ep-app.neon.tech:5432/appdb',
       TEST_DATABASE_URL: 'postgresql://u:p@ep-test.neon.tech:5432/testdb',
       ALLOW_REMOTE_TEST_DATABASE: 'true',
+    });
+    assert.throws(() => assertTestDatabaseWriteSafety(env), /Neon\/managed host/);
+  });
+
+  test('accepts remote Neon only with both remote and Neon allow flags', () => {
+    const env = baseEnv({
+      DATABASE_URL: 'postgresql://u:p@ep-app.neon.tech:5432/appdb',
+      TEST_DATABASE_URL: 'postgresql://u:p@ep-test.neon.tech:5432/testdb',
+      ALLOW_REMOTE_TEST_DATABASE: 'true',
+      ALLOW_NEON_TEST_DATABASE: 'true',
     });
     const result = assertTestDatabaseWriteSafety(env);
     assert.equal(result.testHostClass, 'remote');

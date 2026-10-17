@@ -216,6 +216,7 @@ export function AppRouter() {
             <Route path="audit-logs/:id" element={<Pages.AuditLogDetailsPage />} />
             <Route path="audit-logs" element={<Pages.AuditLogsPage />} />
             <Route path="settings" element={<Pages.SettingsPage />} />
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route path="*" element={<Pages.AdminNotFoundPage />} />
           </Route>
         </Route>
@@ -238,6 +239,7 @@ export function AppRouter() {
             <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
             <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
             <Route path="profile" element={<Pages.TrainerProfilePage />} />
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route path="*" element={<Pages.NotFoundPage />} />
           </Route>
         </Route>
@@ -260,6 +262,7 @@ export function AppRouter() {
             <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />
             <Route path="user-guide/:categorySlug" element={<Pages.StudentUserGuideCategoryPage />} />
             <Route path="profile" element={<Pages.TraineeProfilePage />} />
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route path="*" element={<Pages.NotFoundPage />} />
           </Route>
         </Route>
@@ -268,6 +271,7 @@ export function AppRouter() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.INSTRUCTOR]} />}>
             <Route path="at-risk-students" element={<Pages.NotFoundPage />} />
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.InstructorDashboardPage />} />
               <Route path="cohorts/:id/sessions/create" element={<Pages.SessionCreatePage />} />
@@ -317,6 +321,7 @@ export function AppRouter() {
           <Route index element={<Pages.StudentEntryRedirect />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.STUDENT]} />}>
             <Route path="enrollments" element={<Navigate to="/student/programs" replace />} />
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.StudentDashboardPage />} />
               <Route path="courses" element={<Pages.StudentCoursesPage />} />
@@ -390,6 +395,7 @@ export function AppRouter() {
         <Route path="/reviewer" element={<Pages.ReviewerLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={[ROLES.REVIEWER]} />}>
+            <Route path="security" element={<Pages.SecuritySessionsPage />} />
             <Route element={<RoleShellPermissionOutlet />}>
               <Route path="dashboard" element={<Pages.ReviewerDashboardPage />} />
               <Route path="enrollment-requests" element={<Pages.ReviewerEnrollmentRequestsPage />} />

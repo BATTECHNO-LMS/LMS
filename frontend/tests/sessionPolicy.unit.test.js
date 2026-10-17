@@ -2,6 +2,12 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ACTIVITY_EVENTS,
+  AUTH_BROADCAST_EVENTS,
+  NAVIGATION_ACTIVITY_EVENT,
+  authBroadcastEvent,
+  idleTimeoutMessage,
+  idleWarningMessage,
+  resolveIdleConfig,
   IDLE_TIMEOUT_MESSAGE_AR,
   IDLE_TIMEOUT_MS,
   IDLE_WARNING_BEFORE_MS,
@@ -16,6 +22,7 @@ import {
   sanitizeReturnTo,
   shouldLogoutForResponse,
 } from '../src/features/auth/session/sessionPolicy.js';
+import { getRememberedPortalLoginPath, portalTypeFromToken } from '../src/utils/portal.js';
 
 const MIN = 60_000;
 
@@ -23,7 +30,7 @@ describe('idle policy', () => {
   test('timeout is 30 minutes with a warning 5 minutes before', () => {
     assert.equal(IDLE_TIMEOUT_MS, 30 * MIN);
     assert.equal(IDLE_WARNING_BEFORE_MS, 5 * MIN);
-    assert.equal(IDLE_TIMEOUT_MESSAGE_AR, 'انتهت جلستك بسبب عدم النشاط. يرجى تسجيل الدخول مرة أخرى.');
+    assert.equal(IDLE_TIMEOUT_MESSAGE_AR, 'انتهت جلستك بسبب عدم النشاط لمدة 30 دقيقة. يرجى تسجيل الدخول مرة أخرى.');
     assert.equal(IDLE_WARNING_MESSAGE_AR, 'ستنتهي جلستك خلال 5 دقائق بسبب عدم النشاط.');
   });
 
@@ -40,12 +47,67 @@ describe('idle policy', () => {
     assert.equal(remainingIdleMs({ now: 100 * MIN, lastActivityAt: 1 }), 0);
   });
 
-  test('only interaction events count; no mousemove / input / wheel payloads', () => {
-    assert.deepEqual([...ACTIVITY_EVENTS].sort(), ['focus', 'keydown', 'pointerdown', 'scroll', 'touchstart']);
-    assert.equal(ACTIVITY_EVENTS.includes('mousemove'), false);
+  test('only interaction events count; no mousemove / focus / programmatic scroll', () => {
+    assert.deepEqual([...ACTIVITY_EVENTS].sort(), ['keydown', 'pointerdown', 'touchstart', 'wheel']);
+    for (const type of ['mousemove', 'scroll', 'focus', 'visibilitychange', 'input']) {
+      assert.equal(ACTIVITY_EVENTS.includes(type), false, type);
+      assert.equal(isHumanActivityEvent({ type, isTrusted: true }), false, type);
+    }
     assert.equal(isHumanActivityEvent({ type: 'pointerdown', isTrusted: true }), true);
+    assert.equal(isHumanActivityEvent({ type: 'wheel', isTrusted: true }), true);
+    assert.equal(isHumanActivityEvent({ type: NAVIGATION_ACTIVITY_EVENT, isTrusted: true }), true);
     assert.equal(isHumanActivityEvent({ type: 'keydown', isTrusted: false }), false);
-    assert.equal(isHumanActivityEvent({ type: 'mousemove', isTrusted: true }), false);
+  });
+
+  test('server idle config is adopted only when sane', () => {
+    assert.deepEqual(resolveIdleConfig({ idleTimeoutMinutes: 30, warningMinutes: 5 }), {
+      idleTimeoutMs: 30 * MIN,
+      warningBeforeMs: 5 * MIN,
+    });
+    assert.deepEqual(resolveIdleConfig({ idleTimeoutMinutes: 45, warningMinutes: 10 }), {
+      idleTimeoutMs: 45 * MIN,
+      warningBeforeMs: 10 * MIN,
+    });
+    assert.deepEqual(resolveIdleConfig(null), { idleTimeoutMs: IDLE_TIMEOUT_MS, warningBeforeMs: IDLE_WARNING_BEFORE_MS });
+    assert.equal(resolveIdleConfig({ idleTimeoutMinutes: 0 }).idleTimeoutMs, IDLE_TIMEOUT_MS);
+    assert.equal(resolveIdleConfig({ idleTimeoutMinutes: 'x' }).idleTimeoutMs, IDLE_TIMEOUT_MS);
+    assert.equal(resolveIdleConfig({ idleTimeoutMinutes: 30, warningMinutes: 30 }).warningBeforeMs, 5 * MIN);
+    assert.deepEqual(resolveIdleConfig({ idleTimeoutMinutes: 2, warningMinutes: 1 }), { idleTimeoutMs: 2 * MIN, warningBeforeMs: MIN });
+  });
+
+  test('warning / timeout messages reflect the configured minutes (production text unchanged)', () => {
+    assert.equal(idleWarningMessage(5), IDLE_WARNING_MESSAGE_AR);
+    assert.equal(idleWarningMessage(10), 'ستنتهي جلستك خلال 10 دقائق بسبب عدم النشاط.');
+    assert.equal(idleWarningMessage(1), 'ستنتهي جلستك خلال دقيقة واحدة بسبب عدم النشاط.');
+    assert.equal(idleTimeoutMessage(30), IDLE_TIMEOUT_MESSAGE_AR);
+    assert.equal(idleTimeoutMessage(), IDLE_TIMEOUT_MESSAGE_AR);
+    assert.equal(idleTimeoutMessage(2), 'انتهت جلستك بسبب عدم النشاط لمدة دقيقتين. يرجى تسجيل الدخول مرة أخرى.');
+    assert.equal(loginReasonMessage('SESSION_IDLE_TIMEOUT', { idleMinutes: 45 }), idleTimeoutMessage(45));
+  });
+});
+
+describe('portal login after session end', () => {
+  test('portal is read from the JWT claim; unknown / malformed tokens fall back', () => {
+    const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const token = (claims) => `${b64({ alg: 'HS256' })}.${b64(claims)}.sig`;
+    assert.equal(portalTypeFromToken(token({ portalType: 'UNIVERSITY', userId: 'ü' })), 'UNIVERSITY');
+    assert.equal(portalTypeFromToken(token({ portalType: 'INSTITUTION' })), 'INSTITUTION');
+    assert.equal(portalTypeFromToken(token({ portalType: 'ADMIN' })), null);
+    assert.equal(portalTypeFromToken('garbage'), null);
+    assert.equal(portalTypeFromToken(null), null);
+    assert.equal(getRememberedPortalLoginPath('UNIVERSITY'), '/universities/login');
+    assert.equal(getRememberedPortalLoginPath('INSTITUTION'), '/institutions/login');
+  });
+});
+
+describe('cross-tab broadcast events', () => {
+  test('logout, expiry and revocation are distinguished', () => {
+    assert.equal(authBroadcastEvent('USER_LOGOUT'), AUTH_BROADCAST_EVENTS.LOGOUT);
+    assert.equal(authBroadcastEvent('SESSION_IDLE_TIMEOUT'), AUTH_BROADCAST_EVENTS.SESSION_EXPIRED);
+    assert.equal(authBroadcastEvent('SESSION_ABSOLUTE_EXPIRED'), AUTH_BROADCAST_EVENTS.SESSION_EXPIRED);
+    assert.equal(authBroadcastEvent('TOKEN_EXPIRED'), AUTH_BROADCAST_EVENTS.SESSION_EXPIRED);
+    assert.equal(authBroadcastEvent('SESSION_ENDED'), AUTH_BROADCAST_EVENTS.SESSION_REVOKED);
+    assert.equal(authBroadcastEvent('SESSION_NOT_FOUND'), AUTH_BROADCAST_EVENTS.SESSION_REVOKED);
   });
 });
 

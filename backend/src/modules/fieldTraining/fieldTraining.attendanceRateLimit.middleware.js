@@ -1,12 +1,12 @@
-const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
+const { createRateLimiter, userOrIpKey } = require('../../middlewares/rateLimit.middleware');
 
-const attendanceConfirmLimiter = rateLimit({
+const attendanceConfirmLimiter = createRateLimiter({
+  name: 'attendance_confirm',
+  routeGroup: 'student_field_training_attendance',
+  keyType: 'user_or_ip',
   windowMs: 15 * 60 * 1000,
   max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
+  keyGenerator: userOrIpKey,
   message: {
     success: false,
     message: 'تجاوزت الحد المسموح لمحاولات تأكيد الحضور. حاول لاحقًا.',

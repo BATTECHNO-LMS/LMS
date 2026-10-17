@@ -516,7 +516,8 @@ async function recordLoginRejection(validated, attempt, err) {
   let reason = code;
   if (code === AUTH_ERROR_CODES.INVALID_CREDENTIALS) {
     actionType = 'USER_LOGIN_FAILED';
-    reason = attempt.userId ? 'INVALID_PASSWORD' : 'UNKNOWN_IDENTIFIER';
+    // Internal reason only; the HTTP response is identical for both cases.
+    reason = attempt.userId ? 'INVALID_PASSWORD' : 'ACCOUNT_NOT_FOUND_OR_INVALID';
   } else if (LOGIN_DENIED_CODES.has(code)) {
     actionType = 'LOGIN_ACCOUNT_DENIED';
     outcome = 'DENIED';
@@ -542,12 +543,64 @@ async function recordLoginRejection(validated, attempt, err) {
   });
 }
 
+/**
+ * Progressive cooldown bookkeeping + brute-force detection. Runs after the decision is made;
+ * any failure here is logged and never changes the login outcome.
+ */
+async function noteLoginThrottleOutcome(validated, attempt, err) {
+  const loginThrottle = require('./loginThrottle');
+  const identifier = String(validated?.email || '').trim().toLowerCase();
+  const ip = validated?.ipAddress || null;
+  try {
+    if (!err) {
+      loginThrottle.noteLoginSuccess({ ip, identifier });
+      return;
+    }
+    if (err?.code !== AUTH_ERROR_CODES.INVALID_CREDENTIALS) return;
+    const outcome = loginThrottle.noteLoginFailure({ ip, identifier });
+    if (outcome.accountAlert) {
+      const { recordSecurityEvent } = require('../../shared/security/securityEvents');
+      await recordSecurityEvent({
+        eventType: 'LOGIN_BRUTE_FORCE_SUSPECTED',
+        outcome: 'FAILED',
+        userId: null,
+        subjectUserId: attempt.userId || null,
+        entityType: 'user',
+        entityId: attempt.userId || null,
+        reason: 'ACCOUNT_FAILURE_THRESHOLD',
+        metadata: {
+          identifierHash: loginThrottle.hashIdentifier(identifier),
+          failures: outcome.accountAlert.failures,
+          distinctIps: outcome.accountAlert.distinctIps,
+        },
+      });
+    }
+  } catch (throttleErr) {
+    const { logger } = require('../../utils/logger');
+    logger.error('LOGIN_THROTTLE_BOOKKEEPING_FAILED', { error: String(throttleErr?.message || throttleErr).slice(0, 200) });
+  }
+}
+
+/** Constant bcrypt work for unknown identifiers so response timing does not reveal accounts. */
+let dummyPasswordHashPromise = null;
+function dummyPasswordHash() {
+  if (!dummyPasswordHashPromise) {
+    const { hashPassword } = require('../../utils/password');
+    dummyPasswordHashPromise = hashPassword(require('crypto').randomBytes(24).toString('hex'));
+  }
+  return dummyPasswordHashPromise;
+}
+
 async function login(validated) {
   const attempt = { userId: null };
   try {
-    return await loginWithCredentials(validated, attempt);
+    const result = await loginWithCredentials(validated, attempt);
+    await noteLoginThrottleOutcome(validated, attempt, null);
+    return result;
   } catch (err) {
-    await recordLoginRejection(validated, attempt, err);
+    // Logging can never turn a rejected login into a success: the original error is rethrown.
+    await recordLoginRejection(validated, attempt, err).catch(() => {});
+    await noteLoginThrottleOutcome(validated, attempt, err);
     throw err;
   }
 }
@@ -556,6 +609,7 @@ async function loginWithCredentials(validated, attempt) {
   const user = await authRepository.findUserByEmail(validated.email);
   if (user) attempt.userId = user.id;
   if (!user) {
+    await comparePassword(String(validated.password || ''), await dummyPasswordHash());
     throw new ApiError(
       401,
       messageForCode(AUTH_ERROR_CODES.INVALID_CREDENTIALS),
@@ -574,6 +628,51 @@ async function loginWithCredentials(validated, attempt) {
     );
   }
 
+  assertAccountUsable(user);
+  const loginContext = await resolveLoginContext(user, validated.portalType);
+
+  // A correct password is not a full login for MFA accounts: no session, no JWT until the
+  // second factor (or mandatory enrollment) completes on a short-lived single-use challenge.
+  const mfaService = require('./mfa/mfa.service');
+  const { isMfaRequiredForUser } = require('./mfa/mfaPolicy');
+  const mfaRequired = isMfaRequiredForUser({
+    roles: loginContext.roleRecords.map((r) => r.code),
+    assignmentRoleCodes: loginContext.assignmentRows.map((a) => a.role_code),
+    isGlobal: loginContext.isGlobal,
+  });
+  const mfaEnrolled = env.MFA_ENABLED ? await mfaService.hasEnabledMfa(user.id) : false;
+  if (mfaEnrolled || mfaRequired) {
+    const purpose = mfaEnrolled ? mfaService.CHALLENGE_PURPOSES.LOGIN : mfaService.CHALLENGE_PURPOSES.ENROLL;
+    const challenge = await mfaService.createChallenge({
+      userId: user.id,
+      purpose,
+      portalType: validated.portalType || null,
+      ipAddress: validated.ipAddress || null,
+      userAgent: validated.userAgent || null,
+    });
+    return {
+      mfa: {
+        status: mfaEnrolled ? AUTH_ERROR_CODES.MFA_REQUIRED : AUTH_ERROR_CODES.MFA_ENROLLMENT_REQUIRED,
+        challengeToken: challenge.challengeToken,
+        expiresIn: challenge.expiresIn,
+        purpose: challenge.purpose,
+        methods: mfaEnrolled ? ['TOTP', 'RECOVERY_CODE'] : ['TOTP'],
+        maxAttempts: env.MFA_MAX_ATTEMPTS,
+      },
+    };
+  }
+
+  return finalizeLogin({
+    user,
+    loginContext,
+    portalType: validated.portalType || null,
+    ipAddress: validated.ipAddress || null,
+    userAgent: validated.userAgent || null,
+    loginMethod: 'PASSWORD',
+  });
+}
+
+function assertAccountUsable(user) {
   if (!user.email_verified_at) {
     throw new ApiError(
       403,
@@ -615,7 +714,10 @@ async function loginWithCredentials(validated, attempt) {
       AUTH_ERROR_CODES.ACCOUNT_INACTIVE
     );
   }
+}
 
+/** Roles, assignments and portal access for this login (re-evaluated again when MFA completes). */
+async function resolveLoginContext(user, portalType) {
   const { roleRecords, permissionCodes } = await authRepository.loadRolesAndPermissions(user.id);
   const isGlobal = isGlobalFromRoleRecords(roleRecords);
   const { prisma } = require('../../config/db');
@@ -632,9 +734,17 @@ async function loginWithCredentials(validated, attempt) {
       primaryUniversityId: user.primary_university_id,
       isGlobal,
     },
-    validated.portalType
+    portalType
   );
   throwIfPortalMismatch(portalEvaluation);
+  return { roleRecords, permissionCodes, isGlobal, assignmentRows, portalEvaluation };
+}
+
+/** Create the server-side session + JWT once every required factor is satisfied. */
+async function finalizeLogin({ user, loginContext, portalType, ipAddress, userAgent, loginMethod, mfaVerifiedAt = null }) {
+  const { roleRecords, permissionCodes, isGlobal, portalEvaluation } = loginContext;
+  const { prisma } = require('../../config/db');
+  const validated = { portalType, ipAddress, userAgent };
 
   if (validated.portalType && !isGlobal && portalEvaluation.matchingOrganizationIds?.length) {
     const preferred = user.preferred_organization_id || null;
@@ -663,16 +773,21 @@ async function loginWithCredentials(validated, attempt) {
     portalType: validated.portalType || null,
   });
   const authSessions = require('./authSession.service');
+  const mfaLevel = Boolean(mfaVerifiedAt);
   const session = await authSessions.createSession({
     userId: user.id,
     ipAddress: validated.ipAddress || null,
     userAgent: validated.userAgent || null,
     portalType: validated.portalType || null,
-    loginMethod: 'PASSWORD',
+    loginMethod,
+    authenticationLevel: mfaLevel ? 'MFA' : 'PASSWORD',
+    mfaVerifiedAt,
   });
+  // `amr` is informational for clients; authorization always reads the session row.
   const token = signToken({
     ...buildTokenPayload(user.id, roleRecords, profile.primary_university_id, validated.portalType),
     sessionId: session.id,
+    amr: mfaLevel ? ['pwd', 'otp'] : ['pwd'],
   });
 
   await authRepository.touchLastLogin(user.id);
@@ -686,6 +801,8 @@ async function loginWithCredentials(validated, attempt) {
     entityId: user.id,
     newValues: {
       source: 'password_login',
+      loginMethod,
+      authenticationLevel: mfaLevel ? 'MFA' : 'PASSWORD',
       portalType: validated.portalType || null,
     },
     ipAddress: validated.ipAddress || null,
@@ -697,6 +814,28 @@ async function loginWithCredentials(validated, attempt) {
     user: profile,
     session: authSessions.describeSession(session),
   };
+}
+
+/**
+ * Second factor done (challenge COMPLETED) → re-check the account and portal *now*
+ * (status/role may have changed during the challenge) → issue the MFA-level session.
+ */
+async function completeMfaLogin({ userId, portalType, loginMethod, mfaVerifiedAt, ipAddress, userAgent }) {
+  const user = await authRepository.findUserById(userId);
+  if (!user) {
+    throw new ApiError(401, messageForCode(AUTH_ERROR_CODES.MFA_CHALLENGE_INVALID), null, AUTH_ERROR_CODES.MFA_CHALLENGE_INVALID);
+  }
+  assertAccountUsable(user);
+  const loginContext = await resolveLoginContext(user, portalType);
+  return finalizeLogin({
+    user,
+    loginContext,
+    portalType: portalType || null,
+    ipAddress: ipAddress || null,
+    userAgent: userAgent || null,
+    loginMethod,
+    mfaVerifiedAt,
+  });
 }
 
 async function me(userId, options = {}) {
@@ -831,6 +970,7 @@ module.exports = {
   register,
   registerInstitution,
   login,
+  completeMfaLogin,
   me,
   listMyAssignments,
   setActiveOrganization,

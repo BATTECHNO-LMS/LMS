@@ -18,6 +18,8 @@ import {
   normalizeAnnouncementsPayload,
   pickHighestPriorityModal,
 } from './contentCms.shared.js';
+import { openSafeCtaUrl } from '../../utils/safeCtaNavigation.js';
+import { sanitizeReturnTo } from '../../features/auth/session/sessionPolicy.js';
 
 const VIEWED_SESSION_KEY = 'cms_announcement_viewed_ids';
 
@@ -174,13 +176,7 @@ export function AnnouncementsHost({
 
   const handleCta = (item, channel) => {
     clickMut.mutate({ id: item.id, channel });
-    const url = item.cta_url;
-    if (!url) return;
-    if (/^https?:\/\//i.test(url)) {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } else {
-      navigate(url);
-    }
+    openSafeCtaUrl(item.cta_url, { navigate });
   };
 
   const renderActions = (item, channel) => (
@@ -239,9 +235,9 @@ export function AnnouncementsHost({
                 {a.cta_label && a.cta_url ? (
                   <Link
                     className="btn btn--outline btn--sm"
-                    to={/^https?:\/\//i.test(a.cta_url) ? '#' : a.cta_url}
+                    to={/^https?:\/\//i.test(a.cta_url) ? '#' : sanitizeReturnTo(a.cta_url) || '#'}
                     onClick={(e) => {
-                      if (/^https?:\/\//i.test(a.cta_url)) {
+                      if (/^https?:\/\//i.test(a.cta_url) || !sanitizeReturnTo(a.cta_url)) {
                         e.preventDefault();
                         handleCta(a, 'DASHBOARD_CARD');
                       } else {

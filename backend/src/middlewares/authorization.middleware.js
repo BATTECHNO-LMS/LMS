@@ -1,5 +1,6 @@
 const { filterDeprecatedFromRoleAllowlist } = require('../utils/runtimeRoles');
 const { normalizeRoleCodes } = require('../utils/roleCanon');
+const { recordAuthorizationDenial } = require('../shared/security/securityEvents');
 
 /**
  * Require the authenticated user (`req.user` from authenticate) to have at least one
@@ -29,6 +30,7 @@ function authorizeRoles(...allowedRoleCodes) {
     );
     const ok = userRoles.some((r) => normalized.includes(r));
     if (!ok) {
+      recordAuthorizationDenial(req, { reason: 'ROLE_NOT_ALLOWED', code: 'FORBIDDEN', requiredRoles: normalized });
       return res.status(403).json({
         success: false,
         message: 'لا تملك صلاحية تنفيذ هذه العملية.',
@@ -55,6 +57,7 @@ function requireOrganizationType(expected) {
     }
     if (req.user.isGlobal) return next();
     if (req.user.organizationType !== expected) {
+      recordAuthorizationDenial(req, { reason: 'PORTAL_MISMATCH', code: 'PORTAL_MISMATCH', scopeType: expected });
       return res.status(403).json({
         success: false,
         message: 'لا تملك صلاحية تنفيذ هذه العملية.',

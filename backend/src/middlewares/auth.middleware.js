@@ -8,17 +8,31 @@ const { AUTH_ERROR_CODES, messageForCode } = require('../utils/authErrorCatalog'
 const authSessions = require('../modules/auth/authSession.service');
 const { recordTokenFailure } = require('../modules/auth/authSecurityEvents');
 const { updateRequestContext } = require('../shared/requestContext');
+const { isMfaRequiredForAuthContext } = require('../modules/auth/mfa/mfaPolicy');
+const { recordAuthorizationDenial } = require('../shared/security/securityEvents');
 
 /**
- * Resolve Bearer token from Authorization header, or from access_token/token
- * query on GET (needed when the browser opens /uploads/... in a new tab).
+ * GET paths that still receive the JWT in the URL because the browser cannot send an
+ * Authorization header: protected /uploads opened in a new tab, and the command-center
+ * EventSource stream. Every other route ignores query tokens. (Phase 1B removes both.)
+ */
+const QUERY_TOKEN_PATHS = [/^\/uploads\//, /^\/api\/(?:v\d+\/)?analytics\/command-center\/live\/?$/];
+
+function isQueryTokenPath(req) {
+  const path = String(req.originalUrl || req.url || '').split('?')[0];
+  return QUERY_TOKEN_PATHS.some((re) => re.test(path));
+}
+
+/**
+ * Resolve Bearer token from Authorization header, or from access_token/token query on
+ * GET for the QUERY_TOKEN_PATHS browser-navigation cases only.
  */
 function extractBearerToken(req) {
   const header = req.headers.authorization;
   if (header && header.startsWith('Bearer ')) {
     return header.slice(7).trim();
   }
-  if (String(req.method || 'GET').toUpperCase() === 'GET') {
+  if (String(req.method || 'GET').toUpperCase() === 'GET' && isQueryTokenPath(req)) {
     const q = req.query?.access_token || req.query?.token;
     if (typeof q === 'string' && q.trim()) return q.trim();
   }
@@ -100,8 +114,18 @@ async function authMiddleware(req, res, next) {
 
     req.user = await loadCurrentAuthContext(userId, { portalType });
     if (req.user && portalType) req.user.portalType = portalType;
-    if (req.user) req.user.sessionId = sid;
+    if (req.user) {
+      req.user.sessionId = sid;
+      req.user.authenticationLevel = verdict.session.authentication_level || 'PASSWORD';
+      req.user.mfaVerifiedAt = verdict.session.mfa_verified_at || null;
+    }
     req.authContext = req.user;
+    // Privileged accounts: a password-only session never reaches the application, whatever
+    // the client does (e.g. session created before the role became MFA-mandatory).
+    if (req.user && req.user.authenticationLevel !== 'MFA' && isMfaRequiredForAuthContext(req.user)) {
+      recordAuthorizationDenial(req, { reason: AUTH_ERROR_CODES.MFA_SESSION_REQUIRED });
+      return deny(res, AUTH_ERROR_CODES.MFA_SESSION_REQUIRED);
+    }
     updateRequestContext({
       userId,
       sessionId: sid,
@@ -124,4 +148,4 @@ async function authMiddleware(req, res, next) {
 
 const authenticate = authMiddleware;
 
-module.exports = { authMiddleware, authenticate, extractBearerToken, primaryRole };
+module.exports = { authMiddleware, authenticate, extractBearerToken, isQueryTokenPath, primaryRole };

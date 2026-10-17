@@ -5,6 +5,7 @@ const {
   AUDIT_OUTCOMES,
   SECURITY_CRITICAL_CATEGORIES,
   AUDIT_CATEGORIES,
+  SECURITY_SEVERITIES,
 } = require('../audit/auditActions');
 const { logger } = require('../../utils/logger');
 
@@ -138,6 +139,16 @@ function resolveOutcome(payload) {
   return AUDIT_OUTCOMES[outcome] || AUDIT_OUTCOMES.SUCCESS;
 }
 
+/** Security columns come from the registry; callers may only escalate severity to a known value. */
+function resolveSecurityFields(payload, meta) {
+  if (!meta?.security) return { security_category: null, severity: null };
+  const requested = payload.severity ? String(payload.severity).toUpperCase() : null;
+  return {
+    security_category: meta.security.category,
+    severity: (requested && SECURITY_SEVERITIES[requested]) || meta.security.severity,
+  };
+}
+
 async function buildAuditRow(payload) {
   const ctx = getRequestContext() || {};
   const meta = getAuditActionMeta(payload.actionType);
@@ -174,6 +185,7 @@ async function buildAuditRow(payload) {
         ?.toString()
         .slice(0, 40) || null,
     user_agent: (payload.userAgent ?? ctx.userAgent ?? null)?.toString().slice(0, 512) || null,
+    ...resolveSecurityFields(payload, meta),
   };
 }
 
@@ -187,6 +199,9 @@ function logAuditFailure(row, err, attempt) {
   const fields = {
     actionType: row.action_type,
     category: row.category,
+    securityCategory: row.security_category,
+    severity: row.severity,
+    ipAddress: row.ip_address,
     outcome: row.outcome,
     entityType: row.entity_type,
     entityId: row.entity_id,
@@ -222,7 +237,8 @@ function logAuditFailure(row, err, attempt) {
  *   newValues?: unknown,
  *   ipAddress?: string | null,
  *   category?: string,
- *   outcome?: 'SUCCESS' | 'FAILED' | 'DENIED',
+ *   outcome?: 'SUCCESS' | 'FAILED' | 'DENIED' | 'BLOCKED',
+ *   severity?: 'INFO' | 'WARNING' | 'HIGH' | 'CRITICAL',  only for registered security actions
  *   sessionId?: string | null,
  *   requestId?: string | null,
  *   actorRole?: string | null,

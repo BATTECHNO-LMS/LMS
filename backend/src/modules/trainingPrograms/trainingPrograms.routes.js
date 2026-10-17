@@ -12,15 +12,15 @@ const tv = require('./trainerAssignments.validation');
 const { requireTrainer } = require('./trainerScope');
 const submissionFiles = require('./taskSubmissionFiles.controller');
 const { handleTaskSubmissionUpload } = require('./taskSubmissionFiles.upload');
-const rateLimit = require('express-rate-limit');
-const { ipKeyGenerator } = require('express-rate-limit');
+const { createRateLimiter, userOrIpKey } = require('../../middlewares/rateLimit.middleware');
 
-const taskSubmissionUploadLimiter = rateLimit({
+const taskSubmissionUploadLimiter = createRateLimiter({
+  name: 'task_submission_upload',
+  routeGroup: 'training_tasks',
+  keyType: 'user_or_ip',
   windowMs: 15 * 60 * 1000,
   max: 120,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => req.user?.userId || ipKeyGenerator(req.ip || ''),
+  keyGenerator: userOrIpKey,
   message: {
     success: false,
     message: 'تجاوزت الحد المسموح لطلبات الرفع. حاول بعد قليل.',

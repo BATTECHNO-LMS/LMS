@@ -1,22 +1,25 @@
 const { env } = require('../config/env');
 const { getRequestContext } = require('../shared/requestContext');
+const { sanitizeForLog, redactString } = require('../shared/security/redaction');
 
 /**
  * Structured application logger. Audit trail writes stay in audit.service / DB — not here.
- * The current request id (if any) is attached automatically.
+ * The current request id (if any) is attached automatically. Metadata is redacted
+ * (passwords, tokens, cookies, OTPs, JWT-looking strings) and size-bounded.
  * @param {'info'|'warn'|'error'} level
  * @param {string} message
  * @param {Record<string, unknown>} [meta]
  */
 function log(level, message, meta = {}) {
   const ctx = getRequestContext();
+  const safeMeta = meta && typeof meta === 'object' ? sanitizeForLog(meta) : {};
   const entry = {
     ts: new Date().toISOString(),
     level,
     service: 'battechno-lms-api',
-    message,
-    ...(ctx?.requestId && meta.requestId === undefined ? { requestId: ctx.requestId } : {}),
-    ...meta,
+    message: redactString(String(message ?? '')).slice(0, 2000),
+    ...(ctx?.requestId && safeMeta.requestId === undefined ? { requestId: ctx.requestId } : {}),
+    ...safeMeta,
   };
   if (env.NODE_ENV === 'production') {
     const line = JSON.stringify(entry);
@@ -31,10 +34,10 @@ function log(level, message, meta = {}) {
       console.log(line);
     }
   } else {
-    const { ts, level: _l, service: _s, message: _m, ...rest } = entry;
+    const { ts, level: _l, service: _s, message: safeMessage, ...rest } = entry;
     // eslint-disable-next-line no-console
     console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log'](
-      `[${ts}] ${level.toUpperCase()} ${message}`,
+      `[${ts}] ${level.toUpperCase()} ${safeMessage}`,
       Object.keys(rest).length ? rest : ''
     );
   }

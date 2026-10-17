@@ -360,6 +360,9 @@ describe('baselineManifest (DB-MIGRATION-003)', () => {
       '20261006120000_training_task_submission_files',
       '20261013150000_auth_sessions_and_audit_context',
       '20261013160000_audit_logs_subject_backfill',
+      '20261015120000_audit_logs_security_events',
+      '20261015140000_auth_sessions_created_request_id',
+      '20261015170000_mfa_and_session_assurance',
     ]);
   });
 

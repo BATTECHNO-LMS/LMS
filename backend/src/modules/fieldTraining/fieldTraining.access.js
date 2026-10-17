@@ -1,4 +1,4 @@
-const { ApiError } = require('../../utils/apiError');
+const { ApiError, crossScopeForbidden } = require('../../utils/apiError');
 const { env } = require('../../config/env');
 const { prisma } = require('../../config/db');
 const {
@@ -110,7 +110,10 @@ async function assertOpportunityUniversityScope(user, opportunity) {
   }
   if (opportunity.university_id) {
     if (String(opportunity.university_id) !== String(uni)) {
-      throw new ApiError(403, 'لا تملك صلاحية الوصول إلى هذه المحاضرة.', null, 'FIELD_TRAINING_FORBIDDEN');
+      throw crossScopeForbidden('لا تملك صلاحية الوصول إلى هذه المحاضرة.', {
+        scopeType: 'university',
+        code: 'FIELD_TRAINING_FORBIDDEN',
+      });
     }
     return;
   }

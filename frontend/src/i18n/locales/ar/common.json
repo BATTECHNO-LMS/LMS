@@ -58,7 +58,8 @@
   "user": {
     "fallbackName": "مستخدم",
     "logout": "تسجيل الخروج",
-    "endSession": "إنهاء الجلسة"
+    "endSession": "إنهاء الجلسة",
+    "securitySessions": "الأمان والجلسات"
   },
   "notifications": "الإشعارات",
   "rights": "جميع الحقوق محفوظة",

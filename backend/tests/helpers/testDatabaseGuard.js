@@ -113,6 +113,19 @@ function assertTestDatabaseWriteSafety(env = process.env) {
     );
   }
 
+  // Extra fail-closed gate: Neon/production-looking hosts require an explicit
+  // second allow flag so a misplaced production DATABASE_URL cannot be reused as TEST.
+  const host = String(testParsed.hostname || '').toLowerCase();
+  const looksLikeManagedProd =
+    host.endsWith('.neon.tech') ||
+    host.endsWith('.neon.tech.') ||
+    host.includes('neon.tech');
+  if (looksLikeManagedProd && !isExplicitTrue(env.ALLOW_NEON_TEST_DATABASE)) {
+    throw new Error(
+      'Test DB writes blocked: TEST_DATABASE_URL looks like a Neon/managed host; use local Postgres for tests, or set ALLOW_NEON_TEST_DATABASE=true only for an approved isolated Neon branch (never production).'
+    );
+  }
+
   return { testHostClass, appHostClass };
 }
 

@@ -35,6 +35,7 @@ import {
 import { getApiErrorMessage } from '../../../services/apiHelpers.js';
 import { ASSIGNABLE_USER_ROLE_CODES } from '../../../constants/roles.js';
 import { UserActivityTimeline, UserSessionsList } from '../../../components/activity/UserActivityPanel.jsx';
+import { UserMfaAdminPanel } from './UserMfaAdminPanel.jsx';
 
 const TABS = ['personal', 'academic', 'account', 'activity'];
 
@@ -545,6 +546,10 @@ export function UserViewPage() {
             </dl>
           )}
         </SectionCard>
+      ) : null}
+
+      {tab === 'account' && String(authUser?.id ?? '') !== String(id) ? (
+        <UserMfaAdminPanel userId={id} canReset={canWrite} />
       ) : null}
 
       {tab === 'activity' ? (

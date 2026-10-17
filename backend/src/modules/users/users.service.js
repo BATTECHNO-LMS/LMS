@@ -1,4 +1,4 @@
-﻿const { ApiError } = require('../../utils/apiError');
+﻿const { ApiError, crossScopeForbidden } = require('../../utils/apiError');
 const { env } = require('../../config/env');
 const { hashPassword } = require('../../utils/password');
 const { ensureUserLinkedToUniversityFromEmail } = require('../auth/universityEmailLink.service');
@@ -23,6 +23,16 @@ const reviewerAssignment = require('./reviewerAssignment.service');
 const { createNotificationForUser } = require('../../shared/services/notification.service');
 const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
 const { invalidateAuthContextForUser } = require('../auth/authContextCache');
+const { revokeUserSessionsSafely } = require('../auth/authSession.service');
+const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
+const { assertStepUp } = require('../auth/mfa/stepUp');
+const { isMfaRequiredForUser } = require('../auth/mfa/mfaPolicy');
+
+/** Accounts whose role set is MFA-mandatory (super_admin / admin by default) are "privileged". */
+function isPrivilegedRoleSet(roleCodes) {
+  const roles = normalizeRoleCodes(roleCodes || []);
+  return roles.includes('super_admin') || isMfaRequiredForUser({ roles });
+}
 
 /** Roles that require a primary university assignment. */
 const UNIVERSITY_SCOPED_ROLES = new Set([
@@ -130,7 +140,7 @@ async function assertUserAccessible(requester, user) {
   if (user.primary_university_id && String(user.primary_university_id) === String(uni)) return;
   const memberships = await usersRepository.findUniversityMembershipsForUser(user.id);
   if (memberships.some((m) => String(m.university_id) === String(uni))) return;
-  throw new ApiError(403, 'Forbidden');
+  throw crossScopeForbidden('Forbidden', { scopeType: 'user' });
 }
 
 async function mapUsersWithRoles(userRows) {
@@ -349,6 +359,7 @@ async function createUser(body, requester = {}, meta = {}) {
     requestedRoleCodes: roleCodes,
   });
   assertProgramAdminNotNewlyAssigned({ requestedRoleCodes: roleCodes });
+  if (isPrivilegedRoleSet(roleCodes)) assertStepUp(requester);
 
   const roleRecords = await usersRepository.findRolesByCodes(roleCodes);
   const foundCodes = new Set(roleRecords.map((r) => r.code.toLowerCase()));
@@ -481,6 +492,18 @@ async function updateUser(id, body, requester = {}, meta = {}) {
     requestedRoleCodes,
   });
   assertProgramAdminNotNewlyAssigned({ requestedRoleCodes });
+
+  const roleChangeRequested =
+    Boolean(requestedRoleCodes) &&
+    [...normalizeRoleCodes(currentRoleCodes)].sort().join(',') !== [...requestedRoleCodes].sort().join(',');
+  const deactivationRequested = body.status !== undefined && body.status !== 'active' && body.status !== existing.status;
+  const privilegedTarget = isPrivilegedRoleSet(currentRoleCodes);
+  if (
+    (roleChangeRequested && (privilegedTarget || isPrivilegedRoleSet(requestedRoleCodes))) ||
+    (deactivationRequested && privilegedTarget)
+  ) {
+    assertStepUp(requester);
+  }
 
   if (body.email && body.email !== existing.email) {
     const clash = await usersRepository.findUserByEmail(body.email);
@@ -663,10 +686,11 @@ async function updateUser(id, body, requester = {}, meta = {}) {
     ipAddress: meta.ipAddress ?? null,
   });
 
+  const oldRoleCodes = [...normalizeRoleCodes(currentRoleCodes)].sort();
+  const roleChanged = Boolean(requestedRoleCodes) && oldRoleCodes.join(',') !== [...requestedRoleCodes].sort().join(',');
   if (requestedRoleCodes) {
-    const oldRoleCodes = [...normalizeRoleCodes(currentRoleCodes)].sort();
     const newRoleCodes = [...requestedRoleCodes].sort();
-    if (oldRoleCodes.join(',') !== newRoleCodes.join(',')) {
+    if (roleChanged) {
       await recordAudit({
         userId: meta.actorUserId ?? requester.userId ?? null,
         subjectUserId: id,
@@ -679,6 +703,19 @@ async function updateUser(id, body, requester = {}, meta = {}) {
         ipAddress: meta.ipAddress ?? null,
       });
     }
+  }
+
+  const statusDeactivated = data.status !== undefined && data.status !== 'active' && data.status !== existing.status;
+  if (roleChanged || universityChanged || statusDeactivated) {
+    const endReason = roleChanged
+      ? SESSION_END_REASONS.ROLE_CHANGED
+      : universityChanged
+        ? SESSION_END_REASONS.SCOPE_CHANGED
+        : SESSION_END_REASONS.SECURITY_REVOKED;
+    await revokeUserSessionsSafely(id, endReason, {
+      actorUserId: meta.actorUserId ?? requester.userId ?? null,
+      exceptSessionId: String(requester.userId) === String(id) ? requester.sessionId || null : null,
+    });
   }
 
   return getUserById(id, requester);
@@ -701,8 +738,12 @@ async function patchUserStatus(id, status, requester = {}, meta = {}) {
   ) {
     throw new ApiError(400, 'You cannot deactivate your own Super Admin account');
   }
+  if (status !== 'active' && status !== existing.status && isPrivilegedRoleSet(currentRoleCodes)) {
+    assertStepUp(requester);
+  }
 
   await usersRepository.updateUser(id, { status, updated_at: new Date() });
+  invalidateAuthContextForUser(id);
 
   await recordAudit({
     userId: meta.actorUserId ?? requester.userId ?? null,
@@ -714,6 +755,12 @@ async function patchUserStatus(id, status, requester = {}, meta = {}) {
     newValues: { status, updatedBy: meta.actorUserId ?? requester.userId ?? null },
     ipAddress: meta.ipAddress ?? null,
   });
+
+  if (status !== 'active' && status !== existing.status) {
+    await revokeUserSessionsSafely(id, SESSION_END_REASONS.SECURITY_REVOKED, {
+      actorUserId: meta.actorUserId ?? requester.userId ?? null,
+    });
+  }
 
   return getUserById(id, requester);
 }
@@ -743,6 +790,11 @@ async function adminResetPassword(id, body, requester = {}, meta = {}) {
     oldValues: null,
     newValues: { resetBy: meta.actorUserId ?? requester.userId ?? null },
     ipAddress: meta.ipAddress ?? null,
+  });
+
+  await revokeUserSessionsSafely(id, SESSION_END_REASONS.PASSWORD_RESET, {
+    actorUserId: meta.actorUserId ?? requester.userId ?? null,
+    exceptSessionId: String(requester.userId) === String(id) ? requester.sessionId || null : null,
   });
 
   return {
@@ -840,6 +892,11 @@ async function activateAllPendingStudents({
   requester = {},
 } = {}) {
   const scopedUniversityId = resolveUniversityIdFilter(requester, university_id);
+  // Non-global actors without a resolvable university must never see/activate
+  // platform-wide inactive students (empty filter = global is forbidden).
+  if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
+    throw new ApiError(403, 'Forbidden');
+  }
   const studentRole = await usersRepository.findRolesByCodes([env.STUDENT_ROLE_CODE]);
   if (!studentRole.length) {
     throw new ApiError(500, `Student role "${env.STUDENT_ROLE_CODE}" is missing`);
@@ -851,13 +908,11 @@ async function activateAllPendingStudents({
     const studentUserIds = new Set(
       links.filter((l) => l.role_id === studentRole[0].id).map((l) => l.user_id)
     );
-    pending = await prisma.users.findMany({
-      where: {
-        id: { in: [...studentUserIds] },
-        status: 'inactive',
-      },
-      select: { id: true, email: true, full_name: true },
-      orderBy: { created_at: 'asc' },
+    // Always intersect client IDs with the actor's university scope when scoped.
+    pending = await usersRepository.findInactiveStudents({
+      studentRoleId: studentRole[0].id,
+      university_id: scopedUniversityId || undefined,
+      user_ids: [...studentUserIds],
     });
   } else {
     pending = await usersRepository.findInactiveStudents({
@@ -970,30 +1025,22 @@ async function verifyAllUnverifiedEmails({
     };
   }
 
-  let candidates;
+  // Always apply university scope at the query layer for non-global actors so
+  // client-supplied user_ids cannot enumerate out-of-scope accounts.
+  const where = await usersRepository.buildListWhere({
+    status,
+    university_id: scopedUniversityId || undefined,
+    email_verified: false,
+  });
   if (user_ids?.length) {
-    candidates = await prisma.users.findMany({
-      where: {
-        id: { in: user_ids },
-        email_verified_at: null,
-        ...(status ? { status } : {}),
-      },
-      select: { id: true, email: true, email_verified_at: true, primary_university_id: true, status: true },
-      orderBy: { created_at: 'asc' },
-    });
-  } else {
-    const where = await usersRepository.buildListWhere({
-      status,
-      university_id: scopedUniversityId || undefined,
-      email_verified: false,
-    });
-    candidates = await prisma.users.findMany({
-      where,
-      select: { id: true, email: true, email_verified_at: true, primary_university_id: true, status: true },
-      orderBy: { created_at: 'asc' },
-      take: 2000,
-    });
+    where.id = { in: user_ids };
   }
+  const candidates = await prisma.users.findMany({
+    where,
+    select: { id: true, email: true, email_verified_at: true, primary_university_id: true, status: true },
+    orderBy: { created_at: 'asc' },
+    take: 2000,
+  });
 
   let updatedCount = 0;
   let skippedCount = 0;

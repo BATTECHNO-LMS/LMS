@@ -13,8 +13,33 @@ export const PRESENCE_INTERVAL_MS = 60 * 1000;
 export const IDLE_CHECK_INTERVAL_MS = 5 * 1000;
 export const ACTIVITY_STORAGE_THROTTLE_MS = 5 * 1000;
 
-/** DOM events that count as human activity. Payloads (keys, coordinates, text) are never read. */
-export const ACTIVITY_EVENTS = Object.freeze(['pointerdown', 'keydown', 'touchstart', 'scroll', 'focus']);
+/**
+ * DOM events that count as human activity. Payloads (keys, coordinates, text) are never read.
+ * `wheel` stands in for user scrolling (`scroll` also fires for programmatic scrolls);
+ * keyboard / touch scrolling is covered by keydown / touchstart. Focus, visibility and
+ * programmatic route changes are deliberately excluded: an open tab is not activity.
+ */
+export const ACTIVITY_EVENTS = Object.freeze(['pointerdown', 'keydown', 'touchstart', 'wheel']);
+
+/** Back/forward navigation is user-initiated; in-app links are already covered by pointerdown/keydown. */
+export const NAVIGATION_ACTIVITY_EVENT = 'popstate';
+
+/** Cross-tab auth broadcast event types. */
+export const AUTH_BROADCAST_EVENTS = Object.freeze({
+  LOGOUT: 'LOGOUT',
+  SESSION_EXPIRED: 'SESSION_EXPIRED',
+  SESSION_REVOKED: 'SESSION_REVOKED',
+});
+
+const EXPIRY_REASONS = new Set(['SESSION_IDLE_TIMEOUT', 'SESSION_ABSOLUTE_EXPIRED', 'TOKEN_EXPIRED']);
+
+/** Map a logout reason (USER_LOGOUT or a 401 session code) to the broadcast event type. */
+export function authBroadcastEvent(reason) {
+  const r = String(reason || '');
+  if (!r || r === 'USER_LOGOUT') return AUTH_BROADCAST_EVENTS.LOGOUT;
+  if (EXPIRY_REASONS.has(r)) return AUTH_BROADCAST_EVENTS.SESSION_EXPIRED;
+  return AUTH_BROADCAST_EVENTS.SESSION_REVOKED;
+}
 
 export const AUTH_CHANNEL_NAME = 'eprojecto-auth';
 export const LAST_ACTIVITY_STORAGE_KEY = 'battechno_lms_last_activity_at';
@@ -31,10 +56,48 @@ export const SESSION_END_CODES = Object.freeze([
   'SESSION_IDLE_TIMEOUT',
   'SESSION_ABSOLUTE_EXPIRED',
   'PORTAL_REQUIRED',
+  'MFA_SESSION_REQUIRED',
 ]);
 
-export const IDLE_TIMEOUT_MESSAGE_AR = 'انتهت جلستك بسبب عدم النشاط. يرجى تسجيل الدخول مرة أخرى.';
+export const IDLE_TIMEOUT_MESSAGE_AR = 'انتهت جلستك بسبب عدم النشاط لمدة 30 دقيقة. يرجى تسجيل الدخول مرة أخرى.';
 export const IDLE_WARNING_MESSAGE_AR = 'ستنتهي جلستك خلال 5 دقائق بسبب عدم النشاط.';
+
+/** Last idle timeout adopted from the server; read by the login page after a timeout. */
+export const IDLE_MINUTES_STORAGE_KEY = 'battechno_lms_idle_timeout_minutes';
+
+function arabicMinutes(n) {
+  if (n === 1) return 'دقيقة واحدة';
+  if (n === 2) return 'دقيقتين';
+  if (n >= 3 && n <= 10) return `${n} دقائق`;
+  return `${n} دقيقة`;
+}
+
+export function idleWarningMessage(warningMinutes = IDLE_WARNING_BEFORE_MS / 60000) {
+  return `ستنتهي جلستك خلال ${arabicMinutes(warningMinutes)} بسبب عدم النشاط.`;
+}
+
+export function idleTimeoutMessage(idleMinutes = IDLE_TIMEOUT_MS / 60000) {
+  const n = Number(idleMinutes);
+  const minutes = Number.isInteger(n) && n > 0 ? n : IDLE_TIMEOUT_MS / 60000;
+  return `انتهت جلستك بسبب عدم النشاط لمدة ${arabicMinutes(minutes)}. يرجى تسجيل الدخول مرة أخرى.`;
+}
+
+const MIN_IDLE_MINUTES = 1;
+const MAX_IDLE_MINUTES = 24 * 60;
+
+/**
+ * Adopt the server's idle policy (from session ping responses) when it is sane;
+ * otherwise keep the built-in 30/5 defaults. The server enforces its own value regardless.
+ * @returns {{ idleTimeoutMs: number, warningBeforeMs: number }}
+ */
+export function resolveIdleConfig(session) {
+  const idle = Number(session?.idleTimeoutMinutes);
+  const warn = Number(session?.warningMinutes);
+  const idleOk = Number.isInteger(idle) && idle >= MIN_IDLE_MINUTES && idle <= MAX_IDLE_MINUTES;
+  const idleTimeoutMs = idleOk ? idle * 60000 : IDLE_TIMEOUT_MS;
+  const warnOk = Number.isInteger(warn) && warn >= 1 && warn * 60000 < idleTimeoutMs;
+  return { idleTimeoutMs, warningBeforeMs: warnOk ? warn * 60000 : Math.min(IDLE_WARNING_BEFORE_MS, idleTimeoutMs / 2) };
+}
 
 const LOGIN_REASON_MESSAGES_AR = Object.freeze({
   SESSION_IDLE_TIMEOUT: IDLE_TIMEOUT_MESSAGE_AR,
@@ -45,6 +108,7 @@ const LOGIN_REASON_MESSAGES_AR = Object.freeze({
   TOKEN_INVALID: 'انتهت جلستك. يرجى تسجيل الدخول مرة أخرى.',
   UNAUTHORIZED: 'يرجى تسجيل الدخول للمتابعة.',
   USER_LOGOUT: 'تم إنهاء الجلسة بنجاح.',
+  MFA_SESSION_REQUIRED: 'يتطلب حسابك التحقق الثنائي. يرجى تسجيل الدخول مرة أخرى.',
 });
 
 /**
@@ -88,16 +152,10 @@ export function planActivityPing({
   return { send: false, delayMs: throttleMs - since };
 }
 
-/**
- * Only trusted (user-generated) events count. `focus` counts only when the window itself
- * regains focus; element focus is often programmatic (dialogs, focus restoration).
- */
+/** Only trusted (user-generated) events of the listed types count. */
 export function isHumanActivityEvent(event) {
   if (!event || event.isTrusted === false) return false;
-  if (event.type === 'focus') {
-    return typeof window !== 'undefined' ? event.target === window : event.target === event.currentTarget;
-  }
-  return ACTIVITY_EVENTS.includes(event.type);
+  return ACTIVITY_EVENTS.includes(event.type) || event.type === NAVIGATION_ACTIVITY_EVENT;
 }
 
 export function isSessionEndCode(code) {
@@ -114,7 +172,8 @@ export function shouldLogoutForResponse({ status, code, hadAuth }) {
   return isSessionEndCode(code);
 }
 
-export function loginReasonMessage(code) {
+export function loginReasonMessage(code, { idleMinutes } = {}) {
+  if (code === 'SESSION_IDLE_TIMEOUT' && idleMinutes) return idleTimeoutMessage(idleMinutes);
   return LOGIN_REASON_MESSAGES_AR[String(code || '')] || '';
 }
 

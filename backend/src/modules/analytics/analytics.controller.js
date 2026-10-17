@@ -102,8 +102,11 @@ async function fieldTraining(req, res, next) {
     let query = req.validated.query;
     if (!isSystemWideAdmin(req.user)) {
       const scoped = resolveUniversityIdFilter(req.user, query.university_id);
-      if (scoped) query = { ...query, university_id: scoped };
-      else if (req.user?.universityId) query = { ...query, university_id: req.user.universityId };
+      // Missing university scope must never become a platform-wide metrics query.
+      if (!scoped) {
+        throw new ApiError(403, 'Forbidden');
+      }
+      query = { ...query, university_id: scoped };
     }
     const data = await analyticsService.getFieldTrainingAnalytics(query);
     return success(res, data, { message: 'Field training analytics retrieved' });

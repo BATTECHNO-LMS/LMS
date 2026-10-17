@@ -1,6 +1,11 @@
 # Production stack for eprojecto (host Nginx terminates TLS).
 # Internal Docker service names remain battechno-lms-* as technical identifiers.
 # Backend uses external DATABASE_URL (e.g. Neon) from .env — no local Postgres service.
+#
+# Security notes (Phase 4):
+# - Bind published ports to loopback only (host Nginx fronts TLS).
+# - Non-root images; drop ALL capabilities; no privileged / docker.sock.
+# - Uploads volume is the only intentional host bind for backend writes.
 
 services:
   backend:
@@ -9,6 +14,16 @@ services:
       dockerfile: Dockerfile
     container_name: battechno-lms-backend
     restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=512m,mode=1777
+      - /home/node/.cache:size=256m,uid=1000,gid=1000,mode=0700
+      - /app/tmp:size=512m,uid=1000,gid=1000,mode=0700
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     env_file:
       - ./backend/.env
     environment:
@@ -19,6 +34,11 @@ services:
       PRISMA_POOL_TIMEOUT: "20"
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
       PUPPETEER_SKIP_DOWNLOAD: "true"
+      UPLOAD_DIR: /app/uploads
+      HOME: /home/node
+    # Soft resource caps — tune after measurement; Puppeteer needs headroom for Chromium.
+    pids_limit: 256
+    mem_limit: 1536m
     ports:
       - "127.0.0.1:4400:4000"
     volumes:
@@ -40,12 +60,23 @@ services:
         VITE_APP_ORIGINS: "https://eprojecto.com,https://www.eprojecto.com"
     container_name: battechno-lms-frontend
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /var/cache/nginx:size=64m,mode=1777
+      - /var/run:size=16m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     ports:
-      - "127.0.0.1:8080:80"
+      # Unprivileged Nginx listens on 8080 inside the image.
+      - "127.0.0.1:8080:8080"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
       interval: 30s
       timeout: 5s
       retries: 5

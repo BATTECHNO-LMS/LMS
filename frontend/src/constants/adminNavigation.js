@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   Users,
   Shield,
+  ShieldCheck,
   Building2,
   GraduationCap,
   BookOpen,
@@ -58,6 +59,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/certificates', 'admin.items.certificates', Award, [Ad]),
       entry('/admin/notifications', 'admin.items.notifications', Bell, [Ad]),
       entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [Ad]),
+      entry('/admin/security', 'admin.items.security', ShieldCheck, [Ad]),
     ],
   },
   {
@@ -91,6 +93,7 @@ export const ADMIN_NAV_GROUPS = [
       entry('/admin/audit-logs', 'admin.items.auditLogs', ScrollText, [S]),
       entry('/admin/settings', 'admin.items.settings', Settings, [S]),
       entry('/admin/roles-permissions', 'admin.items.roles', Shield, [S]),
+      entry('/admin/security', 'admin.items.security', ShieldCheck, [S]),
     ],
   },
   {
@@ -126,6 +129,7 @@ const ADMIN_EXTRA_PATH_PREFIXES = {
     '/admin/analytics',
     '/admin/notifications',
     '/admin/notification-settings',
+    '/admin/security',
     '/admin/certificates',
     '/admin/reports',
     '/admin/training-courses',

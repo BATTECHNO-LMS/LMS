@@ -12,10 +12,14 @@ const { requestIdMiddleware } = require('./middlewares/requestId.middleware');
 const { createRequestLogger } = require('./middlewares/requestLogger.middleware');
 const { createPerfTimingMiddleware } = require('./middlewares/perfTiming.middleware');
 const { authenticate } = require('./middlewares/auth.middleware');
+const { apiLimiter, attendancePollLimiter } = require('./middlewares/rateLimit.middleware');
 
 const app = express();
 
-// Never `true`: only loopback / private proxy hops are trusted (see env.TRUST_PROXY_SETTING).
+// Never advertise Express; Helmet also strips this, but set explicitly.
+app.disable('x-powered-by');
+
+// Never `true`: only a capped number of loopback / private proxy hops are trusted (config/trustProxy).
 app.set('trust proxy', env.TRUST_PROXY_SETTING);
 
 const allowedOrigins = getBrowserCorsOrigins();
@@ -32,6 +36,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   exposedHeaders: [
+    'X-Request-Id',
     'Content-Disposition',
     'X-Completion-Letter-Identity',
     'X-Zip-Selected',
@@ -53,9 +58,13 @@ app.use(requestIdMiddleware);
 
 app.use(
   helmet({
+    // API responses are JSON; browser CSP for the SPA is owned by the frontend host/Nginx.
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    frameguard: { action: 'deny' },
+    // nosniff / XSS filter / HSTS (when HTTPS) come from Helmet defaults.
   })
 );
 
@@ -99,7 +108,10 @@ app.get('/health/ready', async (req, res) => {
   }
 });
 
-app.use('/uploads/field-training/completion-letters', (_req, res) => {
+// Private Field Training deliverables (submissions, instruction files, completion
+// letters) must never be served via auth-only static. Use the authorized
+// download-url API routes instead — authenticate alone is not object ACL.
+app.use('/uploads/field-training', (_req, res) => {
   res.status(404).json({ message: 'Not found' });
 });
 // Bulk student-report ZIPs must never be served via static /uploads — only the
@@ -118,7 +130,10 @@ app.use(
 
 app.use('/api/auth', authRoutes);
 app.use(`/api/${env.API_VERSION}/auth`, authRoutes);
-app.use(`/api/${env.API_VERSION}`, routes);
+// Per-client buckets (verified user id, else real client IP). Auth routes carry their own
+// credential / OTP limiters and are matched above, before this one.
+const apiRateLimiters = env.API_RATE_LIMIT_ENABLED ? [apiLimiter, attendancePollLimiter] : [];
+app.use(`/api/${env.API_VERSION}`, ...apiRateLimiters, routes);
 
 app.use(errorMiddleware);
 
