@@ -56,6 +56,7 @@ function mapStudentLectureRow(row) {
     lectureDate: formatDateOnly(row.lecture_date),
     instructorName: row.instructor_name,
     sortOrder: row.sort_order,
+    sessionId: session?.id || row.session_id || null,
     sessionDate: session ? formatDateOnly(session.session_date) : null,
   };
 }

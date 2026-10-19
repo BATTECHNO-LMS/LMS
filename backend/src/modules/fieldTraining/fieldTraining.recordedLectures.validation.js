@@ -268,6 +268,36 @@ const playerEventBodySchema = z
     playerState: body.playerState || body.player_state || body.event,
   }));
 
+const progressRosterQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).optional(),
+    page_size: z.coerce.number().int().min(1).max(100).optional(),
+    pageSize: z.coerce.number().int().min(1).max(100).optional(),
+    search: z.string().trim().max(120).optional(),
+    filter: z
+      .enum(['all', 'completed', 'in_progress', 'not_started', 'present', 'not_present', 'needs_sync'])
+      .optional(),
+    sort: z
+      .enum([
+        'progress_desc',
+        'progress_asc',
+        'name_asc',
+        'name_desc',
+        'completed_at_desc',
+        'completed_at_asc',
+        'last_activity_desc',
+        'last_activity_asc',
+      ])
+      .optional(),
+  })
+  .transform((q) => ({
+    page: q.page,
+    page_size: q.page_size ?? q.pageSize,
+    search: q.search,
+    filter: q.filter,
+    sort: q.sort,
+  }));
+
 module.exports = {
   lectureIdParamSchema,
   opportunityLectureParamSchema,
@@ -281,4 +311,5 @@ module.exports = {
   watchSessionBodySchema,
   heartbeatBodySchema,
   playerEventBodySchema,
+  progressRosterQuerySchema,
 };

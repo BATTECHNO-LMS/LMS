@@ -244,9 +244,12 @@ export function StudentRecordedLecturePlayerPage() {
               </StatusBadge>
             </section>
 
-            {playerEnded && statusKey === 'completed' ? (
+            {statusKey === 'completed' ? (
               <div className="ft-recorded-player-page__end" role="status">
                 <p>{t('recordedLectures.studentWatch.lectureCompleted')}</p>
+                {lecture.sessionId || lecture.sessionDate ? (
+                  <p>{t('recordedLectures.studentWatch.attendanceUpdatedFromLecture')}</p>
+                ) : null}
                 {data?.next ? (
                   <Link
                     className="btn btn--primary"

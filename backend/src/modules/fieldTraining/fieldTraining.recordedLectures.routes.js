@@ -15,6 +15,7 @@ const {
   watchSessionBodySchema,
   heartbeatBodySchema,
   playerEventBodySchema,
+  progressRosterQuerySchema,
 } = require('./fieldTraining.recordedLectures.validation');
 const controller = require('./fieldTraining.recordedLectures.controller');
 const {
@@ -70,6 +71,12 @@ function mountManageRoutes(router, authorize) {
     validateRequest({ params: lectureIdParamSchema }),
     controller.getById
   );
+  router.get(
+    '/recorded-lectures/:lectureId/students',
+    authorize,
+    validateRequest({ params: lectureIdParamSchema, query: progressRosterQuerySchema }),
+    controller.listLectureStudentProgress
+  );
   router.patch(
     '/recorded-lectures/:lectureId',
     authorize,
@@ -114,6 +121,12 @@ function mountReadRoutes(router, authorize, { opportunityParam = 'id' } = {}) {
     authorize,
     validateRequest({ params: lectureIdParamSchema }),
     controller.getById
+  );
+  router.get(
+    '/recorded-lectures/:lectureId/students',
+    authorize,
+    validateRequest({ params: lectureIdParamSchema, query: progressRosterQuerySchema }),
+    controller.listLectureStudentProgress
   );
   if (opportunityParam === 'opportunityId') {
     router.get(

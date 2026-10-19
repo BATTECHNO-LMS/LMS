@@ -363,6 +363,16 @@ export async function updateRecordedLecture(lectureId, body, { asInstructor = fa
   return unwrapApiData(res);
 }
 
+export async function fetchRecordedLectureStudentProgress(
+  lectureId,
+  params = {},
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/recorded-lectures/${lectureId}/students`, { params });
+  return unwrapApiData(res);
+}
+
 export async function publishRecordedLecture(lectureId, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.post(`${base}/recorded-lectures/${lectureId}/publish`);

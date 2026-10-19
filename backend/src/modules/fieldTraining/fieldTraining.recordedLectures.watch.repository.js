@@ -2,10 +2,15 @@
 
 const { prisma } = require('../../config/db');
 const { recordAudit } = require('../../shared/services/audit.service');
+const {
+  upsertPresentInTx,
+  finalizeAttendanceSideEffects,
+} = require('./fieldTraining.recordedLectures.attendanceFromCompletion.service');
 
 const watchLectureSelect = {
   id: true,
   opportunity_id: true,
+  session_id: true,
   status: true,
   duration_seconds: true,
   provider: true,
@@ -146,6 +151,7 @@ async function applyHeartbeatTransaction({
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       const transitions = { started: false, completed: false, row: null };
+      let attendanceSideEffect = null;
       const result = await prisma.$transaction(async (tx) => {
         const current = await tx.field_training_recorded_lecture_progress.findUnique({
           where: { id: progressId },
@@ -156,7 +162,6 @@ async function applyHeartbeatTransaction({
           return mapProgressRow(current);
         }
         transitions.started = !current.started_at && Boolean(next.started_at);
-        transitions.completed = !current.completed_at && Boolean(next.completed_at);
         transitions.row = current;
         await tx.field_training_recorded_lecture_watch_segments.deleteMany({
           where: { progress_id: progressId },
@@ -170,26 +175,77 @@ async function applyHeartbeatTransaction({
             })),
           });
         }
-        const updated = await tx.field_training_recorded_lecture_progress.update({
+
+        const progressData = {
+          video_duration_seconds: next.video_duration_seconds,
+          unique_watched_seconds: next.unique_watched_seconds,
+          total_playback_seconds: next.total_playback_seconds,
+          last_position_seconds: next.last_position_seconds,
+          progress_percentage: next.progress_percentage,
+          started_at: next.started_at,
+          last_watched_at: next.last_watched_at,
+          completed_at: next.completed_at,
+          heartbeat_cursors: next.heartbeat_cursors,
+          updated_at: new Date(),
+        };
+
+        // Claim first completion atomically so concurrent heartbeats only trigger attendance once.
+        if (!current.completed_at && next.completed_at) {
+          const claimed = await tx.field_training_recorded_lecture_progress.updateMany({
+            where: { id: progressId, completed_at: null },
+            data: progressData,
+          });
+          transitions.completed = claimed.count === 1;
+          if (!transitions.completed) {
+            // Another TX already set completed_at; persist non-completion fields only.
+            await tx.field_training_recorded_lecture_progress.update({
+              where: { id: progressId },
+              data: {
+                video_duration_seconds: next.video_duration_seconds,
+                unique_watched_seconds: next.unique_watched_seconds,
+                total_playback_seconds: next.total_playback_seconds,
+                last_position_seconds: next.last_position_seconds,
+                progress_percentage: next.progress_percentage,
+                started_at: next.started_at,
+                last_watched_at: next.last_watched_at,
+                heartbeat_cursors: next.heartbeat_cursors,
+                updated_at: new Date(),
+              },
+            });
+          }
+        } else {
+          await tx.field_training_recorded_lecture_progress.update({
+            where: { id: progressId },
+            data: progressData,
+          });
+        }
+
+        const updated = await tx.field_training_recorded_lecture_progress.findUnique({
           where: { id: progressId },
-          data: {
-            video_duration_seconds: next.video_duration_seconds,
-            unique_watched_seconds: next.unique_watched_seconds,
-            total_playback_seconds: next.total_playback_seconds,
-            last_position_seconds: next.last_position_seconds,
-            progress_percentage: next.progress_percentage,
-            started_at: next.started_at,
-            last_watched_at: next.last_watched_at,
-            completed_at: next.completed_at,
-            heartbeat_cursors: next.heartbeat_cursors,
-            updated_at: new Date(),
-          },
           include: progressIncludeSegments,
         });
+
+        // Same TX as completion claim: linked-session attendance → PRESENT (idempotent).
+        if (transitions.completed) {
+          attendanceSideEffect = await upsertPresentInTx(tx, {
+            lectureId: current.lecture_id,
+            applicationId: current.application_id,
+            studentId: current.student_id,
+            completedAt: next.completed_at,
+          });
+          if (attendanceSideEffect) {
+            attendanceSideEffect.completedAt = next.completed_at;
+            attendanceSideEffect.lectureId = current.lecture_id;
+          }
+        }
+
         return mapProgressRow(updated);
       });
       if (transitions.row && (transitions.started || transitions.completed)) {
         await recordWatchMilestones(transitions);
+      }
+      if (attendanceSideEffect?.changed) {
+        await finalizeAttendanceSideEffects(attendanceSideEffect);
       }
       return result;
     } catch (err) {

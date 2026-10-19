@@ -17,6 +17,7 @@ import {
   fetchOpportunitySubmissions,
   fetchOpportunitySessions,
   fetchOpportunityRecordedLectures,
+  fetchRecordedLectureStudentProgress,
   fetchOpportunityAssessments,
   fetchSessionAttendance,
   fetchApplicationProgress,
@@ -196,6 +197,27 @@ export function useOpportunityRecordedLectures(opportunityId, options = {}) {
     queryFn: () =>
       fetchOpportunityRecordedLectures(opportunityId, { asInstructor: scope === 'instructor' }),
     enabled: Boolean(opportunityId),
+    ...options,
+  });
+}
+
+export function useRecordedLectureStudentProgress(lectureId, params = {}, options = {}) {
+  const scope = options.scope ?? 'admin';
+  const queryParams = {
+    page: params.page ?? 1,
+    page_size: params.pageSize ?? params.page_size ?? 25,
+    search: params.search || undefined,
+    filter: params.filter || 'all',
+    sort: params.sort || 'progress_desc',
+  };
+  return useQuery({
+    queryKey: fieldTrainingKeys.recordedLectureStudents(lectureId, scope, queryParams),
+    queryFn: () =>
+      fetchRecordedLectureStudentProgress(lectureId, queryParams, {
+        asInstructor: scope === 'instructor',
+      }),
+    enabled: Boolean(lectureId),
+    refetchInterval: options.refetchInterval ?? 20000,
     ...options,
   });
 }

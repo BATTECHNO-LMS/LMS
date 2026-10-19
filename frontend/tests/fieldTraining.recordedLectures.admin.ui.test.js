@@ -35,4 +35,27 @@ describe('recorded lecture admin UI wiring', () => {
     assert.match(ar, /تعذر حفظ ترتيب المحاضرات، يرجى المحاولة مرة أخرى\./);
     assert.equal(/watchCount|watchedMinutes|completionPercentage/.test(list), false);
   });
+
+  it('wires per-lecture student progress roster panel', () => {
+    const list = readSrc('../src/pages/admin/fieldTraining/components/manage/RecordedLecturesSortableList.jsx');
+    const panel = readSrc(
+      '../src/pages/admin/fieldTraining/components/manage/ManageRecordedLectureProgressPanel.jsx'
+    );
+    const service = readSrc('../src/features/fieldTraining/fieldTraining.service.js');
+    const ar = readSrc('../src/i18n/locales/ar/fieldTraining.json');
+    const en = readSrc('../src/i18n/locales/en/fieldTraining.json');
+
+    assert.match(list, /ManageRecordedLectureProgressPanel/);
+    assert.match(list, /progressRoster\.openAction/);
+    const hooks = readSrc('../src/features/fieldTraining/hooks/useAdminFieldTraining.js');
+    assert.match(panel, /StudentProgressBar/);
+    assert.match(panel, /needs_sync/);
+    assert.match(hooks, /refetchInterval: options\.refetchInterval \?\? 20000/);
+    assert.match(service, /recorded-lectures\/\$\{lectureId\}\/students/);
+    assert.match(ar, /الطلاب والتقدم/);
+    assert.match(ar, /بحاجة للمزامنة/);
+    assert.match(en, /Students & progress/);
+    assert.match(panel, /emptyStudents/);
+    assert.match(panel, /emptyFilter/);
+  });
 });

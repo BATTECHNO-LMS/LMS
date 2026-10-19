@@ -58,6 +58,7 @@ export function ManageRecordedLecturesTab({ opportunityId, opportunity = null, a
   const [showImport, setShowImport] = useState(false);
   const [ordered, setOrdered] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [progressLectureId, setProgressLectureId] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -183,10 +184,20 @@ export function ManageRecordedLecturesTab({ opportunityId, opportunity = null, a
             lectures={filtered}
             canManage={canManage && filter === 'all'}
             editingId={editingId}
+            progressLectureId={progressLectureId}
             sessions={sessionsData?.sessions ?? []}
             asInstructor={isInstructor}
-            onEdit={setEditingId}
+            apiScope={apiScope}
+            onEdit={(id) => {
+              setProgressLectureId(null);
+              setEditingId(id);
+            }}
             onCloseEdit={() => setEditingId(null)}
+            onToggleProgress={(id) => {
+              setEditingId(null);
+              setProgressLectureId(id);
+            }}
+            onCloseProgress={() => setProgressLectureId(null)}
             onSaved={invalidate}
             onPublish={(lecture) => statusMut.mutate({ lecture, action: 'publish' })}
             onHide={(lecture) => statusMut.mutate({ lecture, action: 'hide' })}

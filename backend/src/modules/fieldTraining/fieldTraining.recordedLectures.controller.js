@@ -3,6 +3,7 @@
 const recordedLecturesService = require('./fieldTraining.recordedLectures.service');
 const youtubeImportService = require('./fieldTraining.recordedLectures.youtubeImport.service');
 const watchService = require('./fieldTraining.recordedLectures.watch.service');
+const progressRosterService = require('./fieldTraining.recordedLectures.progressRoster.service');
 const { success, created } = require('../../utils/apiResponse');
 
 async function listForOpportunity(req, res, next) {
@@ -271,6 +272,19 @@ async function reorderForOpportunity(req, res, next) {
   }
 }
 
+async function listLectureStudentProgress(req, res, next) {
+  try {
+    const data = await progressRosterService.listLectureStudentProgress(
+      req.validated.params.lectureId,
+      req.user,
+      req.validated.query || {}
+    );
+    return success(res, data, { message: 'Recorded lecture student progress retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
 module.exports = {
   listForOpportunity,
   listForAcademicOpportunity,
@@ -293,4 +307,5 @@ module.exports = {
   previewYoutubePlaylistSync,
   applyYoutubePlaylistSync,
   reorderForOpportunity,
+  listLectureStudentProgress,
 };

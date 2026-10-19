@@ -375,6 +375,12 @@ a('FIELD_TRAINING_ATTENDANCE_ELECTRONIC_CONFIRM', C.ATTENDANCE, 'تأكيد حض
 a('FIELD_TRAINING_ATTENDANCE_FINALIZED_ABSENT', C.ATTENDANCE, 'تسجيل غياب', 'Marked absent');
 a('FIELD_TRAINING_ATTENDANCE_MANUAL_UPDATE', C.ATTENDANCE, 'تعديل حضور يدوي', 'Attendance updated manually');
 a('FIELD_TRAINING_ATTENDANCE_MARK_ALL_PRESENT', C.ATTENDANCE, 'تحضير جماعي', 'Mark all present');
+a(
+  'ATTENDANCE_MARKED_PRESENT_FROM_RECORDED_LECTURE',
+  C.ATTENDANCE,
+  'تم تحويل حضور الطالب إلى "حاضر" تلقائيًا بعد إكمال المحاضرة المسجلة',
+  'Attendance marked present after recorded lecture completion'
+);
 a('TRAINING_ATTENDANCE_SET', C.ATTENDANCE, 'تسجيل حضور', 'Attendance set');
 a('TRAINING_MARK_ALL_PRESENT', C.ATTENDANCE, 'تحضير جماعي', 'Mark all present');
 

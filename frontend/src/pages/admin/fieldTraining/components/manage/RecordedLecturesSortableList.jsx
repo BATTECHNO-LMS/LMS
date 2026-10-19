@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EyeOff, GripVertical, Pencil, Send, Undo2, Video } from 'lucide-react';
+import { EyeOff, GripVertical, Pencil, Send, Undo2, Users, Video } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   DndContext,
@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '../../../../../components/common/Button.jsx';
 import { StatusBadge } from '../../../../../components/admin/StatusBadge.jsx';
 import { RecordedLectureEditor } from './RecordedLectureEditor.jsx';
+import { ManageRecordedLectureProgressPanel } from './ManageRecordedLectureProgressPanel.jsx';
 import {
   formatLectureDuration,
   lectureStatusKey,
@@ -30,10 +31,14 @@ function SortableLectureCard({
   lecture,
   canManage,
   editing,
+  progressOpen,
   sessions,
   asInstructor,
+  apiScope,
   onEdit,
   onCloseEdit,
+  onToggleProgress,
+  onCloseProgress,
   onSaved,
   onPublish,
   onHide,
@@ -88,33 +93,43 @@ function SortableLectureCard({
         <StatusBadge variant={lectureStatusVariant(lecture.status)}>
           {t(`recordedLectures.status.${status}`)}
         </StatusBadge>
-        {canManage ? (
-          <div className="ft-recorded-card__actions">
-            {status !== 'published' ? (
-              <Button type="button" size="sm" disabled={busy} onClick={() => onPublish(lecture)}>
-                <Send size={14} aria-hidden /> {t('recordedLectures.publish')}
+        <div className="ft-recorded-card__actions">
+          <Button
+            type="button"
+            size="sm"
+            variant={progressOpen ? 'primary' : 'secondary'}
+            onClick={() => (progressOpen ? onCloseProgress() : onToggleProgress(lecture.id))}
+          >
+            <Users size={14} aria-hidden /> {t('recordedLectures.progressRoster.openAction')}
+          </Button>
+          {canManage ? (
+            <>
+              {status !== 'published' ? (
+                <Button type="button" size="sm" disabled={busy} onClick={() => onPublish(lecture)}>
+                  <Send size={14} aria-hidden /> {t('recordedLectures.publish')}
+                </Button>
+              ) : null}
+              {status !== 'hidden' ? (
+                <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => onHide(lecture)}>
+                  <EyeOff size={14} aria-hidden /> {t('recordedLectures.hide')}
+                </Button>
+              ) : null}
+              {status !== 'draft' ? (
+                <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => onDraft(lecture)}>
+                  <Undo2 size={14} aria-hidden /> {t('recordedLectures.restoreDraft')}
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                size="sm"
+                variant={editing ? 'primary' : 'secondary'}
+                onClick={() => (editing ? onCloseEdit() : onEdit(lecture.id))}
+              >
+                <Pencil size={14} aria-hidden /> {t('edit')}
               </Button>
-            ) : null}
-            {status !== 'hidden' ? (
-              <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => onHide(lecture)}>
-                <EyeOff size={14} aria-hidden /> {t('recordedLectures.hide')}
-              </Button>
-            ) : null}
-            {status !== 'draft' ? (
-              <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => onDraft(lecture)}>
-                <Undo2 size={14} aria-hidden /> {t('recordedLectures.restoreDraft')}
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              variant={editing ? 'primary' : 'secondary'}
-              onClick={() => (editing ? onCloseEdit() : onEdit(lecture.id))}
-            >
-              <Pencil size={14} aria-hidden /> {t('edit')}
-            </Button>
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </article>
       {editing ? (
         <RecordedLectureEditor
@@ -125,6 +140,13 @@ function SortableLectureCard({
           onSaved={onSaved}
         />
       ) : null}
+      {progressOpen ? (
+        <ManageRecordedLectureProgressPanel
+          lecture={lecture}
+          apiScope={apiScope}
+          onClose={onCloseProgress}
+        />
+      ) : null}
     </li>
   );
 }
@@ -133,10 +155,14 @@ export function RecordedLecturesSortableList({
   lectures,
   canManage,
   editingId,
+  progressLectureId,
   sessions,
   asInstructor,
+  apiScope = 'admin',
   onEdit,
   onCloseEdit,
+  onToggleProgress,
+  onCloseProgress,
   onSaved,
   onPublish,
   onHide,
@@ -169,10 +195,14 @@ export function RecordedLecturesSortableList({
               lecture={lecture}
               canManage={canManage}
               editing={editingId === lecture.id}
+              progressOpen={progressLectureId === lecture.id}
               sessions={sessions}
               asInstructor={asInstructor}
+              apiScope={apiScope}
               onEdit={onEdit}
               onCloseEdit={onCloseEdit}
+              onToggleProgress={onToggleProgress}
+              onCloseProgress={onCloseProgress}
               onSaved={onSaved}
               onPublish={onPublish}
               onHide={onHide}

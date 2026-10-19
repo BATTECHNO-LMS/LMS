@@ -1448,6 +1448,7 @@
       "resumeFrom": "Resume from",
       "restartFromStart": "Watch from the beginning",
       "lectureCompleted": "Lecture watched",
+      "attendanceUpdatedFromLecture": "Lecture completed and your attendance for the linked session was updated.",
       "goToNext": "Go to the next lecture",
       "endNotComplete": "Watching is not complete yet because parts of the lecture were skipped.",
       "unavailable": "This lecture cannot be played right now.",
@@ -1466,6 +1467,68 @@
       "hoursMinutes": "{{hours}} hr {{minutes}} min",
       "hoursOnly": "{{hours}} hr",
       "minutesOnly": "{{minutes}} min"
+    },
+    "progressRoster": {
+      "openAction": "Students & progress",
+      "title": "Recorded lecture student progress",
+      "summary": "Lecture summary",
+      "noLinkedSession": "Not linked to a session",
+      "refresh": "Refresh",
+      "lastUpdated": "Last updated: {{time}}",
+      "totalStudents": "Total students",
+      "completed": "Completed lecture",
+      "notCompleted": "Not completed",
+      "averageProgress": "Average progress",
+      "linkedPresent": "Present in linked session",
+      "na": "N/A",
+      "search": "Search",
+      "searchPlaceholder": "Search by name or student number",
+      "filters": "Filters",
+      "filter": {
+        "all": "All",
+        "completed": "Completed",
+        "in_progress": "In progress",
+        "not_started": "Not started",
+        "present": "Present",
+        "not_present": "Not present",
+        "needs_sync": "Needs sync"
+      },
+      "sort": "Sort",
+      "sortOptions": {
+        "progress_desc": "Progress: high to low",
+        "progress_asc": "Progress: low to high",
+        "name_asc": "Name A–Z",
+        "name_desc": "Name Z–A",
+        "completed_at_desc": "Completion time: newest",
+        "completed_at_asc": "Completion time: oldest",
+        "last_activity_desc": "Last activity: newest",
+        "last_activity_asc": "Last activity: oldest"
+      },
+      "colStudent": "Student",
+      "colProgress": "Progress",
+      "colLectureStatus": "Lecture status",
+      "colAttendance": "Session attendance",
+      "colCompletedAt": "Completed at",
+      "colLastActivity": "Last progress update",
+      "watchStatus": {
+        "not_started": "Not started",
+        "in_progress": "In progress",
+        "completed": "Completed"
+      },
+      "attendance": {
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused",
+        "unconfirmed": "Unconfirmed"
+      },
+      "needsSync": "Needs sync",
+      "loading": "Loading student progress…",
+      "emptyStudents": "No students are linked to this lecture yet.",
+      "emptyFilter": "No results match the current filters.",
+      "pageOf": "Page {{page}} of {{total}}",
+      "prev": "Previous",
+      "next": "Next"
     }
   },
   "close": "Close"

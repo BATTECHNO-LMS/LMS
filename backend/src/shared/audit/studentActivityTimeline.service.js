@@ -81,6 +81,7 @@ const STATUS_LABEL_AR = Object.freeze({
   absent: 'غائب',
   late: 'متأخر',
   excused: 'بعذر',
+  unconfirmed: 'غير مؤكد',
   approved: 'مقبول',
   rejected: 'مرفوض',
   pending: 'قيد المراجعة',
@@ -183,6 +184,21 @@ function summarizeDetails(row) {
     if (reason === 'INVALID_PASSWORD') parts.push('كلمة مرور غير صحيحة');
     else if (reason === 'UNKNOWN_IDENTIFIER' || reason === 'ACCOUNT_NOT_FOUND_OR_INVALID') parts.push('حساب غير معروف');
     else if (reason) parts.push('الحساب غير متاح للدخول حاليًا');
+  }
+  if (row.action_type === 'ATTENDANCE_MARKED_PRESENT_FROM_RECORDED_LECTURE') {
+    const lecture = clean(nv.lectureTitle, 120);
+    const session = clean(nv.sessionTitle, 120);
+    if (lecture) parts.push(`المحاضرة: ${lecture}`);
+    if (session) parts.push(`الجلسة: ${session}`);
+    if (!parts.some((p) => p.startsWith('الحالة'))) {
+      const before = statusLabel(nv.oldStatus || ov.status);
+      const after = statusLabel(nv.status || 'present');
+      if (before && after) parts.push(`${before} → ${after}`);
+      else if (after) parts.push(`الحالة: ${after}`);
+    }
+    if (nv.reconciliation === true) {
+      parts.push('تم تحديث الحضور بناءً على إكمال المحاضرة المسجلة');
+    }
   }
 
   const reasonText = clean(nv.reason ?? nv.note ?? nv.manual_reason, 160);

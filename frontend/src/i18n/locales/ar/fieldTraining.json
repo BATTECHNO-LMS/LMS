@@ -1499,6 +1499,7 @@
       "resumeFrom": "متابعة من",
       "restartFromStart": "المشاهدة من البداية",
       "lectureCompleted": "تمت مشاهدة المحاضرة",
+      "attendanceUpdatedFromLecture": "تم إكمال المحاضرة وتحديث حضورك في الجلسة المرتبطة.",
       "goToNext": "الانتقال إلى المحاضرة التالية",
       "endNotComplete": "لم تكتمل المشاهدة بعد لأن أجزاء من المحاضرة لم تُشاهد.",
       "unavailable": "تعذر تشغيل هذه المحاضرة حاليًا.",
@@ -1517,6 +1518,68 @@
       "hoursMinutes": "{{hours}} ساعة و{{minutes}} دقيقة",
       "hoursOnly": "{{hours}} ساعة",
       "minutesOnly": "{{minutes}} دقيقة"
+    },
+    "progressRoster": {
+      "openAction": "الطلاب والتقدم",
+      "title": "تقدم الطلاب في المحاضرة المسجلة",
+      "summary": "ملخص المحاضرة",
+      "noLinkedSession": "غير مرتبطة بجلسة",
+      "refresh": "تحديث",
+      "lastUpdated": "آخر تحديث: {{time}}",
+      "totalStudents": "إجمالي الطلاب",
+      "completed": "أكملوا المحاضرة",
+      "notCompleted": "لم يكملوا المحاضرة",
+      "averageProgress": "متوسط التقدم",
+      "linkedPresent": "الحضور في الجلسة المرتبطة",
+      "na": "غير متاح",
+      "search": "بحث",
+      "searchPlaceholder": "ابحث بالاسم أو الرقم الجامعي",
+      "filters": "تصفية",
+      "filter": {
+        "all": "الكل",
+        "completed": "مكتملة",
+        "in_progress": "قيد المشاهدة",
+        "not_started": "لم يبدأ",
+        "present": "حاضر",
+        "not_present": "غير حاضر",
+        "needs_sync": "بحاجة للمزامنة"
+      },
+      "sort": "ترتيب",
+      "sortOptions": {
+        "progress_desc": "التقدم: الأعلى أولاً",
+        "progress_asc": "التقدم: الأقل أولاً",
+        "name_asc": "الاسم تصاعديًا",
+        "name_desc": "الاسم تنازليًا",
+        "completed_at_desc": "وقت الإكمال: الأحدث",
+        "completed_at_asc": "وقت الإكمال: الأقدم",
+        "last_activity_desc": "آخر نشاط: الأحدث",
+        "last_activity_asc": "آخر نشاط: الأقدم"
+      },
+      "colStudent": "الطالب",
+      "colProgress": "التقدم",
+      "colLectureStatus": "حالة المحاضرة",
+      "colAttendance": "حضور الجلسة",
+      "colCompletedAt": "وقت الإكمال",
+      "colLastActivity": "آخر تحديث للتقدم",
+      "watchStatus": {
+        "not_started": "لم يبدأ",
+        "in_progress": "قيد المشاهدة",
+        "completed": "مكتملة"
+      },
+      "attendance": {
+        "present": "حاضر",
+        "absent": "غائب",
+        "late": "متأخر",
+        "excused": "معذور",
+        "unconfirmed": "لم يتم تحديده"
+      },
+      "needsSync": "بحاجة للمزامنة",
+      "loading": "جارٍ تحميل تقدم الطلاب…",
+      "emptyStudents": "لا يوجد طلاب مرتبطون بهذه المحاضرة حتى الآن.",
+      "emptyFilter": "لا توجد نتائج مطابقة للفلاتر الحالية.",
+      "pageOf": "صفحة {{page}} من {{total}}",
+      "prev": "السابق",
+      "next": "التالي"
     }
   },
   "close": "إغلاق"
