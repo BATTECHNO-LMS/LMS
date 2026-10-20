@@ -59,6 +59,49 @@ const listApplicationsQuerySchema = z.object({
   search: z.string().optional(),
 });
 
+const commandCenterQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).optional(),
+    page_size: z.coerce.number().int().min(1).max(100).optional(),
+    pageSize: z.coerce.number().int().min(1).max(100).optional(),
+    sort: z
+      .enum([
+        'highest_risk',
+        'closest_to_completion',
+        'lowest_score',
+        'hours_remaining',
+        'last_activity',
+        'student_name',
+      ])
+      .optional(),
+    quick_filter: z
+      .enum([
+        'all',
+        'needs_attention',
+        'near_completion',
+        'not_ready',
+        'post_incomplete',
+        'tasks_overdue',
+        'low_attendance',
+        'lectures_incomplete',
+        'ready_to_complete',
+        'blocked',
+      ])
+      .optional(),
+    quickFilter: z.string().optional(),
+    risk_level: z.enum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+    riskLevel: z.enum(['NONE', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+    readiness: z.enum(['NOT_READY', 'NEARLY_READY', 'READY', 'COMPLETED']).optional(),
+    completion_readiness: z.enum(['NOT_READY', 'NEARLY_READY', 'READY', 'COMPLETED']).optional(),
+    risk_reason: z.string().max(80).optional(),
+    riskReason: z.string().max(80).optional(),
+    search: z.string().max(200).optional(),
+    student: z.string().max(200).optional(),
+    university_id: z.string().uuid().optional(),
+    universityId: z.string().uuid().optional(),
+  })
+  .strict();
+
 const listAdminQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   page_size: z.coerce.number().int().min(1).max(100).default(20),
@@ -309,6 +352,105 @@ const confirmAttendanceWindowBodySchema = z.object({
   }
 });
 
+const confirmQrAttendanceBodySchema = z.object({
+  token: z.string().trim().min(8).max(4000).optional(),
+  qr_token: z.string().trim().min(8).max(4000).optional(),
+  t: z.string().trim().min(8).max(4000).optional(),
+  sessionId: z.string().uuid().optional(),
+}).superRefine((data, ctx) => {
+  if (!(data.token || data.qr_token || data.t)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'token مطلوب', path: ['token'] });
+  }
+});
+
+const interventionOpenBodySchema = z.object({
+  application_id: z.string().uuid().optional(),
+  applicationId: z.string().uuid().optional(),
+  case_type: z.enum([
+    'LOW_ATTENDANCE',
+    'TASKS_OVERDUE',
+    'LOW_PERFORMANCE',
+    'MISSING_POST',
+    'HOURS_INCOMPLETE',
+    'INACTIVITY',
+    'BEHAVIOR_CONCERN',
+    'SUPERVISOR_CONCERN',
+    'STUDENT_SUPPORT',
+    'OTHER',
+  ]),
+  severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).optional(),
+  title: z.string().trim().min(1).max(255).optional(),
+  reason: z.string().max(4000).optional().nullable(),
+  description: z.string().max(8000).optional().nullable(),
+  assigned_to_id: z.string().uuid().optional().nullable(),
+  assignedToId: z.string().uuid().optional().nullable(),
+  due_at: z.string().datetime().optional().nullable(),
+  follow_up_at: z.string().datetime().optional().nullable(),
+  source: z.enum(['MANUAL', 'RISK_ENGINE_SUGGESTED']).optional(),
+}).superRefine((data, ctx) => {
+  if (!(data.application_id || data.applicationId)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'application_id مطلوب', path: ['application_id'] });
+  }
+});
+
+const interventionFollowUpBodySchema = z.object({
+  action: z.enum([
+    'COMMENT_ADDED',
+    'STUDENT_CONTACTED',
+    'SUPERVISOR_CONTACTED',
+    'WARNING_SENT',
+    'MEETING_HELD',
+    'ACTION_PLAN_CREATED',
+    'FOLLOW_UP_ADDED',
+    'STATUS_CHANGED',
+    'ASSIGNED',
+  ]).optional(),
+  note: z.string().max(8000).optional().nullable(),
+  next_step: z.string().max(2000).optional().nullable(),
+  follow_up_at: z.string().datetime().optional().nullable(),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'MONITORING']).optional(),
+  assigned_to_id: z.string().uuid().optional().nullable(),
+  student_visible: z.boolean().optional(),
+});
+
+const interventionAssignBodySchema = z.object({
+  assigned_to_id: z.string().uuid().optional(),
+  assignedToId: z.string().uuid().optional(),
+  note: z.string().max(2000).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!(data.assigned_to_id || data.assignedToId)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'assigned_to_id مطلوب', path: ['assigned_to_id'] });
+  }
+});
+
+const interventionResolveBodySchema = z.object({
+  resolution: z.enum([
+    'IMPROVED',
+    'REQUIREMENT_COMPLETED',
+    'WARNING_ISSUED',
+    'REFERRED',
+    'NO_FURTHER_ACTION',
+    'TRAINING_ENDED',
+    'OTHER',
+  ]),
+  resolution_note: z.string().trim().min(1).max(4000).optional(),
+  note: z.string().trim().min(1).max(4000).optional(),
+  close: z.boolean().optional(),
+  student_visible: z.boolean().optional(),
+});
+
+const externalSupervisorAssignBodySchema = z.object({
+  supervisor_user_id: z.string().uuid().optional(),
+  supervisorUserId: z.string().uuid().optional(),
+  application_id: z.string().uuid().optional().nullable(),
+  applicationId: z.string().uuid().optional().nullable(),
+  organization_label: z.string().max(255).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (!(data.supervisor_user_id || data.supervisorUserId)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'supervisor_user_id مطلوب', path: ['supervisor_user_id'] });
+  }
+});
+
 const manualAttendanceBodySchema = z.object({
   status: z.enum(['present', 'absent', 'late', 'excused', 'unconfirmed']),
   manual_reason: z.string().trim().min(1).max(2000).optional(),
@@ -542,6 +684,12 @@ module.exports = {
   saveAttendanceBodySchema,
   openAttendanceWindowBodySchema,
   confirmAttendanceWindowBodySchema,
+  confirmQrAttendanceBodySchema,
+  interventionOpenBodySchema,
+  interventionFollowUpBodySchema,
+  interventionAssignBodySchema,
+  interventionResolveBodySchema,
+  externalSupervisorAssignBodySchema,
   manualAttendanceBodySchema,
   markAllPresentBodySchema,
   assessmentBodySchema,
@@ -557,6 +705,53 @@ module.exports = {
   taskSubmitFieldsSchema,
   listAdminQuerySchema,
   listApplicationsQuerySchema,
+  commandCenterQuerySchema,
+  logbookEntryBodySchema: z
+    .object({
+      entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      activity: z.string().min(1).max(5000),
+      learning_outcome: z.string().min(1).max(5000),
+      skills: z.string().max(2000).optional().nullable(),
+      challenges: z.string().max(5000).optional().nullable(),
+      outcome: z.string().max(5000).optional().nullable(),
+      reported_hours: z.coerce.number().min(0).max(24).optional().nullable(),
+    })
+    .strict(),
+  logbookEntryUpdateBodySchema: z
+    .object({
+      entry_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      activity: z.string().min(1).max(5000).optional(),
+      learning_outcome: z.string().min(1).max(5000).optional(),
+      skills: z.string().max(2000).optional().nullable(),
+      challenges: z.string().max(5000).optional().nullable(),
+      outcome: z.string().max(5000).optional().nullable(),
+      reported_hours: z.coerce.number().min(0).max(24).optional().nullable(),
+    })
+    .strict(),
+  logbookEntryIdParamSchema: z.object({
+    entryId: z.string().uuid(),
+  }),
+  logbookAttachmentIdParamSchema: z.object({
+    attachmentId: z.string().uuid(),
+  }),
+  logbookListQuerySchema: z
+    .object({
+      page: z.coerce.number().int().min(1).optional(),
+      page_size: z.coerce.number().int().min(1).max(100).optional(),
+      status: z.enum(['DRAFT', 'SUBMITTED', 'APPROVED', 'REVISION_REQUESTED']).optional(),
+      search: z.string().max(200).optional(),
+      student_id: z.string().uuid().optional(),
+      from: optionalDateSchema,
+      to: optionalDateSchema,
+      university_id: z.string().uuid().optional(),
+    })
+    .strict(),
+  logbookRevisionBodySchema: z
+    .object({
+      comment: z.string().min(1).max(4000),
+      revision_comment: z.string().min(1).max(4000).optional(),
+    })
+    .strict(),
   listAdminStatsQuerySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,

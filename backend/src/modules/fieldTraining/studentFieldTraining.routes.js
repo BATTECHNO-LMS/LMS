@@ -21,8 +21,15 @@ const {
   aiSelfEvalBodySchema,
   taskSubmitFieldsSchema,
   confirmAttendanceWindowBodySchema,
+  confirmQrAttendanceBodySchema,
+  logbookEntryBodySchema,
+  logbookEntryUpdateBodySchema,
+  logbookEntryIdParamSchema,
+  logbookAttachmentIdParamSchema,
+  logbookListQuerySchema,
 } = require('./fieldTraining.validation');
-const { handleTaskUpload } = require('./fieldTraining.upload');
+const { handleTaskUpload, handleLogbookUpload } = require('./fieldTraining.upload');
+const logbookController = require('./fieldTraining.logbook.controller');
 const { aiSelfEvalLimiter } = require('./fieldTraining.aiRateLimit.middleware');
 const { attendanceConfirmLimiter } = require('./fieldTraining.attendanceRateLimit.middleware');
 const attendanceWindowService = require('./fieldTraining.attendanceWindow.service');
@@ -119,6 +126,31 @@ router.post(
   }
 );
 
+const qrAttendanceService = require('./fieldTraining.qrAttendance.service');
+
+router.post(
+  '/attendance/qr/confirm',
+  authenticate,
+  studentOnly,
+  attendanceConfirmLimiter,
+  validateRequest({ body: confirmQrAttendanceBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await qrAttendanceService.confirmAttendanceWithQr(
+        req.validated.body,
+        req.user,
+        {
+          ipAddress: getSecurityClientIp(req),
+          deviceInfo: String(req.headers['user-agent'] || '').slice(0, 500) || null,
+        }
+      );
+      return success(res, data, { message: data.message || 'تم تسجيل حضورك بنجاح' });
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
 router.get(
   '/submissions/ai-supported-file-types',
   authenticate,
@@ -205,6 +237,79 @@ router.get(
   studentOnly,
   validateRequest({ params: uuidParamSchema }),
   workflowController.getStudentProgress
+);
+
+router.get(
+  '/:id/logbook',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema, query: logbookListQuerySchema }),
+  logbookController.studentList
+);
+
+router.post(
+  '/:id/logbook',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema, body: logbookEntryBodySchema }),
+  logbookController.studentCreate
+);
+
+router.patch(
+  '/logbook/:entryId',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: logbookEntryIdParamSchema, body: logbookEntryUpdateBodySchema }),
+  logbookController.studentUpdate
+);
+
+router.post(
+  '/logbook/:entryId/submit',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: logbookEntryIdParamSchema }),
+  logbookController.studentSubmit
+);
+
+router.delete(
+  '/logbook/:entryId',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: logbookEntryIdParamSchema }),
+  logbookController.studentDelete
+);
+
+router.post(
+  '/logbook/:entryId/attachments',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: logbookEntryIdParamSchema }),
+  handleLogbookUpload,
+  logbookController.studentAddAttachment
+);
+
+router.get(
+  '/logbook/attachments/:attachmentId/download',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: logbookAttachmentIdParamSchema }),
+  logbookController.downloadAttachment
+);
+
+router.get(
+  '/:id/portfolio',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema }),
+  logbookController.getStudentPortfolioByOpportunity
+);
+
+router.get(
+  '/:id/portfolio/pdf',
+  authenticate,
+  studentOnly,
+  validateRequest({ params: uuidParamSchema }),
+  logbookController.downloadPortfolioPdf
 );
 
 router.get(

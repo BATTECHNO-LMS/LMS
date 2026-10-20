@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 
 export const STUDENT_TRAINING_TABS = [
   'overview',
+  'logbook',
+  'portfolio',
   'sessions',
   'recorded_lectures',
   'attendance',
@@ -16,6 +18,8 @@ export function StudentTrainingTabNav({ activeTab, onTabChange, disabledTabs = [
 
   const tourIdByTab = {
     overview: 'progress',
+    logbook: 'progress',
+    portfolio: 'progress',
     sessions: 'sessions',
     recorded_lectures: 'progress',
     attendance: 'sessions',

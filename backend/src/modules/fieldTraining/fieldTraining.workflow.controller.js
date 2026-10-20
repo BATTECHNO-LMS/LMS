@@ -398,11 +398,45 @@ async function publishAssessmentById(req, res, next) {
 
 async function getStudentProgress(req, res, next) {
   try {
-    const data = await workflowService.getStudentOpportunityProgress(
+    const raw = await workflowService.getStudentOpportunityProgress(
       req.validated.params.id,
       req.user.userId
     );
+    const snapshotMod = require('./fieldTraining.progressSnapshot.service');
+    const data = await snapshotMod.enrichStudentProgressPayload(
+      req.validated.params.id,
+      req.user.userId,
+      raw
+    );
     return success(res, data, { message: 'Progress retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getApplicationProgressSnapshot(req, res, next) {
+  try {
+    const snapshotMod = require('./fieldTraining.progressSnapshot.service');
+    const data = await snapshotMod.getFieldTrainingStudentProgressSnapshot(
+      req.validated.params.applicationId,
+      req.user,
+      { includeRisk: true }
+    );
+    return success(res, data, { message: 'Progress snapshot retrieved' });
+  } catch (e) {
+    return next(e);
+  }
+}
+
+async function getOpportunityCommandCenter(req, res, next) {
+  try {
+    const commandCenter = require('./fieldTraining.commandCenter.service');
+    const data = await commandCenter.getOpportunityCommandCenter(
+      req.validated.params.id,
+      req.validated.query || {},
+      req.user
+    );
+    return success(res, data, { message: 'Command center retrieved' });
   } catch (e) {
     return next(e);
   }
@@ -517,6 +551,16 @@ async function openAttendanceWindow(req, res, next) {
   }
 }
 
+async function getLiveQrAttendance(req, res, next) {
+  try {
+    const qr = require('./fieldTraining.qrAttendance.service');
+    const data = await qr.getLiveQrForSession(req.validated.params.sessionId, req.user);
+    return success(res, data);
+  } catch (e) {
+    return next(e);
+  }
+}
+
 async function getAttendanceWindow(req, res, next) {
   try {
     const attendanceWindow = require('./fieldTraining.attendanceWindow.service');
@@ -597,6 +641,7 @@ module.exports = {
   listSessionParticipants,
   getSessionAttendance,
   openAttendanceWindow,
+  getLiveQrAttendance,
   getAttendanceWindow,
   closeAttendanceWindow,
   finalizeAttendanceAbsences,
@@ -609,6 +654,8 @@ module.exports = {
   updateAssessment,
   publishAssessmentById,
   getApplicationProgress,
+  getApplicationProgressSnapshot,
+  getOpportunityCommandCenter,
   getComprehensiveStudentReport,
   downloadComprehensiveStudentReportPdf,
   previewBulkStudentReports,

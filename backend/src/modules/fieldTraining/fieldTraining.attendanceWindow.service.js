@@ -9,7 +9,8 @@ const repo = require('./fieldTraining.repository');
 const ftNotify = require('./fieldTraining.notifications');
 const { emitDomainEvent } = require('../notificationEngine/notificationDispatcher.service');
 
-const ALLOWED_DURATIONS = Object.freeze([60, 120, 180, 300]);
+// Include 10–15 minute windows for QR attendance (env ATTENDANCE_QR_WINDOW_SECONDS).
+const ALLOWED_DURATIONS = Object.freeze([60, 120, 180, 300, 600, 900]);
 const MAX_FAILED_ATTEMPTS = 5;
 const CODE_LENGTH = 6;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -899,6 +900,8 @@ module.exports = {
   generateAttendanceCode,
   hashAttendanceCode,
   openAttendanceWindow,
+  getOpenWindowForSession,
+  expireWindowIfNeeded,
   getSessionAttendanceWindow,
   closeAttendanceWindow,
   finalizeUnconfirmedAbsences,
@@ -909,4 +912,5 @@ module.exports = {
   MARK_ALL_PRESENT_REPLACE_STATUSES,
   listActiveWindowsForStudent,
   confirmAttendanceWithCode,
+  buildWindowStats,
 };

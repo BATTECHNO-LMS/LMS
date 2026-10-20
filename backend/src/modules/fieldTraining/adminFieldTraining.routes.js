@@ -15,6 +15,11 @@ const {
   listAdminQuerySchema,
   listAdminStatsQuerySchema,
   listApplicationsQuerySchema,
+  commandCenterQuerySchema,
+  logbookEntryIdParamSchema,
+  logbookAttachmentIdParamSchema,
+  logbookListQuerySchema,
+  logbookRevisionBodySchema,
   opportunityBodySchema,
   updateOpportunityBodySchema,
   reviewApplicationBodySchema,
@@ -26,6 +31,11 @@ const {
   updateSessionBodySchema,
   saveAttendanceBodySchema,
   openAttendanceWindowBodySchema,
+  interventionOpenBodySchema,
+  interventionFollowUpBodySchema,
+  interventionAssignBodySchema,
+  interventionResolveBodySchema,
+  externalSupervisorAssignBodySchema,
   manualAttendanceBodySchema,
   markAllPresentBodySchema,
   studentIdParamSchema,
@@ -243,6 +253,14 @@ router.get(
 );
 
 router.get(
+  '/applications/:applicationId/progress-snapshot',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.getApplicationProgressSnapshot
+);
+
+router.get(
   '/applications/:applicationId/hours',
   authenticate,
   fieldTrainingStaff,
@@ -360,6 +378,14 @@ router.post(
   fieldTrainingStaff,
   validateRequest({ params: sessionIdParamSchema, body: openAttendanceWindowBodySchema }),
   workflowController.openAttendanceWindow
+);
+
+router.get(
+  '/sessions/:sessionId/attendance-qr/live',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.getLiveQrAttendance
 );
 
 router.post(
@@ -688,6 +714,270 @@ router.get(
   fieldTrainingStaff,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.overviewSummary
+);
+
+router.get(
+  '/:id/command-center',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, query: commandCenterQuerySchema }),
+  workflowController.getOpportunityCommandCenter
+);
+
+const interventionService = require('./fieldTraining.intervention.service');
+const externalSupervisorService = require('./fieldTraining.externalSupervisor.service');
+const { success } = require('../../utils/apiResponse');
+const { z } = require('zod');
+
+const caseIdParamSchema = z.object({ caseId: z.string().uuid() });
+const assignmentIdParamSchema = z.object({ assignmentId: z.string().uuid() });
+
+router.get(
+  '/:id/interventions/kpis',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.getKpis(req.validated.params.id, req.user);
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.get(
+  '/:id/interventions',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.listCases(req.validated.params.id, req.query, req.user);
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/:id/interventions',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: interventionOpenBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.openCase(req.validated.body, req.user);
+      return success(res, data, { message: data.duplicate ? 'Existing case' : 'Case opened' });
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.get(
+  '/interventions/:caseId',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: caseIdParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.getCase(req.validated.params.caseId, req.user);
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/interventions/:caseId/follow-up',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: caseIdParamSchema, body: interventionFollowUpBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.addFollowUp(
+        req.validated.params.caseId,
+        req.validated.body,
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/interventions/:caseId/assign',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: caseIdParamSchema, body: interventionAssignBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.assignCase(
+        req.validated.params.caseId,
+        req.validated.body,
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/interventions/:caseId/resolve',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: caseIdParamSchema, body: interventionResolveBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.resolveCase(
+        req.validated.params.caseId,
+        req.validated.body,
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/interventions/:caseId/reopen',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: caseIdParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await interventionService.reopenCase(
+        req.validated.params.caseId,
+        req.body || {},
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.get(
+  '/:id/external-supervisors',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await externalSupervisorService.listAdminAssignments(
+        req.validated.params.id,
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/:id/external-supervisors',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, body: externalSupervisorAssignBodySchema }),
+  async (req, res, next) => {
+    try {
+      const data = await externalSupervisorService.assignExternalSupervisor(
+        { ...req.validated.body, opportunity_id: req.validated.params.id },
+        req.user
+      );
+      return success(res, data, { message: 'External supervisor assigned' });
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+router.post(
+  '/external-supervisors/:assignmentId/revoke',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: assignmentIdParamSchema }),
+  async (req, res, next) => {
+    try {
+      const data = await externalSupervisorService.revokeAssignment(
+        req.validated.params.assignmentId,
+        req.user
+      );
+      return success(res, data);
+    } catch (e) {
+      return next(e);
+    }
+  }
+);
+
+const logbookController = require('./fieldTraining.logbook.controller');
+
+router.get(
+  '/:id/logbook',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema, query: logbookListQuerySchema }),
+  logbookController.staffList
+);
+
+router.post(
+  '/logbook/:entryId/approve',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: logbookEntryIdParamSchema }),
+  logbookController.staffApprove
+);
+
+router.post(
+  '/logbook/:entryId/request-revision',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: logbookEntryIdParamSchema, body: logbookRevisionBodySchema }),
+  logbookController.staffRequestRevision
+);
+
+router.get(
+  '/logbook/attachments/:attachmentId/download',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: logbookAttachmentIdParamSchema }),
+  logbookController.downloadAttachment
+);
+
+router.get(
+  '/applications/:applicationId/portfolio',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema }),
+  logbookController.getPortfolio
+);
+
+router.get(
+  '/applications/:applicationId/portfolio/pdf',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: applicationIdParamSchema }),
+  logbookController.downloadPortfolioPdf
+);
+
+router.post(
+  '/:id/smart-notifications/evaluate',
+  authenticate,
+  fieldTrainingStaff,
+  validateRequest({ params: uuidParamSchema }),
+  logbookController.runSmartNotifications
 );
 
 router.get(

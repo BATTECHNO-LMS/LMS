@@ -8,6 +8,8 @@ import {
   StudentWorkflowTimeline,
   StudentOpportunityDescription,
 } from './StudentWorkflowTimeline.jsx';
+import { StudentReadinessMeter } from './StudentReadinessMeter.jsx';
+import { StudentTrainingJourney } from './StudentTrainingJourney.jsx';
 import { ClipboardList, Calendar, Award, GraduationCap } from 'lucide-react';
 
 function num(value, fallback = 0) {
@@ -117,10 +119,24 @@ export function buildOverviewKpiDisplay(progress, opp, t) {
   };
 }
 
-export function StudentOverviewTab({ progress, application, opp, expelled, rejected }) {
+export function StudentOverviewTab({
+  progress,
+  application,
+  opp,
+  expelled,
+  rejected,
+  readiness,
+  journey,
+  nextAction: nextActionProp,
+  onNavigateTab,
+}) {
   const { t } = useTranslation('fieldTraining');
-  const nextAction = progress?.next_action;
+  const nextAction = nextActionProp || progress?.next_action;
   const kpis = buildOverviewKpiDisplay(progress, opp, t);
+
+  function handleNavigate(href) {
+    if (typeof onNavigateTab === 'function' && href) onNavigateTab(href);
+  }
 
   return (
     <div className="ft-student-overview">
@@ -138,10 +154,24 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
         </div>
       ) : null}
 
-      {!expelled && !rejected && nextAction?.label_ar ? (
-        <div className="ft-next-action-card" role="status">
-          <strong>{t('studentTraining.nextAction')}</strong>
-          <p>{nextAction.label_ar}</p>
+      {!expelled && !rejected ? (
+        <div className="ft-student-overview__intel">
+          <StudentReadinessMeter readiness={readiness} />
+          {!expelled && !rejected && nextAction?.label_ar ? (
+            <div className="ft-next-action-card ft-next-action-card--accent" role="status">
+              <strong>{t('studentTraining.nextStep')}</strong>
+              <p>{nextAction.label_ar}</p>
+              {nextAction.href ? (
+                <button
+                  type="button"
+                  className="btn btn--sm btn--primary"
+                  onClick={() => handleNavigate(nextAction.href)}
+                >
+                  {t('studentTraining.goToAction')}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -159,6 +189,36 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
             <p className="ft-student-overview__admin-note">{application.admin_note}</p>
           ) : null}
         </div>
+      ) : null}
+
+      {!expelled && !rejected ? (
+        <div className="ft-student-overview__phase2-cards">
+          <button
+            type="button"
+            className="ft-phase2-card"
+            onClick={() => handleNavigate('logbook')}
+          >
+            <strong>{t('logbook.title')}</strong>
+            <p>{t('logbook.overviewCard')}</p>
+            <span>{t('logbook.open')}</span>
+          </button>
+          <button
+            type="button"
+            className="ft-phase2-card"
+            onClick={() => handleNavigate('portfolio')}
+          >
+            <strong>{t('portfolio.title')}</strong>
+            <p>{t('portfolio.overviewCard')}</p>
+            <span>{t('portfolio.open')}</span>
+          </button>
+        </div>
+      ) : null}
+
+      {!expelled && !rejected && journey ? (
+        <StudentTrainingJourney
+          journey={journey}
+          onMilestoneClick={(m) => handleNavigate(m.href)}
+        />
       ) : null}
 
       <AdminStatsGrid>
@@ -193,14 +253,16 @@ export function StudentOverviewTab({ progress, application, opp, expelled, rejec
         className="ft-student-overview__hours"
       />
 
-      <StudentWorkflowTimeline
-        steps={progress?.steps}
-        progress={progress}
-        application={application}
-        opp={opp}
-        expelled={expelled}
-        rejected={rejected}
-      />
+      {!journey ? (
+        <StudentWorkflowTimeline
+          steps={progress?.steps}
+          progress={progress}
+          application={application}
+          opp={opp}
+          expelled={expelled}
+          rejected={rejected}
+        />
+      ) : null}
 
       <StudentOpportunityDescription description={opp?.description} />
     </div>

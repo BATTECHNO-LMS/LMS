@@ -83,6 +83,7 @@ export function AppRouter() {
       <Route path={INTERNSHIP_JOURNEY_PATH} element={<Pages.InternshipJourneyPage />} />
 
       <Route element={<ProtectedRoute />}>
+        <Route path="/external/field-training" element={<Pages.ExternalSupervisorPortalPage />} />
         <Route path="/admin" element={<Pages.AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route element={<RoleBasedRoute allowedRoles={ADMIN_ROLE_SET} />}>
@@ -335,6 +336,10 @@ export function AppRouter() {
                 }
               />
               <Route path="field-training" element={<Pages.StudentFieldTrainingPage />} />
+              <Route
+                path="field-training/attendance/qr"
+                element={<Pages.StudentQrAttendancePage />}
+              />
               <Route path="user-guide" element={<Pages.StudentUserGuidePage />} />
               <Route path="user-guide/support" element={<Pages.StudentUserGuideSupportPage />} />
               <Route path="user-guide/articles/:slug" element={<Pages.StudentUserGuideArticlePage />} />

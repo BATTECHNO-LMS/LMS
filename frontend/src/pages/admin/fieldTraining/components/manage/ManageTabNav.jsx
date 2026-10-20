@@ -9,19 +9,25 @@ import {
   FileText,
   LayoutDashboard,
   ListChecks,
+  Activity,
   ScrollText,
   Stamp,
   Users,
+  HeartHandshake,
+  Building2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 export const MANAGE_TABS = [
   'overview',
+  'command_center',
   'applications',
   'pre_assessment',
   'sessions',
   'recorded_lectures',
   'attendance',
+  'interventions',
+  'external_supervisors',
   'tasks',
   'submissions',
   'post_assessment',
@@ -33,11 +39,14 @@ export const MANAGE_TABS = [
 
 const TAB_ICONS = {
   overview: LayoutDashboard,
+  command_center: Activity,
   applications: Users,
   pre_assessment: ClipboardCheck,
   sessions: CalendarDays,
   recorded_lectures: Video,
   attendance: BookOpenCheck,
+  interventions: HeartHandshake,
+  external_supervisors: Building2,
   tasks: ListChecks,
   submissions: FileCheck2,
   post_assessment: ClipboardList,

@@ -1452,6 +1452,10 @@ model field_training_opportunities {
   field_training_academic_supervisor_assignments field_training_academic_supervisor_assignments[]
   field_training_supervisor_import_batches field_training_supervisor_import_batches[]
   field_training_completion_letter_jobs field_training_completion_letter_jobs[]
+  field_training_logbook_entries field_training_logbook_entries[]
+  field_training_portfolio_uploads field_training_portfolio_uploads[]
+  field_training_intervention_cases field_training_intervention_cases[]
+  field_training_external_supervisor_assignments field_training_external_supervisor_assignments[]
 
   @@index([status], map: "idx_field_training_opportunities_status")
   @@index([training_mode], map: "idx_field_training_opportunities_mode")
@@ -1528,6 +1532,11 @@ model field_training_applications {
   field_training_final_evaluations field_training_final_evaluations[]
   field_training_academic_supervisor_assignments field_training_academic_supervisor_assignments?
   field_training_recorded_lecture_progress field_training_recorded_lecture_progress[]
+  field_training_logbook_entries field_training_logbook_entries[]
+  field_training_portfolio_uploads field_training_portfolio_uploads[]
+  field_training_notification_rule_states field_training_notification_rule_states[]
+  field_training_intervention_cases field_training_intervention_cases[]
+  field_training_external_supervisor_assignments field_training_external_supervisor_assignments[]
 
   @@unique([opportunity_id, student_id], map: "uq_field_training_applications")
   @@index([opportunity_id], map: "idx_field_training_applications_opportunity")
@@ -1623,6 +1632,7 @@ enum field_training_attendance_method {
   manual
   auto_finalize
   bulk_manual
+  qr
 }
 
 enum field_training_assessment_type {
@@ -1680,6 +1690,32 @@ enum field_training_task_grading_mode {
 enum field_training_completion_letter_status {
   issued
   revoked
+}
+
+enum field_training_logbook_status {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum field_training_logbook_review_action {
+  SUBMITTED
+  REVISION_REQUESTED
+  RESUBMITTED
+  APPROVED
+}
+
+enum field_training_portfolio_source {
+  TASK
+  LOGBOOK
+  RECORDED_LECTURE
+  ASSESSMENT
+  ATTENDANCE
+  EVALUATION
+  COMPLETION_LETTER
+  CERTIFICATE
+  STUDENT_UPLOAD
 }
 
 model field_training_tasks {
@@ -1790,6 +1826,7 @@ model field_training_sessions {
   field_training_attendance    field_training_attendance[]
   field_training_attendance_windows field_training_attendance_windows[]
   field_training_recorded_lectures field_training_recorded_lectures[]
+  field_training_attendance_qr_challenges field_training_attendance_qr_challenges[]
 
   @@index([opportunity_id], map: "idx_field_training_sessions_opportunity")
   @@index([session_date], map: "idx_field_training_sessions_date")
@@ -1920,9 +1957,26 @@ model field_training_attendance_windows {
   field_training_sessions field_training_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   field_training_attendance field_training_attendance[]
   field_training_attendance_window_attempts field_training_attendance_window_attempts[]
+  field_training_attendance_qr_challenges field_training_attendance_qr_challenges[]
 
   @@index([session_id], map: "idx_ft_attendance_windows_session")
   @@index([status, expires_at], map: "idx_ft_attendance_windows_status_expires")
+}
+
+model field_training_attendance_qr_challenges {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  window_id        String   @db.Uuid
+  session_id       String   @db.Uuid
+  challenge_hash   String   @db.VarChar(128)
+  rotation_version Int      @default(1)
+  expires_at       DateTime @db.Timestamptz(6)
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_attendance_windows field_training_attendance_windows @relation(fields: [window_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_sessions           field_training_sessions           @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([window_id, expires_at], map: "idx_ft_qr_challenges_window_exp")
+  @@index([session_id], map: "idx_ft_qr_challenges_session")
 }
 
 model field_training_attendance_window_attempts {
@@ -2025,6 +2079,238 @@ model field_training_completion_letters {
   @@index([status], map: "idx_field_training_completion_letters_status")
   @@index([application_id], map: "idx_field_training_completion_letters_application")
   @@index([source_data_hash], map: "idx_field_training_completion_letters_source_hash")
+}
+
+model field_training_logbook_entries {
+  id               String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id   String                         @db.Uuid
+  opportunity_id   String                         @db.Uuid
+  student_id       String                         @db.Uuid
+  entry_date       DateTime                       @db.Date
+  activity         String
+  learning_outcome String
+  skills           String?
+  challenges       String?
+  outcome          String?
+  reported_hours   Decimal?                       @db.Decimal(6, 2)
+  status           field_training_logbook_status  @default(DRAFT)
+  submitted_at     DateTime?                      @db.Timestamptz(6)
+  reviewed_by_id   String?                        @db.Uuid
+  reviewed_at      DateTime?                      @db.Timestamptz(6)
+  revision_comment String?
+  deleted_at       DateTime?                      @db.Timestamptz(6)
+  created_at       DateTime                       @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime                       @default(now()) @db.Timestamptz(6)
+
+  field_training_applications  field_training_applications  @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_logbook_attachments field_training_logbook_attachments[]
+  field_training_logbook_review_events field_training_logbook_review_events[]
+
+  @@index([application_id, status], map: "idx_ft_logbook_application_status")
+  @@index([opportunity_id, status], map: "idx_ft_logbook_opportunity_status")
+  @@index([student_id, entry_date], map: "idx_ft_logbook_student_date")
+  @@index([reviewed_by_id], map: "idx_ft_logbook_reviewed_by")
+  @@index([entry_date], map: "idx_ft_logbook_entry_date")
+}
+
+model field_training_logbook_attachments {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entry_id      String   @db.Uuid
+  file_id       String?  @db.Uuid
+  storage_key   String   @db.VarChar(500)
+  original_name String   @db.VarChar(255)
+  mime_type     String?  @db.VarChar(120)
+  size_bytes    Int?
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_logbook_entries field_training_logbook_entries @relation(fields: [entry_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([entry_id], map: "idx_ft_logbook_attachments_entry")
+}
+
+model field_training_logbook_review_events {
+  id            String                              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entry_id      String                              @db.Uuid
+  action        field_training_logbook_review_action
+  actor_user_id String                              @db.Uuid
+  comment       String?
+  created_at    DateTime                            @default(now()) @db.Timestamptz(6)
+
+  field_training_logbook_entries field_training_logbook_entries @relation(fields: [entry_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([entry_id, created_at], map: "idx_ft_logbook_review_events_entry")
+}
+
+model field_training_portfolio_uploads {
+  id             String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id String                           @db.Uuid
+  opportunity_id String                           @db.Uuid
+  student_id     String                           @db.Uuid
+  title          String                           @db.VarChar(255)
+  description    String?
+  source         field_training_portfolio_source  @default(STUDENT_UPLOAD)
+  file_id        String?                          @db.Uuid
+  storage_key    String?                          @db.VarChar(500)
+  original_name  String?                          @db.VarChar(255)
+  mime_type      String?                          @db.VarChar(120)
+  size_bytes     Int?
+  external_url   String?                          @db.VarChar(2000)
+  deleted_at     DateTime?                        @db.Timestamptz(6)
+  created_at     DateTime                         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime                         @default(now()) @db.Timestamptz(6)
+
+  field_training_applications  field_training_applications  @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([application_id], map: "idx_ft_portfolio_uploads_application")
+}
+
+model field_training_notification_rule_states {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_code           String   @db.VarChar(80)
+  application_id      String   @db.Uuid
+  entity_type         String   @default("application") @db.VarChar(80)
+  entity_id           String   @db.Uuid
+  condition_key       String   @default("default") @db.VarChar(120)
+  last_condition_true Boolean  @default(false)
+  last_fired_at       DateTime? @db.Timestamptz(6)
+  metadata            Json?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+
+  field_training_applications field_training_applications @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([rule_code, application_id, entity_type, entity_id, condition_key], map: "uq_ft_notification_rule_state")
+  @@index([application_id], map: "idx_ft_notification_rule_state_app")
+}
+
+enum field_training_intervention_case_type {
+  LOW_ATTENDANCE
+  TASKS_OVERDUE
+  LOW_PERFORMANCE
+  MISSING_POST
+  HOURS_INCOMPLETE
+  INACTIVITY
+  BEHAVIOR_CONCERN
+  SUPERVISOR_CONCERN
+  STUDENT_SUPPORT
+  OTHER
+}
+
+enum field_training_intervention_severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum field_training_intervention_status {
+  OPEN
+  IN_PROGRESS
+  MONITORING
+  RESOLVED
+  CLOSED
+}
+
+enum field_training_intervention_source {
+  MANUAL
+  RISK_ENGINE_SUGGESTED
+}
+
+enum field_training_intervention_action {
+  CASE_OPENED
+  ASSIGNED
+  COMMENT_ADDED
+  STUDENT_CONTACTED
+  SUPERVISOR_CONTACTED
+  WARNING_SENT
+  MEETING_HELD
+  ACTION_PLAN_CREATED
+  STATUS_CHANGED
+  FOLLOW_UP_ADDED
+  RESOLVED
+  REOPENED
+}
+
+enum field_training_intervention_resolution {
+  IMPROVED
+  REQUIREMENT_COMPLETED
+  WARNING_ISSUED
+  REFERRED
+  NO_FURTHER_ACTION
+  TRAINING_ENDED
+  OTHER
+}
+
+model field_training_intervention_cases {
+  id              String                              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id  String                              @db.Uuid
+  opportunity_id  String                              @db.Uuid
+  student_id      String                              @db.Uuid
+  case_type       field_training_intervention_case_type
+  severity        field_training_intervention_severity @default(MEDIUM)
+  status          field_training_intervention_status  @default(OPEN)
+  source          field_training_intervention_source  @default(MANUAL)
+  title           String                              @db.VarChar(255)
+  reason          String?
+  description     String?
+  opened_by_id    String                              @db.Uuid
+  opened_at       DateTime                            @default(now()) @db.Timestamptz(6)
+  assigned_to_id  String?                             @db.Uuid
+  due_at          DateTime?                           @db.Timestamptz(6)
+  follow_up_at    DateTime?                           @db.Timestamptz(6)
+  resolved_at     DateTime?                           @db.Timestamptz(6)
+  resolved_by_id  String?                             @db.Uuid
+  resolution      field_training_intervention_resolution?
+  resolution_note String?
+  created_at      DateTime                            @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime                            @default(now()) @db.Timestamptz(6)
+
+  field_training_applications  field_training_applications  @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_intervention_events field_training_intervention_events[]
+
+  @@index([opportunity_id, status], map: "idx_ft_intervention_cases_opp_status")
+  @@index([application_id, case_type, status], map: "idx_ft_intervention_cases_app_type_status")
+  @@index([assigned_to_id, status], map: "idx_ft_intervention_cases_assigned")
+  @@index([follow_up_at], map: "idx_ft_intervention_cases_follow_up")
+}
+
+model field_training_intervention_events {
+  id               String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  case_id          String                            @db.Uuid
+  action           field_training_intervention_action
+  actor_user_id    String                            @db.Uuid
+  note             String?
+  student_visible  Boolean                           @default(false)
+  next_step        String?
+  follow_up_at     DateTime?                         @db.Timestamptz(6)
+  created_at       DateTime                          @default(now()) @db.Timestamptz(6)
+
+  field_training_intervention_cases field_training_intervention_cases @relation(fields: [case_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([case_id, created_at], map: "idx_ft_intervention_events_case")
+}
+
+model field_training_external_supervisor_assignments {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  supervisor_user_id  String    @db.Uuid
+  opportunity_id      String    @db.Uuid
+  application_id      String?   @db.Uuid
+  organization_label  String?   @db.VarChar(255)
+  is_active           Boolean   @default(true)
+  assigned_by_id      String?   @db.Uuid
+  assigned_at         DateTime  @default(now()) @db.Timestamptz(6)
+  revoked_at          DateTime? @db.Timestamptz(6)
+  created_at          DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime  @default(now()) @db.Timestamptz(6)
+
+  field_training_opportunities field_training_opportunities @relation(fields: [opportunity_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  field_training_applications  field_training_applications? @relation(fields: [application_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([supervisor_user_id, is_active], map: "idx_ft_ext_sup_supervisor")
+  @@index([opportunity_id, is_active], map: "idx_ft_ext_sup_opportunity")
 }
 
 enum field_training_eval_final_status {

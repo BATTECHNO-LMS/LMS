@@ -7,6 +7,10 @@ export const fieldTrainingKeys = {
   studentList: (params = {}) => [...fieldTrainingKeys.all, 'student', 'list', params],
   studentDetail: (id) => [...fieldTrainingKeys.all, 'student', 'detail', id],
   studentProgress: (id) => [...fieldTrainingKeys.all, 'student', 'progress', id],
+  studentLogbook: (id, params = {}) => [...fieldTrainingKeys.all, 'student', 'logbook', id, params],
+  studentPortfolio: (id) => [...fieldTrainingKeys.all, 'student', 'portfolio', id],
+  staffLogbook: (id, scope = 'admin', params = {}) =>
+    [...fieldTrainingKeys.all, scope, 'logbook', id, params],
   studentSessions: (id) => [...fieldTrainingKeys.all, 'student', 'sessions', id],
   studentAssessments: (id) => [...fieldTrainingKeys.all, 'student', 'assessments', id],
   myApplications: () => [...fieldTrainingKeys.all, 'student', 'myApplications'],
@@ -30,6 +34,10 @@ export const fieldTrainingKeys = {
   sessionParticipants: (sessionId) => [...fieldTrainingKeys.all, 'participants', sessionId],
   applicationProgress: (applicationId) => [...fieldTrainingKeys.all, 'progress', applicationId],
   overviewSummary: (id, scope = 'admin') => [...fieldTrainingKeys.all, scope, 'overview-summary', id],
+  commandCenter: (id, scope = 'admin', params = {}) =>
+    [...fieldTrainingKeys.all, scope, 'command-center', id, params],
+  progressSnapshot: (applicationId, scope = 'admin') =>
+    [...fieldTrainingKeys.all, scope, 'progress-snapshot', applicationId],
   eligibility: (opportunityId, scope = 'admin') =>
     [...fieldTrainingKeys.all, scope, 'eligibility', opportunityId],
   comprehensiveReport: (opportunityId, applicationId, scope = 'admin', params = {}) =>

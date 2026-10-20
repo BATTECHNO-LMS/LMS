@@ -36,6 +36,11 @@ const {
   reviewSubmissionBodySchema,
   updateApplicationHoursBodySchema,
   listApplicationsQuerySchema,
+  commandCenterQuerySchema,
+  logbookEntryIdParamSchema,
+  logbookAttachmentIdParamSchema,
+  logbookListQuerySchema,
+  logbookRevisionBodySchema,
   bulkStudentReportsExportBodySchema,
   jobIdParamSchema,
 } = require('./fieldTraining.validation');
@@ -190,6 +195,14 @@ router.post(
   workflowController.openAttendanceWindow
 );
 
+router.get(
+  '/sessions/:sessionId/attendance-qr/live',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: sessionIdParamSchema }),
+  workflowController.getLiveQrAttendance
+);
+
 router.post(
   '/sessions/:sessionId/attendance-window/close',
   authenticate,
@@ -271,6 +284,14 @@ router.get(
   instructorOnly,
   validateRequest({ params: applicationIdParamSchema }),
   workflowController.getApplicationProgress
+);
+
+router.get(
+  '/applications/:applicationId/progress-snapshot',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  workflowController.getApplicationProgressSnapshot
 );
 
 router.get(
@@ -393,6 +414,64 @@ router.get(
   instructorOnly,
   validateRequest({ params: uuidParamSchema }),
   adminFieldTrainingController.overviewSummary
+);
+
+router.get(
+  '/:id/command-center',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema, query: commandCenterQuerySchema }),
+  workflowController.getOpportunityCommandCenter
+);
+
+const logbookController = require('./fieldTraining.logbook.controller');
+
+router.get(
+  '/:id/logbook',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: uuidParamSchema, query: logbookListQuerySchema }),
+  logbookController.staffList
+);
+
+router.post(
+  '/logbook/:entryId/approve',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: logbookEntryIdParamSchema }),
+  logbookController.staffApprove
+);
+
+router.post(
+  '/logbook/:entryId/request-revision',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: logbookEntryIdParamSchema, body: logbookRevisionBodySchema }),
+  logbookController.staffRequestRevision
+);
+
+router.get(
+  '/logbook/attachments/:attachmentId/download',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: logbookAttachmentIdParamSchema }),
+  logbookController.downloadAttachment
+);
+
+router.get(
+  '/applications/:applicationId/portfolio',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  logbookController.getPortfolio
+);
+
+router.get(
+  '/applications/:applicationId/portfolio/pdf',
+  authenticate,
+  instructorOnly,
+  validateRequest({ params: applicationIdParamSchema }),
+  logbookController.downloadPortfolioPdf
 );
 
 router.get(

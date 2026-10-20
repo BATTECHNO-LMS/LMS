@@ -854,8 +854,13 @@ async function saveSupervisorRating(user, applicationId, body) {
   });
   if (!application) throw new ApiError(404, 'Application not found');
   const opportunity = application.field_training_opportunities;
-  access.assertCanGenerate(user, opportunity);
-  await ftAccess.assertManageOpportunityAccess(user, opportunity);
+  if (user?._ftExternalSupervisor) {
+    const externalScope = require('./fieldTraining.externalScope');
+    await externalScope.assertAssignedToApplication(user, applicationId);
+  } else {
+    access.assertCanGenerate(user, opportunity);
+    await ftAccess.assertManageOpportunityAccess(user, opportunity);
+  }
   const dbFields = [
     'thinking_and_initiative',
     'problem_solving',

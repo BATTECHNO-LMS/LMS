@@ -535,6 +535,65 @@ async function getComprehensiveStudentReport(opportunityId, applicationId, user,
       weights: publicQ?.weights || null,
       policyCode: publicQ?.policyCode || null,
     },
+    trainingProgressSummary: (() => {
+      const {
+        resolveFieldTrainingReadiness,
+      } = require('./fieldTraining.readiness');
+      const readiness = resolveFieldTrainingReadiness({
+        application: app,
+        opportunity: opp,
+        qualification: publicQ,
+        hours: hoursProgress,
+        progressMetrics: {
+          pre_assessment_score: app.pre_assessment_score,
+          post_assessment_score: app.post_assessment_score,
+          hours_completion_status: hoursProgress?.hours_completion_status,
+          required_training_hours: hoursProgress?.required_training_hours,
+          completed_training_hours: hoursProgress?.completed_training_hours,
+        },
+      });
+      return {
+        readiness_state: readiness.state,
+        readiness_state_label_ar: readiness.state_label_ar,
+        explanation_ar: readiness.explanation_ar,
+        reasons: readiness.reasons,
+        reason_labels_ar: readiness.reason_labels_ar,
+        score: readiness.score,
+        completion_requirements: readiness.completion_requirements,
+      };
+    })(),
+    logbookSummary: await (async () => {
+      try {
+        const rows = await prisma.field_training_logbook_entries.groupBy({
+          by: ['status'],
+          where: { application_id: applicationId, deleted_at: null },
+          _count: { _all: true },
+        });
+        const byStatus = Object.fromEntries(rows.map((r) => [r.status, r._count._all]));
+        const approved = await prisma.field_training_logbook_entries.findMany({
+          where: {
+            application_id: applicationId,
+            status: 'APPROVED',
+            deleted_at: null,
+          },
+          orderBy: { entry_date: 'desc' },
+          take: 5,
+          select: { entry_date: true, activity: true, learning_outcome: true },
+        });
+        return {
+          total: Object.values(byStatus).reduce((a, b) => a + b, 0),
+          approved: byStatus.APPROVED || 0,
+          pending: byStatus.SUBMITTED || 0,
+          highlights: approved.map((e) => ({
+            date: e.entry_date,
+            activity: e.activity,
+            learning_outcome: e.learning_outcome,
+          })),
+        };
+      } catch {
+        return { total: 0, approved: 0, pending: 0, highlights: [] };
+      }
+    })(),
     attendance: {
       percentage: num(app.attendance_percentage),
       requiredSessions,

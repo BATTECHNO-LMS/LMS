@@ -65,6 +65,22 @@ export async function fetchOpportunityOverviewSummary(opportunityId, { asInstruc
   return unwrapApiData(res);
 }
 
+export async function fetchOpportunityCommandCenter(
+  opportunityId,
+  params = {},
+  { asInstructor = false } = {}
+) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/command-center`, { params });
+  return unwrapApiData(res);
+}
+
+export async function fetchApplicationProgressSnapshot(applicationId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/applications/${applicationId}/progress-snapshot`);
+  return unwrapApiData(res);
+}
+
 export async function fetchOpportunityApplications(opportunityId, params = {}, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/${opportunityId}/applications`, { params });
@@ -545,6 +561,108 @@ export async function confirmAttendanceWindow(body) {
   return unwrapApiData(res);
 }
 
+export async function confirmQrAttendance(body) {
+  const res = await apiClient.post(`${student}/attendance/qr/confirm`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchLiveQrAttendance(sessionId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/sessions/${sessionId}/attendance-qr/live`);
+  return unwrapApiData(res);
+}
+
+export async function fetchInterventionKpis(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/interventions/kpis`);
+  return unwrapApiData(res);
+}
+
+export async function fetchInterventionCases(opportunityId, params = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/interventions`, { params });
+  return unwrapApiData(res);
+}
+
+export async function openInterventionCase(opportunityId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/interventions`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchInterventionCase(caseId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/interventions/${caseId}`);
+  return unwrapApiData(res);
+}
+
+export async function addInterventionFollowUp(caseId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/interventions/${caseId}/follow-up`, body);
+  return unwrapApiData(res);
+}
+
+export async function assignInterventionCase(caseId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/interventions/${caseId}/assign`, body);
+  return unwrapApiData(res);
+}
+
+export async function resolveInterventionCase(caseId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/interventions/${caseId}/resolve`, body);
+  return unwrapApiData(res);
+}
+
+export async function reopenInterventionCase(caseId, body = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/interventions/${caseId}/reopen`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchExternalSupervisors(opportunityId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/external-supervisors`);
+  return unwrapApiData(res);
+}
+
+export async function assignExternalSupervisor(opportunityId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/${opportunityId}/external-supervisors`, body);
+  return unwrapApiData(res);
+}
+
+export async function revokeExternalSupervisor(assignmentId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/external-supervisors/${assignmentId}/revoke`);
+  return unwrapApiData(res);
+}
+
+export async function fetchExternalSupervisorDashboard() {
+  const res = await apiClient.get('/external/field-training/dashboard');
+  return unwrapApiData(res);
+}
+
+export async function fetchExternalSupervisorStudent(applicationId) {
+  const res = await apiClient.get(`/external/field-training/students/${applicationId}`);
+  return unwrapApiData(res);
+}
+
+export async function confirmExternalHours(applicationId, body) {
+  const res = await apiClient.post(`/external/field-training/students/${applicationId}/hours/confirm`, body);
+  return unwrapApiData(res);
+}
+
+export async function submitExternalEvaluation(applicationId, body) {
+  const res = await apiClient.post(`/external/field-training/students/${applicationId}/evaluation`, body);
+  return unwrapApiData(res);
+}
+
+export async function reviewExternalLogbook(entryId, body) {
+  const res = await apiClient.post(`/external/field-training/logbook/${entryId}/review`, body);
+  return unwrapApiData(res);
+}
+
 export async function fetchSessionParticipants(sessionId, { asInstructor = false } = {}) {
   const base = manageApiBase({ asInstructor });
   const res = await apiClient.get(`${base}/sessions/${sessionId}/participants`);
@@ -832,6 +950,83 @@ export async function recalculateApplicationEligibility(applicationId, { asInstr
 
 export async function fetchStudentTrainingProgress(opportunityId) {
   const res = await apiClient.get(`${student}/${opportunityId}/progress`);
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentLogbook(opportunityId, params = {}) {
+  const res = await apiClient.get(`${student}/${opportunityId}/logbook`, { params });
+  return unwrapApiData(res);
+}
+
+export async function createStudentLogbookEntry(opportunityId, body) {
+  const res = await apiClient.post(`${student}/${opportunityId}/logbook`, body);
+  return unwrapApiData(res);
+}
+
+export async function updateStudentLogbookEntry(entryId, body) {
+  const res = await apiClient.patch(`${student}/logbook/${entryId}`, body);
+  return unwrapApiData(res);
+}
+
+export async function submitStudentLogbookEntry(entryId) {
+  const res = await apiClient.post(`${student}/logbook/${entryId}/submit`);
+  return unwrapApiData(res);
+}
+
+export async function deleteStudentLogbookEntry(entryId) {
+  const res = await apiClient.delete(`${student}/logbook/${entryId}`);
+  return unwrapApiData(res);
+}
+
+export async function uploadStudentLogbookAttachment(entryId, file) {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await apiClient.post(`${student}/logbook/${entryId}/attachments`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrapApiData(res);
+}
+
+export async function fetchStudentPortfolio(opportunityId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/portfolio`);
+  return unwrapApiData(res);
+}
+
+export async function downloadStudentPortfolioPdf(opportunityId) {
+  const res = await apiClient.get(`${student}/${opportunityId}/portfolio/pdf`, {
+    responseType: 'blob',
+    timeout: 120_000,
+  });
+  const blob = res.data;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'ملف-إنجاز-التدريب.pdf';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export async function fetchStaffLogbook(opportunityId, params = {}, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/${opportunityId}/logbook`, { params });
+  return unwrapApiData(res);
+}
+
+export async function approveStaffLogbookEntry(entryId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/logbook/${entryId}/approve`);
+  return unwrapApiData(res);
+}
+
+export async function requestStaffLogbookRevision(entryId, body, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.post(`${base}/logbook/${entryId}/request-revision`, body);
+  return unwrapApiData(res);
+}
+
+export async function fetchApplicationPortfolio(applicationId, { asInstructor = false } = {}) {
+  const base = manageApiBase({ asInstructor });
+  const res = await apiClient.get(`${base}/applications/${applicationId}/portfolio`);
   return unwrapApiData(res);
 }
 

@@ -48,6 +48,8 @@ import { StudentAssessmentsTab } from './fieldTraining/components/StudentAssessm
 import { StudentCompletionTab } from './fieldTraining/components/StudentCompletionTab.jsx';
 import { StudentEligibilityTab } from './fieldTraining/components/StudentEligibilityTab.jsx';
 import { StudentRecordedLecturesTab } from './fieldTraining/components/StudentRecordedLecturesTab.jsx';
+import { StudentLogbookTab } from './fieldTraining/components/StudentLogbookTab.jsx';
+import { StudentPortfolioTab } from './fieldTraining/components/StudentPortfolioTab.jsx';
 
 const ACTIVE_TRAINING = new Set([
   'pre_assessment_completed',
@@ -253,8 +255,20 @@ export function StudentFieldTrainingDetailPage() {
   const { data: progressData } = useStudentTrainingProgress(id, {
     enabled: Boolean(id && appStatus === 'approved'),
   });
-  // API returns { progress, completion_letter_id } — unwrap nested progress object.
+  // API returns { progress, readiness, journey, next_action, completion_letter_id }.
   const progress = progressData?.progress ?? null;
+  const readiness = progressData?.readiness ?? null;
+  const journey = progressData?.journey ?? null;
+  const nextAction = progressData?.next_action || progress?.next_action || null;
+
+  function setTrainingTab(tab) {
+    if (!tab) return;
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }
 
   const specialtyLabel =
     opp?.student_matching_university_specialty_label ||
@@ -386,6 +400,20 @@ export function StudentFieldTrainingDetailPage() {
             enabled={appStatus === 'approved' && !expelled}
           />
         );
+      case 'logbook':
+        return (
+          <StudentLogbookTab
+            opportunityId={id}
+            enabled={appStatus === 'approved' && !expelled}
+          />
+        );
+      case 'portfolio':
+        return (
+          <StudentPortfolioTab
+            opportunityId={id}
+            enabled={appStatus === 'approved'}
+          />
+        );
       case 'overview':
       default:
         return (
@@ -395,6 +423,10 @@ export function StudentFieldTrainingDetailPage() {
             opp={opp}
             expelled={expelled}
             rejected={appStatus === 'rejected'}
+            readiness={readiness}
+            journey={journey}
+            nextAction={nextAction}
+            onNavigateTab={setTrainingTab}
           />
         );
     }
@@ -404,6 +436,9 @@ export function StudentFieldTrainingDetailPage() {
     expelled,
     canTrainingContent,
     progress,
+    readiness,
+    journey,
+    nextAction,
     opp,
     appId,
     application,

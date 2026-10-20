@@ -408,6 +408,14 @@ export const StudentFieldTrainingDetailPage = lazyNamed(
   () => import('../../pages/student/StudentFieldTrainingDetailPage.jsx'),
   'StudentFieldTrainingDetailPage'
 );
+export const StudentQrAttendancePage = lazyNamed(
+  () => import('../../pages/student/StudentQrAttendancePage.jsx'),
+  'StudentQrAttendancePage'
+);
+export const ExternalSupervisorPortalPage = lazyNamed(
+  () => import('../../pages/external/ExternalSupervisorPortalPage.jsx'),
+  'ExternalSupervisorPortalPage'
+);
 export const StudentRecordedLecturePlayerPage = lazyNamed(
   () => import('../../pages/student/StudentRecordedLecturePlayerPage.jsx'),
   'StudentRecordedLecturePlayerPage'

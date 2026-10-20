@@ -116,8 +116,36 @@ function mapUploadError(err, next) {
   return next(err);
 }
 
+const logbookStorage = multer.diskStorage({
+  destination(req, _file, cb) {
+    const entryId = req.validated?.params?.entryId || req.params.entryId || 'unknown';
+    const dir = path.join(env.UPLOAD_DIR || 'uploads', 'field-training', 'logbook', entryId);
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(_req, file, cb) {
+    const ext = path.extname(file.originalname || '') || '';
+    cb(null, `${randomUUID()}${ext}`);
+  },
+});
+
+const uploadLogbookFile = multer({
+  storage: logbookStorage,
+  limits: { fileSize: MAX_BYTES, files: 1 },
+  fileFilter,
+}).single('file');
+
+function handleLogbookUpload(req, res, next) {
+  const ct = String(req.headers['content-type'] || '');
+  if (!ct.includes('multipart/form-data')) {
+    return next(Object.assign(new Error('UNSUPPORTED_FILE_TYPE'), { statusCode: 400 }));
+  }
+  uploadLogbookFile(req, res, (err) => mapUploadError(err, next));
+}
+
 module.exports = {
   handleTaskUpload,
+  handleLogbookUpload,
   MAX_BYTES,
   INSTRUCTION_MAX_BYTES,
   ALLOWED_MIME,

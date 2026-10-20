@@ -407,6 +407,81 @@ async function notifyAdminsExpulsionRequested(params) {
   });
 }
 
+async function notifyLogbookSubmitted(params) {
+  const {
+    opportunityId,
+    opportunityTitle,
+    universityId,
+    studentId,
+    entryId,
+    instructorId,
+    isResubmission,
+  } = params;
+  const adminIds = await findFieldTrainingAdminUserIds(universityId);
+  const userIds = [...new Set([...(instructorId ? [instructorId] : []), ...adminIds])];
+  const title = isResubmission
+    ? 'إعادة إرسال سجل تدريب للمراجعة'
+    : 'سجل تدريب بانتظار المراجعة';
+  await createNotificationsForUsers({
+    userIds,
+    title,
+    body: `يوجد سجل تدريب ${isResubmission ? 'مُعاد إرساله' : 'جديد'} بانتظار المراجعة لفرصة "${opportunityTitle || ''}".`,
+    type: 'action_required',
+    actionUrl: `/admin/field-training/${opportunityId}/manage?tab=command_center&quick_filter=logbook_pending`,
+  });
+  // Also notify academic supervisor if assigned
+  try {
+    const app = await prisma.field_training_applications.findFirst({
+      where: { opportunity_id: opportunityId, student_id: studentId },
+      select: { id: true },
+    });
+    if (app?.id) {
+      const assignment = await prisma.field_training_academic_supervisor_assignments.findUnique({
+        where: { application_id: app.id },
+        select: { supervisor_user_id: true },
+      });
+      if (assignment?.supervisor_user_id) {
+        await createNotificationForUser({
+          userId: assignment.supervisor_user_id,
+          title,
+          body: entryId
+            ? 'سجل تدريب بانتظار مراجعتك.'
+            : 'سجل تدريب بانتظار مراجعتك.',
+          type: 'action_required',
+          actionUrl: `/admin/field-training/${opportunityId}/manage?tab=command_center&quick_filter=logbook_pending`,
+          dedupeByActionUrl: true,
+        });
+      }
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+
+async function notifyLogbookRevisionRequested(params) {
+  const { studentId, opportunityId, comment } = params;
+  return createNotificationForUser({
+    userId: studentId,
+    title: 'طلب تعديل على سجل التدريب',
+    body: comment
+      ? `يرجى تعديل سجل التدريب: ${String(comment).slice(0, 180)}`
+      : 'طلب المشرف تعديلاً على أحد سجلات التدريب.',
+    type: 'warning',
+    actionUrl: `/student/field-training/${opportunityId}?tab=logbook`,
+  });
+}
+
+async function notifyLogbookApproved(params) {
+  const { studentId, opportunityId } = params;
+  return createNotificationForUser({
+    userId: studentId,
+    title: 'تم اعتماد سجل التدريب',
+    body: 'تم اعتماد أحد سجلات التدريب الخاصة بك.',
+    type: 'success',
+    actionUrl: `/student/field-training/${opportunityId}?tab=logbook`,
+  });
+}
+
 module.exports = {
   notifyAdminsFieldTrainingApplicationSubmitted,
   notifyStudentFieldTrainingApplicationApproved,
@@ -429,4 +504,7 @@ module.exports = {
   notifyStaffAttendanceRisk,
   notifyInstructorAssigned,
   notifyAdminsExpulsionRequested,
+  notifyLogbookSubmitted,
+  notifyLogbookRevisionRequested,
+  notifyLogbookApproved,
 };

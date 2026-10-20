@@ -29,6 +29,10 @@ import { ManageTasksTab } from './components/manage/ManageTasksTab.jsx';
 import { ManageSubmissionsTab } from './components/manage/ManageSubmissionsTab.jsx';
 import { ManageReportsTab } from './components/manage/ManageReportsTab.jsx';
 import { ManageEvaluationTemplateTab } from './components/manage/ManageEvaluationTemplateTab.jsx';
+import { ManageCommandCenterTab } from './components/manage/ManageCommandCenterTab.jsx';
+import { ManageInterventionsTab } from './components/manage/ManageInterventionsTab.jsx';
+import { ManageExternalSupervisorsTab } from './components/manage/ManageExternalSupervisorsTab.jsx';
+import { ManageLiveQrAttendance } from './components/manage/ManageLiveQrAttendance.jsx';
 
 function isForbiddenError(error) {
   return error?.response?.status === 403 || error?.status === 403 || error?.code === 'FIELD_TRAINING_FORBIDDEN';
@@ -135,6 +139,8 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
             apiScope={apiScope}
           />
         );
+      case 'command_center':
+        return <ManageCommandCenterTab opportunityId={id} apiScope={apiScope} />;
       case 'applications':
         return <ManageApplicationsTab opportunityId={id} apiScope={apiScope} />;
       case 'pre_assessment':
@@ -151,14 +157,27 @@ export function AdminFieldTrainingManagePage({ apiScope = 'admin', initialTab } 
         return <ManageRecordedLecturesTab opportunityId={id} opportunity={opp} apiScope={apiScope} />;
       case 'attendance':
         return (
-          <ManageAttendanceTab
-            opportunityId={id}
-            opportunityTitle={opp?.title}
-            apiScope={apiScope}
-            preselectedSessionId={attendanceSessionId}
-            onSessionChange={(sessionId) => setTab('attendance', { session: sessionId })}
-          />
+          <>
+            <ManageAttendanceTab
+              opportunityId={id}
+              opportunityTitle={opp?.title}
+              apiScope={apiScope}
+              preselectedSessionId={attendanceSessionId}
+              onSessionChange={(sessionId) => setTab('attendance', { session: sessionId })}
+            />
+            {attendanceSessionId ? (
+              <ManageLiveQrAttendance
+                sessionId={attendanceSessionId}
+                sessionTitle={opp?.title}
+                asInstructor={isInstructor}
+              />
+            ) : null}
+          </>
         );
+      case 'interventions':
+        return <ManageInterventionsTab opportunityId={id} asInstructor={isInstructor} />;
+      case 'external_supervisors':
+        return <ManageExternalSupervisorsTab opportunityId={id} asInstructor={isInstructor} />;
       case 'tasks':
         return (
           <ManageTasksTab

@@ -347,6 +347,22 @@ const env = {
     'super_admin,admin',
     'FIELD_TRAINING_MANAGE_ROLE_CODES'
   ),
+  /** External training-site supervisor portal (assigned students only). */
+  FIELD_TRAINING_EXTERNAL_SUPERVISOR_ROLE_CODES: parseRoleCodesWithFallback(
+    process.env.FIELD_TRAINING_EXTERNAL_SUPERVISOR_ROLE_CODES,
+    'external_supervisor',
+    'FIELD_TRAINING_EXTERNAL_SUPERVISOR_ROLE_CODES'
+  ),
+  /** QR attendance challenge rotation interval (seconds). */
+  ATTENDANCE_QR_ROTATION_SECONDS: Math.min(
+    120,
+    Math.max(15, Number(process.env.ATTENDANCE_QR_ROTATION_SECONDS) || 45)
+  ),
+  /** Default open window duration when opening QR attendance (seconds). */
+  ATTENDANCE_QR_WINDOW_SECONDS: Math.min(
+    1800,
+    Math.max(60, Number(process.env.ATTENDANCE_QR_WINDOW_SECONDS) || 600)
+  ),
   /** AI provider (openai | gemini). Empty = disabled. */
   AI_PROVIDER: (process.env.AI_PROVIDER || '').trim().toLowerCase(),
   OPENAI_API_KEY: (process.env.OPENAI_API_KEY || '').trim(),
