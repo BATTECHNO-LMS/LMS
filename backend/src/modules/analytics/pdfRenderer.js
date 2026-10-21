@@ -86,6 +86,14 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       timeout: LAUNCH_TIMEOUT_MS,
       protocolTimeout: RENDER_TIMEOUT_MS,
       ...(executablePath ? { executablePath } : {}),
+      // Writable HOME under /tmp — production containers use a read-only rootfs; Chromium's
+      // crashpad handler otherwise fails with "--database is required".
+      env: {
+        ...process.env,
+        HOME: process.env.PUPPETEER_HOME || process.env.HOME || '/tmp',
+        XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME || '/tmp/.chromium',
+        XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || '/tmp/.chromium-cache',
+      },
       // Alpine Chromium in Docker still requires --no-sandbox even as non-root (user namespace
       // limitations). Mitigations: request allowlist below, timeouts, read_only rootfs + cap_drop.
       args: [
@@ -94,6 +102,9 @@ async function renderHtmlToPdfOnce(html, options = {}) {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--disable-software-rasterizer',
+        '--disable-crash-reporter',
+        '--disable-breakpad',
+        '--crash-dumps-dir=/tmp',
         '--font-render-hinting=medium',
         '--hide-scrollbars',
         '--disable-extensions',
