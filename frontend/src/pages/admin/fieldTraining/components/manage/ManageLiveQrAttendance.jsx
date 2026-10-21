@@ -6,7 +6,7 @@ import {
   closeAttendanceWindow,
   fetchLiveQrAttendance,
   openAttendanceWindow,
-} from '../../../../../../features/fieldTraining/fieldTraining.service.js';
+} from '../../../../../features/fieldTraining/fieldTraining.service.js';
 import { getApiErrorMessage } from '../../../../../../services/apiHelpers.js';
 
 /**
