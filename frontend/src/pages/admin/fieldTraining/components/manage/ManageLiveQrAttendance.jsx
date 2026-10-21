@@ -7,7 +7,7 @@ import {
   fetchLiveQrAttendance,
   openAttendanceWindow,
 } from '../../../../../features/fieldTraining/fieldTraining.service.js';
-import { getApiErrorMessage } from '../../../../../../services/apiHelpers.js';
+import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 
 /**
  * Live QR attendance screen for an open session window.

@@ -2,11 +2,11 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { LoadingSpinner } from '../../../../../../components/common/LoadingSpinner.jsx';
-import { EmptyState } from '../../../../../../components/common/EmptyState.jsx';
-import { getApiErrorMessage } from '../../../../../../services/apiHelpers.js';
+import { LoadingSpinner } from '../../../../../components/common/LoadingSpinner.jsx';
+import { EmptyState } from '../../../../../components/common/EmptyState.jsx';
+import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 import { fetchOpportunityCommandCenter } from '../../../../../features/fieldTraining/fieldTraining.service.js';
-import { fieldTrainingKeys } from '../../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
+import { fieldTrainingKeys } from '../../../../../features/fieldTraining/hooks/fieldTrainingQueryKeys.js';
 
 const QUICK_FILTERS = [
   'needs_attention',

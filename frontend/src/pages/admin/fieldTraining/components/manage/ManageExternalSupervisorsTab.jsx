@@ -6,9 +6,9 @@ import {
   fetchExternalSupervisors,
   revokeExternalSupervisor,
 } from '../../../../../features/fieldTraining/fieldTraining.service.js';
-import { LoadingSpinner } from '../../../../../../components/common/LoadingSpinner.jsx';
-import { EmptyState } from '../../../../../../components/common/EmptyState.jsx';
-import { getApiErrorMessage } from '../../../../../../services/apiHelpers.js';
+import { LoadingSpinner } from '../../../../../components/common/LoadingSpinner.jsx';
+import { EmptyState } from '../../../../../components/common/EmptyState.jsx';
+import { getApiErrorMessage } from '../../../../../services/apiHelpers.js';
 
 export function ManageExternalSupervisorsTab({ opportunityId, asInstructor = false }) {
   const { t } = useTranslation('fieldTraining');
