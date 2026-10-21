@@ -17,6 +17,11 @@ router.post(
   validateRequest({ body: academicProfileBodySchema }),
   internshipJourneyController.validateProfile
 );
+router.post(
+  '/internship-journey/plan-pdf',
+  validateRequest({ body: academicProfileBodySchema }),
+  internshipJourneyController.downloadPlanPdf
+);
 
 router.get(
   '/reports/:verificationCode/verify',

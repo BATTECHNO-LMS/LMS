@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const {
   TRACK_SUMMARIES,
   isSupportedHours,
@@ -22,6 +24,34 @@ const {
   findJordanUniversity,
   countByCategory,
 } = require('./internshipJourney.universities');
+const { buildInternshipPlanPdfHtml } = require('./internshipJourney.pdfTemplate');
+const { renderHtmlToPdf } = require('../analytics/pdfRenderer');
+
+function loadBrandLogoDataUri() {
+  const candidates = [
+    path.join(__dirname, '../../../../frontend/src/assets/images/eprojecto-logo.png'),
+    path.join(__dirname, '../../../assets/eprojecto-logo.png'),
+    path.join(__dirname, '../../../../frontend/src/assets/images/batman-logo.png'),
+  ];
+  for (const filePath of candidates) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const buf = fs.readFileSync(filePath);
+        const ext = path.extname(filePath).toLowerCase() === '.png' ? 'png' : 'png';
+        return `data:image/${ext};base64,${buf.toString('base64')}`;
+      }
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+function buildPlanPdfFilename(profile) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const hours = profile?.trainingHours || 'plan';
+  return `eprojecto-field-training-plan-${hours}h-${stamp}.pdf`;
+}
 
 /** Public Jordan directory — not limited to eprojecto tenants. */
 function listPublicUniversities() {
@@ -157,8 +187,47 @@ async function validateAcademicProfile(body) {
   };
 }
 
+/**
+ * Validate intake body and render a branded Arabic RTL PDF of the training plan.
+ * @returns {Promise<{ buffer: Buffer, filename: string, profile: object }>}
+ */
+async function generatePlanPdf(body) {
+  const result = await validateAcademicProfile(body);
+  if (!result.valid) {
+    const err = new Error(Object.values(result.errors)[0] || 'بيانات غير مكتملة');
+    err.status = 400;
+    err.code = 'VALIDATION_ERROR';
+    err.details = { fields: result.errors };
+    throw err;
+  }
+
+  const html = buildInternshipPlanPdfHtml({
+    profile: result.profile,
+    allocation: result.allocation,
+    intensity: result.intensity,
+    logoDataUri: loadBrandLogoDataUri(),
+    generatedAt: new Date(),
+  });
+
+  const buffer = await renderHtmlToPdf(html, {
+    lang: 'ar',
+    footerNote: 'خطة تدريب ميداني استرشادية · eprojecto',
+    footerLeft: 'BATMAN TECHNOLOGY · Field Training',
+    margin: { top: '10mm', right: '10mm', bottom: '16mm', left: '10mm' },
+  });
+
+  return {
+    buffer,
+    filename: buildPlanPdfFilename(result.profile),
+    profile: result.profile,
+  };
+}
+
 module.exports = {
   listPublicUniversities,
   listPublicTracks,
   validateAcademicProfile,
+  generatePlanPdf,
+  buildPlanPdfFilename,
+  loadBrandLogoDataUri,
 };

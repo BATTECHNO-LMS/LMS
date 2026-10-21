@@ -104,5 +104,6 @@ export const endpoints = {
     internshipJourneyUniversities: `${API_V}/public/internship-journey/universities`,
     internshipJourneyTracks: `${API_V}/public/internship-journey/tracks`,
     internshipJourneyValidate: `${API_V}/public/internship-journey/validate`,
+    internshipJourneyPlanPdf: `${API_V}/public/internship-journey/plan-pdf`,
   },
 };

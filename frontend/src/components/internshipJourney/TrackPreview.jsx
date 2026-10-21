@@ -7,7 +7,7 @@ const TRACK_ICON = {
   operations: '🧭',
 };
 
-export function TrackPreview({ plan, onEnroll }) {
+export function TrackPreview({ plan, onEnroll, onDownloadPdf, pdfBusy = false, pdfError = null }) {
   if (!plan) return null;
   const icon = TRACK_ICON[plan.track.icon] || '✨';
 
@@ -96,7 +96,23 @@ export function TrackPreview({ plan, onEnroll }) {
           <button type="button" className="ij-btn ij-pulse" onClick={onEnroll}>
             ابدأ التسجيل في التدريب
           </button>
+          {typeof onDownloadPdf === 'function' ? (
+            <button
+              type="button"
+              className="ij-btn ij-btn--secondary ij-btn--pdf"
+              onClick={onDownloadPdf}
+              disabled={pdfBusy}
+              aria-busy={pdfBusy || undefined}
+            >
+              {pdfBusy ? 'جاري تجهيز ملف PDF…' : 'حفظ الخطة PDF'}
+            </button>
+          ) : null}
         </div>
+        {pdfError ? (
+          <p className="ij-pdf-error" role="alert">
+            {pdfError}
+          </p>
+        ) : null}
       </article>
 
       <div className="ij-outcomes">

@@ -5,6 +5,7 @@ import {
   buildJourneyPlan,
   saveAcademicProfile,
 } from '../../features/internshipJourney/index.js';
+import { downloadInternshipPlanPdf } from '../../features/internshipJourney/internshipJourney.api.js';
 import batmanTechnologyLogo from '../../assets/images/batman-technology-logo.webp';
 import { AnimatedBrandIntro } from '../../components/internshipJourney/AnimatedBrandIntro.jsx';
 import { JourneyHeader, JourneyHero } from '../../components/internshipJourney/JourneyHero.jsx';
@@ -90,6 +91,8 @@ export function InternshipJourneyPage() {
 
   const [plan, setPlan] = useState(null);
   const [openStage, setOpenStage] = useState(null);
+  const [pdfBusy, setPdfBusy] = useState(false);
+  const [pdfError, setPdfError] = useState(null);
   const journeyRef = useRef(null);
   const enrollRef = useRef(null);
   const buildCountRef = useRef(0);
@@ -101,6 +104,7 @@ export function InternshipJourneyPage() {
     buildCountRef.current += 1;
     const next = { ...buildJourneyPlan(selection), id: buildCountRef.current };
     setPlan(next);
+    setPdfError(null);
     saveAcademicProfile({
       universityId: next.universityId,
       universityName: next.universityName,
@@ -131,6 +135,19 @@ export function InternshipJourneyPage() {
     });
   }, []);
 
+  const handleDownloadPdf = useCallback(async () => {
+    if (!plan || pdfBusy) return;
+    setPdfBusy(true);
+    setPdfError(null);
+    try {
+      await downloadInternshipPlanPdf(plan);
+    } catch (err) {
+      setPdfError(err?.message || 'تعذر تجهيز ملف PDF. حاول مرة أخرى.');
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [plan, pdfBusy]);
+
   const handleOpenStage = useCallback((stage, trigger) => {
     setOpenStage({ stage, trigger });
   }, []);
@@ -150,7 +167,13 @@ export function InternshipJourneyPage() {
 
           {plan ? (
             <div ref={journeyRef} className="ij-journey" id="journey">
-              <TrackPreview plan={plan} onEnroll={handleEnroll} />
+              <TrackPreview
+                plan={plan}
+                onEnroll={handleEnroll}
+                onDownloadPdf={handleDownloadPdf}
+                pdfBusy={pdfBusy}
+                pdfError={pdfError}
+              />
               <JourneyRoadmap plan={plan} onOpenStage={handleOpenStage} />
               <PracticalMissions plan={plan} />
             </div>
@@ -169,8 +192,18 @@ export function InternshipJourneyPage() {
                 خطة استرشادية قابلة للتكييف مع كتاب الجامعة واحتياجات الشركة؛ ليست شهادة أو تعهداً بالتوظيف.
               </p>
             </div>
-            <button type="button" className="ij-btn ij-btn--secondary" onClick={() => window.print()}>
-              اطبع / احفظ الخطة PDF
+            <button
+              type="button"
+              className="ij-btn ij-btn--secondary ij-btn--pdf"
+              onClick={handleDownloadPdf}
+              disabled={!plan || pdfBusy}
+              aria-busy={pdfBusy || undefined}
+            >
+              {!plan
+                ? 'أنشئ خطتك أولاً لحفظ PDF'
+                : pdfBusy
+                  ? 'جاري تجهيز ملف PDF…'
+                  : 'حفظ الخطة PDF'}
             </button>
           </div>
         </main>

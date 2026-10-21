@@ -58,8 +58,8 @@ export async function fetchInternshipJourneyUniversities() {
   return localDirectory();
 }
 
-export async function validateInternshipAcademicProfile(profile) {
-  const res = await apiClient.post(endpoints.public.internshipJourneyValidate, {
+function toAcademicPayload(profile) {
+  return {
     universityCode: profile.universityCode,
     universityName: profile.universityName,
     isOtherUniversity: Boolean(profile.isOtherUniversity),
@@ -72,6 +72,62 @@ export async function validateInternshipAcademicProfile(profile) {
     majorCustomName: profile.majorCustomName || undefined,
     trainingHours: profile.trainingHours,
     trackCode: profile.trackCode,
-  });
+  };
+}
+
+export async function validateInternshipAcademicProfile(profile) {
+  const res = await apiClient.post(endpoints.public.internshipJourneyValidate, toAcademicPayload(profile));
   return unwrap(res);
+}
+
+function parseFilename(contentDisposition, fallback) {
+  const utf = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition || '');
+  if (utf?.[1]) {
+    try {
+      return decodeURIComponent(utf[1]);
+    } catch {
+      /* fall through */
+    }
+  }
+  const match = /filename="([^"]+)"/i.exec(contentDisposition || '');
+  return match?.[1] ?? fallback;
+}
+
+function triggerBlobDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
+/**
+ * Download branded Field Training plan PDF from the public API (Chromium RTL render).
+ */
+export async function downloadInternshipPlanPdf(profile) {
+  const res = await apiClient.post(endpoints.public.internshipJourneyPlanPdf, toAcademicPayload(profile), {
+    responseType: 'blob',
+    timeout: 90_000,
+  });
+  const blob = res.data;
+  if (!(blob instanceof Blob) || blob.type?.includes('json')) {
+    let message = 'تعذر تحميل ملف PDF.';
+    try {
+      const text = await blob.text();
+      const parsed = JSON.parse(text);
+      message = parsed?.message || message;
+    } catch {
+      /* keep default */
+    }
+    throw new Error(message);
+  }
+  const stamp = new Date().toISOString().slice(0, 10);
+  const fallback = `eprojecto-field-training-plan-${profile.trainingHours || 'plan'}h-${stamp}.pdf`;
+  const filename = parseFilename(res.headers?.['content-disposition'], fallback);
+  triggerBlobDownload(blob, filename);
+  return { filename };
 }

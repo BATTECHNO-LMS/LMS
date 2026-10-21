@@ -10,6 +10,9 @@ const {
   TRACK_NOT_CONFIGURED,
 } = require('../src/modules/public/internshipJourney.taxonomy');
 const { getActiveJordanUniversities, countByCategory } = require('../src/modules/public/internshipJourney.universities');
+const { buildInternshipPlanPdfHtml } = require('../src/modules/public/internshipJourney.pdfTemplate');
+const fs = require('fs');
+const path = require('path');
 
 describe('Jordan directory API payload', () => {
   it('returns full Jordan directory categories, not tenant DB rows', () => {
@@ -128,5 +131,41 @@ describe('Hours and zod', () => {
       }).success,
       false
     );
+  });
+});
+
+describe('Plan PDF template', () => {
+  it('renders branded Arabic HTML with plan fields escaped', async () => {
+    const validated = await internshipJourneyService.validateAcademicProfile({
+      universityCode: 'MU',
+      universityName: 'جامعة مؤتة',
+      facultyCode: 'BUSINESS',
+      facultyName: 'كلية الأعمال والعلوم الإدارية',
+      majorCode: 'MIS',
+      trainingHours: 160,
+    });
+    assert.equal(validated.valid, true);
+    const html = buildInternshipPlanPdfHtml({
+      profile: { ...validated.profile, finalProject: '<script>x</script>' },
+      allocation: validated.allocation,
+      intensity: validated.intensity,
+    });
+    assert.match(html, /dir="rtl"/);
+    assert.match(html, /جامعة مؤتة/);
+    assert.match(html, /نظم المعلومات الإدارية/);
+    assert.match(html, /160/);
+    assert.match(html, /#132d4a/);
+    assert.match(html, /#c9a227/);
+    assert.match(html, /&lt;script&gt;/);
+    assert.doesNotMatch(html, /<script>x<\/script>/);
+  });
+
+  it('registers public plan-pdf route', () => {
+    const routesSrc = fs.readFileSync(
+      path.join(__dirname, '../src/modules/public/public.routes.js'),
+      'utf8'
+    );
+    assert.match(routesSrc, /internship-journey\/plan-pdf/);
+    assert.match(routesSrc, /downloadPlanPdf/);
   });
 });

@@ -208,4 +208,17 @@ describe('Route and scoped CSS', () => {
       assert.match(selector, /^\.ij-root\b/, `unscoped: ${selector}`);
     }
   });
+
+  test('plan PDF download is wired (not browser print-only)', () => {
+    const page = read('src/pages/public/InternshipJourneyPage.jsx');
+    const api = read('src/features/internshipJourney/internshipJourney.api.js');
+    const endpoints = read('src/services/endpoints.js');
+    const preview = read('src/components/internshipJourney/TrackPreview.jsx');
+    assert.match(endpoints, /internshipJourneyPlanPdf/);
+    assert.match(api, /downloadInternshipPlanPdf/);
+    assert.match(page, /downloadInternshipPlanPdf/);
+    assert.match(page, /حفظ الخطة PDF/);
+    assert.doesNotMatch(page, /window\.print\(/);
+    assert.match(preview, /حفظ الخطة PDF/);
+  });
 });

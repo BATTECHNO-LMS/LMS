@@ -993,7 +993,23 @@
   line-height: 1.8;
   color: #243241;
 }
-.ij-root .ij-track-cta { margin-top: 22px; display: flex; justify-content: center; }
+.ij-root .ij-track-cta {
+  margin-top: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.ij-root .ij-btn--pdf {
+  min-width: min(100%, 220px);
+}
+.ij-root .ij-pdf-error {
+  margin: 12px 0 0;
+  text-align: center;
+  color: #9b3b3b;
+  font-size: 13px;
+  font-weight: 700;
+}
 .ij-root .ij-outcomes { max-width: 920px; margin: 28px auto 0; }
 .ij-root .ij-outcomes__title {
   text-align: center;

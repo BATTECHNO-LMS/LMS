@@ -36,8 +36,30 @@ async function validateProfile(req, res, next) {
   }
 }
 
+async function downloadPlanPdf(req, res, next) {
+  try {
+    const { buffer, filename } = await internshipJourneyService.generatePlanPdf(req.validated.body);
+    const asciiName = String(filename || 'eprojecto-field-training-plan.pdf').replace(/[^\w.\-]+/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${asciiName}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).send(buffer);
+  } catch (err) {
+    if (err?.status === 400 || err?.code === 'VALIDATION_ERROR') {
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'يرجى مراجعة الحقول المطلوبة.',
+        code: 'VALIDATION_ERROR',
+        details: err.details || undefined,
+      });
+    }
+    return next(err);
+  }
+}
+
 module.exports = {
   listUniversities,
   listTracks,
   validateProfile,
+  downloadPlanPdf,
 };
