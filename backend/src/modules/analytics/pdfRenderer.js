@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const puppeteer = require('puppeteer');
 const { ApiError } = require('../../utils/apiError');
 
@@ -81,6 +82,14 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       browser?.close().catch(() => null);
     }, RENDER_TIMEOUT_MS);
 
+    const chromiumHome = process.env.PUPPETEER_HOME || '/tmp/puppeteer-home';
+    const crashDir = path.join(chromiumHome, 'crashpad');
+    const configDir = path.join(chromiumHome, '.config');
+    const cacheDir = path.join(chromiumHome, '.cache');
+    for (const dir of [chromiumHome, crashDir, configDir, cacheDir]) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
     browser = await puppeteer.launch({
       headless: true,
       timeout: LAUNCH_TIMEOUT_MS,
@@ -90,9 +99,9 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       // crashpad handler otherwise fails with "--database is required".
       env: {
         ...process.env,
-        HOME: process.env.PUPPETEER_HOME || process.env.HOME || '/tmp',
-        XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME || '/tmp/.chromium',
-        XDG_CACHE_HOME: process.env.XDG_CACHE_HOME || '/tmp/.chromium-cache',
+        HOME: chromiumHome,
+        XDG_CONFIG_HOME: configDir,
+        XDG_CACHE_HOME: cacheDir,
       },
       // Alpine Chromium in Docker still requires --no-sandbox even as non-root (user namespace
       // limitations). Mitigations: request allowlist below, timeouts, read_only rootfs + cap_drop.
@@ -104,7 +113,9 @@ async function renderHtmlToPdfOnce(html, options = {}) {
         '--disable-software-rasterizer',
         '--disable-crash-reporter',
         '--disable-breakpad',
-        '--crash-dumps-dir=/tmp',
+        `--crash-dumps-dir=${crashDir}`,
+        '--no-first-run',
+        '--no-default-browser-check',
         '--font-render-hinting=medium',
         '--hide-scrollbars',
         '--disable-extensions',
