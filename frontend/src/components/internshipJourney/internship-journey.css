@@ -317,21 +317,6 @@
 .ij-root .ij-orbit-icon--2 { left: 8%; bottom: 3%; animation-delay: -2s; }
 .ij-root .ij-orbit-icon--3 { left: 8%; top: 0; animation-delay: -1s; }
 @keyframes ij-bob { 50% { transform: translateY(-15px) rotate(3deg); } }
-.ij-root .ij-stats { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 19px; }
-.ij-root .ij-stat {
-  min-width: 135px;
-  padding: 14px 17px;
-  border-radius: 17px;
-  background: #ffffffa8;
-  border: 1px solid #fff;
-}
-.ij-root .ij-stat b {
-  font-family: Outfit, Cairo, sans-serif;
-  font-size: 25px;
-  color: #7657e9;
-  display: block;
-}
-.ij-root .ij-stat span { font-size: 11px; color: #69748e; font-weight: 800; }
 .ij-root .ij-section { padding-top: 70px; }
 .ij-root .ij-section-title { text-align: center; margin-bottom: 26px; }
 .ij-root .ij-section-title h2 { font-size: clamp(23px, 3.3vw, 36px); margin: 8px 0 5px; }
@@ -842,7 +827,6 @@
 .ij-root .ij-orb--a { background: #e8dfcb; }
 .ij-root .ij-orb--b { background: #dceaf0; }
 .ij-root .ij-orb--c { background: #f3ead4; }
-.ij-root .ij-stat b,
 .ij-root .ij-metric:nth-child(1) .ij-big { color: #132d4a; }
 .ij-root .ij-metric:nth-child(2) .ij-big { color: #3a5f8a; }
 .ij-root .ij-metric:nth-child(3) .ij-big { color: #327d82; }

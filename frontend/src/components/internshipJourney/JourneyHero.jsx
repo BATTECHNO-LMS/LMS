@@ -5,12 +5,6 @@ const NAV_PILLS = [
   { href: '#enrollment', label: 'الالتحاق' },
 ];
 
-const HERO_STATS = [
-  { value: '04', label: 'مسارات تخصصية' },
-  { value: '80–300', label: 'ساعة تدريب' },
-  { value: 'RTL', label: 'تجربة عربية أولاً' },
-];
-
 export function JourneyHeader({ logoSrc }) {
   return (
     <header className="ij-header">
@@ -50,14 +44,6 @@ export function JourneyHero({ logoSrc }) {
         <a className="ij-btn ij-hero-cta" href="#configure">
           ابدأ الآن
         </a>
-        <div className="ij-stats">
-          {HERO_STATS.map((stat) => (
-            <div key={stat.label} className="ij-stat">
-              <b>{stat.value}</b>
-              <span>{stat.label}</span>
-            </div>
-          ))}
-        </div>
       </div>
       <div className="ij-hero-art">
         <div className="ij-planet" aria-hidden="true" />
