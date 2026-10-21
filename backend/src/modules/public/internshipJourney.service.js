@@ -1,82 +1,113 @@
-const { prisma } = require('../../config/db');
 const {
-  MAJOR_TO_TRACK,
   TRACK_SUMMARIES,
   isSupportedHours,
   allocateHours,
   getIntensityBand,
 } = require('./internshipJourney.constants');
+const {
+  OTHER_FACULTY,
+  OTHER_MAJOR,
+  TRACK_NOT_CONFIGURED,
+  REQUIRES_REVIEW,
+  FACULTIES,
+  getMajor,
+  getMajorsForFaculty,
+  isMajorAllowedForFaculty,
+  resolveTrackCodeForMajor,
+} = require('./internshipJourney.taxonomy');
+const {
+  OTHER_UNIVERSITY,
+  EPROJECTO_UNIVERSITY_ID_BY_CODE,
+  getActiveJordanUniversities,
+  findJordanUniversity,
+  countByCategory,
+} = require('./internshipJourney.universities');
 
-/** Public directory fields only — no admin metadata, contacts, or secrets. */
-async function listPublicUniversities() {
-  const universities = await prisma.universities.findMany({
-    where: { status: 'active' },
-    select: {
-      id: true,
-      name: true,
-      name_en: true,
-      short_name: true,
-      code: true,
-    },
-    orderBy: { name: 'asc' },
-  });
-  return { universities };
+/** Public Jordan directory — not limited to eprojecto tenants. */
+function listPublicUniversities() {
+  const universities = getActiveJordanUniversities().map((u) => ({
+    code: u.code,
+    nameAr: u.nameAr,
+    name: u.nameAr,
+    nameEn: u.nameEn || null,
+    category: u.category,
+    aliases: u.aliases || [],
+    eprojectoUniversityId: EPROJECTO_UNIVERSITY_ID_BY_CODE[u.code] || null,
+  }));
+  return {
+    source: 'jordan_directory',
+    universities,
+    counts: countByCategory(),
+  };
 }
 
 function listPublicTracks() {
   return {
-    majors: Object.keys(MAJOR_TO_TRACK).map((code) => ({
-      code,
-      trackCode: MAJOR_TO_TRACK[code],
-      ...TRACK_SUMMARIES[MAJOR_TO_TRACK[code]],
-    })),
-    tracks: Object.values(TRACK_SUMMARIES),
+    faculties: Object.values(FACULTIES),
+    majorsByFaculty: {
+      BUSINESS: getMajorsForFaculty('BUSINESS'),
+      INFORMATION_TECHNOLOGY: getMajorsForFaculty('INFORMATION_TECHNOLOGY'),
+    },
+    tracks: Object.values(TRACK_SUMMARIES).filter((t) => t.configured !== false),
   };
 }
 
 /**
- * Validate academic intake payload. Does not create University / Faculty / application records.
- * Query-string values must never be trusted as authoritative — callers POST a body.
+ * Validate academic intake. Enforces Faculty→Major and Major→Track server-side.
+ * Never creates University/Faculty DB rows.
  */
 async function validateAcademicProfile(body) {
   const errors = {};
 
-  const universityName = String(body.universityName || '').trim();
-  const isOtherUniversity = Boolean(body.isOtherUniversity);
-  let universityId = body.universityId || null;
+  const universityCode = String(body.universityCode || '').trim();
+  const isOtherUniversity = Boolean(body.isOtherUniversity) || universityCode === OTHER_UNIVERSITY;
+  let universityName = String(body.universityName || '').trim();
+  let eprojectoUniversityId = body.eprojectoUniversityId || null;
 
-  if (!universityName) {
+  if (!universityCode) {
     errors.university = 'يرجى اختيار الجامعة.';
-  }
-
-  if (universityId) {
-    const uni = await prisma.universities.findFirst({
-      where: { id: universityId, status: 'active' },
-      select: { id: true, name: true },
-    });
+  } else if (isOtherUniversity) {
+    eprojectoUniversityId = null;
+    if (!universityName) errors.university = 'يرجى اختيار الجامعة.';
+  } else {
+    const uni = findJordanUniversity(universityCode);
     if (!uni) {
-      errors.university = 'الجامعة المحددة غير متاحة.';
-      universityId = null;
-    } else if (!isOtherUniversity && uni.name !== universityName) {
-      // Prefer canonical name from DB when id is provided.
-      body = { ...body, universityName: uni.name };
+      errors.university = 'يرجى اختيار الجامعة.';
+    } else {
+      universityName = uni.nameAr;
+      eprojectoUniversityId = EPROJECTO_UNIVERSITY_ID_BY_CODE[uni.code] || null;
     }
   }
 
-  if (isOtherUniversity) {
-    universityId = null;
-  }
-
   const facultyCode = String(body.facultyCode || '').trim();
-  const facultyName = String(body.facultyName || '').trim();
-  const isOtherFaculty = Boolean(body.isOtherFaculty) || facultyCode === 'other';
-  if (!facultyCode || !facultyName) {
+  const isOtherFaculty = Boolean(body.isOtherFaculty) || facultyCode === OTHER_FACULTY;
+  const facultyMeta = FACULTIES[facultyCode];
+  let facultyName = String(body.facultyName || '').trim();
+  const facultyCustomName = String(body.facultyCustomName || '').trim() || null;
+
+  if (!facultyMeta) {
     errors.faculty = 'يرجى اختيار الكلية.';
+  } else if (isOtherFaculty) {
+    facultyName = facultyCustomName || facultyName;
+    if (!facultyName) errors.faculty = 'يرجى إدخال اسم الكلية.';
+  } else {
+    facultyName = facultyMeta.labelAr;
   }
 
-  const majorCode = String(body.majorCode || '').trim();
-  if (!MAJOR_TO_TRACK[majorCode]) {
+  let majorCode = String(body.majorCode || '').trim();
+  const majorCustomName = String(body.majorCustomName || '').trim() || null;
+  const majorMeta = getMajor(majorCode);
+  const isOtherMajor = Boolean(majorMeta?.isOther) || majorCode === OTHER_MAJOR;
+
+  if (isOtherFaculty) {
+    majorCode = OTHER_MAJOR;
+    if (!majorCustomName) errors.major = 'يرجى إدخال اسم التخصص.';
+  } else if (!majorCode) {
     errors.major = 'يرجى اختيار التخصص.';
+  } else if (!isMajorAllowedForFaculty(facultyCode, majorCode)) {
+    errors.major = 'التخصص لا ينتمي إلى الكلية المحددة.';
+  } else if (isOtherMajor && !majorCustomName) {
+    errors.major = 'يرجى إدخال اسم التخصص.';
   }
 
   const trainingHours = Number(body.trainingHours);
@@ -84,9 +115,9 @@ async function validateAcademicProfile(body) {
     errors.hours = 'يرجى تحديد عدد ساعات التدريب بين 80 و300 بزيادة 10 ساعات.';
   }
 
-  const expectedTrack = MAJOR_TO_TRACK[majorCode];
-  const trackCode = String(body.trackCode || expectedTrack || '').trim();
-  if (expectedTrack && trackCode && trackCode !== expectedTrack) {
+  const derivedTrack = resolveTrackCodeForMajor(majorCode, facultyCode);
+  const clientTrack = String(body.trackCode || '').trim();
+  if (derivedTrack && clientTrack && clientTrack !== derivedTrack) {
     errors.track = 'رمز المسار لا يطابق التخصص المحدد.';
   }
 
@@ -94,29 +125,34 @@ async function validateAcademicProfile(body) {
     return { valid: false, errors };
   }
 
-  const track = TRACK_SUMMARIES[expectedTrack];
+  const trackCode = derivedTrack || TRACK_NOT_CONFIGURED;
+  const track = TRACK_SUMMARIES[trackCode] || TRACK_SUMMARIES[TRACK_NOT_CONFIGURED];
   const allocation = allocateHours(trainingHours);
   const intensity = getIntensityBand(trainingHours);
 
   return {
     valid: true,
     profile: {
-      universityId,
-      universityName: isOtherUniversity ? universityName : universityName,
+      universityCode: isOtherUniversity ? OTHER_UNIVERSITY : universityCode,
+      eprojectoUniversityId,
+      universityName,
       isOtherUniversity,
       facultyCode,
       facultyName,
+      facultyCustomName: isOtherFaculty ? facultyName : null,
       isOtherFaculty,
       majorCode,
+      majorCustomName: isOtherMajor || isOtherFaculty ? majorCustomName : null,
+      majorLabelAr: isOtherMajor || isOtherFaculty ? majorCustomName : majorMeta.labelAr,
       trainingHours,
-      trackCode: expectedTrack,
+      trackCode,
       trackNameAr: track.nameAr,
       trackNameEn: track.nameEn,
       finalProject: track.finalProject,
+      trackConfigured: track.configured !== false && trackCode !== TRACK_NOT_CONFIGURED && trackCode !== REQUIRES_REVIEW,
     },
     allocation,
     intensity,
-    // Explicit: this endpoint never persists intake rows.
     persisted: false,
   };
 }

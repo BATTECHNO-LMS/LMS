@@ -1,3 +1,9 @@
+const {
+  MAJOR_TO_TRACK,
+  TRACK_NOT_CONFIGURED,
+  REQUIRES_REVIEW,
+} = require('./internshipJourney.taxonomy');
+
 const MIN_HOURS = 80;
 const MAX_HOURS = 300;
 const HOURS_STEP = 10;
@@ -14,37 +20,69 @@ const ALLOCATION_PERCENT = {
   finalProject: 15,
 };
 
-const MAJOR_TO_TRACK = {
-  MIS: 'MIS',
-  DIGITAL_MARKETING: 'DIGITAL_MARKETING',
-  FINANCE_BANKING: 'FINANCE_BANKING',
-  BUSINESS_ADMINISTRATION: 'BUSINESS_ADMINISTRATION',
-};
-
 const TRACK_SUMMARIES = {
   MIS: {
     code: 'MIS',
     nameAr: 'مسار نظم المعلومات الإدارية',
     nameEn: 'Business Information Systems & Data Analytics',
     finalProject: 'Business Management Information System',
+    configured: true,
   },
   DIGITAL_MARKETING: {
     code: 'DIGITAL_MARKETING',
     nameAr: 'مسار التسويق الرقمي',
     nameEn: 'Digital Marketing & Content Strategy',
     finalProject: 'Complete Digital Marketing Campaign',
+    configured: true,
   },
   FINANCE_BANKING: {
     code: 'FINANCE_BANKING',
     nameAr: 'مسار المالية والمصرفية',
     nameEn: 'Financial Analysis, Banking & FinTech',
     finalProject: 'Financial Performance & Banking Analysis',
+    configured: true,
   },
   BUSINESS_ADMINISTRATION: {
     code: 'BUSINESS_ADMINISTRATION',
     nameAr: 'مسار إدارة الأعمال',
     nameEn: 'Business Operations & Management',
     finalProject: 'Business Improvement Project',
+    configured: true,
+  },
+  SOFTWARE_DEVELOPMENT: {
+    code: 'SOFTWARE_DEVELOPMENT',
+    nameAr: 'مسار هندسة البرمجيات وتطوير الأنظمة',
+    nameEn: 'Software Development & Information Systems',
+    finalProject: 'Full-Stack Feature or Information System Delivery',
+    configured: true,
+  },
+  CYBERSECURITY: {
+    code: 'CYBERSECURITY',
+    nameAr: 'مسار الأمن السيبراني',
+    nameEn: 'Cybersecurity & Defensive Operations',
+    finalProject: 'Authorized Web Security Assessment Report',
+    configured: true,
+  },
+  DATA_AI: {
+    code: 'DATA_AI',
+    nameAr: 'مسار البيانات والذكاء الاصطناعي',
+    nameEn: 'Data Science & AI Applications',
+    finalProject: 'Data / AI Application with Evaluation Notes',
+    configured: true,
+  },
+  [TRACK_NOT_CONFIGURED]: {
+    code: TRACK_NOT_CONFIGURED,
+    nameAr: 'مسار قيد التجهيز',
+    nameEn: 'Track Pending Configuration',
+    finalProject: 'يُحدد بعد تجهيز المسار',
+    configured: false,
+  },
+  [REQUIRES_REVIEW]: {
+    code: REQUIRES_REVIEW,
+    nameAr: 'يتطلب مراجعة الفريق',
+    nameEn: 'Requires Review',
+    finalProject: 'يُحدد بعد المراجعة',
+    configured: false,
   },
 };
 

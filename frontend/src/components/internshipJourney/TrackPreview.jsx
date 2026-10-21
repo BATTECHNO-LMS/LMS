@@ -30,6 +30,9 @@ export function TrackPreview({ plan, onEnroll }) {
             <p className="ij-track-card__en" lang="en" dir="ltr">
               {plan.track.nameEn}
             </p>
+            {!plan.trackConfigured ? (
+              <p className="ij-track-pending">سيتم تجهيز المسار التدريبي المناسب لهذا التخصص.</p>
+            ) : null}
           </div>
         </header>
 

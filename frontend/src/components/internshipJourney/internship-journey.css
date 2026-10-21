@@ -295,6 +295,15 @@
   filter: drop-shadow(0 15px 8px #45337527);
   animation: ij-bob 4s ease-in-out infinite reverse;
 }
+.ij-root .ij-hero-logo {
+  position: relative;
+  z-index: 2;
+  width: min(240px, 58vw);
+  height: auto;
+  object-fit: contain;
+  font-size: initial;
+  filter: drop-shadow(0 14px 18px rgba(19, 45, 74, 0.18));
+}
 .ij-root .ij-orbit-icon {
   position: absolute;
   border-radius: 20px;
@@ -434,6 +443,15 @@
   font-size: 12px;
   font-weight: 800;
   line-height: 1.6;
+}
+.ij-root .ij-field-hint {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #54677b;
+  line-height: 1.7;
 }
 .ij-root .ij-field--disabled { opacity: 0.85; }
 .ij-root .ij-field .ij-other-university { margin-top: 9px; }
@@ -702,7 +720,7 @@
   .ij-root .ij-hero { grid-template-columns: 1fr; padding: 27px; }
   .ij-root .ij-hero-art { min-height: 215px; grid-row: 1; }
   .ij-root .ij-planet { width: 160px; height: 160px; }
-  .ij-root .ij-astronaut { font-size: 82px; }
+  .ij-root .ij-hero-logo { width: min(180px, 62vw); }
   .ij-root .ij-orbit-icon { font-size: 22px; }
   .ij-root .ij-hero h1 { font-size: 35px; }
   .ij-root .ij-fields { grid-template-columns: 1fr; }
@@ -911,6 +929,16 @@
   font-weight: 700;
   font-family: Outfit, Cairo, sans-serif;
 }
+.ij-root .ij-track-pending {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8f1de;
+  color: #6b5931;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.7;
+}
 .ij-root .ij-track-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1085,24 +1113,6 @@
   .ij-root .ij-enroll-steps { grid-template-columns: 1fr; }
   .ij-root .ij-enroll-step { min-height: 0; }
   .ij-root .ij-enroll-actions a { width: 100%; }
-}
-
-.ij-root .ij-bat-hero {
-  width: 210px;
-  height: 235px;
-  font-size: initial;
-  display: grid;
-  place-items: center;
-  transform-origin: center center;
-}
-.ij-root .ij-bat-hero svg {
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  filter: drop-shadow(0 14px 10px rgba(26, 47, 74, 0.18));
-}
-@media (max-width: 800px) {
-  .ij-root .ij-bat-hero { width: 140px; height: 157px; }
 }
 
 @media print {

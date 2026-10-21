@@ -1,5 +1,3 @@
-import { BatmanCharacter } from './BatmanCharacter.jsx';
-
 const NAV_PILLS = [
   { href: '#configure', label: 'ابدأ الآن' },
   { href: '#recommended-track', label: 'مسارك' },
@@ -36,7 +34,7 @@ export function JourneyHeader({ logoSrc }) {
   );
 }
 
-export function JourneyHero() {
+export function JourneyHero({ logoSrc }) {
   return (
     <div className="ij-hero">
       <div>
@@ -63,7 +61,14 @@ export function JourneyHero() {
       </div>
       <div className="ij-hero-art">
         <div className="ij-planet" aria-hidden="true" />
-        <BatmanCharacter />
+        <img
+          className="ij-astronaut ij-hero-logo"
+          src={logoSrc}
+          alt="شعار BATMAN TECHNOLOGY"
+          width="220"
+          height="95"
+          decoding="async"
+        />
         <span className="ij-orbit-icon ij-orbit-icon--1" aria-hidden="true">
           📊
         </span>

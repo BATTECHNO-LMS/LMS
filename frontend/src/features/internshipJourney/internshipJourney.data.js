@@ -3,8 +3,8 @@ export const MAX_HOURS = 300;
 export const HOURS_STEP = 10;
 export const DEFAULT_HOURS = 160;
 
-export const OTHER_UNIVERSITY = 'other';
-export const OTHER_FACULTY = 'other';
+export { OTHER_UNIVERSITY } from './internshipJourney.universities.js';
+export { OTHER_FACULTY, OTHER_MAJOR } from './internshipJourney.taxonomy.js';
 
 export const ACADEMIC_PROFILE_STORAGE_KEY = 'eprojecto.internshipAcademicProfile';
 
@@ -106,49 +106,6 @@ export const ENROLLMENT_PHONES = [
 export const WHATSAPP_NUMBER = '962791433341';
 export const WHATSAPP_MESSAGE = 'مرحبا، أرغب بالالتحاق بالتدريب الميداني';
 export const COMPANY_MAP_URL = 'https://maps.app.goo.gl/dGpq6DDF6xymechq7';
-
-/** Fallback directory when the public API is unavailable. Not a second source of truth when API succeeds. */
-export const FALLBACK_UNIVERSITIES = [
-  'الجامعة الأردنية',
-  'جامعة العلوم والتكنولوجيا الأردنية',
-  'جامعة اليرموك',
-  'الجامعة الهاشمية',
-  'جامعة البلقاء التطبيقية',
-  'جامعة آل البيت',
-  'جامعة مؤتة',
-  'جامعة الحسين بن طلال',
-  'جامعة الطفيلة التقنية',
-  'الجامعة الألمانية الأردنية',
-  'جامعة الأميرة سمية للتكنولوجيا',
-  'جامعة عمان الأهلية',
-  'جامعة العلوم التطبيقية الخاصة',
-  'جامعة الزيتونة الأردنية',
-  'جامعة الإسراء',
-  'جامعة عمان العربية',
-  'جامعة الشرق الأوسط',
-  'جامعة العقبة للتكنولوجيا',
-  'جامعة جدارا',
-  'جامعة فيلادلفيا',
-  'جامعة الزرقاء',
-];
-
-/** @deprecated Use FALLBACK_UNIVERSITIES — kept for older imports/tests during transition. */
-export const UNIVERSITIES = FALLBACK_UNIVERSITIES;
-
-/**
- * Faculty intake options — there is no canonical Faculty model in the DB.
- * Values are intake metadata only; "other" requires a free-text name.
- */
-export const FACULTY_OPTIONS = [
-  { code: 'BUSINESS', labelAr: 'كلية الأعمال' },
-  { code: 'IT', labelAr: 'كلية تكنولوجيا المعلومات' },
-  { code: 'ECONOMICS_ADMIN', labelAr: 'كلية الاقتصاد والعلوم الإدارية' },
-  { code: 'FINANCE_BANKING', labelAr: 'كلية العلوم المالية والمصرفية' },
-  { code: 'ENGINEERING', labelAr: 'كلية الهندسة' },
-  { code: 'SCIENCE', labelAr: 'كلية العلوم' },
-  { code: 'ARTS', labelAr: 'كلية الآداب' },
-  { code: OTHER_FACULTY, labelAr: 'كلية أخرى' },
-];
 
 export function phoneHref(international) {
   return `tel:+${international}`;

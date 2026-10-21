@@ -1,27 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  FACULTY_OPTIONS,
   HOURS_OPTIONS,
   OTHER_FACULTY,
+  OTHER_MAJOR,
   OTHER_UNIVERSITY,
   emitInternshipJourneyEvent,
-  getActiveMajors,
+  getActiveFaculties,
+  getFaculty,
+  getMajorsForFaculty,
   validateAcademicProfile,
 } from '../../features/internshipJourney/index.js';
-import {
-  fetchInternshipJourneyUniversities,
-  validateInternshipAcademicProfile,
-} from '../../features/internshipJourney/internshipJourney.api.js';
+import { fetchInternshipJourneyUniversities, validateInternshipAcademicProfile } from '../../features/internshipJourney/internshipJourney.api.js';
 import { SearchableSelect } from './SearchableSelect.jsx';
 
 export function JourneyConfigurator({ onBuild }) {
   const [universities, setUniversities] = useState([]);
   const [uniSource, setUniSource] = useState('loading');
-  const [universityValue, setUniversityValue] = useState('');
+  const [universityCode, setUniversityCode] = useState('');
   const [otherUniversityName, setOtherUniversityName] = useState('');
   const [facultyCode, setFacultyCode] = useState('');
   const [otherFacultyName, setOtherFacultyName] = useState('');
   const [majorCode, setMajorCode] = useState('');
+  const [otherMajorName, setOtherMajorName] = useState('');
   const [trainingHours, setTrainingHours] = useState('');
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -42,60 +42,69 @@ export function JourneyConfigurator({ onBuild }) {
 
   const universityOptions = useMemo(() => {
     const list = universities.map((u) => ({
-      value: u.id || u.name,
-      label: u.name,
-      keywords: [u.name_en, u.short_name, u.code].filter(Boolean).join(' '),
-      universityId: u.id,
-      universityName: u.name,
+      value: u.code,
+      label: u.name || u.name_ar,
+      keywords: u.keywords || [u.name, u.name_en, u.code, ...(u.aliases || [])].filter(Boolean).join(' '),
+      universityCode: u.code,
+      universityName: u.name || u.name_ar,
+      eprojectoUniversityId: u.eprojectoUniversityId || null,
     }));
     list.push({
       value: OTHER_UNIVERSITY,
       label: 'جامعة أخرى',
       keywords: 'other جامعة اخرى',
-      universityId: null,
+      universityCode: OTHER_UNIVERSITY,
       universityName: '',
+      eprojectoUniversityId: null,
     });
     return list;
   }, [universities]);
 
   const facultyOptions = useMemo(
     () =>
-      FACULTY_OPTIONS.map((f) => ({
+      getActiveFaculties().map((f) => ({
         value: f.code,
         label: f.labelAr,
-        keywords: f.labelAr,
+        keywords: [f.labelAr, f.labelEn, ...(f.aliases || [])].join(' '),
       })),
     []
   );
 
-  const majorOptions = useMemo(
-    () =>
-      getActiveMajors().map((m) => ({
-        value: m.value,
-        label: m.label,
-        keywords: `${m.label} ${m.labelEn} ${m.value}`,
-      })),
-    []
-  );
+  const majorOptions = useMemo(() => {
+    if (!facultyCode || facultyCode === OTHER_FACULTY) return [];
+    return getMajorsForFaculty(facultyCode).map((m) => ({
+      value: m.code,
+      label: m.labelAr,
+      keywords: `${m.labelAr} ${m.labelEn} ${m.code}`,
+      isOther: Boolean(m.isOther),
+    }));
+  }, [facultyCode]);
 
   const hoursOptions = useMemo(
-    () =>
-      HOURS_OPTIONS.map((h) => ({
-        value: String(h),
-        label: `${h} ساعة`,
-        keywords: String(h),
-      })),
+    () => HOURS_OPTIONS.map((h) => ({ value: String(h), label: `${h} ساعة`, keywords: String(h) })),
     []
   );
 
-  const facultyEnabled = Boolean(universityValue);
-  const majorEnabled = Boolean(facultyEnabled && facultyCode && (facultyCode !== OTHER_FACULTY || otherFacultyName.trim()));
-  const hoursEnabled = Boolean(majorEnabled && majorCode);
+  const facultyMeta = getFaculty(facultyCode);
+  const selectedMajor = majorOptions.find((m) => m.value === majorCode);
+  const needsCustomMajor = facultyCode === OTHER_FACULTY || Boolean(selectedMajor?.isOther);
+
+  const facultyEnabled = Boolean(universityCode);
+  const majorEnabled = Boolean(
+    facultyEnabled && facultyCode && (facultyCode !== OTHER_FACULTY || otherFacultyName.trim())
+  );
+  const hoursEnabled = Boolean(
+    majorEnabled &&
+      (facultyCode === OTHER_FACULTY
+        ? otherMajorName.trim()
+        : majorCode && (!selectedMajor?.isOther || otherMajorName.trim()))
+  );
 
   function resetFromUniversity() {
     setFacultyCode('');
     setOtherFacultyName('');
     setMajorCode('');
+    setOtherMajorName('');
     setTrainingHours('');
     setErrors({});
     setServerHint('');
@@ -103,6 +112,7 @@ export function JourneyConfigurator({ onBuild }) {
 
   function resetFromFaculty() {
     setMajorCode('');
+    setOtherMajorName('');
     setTrainingHours('');
     setErrors((prev) => {
       const next = { ...prev };
@@ -112,14 +122,14 @@ export function JourneyConfigurator({ onBuild }) {
     });
   }
 
-  function handleUniversityChange(value, option) {
-    setUniversityValue(value);
+  function handleUniversityChange(value) {
+    setUniversityCode(value);
     if (value !== OTHER_UNIVERSITY) setOtherUniversityName('');
     resetFromUniversity();
     emitInternshipJourneyEvent('university_selected', {
       source: uniSource,
-      hasId: Boolean(option?.universityId),
       isOther: value === OTHER_UNIVERSITY,
+      universityCode: value === OTHER_UNIVERSITY ? 'OTHER' : value,
     });
   }
 
@@ -127,11 +137,15 @@ export function JourneyConfigurator({ onBuild }) {
     setFacultyCode(value);
     if (value !== OTHER_FACULTY) setOtherFacultyName('');
     resetFromFaculty();
-    emitInternshipJourneyEvent('faculty_selected', { facultyCode: value === OTHER_FACULTY ? 'other' : value });
+    emitInternshipJourneyEvent('faculty_selected', {
+      facultyCode: value === OTHER_FACULTY ? 'OTHER' : value,
+    });
   }
 
   function handleMajorChange(value) {
     setMajorCode(value);
+    const opt = majorOptions.find((m) => m.value === value);
+    if (!opt?.isOther) setOtherMajorName('');
     setTrainingHours('');
     setErrors((prev) => {
       const next = { ...prev };
@@ -154,20 +168,22 @@ export function JourneyConfigurator({ onBuild }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const selectedUni = universityOptions.find((o) => o.value === universityValue);
-    const selectedFaculty = FACULTY_OPTIONS.find((f) => f.code === facultyCode);
+    const selectedUni = universityOptions.find((o) => o.value === universityCode);
     const facultyName =
-      facultyCode === OTHER_FACULTY ? otherFacultyName.trim() : selectedFaculty?.labelAr || '';
+      facultyCode === OTHER_FACULTY ? otherFacultyName.trim() : facultyMeta?.labelAr || '';
 
     const selection = {
-      universityValue,
-      universityId: selectedUni?.universityId || null,
-      universityName: universityValue === OTHER_UNIVERSITY ? otherUniversityName : selectedUni?.universityName,
+      universityCode,
+      universityValue: universityCode,
+      universityName:
+        universityCode === OTHER_UNIVERSITY ? otherUniversityName : selectedUni?.universityName,
       otherUniversityName,
       facultyCode,
       facultyName,
       otherFacultyName,
-      majorCode,
+      majorCode: facultyCode === OTHER_FACULTY ? OTHER_MAJOR : majorCode,
+      otherMajorName,
+      majorCustomName: otherMajorName,
       trainingHours: trainingHours === '' ? NaN : Number(trainingHours),
     };
 
@@ -194,7 +210,6 @@ export function JourneyConfigurator({ onBuild }) {
         setSubmitting(false);
         return;
       }
-      // Offline / API down: keep client validation so the guided preview still works locally.
       setServerHint('تعذر التحقق من الخادم حالياً — نستمر بالتحقق المحلي.');
     }
 
@@ -202,12 +217,14 @@ export function JourneyConfigurator({ onBuild }) {
       majorCode: local.profile.majorCode,
       trackCode: local.profile.trackCode,
       hours: local.profile.trainingHours,
+      facultyCode: local.profile.facultyCode,
     });
     onBuild({
       ...local.profile,
-      universityValue,
+      universityValue: universityCode,
       otherUniversityName,
       otherFacultyName,
+      otherMajorName,
     });
     setSubmitting(false);
   }
@@ -227,14 +244,14 @@ export function JourneyConfigurator({ onBuild }) {
             label="الجامعة"
             placeholder="اختر جامعتك"
             searchPlaceholder="ابحث عن جامعتك…"
-            value={universityValue}
+            value={universityCode}
             options={universityOptions}
             onChange={handleUniversityChange}
             required
             error={errors.university || ''}
           />
 
-          {universityValue === OTHER_UNIVERSITY ? (
+          {universityCode === OTHER_UNIVERSITY ? (
             <div className={`ij-field${errors.university ? ' ij-field--error' : ''}`}>
               <label htmlFor="ij-other-university">اسم الجامعة</label>
               <input
@@ -274,18 +291,48 @@ export function JourneyConfigurator({ onBuild }) {
             </div>
           ) : null}
 
-          <SearchableSelect
-            id="ij-major"
-            label="التخصص"
-            placeholder="اختر تخصصك"
-            searchPlaceholder="ابحث عن التخصص…"
-            value={majorCode}
-            options={majorOptions}
-            onChange={handleMajorChange}
-            disabled={!majorEnabled}
-            required
-            error={errors.major || ''}
-          />
+          {facultyMeta?.helperAr && facultyCode && facultyCode !== OTHER_FACULTY ? (
+            <p className="ij-field-hint" role="note">
+              {facultyMeta.helperAr}
+            </p>
+          ) : null}
+
+          {facultyCode !== OTHER_FACULTY ? (
+            <SearchableSelect
+              id="ij-major"
+              label="التخصص"
+              placeholder="اختر تخصصك"
+              searchPlaceholder="ابحث عن التخصص…"
+              value={majorCode}
+              options={majorOptions}
+              onChange={handleMajorChange}
+              disabled={!majorEnabled}
+              required
+              error={errors.major || ''}
+            />
+          ) : null}
+
+          {needsCustomMajor ? (
+            <div className={`ij-field${errors.major ? ' ij-field--error' : ''}`}>
+              <label htmlFor="ij-other-major">اكتب اسم تخصصك</label>
+              <input
+                id="ij-other-major"
+                placeholder="اكتب اسم تخصصك"
+                value={otherMajorName}
+                onChange={(e) => {
+                  setOtherMajorName(e.target.value);
+                  setTrainingHours('');
+                }}
+                disabled={!majorEnabled}
+                aria-invalid={Boolean(errors.major)}
+              />
+              {errors.major ? (
+                <p className="ij-field-error" role="alert">
+                  {errors.major}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           <SearchableSelect
             id="ij-hours"
@@ -304,8 +351,8 @@ export function JourneyConfigurator({ onBuild }) {
         <div className="ij-note">
           💡{' '}
           <span>
-            <b>مهم:</b> اسم الجامعة لا يحدد الساعات تلقائياً. حدّد عدد الساعات وفق كتاب التدريب الصادر عن
-            جامعتك. اختيار «جامعة أخرى» أو «كلية أخرى» يُحفظ كبيانات التحاق فقط ولا ينشئ سجلاً في دليل الجامعات.
+            <b>مهم:</b> قائمة الجامعات دليل أردني عام للالتحاق، وليست مرتبطة بإنشاء مؤسسة في eprojecto.
+            التخصصات المعروضة تعتمد على الكلية المختارة ضمن مسارات التدريب المدعومة حالياً.
           </span>
         </div>
 
@@ -313,11 +360,9 @@ export function JourneyConfigurator({ onBuild }) {
 
         <div className="ij-actionline">
           <div className="ij-small">
-            {uniSource === 'api'
-              ? '✓ تم تحميل الجامعات من دليل eprojecto'
-              : uniSource === 'fallback'
-                ? 'قائمة الجامعات الاحتياطية (وضع عدم الاتصال)'
-                : 'جاري تحميل الجامعات…'}
+            {uniSource === 'loading'
+              ? 'جاري تحميل دليل الجامعات…'
+              : `✓ دليل جامعات الأردن (${universities.length} جامعة)`}
           </div>
           <button type="submit" className="ij-btn ij-pulse" disabled={submitting}>
             {submitting ? 'جاري التجهيز…' : 'اعرض مساري التدريبي'}

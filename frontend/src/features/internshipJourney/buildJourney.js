@@ -4,6 +4,7 @@ import {
   HOURS_OPTIONS,
   INTENSITY_BANDS,
   OTHER_FACULTY,
+  OTHER_MAJOR,
   OTHER_UNIVERSITY,
   PRACTICAL_TASKS_PREVIEW_COUNT,
   PROFESSIONAL_FOUNDATION,
@@ -11,11 +12,14 @@ import {
   TASKS_STAGE_STYLE,
   WEEKLY_HOURS_MODEL,
 } from './internshipJourney.data.js';
+import { findJordanUniversity } from './internshipJourney.universities.js';
 import {
-  ACADEMIC_MAJORS,
-  MAJOR_TO_TRACK,
-  TRACK_CATALOG,
-} from './internshipJourney.tracks.js';
+  getFaculty,
+  getMajor,
+  isMajorAllowedForFaculty,
+  resolveTrackCodeForMajor,
+} from './internshipJourney.taxonomy.js';
+import { TRACK_CATALOG, TRACK_NOT_CONFIGURED, REQUIRES_REVIEW } from './internshipJourney.tracks.js';
 
 export function isSupportedHours(hours) {
   return Number.isInteger(hours) && HOURS_OPTIONS.includes(hours);
@@ -25,11 +29,6 @@ export function getIntensityBand(hours) {
   return INTENSITY_BANDS.find((band) => hours >= band.min && hours <= band.max) ?? null;
 }
 
-/**
- * Splits total hours into foundation / specialization / tasks / final project.
- * Rounding is applied to the first three buckets; final project takes the remainder
- * so the four always sum to exactly `totalHours`.
- */
 export function allocateHours(totalHours) {
   const foundation = Math.round((totalHours * ALLOCATION_PERCENT.foundation) / 100);
   const specialization = Math.round((totalHours * ALLOCATION_PERCENT.specialization) / 100);
@@ -41,7 +40,6 @@ export function allocateHours(totalHours) {
     specialization,
     tasks,
     finalProject,
-    // Back-compat aliases used by older dashboard wording during transition
     softSkills: foundation,
     commonIt: 0,
     specialized: specialization,
@@ -49,26 +47,25 @@ export function allocateHours(totalHours) {
   };
 }
 
-export function getTrackFamilyKey(majorKey) {
-  return MAJOR_TO_TRACK[majorKey] ?? null;
+export function getTrackFamilyKey(majorKey, facultyCode) {
+  return resolveTrackCodeForMajor(majorKey, facultyCode);
 }
 
-export function getTrackForMajor(majorKey) {
-  const familyKey = getTrackFamilyKey(majorKey);
-  return familyKey ? TRACK_CATALOG[familyKey] : null;
+export function getTrackForMajor(majorKey, facultyCode) {
+  const familyKey = getTrackFamilyKey(majorKey, facultyCode);
+  return familyKey ? TRACK_CATALOG[familyKey] ?? TRACK_CATALOG[TRACK_NOT_CONFIGURED] : null;
 }
 
 export function getMajorMeta(majorKey) {
-  return ACADEMIC_MAJORS.find((m) => m.value === majorKey) ?? null;
+  const m = getMajor(majorKey);
+  if (!m) return null;
+  return { value: m.code, label: m.labelAr, labelEn: m.labelEn, trackCode: m.trackCode, facultyCode: m.facultyCode };
 }
 
 export function buildJourneyStages(track, totalHours) {
   const allocation = allocateHours(totalHours);
   return [
-    {
-      ...PROFESSIONAL_FOUNDATION,
-      hours: allocation.foundation,
-    },
+    { ...PROFESSIONAL_FOUNDATION, hours: allocation.foundation },
     {
       name: `المحطة ${SPECIALIZATION_STAGE_STYLE.ordinal}: التخصص`,
       title: track.nameEn,
@@ -76,8 +73,8 @@ export function buildJourneyStages(track, totalHours) {
       desc: track.descriptionAr,
       hours: allocation.specialization,
       color: SPECIALIZATION_STAGE_STYLE.color,
-      tags: track.skills.slice(0, 6),
-      tasks: track.curriculumModules,
+      tags: (track.skills || []).slice(0, 6),
+      tasks: track.curriculumModules || [],
     },
     {
       name: `المحطة ${TASKS_STAGE_STYLE.ordinal}: المهام العملية`,
@@ -87,7 +84,7 @@ export function buildJourneyStages(track, totalHours) {
       hours: allocation.tasks,
       color: TASKS_STAGE_STYLE.color,
       tags: ['Tickets', 'Evidence', 'Mentor Review'],
-      tasks: track.practicalTasks,
+      tasks: track.practicalTasks || [],
     },
     {
       name: `المحطة ${FINAL_STAGE_STYLE.ordinal}: المشروع والإطلاق`,
@@ -108,33 +105,54 @@ export function buildJourneyStages(track, totalHours) {
 }
 
 /**
- * Client-side academic profile validation (mirrors server rules; server remains authoritative).
  * @returns {{ ok: true, profile: object } | { ok: false, errors: Record<string, string> }}
  */
 export function validateAcademicProfile(input) {
   const errors = {};
-  const universityValue = input.universityValue ?? '';
-  const isOtherUniversity = universityValue === OTHER_UNIVERSITY;
-  const universityName = (isOtherUniversity ? input.otherUniversityName : input.universityName || universityValue)
+  const universityCode = input.universityCode || input.universityValue || '';
+  const isOtherUniversity = universityCode === OTHER_UNIVERSITY;
+  const directoryUni = !isOtherUniversity ? findJordanUniversity(universityCode) : null;
+  const universityName = (
+    isOtherUniversity ? input.otherUniversityName || input.universityName : directoryUni?.nameAr || input.universityName
+  )
     ?.trim?.() || '';
-  if (!universityName) {
+
+  if (!universityCode) {
+    errors.university = 'يرجى اختيار الجامعة.';
+  } else if (isOtherUniversity && !universityName) {
+    errors.university = 'يرجى اختيار الجامعة.';
+  } else if (!isOtherUniversity && !directoryUni) {
     errors.university = 'يرجى اختيار الجامعة.';
   }
 
   const facultyCode = input.facultyCode ?? '';
   const isOtherFaculty = facultyCode === OTHER_FACULTY;
-  const facultyName = (isOtherFaculty ? input.otherFacultyName : input.facultyName || '')?.trim?.() || '';
-  if (!facultyCode) {
+  const facultyMeta = getFaculty(facultyCode);
+  const facultyName = (isOtherFaculty ? input.otherFacultyName || input.facultyName : facultyMeta?.labelAr || input.facultyName)
+    ?.trim?.() || '';
+
+  if (!facultyCode || !facultyMeta) {
     errors.faculty = 'يرجى اختيار الكلية.';
   } else if (isOtherFaculty && !facultyName) {
     errors.faculty = 'يرجى إدخال اسم الكلية.';
-  } else if (!isOtherFaculty && !facultyName) {
-    errors.faculty = 'يرجى اختيار الكلية.';
   }
 
-  const majorCode = input.majorCode ?? '';
-  if (!majorCode || !MAJOR_TO_TRACK[majorCode]) {
+  let majorCode = input.majorCode ?? '';
+  const majorMeta = getMajor(majorCode);
+  const isOtherMajor = Boolean(majorMeta?.isOther) || majorCode === OTHER_MAJOR;
+  const majorCustomName = (input.otherMajorName || input.majorCustomName || '')?.trim?.() || '';
+
+  if (isOtherFaculty) {
+    majorCode = OTHER_MAJOR;
+    if (!majorCustomName) {
+      errors.major = 'يرجى إدخال اسم التخصص.';
+    }
+  } else if (!majorCode) {
     errors.major = 'يرجى اختيار التخصص.';
+  } else if (!isMajorAllowedForFaculty(facultyCode, majorCode)) {
+    errors.major = 'التخصص لا ينتمي إلى الكلية المحددة.';
+  } else if (isOtherMajor && !majorCustomName) {
+    errors.major = 'يرجى إدخال اسم التخصص.';
   }
 
   const trainingHours = Number(input.trainingHours);
@@ -146,26 +164,30 @@ export function validateAcademicProfile(input) {
     return { ok: false, errors };
   }
 
-  const trackCode = MAJOR_TO_TRACK[majorCode];
-  const track = TRACK_CATALOG[trackCode];
-  const major = getMajorMeta(majorCode);
+  const trackCode = resolveTrackCodeForMajor(majorCode, facultyCode);
+  const track = TRACK_CATALOG[trackCode] || TRACK_CATALOG[TRACK_NOT_CONFIGURED];
+  const majorLabelAr = isOtherMajor || isOtherFaculty ? majorCustomName : majorMeta?.labelAr || majorCode;
 
   return {
     ok: true,
     profile: {
-      universityId: isOtherUniversity ? null : input.universityId ?? null,
+      universityCode: isOtherUniversity ? OTHER_UNIVERSITY : universityCode,
+      eprojectoUniversityId: null,
       universityName,
       isOtherUniversity,
-      facultyCode: isOtherFaculty ? OTHER_FACULTY : facultyCode,
+      facultyCode,
       facultyName,
+      facultyCustomName: isOtherFaculty ? facultyName : null,
       isOtherFaculty,
       majorCode,
-      majorLabelAr: major?.label ?? majorCode,
-      majorLabelEn: major?.labelEn ?? majorCode,
+      majorCustomName: isOtherMajor || isOtherFaculty ? majorCustomName : null,
+      majorLabelAr,
+      majorLabelEn: isOtherMajor || isOtherFaculty ? majorCustomName : majorMeta?.labelEn || majorCode,
       trainingHours,
       trackCode,
       trackNameAr: track.nameAr,
       trackNameEn: track.nameEn,
+      trackConfigured: track.configured !== false && trackCode !== TRACK_NOT_CONFIGURED && trackCode !== REQUIRES_REVIEW,
     },
   };
 }
@@ -173,12 +195,11 @@ export function validateAcademicProfile(input) {
 export function buildJourneyPlan(selection) {
   const validated = validateAcademicProfile(selection);
   if (!validated.ok) {
-    const first = Object.values(validated.errors)[0] || 'بيانات غير مكتملة';
-    throw new Error(first);
+    throw new Error(Object.values(validated.errors)[0] || 'بيانات غير مكتملة');
   }
 
   const { profile } = validated;
-  const track = getTrackForMajor(profile.majorCode);
+  const track = getTrackForMajor(profile.majorCode, profile.facultyCode);
   if (!track) throw new Error(`Unknown academic major: ${profile.majorCode}`);
   if (!isSupportedHours(profile.trainingHours)) {
     throw new Error(`Unsupported internship hours: ${profile.trainingHours}`);
@@ -186,6 +207,9 @@ export function buildJourneyPlan(selection) {
 
   const allocation = allocateHours(profile.trainingHours);
   const intensity = getIntensityBand(profile.trainingHours);
+  const pendingNote = !profile.trackConfigured
+    ? ' سيتم تجهيز المسار التدريبي المناسب لهذا التخصص.'
+    : '';
 
   return {
     ...profile,
@@ -197,10 +221,10 @@ export function buildJourneyPlan(selection) {
     intensity,
     weeks: Math.ceil(profile.trainingHours / WEEKLY_HOURS_MODEL),
     stages: buildJourneyStages(track, profile.trainingHours),
-    previewTasks: track.practicalTasks.slice(0, PRACTICAL_TASKS_PREVIEW_COUNT),
-    headline: `${track.nameAr}`,
+    previewTasks: (track.practicalTasks || []).slice(0, PRACTICAL_TASKS_PREVIEW_COUNT),
+    headline: track.nameAr,
     subtitle: `${profile.universityName} • ${profile.facultyName} • ${profile.trainingHours} ساعة • ${track.nameEn}`,
-    projectSummary: `${track.finalProject} | مخرجات التسليم: ${track.artifacts}`,
+    projectSummary: `${track.finalProject} | مخرجات التسليم: ${track.artifacts}${pendingNote}`,
     structureSummary: [
       { key: 'foundation', label: 'Professional Foundation', hours: allocation.foundation },
       { key: 'specialization', label: 'Specialized Training', hours: allocation.specialization },

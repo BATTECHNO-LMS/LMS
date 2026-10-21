@@ -145,7 +145,7 @@ export function InternshipJourneyPage() {
       <div className="ij-wrap">
         <JourneyHeader logoSrc={batmanTechnologyLogo} />
         <main>
-          <JourneyHero />
+          <JourneyHero logoSrc={batmanTechnologyLogo} />
           <JourneyConfigurator onBuild={handleBuild} />
 
           {plan ? (
