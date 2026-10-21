@@ -70,6 +70,36 @@ const REAL_UNIVERSITIES = [
     nameAliases: ['جامعة الزرقاء'],
     nameEnAliases: ['Zarqa University', 'Zarqa Private University'],
   },
+  {
+    name: 'جامعة الإسراء',
+    nameEn: 'Al-Isra University',
+    code: 'isra-university',
+    shortName: 'IU',
+    domain: 'iu.edu.jo',
+    website: 'https://www.iu.edu.jo/',
+    city: 'Amman',
+    country: 'Jordan',
+    contact_email: 'info@iu.edu.jo',
+    nameAliases: ['الإسراء', 'جامعة الاسراء'],
+    nameEnAliases: ['Isra University', 'Al Isra University', 'Al-Isra University'],
+  },
+  {
+    name: 'جامعة عمان الأهلية',
+    nameEn: 'Al-Ahliyya Amman University',
+    code: 'amman-ahliyya-university',
+    shortName: 'AAU',
+    domain: 'ammanu.edu.jo',
+    website: 'https://www.ammanu.edu.jo/',
+    city: 'Amman',
+    country: 'Jordan',
+    contact_email: 'Public@ammanu.edu.jo',
+    nameAliases: ['عمان الأهلية', 'الجامعة الأهلية', 'جامعة عمان الاهلية'],
+    nameEnAliases: [
+      'Amman Ahliyya University',
+      'Al Ahliyya Amman University',
+      'Ahliyya Amman University',
+    ],
+  },
 ];
 
 const REQUIRED_ROLES = [
@@ -119,10 +149,23 @@ const SPECIALTY_CATALOG = [
     name_en: 'Digital Reality and Game Development',
     code: 'DRGD',
   },
+  { name_ar: 'إدارة الأعمال', name_en: 'Business Administration', code: 'BA' },
+  { name_ar: 'المحاسبة', name_en: 'Accounting', code: 'ACC' },
+  {
+    name_ar: 'الإدارة المالية والمصرفية',
+    name_en: 'Finance Management and Banking',
+    code: 'FIN',
+  },
+  { name_ar: 'التسويق الرقمي', name_en: 'Digital Marketing', code: 'DMKT' },
+  {
+    name_ar: 'الإدارة اللوجستية والرقمية',
+    name_en: 'Digital Logistics Management',
+    code: 'DLOG',
+  },
 ];
 
 /**
- * University-specific IT programs for student registration.
+ * University-specific programs for student registration (IT + selected business faculties).
  * `canonicalCode` links to SPECIALTY_CATALOG for Field Training matching.
  */
 const UNIVERSITY_SPECIALTY_CATALOG = [
@@ -327,6 +370,53 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
         name_en: 'Cybersecurity',
         code: 'CYBERSECURITY',
         canonicalCode: 'CYB',
+      },
+    ],
+  },
+  /**
+   * Isra University — Faculty of Business only (official IU bachelor programs).
+   * Source: iu.edu.jo Faculty of Business (accounting, BA, finance & banking, MIS, digital marketing, digital logistics).
+   */
+  {
+    universityDomain: 'iu.edu.jo',
+    collegeNameAr: 'كلية الأعمال',
+    collegeNameEn: 'Faculty of Business',
+    programs: [
+      {
+        name_ar: 'إدارة الأعمال',
+        name_en: 'Business Administration',
+        code: 'BUSINESS_ADMINISTRATION',
+        canonicalCode: 'BA',
+      },
+      {
+        name_ar: 'المحاسبة',
+        name_en: 'Accounting',
+        code: 'ACCOUNTING',
+        canonicalCode: 'ACC',
+      },
+      {
+        name_ar: 'الإدارة المالية والمصرفية',
+        name_en: 'Finance Management and Banking',
+        code: 'FINANCE_BANKING',
+        canonicalCode: 'FIN',
+      },
+      {
+        name_ar: 'نظم المعلومات الإدارية',
+        name_en: 'Management Information Systems',
+        code: 'MANAGEMENT_INFORMATION_SYSTEMS',
+        canonicalCode: 'MIS',
+      },
+      {
+        name_ar: 'التسويق الرقمي',
+        name_en: 'Digital Marketing',
+        code: 'DIGITAL_MARKETING',
+        canonicalCode: 'DMKT',
+      },
+      {
+        name_ar: 'الإدارة اللوجستية والرقمية',
+        name_en: 'Digital Logistics Management',
+        code: 'DIGITAL_LOGISTICS',
+        canonicalCode: 'DLOG',
       },
     ],
   },
