@@ -101,5 +101,8 @@ export const endpoints = {
   },
   public: {
     landingStats: `${API_V}/public/landing-stats`,
+    internshipJourneyUniversities: `${API_V}/public/internship-journey/universities`,
+    internshipJourneyTracks: `${API_V}/public/internship-journey/tracks`,
+    internshipJourneyValidate: `${API_V}/public/internship-journey/validate`,
   },
 };

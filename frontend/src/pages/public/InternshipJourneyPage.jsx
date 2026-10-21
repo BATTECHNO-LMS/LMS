@@ -3,11 +3,13 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle.js';
 import {
   JOURNEY_SCROLL_DELAY_MS,
   buildJourneyPlan,
+  saveAcademicProfile,
 } from '../../features/internshipJourney/index.js';
 import batmanTechnologyLogo from '../../assets/images/batman-technology-logo.webp';
 import { AnimatedBrandIntro } from '../../components/internshipJourney/AnimatedBrandIntro.jsx';
 import { JourneyHeader, JourneyHero } from '../../components/internshipJourney/JourneyHero.jsx';
 import { JourneyConfigurator } from '../../components/internshipJourney/JourneyConfigurator.jsx';
+import { TrackPreview } from '../../components/internshipJourney/TrackPreview.jsx';
 import { JourneyRoadmap } from '../../components/internshipJourney/JourneyRoadmap.jsx';
 import { PracticalMissions } from '../../components/internshipJourney/PracticalMissions.jsx';
 import { CareerTrackInfo, EvaluationExplainer } from '../../components/internshipJourney/EvaluationExplainer.jsx';
@@ -16,9 +18,9 @@ import { StageDetailsModal } from '../../components/internshipJourney/StageDetai
 import { JourneyConfetti } from '../../components/internshipJourney/JourneyConfetti.jsx';
 import '../../components/internshipJourney/internship-journey.css';
 
-const PAGE_TITLE = 'BATMAN TECHNOLOGY | رحلة التدريب الميداني';
+const PAGE_TITLE = 'eprojecto | رحلة التدريب الميداني';
 const PAGE_DESCRIPTION =
-  'خطة التدريب الميداني من BATMAN TECHNOLOGY: اختر جامعتك وساعات تدريبك وتخصصك لتحصل على خريطة تدريب مهنية، وآلية تقييم EPROJECTO وخطوات الالتحاق.';
+  'حدد جامعتك وكليتك وتخصصك وساعات التدريب المطلوبة، واحصل على مسار تدريب ميداني مخصص قبل الالتحاق عبر eprojecto.';
 const FONT_STYLESHEET_ID = 'ij-fonts';
 const FONT_STYLESHEET_URL =
   'https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap';
@@ -81,7 +83,7 @@ function useSmoothAnchorScrolling() {
 export function InternshipJourneyPage() {
   useDocumentTitle(PAGE_TITLE);
   useMetaContent('description', PAGE_DESCRIPTION);
-  useMetaContent('theme-color', '#f8f7ff');
+  useMetaContent('theme-color', '#fcfaf5');
   useJourneyFonts();
   useScrollToEntryPoint();
   useSmoothAnchorScrolling();
@@ -89,6 +91,7 @@ export function InternshipJourneyPage() {
   const [plan, setPlan] = useState(null);
   const [openStage, setOpenStage] = useState(null);
   const journeyRef = useRef(null);
+  const enrollRef = useRef(null);
   const buildCountRef = useRef(0);
   const scrollTimerRef = useRef(null);
 
@@ -96,7 +99,22 @@ export function InternshipJourneyPage() {
 
   const handleBuild = useCallback((selection) => {
     buildCountRef.current += 1;
-    setPlan({ ...buildJourneyPlan(selection), id: buildCountRef.current });
+    const next = { ...buildJourneyPlan(selection), id: buildCountRef.current };
+    setPlan(next);
+    saveAcademicProfile({
+      universityId: next.universityId,
+      universityName: next.universityName,
+      isOtherUniversity: next.isOtherUniversity,
+      facultyCode: next.facultyCode,
+      facultyName: next.facultyName,
+      isOtherFaculty: next.isOtherFaculty,
+      majorCode: next.majorCode,
+      majorLabelAr: next.majorLabelAr,
+      trainingHours: next.trainingHours,
+      trackCode: next.trackCode,
+      trackNameAr: next.trackNameAr,
+      trackNameEn: next.trackNameEn,
+    });
     window.clearTimeout(scrollTimerRef.current);
     scrollTimerRef.current = window.setTimeout(() => {
       journeyRef.current?.scrollIntoView({
@@ -104,6 +122,13 @@ export function InternshipJourneyPage() {
         block: 'start',
       });
     }, JOURNEY_SCROLL_DELAY_MS);
+  }, []);
+
+  const handleEnroll = useCallback(() => {
+    enrollRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      block: 'start',
+    });
   }, []);
 
   const handleOpenStage = useCallback((stage, trigger) => {
@@ -125,6 +150,7 @@ export function InternshipJourneyPage() {
 
           {plan ? (
             <div ref={journeyRef} className="ij-journey" id="journey">
+              <TrackPreview plan={plan} onEnroll={handleEnroll} />
               <JourneyRoadmap plan={plan} onOpenStage={handleOpenStage} />
               <PracticalMissions plan={plan} />
             </div>
@@ -132,20 +158,24 @@ export function InternshipJourneyPage() {
 
           <CareerTrackInfo />
           <EvaluationExplainer />
-          <EnrollmentSteps />
+          <div ref={enrollRef}>
+            <EnrollmentSteps profile={plan} />
+          </div>
 
           <div className="ij-footbox">
             <div>
-              <h3>🚀 كل مهمة تقرّبك أكثر من سوق العمل!</h3>
-              <p>خطة استرشادية قابلة للتكييف مع كتاب الجامعة واحتياجات الشركة؛ ليست شهادة أو تعهداً بالتوظيف.</p>
+              <h3>مسار واضح… وخطوات التحاق عملية</h3>
+              <p>
+                خطة استرشادية قابلة للتكييف مع كتاب الجامعة واحتياجات الشركة؛ ليست شهادة أو تعهداً بالتوظيف.
+              </p>
             </div>
             <button type="button" className="ij-btn ij-btn--secondary" onClick={() => window.print()}>
-              🖨️ اطبع / احفظ الخطة PDF
+              اطبع / احفظ الخطة PDF
             </button>
           </div>
         </main>
         <footer className="ij-footer">
-          BATMAN TECHNOLOGY • AMMAN, JORDAN &nbsp; ✦ &nbsp; FIELD TRAINING JOURNEY • EPROJECTO INSPIRED
+          eprojecto • BATMAN TECHNOLOGY • AMMAN, JORDAN &nbsp; ✦ &nbsp; FIELD TRAINING JOURNEY
         </footer>
       </div>
 

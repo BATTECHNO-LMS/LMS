@@ -7,27 +7,38 @@ import {
   ACADEMIC_MAJORS,
   ALLOCATION_PERCENT,
   COMPANY_MAP_URL,
-  DEFAULT_HOURS,
   ENROLLMENT_PHONES,
   EVALUATION_WEIGHTS,
+  FACULTY_OPTIONS,
+  FALLBACK_UNIVERSITIES,
   HOURS_OPTIONS,
   MAJOR_TO_TRACK,
+  OTHER_FACULTY,
+  OTHER_UNIVERSITY,
   PASS_SCORE,
   TRACK_CATALOG,
-  UNIVERSITIES,
   allocateHours,
+  buildEnrollmentWhatsAppMessage,
   buildJourneyPlan,
+  getIntensityBand,
   getTrackForMajor,
   phoneHref,
+  validateAcademicProfile,
   whatsappHref,
 } from '../src/features/internshipJourney/index.js';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 
-/** Exact WhatsApp link from BATMAN_TECHNOLOGY_Internship_Journey_V4.html. */
-const V4_WHATSAPP_URL =
-  'https://wa.me/962791433341?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%B1%D8%BA%D8%A8%20%D8%A8%D8%A7%D9%84%D8%A7%D9%84%D8%AA%D8%AD%D8%A7%D9%82%20%D8%A8%D8%A7%D9%84%D8%AA%D8%AF%D8%B1%D9%8A%D8%A8%20%D8%A7%D9%84%D9%85%D9%8A%D8%AF%D8%A7%D9%86%D9%8A';
+const BASE_SELECTION = {
+  universityValue: 'جامعة مؤتة',
+  universityName: 'جامعة مؤتة',
+  universityId: null,
+  facultyCode: 'BUSINESS',
+  facultyName: 'كلية الأعمال',
+  majorCode: 'MIS',
+  trainingHours: 160,
+};
 
 describe('Internship journey public route and navigation', () => {
   test('route is registered outside ProtectedRoute', () => {
@@ -43,24 +54,6 @@ describe('Internship journey public route and navigation', () => {
     const nav = read('src/components/landing/hero/HeroFloatingNav.jsx');
     const links = nav.match(/<NavLink\s+to=\{INTERNSHIP_JOURNEY_PATH\}/g) || [];
     assert.equal(links.length, 2);
-    assert.equal((nav.match(/header\.navInternshipJourney/g) || []).length, 2);
-    assert.equal(JSON.parse(read('src/i18n/locales/ar/landing.json')).header.navInternshipJourney, 'خطة التدريب الميداني');
-    assert.equal(JSON.parse(read('src/i18n/locales/en/landing.json')).header.navInternshipJourney, 'Internship Journey');
-  });
-
-  test('page and components never touch auth, API clients, or private services', () => {
-    const files = [
-      'src/pages/public/InternshipJourneyPage.jsx',
-      ...fs
-        .readdirSync(path.join(root, 'src/components/internshipJourney'))
-        .filter((f) => f.endsWith('.jsx') || f.endsWith('.js'))
-        .map((f) => `src/components/internshipJourney/${f}`),
-    ];
-    for (const file of files) {
-      const src = read(file);
-      assert.doesNotMatch(src, /services\/|apiClient|useAuth|features\/auth|axios|fetch\(/, file);
-      assert.doesNotMatch(src, /dangerouslySetInnerHTML/, file);
-    }
   });
 
   test('styles are scoped so they cannot leak into the rest of EPROJECTO', () => {
@@ -79,105 +72,216 @@ describe('Internship journey public route and navigation', () => {
       assert.match(name[1], /^ij-/, `unprefixed keyframes: ${name[1]}`);
     }
   });
+
+  test('page components do not use auth or private admin APIs', () => {
+    const files = [
+      'src/pages/public/InternshipJourneyPage.jsx',
+      ...fs
+        .readdirSync(path.join(root, 'src/components/internshipJourney'))
+        .filter((f) => f.endsWith('.jsx') || f.endsWith('.js'))
+        .map((f) => `src/components/internshipJourney/${f}`),
+    ];
+    for (const file of files) {
+      const src = read(file);
+      assert.doesNotMatch(src, /useAuth|features\/auth|dangerouslySetInnerHTML/, file);
+      assert.doesNotMatch(src, /admin\/field-training|adminFieldTraining/, file);
+    }
+  });
+});
+
+describe('Academic profile validation and dependencies', () => {
+  test('university, faculty, major, and hours are required', () => {
+    const empty = validateAcademicProfile({});
+    assert.equal(empty.ok, false);
+    assert.equal(empty.errors.university, 'يرجى اختيار الجامعة.');
+    assert.equal(empty.errors.faculty, 'يرجى اختيار الكلية.');
+    assert.equal(empty.errors.major, 'يرجى اختيار التخصص.');
+    assert.equal(empty.errors.hours, 'يرجى تحديد عدد ساعات التدريب.');
+  });
+
+  test('other university and other faculty require free-text names', () => {
+    const otherUni = validateAcademicProfile({
+      ...BASE_SELECTION,
+      universityValue: OTHER_UNIVERSITY,
+      otherUniversityName: '',
+    });
+    assert.equal(otherUni.ok, false);
+    assert.equal(otherUni.errors.university, 'يرجى اختيار الجامعة.');
+
+    const otherFac = validateAcademicProfile({
+      ...BASE_SELECTION,
+      facultyCode: OTHER_FACULTY,
+      otherFacultyName: '',
+      facultyName: '',
+    });
+    assert.equal(otherFac.ok, false);
+    assert.match(otherFac.errors.faculty, /الكلية/);
+  });
+
+  test('hours 80 / 90 / 300 accepted; 75 / 85 / 310 rejected', () => {
+    for (const h of [80, 90, 300]) {
+      const ok = validateAcademicProfile({ ...BASE_SELECTION, trainingHours: h });
+      assert.equal(ok.ok, true, String(h));
+    }
+    for (const h of [75, 85, 310]) {
+      const bad = validateAcademicProfile({ ...BASE_SELECTION, trainingHours: h });
+      assert.equal(bad.ok, false, String(h));
+    }
+  });
+
+  test('configurator resets dependent fields when university or faculty changes', () => {
+    const configurator = read('src/components/internshipJourney/JourneyConfigurator.jsx');
+    assert.match(configurator, /function resetFromUniversity/);
+    assert.match(configurator, /function resetFromFaculty/);
+    assert.match(configurator, /resetFromUniversity\(\)/);
+    assert.match(configurator, /resetFromFaculty\(\)/);
+    assert.match(configurator, /disabled=\{!facultyEnabled\}/);
+    assert.match(configurator, /disabled=\{!majorEnabled\}/);
+    assert.match(configurator, /disabled=\{!hoursEnabled\}/);
+  });
 });
 
 describe('Internship journey hours and allocation', () => {
-  test('hours range from 80 to 300 in steps of 10, defaulting to 160', () => {
+  test('hours range from 80 to 300 in steps of 10', () => {
     assert.equal(HOURS_OPTIONS.length, 23);
     assert.equal(HOURS_OPTIONS[0], 80);
     assert.equal(HOURS_OPTIONS.at(-1), 300);
     HOURS_OPTIONS.forEach((h, i) => assert.equal(h, 80 + i * 10));
-    assert.equal(DEFAULT_HOURS, 160);
   });
 
-  test('allocation is 10% / 15% / 75% and always sums exactly to the total', () => {
-    assert.deepEqual(ALLOCATION_PERCENT, { softSkills: 10, commonIt: 15, specialized: 75 });
+  test('allocation is 20% / 45% / 20% / 15% and always sums exactly to the total', () => {
+    assert.deepEqual(ALLOCATION_PERCENT, {
+      foundation: 20,
+      specialization: 45,
+      tasks: 20,
+      finalProject: 15,
+    });
     for (const h of HOURS_OPTIONS) {
       const a = allocateHours(h);
-      assert.equal(a.softSkills + a.commonIt + a.specialized, h, `buckets for ${h}`);
-      assert.equal(a.modules.reduce((x, y) => x + y, 0), a.specialized, `modules for ${h}`);
-      for (const value of [a.softSkills, a.commonIt, ...a.modules]) assert.ok(Number.isInteger(value));
+      assert.equal(a.foundation + a.specialization + a.tasks + a.finalProject, h, `buckets for ${h}`);
+      for (const value of [a.foundation, a.specialization, a.tasks, a.finalProject]) {
+        assert.ok(Number.isInteger(value));
+      }
     }
   });
 
-  test('matches the V4 numbers for the QA sample hours', () => {
-    const expected = {
-      80: [8, 12, 60, [17, 19, 24]],
-      120: [12, 18, 90, [26, 28, 36]],
-      160: [16, 24, 120, [34, 38, 48]],
-      240: [24, 36, 180, [52, 57, 71]],
-      300: [30, 45, 225, [65, 72, 88]],
-    };
-    for (const [hours, [soft, core, spec, modules]] of Object.entries(expected)) {
-      const a = allocateHours(Number(hours));
-      assert.deepEqual([a.softSkills, a.commonIt, a.specialized, a.modules], [soft, core, spec, modules], hours);
-    }
+  test('sample hour allocations match the percentage architecture', () => {
+    assert.deepEqual(allocateHours(100), {
+      total: 100,
+      foundation: 20,
+      specialization: 45,
+      tasks: 20,
+      finalProject: 15,
+      softSkills: 20,
+      commonIt: 0,
+      specialized: 45,
+      modules: [45],
+    });
+    assert.deepEqual(allocateHours(200), {
+      total: 200,
+      foundation: 40,
+      specialization: 90,
+      tasks: 40,
+      finalProject: 30,
+      softSkills: 40,
+      commonIt: 0,
+      specialized: 90,
+      modules: [90],
+    });
+    assert.deepEqual(allocateHours(160), {
+      total: 160,
+      foundation: 32,
+      specialization: 72,
+      tasks: 32,
+      finalProject: 24,
+      softSkills: 32,
+      commonIt: 0,
+      specialized: 72,
+      modules: [72],
+    });
   });
 
-  test('fractional 15% buckets round half up, as in V4', () => {
-    assert.deepEqual(allocateHours(90), { total: 90, softSkills: 9, commonIt: 14, specialized: 67, modules: [19, 21, 27] });
-    assert.equal(allocateHours(110).commonIt, 17);
+  test('intensity bands scale with hours without inventing separate curricula', () => {
+    assert.equal(getIntensityBand(100).id, 'foundation');
+    assert.equal(getIntensityBand(160).id, 'standard');
+    assert.equal(getIntensityBand(200).id, 'extended');
+    assert.equal(getIntensityBand(280).id, 'advanced');
   });
 
-  test('plan stages sum to the selected hours and expose V4 dashboard metrics', () => {
-    for (const h of HOURS_OPTIONS) {
-      const plan = buildJourneyPlan({ university: 'جامعة مؤتة', hours: h, majorKey: 'cs' });
-      assert.equal(plan.stages.length, 6);
-      assert.equal(plan.stages.reduce((sum, s) => sum + s.hours, 0), h);
-      assert.equal(plan.stages.at(-1).hours, 0);
-      assert.equal(plan.weeks, Math.ceil(h / 20));
-      assert.equal(plan.previewTasks.length, 7);
-    }
-    assert.throws(() => buildJourneyPlan({ university: 'x', hours: 85, majorKey: 'cs' }));
-    assert.throws(() => buildJourneyPlan({ university: 'x', hours: 160, majorKey: 'unknown' }));
+  test('plan stages sum to selected hours and expose track preview data', () => {
+    const plan = buildJourneyPlan(BASE_SELECTION);
+    assert.equal(plan.stages.length, 4);
+    assert.equal(plan.stages.reduce((sum, s) => sum + s.hours, 0), 160);
+    assert.equal(plan.track.code, 'MIS');
+    assert.equal(plan.structureSummary.length, 4);
+    assert.equal(plan.weeks, 8);
+    assert.throws(() => buildJourneyPlan({ ...BASE_SELECTION, trainingHours: 85 }));
+    assert.throws(() => buildJourneyPlan({ ...BASE_SELECTION, majorCode: 'unknown' }));
   });
 });
 
-describe('Internship journey specializations and career pathways', () => {
-  test('all 25 V4 academic majors map to one of 13 career track families', () => {
-    assert.equal(ACADEMIC_MAJORS.length, 25);
-    assert.equal(Object.keys(TRACK_CATALOG).length, 13);
-    const reachable = new Set();
+describe('Specialized field training tracks', () => {
+  test('four active majors map to dedicated tracks with stable codes', () => {
+    assert.equal(ACADEMIC_MAJORS.length, 4);
+    assert.deepEqual(
+      ACADEMIC_MAJORS.map((m) => m.value),
+      ['MIS', 'DIGITAL_MARKETING', 'FINANCE_BANKING', 'BUSINESS_ADMINISTRATION']
+    );
     for (const major of ACADEMIC_MAJORS) {
-      const familyKey = MAJOR_TO_TRACK[major.value];
-      assert.ok(TRACK_CATALOG[familyKey], `${major.value} -> ${familyKey}`);
-      reachable.add(familyKey);
-    }
-    assert.equal(reachable.size, 13, 'every track family is reachable from some major');
-    for (const [key, track] of Object.entries(TRACK_CATALOG)) {
-      assert.equal(track.modules.length, 3, key);
-      for (const m of track.modules) assert.equal(m.tasks.length, 5, `${key}/${m.title}`);
+      assert.equal(MAJOR_TO_TRACK[major.value], major.trackCode);
+      assert.ok(TRACK_CATALOG[major.trackCode]);
+      assert.equal(TRACK_CATALOG[major.trackCode].active, true);
     }
   });
 
-  test('key majors map to their employability pathways', () => {
-    const titles = (major) => getTrackForMajor(major).modules.map((m) => m.title);
-    const tags = (major) => getTrackForMajor(major).modules.flatMap((m) => m.tags);
-    assert.deepEqual(titles('cs'), ['Backend Engineering', 'Database & Data Modeling', 'API Delivery & Integration']);
-    assert.deepEqual(titles('se'), ['Product & Requirements', 'Full-Stack Feature Delivery', 'Quality & Release']);
-    assert.deepEqual(titles('cy'), ['Recon & Scope', 'Web Pentesting Labs', 'Reporting & Retesting']);
-    assert.deepEqual(titles('ai'), ['Python & LLM API Integration', 'RAG & Retrieval', 'AI Evaluation & Production']);
-    assert.ok(tags('ds').includes('Power BI'));
-    assert.ok(tags('ds').includes('Scikit-learn'));
+  test('MIS / Digital Marketing / Finance / Business Administration mappings', () => {
+    assert.equal(getTrackForMajor('MIS').finalProject, 'Business Management Information System');
+    assert.equal(getTrackForMajor('DIGITAL_MARKETING').finalProject, 'Complete Digital Marketing Campaign');
+    assert.equal(getTrackForMajor('FINANCE_BANKING').finalProject, 'Financial Performance & Banking Analysis');
+    assert.equal(getTrackForMajor('BUSINESS_ADMINISTRATION').finalProject, 'Business Improvement Project');
+    assert.ok(getTrackForMajor('MIS').skills.includes('Power BI'));
+    assert.ok(getTrackForMajor('DIGITAL_MARKETING').skills.includes('SEO'));
+    assert.ok(getTrackForMajor('FINANCE_BANKING').skills.includes('KYC / AML Awareness'));
+    assert.ok(getTrackForMajor('BUSINESS_ADMINISTRATION').skills.includes('Project Management'));
   });
 
-  test('cybersecurity tracks are restricted to authorized environments', () => {
-    for (const major of ['cy', 'pen', 'netsec']) {
-      const track = getTrackForMajor(major);
-      assert.match(track.note, /تفويض صريح/);
-      assert.match(track.artifacts, /Written Authorization/);
-    }
-  });
-
-  test('university list is preserved and does not imply hour requirements', () => {
-    assert.equal(UNIVERSITIES.length, 20);
-    assert.ok(UNIVERSITIES.includes('جامعة الطفيلة التقنية'));
+  test('architecture remains extensible for future majors', () => {
+    assert.ok(!('CYBERSECURITY' in MAJOR_TO_TRACK));
+    // Adding a future major only requires catalog + mapping entries — no hardcoded page branches for the four.
     const configurator = read('src/components/internshipJourney/JourneyConfigurator.jsx');
-    assert.match(configurator, /اسم الجامعة لا يحدد الساعات تلقائياً/);
+    assert.match(configurator, /getActiveMajors\(\)/);
+    assert.doesNotMatch(configurator, /if \(majorCode === 'MIS'\)/);
+  });
+
+  test('faculty options include other faculty; universities fallback preserved', () => {
+    assert.ok(FACULTY_OPTIONS.some((f) => f.code === OTHER_FACULTY));
+    assert.ok(FALLBACK_UNIVERSITIES.includes('جامعة الطفيلة التقنية'));
+    assert.ok(FALLBACK_UNIVERSITIES.includes('جامعة الزرقاء'));
   });
 });
 
-describe('Internship journey evaluation and enrollment', () => {
+describe('Registration handoff and evaluation', () => {
+  test('WhatsApp enrollment message carries academic profile without requiring re-entry', () => {
+    const profile = validateAcademicProfile(BASE_SELECTION).profile;
+    const msg = buildEnrollmentWhatsAppMessage(profile);
+    assert.match(msg, /جامعة مؤتة/);
+    assert.match(msg, /كلية الأعمال/);
+    assert.match(msg, /160/);
+    assert.match(msg, /MIS|نظم المعلومات/);
+    assert.match(whatsappHref(undefined, msg), /wa\.me\/962791433341/);
+  });
+
+  test('contact numbers and map link remain canonical', () => {
+    assert.deepEqual(
+      ENROLLMENT_PHONES.map((p) => [p.display, phoneHref(p.international)]),
+      [
+        ['0791433341', 'tel:+962791433341'],
+        ['0798040280', 'tel:+962798040280'],
+      ]
+    );
+    assert.equal(COMPANY_MAP_URL, 'https://maps.app.goo.gl/dGpq6DDF6xymechq7');
+  });
+
   test('EPROJECTO evaluation weights and pass score are unchanged', () => {
     assert.deepEqual(
       EVALUATION_WEIGHTS.map((w) => [w.key, w.percent]),
@@ -190,19 +294,13 @@ describe('Internship journey evaluation and enrollment', () => {
     );
     assert.equal(EVALUATION_WEIGHTS.reduce((s, w) => s + w.percent, 0), 100);
     assert.equal(PASS_SCORE, 80);
-    assert.ok(!EVALUATION_WEIGHTS.some((w) => /pre/i.test(w.key)), 'pre-assessment is diagnostic only');
-    assert.match(read('src/components/internshipJourney/EvaluationExplainer.jsx'), /Pre-Assessment لقياس المستوى \(غير محسوب في العلامة\)/);
   });
 
-  test('contact numbers, WhatsApp and map link match V4 exactly', () => {
-    assert.deepEqual(
-      ENROLLMENT_PHONES.map((p) => [p.display, phoneHref(p.international)]),
-      [
-        ['0791433341', 'tel:+962791433341'],
-        ['0798040280', 'tel:+962798040280'],
-      ]
-    );
-    assert.equal(whatsappHref(), V4_WHATSAPP_URL);
-    assert.equal(COMPANY_MAP_URL, 'https://maps.app.goo.gl/dGpq6DDF6xymechq7');
+  test('CTA and track preview are wired on the page', () => {
+    const page = read('src/pages/public/InternshipJourneyPage.jsx');
+    assert.match(page, /TrackPreview/);
+    assert.match(page, /saveAcademicProfile/);
+    assert.match(page, /EnrollmentSteps profile=\{plan\}/);
+    assert.match(read('src/components/internshipJourney/TrackPreview.jsx'), /ابدأ التسجيل في التدريب/);
   });
 });

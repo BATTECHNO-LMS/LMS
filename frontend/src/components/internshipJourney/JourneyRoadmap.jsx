@@ -61,7 +61,7 @@ export function JourneyRoadmap({ plan, onOpenStage }) {
           <p>أسبوع على أساس 20 ساعة أسبوعياً (نموذج)</p>
         </div>
         <div className="ij-metric">
-          <div className="ij-big">{plan.allocation.specialized}h</div>
+          <div className="ij-big">{plan.allocation.specialization}h</div>
           <p>ساعات التدريب التخصصي</p>
         </div>
         <div className="ij-metric">
