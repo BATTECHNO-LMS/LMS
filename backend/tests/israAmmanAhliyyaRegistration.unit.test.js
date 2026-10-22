@@ -18,12 +18,14 @@ describe('Isra + Amman Ahliyya registration catalog', () => {
     assert.equal(ahliyya.name, 'جامعة عمان الأهلية');
   });
 
-  it('registers only Isra Faculty of Business bachelor majors', () => {
+  it('registers Isra Faculty of Business and Faculty of IT bachelor majors', () => {
     const blocks = UNIVERSITY_SPECIALTY_CATALOG.filter((b) => b.universityDomain === 'iu.edu.jo');
-    assert.equal(blocks.length, 1);
-    assert.equal(blocks[0].collegeNameAr, 'كلية الأعمال');
-    const codes = blocks[0].programs.map((p) => p.code).sort();
-    assert.deepEqual(codes, [
+    assert.equal(blocks.length, 2);
+    const business = blocks.find((b) => b.collegeNameAr === 'كلية الأعمال');
+    const it = blocks.find((b) => b.collegeNameAr === 'كلية تكنولوجيا المعلومات');
+    assert.ok(business);
+    assert.ok(it);
+    assert.deepEqual(business.programs.map((p) => p.code).sort(), [
       'ACCOUNTING',
       'BUSINESS_ADMINISTRATION',
       'DIGITAL_LOGISTICS',
@@ -31,15 +33,15 @@ describe('Isra + Amman Ahliyya registration catalog', () => {
       'FINANCE_BANKING',
       'MANAGEMENT_INFORMATION_SYSTEMS',
     ]);
-    const names = blocks[0].programs.map((p) => p.name_ar);
-    assert.ok(names.includes('إدارة الأعمال'));
-    assert.ok(names.includes('المحاسبة'));
-    assert.ok(names.includes('الإدارة المالية والمصرفية'));
-    assert.ok(names.includes('نظم المعلومات الإدارية'));
-    assert.ok(names.includes('التسويق الرقمي'));
-    assert.ok(names.includes('الإدارة اللوجستية والرقمية'));
-    // No IT majors under Isra in this phase
-    assert.ok(!names.some((n) => /حاسوب|سيبراني|برمجيات/.test(n)));
+    assert.deepEqual(it.programs.map((p) => p.code).sort(), [
+      'COMPUTER_INFORMATION_SYSTEMS',
+      'COMPUTER_SCIENCE',
+      'COMPUTER_SCIENCE_MULTIMEDIA',
+      'COMPUTER_SCIENCE_NETWORKS',
+      'CYBERSECURITY',
+      'DATA_SCIENCE_AI',
+      'SOFTWARE_ENGINEERING',
+    ]);
   });
 
   it('does not attach Amman Ahliyya specialties until requested', () => {
@@ -47,14 +49,16 @@ describe('Isra + Amman Ahliyya registration catalog', () => {
     assert.equal(blocks.length, 0);
   });
 
-  it('links Isra business programs to global specialty codes', () => {
+  it('links Isra programs to global specialty codes', () => {
     const global = new Set(SPECIALTY_CATALOG.map((s) => s.code));
-    for (const code of ['BA', 'ACC', 'FIN', 'MIS', 'DMKT', 'DLOG']) {
+    for (const code of ['BA', 'ACC', 'FIN', 'MIS', 'DMKT', 'DLOG', 'CS', 'CIS', 'SWE', 'CYB', 'DS_AI', 'NET']) {
       assert.ok(global.has(code), `missing global specialty ${code}`);
     }
-    const isra = UNIVERSITY_SPECIALTY_CATALOG.find((b) => b.universityDomain === 'iu.edu.jo');
-    for (const program of isra.programs) {
-      assert.ok(global.has(program.canonicalCode), `${program.code} → ${program.canonicalCode}`);
+    const blocks = UNIVERSITY_SPECIALTY_CATALOG.filter((b) => b.universityDomain === 'iu.edu.jo');
+    for (const block of blocks) {
+      for (const program of block.programs) {
+        assert.ok(global.has(program.canonicalCode), `${program.code} → ${program.canonicalCode}`);
+      }
     }
   });
 });

@@ -374,8 +374,8 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
     ],
   },
   /**
-   * Isra University — Faculty of Business only (official IU bachelor programs).
-   * Source: iu.edu.jo Faculty of Business (accounting, BA, finance & banking, MIS, digital marketing, digital logistics).
+   * Isra University — Faculty of Business (official IU bachelor programs).
+   * Source: iu.edu.jo Faculty of Business.
    */
   {
     universityDomain: 'iu.edu.jo',
@@ -417,6 +417,59 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
         name_en: 'Digital Logistics Management',
         code: 'DIGITAL_LOGISTICS',
         canonicalCode: 'DLOG',
+      },
+    ],
+  },
+  /**
+   * Isra University — Faculty of Information Technology (official IU bachelor programs).
+   * Source: iu.edu.jo undergraduate IT programs.
+   */
+  {
+    universityDomain: 'iu.edu.jo',
+    collegeNameAr: 'كلية تكنولوجيا المعلومات',
+    collegeNameEn: 'Faculty of Information Technology',
+    programs: [
+      {
+        name_ar: 'علم الحاسوب',
+        name_en: 'Computer Science',
+        code: 'COMPUTER_SCIENCE',
+        canonicalCode: 'CS',
+      },
+      {
+        name_ar: 'علم الحاسوب / الوسائط المتعددة',
+        name_en: 'Computer Science / Multimedia',
+        code: 'COMPUTER_SCIENCE_MULTIMEDIA',
+        canonicalCode: 'CS',
+      },
+      {
+        name_ar: 'علم الحاسوب / شبكات الحاسوب',
+        name_en: 'Computer Science / Computer Networks',
+        code: 'COMPUTER_SCIENCE_NETWORKS',
+        canonicalCode: 'NET',
+      },
+      {
+        name_ar: 'نظم المعلومات الحاسوبية',
+        name_en: 'Computer Information Systems',
+        code: 'COMPUTER_INFORMATION_SYSTEMS',
+        canonicalCode: 'CIS',
+      },
+      {
+        name_ar: 'هندسة البرمجيات',
+        name_en: 'Software Engineering',
+        code: 'SOFTWARE_ENGINEERING',
+        canonicalCode: 'SWE',
+      },
+      {
+        name_ar: 'الأمن السيبراني',
+        name_en: 'Cybersecurity',
+        code: 'CYBERSECURITY',
+        canonicalCode: 'CYB',
+      },
+      {
+        name_ar: 'علم البيانات والذكاء الاصطناعي',
+        name_en: 'Data Science and Artificial Intelligence',
+        code: 'DATA_SCIENCE_AI',
+        canonicalCode: 'DS_AI',
       },
     ],
   },
