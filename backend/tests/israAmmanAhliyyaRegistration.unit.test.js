@@ -49,6 +49,26 @@ describe('Isra + Amman Ahliyya registration catalog', () => {
     assert.equal(blocks.length, 0);
   });
 
+  it('includes Middle East University IT faculty majors', () => {
+    const meu = REAL_UNIVERSITIES.find((u) => u.domain === 'meu.edu.jo');
+    assert.ok(meu, 'MEU must be in REAL_UNIVERSITIES');
+    assert.equal(meu.name, 'جامعة الشرق الأوسط');
+    const blocks = UNIVERSITY_SPECIALTY_CATALOG.filter((b) => b.universityDomain === 'meu.edu.jo');
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0].collegeNameAr, 'كلية تكنولوجيا المعلومات');
+    assert.deepEqual(blocks[0].programs.map((p) => p.code).sort(), [
+      'COMPUTER_SCIENCE',
+      'CYBERSECURITY',
+      'DATA_SCIENCE_AI',
+      'SOFTWARE_ENGINEERING',
+    ]);
+    const names = blocks[0].programs.map((p) => p.name_ar);
+    assert.ok(names.includes('علم الحاسوب'));
+    assert.ok(names.includes('هندسة البرمجيات'));
+    assert.ok(names.includes('الأمن السيبراني'));
+    assert.ok(names.includes('علم البيانات والذكاء الاصطناعي'));
+  });
+
   it('links Isra programs to global specialty codes', () => {
     const global = new Set(SPECIALTY_CATALOG.map((s) => s.code));
     for (const code of ['BA', 'ACC', 'FIN', 'MIS', 'DMKT', 'DLOG', 'CS', 'CIS', 'SWE', 'CYB', 'DS_AI', 'NET']) {

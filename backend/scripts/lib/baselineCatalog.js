@@ -100,6 +100,19 @@ const REAL_UNIVERSITIES = [
       'Ahliyya Amman University',
     ],
   },
+  {
+    name: 'جامعة الشرق الأوسط',
+    nameEn: 'Middle East University',
+    code: 'middle-east-university',
+    shortName: 'MEU',
+    domain: 'meu.edu.jo',
+    website: 'https://www.meu.edu.jo/',
+    city: 'Amman',
+    country: 'Jordan',
+    contact_email: 'info@meu.edu.jo',
+    nameAliases: ['الشرق الأوسط', 'الشرق الاوسط'],
+    nameEnAliases: ['Middle East University', 'MEU'],
+  },
 ];
 
 const REQUIRED_ROLES = [
@@ -452,6 +465,41 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
         name_en: 'Computer Information Systems',
         code: 'COMPUTER_INFORMATION_SYSTEMS',
         canonicalCode: 'CIS',
+      },
+      {
+        name_ar: 'هندسة البرمجيات',
+        name_en: 'Software Engineering',
+        code: 'SOFTWARE_ENGINEERING',
+        canonicalCode: 'SWE',
+      },
+      {
+        name_ar: 'الأمن السيبراني',
+        name_en: 'Cybersecurity',
+        code: 'CYBERSECURITY',
+        canonicalCode: 'CYB',
+      },
+      {
+        name_ar: 'علم البيانات والذكاء الاصطناعي',
+        name_en: 'Data Science and Artificial Intelligence',
+        code: 'DATA_SCIENCE_AI',
+        canonicalCode: 'DS_AI',
+      },
+    ],
+  },
+  /**
+   * Middle East University — Faculty of Information Technology (official MEU bachelor programs).
+   * Source: meu.edu.jo / sp.meu.edu.jo — Computer Science, Software Engineering, Cybersecurity, Data Science & AI.
+   */
+  {
+    universityDomain: 'meu.edu.jo',
+    collegeNameAr: 'كلية تكنولوجيا المعلومات',
+    collegeNameEn: 'Faculty of Information Technology',
+    programs: [
+      {
+        name_ar: 'علم الحاسوب',
+        name_en: 'Computer Science',
+        code: 'COMPUTER_SCIENCE',
+        canonicalCode: 'CS',
       },
       {
         name_ar: 'هندسة البرمجيات',
