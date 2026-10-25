@@ -44,9 +44,24 @@ describe('Isra + Amman Ahliyya registration catalog', () => {
     ]);
   });
 
-  it('does not attach Amman Ahliyya specialties until requested', () => {
+  it('registers Amman Ahliyya Faculty of IT bachelor majors only', () => {
     const blocks = UNIVERSITY_SPECIALTY_CATALOG.filter((b) => b.universityDomain === 'ammanu.edu.jo');
-    assert.equal(blocks.length, 0);
+    assert.equal(blocks.length, 1);
+    assert.equal(blocks[0].collegeNameAr, 'كلية تقنية المعلومات');
+    assert.equal(blocks[0].collegeNameEn, 'Faculty of Information Technology');
+    assert.deepEqual(blocks[0].programs.map((p) => p.code).sort(), [
+      'COMPUTER_SCIENCE',
+      'DATA_SCIENCE_AI',
+      'NETWORKS_AND_CYBERSECURITY',
+      'SOFTWARE_ENGINEERING',
+    ]);
+    const byCode = Object.fromEntries(blocks[0].programs.map((p) => [p.code, p]));
+    assert.equal(byCode.COMPUTER_SCIENCE.name_ar, 'علم الحاسوب');
+    assert.equal(byCode.SOFTWARE_ENGINEERING.name_ar, 'هندسة البرمجيات');
+    assert.equal(byCode.NETWORKS_AND_CYBERSECURITY.name_ar, 'الشبكات والأمن السيبراني');
+    assert.equal(byCode.DATA_SCIENCE_AI.name_ar, 'علم البيانات والذكاء الاصطناعي');
+    assert.equal(byCode.NETWORKS_AND_CYBERSECURITY.canonicalCode, 'CYB');
+    assert.equal(byCode.DATA_SCIENCE_AI.canonicalCode, 'DS_AI');
   });
 
   it('includes Middle East University IT faculty majors', () => {

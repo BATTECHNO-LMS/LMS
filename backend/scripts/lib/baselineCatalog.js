@@ -521,6 +521,43 @@ const UNIVERSITY_SPECIALTY_CATALOG = [
       },
     ],
   },
+  /**
+   * Al-Ahliyya Amman University — Faculty of Information Technology (official AAU bachelor programs only).
+   * Source: fit.ammanu.edu.jo / AAU FIT student handbook — CS, Software Engineering,
+   * Networks and Cybersecurity, Data Science and Artificial Intelligence.
+   * Do not invent extra IT majors not listed by the faculty.
+   */
+  {
+    universityDomain: 'ammanu.edu.jo',
+    collegeNameAr: 'كلية تقنية المعلومات',
+    collegeNameEn: 'Faculty of Information Technology',
+    programs: [
+      {
+        name_ar: 'علم الحاسوب',
+        name_en: 'Computer Science',
+        code: 'COMPUTER_SCIENCE',
+        canonicalCode: 'CS',
+      },
+      {
+        name_ar: 'هندسة البرمجيات',
+        name_en: 'Software Engineering',
+        code: 'SOFTWARE_ENGINEERING',
+        canonicalCode: 'SWE',
+      },
+      {
+        name_ar: 'الشبكات والأمن السيبراني',
+        name_en: 'Networks and Cybersecurity',
+        code: 'NETWORKS_AND_CYBERSECURITY',
+        canonicalCode: 'CYB',
+      },
+      {
+        name_ar: 'علم البيانات والذكاء الاصطناعي',
+        name_en: 'Data Science and Artificial Intelligence',
+        code: 'DATA_SCIENCE_AI',
+        canonicalCode: 'DS_AI',
+      },
+    ],
+  },
 ];
 
 /**
