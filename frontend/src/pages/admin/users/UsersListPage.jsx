@@ -148,20 +148,24 @@ export function UsersListPage() {
     return filterRows(items.map(mapUserListRow));
   }, [data, filterRows]);
 
-  const roleCounts = data?.role_counts || {};
-
-  const statusCounts = data?.status_counts || {};
-  const totalUsers = data?.meta?.total ?? rows.length;
+  // KPI cards use `summary` (university scope only). Table pagination keeps filtered `meta.total`.
+  const summary = data?.summary;
+  const roleCounts = summary?.role_counts || data?.role_counts || {};
+  const statusCounts = summary?.status_counts || data?.status_counts || {};
+  const totalUsers =
+    typeof summary?.total === 'number' ? summary.total : (data?.meta?.total ?? rows.length);
   const emailVerifiedCount =
-    typeof data?.email_verified_count === 'number'
-      ? data.email_verified_count
-      : rows.filter((r) => r.emailVerified).length;
+    typeof summary?.email_verified_count === 'number'
+      ? summary.email_verified_count
+      : typeof data?.email_verified_count === 'number'
+        ? data.email_verified_count
+        : rows.filter((r) => r.emailVerified).length;
   const stats = {
     total: totalUsers,
     emailVerified: emailVerifiedCount,
     emailUnverified: Math.max(0, totalUsers - emailVerifiedCount),
-    active: statusCounts.active ?? rows.filter((r) => r.status === 'active').length,
-    pendingActivation: statusCounts.inactive ?? rows.filter((r) => r.status === 'inactive').length,
+    active: statusCounts.active ?? 0,
+    pendingActivation: statusCounts.inactive ?? 0,
     admin: roleCounts.admin ?? 0,
     instructor: roleCounts.instructor ?? 0,
     student: roleCounts.student ?? 0,

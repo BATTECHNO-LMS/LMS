@@ -8,7 +8,6 @@ const {
   isSystemWideAdmin,
 } = require('../../utils/universityScope');
 const { prisma } = require('../../config/db');
-const { Prisma } = require('@prisma/client');
 const usersRepository = require('./users.repository');
 const { recordAudit } = require('../../utils/auditRecorder');
 const { buildUsersExportWorkbook } = require('./users.export.excel');
@@ -18,6 +17,7 @@ const {
 } = require('./superAdminPrivilegeBoundary');
 const { assertProgramAdminNotNewlyAssigned } = require('./programAdminAssignmentGuard');
 const { canonicalizeRoleCode, normalizeRoleCodes, ASSIGNABLE_ROLE_CODES, pickPrimaryRoleCode, CANONICAL_ROLE_CODES } = require('../../utils/roleCanon');
+const { buildCanonicalRoleCountMap } = require('./users.roleCounts');
 const { buildListMeta } = require('../../utils/pagination');
 const reviewerAssignment = require('./reviewerAssignment.service');
 const { createNotificationForUser } = require('../../shared/services/notification.service');
@@ -176,12 +176,26 @@ async function listUsers(query, requester = {}) {
     email_verified: query.email_verified,
   });
   if (!isSystemWideAdmin(requester) && !scopedUniversityId) {
+    const emptyRoles = Object.fromEntries(CANONICAL_ROLE_CODES.map((c) => [c, 0]));
     return {
       items: [],
-      role_counts: Object.fromEntries(CANONICAL_ROLE_CODES.map((c) => [c, 0])),
+      role_counts: emptyRoles,
+      status_counts: {},
+      email_verified_count: 0,
+      summary: {
+        total: 0,
+        status_counts: {},
+        email_verified_count: 0,
+        role_counts: emptyRoles,
+      },
       meta: buildListMeta(0, query.page, query.page_size),
     };
   }
+
+  // KPI cards use university scope only (ignore table search/role/status/email filters).
+  const summaryWhere = await usersRepository.buildListWhere({
+    university_id: scopedUniversityId,
+  });
 
   if (query.role) {
     const roleCode = canonicalizeRoleCode(query.role) || String(query.role).toLowerCase();
@@ -202,18 +216,22 @@ async function listUsers(query, requester = {}) {
   const page_size = query.page_size;
   const skip = (page - 1) * page_size;
 
-  const [total, rows, role_counts, statusGroups, emailVerifiedCount] = await Promise.all([
+  const emailVerifiedSummaryWhere =
+    Object.keys(summaryWhere).length === 0
+      ? { email_verified_at: { not: null } }
+      : { AND: [summaryWhere, { email_verified_at: { not: null } }] };
+
+  const [total, rows, role_counts, statusGroups, emailVerifiedCount, summaryTotal] = await Promise.all([
     usersRepository.countMany(where),
     usersRepository.findManyForList(where, skip, page_size),
     countUsersByCanonicalRole(scopedUniversityId, requester),
     prisma.users.groupBy({
       by: ['status'],
-      where,
+      where: summaryWhere,
       _count: { _all: true },
     }),
-    prisma.users.count({
-      where: { AND: [where, { email_verified_at: { not: null } }] },
-    }),
+    prisma.users.count({ where: emailVerifiedSummaryWhere }),
+    usersRepository.countMany(summaryWhere),
   ]);
   const status_counts = Object.fromEntries(
     (statusGroups || []).map((group) => [group.status, group._count._all])
@@ -242,41 +260,45 @@ async function listUsers(query, requester = {}) {
     specialty: u.specialty_id ? specMap.get(u.specialty_id) || null : null,
   }));
 
+  const summary = {
+    total: summaryTotal,
+    status_counts,
+    email_verified_count: emailVerifiedCount,
+    role_counts,
+  };
+
   return {
     items: enriched,
     role_counts,
     status_counts,
     email_verified_count: emailVerifiedCount,
+    summary,
     meta: buildListMeta(total, page, page_size),
   };
 }
 
 async function countUsersByCanonicalRole(scopedUniversityId, requester) {
-  const counts = Object.fromEntries(CANONICAL_ROLE_CODES.map((c) => [c, 0]));
   const scoped = scopedUniversityId && !isSystemWideAdmin(requester) ? scopedUniversityId : null;
+  // Join users so orphaned user_roles (deleted accounts) are not counted.
   const rows = scoped
     ? await prisma.$queryRaw`
-        SELECT r.code AS code, COUNT(ur.user_id)::int AS n
+        SELECT ur.user_id AS user_id, r.code AS code
         FROM user_roles ur
         INNER JOIN roles r ON r.id = ur.role_id
         INNER JOIN users u ON u.id = ur.user_id
-        WHERE r.code IN (${Prisma.join([...CANONICAL_ROLE_CODES])})
-          AND u.primary_university_id = ${scoped}
-        GROUP BY r.code
+        WHERE u.primary_university_id = ${scoped}
+           OR EXISTS (
+             SELECT 1 FROM university_users uu
+             WHERE uu.user_id = u.id AND uu.university_id = ${scoped}
+           )
       `
     : await prisma.$queryRaw`
-        SELECT r.code AS code, COUNT(ur.user_id)::int AS n
+        SELECT ur.user_id AS user_id, r.code AS code
         FROM user_roles ur
         INNER JOIN roles r ON r.id = ur.role_id
-        WHERE r.code IN (${Prisma.join([...CANONICAL_ROLE_CODES])})
-        GROUP BY r.code
+        INNER JOIN users u ON u.id = ur.user_id
       `;
-  for (const row of rows || []) {
-    if (row.code && Object.prototype.hasOwnProperty.call(counts, row.code)) {
-      counts[row.code] = Number(row.n) || 0;
-    }
-  }
-  return counts;
+  return buildCanonicalRoleCountMap(rows);
 }
 
 async function getUserById(id, requester = {}) {

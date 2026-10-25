@@ -336,7 +336,25 @@ async function findUserIdsByRoleCode(roleCode) {
     where: { role_id: role.id },
     select: { user_id: true },
   });
-  return links.map((l) => l.user_id);
+  const ids = [...new Set(links.map((l) => l.user_id))];
+  if (!ids.length) return [];
+  // user_roles has no FK cascade — ignore orphan links for deleted users.
+  const existing = await prisma.users.findMany({
+    where: { id: { in: ids } },
+    select: { id: true },
+  });
+  return existing.map((u) => u.id);
+}
+
+/** Remove role links whose user row no longer exists. */
+async function deleteOrphanUserRoles() {
+  const result = await prisma.$executeRaw`
+    DELETE FROM user_roles ur
+    WHERE NOT EXISTS (
+      SELECT 1 FROM users u WHERE u.id = ur.user_id
+    )
+  `;
+  return Number(result) || 0;
 }
 
 async function findExporterName(userId) {
@@ -410,6 +428,7 @@ module.exports = {
   countUserActivity,
   findManyForExport,
   findUserIdsByRoleCode,
+  deleteOrphanUserRoles,
   findExporterName,
   createUser,
   createUserRoleLinks,
