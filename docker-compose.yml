@@ -30,7 +30,7 @@ services:
       NODE_ENV: production
       PORT: "4000"
       TRUST_PROXY: "true"
-      PRISMA_CONNECTION_LIMIT: "25"
+      PRISMA_CONNECTION_LIMIT: "10"
       PRISMA_POOL_TIMEOUT: "20"
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
       PUPPETEER_SKIP_DOWNLOAD: "true"

@@ -120,12 +120,16 @@ export function RegisterForm() {
       if (result?.requiresEmailVerification) {
         const email = result.email || payload.email;
         setStorageItem(storageKeys.pendingVerificationEmail, email);
+        const deliveryFailed = Boolean(result.emailDeliveryFailed);
         setSuccessModal({
           open: true,
           title: 'تم إنشاء حسابك بنجاح',
-          message:
-            'أرسلنا رمز تحقق إلى بريدك الإلكتروني. بعد توثيق البريد سيبقى الحساب بانتظار تفعيل الإدارة، ويتم التفعيل عادةً خلال 48 ساعة.',
-          note: 'تأكد من توثيق بريدك الإلكتروني ومراجعة البريد الوارد والرسائل غير المرغوب فيها.',
+          message: deliveryFailed
+            ? 'تم إنشاء الحساب، لكن تعذر إرسال رمز التحقق الآن. يمكنك طلب رمز جديد من صفحة توثيق البريد. بعد التوثيق سيبقى الحساب بانتظار تفعيل الإدارة (عادةً خلال 48 ساعة).'
+            : 'أرسلنا رمز تحقق إلى بريدك الإلكتروني. بعد توثيق البريد سيبقى الحساب بانتظار تفعيل الإدارة، ويتم التفعيل عادةً خلال 48 ساعة.',
+          note: deliveryFailed
+            ? 'إن لم يصلك الرمز، استخدم خيار إعادة الإرسال من صفحة التوثيق.'
+            : 'تأكد من توثيق بريدك الإلكتروني ومراجعة البريد الوارد والرسائل غير المرغوب فيها.',
           redirectTo: `/verify-email?email=${encodeURIComponent(email)}`,
         });
         return;
@@ -155,11 +159,23 @@ export function RegisterForm() {
         });
       }
       if (code === 'EMAIL_ALREADY_EXISTS') {
-        setFormError('البريد الإلكتروني مستخدم مسبقًا. يمكنك تسجيل الدخول أو استعادة كلمة المرور.');
+        setFormError('يوجد حساب مسجل بهذا البريد الإلكتروني.');
       } else if (code === 'PHONE_ALREADY_EXISTS') {
         setFormError('رقم الهاتف مستخدم مسبقًا. تحقق من الرقم أو تواصل مع الدعم.');
+      } else if (code === 'EMAIL_DOMAIN_MISMATCH') {
+        setFormError('يرجى إدخال بريد إلكتروني جامعي صحيح يطابق الجامعة المختارة.');
+      } else if (code === 'UNIVERSITY_NOT_FOUND') {
+        setFormError('يرجى اختيار جامعة صحيحة.');
+      } else if (code === 'UNIVERSITY_SPECIALTY_MISMATCH' || code === 'SPECIALTY_INVALID') {
+        setFormError('التخصص المحدد غير متاح ضمن الجامعة المختارة.');
+      } else if (code === 'PASSWORD_TOO_WEAK') {
+        setFormError('كلمة المرور لا تستوفي متطلبات الأمان.');
+      } else if (code === 'VALIDATION_ERROR') {
+        setFormError(getApiErrorMessage(err, 'يرجى مراجعة الحقول وتصحيحها.'));
       } else {
-        setFormError(getApiErrorMessage(err, t('register.submitFailed')));
+        const base = getApiErrorMessage(err, t('register.submitFailed'));
+        const requestId = err?.response?.data?.requestId || err?.requestId;
+        setFormError(requestId ? `${base} (مرجع: ${requestId})` : base);
       }
     }
   }
@@ -205,6 +221,11 @@ export function RegisterForm() {
             id="register-email"
             type="email"
             autoComplete="email"
+            inputMode="email"
+            dir="ltr"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             label={t('register.labels.email')}
             placeholder={t('register.placeholders.email')}
             error={errors.email?.message}
@@ -267,6 +288,8 @@ export function RegisterForm() {
             id="register-phone"
             type="tel"
             autoComplete="tel"
+            inputMode="tel"
+            dir="ltr"
             label={t('register.labels.phone')}
             placeholder={t('register.placeholders.phone')}
             error={errors.phone?.message}
@@ -280,6 +303,7 @@ export function RegisterForm() {
             id="register-password"
             type="password"
             autoComplete="new-password"
+            dir="ltr"
             label={t('register.labels.password')}
             placeholder={t('register.placeholders.password')}
             error={errors.password?.message}
@@ -294,6 +318,7 @@ export function RegisterForm() {
             id="register-confirm-password"
             type="password"
             autoComplete="new-password"
+            dir="ltr"
             label={t('register.labels.confirmPassword')}
             placeholder={t('register.placeholders.confirmPassword')}
             error={errors.confirm_password?.message}

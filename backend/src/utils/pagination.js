@@ -2,8 +2,11 @@ const { z } = require('zod');
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
-/** Admin bulk lists / selectors (e.g. users dropdown, full users table). */
-const ADMIN_MAX_PAGE_SIZE = 500;
+/**
+ * Admin bulk lists / selectors (e.g. users dropdown).
+ * Hard cap — keep aligned with FE selectors (≤300); prefer ≤100 for interactive tables.
+ */
+const ADMIN_MAX_PAGE_SIZE = 300;
 
 const paginationQueryShape = {
   page: z.coerce.number().int().min(1).optional(),

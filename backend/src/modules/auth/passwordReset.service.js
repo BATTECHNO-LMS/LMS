@@ -24,6 +24,7 @@ const { AUTH_ERROR_CODES, messageForCode, maskEmail } = require('../../utils/aut
 const { recordOtpFailure, recordOtpRateLimited } = require('./otpSecurityEvents');
 const { revokeUserSessionsSafely } = require('./authSession.service');
 const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
+const { log } = require('../../utils/logger');
 
 const FORGOT_SUCCESS =
   'إذا كان البريد الإلكتروني مسجلاً لدينا، سيتم إرسال رمز التحقق إليه.';
@@ -35,32 +36,55 @@ const OTP_VERIFIED_SUCCESS = 'تم التحقق من الرمز بنجاح. يم
 const RESET_SUCCESS = 'تم تغيير كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.';
 const INVALID_RESET_SESSION = 'جلسة إعادة التعيين غير صالحة أو منتهية الصلاحية.';
 
-async function issuePasswordResetOtp(user) {
+async function persistPasswordResetOtp(userId, email, codeHash, expiresAt, lastSentAt) {
+  await prisma.$transaction(async (tx) => {
+    await otpRepository.invalidateActiveOtpsForEmail(email, tx);
+    await otpRepository.createOtpRecord(
+      {
+        userId,
+        email,
+        codeHash,
+        expiresAt,
+        lastSentAt,
+      },
+      tx
+    );
+  });
+}
+
+/**
+ * Persist reset OTP then attempt delivery. Email failures must not throw out of
+ * forgot-password (anti-enumeration) and must not roll back the OTP row.
+ *
+ * @returns {Promise<{ email: string, deliveryFailed: boolean }>}
+ */
+async function issuePasswordResetOtp(user, options = {}) {
+  const send = typeof options.send === 'function' ? options.send : sendPasswordResetOtpEmail;
+  const persistOtp =
+    typeof options.persistOtp === 'function' ? options.persistOtp : persistPasswordResetOtp;
   const email = String(user.email).trim().toLowerCase();
   const now = new Date();
   const otp = generateEmailOtpCode();
   const codeHash = hashEmailOtpCode(otp, email);
   const expiresAt = getPasswordResetOtpExpiryDate(now);
 
-  await prisma.$transaction(async (tx) => {
-    await otpRepository.invalidateActiveOtpsForEmail(email, tx);
-    await otpRepository.createOtpRecord(
-      {
-        userId: user.id,
-        email,
-        codeHash,
-        expiresAt,
-        lastSentAt: now,
-      },
-      tx
-    );
-  });
+  await persistOtp(user.id, email, codeHash, expiresAt, now);
 
-  await sendPasswordResetOtpEmail({
-    to: email,
-    otp,
-    name: user.full_name,
-  });
+  try {
+    await send({
+      to: email,
+      otp,
+      name: user.full_name,
+    });
+    return { email, deliveryFailed: false };
+  } catch (err) {
+    log('error', 'Password reset OTP email delivery failed after persist', {
+      to: email.replace(/(.{2}).+(@.+)/, '$1***$2'),
+      category: err?.category || null,
+      error: String(err?.message || 'unknown').slice(0, 200),
+    });
+    return { email, deliveryFailed: true };
+  }
 }
 
 async function requestPasswordReset(email) {
@@ -76,6 +100,7 @@ async function requestPasswordReset(email) {
   });
 
   if (user) {
+    // Always return the generic success message — even if deliveryFailed.
     await issuePasswordResetOtp(user);
     await recordAudit({
       userId: user.id,
@@ -234,6 +259,7 @@ module.exports = {
   resendPasswordResetOtp,
   verifyPasswordResetOtp,
   resetPasswordWithToken,
+  issuePasswordResetOtp,
   FORGOT_SUCCESS,
   RESEND_GENERIC_SUCCESS,
   GENERIC_OTP_ERROR,

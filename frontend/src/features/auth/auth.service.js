@@ -68,6 +68,7 @@ export async function registerStudent(body) {
         requiresEmailVerification: true,
         email: payload.email ?? body.email,
         pending_approval: payload.pending_approval ?? true,
+        emailDeliveryFailed: Boolean(payload.emailDeliveryFailed),
       },
     };
   }

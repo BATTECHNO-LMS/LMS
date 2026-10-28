@@ -26,7 +26,9 @@ function applyPrismaPoolParams(rawUrl, options = {}) {
   const host = hostMatch ? hostMatch[1] : '';
   const isPooler = /-pooler\./i.test(host);
 
-  const connectionLimit = clampInt(options.connectionLimit, 25, 5, 80);
+  // Neon pooler: keep the client pool modest — large limits amplify wait/timeouts under load.
+  const defaultLimit = isPooler ? 10 : 15;
+  const connectionLimit = clampInt(options.connectionLimit, defaultLimit, 3, 40);
   const poolTimeout = clampInt(options.poolTimeout, 20, 5, 60);
   const connectTimeout = clampInt(options.connectTimeout, 15, 5, 60);
 

@@ -14,40 +14,67 @@ const { sendEmailVerificationOtp } = require('../../shared/services/email.servic
 const otpRepository = require('./emailVerificationOtp.repository');
 const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
 const { recordOtpFailure, recordOtpRateLimited } = require('./otpSecurityEvents');
+const { log } = require('../../utils/logger');
 
 const GENERIC_OTP_ERROR = messageForCode(AUTH_ERROR_CODES.INVALID_OTP);
 const RESEND_SUCCESS = 'تم إرسال رمز تحقق جديد إلى بريدك الإلكتروني.';
 const RESEND_GENERIC_SUCCESS = 'إذا كان البريد مسجلاً لدينا، سيتم إرسال رمز تحقق جديد.';
 const ALREADY_VERIFIED = 'البريد الإلكتروني موثّق مسبقًا.';
 
-async function issueEmailVerificationOtp(user) {
+async function persistEmailVerificationOtp(userId, email, codeHash, expiresAt, lastSentAt) {
+  await prisma.$transaction(async (tx) => {
+    await otpRepository.invalidateActiveOtpsForUser(userId, email, tx);
+    await otpRepository.createOtpRecord(
+      {
+        userId,
+        email,
+        codeHash,
+        expiresAt,
+        lastSentAt,
+      },
+      tx
+    );
+  });
+}
+
+/**
+ * Persist a fresh email-verification OTP, then attempt delivery.
+ * Delivery failure must NOT roll back the OTP row (or the already-created user).
+ *
+ * @param {{ id: string, email: string, full_name?: string }} user
+ * @param {{
+ *   send?: typeof sendEmailVerificationOtp,
+ *   persistOtp?: typeof persistEmailVerificationOtp,
+ * }} [options] — injectables for unit tests
+ * @returns {Promise<{ email: string, deliveryFailed: boolean }>}
+ */
+async function issueEmailVerificationOtp(user, options = {}) {
+  const send = typeof options.send === 'function' ? options.send : sendEmailVerificationOtp;
+  const persistOtp =
+    typeof options.persistOtp === 'function' ? options.persistOtp : persistEmailVerificationOtp;
   const email = String(user.email).trim().toLowerCase();
   const now = new Date();
   const otp = generateEmailOtpCode();
   const codeHash = hashEmailOtpCode(otp, email);
   const expiresAt = getOtpExpiryDate(now);
 
-  await prisma.$transaction(async (tx) => {
-    await otpRepository.invalidateActiveOtpsForUser(user.id, email, tx);
-    await otpRepository.createOtpRecord(
-      {
-        userId: user.id,
-        email,
-        codeHash,
-        expiresAt,
-        lastSentAt: now,
-      },
-      tx
-    );
-  });
+  await persistOtp(user.id, email, codeHash, expiresAt, now);
 
-  await sendEmailVerificationOtp({
-    to: email,
-    otp,
-    userName: user.full_name,
-  });
-
-  return { email };
+  try {
+    await send({
+      to: email,
+      otp,
+      userName: user.full_name,
+    });
+    return { email, deliveryFailed: false };
+  } catch (err) {
+    log('error', 'Failed to send verification email', {
+      to: email.replace(/(.{2}).+(@.+)/, '$1***$2'),
+      name: err?.name || null,
+      error: String(err?.message || 'unknown').slice(0, 200),
+    });
+    return { email, deliveryFailed: true };
+  }
 }
 
 async function verifyEmailOtpForUser(email, otp) {
@@ -155,7 +182,15 @@ async function resendEmailVerificationOtp(email) {
     );
   }
 
-  await issueEmailVerificationOtp(user);
+  const issued = await issueEmailVerificationOtp(user);
+  if (issued.deliveryFailed) {
+    throw new ApiError(
+      503,
+      messageForCode(AUTH_ERROR_CODES.EMAIL_DELIVERY_FAILED),
+      null,
+      AUTH_ERROR_CODES.EMAIL_DELIVERY_FAILED
+    );
+  }
   return { message: RESEND_SUCCESS, sent: true };
 }
 

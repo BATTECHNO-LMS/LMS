@@ -15,6 +15,37 @@ export const apiClient = axios.create({
   timeout: 30000,
 });
 
+const SAFE_GET_RETRY_STATUSES = new Set([502, 503, 504]);
+
+function isSafeGetMethod(method) {
+  return String(method || 'get').toLowerCase() === 'get';
+}
+
+function isTransientNetworkError(error) {
+  if (!error || error.response) return false;
+  const code = error.code;
+  return (
+    code === 'ECONNABORTED' ||
+    code === 'ERR_NETWORK' ||
+    code === 'ECONNRESET' ||
+    code === 'ETIMEDOUT' ||
+    code === 'EPIPE'
+  );
+}
+
+function shouldRetrySafeGet(error, config) {
+  if (!config || config.__reliabilityRetried) return false;
+  if (!isSafeGetMethod(config.method)) return false;
+  // Never auto-retry mutations or auth-changing flows.
+  const url = String(config.url || '');
+  if (/\/auth\/(login|register|forgot-password|reset-password|verify)/i.test(url)) {
+    return false;
+  }
+  if (isTransientNetworkError(error)) return true;
+  const status = error.response?.status;
+  return SAFE_GET_RETRY_STATUSES.has(status);
+}
+
 function readConfigHeader(headers, name) {
   if (!headers) return undefined;
   if (typeof headers.get === 'function') {
@@ -65,16 +96,22 @@ async function readErrorCode(data) {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const authHeader = readConfigHeader(error.config?.headers, 'Authorization');
+    const config = error.config;
+    if (shouldRetrySafeGet(error, config)) {
+      await new Promise((r) => setTimeout(r, 400));
+      return apiClient({ ...config, __reliabilityRetried: true });
+    }
+
+    const authHeader = readConfigHeader(config?.headers, 'Authorization');
     const status = error.response?.status;
     const code = await readErrorCode(error.response?.data);
     if (shouldLogoutForResponse({ status, code, hadAuth: Boolean(authHeader) })) {
       triggerUnauthorized(code);
     }
     // Sensitive operation needs a fresh MFA proof: verify in the modal, then retry once.
-    if (status === 403 && code === 'STEP_UP_REQUIRED' && error.config && !error.config.__stepUpRetried) {
+    if (status === 403 && code === 'STEP_UP_REQUIRED' && config && !config.__stepUpRetried) {
       const verified = await requestStepUp(error.response?.data?.details || {});
-      if (verified) return apiClient({ ...error.config, __stepUpRetried: true });
+      if (verified) return apiClient({ ...config, __stepUpRetried: true });
     }
     return Promise.reject(error);
   }

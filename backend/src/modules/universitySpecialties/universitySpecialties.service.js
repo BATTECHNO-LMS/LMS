@@ -1,4 +1,5 @@
 const { ApiError } = require('../../utils/apiError');
+const { AUTH_ERROR_CODES, messageForCode } = require('../../utils/authErrorCatalog');
 const authRepository = require('../auth/auth.repository');
 const universitySpecialtiesRepository = require('./universitySpecialties.repository');
 
@@ -34,7 +35,7 @@ async function assertActiveUniversitySpecialtyForUniversity(universityId, univer
       400,
       'يرجى اختيار التخصص المرتبط بالجامعة المحددة.',
       null,
-      'UNIVERSITY_SPECIALTY_REQUIRED'
+      AUTH_ERROR_CODES.VALIDATION_ERROR
     );
   }
 
@@ -45,9 +46,9 @@ async function assertActiveUniversitySpecialtyForUniversity(universityId, univer
   if (!row) {
     throw new ApiError(
       400,
-      'التخصص المحدد غير مرتبط بالجامعة المختارة.',
+      messageForCode(AUTH_ERROR_CODES.UNIVERSITY_SPECIALTY_MISMATCH),
       null,
-      'UNIVERSITY_SPECIALTY_MISMATCH'
+      AUTH_ERROR_CODES.UNIVERSITY_SPECIALTY_MISMATCH
     );
   }
   return row;

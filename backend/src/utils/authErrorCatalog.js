@@ -22,7 +22,9 @@ const AUTH_ERROR_CODES = Object.freeze({
   OTP_RESEND_COOLDOWN: 'OTP_RESEND_COOLDOWN',
   PASSWORD_TOO_WEAK: 'PASSWORD_TOO_WEAK',
   EMAIL_DOMAIN_MISMATCH: 'EMAIL_DOMAIN_MISMATCH',
+  EMAIL_DELIVERY_FAILED: 'EMAIL_DELIVERY_FAILED',
   UNIVERSITY_NOT_FOUND: 'UNIVERSITY_NOT_FOUND',
+  UNIVERSITY_SPECIALTY_MISMATCH: 'UNIVERSITY_SPECIALTY_MISMATCH',
   SPECIALTY_INVALID: 'SPECIALTY_INVALID',
   NETWORK_ERROR: 'NETWORK_ERROR',
   SERVER_ERROR: 'SERVER_ERROR',
@@ -84,8 +86,12 @@ const AUTH_MESSAGES = Object.freeze({
     'كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل.',
   [AUTH_ERROR_CODES.EMAIL_DOMAIN_MISMATCH]:
     'البريد الإلكتروني لا يطابق نطاقات الجامعة المحددة. استخدم بريدك الجامعي الرسمي.',
+  [AUTH_ERROR_CODES.EMAIL_DELIVERY_FAILED]:
+    'تعذر إرسال رمز التحقق إلى بريدك حاليًا. حاول طلب رمز جديد بعد قليل.',
   [AUTH_ERROR_CODES.UNIVERSITY_NOT_FOUND]:
     'الجامعة المحددة غير متاحة. اختر جامعة أخرى أو تواصل مع الدعم.',
+  [AUTH_ERROR_CODES.UNIVERSITY_SPECIALTY_MISMATCH]:
+    'التخصص المحدد غير مرتبط بالجامعة المختارة.',
   [AUTH_ERROR_CODES.SPECIALTY_INVALID]:
     'التخصص المحدد غير متاح لهذه الجامعة.',
   [AUTH_ERROR_CODES.SERVER_ERROR]:

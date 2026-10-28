@@ -143,13 +143,32 @@ async function start() {
   });
 
   process.on('unhandledRejection', (reason) => {
+    const msg = reason instanceof Error ? reason.message : String(reason);
     // eslint-disable-next-line no-console
-    console.error('Unhandled promise rejection:', reason);
+    console.error(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        level: 'error',
+        service: 'battechno-lms-api',
+        message: 'Unhandled promise rejection',
+        error: String(msg).slice(0, 500),
+      })
+    );
   });
 
   process.on('uncaughtException', (err) => {
     // eslint-disable-next-line no-console
-    console.error('Uncaught exception:', err);
+    console.error(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        level: 'error',
+        service: 'battechno-lms-api',
+        message: 'Uncaught exception',
+        name: err?.name || null,
+        error: String(err?.message || err).slice(0, 500),
+      })
+    );
+    // Native/SIGSEGV crashes exit the process outside this handler; Docker should restart.
   });
 }
 

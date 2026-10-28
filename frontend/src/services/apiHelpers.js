@@ -127,7 +127,15 @@ export function getApiErrorMessage(err, fallback = 'Request failed') {
     if (err?.code === 'ECONNABORTED') {
       return 'انتهت مهلة الاتصال بالمنصة. حاول مرة أخرى.';
     }
+    if (err?.code === 'ERR_NETWORK' || err?.message === 'Network Error') {
+      return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
+    }
     return 'تعذر الاتصال بالمنصة. تحقق من اتصال الإنترنت ثم حاول مرة أخرى.';
+  }
+  if (err.response?.status >= 500) {
+    const requestId = err.response?.data?.requestId;
+    const base = 'تعذر إكمال العملية على الخادم حالياً. حاول مرة أخرى بعد قليل.';
+    return requestId ? `${base} (مرجع: ${requestId})` : base;
   }
   const body = err?.response?.data;
   if (body && typeof Blob !== 'undefined' && body instanceof Blob) {

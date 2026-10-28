@@ -306,6 +306,7 @@ export function AuthProvider({ children }) {
         return {
           requiresEmailVerification: true,
           email: data.email ?? payload.email,
+          emailDeliveryFailed: Boolean(data.emailDeliveryFailed),
         };
       }
       if (data?.pending_approval) {

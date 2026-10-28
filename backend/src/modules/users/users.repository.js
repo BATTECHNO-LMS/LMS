@@ -302,13 +302,19 @@ async function findUniversitySpecialtiesByIds(ids, tx = prisma) {
   });
 }
 
+/** Hard cap for Excel/CSV export — prevents full-table memory blowups. */
+const USERS_EXPORT_MAX_ROWS = 5000;
+
 /**
- * Unpaginated export select — no secrets / OTP / password fields.
+ * Export select — no secrets / OTP / password fields.
+ * Always bounded by USERS_EXPORT_MAX_ROWS.
  */
-async function findManyForExport(where) {
+async function findManyForExport(where, { take = USERS_EXPORT_MAX_ROWS } = {}) {
+  const limit = Math.min(USERS_EXPORT_MAX_ROWS, Math.max(1, Number(take) || USERS_EXPORT_MAX_ROWS));
   return prisma.users.findMany({
     where,
     orderBy: [{ full_name: 'asc' }],
+    take: limit,
     select: {
       id: true,
       full_name: true,
@@ -325,6 +331,10 @@ async function findManyForExport(where) {
   });
 }
 
+/**
+ * Role → user ids for list/export filters.
+ * Single query; orphan user_roles rows are harmless (users.findMany simply omits them).
+ */
 async function findUserIdsByRoleCode(roleCode) {
   if (!roleCode) return null;
   const role = await prisma.roles.findFirst({
@@ -336,14 +346,7 @@ async function findUserIdsByRoleCode(roleCode) {
     where: { role_id: role.id },
     select: { user_id: true },
   });
-  const ids = [...new Set(links.map((l) => l.user_id))];
-  if (!ids.length) return [];
-  // user_roles has no FK cascade — ignore orphan links for deleted users.
-  const existing = await prisma.users.findMany({
-    where: { id: { in: ids } },
-    select: { id: true },
-  });
-  return existing.map((u) => u.id);
+  return [...new Set(links.map((l) => l.user_id))];
 }
 
 /** Remove role links whose user row no longer exists. */
@@ -427,6 +430,7 @@ module.exports = {
   findRecentAuditForUser,
   countUserActivity,
   findManyForExport,
+  USERS_EXPORT_MAX_ROWS,
   findUserIdsByRoleCode,
   deleteOrphanUserRoles,
   findExporterName,

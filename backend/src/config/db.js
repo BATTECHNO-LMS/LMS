@@ -35,9 +35,8 @@ function createPrismaClient() {
 }
 
 const prisma = globalForPrisma.__battechnoPrisma ?? createPrismaClient();
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.__battechnoPrisma = prisma;
-}
+// Always reuse one client per process (production included) to avoid extra pools.
+globalForPrisma.__battechnoPrisma = prisma;
 
 function isTransientDbError(err) {
   if (!err || typeof err !== 'object') return false;

@@ -362,13 +362,14 @@ async function registerInstitution(validated) {
     },
   }).catch(() => null);
 
-  await issueEmailVerificationOtp(user);
+  const otpIssue = await issueEmailVerificationOtp(user);
 
   return {
     requiresEmailVerification: true,
     email: user.email,
     pending_approval: true,
     portal: 'institutions',
+    emailDeliveryFailed: Boolean(otpIssue.deliveryFailed),
   };
 }
 
@@ -376,7 +377,7 @@ async function register(validated) {
   const university = await authRepository.findUniversityById(validated.university_id);
   if (!university) {
     throw new ApiError(
-      404,
+      400,
       messageForCode(AUTH_ERROR_CODES.UNIVERSITY_NOT_FOUND),
       null,
       AUTH_ERROR_CODES.UNIVERSITY_NOT_FOUND
@@ -471,7 +472,7 @@ async function register(validated) {
     universityId: validated.university_id,
     studentEmail: user.email,
     studentName: user.full_name,
-  });
+  }).catch(() => null);
 
   await emitDomainEvent('ACCOUNT_PENDING_ACTIVATION', {
     affectedUserId: user.id,
@@ -486,12 +487,14 @@ async function register(validated) {
     },
   }).catch(() => null);
 
-  await issueEmailVerificationOtp(user);
+  // Account creation already committed; OTP delivery failure must not surface as registration 500.
+  const otpIssue = await issueEmailVerificationOtp(user);
 
   return {
     requiresEmailVerification: true,
     email: user.email,
     pending_approval: true,
+    emailDeliveryFailed: Boolean(otpIssue.deliveryFailed),
   };
 }
 

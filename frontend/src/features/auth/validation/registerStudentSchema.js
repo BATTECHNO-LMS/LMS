@@ -11,7 +11,7 @@ export function createRegisterStudentSchema(t) {
         .string()
         .min(1, t('register.errors.required'))
         .email(t('register.errors.invalidEmail')),
-      password: z.string().min(6, t('register.errors.passwordShort')),
+      password: z.string().min(8, t('register.errors.passwordShort')),
       confirm_password: z.string().min(1, t('register.errors.required')),
       university: z.string().uuid(t('register.errors.universityRequired')),
       specialty: z.string().uuid(t('register.errors.universitySpecialtyRequired')),

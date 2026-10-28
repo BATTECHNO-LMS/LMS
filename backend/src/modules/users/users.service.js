@@ -1191,6 +1191,16 @@ async function exportUsersExcel(query, requester = {}, meta = {}) {
     }
   }
 
+  const exportCount = await usersRepository.countMany(where);
+  if (exportCount > usersRepository.USERS_EXPORT_MAX_ROWS) {
+    throw new ApiError(
+      400,
+      `تعذر التصدير: النتيجة أكبر من ${usersRepository.USERS_EXPORT_MAX_ROWS} صف. ضيّق عوامل التصفية ثم أعد المحاولة.`,
+      { max_rows: usersRepository.USERS_EXPORT_MAX_ROWS, matched: exportCount },
+      'EXPORT_TOO_LARGE'
+    );
+  }
+
   const rows = await usersRepository.findManyForExport(where);
   const withRoles = await mapUsersWithRoles(rows);
 
