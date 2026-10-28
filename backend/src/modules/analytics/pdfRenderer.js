@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
-const puppeteer = require('puppeteer');
 const { ApiError } = require('../../utils/apiError');
+
+/** Lazy-load puppeteer so auth/OTP paths never import Chromium at module init. */
+function loadPuppeteer() {
+  // eslint-disable-next-line global-require
+  return require('puppeteer');
+}
 
 const LAUNCH_TIMEOUT_MS = 25_000;
 const RENDER_TIMEOUT_MS = 45_000;
@@ -90,6 +95,7 @@ async function renderHtmlToPdfOnce(html, options = {}) {
       fs.mkdirSync(dir, { recursive: true });
     }
 
+    const puppeteer = loadPuppeteer();
     browser = await puppeteer.launch({
       headless: true,
       timeout: LAUNCH_TIMEOUT_MS,

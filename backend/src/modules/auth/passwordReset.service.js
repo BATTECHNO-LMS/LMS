@@ -25,6 +25,7 @@ const { recordOtpFailure, recordOtpRateLimited } = require('./otpSecurityEvents'
 const { revokeUserSessionsSafely } = require('./authSession.service');
 const { SESSION_END_REASONS } = require('../../shared/audit/auditActions');
 const { log } = require('../../utils/logger');
+const { getRequestContext } = require('../../shared/requestContext');
 
 const FORGOT_SUCCESS =
   'إذا كان البريد الإلكتروني مسجلاً لدينا، سيتم إرسال رمز التحقق إليه.';
@@ -89,29 +90,59 @@ async function issuePasswordResetOtp(user, options = {}) {
 
 async function requestPasswordReset(email) {
   const normalizedEmail = String(email).trim().toLowerCase();
-  const user = await prisma.users.findUnique({
-    where: { email: normalizedEmail },
-    select: {
-      id: true,
-      email: true,
-      full_name: true,
-      status: true,
-    },
-  });
-
-  if (user) {
-    // Always return the generic success message — even if deliveryFailed.
-    await issuePasswordResetOtp(user);
-    await recordAudit({
-      userId: user.id,
-      actionType: 'PASSWORD_RESET_REQUESTED',
-      entityType: 'user',
-      entityId: user.id,
-      newValues: { identifierMasked: maskEmail(normalizedEmail) },
+  const t0 = Date.now();
+  const requestId = getRequestContext()?.requestId || null;
+  const stage = (name, extra = {}) => {
+    log('info', 'FORGOT_PASSWORD_STAGE', {
+      stage: name,
+      requestId,
+      durationMs: Date.now() - t0,
+      ...extra,
     });
-  }
+  };
 
-  return { message: FORGOT_SUCCESS };
+  try {
+    stage('START');
+    const user = await prisma.users.findUnique({
+      where: { email: normalizedEmail },
+      select: {
+        id: true,
+        email: true,
+        full_name: true,
+        status: true,
+      },
+    });
+    stage('USER_LOOKUP_DONE', { found: Boolean(user) });
+
+    if (user) {
+      // Always return the generic success message — even if deliveryFailed.
+      const issued = await issuePasswordResetOtp(user);
+      stage('OTP_CREATED', { deliveryFailed: Boolean(issued.deliveryFailed) });
+      await recordAudit({
+        userId: user.id,
+        actionType: 'PASSWORD_RESET_REQUESTED',
+        entityType: 'user',
+        entityId: user.id,
+        newValues: { identifierMasked: maskEmail(normalizedEmail) },
+      }).catch(() => null);
+      stage(issued.deliveryFailed ? 'EMAIL_SEND_FAILURE' : 'EMAIL_SEND_SUCCESS');
+    } else {
+      stage('ACCOUNT_NOT_FOUND');
+    }
+
+    stage('RESPONSE_SENT', { status: 200 });
+    return { message: FORGOT_SUCCESS };
+  } catch (err) {
+    // Never turn provider/DB surprises into 5xx that look like gateway failures to users.
+    log('error', 'FORGOT_PASSWORD_UNEXPECTED', {
+      requestId,
+      durationMs: Date.now() - t0,
+      name: err?.name || null,
+      category: err?.category || null,
+      error: String(err?.message || 'unknown').slice(0, 200),
+    });
+    return { message: FORGOT_SUCCESS };
+  }
 }
 
 async function resendPasswordResetOtp(email) {

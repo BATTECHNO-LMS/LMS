@@ -69,9 +69,15 @@ export function ForgotPasswordPage() {
         navigate('/reset-password/verify', { state: { email: normalizedEmail } });
       }, 1200);
     } catch (err) {
+      const status = err?.response?.status;
       const code = err?.response?.data?.code;
-      if (code === 'OTP_RESEND_COOLDOWN') {
+      if (code === 'OTP_RESEND_COOLDOWN' || code === 'AUTH_RATE_LIMIT') {
         setError('تم إرسال عدة طلبات خلال وقت قصير. انتظر قليلًا قبل طلب رمز جديد.');
+      } else if (!err?.response || status === 502 || status === 503 || status === 504) {
+        // Gateway/upstream outage — show Arabic outage copy, never raw status text.
+        const requestId = err?.response?.data?.requestId;
+        const base = 'تعذر إكمال الطلب حاليًا. حاول مرة أخرى بعد قليل.';
+        setError(requestId ? `${base} (مرجع: ${requestId})` : base);
       } else {
         setError(getApiErrorMessage(err, t('forgotPassword.errors.generic')));
       }
@@ -103,6 +109,11 @@ export function ForgotPasswordPage() {
                   id="forgot-email"
                   type="email"
                   autoComplete="email"
+                  inputMode="email"
+                  dir="ltr"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   label={t('login.email')}
                   placeholder={t('login.placeholders.email')}
                   error={errors.email?.message}
